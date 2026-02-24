@@ -1,12 +1,11 @@
 import torch
 
-from ..energy_term import EnergyTerm
-
-from tmol.database import ParameterDatabase
-
 from tmol.chemical.restypes import RefinedResidueType
+from tmol.database import ParameterDatabase
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+
+from ..energy_term import EnergyTerm
 
 
 class RefEnergyTerm(EnergyTerm):
@@ -54,9 +53,7 @@ class RefEnergyTerm(EnergyTerm):
         for bt in packed_block_types.active_block_types:
             ref_weights += [bt.ref_weight]
 
-        ref_weights = torch.as_tensor(
-            ref_weights, dtype=torch.float32, device=self.device
-        )
+        ref_weights = torch.as_tensor(ref_weights, dtype=torch.float32, device=self.device)
 
         setattr(packed_block_types, "ref_weights", ref_weights)
 
@@ -106,9 +103,7 @@ def eval_ref_energy_for_pose(
     real_blocks = block_type_ind_for_rot >= 0
 
     # fill out the scores for the real blocks by dereferencing the block types into the ref weights
-    score[real_blocks] = torch.index_select(
-        ref_weights, 0, block_type_ind_for_rot[real_blocks]
-    )
+    score[real_blocks] = torch.index_select(ref_weights, 0, block_type_ind_for_rot[real_blocks])
 
     if output_block_pair_energies:
         score = torch.diag_embed(score)
@@ -148,9 +143,7 @@ def eval_ref_energy_for_rotamers(
     dtype = ref_weights.dtype
     assert rot_coords.dtype == dtype
     is_real_rot = block_type_ind_for_rot64 >= 0
-    rotamer_scores = torch.index_select(
-        ref_weights, 0, block_type_ind_for_rot64[is_real_rot]
-    )
+    rotamer_scores = torch.index_select(ref_weights, 0, block_type_ind_for_rot64[is_real_rot])
     device = rot_coords.device
 
     if output_block_pair_energies:
@@ -168,5 +161,7 @@ def eval_ref_energy_for_rotamers(
         output_scores.index_add_(0, pose_ind_for_rot64[is_real_rot], rotamer_scores)
         indices = torch.zeros((0,), dtype=torch.int32, device=device)
     output_scores = output_scores.unsqueeze(0)
-    output_scores.requires_grad = True  # a bit of a hack to make the benchmark test not error out because there are no grads
+    output_scores.requires_grad = (
+        True  # a bit of a hack to make the benchmark test not error out because there are no grads
+    )
     return output_scores, indices

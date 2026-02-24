@@ -1,15 +1,16 @@
-import numpy
-import torch
-import attr
-
 from collections import defaultdict
 from typing import Optional, Tuple
-from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
-from tmol.types.functional import validate_args
+
+import attr
+import numpy
+import torch
+
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.types.array import NDArray
+from tmol.types.functional import validate_args
+from tmol.types.torch import Tensor
 
 
 @validate_args
@@ -44,18 +45,14 @@ def assign_block_types(
     nz_is_real_res = torch.nonzero(is_real_res)
 
     if res_not_connected is None:
-        res_not_connected = torch.zeros(
-            (n_poses, max_n_res, 2), dtype=torch.bool, device=device
-        )
+        res_not_connected = torch.zeros((n_poses, max_n_res, 2), dtype=torch.bool, device=device)
 
     (
         termini_variants,
         is_actual_first_chain_res,
         is_actual_last_chain_res,
         is_polymeric,
-    ) = determine_chain_ending_status(
-        pbt, chain_id, res_types64, res_not_connected, is_real_res
-    )
+    ) = determine_chain_ending_status(pbt, chain_id, res_types64, res_not_connected, is_real_res)
 
     block_type_ind64 = select_best_block_type_candidate(
         canonical_ordering,
@@ -71,9 +68,7 @@ def assign_block_types(
     # UGH: stealing/duplicating a lot of code from pose_stack_builder below
     # SHOULD THIS JUST GO IN POSE_STACK_BUILDER AND REPLACE ITS EXISTING CODE???
     # SHOULD POSE_STACK_BUILDER BE DEPRECATED??
-    inter_residue_connections64 = torch.full(
-        (n_poses, max_n_res, max_n_conn, 2), -1, dtype=torch.int64, device=device
-    )
+    inter_residue_connections64 = torch.full((n_poses, max_n_res, max_n_conn, 2), -1, dtype=torch.int64, device=device)
 
     # is a residue both polymeric and connected to the previous residue?
     res_is_polymeric_and_conn_to_prev = torch.logical_and(
@@ -91,12 +86,8 @@ def assign_block_types(
         ),
     )
 
-    connected_up_conn_inds = pbt.up_conn_inds[
-        block_type_ind64[res_is_polymeric_and_conn_to_next]
-    ].to(torch.int64)
-    connected_down_conn_inds = pbt.down_conn_inds[
-        block_type_ind64[res_is_polymeric_and_conn_to_prev]
-    ].to(torch.int64)
+    connected_up_conn_inds = pbt.up_conn_inds[block_type_ind64[res_is_polymeric_and_conn_to_next]].to(torch.int64)
+    connected_down_conn_inds = pbt.down_conn_inds[block_type_ind64[res_is_polymeric_and_conn_to_prev]].to(torch.int64)
 
     (
         nz_res_is_poly_and_conn_to_prev_pose_ind,
@@ -140,34 +131,26 @@ def assign_block_types(
     # if we have any disulfides, then we need to also mark those
     # connections in the inter_residue_connections64 map
     if found_disulfides64.shape[0] != 0:
-        cyd1_block_type64 = block_type_ind64[
-            found_disulfides64[:, 0], found_disulfides64[:, 1]
-        ]
-        cyd2_block_type64 = block_type_ind64[
-            found_disulfides64[:, 0], found_disulfides64[:, 2]
-        ]
+        cyd1_block_type64 = block_type_ind64[found_disulfides64[:, 0], found_disulfides64[:, 1]]
+        cyd2_block_type64 = block_type_ind64[found_disulfides64[:, 0], found_disulfides64[:, 2]]
 
         # n- and c-term CYD residues will have different dslf connection inds
         # than mid-cyd residues; therefore we don't just hard code "2" here
-        cyd1_dslf_conn64 = pbt.canonical_dslf_conn_ind[cyd1_block_type64].to(
-            torch.int64
-        )
-        cyd2_dslf_conn64 = pbt.canonical_dslf_conn_ind[cyd2_block_type64].to(
-            torch.int64
-        )
+        cyd1_dslf_conn64 = pbt.canonical_dslf_conn_ind[cyd1_block_type64].to(torch.int64)
+        cyd2_dslf_conn64 = pbt.canonical_dslf_conn_ind[cyd2_block_type64].to(torch.int64)
 
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 0
-        ] = found_disulfides64[:, 2]
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 1
-        ] = cyd2_dslf_conn64
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 0
-        ] = found_disulfides64[:, 1]
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 1
-        ] = cyd1_dslf_conn64
+        inter_residue_connections64[found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 0] = (
+            found_disulfides64[:, 2]
+        )
+        inter_residue_connections64[found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 1] = (
+            cyd2_dslf_conn64
+        )
+        inter_residue_connections64[found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 0] = (
+            found_disulfides64[:, 1]
+        )
+        inter_residue_connections64[found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 1] = (
+            cyd1_dslf_conn64
+        )
 
     # now that we have the inter-residue connections established,
     # proceed with the rest of the PoseStackBuilder's steps
@@ -179,9 +162,7 @@ def assign_block_types(
         pconn_offsets,
         block_n_conn,
         pose_n_pconn,
-    ) = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(
-        pbt, block_type_ind64, is_real_res
-    )
+    ) = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(pbt, block_type_ind64, is_real_res)
 
     # 3b
     PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
@@ -264,9 +245,7 @@ def determine_chain_ending_status(
         ),
     )
     is_polymeric = torch.zeros_like(is_chain_first_res)
-    is_polymeric[is_real_res] = can_ann.co_equiv_class_is_polymeric[
-        res_types64[is_real_res]
-    ]
+    is_polymeric[is_real_res] = can_ann.co_equiv_class_is_polymeric[res_types64[is_real_res]]
 
     # another way a residue might be declared as a chain-ending residue is if
     # the next residue is not polymeric yet is declared to be part of the same chain
@@ -303,12 +282,8 @@ def determine_chain_ending_status(
         ),
     )
 
-    is_actual_first_chain_res = torch.logical_or(
-        is_chain_first_res, prev_res_on_same_chain_not_polymeric
-    )
-    is_actual_last_chain_res = torch.logical_or(
-        is_chain_last_res, next_res_on_same_chain_not_polymeric
-    )
+    is_actual_first_chain_res = torch.logical_or(is_chain_first_res, prev_res_on_same_chain_not_polymeric)
+    is_actual_last_chain_res = torch.logical_or(is_chain_last_res, next_res_on_same_chain_not_polymeric)
 
     is_down_term_res = torch.logical_and(
         is_actual_first_chain_res,
@@ -318,12 +293,8 @@ def determine_chain_ending_status(
         is_actual_last_chain_res,
         torch.logical_not(res_not_connected[:, :, 1]),
     )
-    is_down_and_not_up_term_res = torch.logical_and(
-        is_down_term_res, torch.logical_not(is_up_term_res)
-    )
-    is_up_and_not_down_term_res = torch.logical_and(
-        is_up_term_res, torch.logical_not(is_down_term_res)
-    )
+    is_down_and_not_up_term_res = torch.logical_and(is_down_term_res, torch.logical_not(is_up_term_res))
+    is_up_and_not_down_term_res = torch.logical_and(is_up_term_res, torch.logical_not(is_down_term_res))
     is_both_down_and_up_term_res = torch.logical_and(is_down_term_res, is_up_term_res)
 
     # note which polymeric residues should be given their chain-ending
@@ -472,13 +443,9 @@ def select_best_block_type_candidate(
     is_real_cand_for_real_res = can_ann.var_combo_is_real_candidate[
         real_res_res_types64, real_res_termini_variants, real_res_res_type_variants64
     ]
-    real_candidate_block_type = real_res_block_type_candidates[
-        is_real_cand_for_real_res
-    ]
+    real_candidate_block_type = real_res_block_type_candidates[is_real_cand_for_real_res]
     atom_is_present = atom_is_present.unsqueeze(2).expand(-1, -1, max_n_candidates, -1)
-    real_candidate_atom_is_absent = can_ann.bt_canonical_atom_is_absent[
-        real_candidate_block_type
-    ]
+    real_candidate_atom_is_absent = can_ann.bt_canonical_atom_is_absent[real_candidate_block_type]
 
     real_candidate_provided_atoms_absent = torch.logical_and(
         atom_is_present[is_real_candidate], real_candidate_atom_is_absent
@@ -486,29 +453,20 @@ def select_best_block_type_candidate(
 
     # if there are any atoms that were provided for a given residue
     # but that the variant does not contain, then that is not a match
-    real_candidate_should_be_excluded = torch.any(
-        real_candidate_provided_atoms_absent, dim=1
-    )
+    real_candidate_should_be_excluded = torch.any(real_candidate_provided_atoms_absent, dim=1)
     atom_is_absent = torch.logical_not(atom_is_present)
-    real_candidate_non_term_patch_atom_is_present = (
-        can_ann.bt_non_term_patch_added_canonical_atom_is_present[
-            real_candidate_block_type
-        ]
-    )
+    real_candidate_non_term_patch_atom_is_present = can_ann.bt_non_term_patch_added_canonical_atom_is_present[
+        real_candidate_block_type
+    ]
 
     real_candidate_canonical_atom_was_not_provided = torch.logical_and(
         atom_is_absent[is_real_candidate], real_candidate_non_term_patch_atom_is_present
     )
-    real_candidate_is_non_default_term = can_ann.bt_is_non_default_terminus[
-        real_candidate_block_type
-    ].to(torch.int64)
+    real_candidate_is_non_default_term = can_ann.bt_is_non_default_terminus[real_candidate_block_type].to(torch.int64)
 
-    real_candidate_n_canonical_atoms_not_provided = torch.sum(
-        real_candidate_canonical_atom_was_not_provided, dim=1
-    )
+    real_candidate_n_canonical_atoms_not_provided = torch.sum(real_candidate_canonical_atom_was_not_provided, dim=1)
     real_candidate_misalignment_score = (
-        2 * real_candidate_n_canonical_atoms_not_provided
-        + real_candidate_is_non_default_term
+        2 * real_candidate_n_canonical_atoms_not_provided + real_candidate_is_non_default_term
     )
     failure_score = 2 * (canonical_ordering.max_n_canonical_atoms + 1)
     real_candidate_misalignment_score[real_candidate_should_be_excluded] = failure_score
@@ -529,9 +487,7 @@ def select_best_block_type_candidate(
     # ok, we need to do some quality checks. If the best fit variant's score is
     # 2 * (canonical_ordering.max_n_canonical_atoms + 1) or worse, then we have
     # a problem. It's hard to know what to do at this point!
-    best_candidate_score = torch.zeros(
-        (n_poses, max_n_res), dtype=torch.int64, device=device
-    )
+    best_candidate_score = torch.zeros((n_poses, max_n_res), dtype=torch.int64, device=device)
     best_candidate_score[is_real_res] = candidate_misalignment_score2[
         nz_is_real_res[:, 0],
         nz_is_real_res[:, 1],
@@ -539,7 +495,6 @@ def select_best_block_type_candidate(
     ]
 
     if torch.any(best_candidate_score >= failure_score):
-
         nz_is_real_candidate = torch.nonzero(is_real_candidate)
         err_msg = []
         for cand_ind in range(nz_is_real_candidate.shape[0]):
@@ -549,9 +504,7 @@ def select_best_block_type_candidate(
 
             if best_candidate_score[i, j] < failure_score:
                 continue
-            ij_equiv_class = canonical_ordering.restype_io_equiv_classes[
-                res_types64[i, j]
-            ]
+            ij_equiv_class = canonical_ordering.restype_io_equiv_classes[res_types64[i, j]]
             err_msg.append("Failed to resolve block type for")
             err_msg.extend([str(x) for x in [i.item(), j.item()]])
             err_msg.append(str(ij_equiv_class) + "\n")
@@ -572,24 +525,18 @@ def select_best_block_type_candidate(
                 ]
             )
             err_msg.extend([str(x) for x in (res_types64[i, j].item(), "equiv class")])
-            err_msg.append(
-                canonical_ordering.restype_io_equiv_classes[res_types64[i, j]] + "\n"
-            )
+            err_msg.append(canonical_ordering.restype_io_equiv_classes[res_types64[i, j]] + "\n")
 
             if real_candidate_should_be_excluded[cand_ind]:
                 equiv_class = cand_bt.io_equiv_class
-                for l in range(
-                    len(canonical_ordering.restypes_ordered_atom_names[equiv_class])
-                ):
+                for l in range(len(canonical_ordering.restypes_ordered_atom_names[equiv_class])):
                     if real_candidate_provided_atoms_absent[cand_ind, l]:
                         err_msg.extend(
                             [
                                 str(x)
                                 for x in (
                                     " atom",
-                                    canonical_ordering.restypes_ordered_atom_names[
-                                        equiv_class
-                                    ][l],
+                                    canonical_ordering.restypes_ordered_atom_names[equiv_class][l],
                                     "provided but absent from candidate",
                                     cand_bt.name + "\n",
                                 )
@@ -651,9 +598,7 @@ def take_block_type_atoms_from_canonical(
     n_poses = block_types64.shape[0]
     max_n_blocks = block_types64.shape[1]
     real_block_types = block_types64 != -1
-    real_atoms = torch.zeros(
-        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=pbt.device
-    )
+    real_atoms = torch.zeros((n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=pbt.device)
     real_atoms[real_block_types] = pbt.atom_is_real[block_types64[real_block_types]]
 
     canonical_atom_inds = torch.full(
@@ -663,31 +608,19 @@ def take_block_type_atoms_from_canonical(
         device=pbt.device,
     )
 
-    canonical_atom_inds[real_block_types] = can_ann.bt_canonical_atom_ind_map[
-        block_types64[real_block_types]
-    ]
+    canonical_atom_inds[real_block_types] = can_ann.bt_canonical_atom_ind_map[block_types64[real_block_types]]
     nz_real_pose_ind, nz_real_block_ind, _ = torch.nonzero(real_atoms, as_tuple=True)
 
-    block_coords = torch.zeros(
-        (n_poses, max_n_blocks, pbt.max_n_atoms, 3), dtype=torch.float32, device=device
-    )
-    missing_atoms = torch.zeros(
-        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=pbt.device
-    )
+    block_coords = torch.zeros((n_poses, max_n_blocks, pbt.max_n_atoms, 3), dtype=torch.float32, device=device)
+    missing_atoms = torch.zeros((n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=pbt.device)
     real_canonical_atom_inds = canonical_atom_inds[real_atoms]
-    block_coords[real_atoms] = coords[
-        nz_real_pose_ind, nz_real_block_ind, real_canonical_atom_inds
-    ]
+    block_coords[real_atoms] = coords[nz_real_pose_ind, nz_real_block_ind, real_canonical_atom_inds]
     missing_atoms[real_atoms] = torch.logical_not(
         atom_is_present[nz_real_pose_ind, nz_real_block_ind, real_canonical_atom_inds]
     )
 
-    canonical_atom_occupancy = numpy.zeros(
-        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
-    )
-    canonical_atom_b_factor = numpy.zeros(
-        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
-    )
+    canonical_atom_occupancy = numpy.zeros((n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32)
+    canonical_atom_b_factor = numpy.zeros((n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32)
 
     if atom_occupancy is not None:
         canonical_atom_occupancy[real_atoms.cpu().numpy()] = atom_occupancy[
@@ -792,9 +725,7 @@ def _get_co_equiv_class_is_polymeric(co, n_co_io_equiv_classes, bts_for_equiv_cl
     # We will consider the entire IO equivalence class to be
     # polymeric if a single block type within that equivalence class
     # is polymeric.
-    co_equiv_class_is_polymeric = torch.zeros(
-        (n_co_io_equiv_classes,), dtype=torch.bool, device=torch.device("cpu")
-    )
+    co_equiv_class_is_polymeric = torch.zeros((n_co_io_equiv_classes,), dtype=torch.bool, device=torch.device("cpu"))
     for i, io_equiv_class in enumerate(co.restype_io_equiv_classes):
         for bt in bts_for_equiv_class[io_equiv_class]:
             if bt.properties.polymer.is_polymer:
@@ -846,12 +777,8 @@ def _collect_var_combo_candidates(
             continue
         for j in range(max_n_termini_types):
             for k in range(max_n_special_case_aa_variant_types):
-                var_combo_n_candidates[i, j, k] = len(
-                    pbt_io_equiv_class_candidates[bt_name3][j][k]
-                )
-                for l, (bt, bt_ind) in enumerate(
-                    pbt_io_equiv_class_candidates[bt_name3][j][k]
-                ):
+                var_combo_n_candidates[i, j, k] = len(pbt_io_equiv_class_candidates[bt_name3][j][k])
+                for l, (bt, bt_ind) in enumerate(pbt_io_equiv_class_candidates[bt_name3][j][k]):
                     var_combo_candidate_bt_index[i, j, k, l] = bt_ind
                     var_combo_is_real_candidate[i, j, k, l] = True
     return (
@@ -911,15 +838,10 @@ def _note_atoms_present_and_absent_from_variants(co, pbt: PackedBlockTypes):
 
 def _create_bt_to_canonical_atom_mapping(co, pbt: PackedBlockTypes):
     bt_ind_to_canonical_ind = torch.tensor(
-        [
-            co.restype_io_equiv_classes.index(bt.io_equiv_class)
-            for bt in pbt.active_block_types
-        ],
+        [co.restype_io_equiv_classes.index(bt.io_equiv_class) for bt in pbt.active_block_types],
         dtype=torch.int64,
     )
-    bt_canonical_atom_ind = numpy.full(
-        (pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int64
-    )
+    bt_canonical_atom_ind = numpy.full((pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int64)
     for i, bt in enumerate(pbt.active_block_types):
         assert bt.io_equiv_class in co.restypes_ordered_atom_names
         i_canonical_ordering = co.restypes_ordered_atom_names[bt.io_equiv_class]
@@ -932,27 +854,19 @@ def _create_bt_to_canonical_atom_mapping(co, pbt: PackedBlockTypes):
 
 
 @validate_args
-def _annotate_packed_block_types_w_canonical_res_order(
-    canonical_ordering, pbt: PackedBlockTypes
-):
+def _annotate_packed_block_types_w_canonical_res_order(canonical_ordering, pbt: PackedBlockTypes):
     co = canonical_ordering
 
     if hasattr(pbt, "canonical_ordering_annotation"):
         return
 
     max_n_termini_types = 4  # 0=down-term, 1=mid, 2=up-term, 3=down+up
-    max_n_special_case_aa_variant_types = (
-        3  # CYS=0, CYD=1; HISE=0, HISD=1; HIS_POS=2; all others, 0
-    )
+    max_n_special_case_aa_variant_types = 3  # CYS=0, CYD=1; HISE=0, HISD=1; HIS_POS=2; all others, 0
 
-    pbt_io_equiv_class_name_set = set(
-        [bt.io_equiv_class for bt in pbt.active_block_types]
-    )
+    pbt_io_equiv_class_name_set = set([bt.io_equiv_class for bt in pbt.active_block_types])
 
     pbt_io_equiv_class_candidates = {
-        io_equiv_class: _term_and_spcase_var_candidate_lists(
-            max_n_termini_types, max_n_special_case_aa_variant_types
-        )
+        io_equiv_class: _term_and_spcase_var_candidate_lists(max_n_termini_types, max_n_special_case_aa_variant_types)
         for io_equiv_class in pbt_io_equiv_class_name_set
     }
     bt_is_non_default_terminus = torch.zeros((pbt.n_types,), dtype=torch.bool)
@@ -963,12 +877,8 @@ def _annotate_packed_block_types_w_canonical_res_order(
     n_co_io_equiv_classes = co.n_restype_io_equiv_classes
 
     for i, bt in enumerate(pbt.active_block_types):
-        term_ind, spcase_var_ind, bt_is_non_default_term = _assign_var_inds_for_bt(
-            co, bt
-        )
-        pbt_io_equiv_class_candidates[bt.io_equiv_class][term_ind][
-            spcase_var_ind
-        ].append((bt, i))
+        term_ind, spcase_var_ind, bt_is_non_default_term = _assign_var_inds_for_bt(co, bt)
+        pbt_io_equiv_class_candidates[bt.io_equiv_class][term_ind][spcase_var_ind].append((bt, i))
         bt_is_non_default_terminus[i] = bt_is_non_default_term
 
     max_n_candidates_for_var_combo = max(
@@ -986,9 +896,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
     # We will consider the entire IO equivalence class to be
     # polymeric if a single block type within that equivalence class
     # is polymeric.
-    co_equiv_class_is_polymeric = _get_co_equiv_class_is_polymeric(
-        co, n_co_io_equiv_classes, bts_for_equiv_class
-    )
+    co_equiv_class_is_polymeric = _get_co_equiv_class_is_polymeric(co, n_co_io_equiv_classes, bts_for_equiv_class)
 
     (
         var_combo_candidate_bt_index,
@@ -1006,9 +914,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
         _note_atoms_present_and_absent_from_variants(co, pbt)
     )
 
-    (bt_ind_to_canonical_ind, bt_canonical_atom_ind) = (
-        _create_bt_to_canonical_atom_mapping(co, pbt)
-    )
+    (bt_ind_to_canonical_ind, bt_canonical_atom_ind) = _create_bt_to_canonical_atom_mapping(co, pbt)
 
     def _d(x):
         return x.to(pbt.device)
@@ -1020,9 +926,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
         var_combo_is_real_candidate=_d(var_combo_is_real_candidate),
         var_combo_candidate_bt_index=_d(var_combo_candidate_bt_index),
         bt_canonical_atom_is_absent=_d(bt_canonical_atom_is_absent),
-        bt_non_term_patch_added_canonical_atom_is_present=_d(
-            bt_non_term_patch_added_canonical_atom_is_present
-        ),
+        bt_non_term_patch_added_canonical_atom_is_present=_d(bt_non_term_patch_added_canonical_atom_is_present),
         bt_is_non_default_terminus=_d(bt_is_non_default_terminus),
         bt_ind_to_canonical_io_equiv_class_ind=_d(bt_ind_to_canonical_ind),
         bt_canonical_atom_ind_map=_d(bt_canonical_atom_ind),
@@ -1039,7 +943,5 @@ def _annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
     for i, bt in enumerate(pbt.active_block_types):
         if "dslf" in bt.connection_to_cidx:
             canonical_dslf_conn_ind[i] = bt.connection_to_cidx["dslf"]
-    canonical_dslf_conn_ind = torch.tensor(
-        canonical_dslf_conn_ind, dtype=torch.int64, device=pbt.device
-    )
+    canonical_dslf_conn_ind = torch.tensor(canonical_dslf_conn_ind, dtype=torch.int64, device=pbt.device)
     setattr(pbt, "canonical_dslf_conn_ind", canonical_dslf_conn_ind)

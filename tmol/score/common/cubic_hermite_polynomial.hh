@@ -11,7 +11,7 @@ namespace common {
   template <typename Real> \
   auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
-def interpolate_t(Real t, Real p0, Real dp0, Real p1, Real dp1)->Real {
+def interpolate_t(Real t, Real p0, Real dp0, Real p1, Real dp1) -> Real {
   // Cubic interpolation of p on t in [0, 1].
 
   // clang-format off
@@ -21,7 +21,7 @@ def interpolate_t(Real t, Real p0, Real dp0, Real p1, Real dp1)->Real {
   // clang-format on
 }
 
-def interpolate_dt(Real t, Real p0, Real dp0, Real p1, Real dp1)->Real {
+def interpolate_dt(Real t, Real p0, Real dp0, Real p1, Real dp1) -> Real {
   // Cubic interpolation of dp/dt on t in [0, 1].
 
   // clang-format off
@@ -33,7 +33,7 @@ def interpolate_dt(Real t, Real p0, Real dp0, Real p1, Real dp1)->Real {
 
 def interpolate(
     Real x, Real x0, Real p0, Real dpdx0, Real x1, Real p1, Real dpdx1)
-    ->Real {
+    -> Real {
   // Cubic interpolation of p on x in [x0, x1].
   Real t = (x - x0) / (x1 - x0);
   Real dp0 = dpdx0 * (x1 - x0);
@@ -48,7 +48,7 @@ def interpolate(
 
 def interpolate_dx(
     Real x, Real x0, Real p0, Real dpdx0, Real x1, Real p1, Real dpdx1)
-    ->Real {
+    -> Real {
   // Cubic interpolation of dp/dx on x in [x0, x1].
   Real t = (x - x0) / (x1 - x0);
   Real dp0 = dpdx0 * (x1 - x0);
@@ -65,7 +65,7 @@ def interpolate_dx(
 
 def interpolate_V_dV(
     Real x, Real x0, Real p0, Real dpdx0, Real x1, Real p1, Real dpdx1)
-    ->tuple<Real, Real> {
+    -> tuple<Real, Real> {
   // Cubic interpolation of p, dp/dx on x in [x0, x1].
   Real t = (x - x0) / (x1 - x0);
   Real dp0 = dpdx0 * (x1 - x0);
@@ -83,7 +83,7 @@ def interpolate_V_dV(
   return {p, dp / (x1 - x0)};
 }
 
-def interpolate_to_zero_t(Real t, Real p0, Real dp0)->Real {
+def interpolate_to_zero_t(Real t, Real p0, Real dp0) -> Real {
   // Cubic interpolation of p on t in [0, 1] to (p1, dp1) == 0.
 
   // clang-format off
@@ -91,7 +91,7 @@ def interpolate_to_zero_t(Real t, Real p0, Real dp0)->Real {
   // clang-format on
 }
 
-def interpolate_to_zero_dt(Real t, Real p0, Real dp0)->Real {
+def interpolate_to_zero_dt(Real t, Real p0, Real dp0) -> Real {
   // Cubic interpolation of dp/dt on t in [0, 1] to (p1, dp1) == 0.
 
   // clang-format off
@@ -99,7 +99,7 @@ def interpolate_to_zero_dt(Real t, Real p0, Real dp0)->Real {
   // clang-format on
 }
 
-def interpolate_to_zero(Real x, Real x0, Real p0, Real dpdx0, Real x1)->Real {
+def interpolate_to_zero(Real x, Real x0, Real p0, Real dpdx0, Real x1) -> Real {
   // Cubic interpolation of p on x in [x0, x1] to (p1, dpdx1) == 0 at x1
   Real t = (x - x0) / (x1 - x0);
   Real dp0 = dpdx0 * (x1 - x0);
@@ -110,7 +110,7 @@ def interpolate_to_zero(Real x, Real x0, Real p0, Real dpdx0, Real x1)->Real {
 }
 
 def interpolate_to_zero_dx(Real x, Real x0, Real p0, Real dpdx0, Real x1)
-    ->Real {
+    -> Real {
   // Cubic interpolation of dp/dx on x in [x0, x1] to (p1, dpdx1) == 0 at x1.
   Real t = (x - x0) / (x1 - x0);
   Real dp0 = dpdx0 * (x1 - x0);
@@ -123,7 +123,7 @@ def interpolate_to_zero_dx(Real x, Real x0, Real p0, Real dpdx0, Real x1)
 }
 
 def interpolate_to_zero_V_dV(Real x, Real x0, Real p0, Real dpdx0, Real x1)
-    ->tuple<Real, Real> {
+    -> tuple<Real, Real> {
   // Cubic interpolation of dp/dx on x in [x0, x1] to (p1, dpdx1) == 0 at x1.
   Real t = (x - x0) / (x1 - x0);
   Real dp0 = dpdx0 * (x1 - x0);

@@ -1,18 +1,14 @@
-import numpy
 import math
 
-import pytest
-
-from tmol.tests.torch import requires_cuda
-
-import torch
-
-import torch.cuda
 import numba.cuda
-
+import numpy
+import pytest
+import torch
+import torch.cuda
 from numba.cuda import as_cuda_array, is_cuda_array
 
 import tmol.utility.numba  # noqa
+from tmol.tests.torch import requires_cuda
 
 
 @requires_cuda
@@ -67,9 +63,7 @@ def test_array_adaptor():
         strided_numba_view = as_cuda_array(strided_cudat)
 
         # Previous bug with numba (~0.40) copies of strided data device->host
-        assert (
-            strided_cudat.to("cpu") == torch.tensor(strided_numba_view.copy_to_host())
-        ).all()
+        assert (strided_cudat.to("cpu") == torch.tensor(strided_numba_view.copy_to_host())).all()
 
         # Can workaround with a strided result buffer for the copy.
         result_buffer = numpy.empty(10, dtype=strided_numba_view.dtype)

@@ -1,20 +1,18 @@
-import torch
 import time
 
+import torch
+
+from tmol.pack.compiled.compiled import build_interaction_graph
+from tmol.pack.datatypes import PackerEnergyTables
+from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
+from tmol.pack.packer_task import PackerTask
+from tmol.pack.rotamer.build_rotamers import build_rotamers
+from tmol.pack.simulated_annealing import run_simulated_annealing
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_function import ScoreFunction
 
-from tmol.pack.compiled.compiled import build_interaction_graph
-from tmol.pack.packer_task import PackerTask
-from tmol.pack.rotamer.build_rotamers import build_rotamers
-from tmol.pack.datatypes import PackerEnergyTables
-from tmol.pack.simulated_annealing import run_simulated_annealing
-from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
 
-
-def pack_rotamers(
-    pose_stack: PoseStack, sfxn: ScoreFunction, task: PackerTask, verbose=False
-):
+def pack_rotamers(pose_stack: PoseStack, sfxn: ScoreFunction, task: PackerTask, verbose=False):
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     start_time = time.perf_counter()
@@ -36,19 +34,17 @@ def pack_rotamers(
 
     chunk_size = 16
 
-    (energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            energies.indices().to(torch.int32),
-            energies.values(),
-        )
+    (energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = build_interaction_graph(
+        chunk_size,
+        rotamer_set.n_rots_for_pose,
+        rotamer_set.rot_offset_for_pose,
+        rotamer_set.n_rots_for_block,
+        rotamer_set.rot_offset_for_block,
+        rotamer_set.pose_for_rot,
+        rotamer_set.block_type_ind_for_rot,
+        rotamer_set.block_ind_for_rot,
+        energies.indices().to(torch.int32),
+        energies.values(),
     )
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -76,9 +72,7 @@ def pack_rotamers(
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time5 = time.perf_counter()
-    new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack, rotamer_set, rotamer_assignments
-    )
+    new_pose_stack = impose_top_rotamer_assignments(pose_stack, rotamer_set, rotamer_assignments)
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time6 = time.perf_counter()
@@ -86,9 +80,9 @@ def pack_rotamers(
     if verbose:
         print(
             f"pack_rotamers {end_time6 - start_time: .2f}"
-            + f" build rots: {end_time1-start_time: .2f} calcRPEs: {end_time2 - end_time1: .2f}"
-            + f" build IG: {end_time3-end_time2: .2f} build IG part2: {end_time4 - end_time3: .2f}"
-            + f" run SA: {end_time5-end_time4: .2f} pose ctor: {end_time6 - end_time5: .2f}"
+            + f" build rots: {end_time1 - start_time: .2f} calcRPEs: {end_time2 - end_time1: .2f}"
+            + f" build IG: {end_time3 - end_time2: .2f} build IG part2: {end_time4 - end_time3: .2f}"
+            + f" run SA: {end_time5 - end_time4: .2f} pose ctor: {end_time6 - end_time5: .2f}"
         )
 
     return new_pose_stack

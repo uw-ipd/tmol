@@ -1,18 +1,15 @@
-import torch
 import attrs
-
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.score_function import ScoreFunction
-from tmol.kinematics.datatypes import NodeType, BondDOFTypes, JumpDOFTypes
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
+import torch
 
 from tmol.kinematics.compiled import inverse_kin
+from tmol.kinematics.datatypes import BondDOFTypes, JumpDOFTypes, NodeType
+from tmol.kinematics.script_modules import PoseStackKinematicsModule
+from tmol.pose.pose_stack import PoseStack
+from tmol.score.score_function import ScoreFunction
 
 
 class CartesianSfxnNetwork(torch.nn.Module):
-    def __init__(
-        self, score_function: ScoreFunction, pose_stack: PoseStack, coord_mask=None
-    ):
+    def __init__(self, score_function: ScoreFunction, pose_stack: PoseStack, coord_mask=None):
         super(CartesianSfxnNetwork, self).__init__()
 
         wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
@@ -83,13 +80,9 @@ class KinForestSfxnNetwork(torch.nn.Module):
             #   Enable minimization of 6 dofs for jump atoms
             #   - RBx, y, z, and
             #   - RBdel_alpha, beta, gamma
-            dof_mask = torch.zeros(
-                raw_dofs.shape, dtype=torch.bool, device=torch_device
-            )
+            dof_mask = torch.zeros(raw_dofs.shape, dtype=torch.bool, device=torch_device)
             dof_mask[kmd.forest.doftype == NodeType.bond, BondDOFTypes.phi_c] = True
-            dof_mask[
-                kmd.forest.doftype == NodeType.jump, : JumpDOFTypes.RBdel_gamma
-            ] = True
+            dof_mask[kmd.forest.doftype == NodeType.jump, : JumpDOFTypes.RBdel_gamma] = True
         self.dof_mask = dof_mask
 
         self.masked_dofs = torch.nn.Parameter(self.full_dofs[self.dof_mask])

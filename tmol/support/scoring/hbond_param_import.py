@@ -8,23 +8,20 @@ types.
 Example::
 
     with open("sp2_elec_hbond_params.yaml", "w") as outfile:
-        params = RosettaHBParams(
-            "~/workspace/rosetta/main/"
-            "database/scoring/score_functions/hbonds/sp2_elec_params/"
-        )
+        params = RosettaHBParams("~/workspace/rosetta/main/database/scoring/score_functions/hbonds/sp2_elec_params/")
         params.to_yaml(outfile)
 """
 
+import io
+import os
+
+import attr
+import IPython.lib.pretty
 import numpy
 import pandas
-import yaml
-import attr
 import toolz
+import yaml
 from toolz.curried import reduce
-
-import os
-import io
-import IPython.lib.pretty
 
 table_schema = yaml.safe_load(
     """
@@ -145,29 +142,22 @@ class RosettaHBParams:
         "hbacc_H2O",
     )
 
-    path: str = attr.ib(
-        converter=toolz.compose(os.path.abspath, os.path.expanduser, os.path.expandvars)
-    )
+    path: str = attr.ib(converter=toolz.compose(os.path.abspath, os.path.expanduser, os.path.expandvars))
     tables: RawParams = attr.ib()
 
     @tables.default
     def _load_tables(self):
         return RawParams(
-            **{
-                t: pandas.read_csv(
-                    f"{self.path}/{t}.csv", header=None, names=table_schema[t]
-                )
-                for t in table_schema
-            }
+            **{t: pandas.read_csv(f"{self.path}/{t}.csv", header=None, names=table_schema[t]) for t in table_schema}
         )
 
     donor_types: pandas.DataFrame = attr.ib()
 
     @donor_types.default
     def _load_donor_types(self):
-        donor_table = pandas.merge(
-            self.tables.HBDonChemType, pandas.DataFrame({"name": self.target_donors})
-        ).drop(["id"], axis="columns")
+        donor_table = pandas.merge(self.tables.HBDonChemType, pandas.DataFrame({"name": self.target_donors})).drop(
+            ["id"], axis="columns"
+        )
 
         assert len(donor_table) == len(self.target_donors)
         return donor_table
@@ -180,9 +170,9 @@ class RosettaHBParams:
             (
                 self.tables.HBAccChemType.drop(["id"], axis="columns"),
                 pandas.DataFrame({"name": self.target_acceptors}),
-                self.tables.HBAccHybridization[
-                    ["acc_chem_type", "hybridization"]
-                ].rename(columns={"acc_chem_type": "name"}),
+                self.tables.HBAccHybridization[["acc_chem_type", "hybridization"]].rename(
+                    columns={"acc_chem_type": "name"}
+                ),
             )
         )
 
@@ -212,9 +202,9 @@ class RosettaHBParams:
             )
         )
 
-        assert len(pair_params.groupby(["don_chem_type", "acc_chem_type"])) == len(
-            self.target_acceptors
-        ) * len(self.target_donors)
+        assert len(pair_params.groupby(["don_chem_type", "acc_chem_type"])) == len(self.target_acceptors) * len(
+            self.target_donors
+        )
 
         return pair_params
 
@@ -231,9 +221,7 @@ class RosettaHBParams:
             "cosAHD_long",
         )
 
-        poly_names = reduce(set.union)(
-            (set(self.pair_params[c].values) for c in term_names)
-        )
+        poly_names = reduce(set.union)((set(self.pair_params[c].values) for c in term_names))
 
         poly_param_table = pandas.merge(
             self.tables.HBPoly1D.drop(["id", "classic_name"], axis="columns"),
@@ -241,12 +229,8 @@ class RosettaHBParams:
         )
 
         for c in term_names:
-            merged = pandas.merge(
-                self.pair_params[c].to_frame("name"), poly_param_table
-            )
-            assert len(merged) == len(
-                self.pair_params[c]
-            ), f"Missing poly parameter set: {c}"
+            merged = pandas.merge(self.pair_params[c].to_frame("name"), poly_param_table)
+            assert len(merged) == len(self.pair_params[c]), f"Missing poly parameter set: {c}"
 
         return poly_param_table
 
@@ -254,13 +238,9 @@ class RosettaHBParams:
         if not outfile:
             obuf = io.StringIO()
 
-            p = IPython.lib.pretty.PrettyPrinter(
-                output=obuf, max_width=int(1e6), max_seq_length=int(1e6)
-            )
+            p = IPython.lib.pretty.PrettyPrinter(output=obuf, max_width=int(1e6), max_seq_length=int(1e6))
         else:
-            p = IPython.lib.pretty.PrettyPrinter(
-                output=outfile, max_width=int(1e6), max_seq_length=int(1e6)
-            )
+            p = IPython.lib.pretty.PrettyPrinter(output=outfile, max_width=int(1e6), max_seq_length=int(1e6))
 
         def _(t):
             p.break_()
@@ -275,23 +255,17 @@ class RosettaHBParams:
 
             _("sp2_acceptors:")
             with p.group(2):
-                for _i, a in self.acceptor_types.query(
-                    "hybridization == 'SP2_HYBRID'"
-                ).iterrows():
+                for _i, a in self.acceptor_types.query("hybridization == 'SP2_HYBRID'").iterrows():
                     _(f"- {a['name']} #{a['comment']}")
 
             _("sp3_acceptors:")
             with p.group(2):
-                for _i, a in self.acceptor_types.query(
-                    "hybridization == 'SP3_HYBRID'"
-                ).iterrows():
+                for _i, a in self.acceptor_types.query("hybridization == 'SP3_HYBRID'").iterrows():
                     _(f"- {a['name']} #{a['comment']}")
 
             _("ring_acceptors:")
             with p.group(2):
-                for _i, a in self.acceptor_types.query(
-                    "hybridization == 'RING_HYBRID'"
-                ).iterrows():
+                for _i, a in self.acceptor_types.query("hybridization == 'RING_HYBRID'").iterrows():
                     _(f"- {a['name']} #{a['comment']}")
 
         _("polynomial_parameters:")
@@ -299,11 +273,7 @@ class RosettaHBParams:
             for r in self.polynomial_parameters.to_dict(orient="records"):
                 p.break_()
                 p.text("- {")
-                p.text(
-                    ", ".join(
-                        f"{c}: {r[c]}" for c in self.polynomial_parameters.columns
-                    )
-                )
+                p.text(", ".join(f"{c}: {r[c]}" for c in self.polynomial_parameters.columns))
                 p.text("}")
 
         _("pair_parameters:")
@@ -329,9 +299,7 @@ basetype_for_dtype = {
 
 def attrs_for_dtypes(name, dtypes):
     obuf = io.StringIO()
-    p = IPython.lib.pretty.PrettyPrinter(
-        output=obuf, max_width=int(1e6), max_seq_length=int(1e6)
-    )
+    p = IPython.lib.pretty.PrettyPrinter(output=obuf, max_width=int(1e6), max_seq_length=int(1e6))
 
     p.text("@attr.s(auto_attribs=True, slots=True, frozen=True)")
     p.break_()

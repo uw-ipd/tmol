@@ -11,25 +11,17 @@ def test_max_n_blocks(ubq_40_60_pose_stack):
 
 
 def test_max_n_atoms(ubq_40_60_pose_stack):
-    assert (
-        ubq_40_60_pose_stack.max_n_atoms
-        == ubq_40_60_pose_stack.packed_block_types.max_n_atoms
-    )
+    assert ubq_40_60_pose_stack.max_n_atoms == ubq_40_60_pose_stack.packed_block_types.max_n_atoms
 
 
 def test_max_n_block_atoms(ubq_40_60_pose_stack):
-    assert (
-        ubq_40_60_pose_stack.max_n_block_atoms
-        == ubq_40_60_pose_stack.packed_block_types.max_n_atoms
-    )
+    assert ubq_40_60_pose_stack.max_n_block_atoms == ubq_40_60_pose_stack.packed_block_types.max_n_atoms
 
 
 def test_max_n_pose_atoms(ubq_40_60_pose_stack):
     ps = ubq_40_60_pose_stack
     pbt = ps.packed_block_types
-    actual_n_atoms = sum(
-        pbt.active_block_types[ps.block_type_ind64[1, i]].n_atoms for i in range(60)
-    )
+    actual_n_atoms = sum(pbt.active_block_types[ps.block_type_ind64[1, i]].n_atoms for i in range(60))
     assert ubq_40_60_pose_stack.max_n_pose_atoms == actual_n_atoms
 
 
@@ -40,12 +32,8 @@ def test_n_ats_per_pose_block(ubq_40_60_pose_stack):
             j_bt = ubq_40_60_pose_stack.block_type_ind[i, j]
             if j_bt < 0:
                 continue
-            n_ats_per_block_gold[i, j] = (
-                ubq_40_60_pose_stack.packed_block_types.active_block_types[j_bt].n_atoms
-            )
-    numpy.testing.assert_equal(
-        n_ats_per_block_gold, ubq_40_60_pose_stack.n_ats_per_block.cpu().numpy()
-    )
+            n_ats_per_block_gold[i, j] = ubq_40_60_pose_stack.packed_block_types.active_block_types[j_bt].n_atoms
+    numpy.testing.assert_equal(n_ats_per_block_gold, ubq_40_60_pose_stack.n_ats_per_block.cpu().numpy())
 
 
 def test_real_atoms(ubq_40_60_pose_stack):
@@ -55,9 +43,7 @@ def test_real_atoms(ubq_40_60_pose_stack):
     real_ats_gold[0, : n_ats_per_pose[0]] = 1
     real_ats_gold[1, : n_ats_per_pose[1]] = 1
 
-    numpy.testing.assert_equal(
-        real_ats_gold.numpy(), ubq_40_60_pose_stack.real_atoms.cpu().numpy()
-    )
+    numpy.testing.assert_equal(real_ats_gold.numpy(), ubq_40_60_pose_stack.real_atoms.cpu().numpy())
 
 
 def test_expand_coords(ubq_40_60_pose_stack, torch_device):
@@ -80,15 +66,9 @@ def test_expand_coords(ubq_40_60_pose_stack, torch_device):
                 continue
             ij_nats = n_ats_per_block[i, j]
             ij_offset = poses.block_coord_offset[i, j]
-            expanded_coords_gold[i, j, :ij_nats] = poses.coords[
-                i, ij_offset : (ij_offset + ij_nats)
-            ]
+            expanded_coords_gold[i, j, :ij_nats] = poses.coords[i, ij_offset : (ij_offset + ij_nats)]
             real_expanded_coords_gold[i, j, :ij_nats] = True
 
     expanded_coords, real_expanded_coords = poses.expand_coords()
-    numpy.testing.assert_equal(
-        expanded_coords_gold.cpu().numpy(), expanded_coords.cpu().numpy()
-    )
-    numpy.testing.assert_equal(
-        real_expanded_coords.cpu().numpy(), real_expanded_coords.cpu().numpy()
-    )
+    numpy.testing.assert_equal(expanded_coords_gold.cpu().numpy(), expanded_coords.cpu().numpy())
+    numpy.testing.assert_equal(real_expanded_coords.cpu().numpy(), real_expanded_coords.cpu().numpy())

@@ -1,9 +1,7 @@
 from tmol.score.bond_dependent_term import BondDependentTerm
 
 
-def test_create_pose_bond_separation_two_ubq(
-    ubq_40_60_pose_stack, default_database, torch_device
-):
+def test_create_pose_bond_separation_two_ubq(ubq_40_60_pose_stack, default_database, torch_device):
     bdt = BondDependentTerm(param_db=default_database, device=torch_device)
     bdt.setup_poses(ubq_40_60_pose_stack)
 

@@ -1,6 +1,6 @@
-import numpy
-
 from functools import singledispatch
+
+import numpy
 
 
 @singledispatch
@@ -24,8 +24,7 @@ def pack_cdjson(coords, elems, bonds):
         "m": [
             {
                 "a": [
-                    {"l": str(e), "x": float(c[0]), "y": float(c[1]), "z": float(c[2])}
-                    for e, c in zip(elems, coords)
+                    {"l": str(e), "x": float(c[0]), "y": float(c[1]), "z": float(c[2])} for e, c in zip(elems, coords)
                 ],
                 "b": [
                     {"b": int(b), "e": int(e)}

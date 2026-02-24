@@ -1,26 +1,23 @@
+import dataclasses
+from dataclasses import dataclass
+from functools import partial
+from itertools import count
+
 import attr
-
-import torch
 import numpy
+import torch
 
-from ..energy_term import EnergyTerm
-
+from tmol.chemical.restypes import RefinedResidueType
 from tmol.database import ParameterDatabase
-from tmol.score.dunbrack.params import DunbrackParamResolver
-from tmol.score.dunbrack.params import ScoringDunbrackDatabaseView
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pose_stack import PoseStack
+from tmol.score.dunbrack.params import DunbrackParamResolver, ScoringDunbrackDatabaseView
 from tmol.score.dunbrack.potentials.compiled import (
     dunbrack_pose_scores,
     dunbrack_rotamer_scores,
 )
 
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-
-from itertools import count
-from functools import partial
-from dataclasses import dataclass
-import dataclasses
+from ..energy_term import EnergyTerm
 
 
 @dataclass
@@ -44,12 +41,9 @@ class DunbrackEnergyTerm(EnergyTerm):
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super(DunbrackEnergyTerm, self).__init__(param_db=param_db, device=device)
 
-        self.global_params = DunbrackParamResolver.from_database(
-            param_db.scoring.dun, device
-        )
+        self.global_params = DunbrackParamResolver.from_database(param_db.scoring.dun, device)
         self.dunbrack_db = [
-            getattr(self.global_params.scoring_db, field.name)
-            for field in attr.fields(ScoringDunbrackDatabaseView)
+            getattr(self.global_params.scoring_db, field.name) for field in attr.fields(ScoringDunbrackDatabaseView)
         ]
         self.device = device
 
@@ -72,25 +66,17 @@ class DunbrackEnergyTerm(EnergyTerm):
         if hasattr(block_type, "dunbrack_attrs"):
             return
 
-        inds = self.global_params.all_table_indices.index.get_indexer(
-            [block_type.base_name]
-        )
-        r_inds = self.global_params.rotameric_table_indices.index.get_indexer(
-            [block_type.base_name]
-        )
-        s_inds = self.global_params.semirotameric_table_indices.index.get_indexer(
-            [block_type.base_name]
-        )
+        inds = self.global_params.all_table_indices.index.get_indexer([block_type.base_name])
+        r_inds = self.global_params.rotameric_table_indices.index.get_indexer([block_type.base_name])
+        s_inds = self.global_params.semirotameric_table_indices.index.get_indexer([block_type.base_name])
 
-        inds[inds != -1] = self.global_params.all_table_indices.iloc[inds[inds != -1]][
+        inds[inds != -1] = self.global_params.all_table_indices.iloc[inds[inds != -1]]["dun_table_name"].values
+        r_inds[r_inds != -1] = self.global_params.rotameric_table_indices.iloc[r_inds[r_inds != -1]][
             "dun_table_name"
         ].values
-        r_inds[r_inds != -1] = self.global_params.rotameric_table_indices.iloc[
-            r_inds[r_inds != -1]
-        ]["dun_table_name"].values
-        s_inds[s_inds != -1] = self.global_params.semirotameric_table_indices.iloc[
-            s_inds[s_inds != -1]
-        ]["dun_table_name"].values
+        s_inds[s_inds != -1] = self.global_params.semirotameric_table_indices.iloc[s_inds[s_inds != -1]][
+            "dun_table_name"
+        ].values
 
         rotamer_table_set = inds[0]
         rotameric_index = r_inds[0]
@@ -100,11 +86,7 @@ class DunbrackEnergyTerm(EnergyTerm):
         semirotameric_tableset_offset = (
             numpy.array(-1)
             if not semirotameric
-            else self.global_params.scoring_db_aux.semirotameric_tableset_offsets[
-                s_inds[s_inds != -1]
-            ][0]
-            .cpu()
-            .numpy()
+            else self.global_params.scoring_db_aux.semirotameric_tableset_offsets[s_inds[s_inds != -1]][0].cpu().numpy()
         )
 
         empty_tor = numpy.full((4, 3), -1, dtype=numpy.int32)
@@ -124,27 +106,19 @@ class DunbrackEnergyTerm(EnergyTerm):
 
         dih_uaids = numpy.array([phi_uaids] + [psi_uaids] + chis)
 
-        n_chi = self.global_params.scoring_db_aux.nchi_for_table_set[
-            rotamer_table_set
-        ].item()
+        n_chi = self.global_params.scoring_db_aux.nchi_for_table_set[rotamer_table_set].item()
         n_rotameric_chi = n_chi - (1 if semirotameric else 0)
         n_dihedrals = n_chi + 2
 
         probability_table_offset = int(
-            self.global_params.scoring_db_aux.rotameric_prob_tableset_offsets[
-                rotameric_index
-            ].item()
+            self.global_params.scoring_db_aux.rotameric_prob_tableset_offsets[rotameric_index].item()
         )
 
         mean_table_offset = int(
-            self.global_params.scoring_db_aux.rotameric_meansdev_tableset_offsets[
-                rotamer_table_set
-            ].item()
+            self.global_params.scoring_db_aux.rotameric_meansdev_tableset_offsets[rotamer_table_set].item()
         )
         rotamer_index_to_table_index_offset = int(
-            self.global_params.scoring_db_aux.rotameric_chi_ri2ti_offsets[
-                rotamer_table_set
-            ].item()
+            self.global_params.scoring_db_aux.rotameric_chi_ri2ti_offsets[rotamer_table_set].item()
         )
 
         dunbrack_attrs = DunbrackBlockAttrs(
@@ -182,15 +156,12 @@ class DunbrackEnergyTerm(EnergyTerm):
         )
 
         packed_data = [
-            pack(lambda f: getattr(f.dunbrack_attrs, field.name))
-            for field in dataclasses.fields(DunbrackBlockAttrs)
+            pack(lambda f: getattr(f.dunbrack_attrs, field.name)) for field in dataclasses.fields(DunbrackBlockAttrs)
         ]
 
         setattr(packed_block_types, "dunbrack_packed_block_data", packed_data)
 
-    def pack_data_keyed_on_block_type(
-        self, active_block_types, field_getter, device, default_fill=-1
-    ):
+    def pack_data_keyed_on_block_type(self, active_block_types, field_getter, device, default_fill=-1):
         max_size = None
         dtype = None
         for bt in active_block_types:
@@ -214,9 +185,7 @@ class DunbrackEnergyTerm(EnergyTerm):
             torch.int64: torch.int32,
         }
 
-        tensor = torch.full(
-            size, default_fill, dtype=dtype_conversion[dtype], device=device
-        )
+        tensor = torch.full(size, default_fill, dtype=dtype_conversion[dtype], device=device)
 
         def dim_slices(dim):
             return slice(0, dim)
@@ -225,14 +194,8 @@ class DunbrackEnergyTerm(EnergyTerm):
             bt_data = field_getter(bt)
             if bt_data is None:
                 continue
-            slices = [i] + (
-                [*map(dim_slices, bt_data.shape)]
-                if not isinstance(bt_data, int)
-                else []
-            )
-            tensor[tuple(slices)] = torch.tensor(
-                bt_data, dtype=dtype_conversion[dtype], device=device
-            )
+            slices = [i] + ([*map(dim_slices, bt_data.shape)] if not isinstance(bt_data, int) else [])
+            tensor[tuple(slices)] = torch.tensor(bt_data, dtype=dtype_conversion[dtype], device=device)
 
         return tensor
 

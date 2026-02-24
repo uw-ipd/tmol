@@ -1,23 +1,22 @@
 import numpy
 import torch
 
-from .params import LKBallBlockTypeParams, LKBallPackedBlockTypesParams
-
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.database import ParameterDatabase
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pose_stack import PoseStack
+from tmol.score.common.convert_float64 import convert_float64
+from tmol.score.common.stack_condense import arg_tile_subset_indices
 from tmol.score.lk_ball.potentials.compiled import (
+    gen_pose_waters,
     lk_ball_pose_score,
     lk_ball_rotamer_score,
-    gen_pose_waters,
 )
+
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..hbond.hbond_dependent_term import HBondDependentTerm
 from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver
-from tmol.database import ParameterDatabase
-
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.common.stack_condense import arg_tile_subset_indices
-from tmol.score.common.convert_float64 import convert_float64
+from .params import LKBallBlockTypeParams, LKBallPackedBlockTypesParams
 
 
 class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
@@ -75,9 +74,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         polar_inds = numpy.nonzero(atom_is_polar)[0].astype(numpy.int32)
 
         tile_size = LKBallEnergyTerm.tile_size
-        tiled_polar_orig_inds, tile_n_polar = arg_tile_subset_indices(
-            polar_inds, tile_size, block_type.n_atoms
-        )
+        tiled_polar_orig_inds, tile_n_polar = arg_tile_subset_indices(polar_inds, tile_size, block_type.n_atoms)
         tiled_polar_orig_inds = tiled_polar_orig_inds.reshape(n_tiles, tile_size)
 
         is_tiled_polar = tiled_polar_orig_inds != -1
@@ -91,17 +88,13 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
         # "apolar" here means "does not build waters"; e.g. proline's N would be
         # considered apolar.
-        atom_is_heavy_apolar = numpy.logical_and(
-            atom_is_heavy, numpy.invert(atom_is_polar)
-        )
+        atom_is_heavy_apolar = numpy.logical_and(atom_is_heavy, numpy.invert(atom_is_polar))
         heavy_apolar_inds = numpy.nonzero(atom_is_heavy_apolar)[0].astype(numpy.int32)
 
         tiled_heavy_apolar_orig_inds, tile_n_apolar = arg_tile_subset_indices(
             heavy_apolar_inds, tile_size, block_type.n_atoms
         )
-        tiled_heavy_apolar_orig_inds = tiled_heavy_apolar_orig_inds.reshape(
-            n_tiles, tile_size
-        )
+        tiled_heavy_apolar_orig_inds = tiled_heavy_apolar_orig_inds.reshape(n_tiles, tile_size)
         is_tiled_heavy_apolar = tiled_heavy_apolar_orig_inds != -1
         tiled_heavy_apolar = numpy.full((n_tiles, tile_size), -1, dtype=numpy.int32)
         tiled_heavy_apolar[is_tiled_heavy_apolar] = heavy_apolar_inds
@@ -142,12 +135,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             ),
             axis=1,
         )
-        tiled_bt_lk_ball_at_params = numpy.zeros(
-            (n_tiles, tile_size, 8), dtype=numpy.float32
-        )
-        tiled_bt_lk_ball_at_params[is_pol_or_occ] = bt_lk_ball_at_params[
-            tiled_pols_and_occs[is_pol_or_occ]
-        ]
+        tiled_bt_lk_ball_at_params = numpy.zeros((n_tiles, tile_size, 8), dtype=numpy.float32)
+        tiled_bt_lk_ball_at_params[is_pol_or_occ] = bt_lk_ball_at_params[tiled_pols_and_occs[is_pol_or_occ]]
 
         bt_lk_ball_params = LKBallBlockTypeParams(
             tile_n_polar_atoms=tile_n_polar,
@@ -167,12 +156,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
         tile_n_polar_atoms = numpy.full((n_types, n_tiles), 0, dtype=numpy.int32)
         tile_n_occluder_atoms = numpy.full((n_types, n_tiles), 0, dtype=numpy.int32)
-        tile_pol_occ_inds = numpy.full(
-            (n_types, n_tiles, tile_size), -1, dtype=numpy.int32
-        )
-        tile_lk_ball_params = numpy.full(
-            (n_types, n_tiles, tile_size, 8), 0, dtype=numpy.float32
-        )
+        tile_pol_occ_inds = numpy.full((n_types, n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_lk_ball_params = numpy.full((n_types, n_tiles, tile_size, 8), 0, dtype=numpy.float32)
 
         for i, bt in enumerate(packed_block_types.active_block_types):
             i_lkbp = bt.lk_ball_params

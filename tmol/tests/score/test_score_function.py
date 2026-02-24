@@ -1,19 +1,19 @@
-import torch
 import numpy
+import torch
 
-from tmol.score import _non_memoized_beta2016
-from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
-from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol import (
-    pose_stack_from_pdb,
     beta2016_score_function,
     canonical_form_from_pdb,
     default_canonical_ordering,
     default_packed_block_types,
     pose_stack_from_canonical_form,
+    pose_stack_from_pdb,
 )
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.score import _non_memoized_beta2016
+from tmol.score.score_function import ScoreFunction
+from tmol.score.score_types import ScoreType
 
 
 def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
@@ -47,9 +47,7 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
         def xyz(x, y, z):
             return torch.tensor((x, y, z), dtype=torch.float32, device=torch_device)
 
-        canonical_form = canonical_form_from_pdb(
-            co, ubq_pdb, torch_device, residue_start=0, residue_end=nres
-        )
+        canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_start=0, residue_end=nres)
         if add_vrt:
             vrt_co_ind = co.restype_io_equiv_classes.index("VRT")
             # print("vrt_co_ind", vrt_co_ind)
@@ -69,19 +67,13 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
             orig_chain_id = canonical_form.chain_id
 
             ocis = orig_chain_id.shape
-            new_chain_id = torch.zeros(
-                (ocis[0], ocis[1] + 1), dtype=torch.int32, device=torch_device
-            )
+            new_chain_id = torch.zeros((ocis[0], ocis[1] + 1), dtype=torch.int32, device=torch_device)
             new_chain_id[0, :-1] = orig_chain_id
-            new_chain_id[0, -1] = (
-                orig_chain_id[0, -1] + 1
-            )  # give the vrt res a new chain id
+            new_chain_id[0, -1] = orig_chain_id[0, -1] + 1  # give the vrt res a new chain id
 
             orig_restypes = canonical_form.res_types
             ors = orig_restypes.shape
-            new_restypes = torch.full(
-                (ors[0], ors[1] + 1), -1, dtype=torch.int32, device=torch_device
-            )
+            new_restypes = torch.full((ors[0], ors[1] + 1), -1, dtype=torch.int32, device=torch_device)
             new_restypes[0, :-1] = orig_restypes
             new_restypes[0, -1] = vrt_co_ind
 
@@ -131,12 +123,8 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
 
         return pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
-    ps_wo_vrt = PoseStackBuilder.from_poses(
-        [pose_stack_of_nres(x, False) for x in [4, 6, 5]], torch_device
-    )
-    ps_w_vrt = PoseStackBuilder.from_poses(
-        [pose_stack_of_nres(x, True) for x in [4, 6, 5]], torch_device
-    )
+    ps_wo_vrt = PoseStackBuilder.from_poses([pose_stack_of_nres(x, False) for x in [4, 6, 5]], torch_device)
+    ps_w_vrt = PoseStackBuilder.from_poses([pose_stack_of_nres(x, True) for x in [4, 6, 5]], torch_device)
 
     sfxn = beta2016_score_function(torch_device)
     scorer_wo_vrt = sfxn.render_whole_pose_scoring_module(ps_wo_vrt)
@@ -160,10 +148,7 @@ def test_score_function_all_score_types(ubq_pdb):
     wpsm = sfxn.render_whole_pose_scoring_module(ps)
     unweighted_scores = wpsm.unweighted_scores(ps.coords)
     score_types = sfxn.all_score_types()
-    unweighted_score_map = {
-        st: unweighted_scores[i, :].detach().cpu().numpy()
-        for i, st in enumerate(score_types)
-    }
+    unweighted_score_map = {st: unweighted_scores[i, :].detach().cpu().numpy() for i, st in enumerate(score_types)}
 
     def n(x):
         return numpy.array(x)
@@ -194,9 +179,7 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.dunbrack_semirot: n([99.660904]),
     }
     for st in score_types:
-        numpy.testing.assert_allclose(
-            unweighted_score_map[st], gold_score_map[st], rtol=1e-4, atol=1e-4
-        )
+        numpy.testing.assert_allclose(unweighted_score_map[st], gold_score_map[st], rtol=1e-4, atol=1e-4)
 
 
 def test_score_function_one_body_terms_getter():

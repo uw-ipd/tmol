@@ -1,10 +1,9 @@
 import numpy
 
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.pose.pose_stack import PoseStack
-from tmol.pack.rotamer.conformer_sampler import ConformerSampler
 from tmol.pack.rotamer.chi_sampler import ChiSampler
-
+from tmol.pack.rotamer.conformer_sampler import ConformerSampler
+from tmol.pose.pose_stack import PoseStack
 
 # Architecture is borrowed from Rosetta3:
 # PackerTask: a class holding data describing how the
@@ -51,26 +50,17 @@ class PackerPalette:
         for bt in self.rts.residue_types:
             if (
                 bt.properties.polymer.is_polymer == orig.properties.polymer.is_polymer
-                and bt.properties.polymer.polymer_type
-                == orig.properties.polymer.polymer_type
-                and bt.properties.polymer.backbone_type
-                == orig.properties.polymer.backbone_type
-                and bt.connections
-                == orig.connections  # fd  use this instead of terminal variant check
+                and bt.properties.polymer.polymer_type == orig.properties.polymer.polymer_type
+                and bt.properties.polymer.backbone_type == orig.properties.polymer.backbone_type
+                and bt.connections == orig.connections  # fd  use this instead of terminal variant check
                 and set_compare(
                     bt.properties.chemical_modifications,
                     orig.properties.chemical_modifications,
                 )
-                and set_compare(
-                    bt.properties.connectivity, orig.properties.connectivity
-                )
-                and bt.properties.protonation.protonation_state
-                == orig.properties.protonation.protonation_state
+                and set_compare(bt.properties.connectivity, orig.properties.connectivity)
+                and bt.properties.protonation.protonation_state == orig.properties.protonation.protonation_state
             ):
-                if (
-                    bt.properties.polymer.sidechain_chirality
-                    == orig.properties.polymer.sidechain_chirality
-                ):
+                if bt.properties.polymer.sidechain_chirality == orig.properties.polymer.sidechain_chirality:
                     keepers.append(bt)
                 elif orig.properties.polymer.polymer_type == "amino_acid" and (
                     (
@@ -114,21 +104,15 @@ class PackerPalette:
 
 
 class BlockLevelTask:
-    def __init__(
-        self, seqpos: int, block_type: RefinedResidueType, palette: PackerPalette
-    ):
+    def __init__(self, seqpos: int, block_type: RefinedResidueType, palette: PackerPalette):
         self.seqpos = seqpos
         self.original_block_type = block_type
         self.considered_block_types = palette.block_types_from_original(block_type)
-        self.block_type_allowed = numpy.full(
-            len(self.considered_block_types), True, dtype=bool
-        )
+        self.block_type_allowed = numpy.full(len(self.considered_block_types), True, dtype=bool)
         self.conformer_samplers = palette.default_conformer_samplers(block_type)
         self.is_chi_sampler = []
         self.include_current = False
-        self.chi_expansion = numpy.zeros(
-            (len(self.considered_block_types), 4), dtype=numpy.int32
-        )
+        self.chi_expansion = numpy.zeros((len(self.considered_block_types), 4), dtype=numpy.int32)
 
     def restrict_to_repacking(self):
         orig = self.original_block_type
@@ -159,7 +143,6 @@ class BlockLevelTask:
 
 
 class PackerTask:
-
     def __init__(self, systems: PoseStack, palette: PackerPalette):
         self.blts = [
             [

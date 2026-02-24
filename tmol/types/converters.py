@@ -2,8 +2,8 @@
 
 from functools import singledispatch
 
-from typing_inspect import is_tuple_type, is_union_type
 import toolz
+from typing_inspect import is_tuple_type, is_union_type
 
 from . import validators
 
@@ -51,9 +51,7 @@ def union_convert(union_annotation, value):
         except (TypeError, ValueError) as ex:
             errors.append(ex)
 
-    raise TypeError(
-        "Unable to convert to any union subtype: {union_annotaion} value: {value}"
-    )
+    raise TypeError("Unable to convert to any union subtype: {union_annotaion} value: {value}")
 
 
 def register_converter(type_predicate, converter):

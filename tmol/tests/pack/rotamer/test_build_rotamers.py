@@ -1,50 +1,40 @@
 import numpy
 import torch
 
+from tmol.io import pose_stack_from_pdb
+from tmol.kinematics.compiled.compiled_ops import forward_only_op
+from tmol.pack.packer_task import PackerPalette, PackerTask
 from tmol.pack.rotamer.build_rotamers import (
-    annotate_restype,
+    annotate_everything,
     annotate_packed_block_types,
+    annotate_restype,
     build_rotamers,
+    calculate_rotamer_coords,
     construct_kinforest_for_conformers,
     construct_scans_for_conformers,
     exc_cumsum_from_inc_cumsum,
-    measure_pose_dofs,
-    measure_dofs_from_orig_coords,
-    rebuild_poses_if_necessary,
-    annotate_everything,
-    merge_conformer_samples,
-    calculate_rotamer_coords,
     get_rotamer_origin_data,
+    measure_dofs_from_orig_coords,
+    measure_pose_dofs,
+    merge_conformer_samples,
+    rebuild_poses_if_necessary,
 )
 from tmol.pack.rotamer.chi_sampler import (
     create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler,
 )
-
 from tmol.pack.rotamer.fixed_aa_chi_sampler import (
     FixedAAChiSampler,
 )
-
-
-from tmol.io import pose_stack_from_pdb
-
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pack.packer_task import PackerTask, PackerPalette
-
-from tmol.kinematics.compiled.compiled_ops import forward_only_op
-
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
-
-from tmol.tests.data import no_termini_pose_stack_from_pdb
-
 from tmol.score.hbond.hbond_energy_term import (
     HBondEnergyTerm,
 )
+from tmol.tests.data import no_termini_pose_stack_from_pdb
+from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 
 
-def test_annotate_restypes(
-    default_database, fresh_default_restype_set, torch_device, dun_sampler
-):
+def test_annotate_restypes(default_database, fresh_default_restype_set, torch_device, dun_sampler):
     fixed_sampler = FixedAAChiSampler()
     samplers = (dun_sampler, fixed_sampler)
 
@@ -84,9 +74,7 @@ def test_build_rotamers_smoke(default_database, ubq_pdb, torch_device, dun_sampl
     assert rotamer_set is not None
 
 
-def test_construct_scans_for_rotamers(
-    default_database, fresh_default_restype_set, torch_device, dun_sampler
-):
+def test_construct_scans_for_rotamers(default_database, fresh_default_restype_set, torch_device, dun_sampler):
 
     leu_rt_list = [fresh_default_restype_set.restype_map["LEU"][0]]
     pbt = PackedBlockTypes.from_restype_list(
@@ -106,17 +94,13 @@ def test_construct_scans_for_rotamers(
     rt_for_rot = torch.zeros(3, dtype=torch.int64)
 
     block_ind_for_rot = rt_block_type_ind[rt_for_rot]
-    block_ind_for_rot_torch = torch.tensor(
-        block_ind_for_rot, dtype=torch.int64, device=torch_device
-    )
+    block_ind_for_rot_torch = torch.tensor(block_ind_for_rot, dtype=torch.int64, device=torch_device)
     n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
     n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
     n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
     n_atoms_offset_for_rot = exc_cumsum_from_inc_cumsum(n_atoms_offset_for_rot)
 
-    nodes, scans, gens = construct_scans_for_conformers(
-        pbt, block_ind_for_rot, n_atoms_for_rot, n_atoms_offset_for_rot
-    )
+    nodes, scans, gens = construct_scans_for_conformers(pbt, block_ind_for_rot, n_atoms_for_rot, n_atoms_offset_for_rot)
 
     n_atoms = len(leu_rt_list[0].atoms)
     kt_nodes = pbt.rotamer_kinforest.nodes[0]
@@ -145,15 +129,11 @@ def test_construct_scans_for_rotamers(
             kt_scans[0 : kt_gens[1, 1]] + kt_gens[1, 0],
             kt_scans[0 : kt_gens[1, 1]] + 2 * kt_gens[1, 0],
             kt_scans[kt_gens[1, 1] : kt_gens[2, 1]],
-            kt_scans[kt_gens[1, 1] : kt_gens[2, 1]]
-            + 1 * (kt_gens[2, 0] - kt_gens[1, 0]),
-            kt_scans[kt_gens[1, 1] : kt_gens[2, 1]]
-            + 2 * (kt_gens[2, 0] - kt_gens[1, 0]),
+            kt_scans[kt_gens[1, 1] : kt_gens[2, 1]] + 1 * (kt_gens[2, 0] - kt_gens[1, 0]),
+            kt_scans[kt_gens[1, 1] : kt_gens[2, 1]] + 2 * (kt_gens[2, 0] - kt_gens[1, 0]),
             kt_scans[kt_gens[2, 1] : kt_gens[3, 1]],
-            kt_scans[kt_gens[2, 1] : kt_gens[3, 1]]
-            + 1 * (kt_gens[3, 0] - kt_gens[2, 0]),
-            kt_scans[kt_gens[2, 1] : kt_gens[3, 1]]
-            + 2 * (kt_gens[3, 0] - kt_gens[2, 0]),
+            kt_scans[kt_gens[2, 1] : kt_gens[3, 1]] + 1 * (kt_gens[3, 0] - kt_gens[2, 0]),
+            kt_scans[kt_gens[2, 1] : kt_gens[3, 1]] + 2 * (kt_gens[3, 0] - kt_gens[2, 0]),
         ]
     )
     numpy.testing.assert_equal(scans_gold, scans)
@@ -162,9 +142,7 @@ def test_construct_scans_for_rotamers(
     numpy.testing.assert_equal(gens_gold, gens)
 
 
-def test_construct_scans_for_rotamers2(
-    default_database, fresh_default_restype_set, torch_device, dun_sampler
-):
+def test_construct_scans_for_rotamers2(default_database, fresh_default_restype_set, torch_device, dun_sampler):
     leu_met_rt_list = [fresh_default_restype_set.restype_map["LEU"][0]] + [
         fresh_default_restype_set.restype_map["MET"][0]
     ]
@@ -182,25 +160,17 @@ def test_construct_scans_for_rotamers2(
     annotate_restype(leu_met_rt_list[1], samplers, default_database.chemical)
     annotate_packed_block_types(pbt)
 
-    rt_block_type_ind = numpy.concatenate(
-        [numpy.zeros(1, dtype=numpy.int32), numpy.ones(2, dtype=numpy.int32)]
-    )
-    rt_for_rot = torch.cat(
-        [torch.zeros(1, dtype=torch.int64), torch.ones(2, dtype=torch.int64)]
-    )
+    rt_block_type_ind = numpy.concatenate([numpy.zeros(1, dtype=numpy.int32), numpy.ones(2, dtype=numpy.int32)])
+    rt_for_rot = torch.cat([torch.zeros(1, dtype=torch.int64), torch.ones(2, dtype=torch.int64)])
 
     block_ind_for_rot = rt_block_type_ind[rt_for_rot]
-    block_ind_for_rot_torch = torch.tensor(
-        block_ind_for_rot, dtype=torch.int64, device=torch_device
-    )
+    block_ind_for_rot_torch = torch.tensor(block_ind_for_rot, dtype=torch.int64, device=torch_device)
     n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
     n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
     n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
     n_atoms_offset_for_rot = exc_cumsum_from_inc_cumsum(n_atoms_offset_for_rot)
 
-    nodes, scans, gens = construct_scans_for_conformers(
-        pbt, block_ind_for_rot, n_atoms_for_rot, n_atoms_offset_for_rot
-    )
+    nodes, scans, gens = construct_scans_for_conformers(pbt, block_ind_for_rot, n_atoms_for_rot, n_atoms_offset_for_rot)
 
     leu_n_atoms = len(leu_met_rt_list[0].atoms)
     met_n_atoms = len(leu_met_rt_list[1].atoms)
@@ -218,14 +188,10 @@ def test_construct_scans_for_rotamers2(
             kt_nodes[met, 1 : kt_gens[met, 1, 0]] + leu_n_atoms + met_n_atoms,
             kt_nodes[leu, kt_gens[leu, 1, 0] : kt_gens[leu, 2, 0]],
             kt_nodes[met, kt_gens[met, 1, 0] : kt_gens[met, 2, 0]] + leu_n_atoms,
-            kt_nodes[met, kt_gens[met, 1, 0] : kt_gens[met, 2, 0]]
-            + leu_n_atoms
-            + met_n_atoms,
+            kt_nodes[met, kt_gens[met, 1, 0] : kt_gens[met, 2, 0]] + leu_n_atoms + met_n_atoms,
             kt_nodes[leu, kt_gens[leu, 2, 0] : kt_gens[leu, 3, 0]],
             kt_nodes[met, kt_gens[met, 2, 0] : kt_gens[met, 3, 0]] + leu_n_atoms,
-            kt_nodes[met, kt_gens[met, 2, 0] : kt_gens[met, 3, 0]]
-            + leu_n_atoms
-            + met_n_atoms,
+            kt_nodes[met, kt_gens[met, 2, 0] : kt_gens[met, 3, 0]] + leu_n_atoms + met_n_atoms,
         ]
     )
     numpy.testing.assert_equal(nodes_gold, nodes)
@@ -234,22 +200,16 @@ def test_construct_scans_for_rotamers2(
         [
             kt_scans[leu, 0 : kt_gens[leu, 1, 1]],
             kt_scans[met, 0 : kt_gens[met, 1, 1]] + kt_gens[leu, 1, 0],
-            kt_scans[met, 0 : kt_gens[met, 1, 1]]
-            + kt_gens[leu, 1, 0]
-            + kt_gens[met, 1, 0],
+            kt_scans[met, 0 : kt_gens[met, 1, 1]] + kt_gens[leu, 1, 0] + kt_gens[met, 1, 0],
             kt_scans[leu, kt_gens[leu, 1, 1] : kt_gens[leu, 2, 1]],
-            kt_scans[met, kt_gens[met, 1, 1] : kt_gens[met, 2, 1]]
-            + kt_gens[leu, 2, 0]
-            - kt_gens[leu, 1, 0],
+            kt_scans[met, kt_gens[met, 1, 1] : kt_gens[met, 2, 1]] + kt_gens[leu, 2, 0] - kt_gens[leu, 1, 0],
             kt_scans[met, kt_gens[met, 1, 1] : kt_gens[met, 2, 1]]
             + kt_gens[leu, 2, 0]
             - kt_gens[leu, 1, 0]
             + kt_gens[met, 2, 0]
             - kt_gens[met, 1, 0],
             kt_scans[leu, kt_gens[leu, 2, 1] : kt_gens[leu, 3, 1]],
-            kt_scans[met, kt_gens[met, 2, 1] : kt_gens[met, 3, 1]]
-            + kt_gens[leu, 3, 0]
-            - kt_gens[leu, 2, 0],
+            kt_scans[met, kt_gens[met, 2, 1] : kt_gens[met, 3, 1]] + kt_gens[leu, 3, 0] - kt_gens[leu, 2, 0],
             kt_scans[met, kt_gens[met, 2, 1] : kt_gens[met, 3, 1]]
             + kt_gens[leu, 3, 0]
             - kt_gens[leu, 2, 0]
@@ -330,9 +290,7 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     fixed_sampler = FixedAAChiSampler()
     samplers = (dun_sampler, fixed_sampler)
 
-    leu_met_rt_list = [restype_set.restype_map["LEU"][0]] + [
-        restype_set.restype_map["MET"][0]
-    ]
+    leu_met_rt_list = [restype_set.restype_map["LEU"][0]] + [restype_set.restype_map["MET"][0]]
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical,
         restype_set,
@@ -401,12 +359,8 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
             met_ktat_i = met_rt.rotamer_kinforest.kinforest_idx[met_at_i]
             dofs_new[leu_ktat_i + 1, :] = dofs_orig[met_ktat_i + 1, :]
 
-    dofs_new[
-        leu_rt.rotamer_kinforest.kinforest_idx[leu_rt.atom_to_idx["CB"]] + 1, 3
-    ] = numpy.radians(180)
-    dofs_new[
-        leu_rt.rotamer_kinforest.kinforest_idx[leu_rt.atom_to_idx["CG"]] + 1, 3
-    ] = numpy.radians(-60)
+    dofs_new[leu_rt.rotamer_kinforest.kinforest_idx[leu_rt.atom_to_idx["CB"]] + 1, 3] = numpy.radians(180)
+    dofs_new[leu_rt.rotamer_kinforest.kinforest_idx[leu_rt.atom_to_idx["CG"]] + 1, 3] = numpy.radians(-60)
 
     # forward folding; let's build leu on the met's coords
     def _p(t):
@@ -438,9 +392,7 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     )
     assert new_coords.shape == (leu_rt.n_atoms + 1, 3)
 
-    reordered_coords = torch.zeros(
-        (leu_rt.n_atoms, 3), dtype=torch.float32, device=torch_device
-    )
+    reordered_coords = torch.zeros((leu_rt.n_atoms, 3), dtype=torch.float32, device=torch_device)
     reordered_coords[leu_rt.rotamer_kinforest.id] = new_coords[1:]
 
     # make sure that the coordinates of the mainchain atoms that should
@@ -452,9 +404,7 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
         assert torch.norm(p.coords[0, at_met, :] - reordered_coords[at_leu, :]) < 1e-5
 
 
-def test_construct_kinforest_for_rotamers(
-    default_database, fresh_default_restype_set, torch_device, dun_sampler
-):
+def test_construct_kinforest_for_rotamers(default_database, fresh_default_restype_set, torch_device, dun_sampler):
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
@@ -508,20 +458,15 @@ def test_construct_kinforest_for_rotamers(
         numpy.zeros(2, dtype=numpy.int32),
         2 * leu_rt.n_atoms,
         torch.full((2,), leu_rt.n_atoms, dtype=torch.int32),
-        numpy.arange(2, dtype=numpy.int64)
-        * leu_rt.n_atoms,  # rot-coords layout is compact
+        numpy.arange(2, dtype=numpy.int64) * leu_rt.n_atoms,  # rot-coords layout is compact
         torch_device,
     )
 
     def cat2(val, arr1, arr2):
         return numpy.concatenate((numpy.array([val], dtype=numpy.int32), arr1, arr2))
 
-    gold_leu_kinforest2_id = cat2(
-        -1, leu_rt.rotamer_kinforest.id, leu_rt.rotamer_kinforest.id + pbt.max_n_atoms
-    )
-    gold_leu_kinforest2_doftype = cat2(
-        0, leu_rt.rotamer_kinforest.doftype, leu_rt.rotamer_kinforest.doftype
-    )
+    gold_leu_kinforest2_id = cat2(-1, leu_rt.rotamer_kinforest.id, leu_rt.rotamer_kinforest.id + pbt.max_n_atoms)
+    gold_leu_kinforest2_doftype = cat2(0, leu_rt.rotamer_kinforest.doftype, leu_rt.rotamer_kinforest.doftype)
     gold_leu_kinforest2_parent = cat2(
         0,
         leu_rt.rotamer_kinforest.parent + 1,
@@ -553,9 +498,7 @@ def test_construct_kinforest_for_rotamers(
     numpy.testing.assert_equal(gold_leu_kinforest2_frame_z, kt2.frame_z.cpu().numpy())
 
 
-def test_construct_kinforest_for_rotamers2(
-    default_database, fresh_default_restype_set, torch_device, dun_sampler
-):
+def test_construct_kinforest_for_rotamers2(default_database, fresh_default_restype_set, torch_device, dun_sampler):
     chem_db = default_database.chemical
 
     fixed_sampler = FixedAAChiSampler()
@@ -615,12 +558,8 @@ def test_construct_kinforest_for_rotamers2(
     def cat2(val, arr1, arr2):
         return numpy.concatenate((numpy.array([val], dtype=numpy.int32), arr1, arr2))
 
-    gold_leu_kinforest2_id = cat2(
-        -1, leu_rt.rotamer_kinforest.id, leu_rt.rotamer_kinforest.id + pbt.max_n_atoms
-    )
-    gold_leu_kinforest2_doftype = cat2(
-        0, leu_rt.rotamer_kinforest.doftype, leu_rt.rotamer_kinforest.doftype
-    )
+    gold_leu_kinforest2_id = cat2(-1, leu_rt.rotamer_kinforest.id, leu_rt.rotamer_kinforest.id + pbt.max_n_atoms)
+    gold_leu_kinforest2_doftype = cat2(0, leu_rt.rotamer_kinforest.doftype, leu_rt.rotamer_kinforest.doftype)
     gold_leu_kinforest2_parent = cat2(
         0,
         leu_rt.rotamer_kinforest.parent + 1,
@@ -710,12 +649,8 @@ def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_samp
             dim=1,
         ).to(torch_device)
     )
-    n_atoms_offset_for_rot = (
-        exclusive_cumsum1d(res_n_atoms).cpu().numpy().astype(numpy.int64)
-    )
-    nodes, scans, gens = construct_scans_for_conformers(
-        pbt, block_type_ind_numpy, res_n_atoms, n_atoms_offset_for_rot
-    )
+    n_atoms_offset_for_rot = exclusive_cumsum1d(res_n_atoms).cpu().numpy().astype(numpy.int64)
+    nodes, scans, gens = construct_scans_for_conformers(pbt, block_type_ind_numpy, res_n_atoms, n_atoms_offset_for_rot)
 
     new_kin_coords = forward_only_op(
         dofs,
@@ -768,12 +703,7 @@ def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sam
         max_n_blocks_per_pose,
     )
     orig_atom_offset_for_poses_blocks = (
-        (
-            poses.block_coord_offset64.flatten()[real_block_type_ind]
-            + per_pose_offset[real_block_type_ind]
-        )
-        .cpu()
-        .numpy()
+        (poses.block_coord_offset64.flatten()[real_block_type_ind] + per_pose_offset[real_block_type_ind]).cpu().numpy()
     )
 
     kinforest = construct_kinforest_for_conformers(
@@ -805,9 +735,7 @@ def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sam
             dim=1,
         ).to(torch_device)
     )
-    n_atoms_offset_for_rot = (
-        exclusive_cumsum1d(res_n_atoms).cpu().numpy().astype(numpy.int64)
-    )
+    n_atoms_offset_for_rot = exclusive_cumsum1d(res_n_atoms).cpu().numpy().astype(numpy.int64)
 
     nodes, scans, gens = construct_scans_for_conformers(
         pbt, block_type_ind.cpu().numpy(), res_n_atoms, n_atoms_offset_for_rot
@@ -837,9 +765,7 @@ def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sam
             )
 
 
-def test_create_dof_inds_to_copy_from_orig_to_rotamers(
-    default_database, ubq_pdb, torch_device, dun_sampler
-):
+def test_create_dof_inds_to_copy_from_orig_to_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     """This test makes sure that the DOFs from the starting
     backbone are copied over. Part of the validity of its
     logic depends on all of the residues being mid-protein
@@ -847,12 +773,8 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
     not of the code itself, which is happy to build
     rotamers for termini.
     """
-    p1 = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=3
-    )
-    p2 = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=4
-    )
+    p1 = no_termini_pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=3)
+    p2 = no_termini_pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=4)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     restype_set = poses.packed_block_types.restype_set
 
@@ -884,20 +806,14 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
             break
     annotate_everything(default_database.chemical, samplers, pbt)
 
-    gbt_for_rot = torch.tensor(
-        [0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=torch.int64, device=torch_device
-    )
-    block_type_ind_for_rot = torch.full(
-        (10,), leu_ind, dtype=torch.int64, device=torch_device
-    )
+    gbt_for_rot = torch.tensor([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=torch.int64, device=torch_device)
+    block_type_ind_for_rot = torch.full((10,), leu_ind, dtype=torch.int64, device=torch_device)
 
     conf_inds_for_dun_sampler = torch.arange(10, dtype=torch.int64, device=torch_device)
     sampler_n_rots_for_gbt = torch.full((5,), 2, dtype=torch.int32, device=torch_device)
     sampler_gbt_for_rotamer = gbt_for_rot.to(torch.int32)
 
-    n_dof_atoms_offset_for_rot = (
-        torch.arange(10, dtype=torch.int64, device=torch_device) * 19
-    )
+    n_dof_atoms_offset_for_rot = torch.arange(10, dtype=torch.int64, device=torch_device) * 19
 
     dst, src = create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
         poses,
@@ -920,10 +836,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
     fingerprint_atoms = "N", "H", "CA", "HA", "C", "O"
 
     def fp_kto(rt):
-        return [
-            rt.rotamer_kinforest.kinforest_idx[rt.atom_to_idx[at_name]]
-            for at_name in fingerprint_atoms
-        ]
+        return [rt.rotamer_kinforest.kinforest_idx[rt.atom_to_idx[at_name]] for at_name in fingerprint_atoms]
 
     dst_gold_template = numpy.array(fp_kto(leu_rt), dtype=numpy.int64)
     dst_gold = numpy.arange(10).repeat(6) * 19 + numpy.tile(dst_gold_template, 10) + 1
@@ -951,9 +864,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
     numpy.testing.assert_equal(src_gold, src_gold)
 
 
-def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
-    default_database, ubq_pdb, torch_device, dun_sampler
-):
+def test_create_dof_inds_to_copy_from_orig_to_rotamers2(default_database, ubq_pdb, torch_device, dun_sampler):
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=6)
     poses = PoseStackBuilder.from_poses([p] * 3, torch_device)
     restype_set = poses.packed_block_types.restype_set
@@ -989,9 +900,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     )
 
     conf_inds_for_dun_sampler = torch.arange(36, dtype=torch.int64, device=torch_device)
-    sampler_n_rots_for_gbt = torch.full(
-        (18,), 2, dtype=torch.int32, device=torch_device
-    )
+    sampler_n_rots_for_gbt = torch.full((18,), 2, dtype=torch.int32, device=torch_device)
     sampler_gbt_for_rotamer = gbt_for_rot.to(torch.int32)
 
     n_dof_atoms_offset_for_rot = exclusive_cumsum1d(pbt.n_atoms[block_type_ind_for_rot])
@@ -1018,9 +927,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     n_dofs_per_pose = n_src // 3
     assert 3 * n_dofs_per_pose == n_src
 
-    n_ats_per_pose = torch.sum(
-        pbt.n_atoms[poses.block_type_ind[0].to(torch.int64)]
-    ).item()
+    n_ats_per_pose = torch.sum(pbt.n_atoms[poses.block_type_ind[0].to(torch.int64)]).item()
     n_rot_ats_per_pose = torch.sum(pbt.n_atoms[block_type_ind_for_rot[:12]]).item()
 
     src0 = src[:n_dofs_per_pose]
@@ -1085,9 +992,7 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     n_poses = 2
 
     # fd TEMP: NO TERM VARIANTS
-    p = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=14
-    )
+    p = no_termini_pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=14)
 
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     restype_set = poses.packed_block_types.restype_set
@@ -1136,9 +1041,7 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
         block_type = pose_stack.block_type_ind[pose_ind, block_ind]
         n_atoms = pose_stack.packed_block_types.n_atoms[block_type]
         for i in range(n_atoms):
-            pose_stack.coords[pose_ind, coord_offset + i] = TEMP_ROT_COORDS[
-                TEMP_ROT_COORD_OFFSET[rotamer_ind] + i
-            ]
+            pose_stack.coords[pose_ind, coord_offset + i] = TEMP_ROT_COORDS[TEMP_ROT_COORD_OFFSET[rotamer_ind] + i]
         pose_block_inds.append((int(pose_ind), int(block_ind)))
 
     torch.set_printoptions(threshold=10000)
@@ -1180,9 +1083,7 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
                     )
 
 
-def test_create_dofs_for_many_rotamers(
-    default_database, ubq_pdb, torch_device, dun_sampler
-):
+def test_create_dofs_for_many_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     n_poses = 6
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
@@ -1215,18 +1116,11 @@ def test_create_dofs_for_many_rotamers(
     # types appear will be used as an index for talking about which rotamers are
     # built where. This cannot be efficient. Perhaps worth thinking hard about the
     # PackerTask's structure.
-    gbt_names = [
-        bt.name
-        for one_pose_blts in task.blts
-        for blt in one_pose_blts
-        for bt in blt.considered_block_types
-    ]
+    gbt_names = [bt.name for one_pose_blts in task.blts for blt in one_pose_blts for bt in blt.considered_block_types]
     gbt_block_type_ind = pbt.restype_index.get_indexer(gbt_names).astype(numpy.int32)
 
     # Step 4
-    conformer_samples = [
-        sampler.create_samples_for_poses(poses, task) for sampler in samplers
-    ]
+    conformer_samples = [sampler.create_samples_for_poses(poses, task) for sampler in samplers]
 
     # Step 5
     (
@@ -1259,9 +1153,7 @@ def test_create_dofs_for_many_rotamers(
     n_atoms_offset_for_conformer = torch.cumsum(n_atoms_for_conformer, dim=0)
     n_atoms_offset_for_conformer = n_atoms_offset_for_conformer.cpu().numpy()
     n_atoms_total = n_atoms_offset_for_conformer[-1].item()
-    n_atoms_offset_for_conformer = exc_cumsum_from_inc_cumsum(
-        n_atoms_offset_for_conformer
-    )
+    n_atoms_offset_for_conformer = exc_cumsum_from_inc_cumsum(n_atoms_offset_for_conformer)
     n_atoms_offset_for_conformer_torch = _t(n_atoms_offset_for_conformer, torch.int64)
 
     # Step 7
@@ -1286,13 +1178,10 @@ def test_create_dofs_for_many_rotamers(
     orig_kinforest, orig_dofs_kto = measure_pose_dofs(poses)
 
     # Step 9a
-    conf_dofs_kto = torch.zeros(
-        (n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device
-    )
+    conf_dofs_kto = torch.zeros((n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device)
     conf_dofs_kto[1:] = torch.tensor(
         pbt.rotamer_kinforest.dofs_ideal[block_type_ind_for_conformer].reshape((-1, 9))[
-            pbt.atom_is_real.cpu().numpy()[block_type_ind_for_conformer].reshape(-1)
-            != 0
+            pbt.atom_is_real.cpu().numpy()[block_type_ind_for_conformer].reshape(-1) != 0
         ],
         dtype=torch.float32,
         device=pbt.device,
@@ -1331,16 +1220,12 @@ def test_create_dofs_for_many_rotamers(
     for i in range(1, n_poses):
         numpy.testing.assert_almost_equal(
             rot_dofs_kto[1 : n_rot_atoms_per_pose + 1],
-            rot_dofs_kto[
-                (n_rot_atoms_per_pose * i + 1) : (n_rot_atoms_per_pose * (i + 1) + 1)
-            ],
+            rot_dofs_kto[(n_rot_atoms_per_pose * i + 1) : (n_rot_atoms_per_pose * (i + 1) + 1)],
             decimal=5,
         )
 
 
-def test_new_rotamer_building_logic1(
-    default_database, ubq_pdb, torch_device, dun_sampler
-):
+def test_new_rotamer_building_logic1(default_database, ubq_pdb, torch_device, dun_sampler):
     n_poses = 6
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     restype_set = p.packed_block_types.restype_set
@@ -1366,18 +1251,11 @@ def test_new_rotamer_building_logic1(
     annotate_everything(chem_db, samplers, pbt)
 
     # Step 3
-    gbt_names = [
-        bt.name
-        for one_pose_blts in task.blts
-        for blt in one_pose_blts
-        for bt in blt.considered_block_types
-    ]
+    gbt_names = [bt.name for one_pose_blts in task.blts for blt in one_pose_blts for bt in blt.considered_block_types]
     gbt_block_type_ind = pbt.restype_index.get_indexer(gbt_names).astype(numpy.int32)
 
     # Step 4
-    conformer_samples = [
-        sampler.create_samples_for_poses(poses, task) for sampler in samplers
-    ]
+    conformer_samples = [sampler.create_samples_for_poses(poses, task) for sampler in samplers]
 
     # Step 5
     (
@@ -1404,9 +1282,7 @@ def test_new_rotamer_building_logic1(
     n_atoms_offset_for_conformer = torch.cumsum(n_atoms_for_conformer, dim=0)
     n_atoms_offset_for_conformer = n_atoms_offset_for_conformer.cpu().numpy()
     n_atoms_total = n_atoms_offset_for_conformer[-1].item()
-    n_atoms_offset_for_conformer = exc_cumsum_from_inc_cumsum(
-        n_atoms_offset_for_conformer
-    )
+    n_atoms_offset_for_conformer = exc_cumsum_from_inc_cumsum(n_atoms_offset_for_conformer)
     n_atoms_offset_for_conformer_torch = _t(n_atoms_offset_for_conformer, torch.int64)
 
     # Step 7
@@ -1430,13 +1306,10 @@ def test_new_rotamer_building_logic1(
     orig_kinforest, orig_dofs_kto = measure_pose_dofs(poses)
 
     # Step 9a
-    conf_dofs_kto = torch.zeros(
-        (n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device
-    )
+    conf_dofs_kto = torch.zeros((n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device)
     conf_dofs_kto[1:] = torch.tensor(
         pbt.rotamer_kinforest.dofs_ideal[block_type_ind_for_conformer].reshape((-1, 9))[
-            pbt.atom_is_real.cpu().numpy()[block_type_ind_for_conformer].reshape(-1)
-            != 0
+            pbt.atom_is_real.cpu().numpy()[block_type_ind_for_conformer].reshape(-1) != 0
         ],
         dtype=torch.float32,
         device=pbt.device,
@@ -1481,9 +1354,7 @@ def test_new_rotamer_building_logic1(
     assert rotamer_coords is not None
 
 
-def test_new_rotamer_building_logic2(
-    default_database, ubq_pdb, torch_device, dun_sampler
-):
+def test_new_rotamer_building_logic2(default_database, ubq_pdb, torch_device, dun_sampler):
     n_poses = 6
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     restype_set = p.packed_block_types.restype_set
@@ -1502,9 +1373,7 @@ def test_new_rotamer_building_logic2(
     poses, rotamer_set = build_rotamers(poses, task, chem_db)
 
 
-def test_new_rotamer_building_logic3(
-    default_database, ubq_pdb, torch_device, dun_sampler
-):
+def test_new_rotamer_building_logic3(default_database, ubq_pdb, torch_device, dun_sampler):
     n_poses = 6
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     restype_set = p.packed_block_types.restype_set
@@ -1569,13 +1438,9 @@ def test_new_rotamer_building_logic3(
         torch.testing.assert_close(
             poses.coords[
                 p,
-                pose_stack_coord_offset : (
-                    pose_stack_coord_offset + current_rot_n_atoms
-                ),
+                pose_stack_coord_offset : (pose_stack_coord_offset + current_rot_n_atoms),
             ],
-            rotamer_set.coords[
-                (current_rot_offset) : (current_rot_offset + current_rot_n_atoms), :
-            ],
+            rotamer_set.coords[(current_rot_offset) : (current_rot_offset + current_rot_n_atoms), :],
             atol=1e-3,
             rtol=1e-5,
         )

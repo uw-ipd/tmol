@@ -151,4 +151,3 @@ def modulename(src_name):
     """
 
     return src_name.replace(".", "_")
-

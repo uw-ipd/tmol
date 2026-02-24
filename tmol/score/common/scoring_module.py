@@ -48,9 +48,7 @@ class TermPoseScoringModule(TermScoringModule):
         term_parameters,
         term_score_poses,
     ):
-        super(TermPoseScoringModule, self).__init__(
-            classname, term_parameters, term_score_poses
-        )
+        super(TermPoseScoringModule, self).__init__(classname, term_parameters, term_score_poses)
 
         self.common_parameters = []
 
@@ -83,9 +81,7 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
         term_parameters,
         term_score_poses,
     ):
-        super(TermWholePoseScoringModule, self).__init__(
-            classname, pose_stack, term_parameters, term_score_poses
-        )
+        super(TermWholePoseScoringModule, self).__init__(classname, pose_stack, term_parameters, term_score_poses)
         self.count = 0
 
     def forward(
@@ -116,9 +112,7 @@ class TermRotamerScoringModule(TermScoringModule):
         term_parameters,
         term_score_poses,
     ):
-        super(TermRotamerScoringModule, self).__init__(
-            classname, term_parameters, term_score_poses
-        )
+        super(TermRotamerScoringModule, self).__init__(classname, term_parameters, term_score_poses)
 
         self.common_parameters = []
 

@@ -30,16 +30,14 @@ Example:
             assert mult == add
 """
 
-import types
 import logging
+import types
 import warnings
-
 from functools import singledispatch
 
 import pandas
-import toolz
-
 import pytest_benchmark
+import toolz
 from pytest_benchmark.fixture import BenchmarkFixture
 
 
@@ -98,9 +96,7 @@ def make_fixture(
     return benchmark
 
 
-def make_subfixture(
-    parent: BenchmarkFixture, name_suffix: str, set_mode=True, **extra_info
-) -> BenchmarkFixture:
+def make_subfixture(parent: BenchmarkFixture, name_suffix: str, set_mode=True, **extra_info) -> BenchmarkFixture:
     """Create subfixture, cloning parent configuration.
 
     Args:
@@ -112,9 +108,7 @@ def make_subfixture(
     Returns:
         Initialized subfixture.
     """
-    node = types.SimpleNamespace(
-        name=parent.name + name_suffix, _nodeid=parent.fullname + name_suffix
-    )
+    node = types.SimpleNamespace(name=parent.name + name_suffix, _nodeid=parent.fullname + name_suffix)
 
     benchmark = pytest_benchmark.fixture.BenchmarkFixture(
         node=node,

@@ -1,6 +1,7 @@
 """Utility functions to support mixin classes."""
 
-from typing import Dict, Any, NewType, Union, Callable, Type
+from typing import Any, Callable, Dict, NewType, Type, Union
+
 from toolz.dicttoolz import merge
 
 QualifiedName = NewType("QualifiedName", str)
@@ -11,9 +12,7 @@ def qualified_name(obj: Union[Type, Callable]) -> QualifiedName:
     return f"{obj.__module__}.{obj.__qualname__}"
 
 
-def gather_superclass_properies(
-    obj: Any, property_name: str
-) -> Dict[QualifiedName, Any]:
+def gather_superclass_properies(obj: Any, property_name: str) -> Dict[QualifiedName, Any]:
     """Gather property values from all base classes of an object.
 
     Traverses the object's __mro__ searching for the given property name. The
@@ -51,9 +50,7 @@ def cooperative_superclass_factory(cls, factory_func_name, *args, **kwargs):
     params = dict()
 
     factory_functions = [
-        getattr(base, factory_func_name)
-        for base in reversed(cls.mro())
-        if factory_func_name in base.__dict__
+        getattr(base, factory_func_name) for base in reversed(cls.mro()) if factory_func_name in base.__dict__
     ]
 
     for f in factory_functions:

@@ -1,4 +1,5 @@
 import numpy
+
 from tmol.kinematics.old.builder import _KinematicBuilder
 from tmol.kinematics.scan_ordering import get_scans
 
@@ -33,9 +34,7 @@ def test_get_scans_simple_path():
     roots = numpy.array([0], dtype=numpy.int32)
 
     kinforest, _ = kinforest_from_roots_and_bonds(roots, bonds)
-    nodes, scans, gens = get_scans(
-        kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32)
-    )
+    nodes, scans, gens = get_scans(kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32))
 
     nodes_gold = numpy.arange(11, dtype=numpy.int32)
     scans_gold = numpy.zeros((1,), dtype=numpy.int32)
@@ -63,9 +62,7 @@ def test_get_scans_two_simple_paths():
     roots = numpy.array([0, 10], dtype=numpy.int32)
 
     kinforest, kfo_2_to_w_root = kinforest_from_roots_and_bonds(roots, bonds)
-    nodes, scans, gens = get_scans(
-        kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32)
-    )
+    nodes, scans, gens = get_scans(kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32))
 
     nodes_to = kfo_2_to_w_root[nodes]
 
@@ -104,9 +101,7 @@ def test_get_scans_three_simple_paths():
     roots = numpy.array([0, 10, 20], dtype=numpy.int32)
 
     kinforest, kfo_2_to_w_root = kinforest_from_roots_and_bonds(roots, bonds)
-    nodes, scans, gens = get_scans(
-        kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32)
-    )
+    nodes, scans, gens = get_scans(kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32))
 
     nodes_to = kfo_2_to_w_root[nodes]
 
@@ -151,9 +146,7 @@ def test_get_scans_three_simple_branches():
     roots = numpy.array([0, 10, 20], dtype=numpy.int32)
 
     kinforest, kfo_2_to_w_root = kinforest_from_roots_and_bonds(roots, bonds)
-    nodes, scans, gens = get_scans(
-        kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32)
-    )
+    nodes, scans, gens = get_scans(kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32))
 
     nodes_to = kfo_2_to_w_root[nodes]
 

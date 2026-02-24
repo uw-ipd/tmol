@@ -1,22 +1,20 @@
-from typing import Tuple
+import copy
 from collections import defaultdict
-
-from tmol.database.chemical import (
-    Element,
-    AtomType,
-    RawResidueType,
-    VariantType,
-    ChemicalDatabase,
-    Icoor,
-)
-
-from tmol.extern.pysmiles.read_smiles import read_smiles
+from typing import Tuple
 
 import attr
-import copy
-
 import networkx as nx
 import networkx.algorithms.isomorphism as iso
+
+from tmol.database.chemical import (
+    AtomType,
+    ChemicalDatabase,
+    Element,
+    Icoor,
+    RawResidueType,
+    VariantType,
+)
+from tmol.extern.pysmiles.read_smiles import read_smiles
 
 
 # build a graph from a restype
@@ -41,13 +39,9 @@ class RestypeGraphBuilder:
 def remove_atom(res, atom):
     res.atoms = tuple(x for x in res.atoms if x.name != atom)
     res.bonds = tuple((x, y) for x, y in res.bonds if x != atom and y != atom)
+    res.torsions = tuple(x for x in res.torsions if atom not in [x.a.atom, x.b.atom, x.c.atom, x.d.atom])
     res.torsions = tuple(
-        x for x in res.torsions if atom not in [x.a.atom, x.b.atom, x.c.atom, x.d.atom]
-    )
-    res.torsions = tuple(
-        x
-        for x in res.torsions
-        if atom not in [x.a.connection, x.b.connection, x.c.connection, x.d.connection]
+        x for x in res.torsions if atom not in [x.a.connection, x.b.connection, x.c.connection, x.d.connection]
     )
     res.connections = tuple(x for x in res.connections if x.name != atom)
     return res
@@ -81,18 +75,10 @@ def update_icoor(res, patch, atoms_remove, namemap):
         p_i = source_i.parent if not target_i.parent else target_i.parent
         if p_i in namemap:
             p_i = namemap[p_i]
-        gp_i = (
-            source_i.grand_parent
-            if not target_i.grand_parent
-            else target_i.grand_parent
-        )
+        gp_i = source_i.grand_parent if not target_i.grand_parent else target_i.grand_parent
         if gp_i in namemap:
             gp_i = namemap[gp_i]
-        ggp_i = (
-            source_i.great_grand_parent
-            if not target_i.great_grand_parent
-            else target_i.great_grand_parent
-        )
+        ggp_i = source_i.great_grand_parent if not target_i.great_grand_parent else target_i.great_grand_parent
         if ggp_i in namemap:
             ggp_i = namemap[ggp_i]
 
@@ -172,9 +158,7 @@ def _validate_raw_residue_atoms(res, allatoms):
                 f"Bad raw residue: {res.name}\n",
                 "Error: duplicated_atom_name; atoms may appear only once\n",
                 "Offending atoms:\n",
-                "\n".join(
-                    [f'    "{x}" appears {duplicated[x]+1} times' for x in duplicated]
-                ),
+                "\n".join([f'    "{x}" appears {duplicated[x] + 1} times' for x in duplicated]),
             ]
         )
         raise RuntimeError(err_msg)
@@ -192,14 +176,8 @@ def _validate_raw_residue_bonds(res, allatoms):
         err_msg = "".join(
             [
                 f"Bad raw residue: {res.name}\n",
-                "Error: illegal_bond; must be between declared atoms\n"
-                "Offending atoms:\n",
-                "\n".join(
-                    [
-                        f'    Undeclared atom "{x[0]}" in bond ("{x[1]}", "{x[2]}")'
-                        for x in bad_bonds
-                    ]
-                ),
+                "Error: illegal_bond; must be between declared atoms\nOffending atoms:\n",
+                "\n".join([f'    Undeclared atom "{x[0]}" in bond ("{x[1]}", "{x[2]}")' for x in bad_bonds]),
             ]
         )
         raise RuntimeError(err_msg)
@@ -225,7 +203,7 @@ def _validate_raw_residue_torsions(res, allatoms, allconns):
                 f"Bad raw residue: {res.name}\n",
                 "Error: illegal_torsion; Torsion atoms must be either ",
                 "previously-declared connections or previously-declared atoms\n",
-                f'Offending atom{"s" if len(bad_torsions) > 1 else ""}:\n',
+                f"Offending atom{'s' if len(bad_torsions) > 1 else ''}:\n",
                 "\n".join(
                     [
                         f'    atom "{str_ua(x[1])}" of'
@@ -250,13 +228,8 @@ def _validate_raw_residue_connections(res, allatoms):
             [
                 f"Bad raw residue: {res.name}\n",
                 "Error: illegal_connection; connection atom must be previously declared\n",
-                f'Offending connection{"s" if len(bad_conns) > 1 else ""}:\n',
-                "\n".join(
-                    [
-                        f'    connection "{x.name}" with undeclared atom "{x.atom}"'
-                        for x in bad_conns
-                    ]
-                ),
+                f"Offending connection{'s' if len(bad_conns) > 1 else ''}:\n",
+                "\n".join([f'    connection "{x.name}" with undeclared atom "{x.atom}"' for x in bad_conns]),
             ]
         )
         raise RuntimeError(err_msg)
@@ -276,12 +249,9 @@ def _validate_raw_residue_icoors(res, allatoms, allconns):
             [
                 f"Bad raw residue: {res.name}\n",
                 "Error: illegal_icoor; must reference previoulsy-declared atoms or connections only.\n",
-                f'Offending icoor{"s" if len(bad_icoors) > 1 else ""}\n',
+                f"Offending icoor{'s' if len(bad_icoors) > 1 else ''}\n",
                 "\n".join(
-                    [
-                        f'    icoor for {x[0].name}: {x[1]} atom "{getattr(x[0],x[1])}" undeclared'
-                        for x in bad_icoors
-                    ]
+                    [f'    icoor for {x[0].name}: {x[1]} atom "{getattr(x[0], x[1])}" undeclared' for x in bad_icoors]
                 ),
             ]
         )
@@ -294,12 +264,8 @@ def validate_patch(patch):
     added_ats_and_conns = addedatoms.union(set([i.name for i in patch.add_connections]))
 
     _validate_patch_fields(patch)
-    _validate_patch_atom_references(
-        patch, "remove_atoms", "remove_nonreference_atom", lambda x: x
-    )
-    _validate_patch_atom_references(
-        patch, "modify_atoms", "modify_nonreference_atom", lambda x: x.name
-    )
+    _validate_patch_atom_references(patch, "remove_atoms", "remove_nonreference_atom", lambda x: x)
+    _validate_patch_atom_references(patch, "modify_atoms", "modify_nonreference_atom", lambda x: x.name)
     _validate_patch_atom_aliases(patch, addedatoms)
     _validate_patch_bonds(patch, added_ats_and_conns)
     _validate_patch_icoors(patch, added_ats_and_conns)
@@ -335,16 +301,11 @@ def _validate_patch_fields(patch):
         raise RuntimeError(err_msg)
 
 
-def _validate_patch_atom_references(
-    patch, atom_list_attribute_name, error_name, get_atom_name
-):
+def _validate_patch_atom_references(patch, atom_list_attribute_name, error_name, get_atom_name):
     bad_atom_inds = []
     atom_list = getattr(patch, atom_list_attribute_name)
     for i in range(len(atom_list)):
-        if (
-            get_atom_name(atom_list[i])[0] != "<"
-            or get_atom_name(atom_list[i])[-1] != ">"
-        ):
+        if get_atom_name(atom_list[i])[0] != "<" or get_atom_name(atom_list[i])[-1] != ">":
             bad_atom_inds.append(i)
     if len(bad_atom_inds) > 0:
         err_msg = "".join(
@@ -389,8 +350,7 @@ def _validate_patch_bonds(patch, added_ats_and_conns):
         err_msg = "".join(
             [
                 f"Bad patch {patch.name}\n",
-                "Error: illegal bond; "
-                "first atom in each bond must be either atom reference ",
+                "Error: illegal bond; first atom in each bond must be either atom reference ",
                 '(start with "<" and end with ">") or an added atom.\n',
                 "Offending bonds: ",
                 ", ".join([f'("{x[0]}" "{x[1]}")' for x in bad_bonds]),
@@ -403,9 +363,7 @@ def _validate_patch_icoors(patch, added_ats_and_conns):
     # make sure all icoors are references or added atoms
     bad_icoors = []
     for i in patch.icoors:
-        if (i.name[0] != "<" or i.name[-1] != ">") and (
-            i.name not in added_ats_and_conns
-        ):
+        if (i.name[0] != "<" or i.name[-1] != ">") and (i.name not in added_ats_and_conns):
             bad_icoors.append(("name", i))
         for anc in ("source", "parent", "grand_parent", "great_grand_parent"):
             a_i = getattr(i, anc)
@@ -428,7 +386,7 @@ def _validate_patch_icoors(patch, added_ats_and_conns):
                 "Offending icoors:\n",
                 "\n".join(
                     [
-                        f'    Icoor for {x[1].name} with atom reference "{x[0]}" of "{getattr(x[1],x[0])}"'
+                        f'    Icoor for {x[1].name} with atom reference "{x[0]}" of "{getattr(x[1], x[0])}"'
                         for x in bad_icoors
                     ]
                 ),
@@ -447,25 +405,17 @@ def _validate_patch_icoors(patch, added_ats_and_conns):
 #    newreses - list of new residues produced by the patch (currently only support for 1)
 #    newmarked - updated list of modified atoms in new residue
 def do_patch(res, variant, resgraph, patchgraph, marked):
-    atoms_match = (
-        lambda x, y: ("element" not in y)
-        or ("element" not in x)
-        or x["element"] == y["element"]
-    )
+    atoms_match = lambda x, y: ("element" not in y) or ("element" not in x) or x["element"] == y["element"]
     gm = iso.GraphMatcher(resgraph, patchgraph, node_match=atoms_match)
 
     added, modded, deleted = get_modified_atoms(variant)
-    assert len(modded) + len(deleted) > 0, (
-        "Patch " + variant.name + " does not modify any atoms!"
-    )
+    assert len(modded) + len(deleted) > 0, "Patch " + variant.name + " does not modify any atoms!"
 
     # find patchsets that are unique w.r.t. list of modded atoms
     mod_unique = []
     namemaps = []
     for i, subgraph_x in enumerate(gm.subgraph_monomorphisms_iter()):
-        namemap = {
-            "<" + patchgraph.nodes[y]["name"] + ">": x for x, y in subgraph_x.items()
-        }
+        namemap = {"<" + patchgraph.nodes[y]["name"] + ">": x for x, y in subgraph_x.items()}
         mod_i = [namemap[x] for x in modded]
         if mod_i not in mod_unique:
             mod_unique.append(mod_i)
@@ -474,9 +424,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
     # fd: this could be supported in the future, with a few issues to work out
     #    -if the patch adds atoms, we need to figure out how to ensure unique names
     #    -need a patch naming scheme if a patch applied twice
-    assert len(mod_unique) <= 1, (
-        "Patch " + variant.name + " applies to residue " + res.name + " multiple times!"
-    )
+    assert len(mod_unique) <= 1, "Patch " + variant.name + " applies to residue " + res.name + " multiple times!"
 
     # apply patches
     newreses, newmarked = [], []
@@ -547,9 +495,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
         newres.bonds = (*newres.bonds, *newbonds)
 
         # 5. update icoors
-        newres.icoors = update_icoor(
-            newres.icoors, variant.icoors, variant.remove_atoms, namemap
-        )
+        newres.icoors = update_icoor(newres.icoors, variant.icoors, variant.remove_atoms, namemap)
 
         # 6. update modified atoms
         # a) directly modified/added
@@ -597,9 +543,7 @@ class PatchedChemicalDatabase:
 
                 # newly added variants, variant names, marked atoms
                 rv_new, rvn_new, ma_new = [], [], []
-                for res_i, name_i, mark_i in zip(
-                    resvariants, resvariantnames, marked_atoms
-                ):
+                for res_i, name_i, mark_i in zip(resvariants, resvariantnames, marked_atoms):
                     resgraph = G.from_raw_res(res_i)
                     for variant in chemdb.variants:
                         newtag = [*name_i, variant.name]
@@ -612,9 +556,7 @@ class PatchedChemicalDatabase:
                             explicit_hydrogen=True,
                             do_fill_valence=False,
                         )
-                        patched_reses, mark_i_new = do_patch(
-                            res_i, variant, resgraph, patchgraph, mark_i
-                        )
+                        patched_reses, mark_i_new = do_patch(res_i, variant, resgraph, patchgraph, mark_i)
 
                         if len(patched_reses) > 0:
                             rv_new.extend(patched_reses)

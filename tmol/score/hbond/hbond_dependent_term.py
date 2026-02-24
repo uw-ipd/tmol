@@ -1,22 +1,19 @@
 import attr
-import numpy
 import numba
-import torch
+import numpy
 import pandas
-
-from tmol.database import ParameterDatabase
-from tmol.database.scoring.hbond import HBondDatabase
+import torch
 
 from tmol.chemical.restypes import RefinedResidueType
+from tmol.database import ParameterDatabase
+from tmol.database.scoring.hbond import HBondDatabase
 from tmol.pose.packed_block_types import PackedBlockTypes
-
-from tmol.score.hbond.params import HBondParamResolver
-from tmol.score.common.stack_condense import arg_tile_subset_indices
-from tmol.score.chemical_database import AtomTypeParamResolver
 from tmol.score.bond_dependent_term import BondDependentTerm
-
-from tmol.types.attrs import ValidateAttrs
+from tmol.score.chemical_database import AtomTypeParamResolver
+from tmol.score.common.stack_condense import arg_tile_subset_indices
+from tmol.score.hbond.params import HBondParamResolver
 from tmol.types.array import NDArray
+from tmol.types.attrs import ValidateAttrs
 from tmol.types.torch import Tensor
 
 
@@ -62,15 +59,9 @@ class HBondBlockTypeParams(ValidateAttrs):
     tile_n_don_hvy: NDArray[numpy.int32][:]
     tile_n_acc: NDArray[numpy.int32][:]
     tile_donH_inds: NDArray[numpy.int32][:, :]  # the tile-ind of a particular donH
-    tile_donH_hvy_inds: NDArray[numpy.int32][
-        :, :
-    ]  # the res-ind of hvy for a particular donH
-    tile_don_hvy_inds: NDArray[numpy.int32][
-        :, :
-    ]  # the tile-ind of a particular donor hvy
-    tile_which_donH_of_donH_hvy: NDArray[numpy.int32][
-        :, :
-    ]  # ind [0..nattachedH) for donH for corr hvy
+    tile_donH_hvy_inds: NDArray[numpy.int32][:, :]  # the res-ind of hvy for a particular donH
+    tile_don_hvy_inds: NDArray[numpy.int32][:, :]  # the tile-ind of a particular donor hvy
+    tile_which_donH_of_donH_hvy: NDArray[numpy.int32][:, :]  # ind [0..nattachedH) for donH for corr hvy
     tile_acc_inds: NDArray[numpy.int32][:, :]  # the tile-ind of a particular acc
     tile_donorH_type: NDArray[numpy.int32][:, :]
     tile_acceptor_type: NDArray[numpy.int32][:, :]
@@ -106,13 +97,9 @@ class HBondDependentTerm(BondDependentTerm):
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super(HBondDependentTerm, self).__init__(param_db=param_db, device=device)
-        self.atom_type_resolver = AtomTypeParamResolver.from_database(
-            param_db.chemical, torch.device("cpu")
-        )
+        self.atom_type_resolver = AtomTypeParamResolver.from_database(param_db.chemical, torch.device("cpu"))
         self.hbond_database = param_db.scoring.hbond
-        self.hbond_resolver = HBondParamResolver.from_database(
-            param_db.chemical, self.hbond_database, device
-        )
+        self.hbond_resolver = HBondParamResolver.from_database(param_db.chemical, self.hbond_database, device)
         self.device = device
 
     def setup_block_type(self, block_type: RefinedResidueType):
@@ -158,14 +145,10 @@ class HBondDependentTerm(BondDependentTerm):
         )
 
         A_idx = numpy.nonzero(is_acc)[0].astype(dtype=numpy.int32)
-        is_hydrogen = (
-            atom_type_params.is_hydrogen.cpu().numpy().astype(dtype=numpy.int32)
-        )
+        is_hydrogen = atom_type_params.is_hydrogen.cpu().numpy().astype(dtype=numpy.int32)
 
         tile_size = HBondDependentTerm.tile_size
-        tiled_acc_orig_inds, tile_n_acc = arg_tile_subset_indices(
-            A_idx, tile_size, block_type.n_atoms
-        )
+        tiled_acc_orig_inds, tile_n_acc = arg_tile_subset_indices(A_idx, tile_size, block_type.n_atoms)
 
         n_tiles = tile_n_acc.shape[0]
         tiled_acc_orig_inds = tiled_acc_orig_inds.reshape(n_tiles, tile_size)
@@ -175,9 +158,7 @@ class HBondDependentTerm(BondDependentTerm):
         tile_acceptor_hybridization = numpy.copy(tile_acc_inds)
         tile_acc_inds[is_tiled_acc] = A_idx
         tile_acceptor_type[is_tiled_acc] = acc_type[A_idx]
-        tile_acceptor_hybridization[is_tiled_acc] = atom_acceptor_hybridization[
-            0, A_idx
-        ]
+        tile_acceptor_hybridization[is_tiled_acc] = atom_acceptor_hybridization[0, A_idx]
 
         # now lets get the list of attached hydrogen atoms:
         D_idx = numpy.nonzero(is_don)[0].astype(dtype=numpy.int32)
@@ -191,17 +172,11 @@ class HBondDependentTerm(BondDependentTerm):
         donH_type = don_type[D_for_H]
         n_H_for_at = numpy.zeros(block_type.n_atoms, dtype=numpy.int32)
         n_H_for_at[D_idx] = n_H_for_D
-        tile_acceptor_n_attached_H = numpy.full(
-            (n_tiles, tile_size), -1, dtype=numpy.int32
-        )
+        tile_acceptor_n_attached_H = numpy.full((n_tiles, tile_size), -1, dtype=numpy.int32)
         tile_acceptor_n_attached_H[is_tiled_acc] = n_H_for_at[A_idx]
 
-        tiled_donH_orig_inds, tile_n_donH = arg_tile_subset_indices(
-            H_idx, tile_size, block_type.n_atoms
-        )
-        tiled_don_hvy_orig_inds, tile_n_don_hvy = arg_tile_subset_indices(
-            D_idx, tile_size, block_type.n_atoms
-        )
+        tiled_donH_orig_inds, tile_n_donH = arg_tile_subset_indices(H_idx, tile_size, block_type.n_atoms)
+        tiled_don_hvy_orig_inds, tile_n_don_hvy = arg_tile_subset_indices(D_idx, tile_size, block_type.n_atoms)
 
         assert tile_n_donH.shape[0] == n_tiles
         assert tile_n_don_hvy.shape[0] == n_tiles
@@ -261,36 +236,16 @@ class HBondDependentTerm(BondDependentTerm):
         tile_n_donH = numpy.zeros((pbt.n_types, max_n_tiles), dtype=numpy.int32)
         tile_n_don_hvy = numpy.zeros((pbt.n_types, max_n_tiles), dtype=numpy.int32)
         tile_n_acc = numpy.zeros((pbt.n_types, max_n_tiles), dtype=numpy.int32)
-        tile_donH_inds = numpy.full(
-            (pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32
-        )
-        tile_donH_hvy_inds = numpy.full(
-            (pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32
-        )
-        tile_don_hvy_inds = numpy.full(
-            (pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32
-        )
-        tile_which_donH_of_donH_hvy = numpy.full(
-            (pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32
-        )
-        tile_acc_inds = numpy.full(
-            (pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32
-        )
-        tile_donorH_type = numpy.full(
-            (pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32
-        )
-        tile_acceptor_type = numpy.full(
-            (pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32
-        )
-        tile_acceptor_hybridization = numpy.full(
-            (pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32
-        )
-        tile_acceptor_n_attached_H = numpy.full(
-            (pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32
-        )
-        is_hydrogen = numpy.full(
-            (pbt.n_types, pbt.max_n_atoms), False, dtype=numpy.int32
-        )
+        tile_donH_inds = numpy.full((pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_donH_hvy_inds = numpy.full((pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_don_hvy_inds = numpy.full((pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_which_donH_of_donH_hvy = numpy.full((pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_acc_inds = numpy.full((pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_donorH_type = numpy.full((pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_acceptor_type = numpy.full((pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_acceptor_hybridization = numpy.full((pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_acceptor_n_attached_H = numpy.full((pbt.n_types, max_n_tiles, tile_size), -1, dtype=numpy.int32)
+        is_hydrogen = numpy.full((pbt.n_types, pbt.max_n_atoms), False, dtype=numpy.int32)
 
         for i, block_type in enumerate(packed_block_types.active_block_types):
             i_hb_params = block_type.hbbt_params
@@ -303,18 +258,12 @@ class HBondDependentTerm(BondDependentTerm):
             tile_donH_inds[i, :i_n_tiles] = i_hb_params.tile_donH_inds
             tile_donH_hvy_inds[i, :i_n_tiles] = i_hb_params.tile_donH_hvy_inds
             tile_don_hvy_inds[i, :i_n_tiles] = i_hb_params.tile_don_hvy_inds
-            tile_which_donH_of_donH_hvy[i, :i_n_tiles] = (
-                i_hb_params.tile_which_donH_of_donH_hvy
-            )
+            tile_which_donH_of_donH_hvy[i, :i_n_tiles] = i_hb_params.tile_which_donH_of_donH_hvy
             tile_acc_inds[i, :i_n_tiles] = i_hb_params.tile_acc_inds
             tile_donorH_type[i, :i_n_tiles] = i_hb_params.tile_donorH_type
             tile_acceptor_type[i, :i_n_tiles] = i_hb_params.tile_acceptor_type
-            tile_acceptor_hybridization[i, :i_n_tiles] = (
-                i_hb_params.tile_acceptor_hybridization
-            )
-            tile_acceptor_n_attached_H[i, :i_n_tiles] = (
-                i_hb_params.tile_acceptor_n_attached_H
-            )
+            tile_acceptor_hybridization[i, :i_n_tiles] = i_hb_params.tile_acceptor_hybridization
+            tile_acceptor_n_attached_H[i, :i_n_tiles] = i_hb_params.tile_acceptor_n_attached_H
             is_hydrogen[i, :i_n_ats] = i_hb_params.is_hydrogen
 
         def _tint32(arr):

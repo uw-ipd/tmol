@@ -1,8 +1,7 @@
 import torch
 
-from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.pose.packed_block_types import PackedBlockTypes
-
+from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
@@ -13,9 +12,7 @@ def test_smoke(default_database, torch_device):
     assert ljlk_energy.global_params.max_dis.device == torch_device
 
 
-def test_annotate_heavy_ats_in_tile(
-    fresh_default_restype_set, default_database, torch_device
-):
+def test_annotate_heavy_ats_in_tile(fresh_default_restype_set, default_database, torch_device):
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
     pbt = PackedBlockTypes.from_restype_list(
@@ -39,16 +36,12 @@ class TestLJLKEnergyTerm(EnergyTermTestBase):
 
     @classmethod
     def test_whole_pose_scoring_10(cls, ubq_pdb, default_database, torch_device):
-        return super().test_whole_pose_scoring_10(
-            ubq_pdb, default_database, torch_device, update_baseline=False
-        )
+        return super().test_whole_pose_scoring_10(ubq_pdb, default_database, torch_device, update_baseline=False)
 
     @classmethod
     def test_whole_pose_scoring_gradcheck(cls, ubq_pdb, default_database, torch_device):
         resnums = [(0, 4)]
-        return super().test_whole_pose_scoring_gradcheck(
-            ubq_pdb, default_database, torch_device, resnums=resnums
-        )
+        return super().test_whole_pose_scoring_gradcheck(ubq_pdb, default_database, torch_device, resnums=resnums)
 
     @classmethod
     def test_whole_pose_scoring_jagged(
@@ -57,17 +50,11 @@ class TestLJLKEnergyTerm(EnergyTermTestBase):
         default_database,
         torch_device: torch.device,
     ):
-        return super().test_whole_pose_scoring_jagged(
-            ubq_pdb, default_database, torch_device, update_baseline=False
-        )
+        return super().test_whole_pose_scoring_jagged(ubq_pdb, default_database, torch_device, update_baseline=False)
 
     @classmethod
-    def test_block_scoring_matches_whole_pose_scoring(
-        cls, ubq_pdb, default_database, torch_device
-    ):
-        return super().test_block_scoring_matches_whole_pose_scoring(
-            ubq_pdb, default_database, torch_device
-        )
+    def test_block_scoring_matches_whole_pose_scoring(cls, ubq_pdb, default_database, torch_device):
+        return super().test_block_scoring_matches_whole_pose_scoring(ubq_pdb, default_database, torch_device)
 
     @classmethod
     def test_block_scoring(cls, ubq_pdb, default_database, torch_device):
@@ -81,9 +68,7 @@ class TestLJLKEnergyTerm(EnergyTermTestBase):
         )
 
     @classmethod
-    def test_block_scoring_reweighted_gradcheck(
-        cls, ubq_pdb, default_database, torch_device
-    ):
+    def test_block_scoring_reweighted_gradcheck(cls, ubq_pdb, default_database, torch_device):
         resnums = [(0, 4)]
         return super().test_block_scoring_reweighted_gradcheck(
             ubq_pdb,

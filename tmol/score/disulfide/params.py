@@ -1,13 +1,11 @@
 import attr
 import cattr
-
 import torch
 
-from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
-from tmol.types.functional import validate_args
-
 from tmol.database.scoring.disulfide import DisulfideDatabase
+from tmol.types.functional import validate_args
+from tmol.types.tensor import TensorGroup
+from tmol.types.torch import Tensor
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -49,9 +47,7 @@ class DisulfideGlobalParams(TensorGroup):
         global_params = DisulfideGlobalParams(
             **{
                 n: torch.tensor(v, device=device).expand((1,))
-                for n, v in cattr.unstructure(
-                    disulfide_database.global_parameters
-                ).items()
+                for n, v in cattr.unstructure(disulfide_database.global_parameters).items()
             }
         )
 

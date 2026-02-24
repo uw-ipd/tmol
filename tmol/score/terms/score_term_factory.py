@@ -1,7 +1,8 @@
-import torch
-import tmol.score.terms  # noqa: F401, F403 -- force factory registration of score types
-
 from typing import Dict
+
+import torch
+
+import tmol.score.terms  # noqa: F401, F403 -- force factory registration of score types
 from tmol.database import ParameterDatabase
 from tmol.score.score_types import ScoreType
 
@@ -24,8 +25,6 @@ class ScoreTermFactory:
             cls.creator_map[st] = creator
 
     @classmethod
-    def create_term_for_score_type(
-        cls, st: ScoreType, param_db: ParameterDatabase, device: torch.device
-    ):
+    def create_term_for_score_type(cls, st: ScoreType, param_db: ParameterDatabase, device: torch.device):
         creator = cls.creator_map[st]
         return creator.create_term(param_db, device)

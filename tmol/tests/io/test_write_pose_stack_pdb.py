@@ -1,22 +1,23 @@
-import numpy
-import torch
 import os
 
+import numpy
+import torch
+
 from tmol.io import pose_stack_from_pdb
-from tmol.io.write_pose_stack_pdb import (
-    write_pose_stack_pdb,
-    atom_records_from_pose_stack,
+from tmol.io.canonical_ordering import (
+    canonical_form_from_pdb,
+    default_canonical_ordering,
+    default_packed_block_types,
 )
 
 # from tmol.chemical.restypes import find_simple_polymeric_connections
 from tmol.io.pdb_parsing import to_pdb
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.io.canonical_ordering import (
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-)
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
+from tmol.io.write_pose_stack_pdb import (
+    atom_records_from_pose_stack,
+    write_pose_stack_pdb,
+)
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
 def test_atom_records_from_pose_stack_1(ubq_pdb, torch_device):
@@ -77,17 +78,9 @@ def test_write_pose_stack_pdb(ubq_pdb, pertuzumab_pdb):
 
         torch.testing.assert_close(ps.coords, ps2.coords)
         numpy.testing.assert_equal(ps.pdb_info.chain_labels, ps2.pdb_info.chain_labels)
-        numpy.testing.assert_equal(
-            ps.pdb_info.residue_labels, ps2.pdb_info.residue_labels
-        )
-        numpy.testing.assert_equal(
-            ps.pdb_info.residue_insertion_codes, ps2.pdb_info.residue_insertion_codes
-        )
-        numpy.testing.assert_equal(
-            ps.pdb_info.atom_occupancy, ps2.pdb_info.atom_occupancy
-        )
-        numpy.testing.assert_equal(
-            ps.pdb_info.atom_b_factor, ps2.pdb_info.atom_b_factor
-        )
+        numpy.testing.assert_equal(ps.pdb_info.residue_labels, ps2.pdb_info.residue_labels)
+        numpy.testing.assert_equal(ps.pdb_info.residue_insertion_codes, ps2.pdb_info.residue_insertion_codes)
+        numpy.testing.assert_equal(ps.pdb_info.atom_occupancy, ps2.pdb_info.atom_occupancy)
+        numpy.testing.assert_equal(ps.pdb_info.atom_b_factor, ps2.pdb_info.atom_b_factor)
 
         os.remove(output_fname)

@@ -1,33 +1,26 @@
-import torch
 import pytest
+import torch
 
-from tmol.kinematics.move_map import MoveMap, MinimizerMap
-from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.datatypes import (
     KinematicModuleData,
-    n_movable_jump_dof_types,
     n_movable_bond_dof_types,
+    n_movable_jump_dof_types,
 )
-
+from tmol.kinematics.move_map import MinimizerMap, MoveMap
 from tmol.kinematics.scan_ordering import (
     construct_kin_module_data_for_pose,
 )
+from tmol.pose.pose_stack import PoseStack
 
 
-def kinatom_to_atom_name(
-    pose_stack: PoseStack, kmd: KinematicModuleData, kin_atom: int
-):
+def kinatom_to_atom_name(pose_stack: PoseStack, kmd: KinematicModuleData, kin_atom: int):
     pose_atom = kmd.forest.id[kin_atom]
 
     pose = pose_atom // pose_stack.max_n_pose_atoms
     pose_atom = pose_atom % pose_stack.max_n_pose_atoms
 
     nz_lt_offset = torch.nonzero(pose_stack.block_coord_offset[pose] > pose_atom)
-    block = (
-        nz_lt_offset[0].item() - 1
-        if nz_lt_offset.shape[0] > 0
-        else pose_stack.n_res_per_pose[pose] - 1
-    )
+    block = nz_lt_offset[0].item() - 1 if nz_lt_offset.shape[0] > 0 else pose_stack.n_res_per_pose[pose] - 1
 
     block_type = pose_stack.block_type_ind[pose, block]
     block_name = pose_stack.packed_block_types.active_block_types[block_type].name
@@ -148,9 +141,7 @@ def move_all_setter_name_for_doftype(doftype):
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-def test_set_move_all_doftypes_for_block_by_integer(
-    doftype, mm_for_two_six_res_ubqs_no_term
-):
+def test_set_move_all_doftypes_for_block_by_integer(doftype, mm_for_two_six_res_ubqs_no_term):
     mm = mm_for_two_six_res_ubqs_no_term
 
     varname = f"move_{doftype}s"
@@ -170,9 +161,7 @@ def test_set_move_all_doftypes_for_block_by_integer(
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-def test_set_move_all_doftypes_for_block_by_boolean_mask(
-    doftype, mm_for_two_six_res_ubqs_no_term
-):
+def test_set_move_all_doftypes_for_block_by_boolean_mask(doftype, mm_for_two_six_res_ubqs_no_term):
     mm = mm_for_two_six_res_ubqs_no_term
 
     varname = f"move_{doftype}s"
@@ -197,9 +186,7 @@ def test_set_move_all_doftypes_for_block_by_boolean_mask(
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-def test_set_move_all_doftypes_for_block_by_boolean_mask2(
-    doftype, mm_for_two_six_res_ubqs_no_term
-):
+def test_set_move_all_doftypes_for_block_by_boolean_mask2(doftype, mm_for_two_six_res_ubqs_no_term):
     mm = mm_for_two_six_res_ubqs_no_term
 
     varname = f"move_{doftype}s"
@@ -225,9 +212,7 @@ def test_set_move_all_doftypes_for_block_by_boolean_mask2(
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-def test_set_move_all_doftypes_for_block_by_boolean_masks(
-    doftype, mm_for_two_six_res_ubqs_no_term
-):
+def test_set_move_all_doftypes_for_block_by_boolean_masks(doftype, mm_for_two_six_res_ubqs_no_term):
     mm = mm_for_two_six_res_ubqs_no_term
 
     varname = f"move_{doftype}s"
@@ -254,9 +239,7 @@ def test_set_move_all_doftypes_for_block_by_boolean_masks(
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-def test_set_move_all_doftypes_for_block_by_index_tensors(
-    doftype, mm_for_two_six_res_ubqs_no_term
-):
+def test_set_move_all_doftypes_for_block_by_index_tensors(doftype, mm_for_two_six_res_ubqs_no_term):
     mm = mm_for_two_six_res_ubqs_no_term
 
     varname = f"move_{doftype}s"
@@ -321,9 +304,7 @@ def move_particular_setter_name_for_doftype(doftype):
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-def test_set_move_particular_doftypes_for_block_by_integer(
-    doftype, mm_for_two_six_res_ubqs_no_term
-):
+def test_set_move_particular_doftypes_for_block_by_integer(doftype, mm_for_two_six_res_ubqs_no_term):
     mm = mm_for_two_six_res_ubqs_no_term
 
     varname = f"move_{doftype}"
@@ -343,9 +324,7 @@ def test_set_move_particular_doftypes_for_block_by_integer(
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-def test_set_move_particular_doftypes_for_block_by_integer_jagged(
-    doftype, mm_for_jagged_465_ubqs
-):
+def test_set_move_particular_doftypes_for_block_by_integer_jagged(doftype, mm_for_jagged_465_ubqs):
     mm = mm_for_jagged_465_ubqs
 
     varname = f"move_{doftype}"
@@ -365,9 +344,7 @@ def test_set_move_particular_doftypes_for_block_by_integer_jagged(
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-def test_set_move_particular_doftypes_for_block_by_boolean_mask(
-    doftype, mm_for_two_six_res_ubqs_no_term
-):
+def test_set_move_particular_doftypes_for_block_by_boolean_mask(doftype, mm_for_two_six_res_ubqs_no_term):
     mm = mm_for_two_six_res_ubqs_no_term
 
     varname = f"move_{doftype}"
@@ -390,9 +367,7 @@ def test_set_move_particular_doftypes_for_block_by_boolean_mask(
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-def test_set_move_particular_doftypes_for_block_by_boolean_mask_jagged(
-    doftype, mm_for_jagged_465_ubqs
-):
+def test_set_move_particular_doftypes_for_block_by_boolean_mask_jagged(doftype, mm_for_jagged_465_ubqs):
     mm = mm_for_jagged_465_ubqs
 
     varname = f"move_{doftype}"
@@ -415,9 +390,7 @@ def test_set_move_particular_doftypes_for_block_by_boolean_mask_jagged(
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-def test_set_move_particular_doftypes_for_block_by_boolean_mask2(
-    doftype, mm_for_two_six_res_ubqs_no_term
-):
+def test_set_move_particular_doftypes_for_block_by_boolean_mask2(doftype, mm_for_two_six_res_ubqs_no_term):
     mm = mm_for_two_six_res_ubqs_no_term
 
     varname = f"move_{doftype}"
@@ -441,9 +414,7 @@ def test_set_move_particular_doftypes_for_block_by_boolean_mask2(
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-def test_set_move_particular_doftypes_for_block_by_index_tensors(
-    doftype, mm_for_two_six_res_ubqs_no_term
-):
+def test_set_move_particular_doftypes_for_block_by_index_tensors(doftype, mm_for_two_six_res_ubqs_no_term):
     mm = mm_for_two_six_res_ubqs_no_term
 
     varname = f"move_{doftype}"
@@ -467,9 +438,7 @@ def test_set_move_particular_doftypes_for_block_by_index_tensors(
 
     gold_standard_var = torch.zeros((2, 6, 7), dtype=torch.bool)
     for i in range(8):
-        gold_standard_var[
-            pose_index_tensor[i], block_index_tensor[i], dof_index_tensor[i]
-        ] = True
+        gold_standard_var[pose_index_tensor[i], block_index_tensor[i], dof_index_tensor[i]] = True
 
     for i in range(2):
         for j in range(6):
@@ -523,9 +492,7 @@ def test_set_move_particular_atom_dofs2(
 def enabled_phi_dof_atoms_from_minimizer_map(pose_stack, kmd, minmap):
     n_poses = pose_stack.n_poses
     max_n_blocks = pose_stack.max_n_blocks
-    enabled_dof_atoms = [
-        [list() for _2 in range(max_n_blocks)] for _1 in range(n_poses)
-    ]
+    enabled_dof_atoms = [[list() for _2 in range(max_n_blocks)] for _1 in range(n_poses)]
     for i in range(minmap.dof_mask.shape[0]):
         if minmap.dof_mask[i, 3]:
             pose, block, _, atom_name = kinatom_to_atom_name(pose_stack, kmd, i)
@@ -533,9 +500,7 @@ def enabled_phi_dof_atoms_from_minimizer_map(pose_stack, kmd, minmap):
     return enabled_dof_atoms
 
 
-def test_minimizermap_construction_2_sixres_ubq_just_sc(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
-):
+def test_minimizermap_construction_2_sixres_ubq_just_sc(stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H):
     pose_stack = stack_of_two_six_res_ubqs_no_term
     ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
@@ -548,9 +513,7 @@ def test_minimizermap_construction_2_sixres_ubq_just_sc(
     # 14 chi, 3Q+2I+2F+1V+4K+2T
     assert torch.sum(minmap.dof_mask) == 28
 
-    enabled_dof_atoms = enabled_phi_dof_atoms_from_minimizer_map(
-        pose_stack, kmd, minmap
-    )
+    enabled_dof_atoms = enabled_phi_dof_atoms_from_minimizer_map(pose_stack, kmd, minmap)
 
     dof_atoms_gold = [
         [
@@ -574,9 +537,7 @@ def test_minimizermap_construction_2_sixres_ubq_just_sc(
     assert enabled_dof_atoms == dof_atoms_gold
 
 
-def test_minimizermap_construction_2_sixres_ubq_just_bb(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
-):
+def test_minimizermap_construction_2_sixres_ubq_just_bb(stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H):
     pose_stack = stack_of_two_six_res_ubqs_no_term
     ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
@@ -626,9 +587,7 @@ def test_minimizermap_construction_2_sixres_ubq_just_bb(
     assert enabled_dof_atoms == dof_atoms_gold
 
 
-def test_minimizermap_construction_2_sixres_ubq(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
-):
+def test_minimizermap_construction_2_sixres_ubq(stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H):
     pose_stack = stack_of_two_six_res_ubqs_no_term
     ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
@@ -647,9 +606,7 @@ def test_minimizermap_construction_2_sixres_ubq(
         device=pose_stack.device,
     )
     assert torch.all(kmd.pose_stack_atom_for_jump == gold_pose_stack_atom_for_jump)
-    assert torch.all(
-        kmd.pose_stack_atom_for_root_jump == gold_pose_stack_atom_for_root_jump
-    )
+    assert torch.all(kmd.pose_stack_atom_for_root_jump == gold_pose_stack_atom_for_root_jump)
 
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_jumps = True
@@ -683,9 +640,7 @@ def test_minimizermap_construction_2_sixres_ubq(
     assert torch.sum(minmap.dof_mask) == 2 * (14 + 14 + 6)
 
 
-def test_minimizermap_construction_2_sixres_ubq_root_jump_min(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
-):
+def test_minimizermap_construction_2_sixres_ubq_root_jump_min(stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H):
     pose_stack = stack_of_two_six_res_ubqs_no_term
     ff_edges_cpu = torch.from_numpy(ff_2ubq_6res_H).to(torch.int32)
 
@@ -719,9 +674,7 @@ def test_minimizermap_construction_2_sixres_ubq_root_jump_min(
     assert torch.sum(minmap.dof_mask[root_jump_1_kinatom, :6]) == 6
 
 
-def test_minimizermap_construction_jagged_465_ubq(
-    jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
-):
+def test_minimizermap_construction_jagged_465_ubq(jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H):
     pose_stack = jagged_stack_of_465_res_ubqs
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
@@ -734,9 +687,7 @@ def test_minimizermap_construction_jagged_465_ubq(
     assert torch.sum(minmap.dof_mask) == 27 + 36 + 6 * 3
 
 
-def test_minimizermap_construction_jagged_465_ubq_just_sc(
-    jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
-):
+def test_minimizermap_construction_jagged_465_ubq_just_sc(jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H):
     pose_stack = jagged_stack_of_465_res_ubqs
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
@@ -783,9 +734,7 @@ def test_minimizermap_construction_jagged_465_ubq_just_sc(
     assert enabled_dof_atoms == dof_atoms_gold
 
 
-def test_minimizermap_construction_jagged_465_ubq_just_mc(
-    jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
-):
+def test_minimizermap_construction_jagged_465_ubq_just_mc(jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H):
     pose_stack = jagged_stack_of_465_res_ubqs
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
@@ -832,9 +781,7 @@ def test_minimizermap_construction_jagged_465_ubq_just_mc(
     assert enabled_dof_atoms == dof_atoms_gold
 
 
-def test_minimizermap_construction_jagged_465_ubq_named_dofs(
-    jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
-):
+def test_minimizermap_construction_jagged_465_ubq_named_dofs(jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H):
     pose_stack = jagged_stack_of_465_res_ubqs
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 

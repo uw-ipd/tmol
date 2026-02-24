@@ -1,12 +1,12 @@
-import pytest
 import typing
-import numpy
 
+import numpy
+import pytest
 import torch
 
 from tmol import (
-    PoseStack,
     PackedBlockTypes,
+    PoseStack,
     canonical_form_from_pdb,
     pose_stack_from_canonical_form,
 )
@@ -14,14 +14,11 @@ from tmol.io.canonical_ordering import (
     default_canonical_ordering,
     default_packed_block_types,
 )
-from tmol.types.torch import Tensor
-
-from tmol.kinematics.fold_forest import FoldForest, EdgeType
-
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
+from tmol.kinematics.fold_forest import EdgeType, FoldForest
 from tmol.kinematics.operations import inverseKin
-
+from tmol.kinematics.script_modules import PoseStackKinematicsModule
 from tmol.tests.torch import requires_cuda
+from tmol.types.torch import Tensor
 
 
 def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
@@ -46,9 +43,7 @@ def kincoords_and_dofs_for_pose_stack_system(
         dtype=torch.float64,
         device=torch_device,
     )
-    kincoords[1:] = pose_stack.coords.view(-1, 3)[
-        kinematics_module.kmd.forest.id[1:]
-    ].to(torch.float64)
+    kincoords[1:] = pose_stack.coords.view(-1, 3)[kinematics_module.kmd.forest.id[1:]].to(torch.float64)
 
     dofs = inverseKin(kinforest, kincoords, requires_grad=True)
     return kincoords, dofs
@@ -74,19 +69,13 @@ def coord_weights(torch_device):
 
 
 @pytest.fixture
-def pose_stack_system1(
-    ubq_pdb: str, torch_device: torch.device
-) -> typing.Tuple[PoseStack, FoldForest]:
+def pose_stack_system1(ubq_pdb: str, torch_device: torch.device) -> typing.Tuple[PoseStack, FoldForest]:
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
-        co, ubq_pdb, torch_device, residue_start=0, residue_end=2
-    )
+    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_start=0, residue_end=2)
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     # ff_roots = numpy.full((1,), 0, dtype=int)  # residue 0 is the root
-    ff_n_edges = numpy.full(
-        (1,), 1, dtype=int
-    )  # one edge for the single Pose in the PoseStack
+    ff_n_edges = numpy.full((1,), 1, dtype=int)  # one edge for the single Pose in the PoseStack
     ff_edges = numpy.zeros((1, 2, 4), dtype=int)
     ff_edges[0, 0, 0] = EdgeType.root_jump
     ff_edges[0, 0, 1] = -1
@@ -118,22 +107,16 @@ def pose_stack_gradcheck_test_system1(
         pose_stack,
         fold_forest,
     )
-    kincoords, dofs = kincoords_and_dofs_for_pose_stack_system(
-        pose_stack, kinematics_module, torch_device
-    )
+    kincoords, dofs = kincoords_and_dofs_for_pose_stack_system(pose_stack, kinematics_module, torch_device)
 
     return (pose_stack, kinematics_module, kincoords, dofs)
 
 
 @pytest.fixture
-def pose_stack_system2(
-    ubq_pdb: str, torch_device: torch.device
-) -> typing.Tuple[PoseStack, FoldForest]:
+def pose_stack_system2(ubq_pdb: str, torch_device: torch.device) -> typing.Tuple[PoseStack, FoldForest]:
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
-        co, ubq_pdb, torch_device, residue_start=0, residue_end=6
-    )
+    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_start=0, residue_end=6)
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     # capital letter H fold forest
@@ -190,9 +173,7 @@ def pose_stack_gradcheck_test_system2(
         pose_stack,
         fold_forest,
     )
-    kincoords, dofs = kincoords_and_dofs_for_pose_stack_system(
-        pose_stack, kinematics_module, torch_device
-    )
+    kincoords, dofs = kincoords_and_dofs_for_pose_stack_system(pose_stack, kinematics_module, torch_device)
 
     return (pose_stack, kinematics_module, kincoords, dofs)
 
@@ -221,12 +202,7 @@ def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
     pose_stack, kinematics_module, kincoords, dofs = pose_stack_gradcheck_test_system1
 
     torch.random.manual_seed(1663)
-    start_dofs = (
-        (dofs.raw + ((torch.rand_like(dofs.raw) - 0.5) * 0.01))
-        .clone()
-        .detach()
-        .requires_grad_(True)
-    )
+    start_dofs = (dofs.raw + ((torch.rand_like(dofs.raw) - 0.5) * 0.01)).clone().detach().requires_grad_(True)
 
     def func(dofs):
         return torch.sum(coord_weights * kinematics_module(dofs)[:, :])
@@ -234,9 +210,7 @@ def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
     kop_gradcheck_report(func, start_dofs)
 
 
-def test_pose_stack_kinematic_torch_op_gradcheck(
-    pose_stack_gradcheck_test_system1, torch_device
-):
+def test_pose_stack_kinematic_torch_op_gradcheck(pose_stack_gradcheck_test_system1, torch_device):
     pose_stack, kinematics_module, kincoords, dofs = pose_stack_gradcheck_test_system1
     kop_gradcheck_report(kinematics_module, dofs.raw)
 
@@ -273,9 +247,7 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
         block_coord_offset=_to_cuda(cpu_pose_stack.block_coord_offset),
         block_coord_offset64=_to_cuda(cpu_pose_stack.block_coord_offset64),
         inter_residue_connections=_to_cuda(cpu_pose_stack.inter_residue_connections),
-        inter_residue_connections64=_to_cuda(
-            cpu_pose_stack.inter_residue_connections64
-        ),
+        inter_residue_connections64=_to_cuda(cpu_pose_stack.inter_residue_connections64),
         inter_block_bondsep=_to_cuda(cpu_pose_stack.inter_block_bondsep),
         inter_block_bondsep64=_to_cuda(cpu_pose_stack.inter_block_bondsep64),
         block_type_ind=_to_cuda(cpu_pose_stack.block_type_ind),
@@ -302,15 +274,9 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
     assert cuda_kinematics_module.kmd.forest.id.device.type == "cuda"
 
     # backwards scans/nodes/gens:
-    torch.testing.assert_close(
-        cpu_kinematics_module.nodes_b, cuda_kinematics_module.nodes_b.to(cpu_device)
-    )
-    torch.testing.assert_close(
-        cpu_kinematics_module.scans_b, cuda_kinematics_module.scans_b.to(cpu_device)
-    )
-    torch.testing.assert_close(
-        cpu_kinematics_module.gens_b, cuda_kinematics_module.gens_b
-    )
+    torch.testing.assert_close(cpu_kinematics_module.nodes_b, cuda_kinematics_module.nodes_b.to(cpu_device))
+    torch.testing.assert_close(cpu_kinematics_module.scans_b, cuda_kinematics_module.scans_b.to(cpu_device))
+    torch.testing.assert_close(cpu_kinematics_module.gens_b, cuda_kinematics_module.gens_b)
 
     # Passing tensors of incorrect device for op errors
     with pytest.raises(RuntimeError):

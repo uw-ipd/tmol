@@ -1,15 +1,15 @@
 import os
+
 import torch
 
-
+from tmol.io.canonical_form import CanonicalForm
 from tmol.io.pose_stack_from_rosettafold2 import (
-    pose_stack_from_rosettafold2,
-    canonical_form_from_rosettafold2,
     _paramdb_for_rosettafold2,
+    canonical_form_from_rosettafold2,
     canonical_ordering_for_rosettafold2,
     packed_block_types_for_rosettafold2,
+    pose_stack_from_rosettafold2,
 )
-from tmol.io.canonical_form import CanonicalForm
 
 # from tmol.io.pose_stack_from_rosettafold2 import pose_stack_from_rosettafold2
 
@@ -34,9 +34,7 @@ def test_load_rosettafold2_dictionary2(rosettafold2_sumo_pred, torch_device):
     assert ps.packed_block_types is pbt
 
 
-def test_multi_chain_rosettafold2_pose_stack_construction(
-    rosettafold2_ubq_pred, torch_device
-):
+def test_multi_chain_rosettafold2_pose_stack_construction(rosettafold2_ubq_pred, torch_device):
     """Just fake a multi-chain prediction by saying ubq is two chains"""
     # print("rosettafold_ubq_pred")
     # print(rosettafold2_ubq_pred)
@@ -49,13 +47,9 @@ def test_multi_chain_rosettafold2_pose_stack_construction(
     assert ps.packed_block_types is pbt
 
 
-def test_create_canonical_form_from_rosettafold2_ubq_stability(
-    rosettafold2_ubq_pred, torch_device
-):
+def test_create_canonical_form_from_rosettafold2_ubq_stability(rosettafold2_ubq_pred, torch_device):
     cf = canonical_form_from_rosettafold2(**rosettafold2_ubq_pred)
-    gold_cf_path = os.path.join(
-        __file__.rpartition("/")[0], "gold_ubq_rosettafold2_canform.pt"
-    )
+    gold_cf_path = os.path.join(__file__.rpartition("/")[0], "gold_ubq_rosettafold2_canform.pt")
     # if torch_device == torch.device("cpu"):
     #    torch.save(cf.as_dict(), gold_cf_path)
     gold_cf = CanonicalForm(**torch.load(gold_cf_path))
@@ -64,20 +58,14 @@ def test_create_canonical_form_from_rosettafold2_ubq_stability(
     for n, t in gold_cf_dict.items():
         assert n in cf_dict
         if cf_dict[n] is not None:
-            torch.testing.assert_close(
-                t, cf_dict[n].cpu(), equal_nan=True, atol=1e-5, rtol=1e-5
-            )
+            torch.testing.assert_close(t, cf_dict[n].cpu(), equal_nan=True, atol=1e-5, rtol=1e-5)
         else:
             assert gold_cf_dict[n] is None
 
 
-def test_create_canonical_form_from_rosettafold2_sumo_stability(
-    rosettafold2_sumo_pred, torch_device
-):
+def test_create_canonical_form_from_rosettafold2_sumo_stability(rosettafold2_sumo_pred, torch_device):
     cf = canonical_form_from_rosettafold2(**rosettafold2_sumo_pred)
-    gold_cf_path = os.path.join(
-        __file__.rpartition("/")[0], "gold_sumo_rosettafold2_canform.pt"
-    )
+    gold_cf_path = os.path.join(__file__.rpartition("/")[0], "gold_sumo_rosettafold2_canform.pt")
     # if torch_device == torch.device("cpu"):
     #    torch.save(cf.as_dict(), gold_cf_path)
     gold_cf = CanonicalForm(**torch.load(gold_cf_path))
@@ -86,9 +74,7 @@ def test_create_canonical_form_from_rosettafold2_sumo_stability(
     for n, t in gold_cf_dict.items():
         assert n in cf_dict
         if cf_dict[n] is not None:
-            torch.testing.assert_close(
-                t, cf_dict[n].cpu(), equal_nan=True, atol=1e-5, rtol=1e-5
-            )
+            torch.testing.assert_close(t, cf_dict[n].cpu(), equal_nan=True, atol=1e-5, rtol=1e-5)
         else:
             assert gold_cf_dict[n] is None
 

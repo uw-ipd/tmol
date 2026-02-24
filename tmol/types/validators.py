@@ -1,10 +1,10 @@
 """Generic type validator functions."""
 
 from functools import singledispatch
-
 from typing import List, get_args
-from typing_inspect import is_tuple_type, is_union_type
+
 import toolz
+from typing_inspect import is_tuple_type, is_union_type
 
 _validators = []
 
@@ -33,8 +33,8 @@ def is_list_type(tp):
         from typing import Generic, _GenericAlias
 
         if sys.version_info[:3] >= (3, 9, 0):
-            from typing import _SpecialGenericAlias
             from types import GenericAlias
+            from typing import _SpecialGenericAlias
 
             typingGenericAlias = (_GenericAlias, _SpecialGenericAlias, GenericAlias)
         else:
@@ -109,9 +109,7 @@ def validate_list(lst, value):
             try:
                 get_validator(args[0])(v)
             except TypeError as err:
-                raise TypeError(
-                    f"Failed to validate {lst}: {i}th argument error: {err}"
-                ) from err
+                raise TypeError(f"Failed to validate {lst}: {i}th argument error: {err}") from err
 
 
 @toolz.curry

@@ -1,22 +1,18 @@
-import torch
-import numpy
-
 from itertools import permutations
 
-from tmol.score.atom_type_dependent_term import AtomTypeDependentTerm
+import numpy
+import torch
 
+from tmol.chemical.restypes import RefinedResidueType
 from tmol.database import ParameterDatabase
-
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pose_stack import PoseStack
+from tmol.score.atom_type_dependent_term import AtomTypeDependentTerm
 from tmol.score.cartbonded.potentials.compiled import (
     cartbonded_pose_scores,
     cartbonded_rotamer_scores,
 )
-
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.common.hash_util import make_hashtable_keys_values, add_to_hashtable
-
+from tmol.score.common.hash_util import add_to_hashtable, make_hashtable_keys_values
 
 debug = False
 
@@ -123,13 +119,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
     def get_formatted_atoms_and_params(self, raw_params):
         fields = ["atm1", "atm2", "atm3", "atm4"]
-        atoms = [
-            getattr(raw_params, field) for field in fields if hasattr(raw_params, field)
-        ]
+        atoms = [getattr(raw_params, field) for field in fields if hasattr(raw_params, field)]
         fields = ["type", "x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3"]
-        params = [
-            getattr(raw_params, field) for field in fields if hasattr(raw_params, field)
-        ]
+        params = [getattr(raw_params, field) for field in fields if hasattr(raw_params, field)]
         return atoms, params
 
     def get_params_for_res(self, res: str):
@@ -150,20 +142,13 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                 if (
                     res == "wildcard"
                     or not (hasattr(param, "type") and param.type == 3)
-                    and (
-                        previous_atm == "N"
-                        and atom == "C"
-                        or previous_atm == "C"
-                        and atom == "N"
-                    )
+                    and (previous_atm == "N" and atom == "C" or previous_atm == "C" and atom == "N")
                 ):
                     is_wildcard = True
 
                 previous_atm = atom
                 atoms[i] = (
-                    self.get_atom_wildcard_id_name(atom)
-                    if is_wildcard
-                    else self.get_atom_unique_id_name(res, atom)
+                    self.get_atom_wildcard_id_name(atom) if is_wildcard else self.get_atom_unique_id_name(res, atom)
                 )
 
             key = tuple(atoms)
@@ -181,13 +166,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             return
 
         # Get the subgraphs for this block type
-        lengths, angles, torsions, improper = self.find_subgraphs(
-            block_type.bond_indices, block_type
-        )
+        lengths, angles, torsions, improper = self.find_subgraphs(block_type.bond_indices, block_type)
         cart_subgraphs = numpy.asarray(lengths + angles + torsions + improper)
-        cart_subgraph_type_counts = numpy.array(
-            [len(lengths), len(angles), len(torsions) + len(improper)]
-        )
+        cart_subgraph_type_counts = numpy.array([len(lengths), len(angles), len(torsions) + len(improper)])
         cart_subgraph_type_offsets = numpy.array(
             [
                 0,
@@ -197,17 +178,11 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
 
         # Fetch the params from the database, updating the atom id store if necessary
-        temp_hack_base_name = (
-            block_type.base_name if block_type.base_name != "CYD" else "CYS"
-        )
+        temp_hack_base_name = block_type.base_name if block_type.base_name != "CYD" else "CYS"
         cartbonded_params = self.get_params_for_res(temp_hack_base_name)
         setattr(block_type, "cartbonded_subgraphs", cart_subgraphs)
-        setattr(
-            block_type, "cartbonded_subgraph_type_counts", cart_subgraph_type_counts
-        )
-        setattr(
-            block_type, "cartbonded_subgraph_type_offsets", cart_subgraph_type_offsets
-        )
+        setattr(block_type, "cartbonded_subgraph_type_counts", cart_subgraph_type_counts)
+        setattr(block_type, "cartbonded_subgraph_type_offsets", cart_subgraph_type_offsets)
         setattr(block_type, "cartbonded_params", cartbonded_params)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
@@ -221,10 +196,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             return
 
         # Aggregate the subgraphs and collect metadata
-        total_subgraphs = sum(
-            bt.cartbonded_subgraphs.shape[0]
-            for bt in packed_block_types.active_block_types
-        )
+        total_subgraphs = sum(bt.cartbonded_subgraphs.shape[0] for bt in packed_block_types.active_block_types)
         subgraphs = numpy.full((total_subgraphs, 4), -1, dtype=numpy.int32)
         subgraph_offsets = []
         subgraph_type_counts = []
@@ -240,25 +212,17 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             subgraphs[offset : offset + n_subgraphs] = block_type.cartbonded_subgraphs
             offset += n_subgraphs
 
-            max_subgraphs_per_block = max(
-                max_subgraphs_per_block, offset - subgraph_offsets[-1]
-            )
+            max_subgraphs_per_block = max(max_subgraphs_per_block, offset - subgraph_offsets[-1])
         subgraphs = torch.from_numpy(subgraphs).to(device=self.device)
         subgraph_offsets = numpy.asarray(subgraph_offsets, dtype=numpy.int32)
         subgraph_type_counts = numpy.asarray(subgraph_type_counts, dtype=numpy.int32)
         subgraph_type_offsets = numpy.asarray(subgraph_type_offsets, dtype=numpy.int32)
         subgraph_offsets = torch.from_numpy(subgraph_offsets).to(device=self.device)
-        subgraph_type_counts = torch.from_numpy(subgraph_type_counts).to(
-            device=self.device
-        )
-        subgraph_type_offsets = torch.from_numpy(subgraph_type_offsets).to(
-            device=self.device
-        )
+        subgraph_type_counts = torch.from_numpy(subgraph_type_counts).to(device=self.device)
+        subgraph_type_offsets = torch.from_numpy(subgraph_type_offsets).to(device=self.device)
         setattr(packed_block_types, "cartbonded_subgraphs", subgraphs)
         setattr(packed_block_types, "cartbonded_subgraph_offsets", subgraph_offsets)
-        setattr(
-            packed_block_types, "cartbonded_subgraph_type_counts", subgraph_type_counts
-        )
+        setattr(packed_block_types, "cartbonded_subgraph_type_counts", subgraph_type_counts)
         setattr(
             packed_block_types,
             "cartbonded_subgraph_type_offsets",
@@ -292,9 +256,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                         cbet_atom_unique_id_index[at] = len(cbet_atom_unique_id_index)
 
         # Calculate the total number of params
-        n_total_params = sum(
-            [len(bt.cartbonded_params) for bt in packed_block_types.active_block_types]
-        ) + len(wildcard_params)
+        n_total_params = sum([len(bt.cartbonded_params) for bt in packed_block_types.active_block_types]) + len(
+            wildcard_params
+        )
 
         # Construct the params hash with the given scaling factor
         hash_keys, hash_values = make_hashtable_keys_values(n_total_params, 2, 5, 7)

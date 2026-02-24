@@ -1,14 +1,15 @@
+from typing import Optional
+
 import numpy
 import torch
 
 from tmol.io.pdb_parsing import atom_record_dtype
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.pose.pose_stack import PoseStack
-from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
-from typing import Optional
+from tmol.types.torch import Tensor
 
 
 @validate_args
@@ -91,17 +92,11 @@ def atom_records_from_coords(
     is_real_block = block_types64 != -1
     real_block_pose, real_block_block = torch.nonzero(is_real_block, as_tuple=True)
 
-    n_block_atoms = torch.zeros(
-        (n_poses, max_n_blocks), dtype=torch.int32, device=pbt.device
-    )
+    n_block_atoms = torch.zeros((n_poses, max_n_blocks), dtype=torch.int32, device=pbt.device)
     n_block_atoms[is_real_block] = pbt.n_atoms[block_types64[is_real_block]]
     block_coord_offset64 = block_coord_offset.to(torch.int64)
-    block_for_pose_atom = torch.zeros(
-        (n_poses, max_n_pose_atoms), dtype=torch.int64, device=pbt.device
-    )
-    block_for_pose_atom[
-        real_block_pose, block_coord_offset64[real_block_pose, real_block_block]
-    ] = 1
+    block_for_pose_atom = torch.zeros((n_poses, max_n_pose_atoms), dtype=torch.int64, device=pbt.device)
+    block_for_pose_atom[real_block_pose, block_coord_offset64[real_block_pose, real_block_block]] = 1
     block_for_pose_atom = torch.cumsum(block_for_pose_atom, dim=1) - 1
     pose_for_pose_atom = (
         torch.arange(n_poses, dtype=torch.int64, device=pbt.device)
@@ -124,42 +119,26 @@ def atom_records_from_coords(
         dtype=torch.int64,
         device=pbt.device,
     ).repeat_interleave(n_pose_atoms, dim=0)
-    block_for_atom = torch.zeros(
-        (n_poses, max_n_pose_atoms), dtype=torch.int64, device=pbt.device
-    )
-    block_for_atom[
-        real_block_pose, block_coord_offset64[real_block_pose, real_block_block]
-    ] = 1
+    block_for_atom = torch.zeros((n_poses, max_n_pose_atoms), dtype=torch.int64, device=pbt.device)
+    block_for_atom[real_block_pose, block_coord_offset64[real_block_pose, real_block_block]] = 1
     block_for_atom = torch.cumsum(block_for_atom, dim=1) - 1
     block_for_real_atom = block_for_atom[atom_is_real]
 
     block_local_atom_index_for_pose_atom = (
-        torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat(
-            (n_poses, 1)
-        )
+        torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat((n_poses, 1))
         - block_coord_offset[pose_for_pose_atom, block_for_pose_atom]
     )
-    block_local_atom_index_for_real_atom = block_local_atom_index_for_pose_atom[
-        atom_is_real
-    ]
+    block_local_atom_index_for_real_atom = block_local_atom_index_for_pose_atom[atom_is_real]
 
     # BEGIN BLOCK OF CODE FOR CREATING FROM-1 RESIDUE INDICES FROM CHAIN INDICES
     max_n_chains = torch.max(chain_ind_for_block) + 1
     global_chain_ind_for_block = (
-        chain_ind_for_block
-        + (
-            torch.arange(n_poses, dtype=torch.int64, device=pbt.device).unsqueeze(1)
-            * max_n_chains
-        )
+        chain_ind_for_block + (torch.arange(n_poses, dtype=torch.int64, device=pbt.device).unsqueeze(1) * max_n_chains)
     ).view(-1)
-    n_blocks_per_global_chain = torch.zeros(
-        (n_poses * max_n_chains), dtype=torch.int64, device=pbt.device
-    )
+    n_blocks_per_global_chain = torch.zeros((n_poses * max_n_chains), dtype=torch.int64, device=pbt.device)
 
     is_not_real_block = torch.logical_not(is_real_block)
-    global_chain_ind_for_block[is_not_real_block.view(-1)] = (
-        0  # avoid index add to invalid locations
-    )
+    global_chain_ind_for_block[is_not_real_block.view(-1)] = 0  # avoid index add to invalid locations
     n_blocks_per_global_chain.index_add_(
         0,
         global_chain_ind_for_block,
@@ -167,17 +146,13 @@ def atom_records_from_coords(
     )
     n_blocks_per_chain = n_blocks_per_global_chain.view(n_poses, max_n_chains)
 
-    block_offset_for_chain = torch.zeros(
-        (n_poses, max_n_chains), dtype=torch.int64, device=pbt.device
-    )
+    block_offset_for_chain = torch.zeros((n_poses, max_n_chains), dtype=torch.int64, device=pbt.device)
     block_offset_for_chain[:, 1:] = torch.cumsum(n_blocks_per_chain[:, :-1], dim=1)
     # END BLOCK OF CODE FOR CREATING FROM-1 RESIDUE INDICES FROM CHAIN INDICES
 
     block_chain_local_index_for_real_atom = (
         block_for_atom
-        - block_offset_for_chain[
-            pose_for_pose_atom, chain_ind_for_block[pose_for_pose_atom, block_for_atom]
-        ]
+        - block_offset_for_chain[pose_for_pose_atom, chain_ind_for_block[pose_for_pose_atom, block_for_atom]]
     )
 
     pose_atom_offsets = exclusive_cumsum1d(n_pose_atoms)
@@ -194,18 +169,12 @@ def atom_records_from_coords(
     atom_is_real = atom_is_real.cpu().numpy()
     block_for_atom = block_for_atom.cpu().numpy()
     block_for_real_atom = block_for_real_atom.cpu().numpy()
-    block_chain_local_index_for_real_atom = (
-        block_chain_local_index_for_real_atom.cpu().numpy()
-    )
-    block_local_atom_index_for_real_atom = (
-        block_local_atom_index_for_real_atom.cpu().numpy()
-    )
+    block_chain_local_index_for_real_atom = block_chain_local_index_for_real_atom.cpu().numpy()
+    block_local_atom_index_for_real_atom = block_local_atom_index_for_real_atom.cpu().numpy()
     pose_atom_offsets = pose_atom_offsets.cpu().numpy()
     chain_ind_for_block = chain_ind_for_block.cpu().numpy()
 
-    chain_ind_for_real_atom = chain_ind_for_block[
-        pose_for_real_atom, block_for_real_atom
-    ]
+    chain_ind_for_real_atom = chain_ind_for_block[pose_for_real_atom, block_for_real_atom]
 
     results = numpy.empty(n_atoms_total, dtype=atom_record_dtype)
     results["record_name"] = numpy.full((n_atoms_total,), "ATOM  ", dtype=str)
@@ -216,22 +185,14 @@ def atom_records_from_coords(
     else:
         results["resi"] = block_chain_local_index_for_real_atom + 1
 
-    results["atomi"] = (
-        numpy.arange(n_atoms_total, dtype=int)
-        + 1
-        - pose_atom_offsets[pose_for_real_atom]
-    )
+    results["atomi"] = numpy.arange(n_atoms_total, dtype=int) + 1 - pose_atom_offsets[pose_for_real_atom]
     results["model"] = pose_for_real_atom + 1
     if chain_labels is None:
         # create default chain labels as A, B, ..., Z, AA, AB, ... ZZ; max 702 chains.
         assert max_n_chains <= 26 * 27
         chain_labels = numpy.array(
             [
-                (
-                    chr(i + ord("A"))
-                    if i < 26
-                    else chr((i // 26) + ord("A")) + chr((i % 26) + ord("A"))
-                )
+                (chr(i + ord("A")) if i < 26 else chr((i // 26) + ord("A")) + chr((i % 26) + ord("A")))
                 for i in range(max_n_chains)
             ],
             dtype=object,
@@ -247,27 +208,15 @@ def atom_records_from_coords(
 
     bt_for_real_atom = block_types64[pose_for_real_atom, block_for_real_atom]
     results["resn"] = bt_names[bt_for_real_atom]
-    results["atomn"] = bt_atom_names[
-        bt_for_real_atom, block_local_atom_index_for_real_atom
-    ]
+    results["atomn"] = bt_atom_names[bt_for_real_atom, block_local_atom_index_for_real_atom]
     real_atom_coords = pose_like_coords[atom_is_real]
     results["x"] = real_atom_coords[:, 0]
     results["y"] = real_atom_coords[:, 1]
     results["z"] = real_atom_coords[:, 2]
     results["insert"] = (
-        residue_insertion_codes[pose_for_real_atom, block_for_real_atom]
-        if residue_insertion_codes is not None
-        else " "
+        residue_insertion_codes[pose_for_real_atom, block_for_real_atom] if residue_insertion_codes is not None else " "
     )
-    results["occupancy"] = (
-        atom_occupancy[atom_is_real]
-        if atom_occupancy is not None
-        else DEFAULT_ATOM_OCCUPANCY
-    )
-    results["b"] = (
-        atom_b_factor[atom_is_real]
-        if atom_b_factor is not None
-        else DEFAULT_ATOM_B_FACTOR
-    )
+    results["occupancy"] = atom_occupancy[atom_is_real] if atom_occupancy is not None else DEFAULT_ATOM_OCCUPANCY
+    results["b"] = atom_b_factor[atom_is_real] if atom_b_factor is not None else DEFAULT_ATOM_B_FACTOR
 
     return results

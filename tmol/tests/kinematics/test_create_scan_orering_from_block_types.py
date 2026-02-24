@@ -1,20 +1,18 @@
 import torch
 
 from tmol.io.canonical_ordering import (
+    canonical_form_from_pdb,
     default_canonical_ordering,
     default_packed_block_types,
-    canonical_form_from_pdb,
 )
-
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-
+from tmol.kinematics.compiled import forward_kin_op, inverse_kin
 from tmol.kinematics.fold_forest import EdgeType
 from tmol.kinematics.scan_ordering import (
-    construct_kin_module_data_for_pose,
     _annotate_block_type_with_gen_scan_path_segs,
     _annotate_packed_block_type_with_gen_scan_path_segs,
+    construct_kin_module_data_for_pose,
 )
-from tmol.kinematics.compiled import inverse_kin, forward_kin_op
 
 
 def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_set):
@@ -29,13 +27,9 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
 
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
-        co, ubq_pdb, torch_device, residue_start=1, residue_end=3
-    )
+    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_start=1, residue_end=3)
 
-    canonical_form.res_not_connected = torch.zeros(
-        (1, 2, 2), dtype=torch.bool, device=torch_device
-    )
+    canonical_form.res_not_connected = torch.zeros((1, 2, 2), dtype=torch.bool, device=torch_device)
     canonical_form.res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
     canonical_form.res_not_connected[0, 1, 1] = True  # simplest test case: not C-term
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
@@ -73,13 +67,9 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
 
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
-        co, ubq_pdb, torch_device, residue_start=1, residue_end=7
-    )
+    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_start=1, residue_end=7)
 
-    canonical_form.res_not_connected = torch.zeros(
-        (1, 6, 2), dtype=torch.bool, device=torch_device
-    )
+    canonical_form.res_not_connected = torch.zeros((1, 6, 2), dtype=torch.bool, device=torch_device)
     canonical_form.res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
     canonical_form.res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
@@ -150,9 +140,7 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
     assert toposort_index_for_edge is not None
 
 
-def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
-):
+def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H):
     from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
@@ -182,38 +170,20 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
         toposort_index_for_edge,
     ) = result
 
-    gold_dfs_order_of_ff_edges = torch.tensor(
-        [[5, 2, 4, 3, 1, 0], [5, 4, 3, 2, 1, 0]], dtype=torch.int32
-    )
+    gold_dfs_order_of_ff_edges = torch.tensor([[5, 2, 4, 3, 1, 0], [5, 4, 3, 2, 1, 0]], dtype=torch.int32)
     gold_n_ff_edges = torch.tensor([6, 6], dtype=torch.int32)
-    gold_ff_edge_parent = torch.tensor(
-        [[5, 5, 5, 2, 2, -1], [2, 2, 5, 5, 5, -1]], dtype=torch.int32
-    )
-    gold_first_ff_edge_for_block_cpu = torch.tensor(
-        [[0, 5, 1, 3, 2, 4], [0, 2, 1, 3, 5, 4]], dtype=torch.int32
-    )
-    gold_pose_stack_ff_parent = torch.tensor(
-        [[1, -1, 1, 4, 1, 4], [1, 4, 1, 4, -1, 4]], dtype=torch.int32
-    )
-    gold_max_gen_depth_of_ff_edge = torch.tensor(
-        [[4, 4, 5, 4, 4, 5], [4, 4, 5, 4, 4, 5]], dtype=torch.int32
-    )
-    gold_first_child_of_ff_edge = torch.tensor(
-        [[-1, -1, 3, -1, -1, 2], [-1, -1, 0, -1, -1, 2]], dtype=torch.int32
-    )
-    gold_delay_for_edge = torch.tensor(
-        [[1, 1, 0, 0, 1, 0], [0, 1, 0, 1, 1, 0]], dtype=torch.int32
-    )
-    gold_toposort_index_for_edge = torch.tensor(
-        [6, 7, 1, 2, 8, 0, 5, 11, 4, 9, 10, 3], dtype=torch.int32
-    )
+    gold_ff_edge_parent = torch.tensor([[5, 5, 5, 2, 2, -1], [2, 2, 5, 5, 5, -1]], dtype=torch.int32)
+    gold_first_ff_edge_for_block_cpu = torch.tensor([[0, 5, 1, 3, 2, 4], [0, 2, 1, 3, 5, 4]], dtype=torch.int32)
+    gold_pose_stack_ff_parent = torch.tensor([[1, -1, 1, 4, 1, 4], [1, 4, 1, 4, -1, 4]], dtype=torch.int32)
+    gold_max_gen_depth_of_ff_edge = torch.tensor([[4, 4, 5, 4, 4, 5], [4, 4, 5, 4, 4, 5]], dtype=torch.int32)
+    gold_first_child_of_ff_edge = torch.tensor([[-1, -1, 3, -1, -1, 2], [-1, -1, 0, -1, -1, 2]], dtype=torch.int32)
+    gold_delay_for_edge = torch.tensor([[1, 1, 0, 0, 1, 0], [0, 1, 0, 1, 1, 0]], dtype=torch.int32)
+    gold_toposort_index_for_edge = torch.tensor([6, 7, 1, 2, 8, 0, 5, 11, 4, 9, 10, 3], dtype=torch.int32)
 
     torch.testing.assert_close(gold_dfs_order_of_ff_edges, dfs_order_of_ff_edges)
     torch.testing.assert_close(gold_n_ff_edges, n_ff_edges)
     torch.testing.assert_close(gold_ff_edge_parent, ff_edge_parent)
-    torch.testing.assert_close(
-        gold_first_ff_edge_for_block_cpu, first_ff_edge_for_block_cpu
-    )
+    torch.testing.assert_close(gold_first_ff_edge_for_block_cpu, first_ff_edge_for_block_cpu)
     torch.testing.assert_close(gold_pose_stack_ff_parent, pose_stack_ff_parent)
     torch.testing.assert_close(gold_max_gen_depth_of_ff_edge, max_gen_depth_of_ff_edge)
     torch.testing.assert_close(gold_first_child_of_ff_edge, first_child_of_ff_edge)
@@ -221,9 +191,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
     torch.testing.assert_close(gold_toposort_index_for_edge, toposort_index_for_edge)
 
 
-def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_U
-):
+def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_U):
     from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
@@ -252,36 +220,20 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
         toposort_index_for_edge,
     ) = result
 
-    gold_dfs_order_of_ff_edges = torch.tensor(
-        [[3, 1, 2, 0], [3, 2, 1, 0]], dtype=torch.int32
-    )
+    gold_dfs_order_of_ff_edges = torch.tensor([[3, 1, 2, 0], [3, 2, 1, 0]], dtype=torch.int32)
     gold_n_ff_edges = torch.tensor([4, 4], dtype=torch.int32)
-    gold_ff_edge_parent = torch.tensor(
-        [[3, 3, 1, -1], [1, 3, 3, -1]], dtype=torch.int32
-    )
-    gold_first_ff_edge_for_block_cpu = torch.tensor(
-        [[0, 0, 3, 2, 2, 1], [0, 0, 1, 2, 2, 3]], dtype=torch.int32
-    )
-    gold_pose_stack_ff_parent = torch.tensor(
-        [[1, 2, -1, 4, 5, 2], [1, 2, 5, 4, 5, -1]], dtype=torch.int32
-    )
-    gold_max_gen_depth_of_ff_edge = torch.tensor(
-        [[4, 4, 4, 5], [4, 4, 4, 5]], dtype=torch.int32
-    )
-    gold_first_child_of_ff_edge = torch.tensor(
-        [[-1, 2, -1, 0], [-1, 0, -1, 1]], dtype=torch.int32
-    )
+    gold_ff_edge_parent = torch.tensor([[3, 3, 1, -1], [1, 3, 3, -1]], dtype=torch.int32)
+    gold_first_ff_edge_for_block_cpu = torch.tensor([[0, 0, 3, 2, 2, 1], [0, 0, 1, 2, 2, 3]], dtype=torch.int32)
+    gold_pose_stack_ff_parent = torch.tensor([[1, 2, -1, 4, 5, 2], [1, 2, 5, 4, 5, -1]], dtype=torch.int32)
+    gold_max_gen_depth_of_ff_edge = torch.tensor([[4, 4, 4, 5], [4, 4, 4, 5]], dtype=torch.int32)
+    gold_first_child_of_ff_edge = torch.tensor([[-1, 2, -1, 0], [-1, 0, -1, 1]], dtype=torch.int32)
     gold_delay_for_edge = torch.tensor([[0, 1, 1, 0], [0, 0, 1, 0]], dtype=torch.int32)
-    gold_toposort_index_for_edge = torch.tensor(
-        [1, 5, 6, 0, 4, 3, 7, 2], dtype=torch.int32
-    )
+    gold_toposort_index_for_edge = torch.tensor([1, 5, 6, 0, 4, 3, 7, 2], dtype=torch.int32)
 
     torch.testing.assert_close(gold_dfs_order_of_ff_edges, dfs_order_of_ff_edges)
     torch.testing.assert_close(gold_n_ff_edges, n_ff_edges)
     torch.testing.assert_close(gold_ff_edge_parent, ff_edge_parent)
-    torch.testing.assert_close(
-        gold_first_ff_edge_for_block_cpu, first_ff_edge_for_block_cpu
-    )
+    torch.testing.assert_close(gold_first_ff_edge_for_block_cpu, first_ff_edge_for_block_cpu)
     torch.testing.assert_close(gold_pose_stack_ff_parent, pose_stack_ff_parent)
     torch.testing.assert_close(gold_max_gen_depth_of_ff_edge, max_gen_depth_of_ff_edge)
     torch.testing.assert_close(gold_first_child_of_ff_edge, first_child_of_ff_edge)
@@ -289,9 +241,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
     torch.testing.assert_close(gold_toposort_index_for_edge, toposort_index_for_edge)
 
 
-def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_K
-):
+def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_K):
     from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
@@ -322,38 +272,20 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
         toposort_index_for_edge,
     ) = result
 
-    gold_dfs_order_of_ff_edges = torch.tensor(
-        [[5, 3, 4, 2, 1, 0], [5, 3, 4, 2, 1, 0]], dtype=torch.int32
-    )
+    gold_dfs_order_of_ff_edges = torch.tensor([[5, 3, 4, 2, 1, 0], [5, 3, 4, 2, 1, 0]], dtype=torch.int32)
     gold_n_ff_edges = torch.tensor([6, 6], dtype=torch.int32)
-    gold_ff_edge_parent = torch.tensor(
-        [[5, 5, 5, 5, 3, -1], [5, 5, 5, 5, 3, -1]], dtype=torch.int32
-    )
-    gold_first_ff_edge_for_block_cpu = torch.tensor(
-        [[0, 5, 1, 2, 3, 4], [4, 3, 2, 0, 5, 1]], dtype=torch.int32
-    )
-    gold_pose_stack_ff_parent = torch.tensor(
-        [[1, -1, 1, 1, 1, 4], [1, 4, 4, 4, -1, 4]], dtype=torch.int32
-    )
-    gold_max_gen_depth_of_ff_edge = torch.tensor(
-        [[4, 4, 4, 4, 4, 5], [4, 4, 4, 4, 4, 5]], dtype=torch.int32
-    )
-    gold_first_child_of_ff_edge = torch.tensor(
-        [[-1, -1, -1, 4, -1, 0], [-1, -1, -1, 4, -1, 0]], dtype=torch.int32
-    )
-    gold_delay_for_edge = torch.tensor(
-        [[0, 1, 1, 1, 1, 0], [0, 1, 1, 1, 1, 0]], dtype=torch.int32
-    )
-    gold_toposort_index_for_edge = torch.tensor(
-        [1, 4, 5, 6, 7, 0, 3, 8, 9, 10, 11, 2], dtype=torch.int32
-    )
+    gold_ff_edge_parent = torch.tensor([[5, 5, 5, 5, 3, -1], [5, 5, 5, 5, 3, -1]], dtype=torch.int32)
+    gold_first_ff_edge_for_block_cpu = torch.tensor([[0, 5, 1, 2, 3, 4], [4, 3, 2, 0, 5, 1]], dtype=torch.int32)
+    gold_pose_stack_ff_parent = torch.tensor([[1, -1, 1, 1, 1, 4], [1, 4, 4, 4, -1, 4]], dtype=torch.int32)
+    gold_max_gen_depth_of_ff_edge = torch.tensor([[4, 4, 4, 4, 4, 5], [4, 4, 4, 4, 4, 5]], dtype=torch.int32)
+    gold_first_child_of_ff_edge = torch.tensor([[-1, -1, -1, 4, -1, 0], [-1, -1, -1, 4, -1, 0]], dtype=torch.int32)
+    gold_delay_for_edge = torch.tensor([[0, 1, 1, 1, 1, 0], [0, 1, 1, 1, 1, 0]], dtype=torch.int32)
+    gold_toposort_index_for_edge = torch.tensor([1, 4, 5, 6, 7, 0, 3, 8, 9, 10, 11, 2], dtype=torch.int32)
 
     torch.testing.assert_close(gold_dfs_order_of_ff_edges, dfs_order_of_ff_edges)
     torch.testing.assert_close(gold_n_ff_edges, n_ff_edges)
     torch.testing.assert_close(gold_ff_edge_parent, ff_edge_parent)
-    torch.testing.assert_close(
-        gold_first_ff_edge_for_block_cpu, first_ff_edge_for_block_cpu
-    )
+    torch.testing.assert_close(gold_first_ff_edge_for_block_cpu, first_ff_edge_for_block_cpu)
     torch.testing.assert_close(gold_pose_stack_ff_parent, pose_stack_ff_parent)
     torch.testing.assert_close(gold_max_gen_depth_of_ff_edge, max_gen_depth_of_ff_edge)
     torch.testing.assert_close(gold_first_child_of_ff_edge, first_child_of_ff_edge)
@@ -415,17 +347,15 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
         ],
         dtype=torch.int32,
     )
-    torch.testing.assert_close(
-        gold_pose_stack_block_in_and_first_out, pose_stack_block_in_and_first_out.cpu()
-    )
+    torch.testing.assert_close(gold_pose_stack_block_in_and_first_out, pose_stack_block_in_and_first_out.cpu())
 
 
 def test_get_kfo_indices_for_atoms(ubq_pdb):
     from tmol.kinematics.compiled.compiled_ops import (
-        get_kfo_indices_for_atoms,
-        get_kfo_atom_parents,
         get_children,
         get_id_and_frame_xyz,
+        get_kfo_atom_parents,
+        get_kfo_indices_for_atoms,
     )
 
     torch_device = torch.device("cpu")
@@ -433,13 +363,9 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
 
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
-        co, ubq_pdb, torch_device, residue_start=1, residue_end=3
-    )
+    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_start=1, residue_end=3)
 
-    canonical_form.res_not_connected = torch.zeros(
-        (1, 2, 2), dtype=torch.bool, device=torch_device
-    )
+    canonical_form.res_not_connected = torch.zeros((1, 2, 2), dtype=torch.bool, device=torch_device)
     canonical_form.res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
     canonical_form.res_not_connected[0, 1, 1] = True  # simplest test case: not C-term
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
@@ -513,17 +439,13 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     )
 
 
-def test_get_scans_for_two_copies_of_6_res_ubq_H(
-    stack_of_two_six_res_ubqs, ff_2ubq_6res_H, torch_device
-):
+def test_get_scans_for_two_copies_of_6_res_ubq_H(stack_of_two_six_res_ubqs, ff_2ubq_6res_H, torch_device):
 
     pose_stack = stack_of_two_six_res_ubqs
     ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    kincoords = torch.zeros(
-        (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
-    )
+    kincoords = torch.zeros((kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device)
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
     raw_dofs = inverse_kin(
@@ -573,17 +495,13 @@ def test_get_scans_for_two_copies_of_6_res_ubq_H(
     torch.testing.assert_close(kincoords, new_coords, rtol=1e-5, atol=1e-5)
 
 
-def test_get_scans_for_two_copies_of_6_res_ubq_U(
-    stack_of_two_six_res_ubqs, ff_2ubq_6res_U, torch_device
-):
+def test_get_scans_for_two_copies_of_6_res_ubq_U(stack_of_two_six_res_ubqs, ff_2ubq_6res_U, torch_device):
 
     pose_stack = stack_of_two_six_res_ubqs
     ff_edges_cpu = torch.tensor(ff_2ubq_6res_U)
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
 
-    kincoords = torch.zeros(
-        (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
-    )
+    kincoords = torch.zeros((kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device)
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
     # get_c1_and_c2_atoms: jump atom 19, 18, 3
@@ -641,17 +559,13 @@ def test_get_scans_for_two_copies_of_6_res_ubq_U(
     torch.testing.assert_close(kincoords, new_coords, rtol=1e-5, atol=1e-5)
 
 
-def test_get_scans_for_two_copies_of_6_res_ubq_K(
-    stack_of_two_six_res_ubqs, torch_device, ff_2ubq_6res_K
-):
+def test_get_scans_for_two_copies_of_6_res_ubq_K(stack_of_two_six_res_ubqs, torch_device, ff_2ubq_6res_K):
     pose_stack = stack_of_two_six_res_ubqs
     ff_edges_cpu = torch.tensor(ff_2ubq_6res_K)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
 
-    kincoords = torch.zeros(
-        (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
-    )
+    kincoords = torch.zeros((kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device)
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
     # get_c1_and_c2_atoms: jump atom 19, 18, 3
@@ -717,9 +631,7 @@ def test_kinmodule_construction_for_jagged_stack_H(
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    kincoords = torch.zeros(
-        (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
-    )
+    kincoords = torch.zeros((kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device)
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
     raw_dofs = inverse_kin(
@@ -777,9 +689,7 @@ def test_kinmodule_construction_for_jagged_stack_star(
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_star)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    kincoords = torch.zeros(
-        (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
-    )
+    kincoords = torch.zeros((kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device)
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
     raw_dofs = inverse_kin(

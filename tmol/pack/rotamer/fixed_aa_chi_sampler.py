@@ -1,16 +1,15 @@
-import torch
-import attr
-import numpy
-
 from typing import Tuple
 
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
+import attr
+import numpy
+import torch
 
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.pose_stack import PoseStack
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
+from tmol.pose.pose_stack import PoseStack
+from tmol.types.functional import validate_args
+from tmol.types.torch import Tensor
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -72,9 +71,7 @@ class FixedAAChiSampler(ChiSampler):
         )
 
         rt_base_names = numpy.array([rt.base_name for rt in all_restypes], dtype=object)
-        n_rots_for_rt = torch.zeros(
-            len(all_restypes), dtype=torch.int32, device=poses.device
-        )
+        n_rots_for_rt = torch.zeros(len(all_restypes), dtype=torch.int32, device=poses.device)
         is_allowed_ala_rt = torch.logical_and(
             torch.tensor(
                 (rt_base_names == "ALA"),
@@ -96,15 +93,9 @@ class FixedAAChiSampler(ChiSampler):
         either_ala_or_gly = torch.logical_or(is_allowed_ala_rt, is_allowed_gly_rt)
 
         n_fixed_rots = torch.sum(n_rots_for_rt).item()
-        rt_for_rotamer = torch.arange(
-            len(rt_base_names), dtype=torch.int32, device=poses.device
-        )[either_ala_or_gly]
-        chi_for_rotamers = torch.zeros(
-            (n_fixed_rots, 1), dtype=torch.float32, device=poses.device
-        )
-        chi_defining_atom_for_rotamer = torch.full_like(
-            chi_for_rotamers, -1, dtype=torch.int32
-        )
+        rt_for_rotamer = torch.arange(len(rt_base_names), dtype=torch.int32, device=poses.device)[either_ala_or_gly]
+        chi_for_rotamers = torch.zeros((n_fixed_rots, 1), dtype=torch.float32, device=poses.device)
+        chi_defining_atom_for_rotamer = torch.full_like(chi_for_rotamers, -1, dtype=torch.int32)
 
         return (
             n_rots_for_rt,

@@ -1,23 +1,20 @@
-from frozendict import frozendict
-from toolz.curried import concat, map, compose, groupby
 import typing
-from typing import Mapping, Optional, NewType, Tuple, Sequence, List, Set, Union
+from typing import List, Mapping, NewType, Optional, Sequence, Set, Tuple, Union
+
 import attr
 import cattr
-
 import numpy
 import scipy.sparse
 import scipy.sparse.csgraph as csgraph
+from frozendict import frozendict
+from toolz.curried import compose, concat, groupby, map
 
+from tmol.chemical.all_bonds import bonds_and_bond_ranges
+from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION, MAX_SIG_BOND_SEPARATION
+from tmol.chemical.ideal_coords import build_coords_from_icoors
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import RawResidueType
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-
-from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
-from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
-from tmol.chemical.ideal_coords import build_coords_from_icoors
-from tmol.chemical.all_bonds import bonds_and_bond_ranges
-
 
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
@@ -152,8 +149,7 @@ class RefinedResidueType(RawResidueType):
     @bond_indices.default
     def _setup_bond_indices(self):
         bondi = compose(list, sorted, set, concat)(
-            [(ai, bi), (bi, ai)]
-            for ai, bi in map(map(self.atom_to_idx.get), self.bonds)
+            [(ai, bi), (bi, ai)] for ai, bi in map(map(self.atom_to_idx.get), self.bonds)
         )
         bond_array = numpy.array(bondi, dtype=numpy.int32)
         bond_array.flags.writeable = False
@@ -181,9 +177,7 @@ class RefinedResidueType(RawResidueType):
 
     @ordered_connection_atoms.default
     def _setup_ordered_connections(self):
-        return numpy.array(
-            [self.atom_to_idx[c.atom] for c in self.connections], dtype=numpy.int32
-        )
+        return numpy.array([self.atom_to_idx[c.atom] for c in self.connections], dtype=numpy.int32)
 
     # The set of "all-bonds" includes both inter- and intra- block chemical bonds
     # Each all-bond (think of "all" here as an adjective like "inter" or "intra")
@@ -244,11 +238,7 @@ class RefinedResidueType(RawResidueType):
                     ats.append(
                         (
                             -1,
-                            next(
-                                i
-                                for i, conn in enumerate(self.connections)
-                                if conn.name == at.connection
-                            ),
+                            next(i for i, conn in enumerate(self.connections) if conn.name == at.connection),
                             at.bond_sep_from_conn,
                         )
                     )
@@ -262,9 +252,7 @@ class RefinedResidueType(RawResidueType):
         ordered_torsions = numpy.full((len(self.torsions), 4, 3), -1, dtype=numpy.int32)
         for i, tor in enumerate(self.torsions):
             for j in range(4):
-                ordered_torsions[i, j] = numpy.array(
-                    self.torsion_to_uaids[tor.name][j], dtype=numpy.int32
-                )
+                ordered_torsions[i, j] = numpy.array(self.torsion_to_uaids[tor.name][j], dtype=numpy.int32)
         return ordered_torsions
 
     @property
@@ -317,9 +305,7 @@ class RefinedResidueType(RawResidueType):
 
     @sc_torsions.default
     def _setup_sc_torsions(self):
-        return numpy.nonzero(numpy.logical_not(self.is_torsion_mc))[0].astype(
-            numpy.int32
-        )
+        return numpy.nonzero(numpy.logical_not(self.is_torsion_mc))[0].astype(numpy.int32)
 
     @property
     def n_sc_torsions(self):
@@ -347,9 +333,7 @@ class RefinedResidueType(RawResidueType):
             ),
             shape=(self.n_atoms, self.n_atoms),
         )
-        path_distance = csgraph.dijkstra(
-            bonds_sparse, directed=False, unweighted=True, limit=MAX_SIG_BOND_SEPARATION
-        )
+        path_distance = csgraph.dijkstra(bonds_sparse, directed=False, unweighted=True, limit=MAX_SIG_BOND_SEPARATION)
         path_distance[path_distance == numpy.inf] = MAX_SIG_BOND_SEPARATION
         return path_distance.astype(numpy.int32)
 
@@ -359,9 +343,7 @@ class RefinedResidueType(RawResidueType):
     def _setup_atom_paths_from_conn(self):
         n_conns = len(self.connections)
 
-        atom_paths = numpy.full(
-            (n_conns, MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32
-        )
+        atom_paths = numpy.full((n_conns, MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32)
 
         if n_conns == 0:
             return atom_paths
@@ -413,9 +395,7 @@ class RefinedResidueType(RawResidueType):
     @atom_downstream_of_conn.default
     def _setup_atom_downstream_of_conn(self):
         n_conns = len(self.connections)
-        atom_downstream_of_conn = numpy.full(
-            (n_conns, self.n_atoms), -1, dtype=numpy.int32
-        )
+        atom_downstream_of_conn = numpy.full((n_conns, self.n_atoms), -1, dtype=numpy.int32)
         for i in range(n_conns):
             i_conn_atom = self.atom_to_idx[self.connections[i].atom]
             if self.connections[i].name == "down":
@@ -428,9 +408,7 @@ class RefinedResidueType(RawResidueType):
                 else:
                     assert mc_ats[0] == self.connections[i].atom
                     for j in range(self.n_atoms):
-                        atom_downstream_of_conn[i, j] = self.atom_to_idx[
-                            mc_ats[j] if j < len(mc_ats) else mc_ats[-1]
-                        ]
+                        atom_downstream_of_conn[i, j] = self.atom_to_idx[mc_ats[j] if j < len(mc_ats) else mc_ats[-1]]
             elif self.connections[i].name == "up":
                 # walk up through the mainchain atoms untill we
                 # hit the first mainchain atom and then report all
@@ -444,11 +422,7 @@ class RefinedResidueType(RawResidueType):
                     assert mc_ats[-1] == self.connections[i].atom
                     for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
-                            (
-                                mc_ats[len(mc_ats) - j - 1]
-                                if j < len(mc_ats)
-                                else mc_ats[0]
-                            )
+                            (mc_ats[len(mc_ats) - j - 1] if j < len(mc_ats) else mc_ats[0])
                         ]
 
             else:
@@ -481,9 +455,7 @@ class RefinedResidueType(RawResidueType):
 
     @at_to_icoor_ind.default
     def _setup_at_to_icoor_ind(self):
-        return numpy.array(
-            [self.icoors_index[at.name] for at in self.atoms], dtype=numpy.int32
-        )
+        return numpy.array([self.icoors_index[at.name] for at in self.atoms], dtype=numpy.int32)
 
     icoors_ancestors: numpy.ndarray = attr.ib()
 
@@ -495,11 +467,7 @@ class RefinedResidueType(RawResidueType):
                 at = (
                     self.icoors[i].parent
                     if j == 0
-                    else (
-                        self.icoors[i].grand_parent
-                        if j == 1
-                        else self.icoors[i].great_grand_parent
-                    )
+                    else (self.icoors[i].grand_parent if j == 1 else self.icoors[i].great_grand_parent)
                 )
                 icoors_ancestors[i, j] = self.icoors_index[at]
 
@@ -513,9 +481,7 @@ class RefinedResidueType(RawResidueType):
         for i in range(len(self.icoors)):
             for j in range(3):
                 icoors_geom[i, j] = (
-                    self.icoors[i].phi
-                    if j == 0
-                    else (self.icoors[i].theta if j == 1 else self.icoors[i].d)
+                    self.icoors[i].phi if j == 0 else (self.icoors[i].theta if j == 1 else self.icoors[i].d)
                 )
         return icoors_geom
 
@@ -545,10 +511,7 @@ class ResidueTypeSet:
 
     @classmethod
     def from_database(cls, chemical_db: PatchedChemicalDatabase):
-        residue_types = [
-            cattr.structure(cattr.unstructure(r), RefinedResidueType)
-            for r in chemical_db.residues
-        ]
+        residue_types = [cattr.structure(cattr.unstructure(r), RefinedResidueType) for r in chemical_db.residues]
         restype_map = groupby(lambda restype: restype.name3, residue_types)
         return cls(
             residue_types=residue_types,
@@ -557,9 +520,7 @@ class ResidueTypeSet:
         )
 
     @classmethod
-    def from_restype_list(
-        cls, chemical_db: PatchedChemicalDatabase, restypes: List[RefinedResidueType]
-    ):
+    def from_restype_list(cls, chemical_db: PatchedChemicalDatabase, restypes: List[RefinedResidueType]):
         restype_map = groupby(lambda restype: restype.name3, restypes)
         return cls(
             residue_types=restypes,

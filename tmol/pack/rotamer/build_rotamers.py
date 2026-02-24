@@ -1,35 +1,33 @@
-import numpy
-import numba
-import toolz
-import torch
-import attr
-
 from typing import List, Tuple
 
-from tmol.types.array import NDArray
-from tmol.types.attrs import ValidateAttrs
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
+import attr
+import numba
+import numpy
+import toolz
+import torch
 
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
-from tmol.database.chemical import ChemicalDatabase
-from tmol.kinematics.datatypes import KinForest
-from tmol.kinematics.compiled.compiled_ops import forward_only_op
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.database.chemical import ChemicalDatabase
+from tmol.kinematics.compiled.compiled_ops import forward_only_op
+from tmol.kinematics.datatypes import KinForest
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
-
-from tmol.pack.rotamer.single_residue_kinforest import (
-    construct_single_residue_kinforest,
-    coalesce_single_residue_kinforests,
-)
 from tmol.pack.rotamer.mainchain_fingerprint import (
     annotate_residue_type_with_sampler_fingerprints,
     find_unique_fingerprints,
 )
+from tmol.pack.rotamer.single_residue_kinforest import (
+    coalesce_single_residue_kinforests,
+    construct_single_residue_kinforest,
+)
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.types.array import NDArray
+from tmol.types.attrs import ValidateAttrs
+from tmol.types.functional import validate_args
+from tmol.types.torch import Tensor
+from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 
 
 def exc_cumsum_from_inc_cumsum(cumsum):
@@ -52,15 +50,11 @@ class RotamerSet(ValidateAttrs):
 
     @first_rot_block_type.default
     def _block_type_for_first_rot_for_block(self):
-        block_type_for_first_rot_for_block = torch.full_like(
-            self.rot_offset_for_block, -1
-        )
+        block_type_for_first_rot_for_block = torch.full_like(self.rot_offset_for_block, -1)
         does_block_type_have_rots = self.n_rots_for_block != 0
-        block_type_for_first_rot_for_block[does_block_type_have_rots] = (
-            self.block_type_ind_for_rot[
-                self.rot_offset_for_block[does_block_type_have_rots]
-            ]
-        )
+        block_type_for_first_rot_for_block[does_block_type_have_rots] = self.block_type_ind_for_rot[
+            self.rot_offset_for_block[does_block_type_have_rots]
+        ]
         return block_type_for_first_rot_for_block
 
     max_n_rots_per_pose: int = attr.ib()
@@ -106,9 +100,7 @@ class RotamerSet(ValidateAttrs):
 
 
 @validate_args
-def rebuild_poses_if_necessary(
-    poses: PoseStack, task: PackerTask
-):  # -> Tuple[PoseStack, Tuple[ChiSampler, ...]]:
+def rebuild_poses_if_necessary(poses: PoseStack, task: PackerTask):  # -> Tuple[PoseStack, Tuple[ChiSampler, ...]]:
     """Examine the BlockTypes that the packer will entertain for the input PoseStack
     and, if there are BlockTypes that the PoseStack is not currently using,
     build a new PoseStack including thos BlockTypes in its PackedBlockTypes
@@ -167,9 +159,7 @@ def rebuild_poses_if_necessary(
         )
 
         # rebuild the PoseStack with a new packed_block_types
-        poses = PoseStackBuilder.rebuild_with_new_packed_block_types(
-            poses, packed_block_types=pbt
-        )
+        poses = PoseStackBuilder.rebuild_with_new_packed_block_types(poses, packed_block_types=pbt)
 
     return poses, samplers
 
@@ -188,9 +178,7 @@ def annotate_packed_block_types(pbt: PackedBlockTypes):
     find_unique_fingerprints(pbt)
 
 
-def annotate_everything(
-    chem_db: ChemicalDatabase, samplers: Tuple[ChiSampler, ...], pbt: PackedBlockTypes
-):
+def annotate_everything(chem_db: ChemicalDatabase, samplers: Tuple[ChiSampler, ...], pbt: PackedBlockTypes):
     # annotate residue types and packed block types
     # give the samplers a chance first to annotate the
     # residue types, and pbt
@@ -206,9 +194,7 @@ def annotate_everything(
 
 
 @numba.jit(nopython=True)
-def update_nodes(
-    nodes_orig, genStartsStack, n_nodes_offset_for_rot, n_atoms_offset_for_rot
-):
+def update_nodes(nodes_orig, genStartsStack, n_nodes_offset_for_rot, n_atoms_offset_for_rot):
     """Merge the 1-residue-kinforest nodes data so that all the rotamers can be
     built in a single generational-segmented-scan call. This has the structure
     of load-balanced search operation.
@@ -230,9 +216,7 @@ def update_nodes(
 
 
 @numba.jit(nopython=True)
-def update_scan_starts(
-    n_scans, atomStartsOffsets, scanStartsStack, genStartsStack, ngenStack
-):
+def update_scan_starts(n_scans, atomStartsOffsets, scanStartsStack, genStartsStack, ngenStack):
     n_gens = genStartsStack.shape[1]
     n_rotamers = genStartsStack.shape[0]
     scanStarts = numpy.zeros((n_scans,), dtype=numpy.int32)
@@ -240,10 +224,7 @@ def update_scan_starts(
     for i in range(n_gens - 1):
         for j in range(n_rotamers):
             for k in range(ngenStack[i, j]):
-                scanStarts[count] = (
-                    atomStartsOffsets[i, j]
-                    + scanStartsStack[j, genStartsStack[j, i, 1] + k]
-                )
+                scanStarts[count] = atomStartsOffsets[i, j] + scanStartsStack[j, genStartsStack[j, i, 1] + k]
                 count += 1
     return scanStarts
 
@@ -271,9 +252,7 @@ def construct_scans_for_conformers(
         axis=1,
     )
 
-    ngenStack = numpy.swapaxes(
-        pbt.rotamer_kinforest.n_scans_per_gen[block_type_ind_for_conf], 0, 1
-    )
+    ngenStack = numpy.swapaxes(pbt.rotamer_kinforest.n_scans_per_gen[block_type_ind_for_conf], 0, 1)
     ngenStack[ngenStack < 0] = 0
     ngenStackCumsum = numpy.cumsum(ngenStack.reshape(-1), axis=0)
 
@@ -294,9 +273,7 @@ def construct_scans_for_conformers(
     first_node_for_conf = numpy.cumsum(n_nodes_for_conf)
     n_nodes_offset_for_conf = exc_cumsum_from_inc_cumsum(first_node_for_conf)
 
-    nodes = update_nodes(
-        nodes_orig, genStartsStack, n_nodes_offset_for_conf, n_atoms_offset_for_conf
-    )
+    nodes = update_nodes(nodes_orig, genStartsStack, n_nodes_offset_for_conf, n_atoms_offset_for_conf)
 
     gen_starts = numpy.sum(genStartsStack, axis=0)
 
@@ -348,9 +325,7 @@ def load_rotamer_parents(
             # offset by 1 for the root node of each rotamer
             # because the parent array has -1 for root nodes'
             # parents and we want to make it 0
-            compact_arr[count] = parents[i][j] + (
-                n_atoms_offset_for_rot[i] if j != 0 else 1
-            )
+            compact_arr[count] = parents[i][j] + (n_atoms_offset_for_rot[i] if j != 0 else 1)
             count += 1
     return compact_arr
 
@@ -385,9 +360,7 @@ def construct_kinforest_for_conformers(
         return func(arr[conf_block_type_ind], n_atoms_total, n_atoms_for_conf)
 
     def nab2(func, arr, conf_offset):
-        return func(
-            arr[conf_block_type_ind], n_atoms_total, n_atoms_for_conf, conf_offset
-        )
+        return func(arr[conf_block_type_ind], n_atoms_total, n_atoms_for_conf, conf_offset)
 
     def _t(arr):
         return torch.tensor(arr, dtype=torch.int32, device=device)
@@ -401,11 +374,7 @@ def construct_kinforest_for_conformers(
     )
     id[0] = -1
     doftype = _t(nab(load_from_rotamers, pbt.rotamer_kinforest.doftype))
-    parent = _t(
-        nab2(
-            load_rotamer_parents, pbt.rotamer_kinforest.parent, n_atoms_offset_for_conf
-        )
-    )
+    parent = _t(nab2(load_rotamer_parents, pbt.rotamer_kinforest.parent, n_atoms_offset_for_conf))
     frame_x = _t(
         nab2(
             load_from_rotamers_w_offsets,
@@ -438,9 +407,7 @@ def construct_kinforest_for_conformers(
     )
 
 
-def measure_dofs_from_orig_coords(
-    coords: Tensor[torch.float32][:, :, :], kinforest: KinForest
-):
+def measure_dofs_from_orig_coords(coords: Tensor[torch.float32][:, :, :], kinforest: KinForest):
     from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
 
     kinforest_coords = coords.view(-1, 3)[kinforest.id.to(torch.int64)]
@@ -477,10 +444,7 @@ def measure_pose_dofs(poses):
         max_n_blocks_per_pose,
     )
     orig_atom_offset_for_poses_blocks = (
-        (
-            poses.block_coord_offset.flatten()[real_poses_blocks].to(torch.int64)
-            + per_pose_offset[real_poses_blocks]
-        )
+        (poses.block_coord_offset.flatten()[real_poses_blocks].to(torch.int64) + per_pose_offset[real_poses_blocks])
         .cpu()
         .numpy()
     )
@@ -542,12 +506,8 @@ def merge_conformer_samples(
     for samples in conformer_samples:
         gbt_n_rot_offsets.append(exclusive_cumsum1d(samples[0]).to(torch.int64))
 
-    all_gbt_for_conformer_unsorted = torch.cat(
-        [samples[1] for samples in conformer_samples]
-    )
-    max_n_conformers_per_gbt_per_sampler = max(
-        torch.max(samples[0]).item() for samples in conformer_samples
-    )
+    all_gbt_for_conformer_unsorted = torch.cat([samples[1] for samples in conformer_samples])
+    max_n_conformers_per_gbt_per_sampler = max(torch.max(samples[0]).item() for samples in conformer_samples)
 
     # create an "index" for each conformer on each GBT
     # so that we can sort these indices and come up with an ordering
@@ -565,9 +525,7 @@ def merge_conformer_samples(
     n_conformer_samplers = len(conformer_samples)
     sort_index_for_conformer = torch.cat(
         [
-            samples[1].to(torch.int64)
-            * n_conformer_samplers
-            * max_n_conformers_per_gbt_per_sampler
+            samples[1].to(torch.int64) * n_conformer_samplers * max_n_conformers_per_gbt_per_sampler
             + i * max_n_conformers_per_gbt_per_sampler
             + torch.arange(samples[1].shape[0], dtype=torch.int64, device=device)
             - gbt_n_rot_offsets[i][samples[1].to(torch.int64)]
@@ -586,30 +544,21 @@ def merge_conformer_samples(
     # testing: remove this, probably
     sort_ind_for_conformer_sorted = sort_index_for_conformer[argsort_ind_for_conformer]
     uniq_sort_ind_for_conformer = torch.unique(sort_ind_for_conformer_sorted)
-    assert (
-        uniq_sort_ind_for_conformer.shape[0] == sort_ind_for_conformer_sorted.shape[0]
-    )
+    assert uniq_sort_ind_for_conformer.shape[0] == sort_ind_for_conformer_sorted.shape[0]
 
     sampler_for_conformer = sampler_for_conformer_unsorted[argsort_ind_for_conformer]
 
     # list of boolean tensors for each of the samplers: did you build the given rotamer
-    conformer_built_by_sampler = [
-        sampler_for_conformer == i for i in range(n_conformer_samplers)
-    ]
+    conformer_built_by_sampler = [sampler_for_conformer == i for i in range(n_conformer_samplers)]
     # list of index tensors reporting the final index of the conformers built by the samplers
     new_ind_for_sampler_rotamer = [
-        torch.nonzero(built_by_sampler, as_tuple=True)[0]
-        for built_by_sampler in conformer_built_by_sampler
+        torch.nonzero(built_by_sampler, as_tuple=True)[0] for built_by_sampler in conformer_built_by_sampler
     ]
 
-    all_gbt_for_conformer_sorted = all_gbt_for_conformer_unsorted[
-        argsort_ind_for_conformer
-    ]
+    all_gbt_for_conformer_sorted = all_gbt_for_conformer_unsorted[argsort_ind_for_conformer]
 
     # ok, now we need to figure out how many rotamers each gbt is getting.
-    n_rots_for_gbt = toolz.reduce(
-        torch.add, [samples[0] for samples in conformer_samples]
-    )
+    n_rots_for_gbt = toolz.reduce(torch.add, [samples[0] for samples in conformer_samples])
 
     return (
         n_rots_for_gbt,
@@ -653,13 +602,9 @@ def calculate_rotamer_coords(
         ).to(pbt.device)
     )
 
-    new_coords_kto = forward_only_op(
-        rot_dofs_kto, _p(_t(nodes)), _p(_t(scans)), _p(_tcpu(gens)), kinforest_stack
-    )
+    new_coords_kto = forward_only_op(rot_dofs_kto, _p(_t(nodes)), _p(_t(scans)), _p(_tcpu(gens)), kinforest_stack)
 
-    new_coords_rto = torch.zeros(
-        (n_atoms_total, 3), dtype=torch.float32, device=pbt.device
-    )
+    new_coords_rto = torch.zeros((n_atoms_total, 3), dtype=torch.float32, device=pbt.device)
 
     new_coords_rto[rot_kinforest.id[1:].to(torch.int64)] = new_coords_kto[1:]
     return new_coords_rto
@@ -697,12 +642,10 @@ def get_rotamer_origin_data(task: PackerTask, gbt_for_rot: Tensor[torch.int32][:
     block_ind_for_rot = block_ind_for_rt[gbt_for_rot64]
     block_ind_for_rt_global = max_n_blocks * pose_for_gbt + block_ind_for_rt
     block_ind_for_rot_global = block_ind_for_rt_global[gbt_for_rot64]
-    n_rots_for_block = torch.bincount(
-        block_ind_for_rot_global, minlength=n_poses * max_n_blocks
-    ).reshape(n_poses, max_n_blocks)
-    rot_offset_for_block = exclusive_cumsum1d(n_rots_for_block.flatten()).reshape(
+    n_rots_for_block = torch.bincount(block_ind_for_rot_global, minlength=n_poses * max_n_blocks).reshape(
         n_poses, max_n_blocks
     )
+    rot_offset_for_block = exclusive_cumsum1d(n_rots_for_block.flatten()).reshape(n_poses, max_n_blocks)
 
     return (
         n_rots_for_pose,
@@ -751,18 +694,11 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     # types appear will be used as an index for talking about which rotamers are
     # built where. This cannot be efficient. Perhaps worth thinking hard about the
     # PackerTask's structure.
-    gbt_names = [
-        bt.name
-        for one_pose_blts in task.blts
-        for blt in one_pose_blts
-        for bt in blt.considered_block_types
-    ]
+    gbt_names = [bt.name for one_pose_blts in task.blts for blt in one_pose_blts for bt in blt.considered_block_types]
     gbt_block_type_ind = pbt.restype_index.get_indexer(gbt_names).astype(numpy.int32)
 
     # Step 4
-    conformer_samples = [
-        sampler.create_samples_for_poses(poses, task) for sampler in samplers
-    ]
+    conformer_samples = [sampler.create_samples_for_poses(poses, task) for sampler in samplers]
 
     # Step 5
     (
@@ -789,9 +725,7 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     n_atoms_offset_for_conformer = torch.cumsum(n_atoms_for_conformer, dim=0)
     n_atoms_offset_for_conformer = n_atoms_offset_for_conformer.cpu().numpy()
     n_atoms_total = n_atoms_offset_for_conformer[-1].item()
-    n_atoms_offset_for_conformer = exc_cumsum_from_inc_cumsum(
-        n_atoms_offset_for_conformer
-    )
+    n_atoms_offset_for_conformer = exc_cumsum_from_inc_cumsum(n_atoms_offset_for_conformer)
     n_atoms_offset_for_conformer_torch = _t(n_atoms_offset_for_conformer, torch.int64)
 
     # Step 7
@@ -815,13 +749,10 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     orig_kinforest, orig_dofs_kto = measure_pose_dofs(poses)
 
     # Step 9a
-    conf_dofs_kto = torch.zeros(
-        (n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device
-    )
+    conf_dofs_kto = torch.zeros((n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device)
     conf_dofs_kto[1:] = torch.tensor(
         pbt.rotamer_kinforest.dofs_ideal[block_type_ind_for_conformer].reshape((-1, 9))[
-            pbt.atom_is_real.cpu().numpy()[block_type_ind_for_conformer].reshape(-1)
-            != 0
+            pbt.atom_is_real.cpu().numpy()[block_type_ind_for_conformer].reshape(-1) != 0
         ],
         dtype=torch.float32,
         device=pbt.device,

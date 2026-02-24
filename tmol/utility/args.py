@@ -1,14 +1,13 @@
+import ast
 import functools
 import inspect
-import toolz
-
-import ast
-import astor
-import types
-from itertools import zip_longest
-from inspect import Signature, Parameter
-
 import re
+import types
+from inspect import Parameter, Signature
+from itertools import zip_longest
+
+import astor
+import toolz
 
 
 @functools.singledispatch
@@ -100,19 +99,12 @@ def _pybind11_doc_signatures(f):
     """Load overload signatures from pybind11 docstring."""
     name = f.__name__
 
-    overloaded = (
-        re.search(r"^Overloaded function.", f.__doc__, re.MULTILINE) is not None
-    )
+    overloaded = re.search(r"^Overloaded function.", f.__doc__, re.MULTILINE) is not None
 
     if overloaded:
-        doc_signatures = [
-            m.group(1)
-            for m in re.finditer(rf"^\d+\. ({name}.*)$", f.__doc__, re.MULTILINE)
-        ]
+        doc_signatures = [m.group(1) for m in re.finditer(rf"^\d+\. ({name}.*)$", f.__doc__, re.MULTILINE)]
     else:
-        doc_signatures = [
-            m.group(1) for m in re.finditer(rf"^({name}.*)$", f.__doc__, re.MULTILINE)
-        ]
+        doc_signatures = [m.group(1) for m in re.finditer(rf"^({name}.*)$", f.__doc__, re.MULTILINE)]
 
     return [_parse_doc_signature(ds) for ds in doc_signatures]
 
@@ -159,16 +151,8 @@ def _parse_doc_signature(sig):
             )
             for i, a in enumerate(fdef.args.args)
         ]
-        + (
-            [Parameter(fdef.args.kwarg, Parameter.VAR_KEYWORD)]
-            if fdef.args.kwarg
-            else []
-        )
-        + (
-            [Parameter(fdef.args.vararg, Parameter.VAR_POSITIONAL)]
-            if fdef.args.vararg
-            else []
-        )
+        + ([Parameter(fdef.args.kwarg, Parameter.VAR_KEYWORD)] if fdef.args.kwarg else [])
+        + ([Parameter(fdef.args.vararg, Parameter.VAR_POSITIONAL)] if fdef.args.vararg else [])
         + [
             Parameter(
                 a.arg,
@@ -184,20 +168,13 @@ def _parse_doc_signature(sig):
 def _aligned_signature(sigs):
     """Align overload signatures into a single meta-sig, or raise error."""
     combined_params = []
-    param_sets = zip_longest(
-        *(
-            (p.replace(annotation=Parameter.empty) for p in s.parameters.values())
-            for s in sigs
-        )
-    )
+    param_sets = zip_longest(*((p.replace(annotation=Parameter.empty) for p in s.parameters.values()) for s in sigs))
 
     for i, ps in enumerate(param_sets):
         p = set(filter(None, ps))
 
         if len(p) != 1:
-            raise ValueError(
-                f"Incompatible params: {ps} index: {i} in signatures:\n{sigs}"
-            )
+            raise ValueError(f"Incompatible params: {ps} index: {i} in signatures:\n{sigs}")
 
         param = p.pop()
 

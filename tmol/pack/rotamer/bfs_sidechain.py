@@ -1,10 +1,10 @@
-import numpy
-import numba
-
 from typing import List
 
-from tmol.types.functional import validate_args
+import numba
+import numpy
+
 from tmol.chemical.restypes import RefinedResidueType
+from tmol.types.functional import validate_args
 
 
 @numba.jit(nopython=True)
@@ -13,9 +13,7 @@ def bfs_sidechain_atoms_jit(parents, sc_roots):
     n_children = numpy.zeros(n_atoms, dtype=numpy.int32)
     for i in range(n_atoms):
         n_children[parents[i]] += 1
-    children_start = numpy.concatenate(
-        (numpy.zeros(1, dtype=numpy.int32), numpy.cumsum(n_children)[:-1])
-    )
+    children_start = numpy.concatenate((numpy.zeros(1, dtype=numpy.int32), numpy.cumsum(n_children)[:-1]))
 
     child_count = numpy.zeros(n_atoms, dtype=numpy.int32)
     children = numpy.full(n_atoms, -1, dtype=numpy.int32)
@@ -31,9 +29,7 @@ def bfs_sidechain_atoms_jit(parents, sc_roots):
     for root in sc_roots:
         # put the root children in the bfs list
         visited[root] = 1
-        for child_ind in range(
-            children_start[root], children_start[root] + child_count[root]
-        ):
+        for child_ind in range(children_start[root], children_start[root] + child_count[root]):
             bfs_list[bfs_count_end] = children[child_ind]
             bfs_count_end += 1
         while bfs_curr != bfs_count_end:
@@ -44,9 +40,7 @@ def bfs_sidechain_atoms_jit(parents, sc_roots):
                 # as a sidechain root
                 continue
             # add node's children to the bfs_list
-            for child_ind in range(
-                children_start[node], children_start[node] + child_count[node]
-            ):
+            for child_ind in range(children_start[node], children_start[node] + child_count[node]):
                 bfs_list[bfs_count_end] = children[child_ind]
                 bfs_count_end += 1
             visited[node] = 1

@@ -4,9 +4,7 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.score.hbond.hbond_dependent_term import HBondDependentTerm
 
 
-def test_hbond_dep_term_annotate_block_types_smoke(
-    default_database, fresh_default_restype_set, torch_device
-):
+def test_hbond_dep_term_annotate_block_types_smoke(default_database, fresh_default_restype_set, torch_device):
     bt_list = fresh_default_restype_set.residue_types
     hbdt = HBondDependentTerm(default_database, torch_device)
     for bt in bt_list:
@@ -14,9 +12,7 @@ def test_hbond_dep_term_annotate_block_types_smoke(
         assert hasattr(bt, "hbbt_params")
 
 
-def test_hbond_dep_term_annotate_packed_block_types_smoke(
-    default_database, fresh_default_restype_set, torch_device
-):
+def test_hbond_dep_term_annotate_packed_block_types_smoke(default_database, fresh_default_restype_set, torch_device):
     bt_list = fresh_default_restype_set.residue_types
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical, fresh_default_restype_set, bt_list, torch_device
@@ -27,9 +23,7 @@ def test_hbond_dep_term_annotate_packed_block_types_smoke(
     hbdt.setup_packed_block_types(pbt)
 
 
-def test_hbond_dep_term_setup_packed_block_types(
-    default_database, fresh_default_restype_set, torch_device
-):
+def test_hbond_dep_term_setup_packed_block_types(default_database, fresh_default_restype_set, torch_device):
     bt_list = fresh_default_restype_set.residue_types
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical, fresh_default_restype_set, bt_list, torch_device
@@ -42,9 +36,7 @@ def test_hbond_dep_term_setup_packed_block_types(
     hbdt.setup_packed_block_types(pbt)
 
 
-def test_hbond_dep_term_setup_ser_block_type(
-    default_database, fresh_default_restype_set, torch_device
-):
+def test_hbond_dep_term_setup_ser_block_type(default_database, fresh_default_restype_set, torch_device):
     bt_list = fresh_default_restype_set.residue_types
     ser_bt = next(bt for bt in bt_list if bt.name == "SER")
 
@@ -54,15 +46,9 @@ def test_hbond_dep_term_setup_ser_block_type(
     assert hasattr(ser_bt, "hbbt_params")
     ser_hbbt_params = ser_bt.hbbt_params
 
-    numpy.testing.assert_equal(
-        numpy.array([2], dtype=numpy.int32), ser_hbbt_params.tile_n_donH
-    )
-    numpy.testing.assert_equal(
-        numpy.array([2], dtype=numpy.int32), ser_hbbt_params.tile_n_don_hvy
-    )
-    numpy.testing.assert_equal(
-        numpy.array([2], dtype=numpy.int32), ser_hbbt_params.tile_n_acc
-    )
+    numpy.testing.assert_equal(numpy.array([2], dtype=numpy.int32), ser_hbbt_params.tile_n_donH)
+    numpy.testing.assert_equal(numpy.array([2], dtype=numpy.int32), ser_hbbt_params.tile_n_don_hvy)
+    numpy.testing.assert_equal(numpy.array([2], dtype=numpy.int32), ser_hbbt_params.tile_n_acc)
 
     def at_ind(target):
         return ser_bt.atom_to_idx[target]
@@ -81,9 +67,7 @@ def test_hbond_dep_term_setup_ser_block_type(
     gold_tile_which_donH_of_donH_hvy = numpy.full((1, 32), -1, dtype=numpy.int32)
     gold_tile_which_donH_of_donH_hvy[0, 0] = 0
     gold_tile_which_donH_of_donH_hvy[0, 1] = 0
-    numpy.testing.assert_equal(
-        gold_tile_which_donH_of_donH_hvy, ser_hbbt_params.tile_which_donH_of_donH_hvy
-    )
+    numpy.testing.assert_equal(gold_tile_which_donH_of_donH_hvy, ser_hbbt_params.tile_which_donH_of_donH_hvy)
 
     gold_acc_inds = numpy.full((1, 32), -1, dtype=numpy.int32)
     gold_acc_inds[0, 0] = at_ind("O")
@@ -93,6 +77,4 @@ def test_hbond_dep_term_setup_ser_block_type(
     gold_tile_acceptor_n_attached_H = numpy.full((1, 32), -1, dtype=numpy.int32)
     gold_tile_acceptor_n_attached_H[0, 0] = 0
     gold_tile_acceptor_n_attached_H[0, 1] = 1
-    numpy.testing.assert_equal(
-        gold_tile_acceptor_n_attached_H, ser_hbbt_params.tile_acceptor_n_attached_H
-    )
+    numpy.testing.assert_equal(gold_tile_acceptor_n_attached_H, ser_hbbt_params.tile_acceptor_n_attached_H)

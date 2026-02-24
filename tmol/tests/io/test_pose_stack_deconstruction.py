@@ -1,16 +1,15 @@
-import torch
 import numpy
+import torch
 
+from tmol.io.canonical_ordering import (
+    canonical_form_from_pdb,
+    default_canonical_ordering,
+    default_packed_block_types,
+)
+from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.io.pose_stack_deconstruction import (
     canonical_form_from_pose_stack,
 )
-from tmol.io.canonical_ordering import (
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-)
-
-from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
 def not_any_nancoord(coords):
@@ -69,15 +68,9 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
         ]
     )
 
-    numpy.testing.assert_equal(
-        cf_orig_chain_id.cpu().numpy(), cf_orig_chain_id2.cpu().numpy()
-    )
-    numpy.testing.assert_equal(
-        cf_orig_res_types.cpu().numpy(), cf_orig_res_types2.cpu().numpy()
-    )
-    numpy.testing.assert_equal(
-        cf_orig_coords.cpu().numpy(), cf_orig_coords2.cpu().numpy()
-    )
+    numpy.testing.assert_equal(cf_orig_chain_id.cpu().numpy(), cf_orig_chain_id2.cpu().numpy())
+    numpy.testing.assert_equal(cf_orig_res_types.cpu().numpy(), cf_orig_res_types2.cpu().numpy())
+    numpy.testing.assert_equal(cf_orig_coords.cpu().numpy(), cf_orig_coords2.cpu().numpy())
     numpy.testing.assert_equal(cf_orig_chain_labels, cf_orig_chain_labels2)
 
     assert chain_id.device == torch_device
@@ -86,9 +79,7 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
     assert res_not_connected.device == torch_device
     numpy.testing.assert_equal(chain_id.cpu().numpy(), cf_orig_chain_id.cpu().numpy())
     numpy.testing.assert_equal(chain_labels, cf_orig_chain_labels)
-    numpy.testing.assert_equal(
-        cf_res_types.cpu().numpy(), cf_orig_res_types.cpu().numpy()
-    )
+    numpy.testing.assert_equal(cf_res_types.cpu().numpy(), cf_orig_res_types.cpu().numpy())
     numpy.testing.assert_equal(cf_coords.cpu().numpy(), cf_orig_coords.cpu().numpy())
     # numpy.testing.assert_equal(
     #     atom_is_present.cpu().numpy(), cf_orig_at_is_pres.cpu().numpy()
@@ -158,12 +149,8 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
 
     orig_chain_id = torch.full((2, 6), -1, dtype=torch.int32, device=torch_device)
     orig_res_types = torch.full((2, 6), -1, dtype=torch.int32, device=torch_device)
-    orig_coords = torch.full(
-        (2, 6, max_n_canonical_atoms, 3), numpy.nan, device=torch_device
-    )
-    orig_res_not_connected = torch.zeros(
-        (2, 6, 2), dtype=torch.bool, device=torch_device
-    )
+    orig_coords = torch.full((2, 6, max_n_canonical_atoms, 3), numpy.nan, device=torch_device)
+    orig_res_not_connected = torch.zeros((2, 6, 2), dtype=torch.bool, device=torch_device)
     orig_res_labels = numpy.full((2, 6), 0, dtype=int)
     orig_res_ins_codes = numpy.full((2, 6), "", dtype=object)
     orig_chain_labels = numpy.full((2, 6), "", dtype=object)
@@ -236,9 +223,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
     gold_disulfides = numpy.empty((0, 3), dtype=numpy.int64)
     numpy.testing.assert_equal(gold_disulfides, disulfides.cpu().numpy())
 
-    numpy.testing.assert_equal(
-        res_not_connected.cpu().numpy(), orig_res_not_connected.cpu().numpy()
-    )
+    numpy.testing.assert_equal(res_not_connected.cpu().numpy(), orig_res_not_connected.cpu().numpy())
 
 
 def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
@@ -275,29 +260,21 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
         for x in ["chain_id", "res_types", "coords", "chain_labels"]
     )
 
-    (chain_id, cf_res_types, cf_coords, disulfides, res_not_connected, chain_labels) = (
-        tuple(
-            getattr(restored_canonical_form, x)
-            for x in [
-                "chain_id",
-                "res_types",
-                "coords",
-                "disulfides",
-                "res_not_connected",
-                "chain_labels",
-            ]
-        )
+    (chain_id, cf_res_types, cf_coords, disulfides, res_not_connected, chain_labels) = tuple(
+        getattr(restored_canonical_form, x)
+        for x in [
+            "chain_id",
+            "res_types",
+            "coords",
+            "disulfides",
+            "res_not_connected",
+            "chain_labels",
+        ]
     )
 
-    numpy.testing.assert_equal(
-        cf_orig_chain_id.cpu().numpy(), cf_orig_chain_id2.cpu().numpy()
-    )
-    numpy.testing.assert_equal(
-        cf_orig_res_types.cpu().numpy(), cf_orig_res_types2.cpu().numpy()
-    )
-    numpy.testing.assert_equal(
-        cf_orig_coords.cpu().numpy(), cf_orig_coords2.cpu().numpy()
-    )
+    numpy.testing.assert_equal(cf_orig_chain_id.cpu().numpy(), cf_orig_chain_id2.cpu().numpy())
+    numpy.testing.assert_equal(cf_orig_res_types.cpu().numpy(), cf_orig_res_types2.cpu().numpy())
+    numpy.testing.assert_equal(cf_orig_coords.cpu().numpy(), cf_orig_coords2.cpu().numpy())
     numpy.testing.assert_equal(cf_orig_chain_labels, cf_orig_chain_labels2)
 
     assert chain_id.device == torch_device
@@ -306,18 +283,14 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
     # assert atom_is_present.device == torch_device
     assert res_not_connected.device == torch_device
     numpy.testing.assert_equal(chain_id.cpu().numpy(), cf_orig_chain_id.cpu().numpy())
-    numpy.testing.assert_equal(
-        cf_res_types.cpu().numpy(), cf_orig_res_types.cpu().numpy()
-    )
+    numpy.testing.assert_equal(cf_res_types.cpu().numpy(), cf_orig_res_types.cpu().numpy())
     numpy.testing.assert_equal(chain_labels, cf_orig_chain_labels)
 
     np_cf_coords = cf_coords.cpu().numpy()
     np_cf_orig_coords = cf_orig_coords.cpu().numpy()
     np_cf_orig_at_is_pres = cf_orig_at_is_pres.cpu().numpy()
 
-    numpy.testing.assert_equal(
-        np_cf_coords[np_cf_orig_at_is_pres], np_cf_orig_coords[np_cf_orig_at_is_pres]
-    )
+    numpy.testing.assert_equal(np_cf_coords[np_cf_orig_at_is_pres], np_cf_orig_coords[np_cf_orig_at_is_pres])
 
     gold_disulfides = torch.tensor(
         [(0, 22, 87), (0, 133, 193), (0, 213, 435), (0, 235, 309), (0, 359, 415)],
@@ -331,18 +304,14 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
     numpy.testing.assert_equal(res_not_connected.cpu().numpy(), gold_res_not_connected)
 
 
-def test_canonical_form_from_pertuzumab_and_antigen_pose(
-    pertuzumab_and_nearby_erbb2_pdb_and_segments, torch_device
-):
+def test_canonical_form_from_pertuzumab_and_antigen_pose(pertuzumab_and_nearby_erbb2_pdb_and_segments, torch_device):
     (
         pert_and_erbb2_lines,
         res_not_connected_orig_np,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
     co = default_canonical_ordering()
     canonical_form = canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
-    res_not_connected_orig = torch.tensor(
-        res_not_connected_orig_np, device=torch_device
-    )
+    res_not_connected_orig = torch.tensor(res_not_connected_orig_np, device=torch_device)
     canonical_form.res_not_connected = res_not_connected_orig
     # unpack and copy before pose stack construction
     (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels) = tuple(
@@ -364,18 +333,14 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
         return_chain_ind=True,
     )
 
-    restored_canonical_form = canonical_form_from_pose_stack(
-        co, pose_stack, chain_id_from_constr
-    )
+    restored_canonical_form = canonical_form_from_pose_stack(co, pose_stack, chain_id_from_constr)
 
     # unpack
     (
         cf_orig_chain_id2,
         cf_orig_res_types2,
         cf_orig_coords2,
-    ) = tuple(
-        getattr(canonical_form, x).clone() for x in ["chain_id", "res_types", "coords"]
-    )
+    ) = tuple(getattr(canonical_form, x).clone() for x in ["chain_id", "res_types", "coords"])
 
     (
         chain_id,
@@ -394,15 +359,9 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
         ]
     )
 
-    numpy.testing.assert_equal(
-        cf_orig_chain_id.cpu().numpy(), cf_orig_chain_id2.cpu().numpy()
-    )
-    numpy.testing.assert_equal(
-        cf_orig_res_types.cpu().numpy(), cf_orig_res_types2.cpu().numpy()
-    )
-    numpy.testing.assert_equal(
-        cf_orig_coords.cpu().numpy(), cf_orig_coords2.cpu().numpy()
-    )
+    numpy.testing.assert_equal(cf_orig_chain_id.cpu().numpy(), cf_orig_chain_id2.cpu().numpy())
+    numpy.testing.assert_equal(cf_orig_res_types.cpu().numpy(), cf_orig_res_types2.cpu().numpy())
+    numpy.testing.assert_equal(cf_orig_coords.cpu().numpy(), cf_orig_coords2.cpu().numpy())
 
     assert chain_id.device == torch_device
     assert cf_res_types.device == torch_device
@@ -410,17 +369,13 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
     # assert atom_is_present.device == torch_device
     assert res_not_connected.device == torch_device
     numpy.testing.assert_equal(chain_id.cpu().numpy(), cf_orig_chain_id.cpu().numpy())
-    numpy.testing.assert_equal(
-        cf_res_types.cpu().numpy(), cf_orig_res_types.cpu().numpy()
-    )
+    numpy.testing.assert_equal(cf_res_types.cpu().numpy(), cf_orig_res_types.cpu().numpy())
 
     np_cf_coords = cf_coords.cpu().numpy()
     np_cf_orig_coords = cf_orig_coords.cpu().numpy()
     np_cf_orig_at_is_pres = cf_orig_at_is_pres.to(torch.bool).cpu().numpy()
 
-    numpy.testing.assert_equal(
-        np_cf_coords[np_cf_orig_at_is_pres], np_cf_orig_coords[np_cf_orig_at_is_pres]
-    )
+    numpy.testing.assert_equal(np_cf_coords[np_cf_orig_at_is_pres], np_cf_orig_coords[np_cf_orig_at_is_pres])
 
     gold_disulfides = torch.tensor(
         [
@@ -438,9 +393,7 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
     )
 
     numpy.testing.assert_equal(gold_disulfides.cpu().numpy(), disulfides.cpu().numpy())
-    numpy.testing.assert_equal(
-        res_not_connected.cpu().numpy(), res_not_connected_orig_np
-    )
+    numpy.testing.assert_equal(res_not_connected.cpu().numpy(), res_not_connected_orig_np)
 
 
 def test_round_trip_deconstruction(ubq_pdb, torch_device):
@@ -451,13 +404,9 @@ def test_round_trip_deconstruction(ubq_pdb, torch_device):
 
     restored_canonical_form = canonical_form_from_pose_stack(co, pose_stack)
 
-    pose_stack_reconstructed = pose_stack_from_canonical_form(
-        co, pbt, *restored_canonical_form
-    )
+    pose_stack_reconstructed = pose_stack_from_canonical_form(co, pbt, *restored_canonical_form)
 
-    numpy.testing.assert_equal(
-        pose_stack.coords.cpu().numpy(), pose_stack_reconstructed.coords.cpu().numpy()
-    )
+    numpy.testing.assert_equal(pose_stack.coords.cpu().numpy(), pose_stack_reconstructed.coords.cpu().numpy())
     numpy.testing.assert_equal(
         pose_stack.block_type_ind.cpu().numpy(),
         pose_stack_reconstructed.block_type_ind.cpu().numpy(),

@@ -1,28 +1,23 @@
 import copy
-
 import itertools
+from typing import List, Optional, Tuple
 
 import numpy
-import torch
 import pandas
-
-from typing import List, Tuple, Optional
-
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
+import torch
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
-
 from tmol.chemical.restypes import (
     RefinedResidueType,
     three2one,
 )
-
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pdb_info import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.pose.pose_stack import PoseStack
 from tmol.pose.constraint_set import ConstraintSet
-
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY, PDBInfo
+from tmol.pose.pose_stack import PoseStack
+from tmol.types.array import NDArray
+from tmol.types.functional import validate_args
+from tmol.types.torch import Tensor
 from tmol.utility.tensor.common_operations import (
     exclusive_cumsum1d,
     exclusive_cumsum2d,
@@ -30,51 +25,35 @@ from tmol.utility.tensor.common_operations import (
     stretch,
     stretch2,
 )
-from tmol.types.functional import validate_args
 
 
 class PoseStackBuilder:
-
     @classmethod
     @validate_args
-    def from_poses(
-        cls, pose_stacks: List[PoseStack], device: torch.device
-    ) -> PoseStack:
+    def from_poses(cls, pose_stacks: List[PoseStack], device: torch.device) -> PoseStack:
         pbt0 = pose_stacks[0].packed_block_types
         for ps in pose_stacks:
             # all PoseStacks must be built from the same chemical database
             # even if some of the residue types were perhaps created
             # programmatically instead of being read from an input file
             assert pbt0.chem_db is ps.packed_block_types.chem_db
-        reuse_pbt = all(
-            pose_stack.packed_block_types is pbt0 for pose_stack in pose_stacks
-        )
+        reuse_pbt = all(pose_stack.packed_block_types is pbt0 for pose_stack in pose_stacks)
         if reuse_pbt:
             packed_block_types = pbt0
         else:
-            all_bt = [
-                bt
-                for pose_stack in pose_stacks
-                for bt in pose_stack.packed_block_types.active_block_types
-            ]
+            all_bt = [bt for pose_stack in pose_stacks for bt in pose_stack.packed_block_types.active_block_types]
             bt_set = {}
             for bt in all_bt:
                 if bt.name not in bt_set:
                     bt_set[bt.name] = bt
             uniq_bt = [v for _, v in bt_set.items()]
-            packed_block_types = PackedBlockTypes.from_restype_list(
-                pbt0.chem_db, pbt0.restype_set, uniq_bt, device
-            )
+            packed_block_types = PackedBlockTypes.from_restype_list(pbt0.chem_db, pbt0.restype_set, uniq_bt, device)
 
         max_n_blocks = max(pose_stack.max_n_blocks for pose_stack in pose_stacks)
-        coords, block_coord_offset = cls._pack_pose_stack_coords(
-            packed_block_types, pose_stacks, max_n_blocks, device
-        )
+        coords, block_coord_offset = cls._pack_pose_stack_coords(packed_block_types, pose_stacks, max_n_blocks, device)
 
         n_poses = sum(len(ps) for ps in pose_stacks)
-        ps_offset = exclusive_cumsum1d(
-            torch.tensor([len(ps) for ps in pose_stacks], dtype=torch.int64)
-        )
+        ps_offset = exclusive_cumsum1d(torch.tensor([len(ps) for ps in pose_stacks], dtype=torch.int64))
 
         inter_residue_connections = cls._inter_residue_connections_from_pose_stacks(
             packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
@@ -86,12 +65,8 @@ class PoseStackBuilder:
             packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
         )
 
-        chain_id = cls._chain_id_from_pose_stacks(
-            pose_stacks, n_poses, ps_offset, max_n_blocks, device
-        )
-        pdb_info = cls._pdb_info_from_pose_stacks(
-            pose_stacks, n_poses, ps_offset, max_n_blocks
-        )
+        chain_id = cls._chain_id_from_pose_stacks(pose_stacks, n_poses, ps_offset, max_n_blocks, device)
+        pdb_info = cls._pdb_info_from_pose_stacks(pose_stacks, n_poses, ps_offset, max_n_blocks)
 
         # Concatenate the constraint sets
         constraint_set = ConstraintSet.concatenate(
@@ -148,9 +123,7 @@ class PoseStackBuilder:
             n_res,
             block_type_ind,
             block_type_ind64,
-        ) = cls._block_type_indices_from_sequences(
-            pbt, n_poses, n_res, max_n_res, sequences
-        )
+        ) = cls._block_type_indices_from_sequences(pbt, n_poses, n_res, max_n_res, sequences)
         assert real_res.device == device
         assert n_res.device == device
         assert block_type_ind.device == device
@@ -191,17 +164,11 @@ class PoseStackBuilder:
         chain_labels[real_res_np] = "A"
 
         residue_labels = numpy.full(block_type_ind64.shape, -1, dtype=numpy.int32)
-        arange1 = numpy.expand_dims(
-            numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0
-        ).repeat(n_poses, axis=0)
+        arange1 = numpy.expand_dims(numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0).repeat(n_poses, axis=0)
         residue_labels[real_res_np] = arange1[real_res_np]
         residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
-        atom_occupancy = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32
-        )
-        atom_b_factor = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32
-        )
+        atom_occupancy = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32)
+        atom_b_factor = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32)
 
         pdb_info = PDBInfo(
             residue_labels=residue_labels,
@@ -213,9 +180,7 @@ class PoseStackBuilder:
 
         return PoseStack(
             packed_block_types=packed_block_types,
-            coords=torch.zeros(
-                (n_poses, max_n_atoms, 3), dtype=torch.float32, device=device
-            ),
+            coords=torch.zeros((n_poses, max_n_atoms, 3), dtype=torch.float32, device=device),
             block_coord_offset=block_coord_offset,
             block_coord_offset64=block_coord_offset.to(torch.int64),
             inter_residue_connections=inter_residue_connections64.to(torch.int32),
@@ -263,18 +228,14 @@ class PoseStackBuilder:
         n_res = numpy.array([len(x) for x in sequences], dtype=numpy.int32)
         max_n_res = numpy.amax(n_res).item()
 
-        trimmed_sequences, expoly_connections = cls._find_connections_in_sequences(
-            pbt, sequences
-        )
+        trimmed_sequences, expoly_connections = cls._find_connections_in_sequences(pbt, sequences)
 
         (
             real_res,
             n_res,
             block_type_ind,
             block_type_ind64,
-        ) = cls._block_type_indices_from_sequences(
-            pbt, n_poses, n_res, max_n_res, trimmed_sequences
-        )
+        ) = cls._block_type_indices_from_sequences(pbt, n_poses, n_res, max_n_res, trimmed_sequences)
         assert real_res.device == device
         assert n_res.device == device
         assert block_type_ind.device == device
@@ -331,9 +292,7 @@ class PoseStackBuilder:
         )
 
         # 4
-        ibb64 = cls._calculate_interblock_bondsep_from_connectivity_graph(
-            pbt, block_n_conn, pose_n_pconn, pconn_matrix
-        )
+        ibb64 = cls._calculate_interblock_bondsep_from_connectivity_graph(pbt, block_n_conn, pose_n_pconn, pconn_matrix)
         inter_block_bondsep64 = ibb64
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
@@ -347,17 +306,11 @@ class PoseStackBuilder:
         chain_labels[real_res_np] = "A"
 
         residue_labels = numpy.full(block_type_ind64.shape, -1, dtype=numpy.int32)
-        arange1 = numpy.expand_dims(
-            numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0
-        ).repeat(n_poses, axis=0)
+        arange1 = numpy.expand_dims(numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0).repeat(n_poses, axis=0)
         residue_labels[real_res_np] = arange1[real_res_np]
         residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
-        atom_occupancy = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32
-        )
-        atom_b_factor = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32
-        )
+        atom_occupancy = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32)
+        atom_b_factor = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32)
 
         pdb_info = PDBInfo(
             residue_labels=residue_labels,
@@ -369,9 +322,7 @@ class PoseStackBuilder:
 
         return PoseStack(
             packed_block_types=packed_block_types,
-            coords=torch.zeros(
-                (n_poses, max_n_atoms, 3), dtype=torch.float32, device=device
-            ),
+            coords=torch.zeros((n_poses, max_n_atoms, 3), dtype=torch.float32, device=device),
             block_coord_offset=block_coord_offset,
             block_coord_offset64=block_coord_offset.to(torch.int64),
             inter_residue_connections=inter_residue_connections64.to(torch.int32),
@@ -420,18 +371,14 @@ class PoseStackBuilder:
         n_res = numpy.array([len(x) for x in sequences], dtype=numpy.int32)
         max_n_res = numpy.amax(n_res).item()
 
-        trimmed_sequences, expoly_connections = cls._find_connections_in_sequences(
-            pbt, sequences
-        )
+        trimmed_sequences, expoly_connections = cls._find_connections_in_sequences(pbt, sequences)
 
         (
             real_res,
             n_res,
             block_type_ind,
             block_type_ind64,
-        ) = cls._block_type_indices_from_sequences(
-            pbt, n_poses, n_res, max_n_res, trimmed_sequences
-        )
+        ) = cls._block_type_indices_from_sequences(pbt, n_poses, n_res, max_n_res, trimmed_sequences)
         assert real_res.device == device
         assert n_res.device == device
         assert block_type_ind.device == device
@@ -489,9 +436,7 @@ class PoseStackBuilder:
         )
 
         # 4
-        ibb64 = cls._calculate_interblock_bondsep_from_connectivity_graph(
-            pbt, block_n_conn, pose_n_pconn, pconn_matrix
-        )
+        ibb64 = cls._calculate_interblock_bondsep_from_connectivity_graph(pbt, block_n_conn, pose_n_pconn, pconn_matrix)
         inter_block_bondsep64 = ibb64
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
@@ -501,26 +446,16 @@ class PoseStackBuilder:
         max_n_atoms = torch.max(torch.sum(n_atoms, dim=1)).item()
 
         max_n_chains = max(len(clens) for clens in chain_lengths)
-        chain_ind_to_label = numpy.array(
-            [chr(ord("A") + i) for i in range(max_n_chains)], dtype=object
-        )
+        chain_ind_to_label = numpy.array([chr(ord("A") + i) for i in range(max_n_chains)], dtype=object)
         chain_labels = numpy.full(block_type_ind64.shape, "", dtype=object)
         real_res_np = real_res.cpu().numpy()
-        chain_labels[real_res_np] = chain_ind_to_label[
-            chain_id.cpu().numpy()[real_res_np]
-        ]
+        chain_labels[real_res_np] = chain_ind_to_label[chain_id.cpu().numpy()[real_res_np]]
         residue_labels = numpy.full(block_type_ind64.shape, -1, dtype=numpy.int32)
-        arange1 = numpy.expand_dims(
-            numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0
-        ).repeat(n_poses, axis=0)
+        arange1 = numpy.expand_dims(numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0).repeat(n_poses, axis=0)
         residue_labels[real_res_np] = arange1[real_res_np]
         residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
-        atom_occupancy = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32
-        )
-        atom_b_factor = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32
-        )
+        atom_occupancy = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32)
+        atom_b_factor = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32)
 
         pdb_info = PDBInfo(
             residue_labels=residue_labels,
@@ -532,9 +467,7 @@ class PoseStackBuilder:
 
         return PoseStack(
             packed_block_types=packed_block_types,
-            coords=torch.zeros(
-                (n_poses, max_n_atoms, 3), dtype=torch.float32, device=device
-            ),
+            coords=torch.zeros((n_poses, max_n_atoms, 3), dtype=torch.float32, device=device),
             block_coord_offset=block_coord_offset,
             block_coord_offset64=block_coord_offset.to(torch.int64),
             inter_residue_connections=inter_residue_connections64.to(torch.int32),
@@ -552,9 +485,7 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
-    def rebuild_with_new_packed_block_types(
-        cls, ps: PoseStack, packed_block_types: PackedBlockTypes
-    ):  # -> "PoseStack"
+    def rebuild_with_new_packed_block_types(cls, ps: PoseStack, packed_block_types: PackedBlockTypes):  # -> "PoseStack"
         """Create a new PoseStack object replacing the existing PackedBlockTypes
         object with a new one, and then rebuilding the other data members that
         depend on it.
@@ -571,18 +502,14 @@ class PoseStackBuilder:
 
         coords = ps.coords.clone()
 
-        block_type_ind = torch.full_like(
-            ps.block_type_ind, -1, device=torch.device("cpu")
-        )
+        block_type_ind = torch.full_like(ps.block_type_ind, -1, device=torch.device("cpu"))
         # this could be more efficient if we mapped orig_block_type to new_block_type
         for i in range(ps.n_poses):
             for j in range(ps.max_n_blocks):
                 orig_bt_ind = ps.block_type_ind64[i, j]
                 if orig_bt_ind >= 0:
                     bt = ps.packed_block_types.active_block_types[orig_bt_ind]
-                    block_type_ind[i, j] = packed_block_types.inds_for_restypes(
-                        [bt]
-                    ).item()
+                    block_type_ind[i, j] = packed_block_types.inds_for_restypes([bt]).item()
         block_type_ind = block_type_ind.to(ps.device)
 
         def i64(t):
@@ -660,11 +587,7 @@ class PoseStackBuilder:
                         + "' are: "
                         + "'"
                         + "', '".join(
-                            x
-                            for x in pbt.active_block_types[
-                                missing[2]
-                            ].connection_to_cidx.keys()
-                            if x is not None
+                            x for x in pbt.active_block_types[missing[2]].connection_to_cidx.keys() if x is not None
                         )
                         + "'"
                     )
@@ -691,9 +614,7 @@ class PoseStackBuilder:
             dtype=torch.int32,
             device=pbt_conn_at_intrablock_bond_sep.device,
         )
-        intra_block_conn_dists[real_blocks] = pbt_conn_at_intrablock_bond_sep[
-            block_types64[real_blocks]
-        ]
+        intra_block_conn_dists[real_blocks] = pbt_conn_at_intrablock_bond_sep[block_types64[real_blocks]]
         return intra_block_conn_dists
 
     @classmethod
@@ -722,9 +643,7 @@ class PoseStackBuilder:
 
         n_conn_for_block = torch.full_like(block_types64, 0, dtype=torch.int32)
         n_conn_for_block[real_blocks] = pbt_n_conn[block_types64[real_blocks]]
-        n_conn_for_block_offset, n_conn_totals = exclusive_cumsum2d_and_totals(
-            n_conn_for_block
-        )
+        n_conn_for_block_offset, n_conn_totals = exclusive_cumsum2d_and_totals(n_conn_for_block)
         n_conn_for_block_offset64 = n_conn_for_block_offset.to(torch.int64)
         max_n_pose_conn = torch.max(n_conn_totals)
 
@@ -752,14 +671,10 @@ class PoseStackBuilder:
 
         # let's identify which pairs of connections are part
         # of the same block
-        pose_for_block = stretch(
-            torch.arange(n_poses, dtype=torch.int64, device=pbt_device), max_n_blocks
-        )
+        pose_for_block = stretch(torch.arange(n_poses, dtype=torch.int64, device=pbt_device), max_n_blocks)
 
         # mark the first connection in each block with a 1
-        first_pconn_for_block = torch.zeros(
-            (n_poses, max_n_pose_conn), dtype=torch.int32, device=pbt_device
-        )
+        first_pconn_for_block = torch.zeros((n_poses, max_n_pose_conn), dtype=torch.int32, device=pbt_device)
         first_pconn_for_block[
             pose_for_block[block_has_conn.view(-1)],
             n_conn_for_block_offset64[block_has_conn],
@@ -769,9 +684,7 @@ class PoseStackBuilder:
         # will be 1 more than the actual block index for the
         # connection, but that's ok for our purposes
         pseudo_block_for_pconn = torch.cumsum(first_pconn_for_block, dim=1)
-        are_pconns_from_same_block = (
-            pseudo_block_for_pconn[:, None, :] == pseudo_block_for_pconn[:, :, None]
-        )
+        are_pconns_from_same_block = pseudo_block_for_pconn[:, None, :] == pseudo_block_for_pconn[:, :, None]
 
         # Now let's go to the PackedBlockTypes' data describing intra-residue
         # distances for pairs of inter-residue connections on the same block:
@@ -797,9 +710,9 @@ class PoseStackBuilder:
         # block j; then we can figure out if any individual pair (k,l)
         # represents a valid intra-block pair or whether k, e.g., exceeds
         # the number of connections for block j.
-        n_conn_for_bconn = stretch2(
-            n_conn_for_block, pbt_max_n_conn * pbt_max_n_conn
-        ).reshape(n_poses, max_n_blocks, pbt_max_n_conn, pbt_max_n_conn)
+        n_conn_for_bconn = stretch2(n_conn_for_block, pbt_max_n_conn * pbt_max_n_conn).reshape(
+            n_poses, max_n_blocks, pbt_max_n_conn, pbt_max_n_conn
+        )
 
         valid_local_bconn_pair = torch.logical_and(
             local_ind_for_bconn1 < n_conn_for_bconn,
@@ -819,24 +732,20 @@ class PoseStackBuilder:
         )
         pose_ind_for_pconn2 = torch.transpose(pose_ind_for_pconn1, 1, 2)
 
-        n_pose_conn_for_pconn = stretch(
-            n_conn_totals, max_n_pose_conn * max_n_pose_conn
-        ).reshape(n_poses, max_n_pose_conn, max_n_pose_conn)
+        n_pose_conn_for_pconn = stretch(n_conn_totals, max_n_pose_conn * max_n_pose_conn).reshape(
+            n_poses, max_n_pose_conn, max_n_pose_conn
+        )
 
         valid_pconn_pair = torch.logical_and(
             pose_ind_for_pconn1 < n_pose_conn_for_pconn,
             pose_ind_for_pconn2 < n_pose_conn_for_pconn,
         )
 
-        real_pconns_from_same_block = torch.logical_and(
-            are_pconns_from_same_block, valid_pconn_pair
-        )
+        real_pconns_from_same_block = torch.logical_and(are_pconns_from_same_block, valid_pconn_pair)
 
         # here we are at last! fancy indexing to take the subset of
         # real interresidue connection pairs from the
-        pconn_matrix[real_pconns_from_same_block] = intra_block_bconn_dists[
-            valid_local_bconn_pair
-        ]
+        pconn_matrix[real_pconns_from_same_block] = intra_block_bconn_dists[valid_local_bconn_pair]
 
         return pconn_matrix, n_conn_for_block_offset64, n_conn_for_block, n_conn_totals
 
@@ -852,18 +761,12 @@ class PoseStackBuilder:
         n_poses = sum(len(ps) for ps in pose_stacks)
         max_n_atoms = max(ps.coords.shape[1] for ps in pose_stacks)
         max_n_blocks = max(ps.block_coord_offset.shape[1] for ps in pose_stacks)
-        coords = torch.zeros(
-            (n_poses, max_n_atoms, 3), dtype=torch.float32, device=device
-        )
-        block_coord_offset = torch.zeros(
-            (n_poses, max_n_blocks), dtype=torch.int32, device=device
-        )
+        coords = torch.zeros((n_poses, max_n_atoms, 3), dtype=torch.float32, device=device)
+        block_coord_offset = torch.zeros((n_poses, max_n_blocks), dtype=torch.int32, device=device)
         count = 0
         for p in pose_stacks:
             coords[count : (count + len(p)), : p.coords.shape[1]] = p.coords
-            block_coord_offset[
-                count : (count + len(p)), : p.block_coord_offset.shape[1]
-            ] = p.block_coord_offset
+            block_coord_offset[count : (count + len(p)), : p.block_coord_offset.shape[1]] = p.block_coord_offset
             count += len(p)
         return coords, block_coord_offset
 
@@ -878,9 +781,7 @@ class PoseStackBuilder:
         max_n_blocks: int,
         device: torch.device,
     ) -> Tensor[torch.int32][:, :, :, 2]:
-        max_n_conn = max(
-            len(rt.connections) for rt in packed_block_types.active_block_types
-        )
+        max_n_conn = max(len(rt.connections) for rt in packed_block_types.active_block_types)
         inter_residue_connections = torch.full(
             (n_poses, max_n_blocks, max_n_conn, 2), -1, dtype=torch.int32, device=device
         )
@@ -904,9 +805,7 @@ class PoseStackBuilder:
         max_n_blocks: int,
         device: torch.device,
     ) -> Tensor[torch.int32][:, :, :, :, :]:
-        max_n_conn = max(
-            len(rt.connections) for rt in packed_block_types.active_block_types
-        )
+        max_n_conn = max(len(rt.connections) for rt in packed_block_types.active_block_types)
         inter_block_bondsep = torch.full(
             (n_poses, max_n_blocks, max_n_blocks, max_n_conn, max_n_conn),
             6,
@@ -937,18 +836,14 @@ class PoseStackBuilder:
         max_n_blocks: int,
         device: torch.device,
     ):
-        block_type_ind = torch.full(
-            (n_poses, max_n_blocks), -1, dtype=torch.int32, device=device
-        )
+        block_type_ind = torch.full((n_poses, max_n_blocks), -1, dtype=torch.int32, device=device)
         for i, pose_stack in enumerate(pose_stacks):
             offset = ps_offsets[i]
             # n_blocks = pose_stack.block_type_ind.shape[1]
             mapping = torch.cat(
                 (
                     torch.tensor(
-                        packed_block_types.inds_for_restypes(
-                            pose_stack.packed_block_types.active_block_types
-                        ),
+                        packed_block_types.inds_for_restypes(pose_stack.packed_block_types.active_block_types),
                         dtype=torch.int32,
                         device=device,
                     ),
@@ -957,9 +852,7 @@ class PoseStackBuilder:
             )
             remapped = mapping[pose_stack.block_type_ind.to(torch.int64)]
 
-            block_type_ind[offset : (offset + len(pose_stack)), : remapped.shape[1]] = (
-                remapped
-            )
+            block_type_ind[offset : (offset + len(pose_stack)), : remapped.shape[1]] = remapped
         return block_type_ind
 
     @classmethod
@@ -981,9 +874,7 @@ class PoseStackBuilder:
         for i, pose_stack in enumerate(pose_stacks):
             offset = ps_offsets[i]
             i_nblocks = pose_stack.chain_id.shape[1]
-            chain_id[offset : (offset + len(pose_stack)), :i_nblocks] = (
-                pose_stack.chain_id
-            )
+            chain_id[offset : (offset + len(pose_stack)), :i_nblocks] = pose_stack.chain_id
         return chain_id
 
     @classmethod
@@ -1007,22 +898,14 @@ class PoseStackBuilder:
         for i, pose_stack in enumerate(pose_stacks):
             offset = ps_offsets[i]
             i_nblocks = pose_stack.pdb_info.residue_labels.shape[1]
-            residue_labels[offset : (offset + len(pose_stack)), :i_nblocks] = (
-                pose_stack.pdb_info.residue_labels
-            )
+            residue_labels[offset : (offset + len(pose_stack)), :i_nblocks] = pose_stack.pdb_info.residue_labels
             residue_insertion_codes[offset : (offset + len(pose_stack)), :i_nblocks] = (
                 pose_stack.pdb_info.residue_insertion_codes
             )
-            chain_labels[offset : (offset + len(pose_stack)), :i_nblocks] = (
-                pose_stack.pdb_info.chain_labels
-            )
+            chain_labels[offset : (offset + len(pose_stack)), :i_nblocks] = pose_stack.pdb_info.chain_labels
             i_natoms = pose_stack.coords.shape[1]
-            atom_occupancy[offset : (offset + len(pose_stack)), :i_natoms] = (
-                pose_stack.pdb_info.atom_occupancy
-            )
-            atom_b_factor[offset : (offset + len(pose_stack)), :i_natoms] = (
-                pose_stack.pdb_info.atom_b_factor
-            )
+            atom_occupancy[offset : (offset + len(pose_stack)), :i_natoms] = pose_stack.pdb_info.atom_occupancy
+            atom_b_factor[offset : (offset + len(pose_stack)), :i_natoms] = pose_stack.pdb_info.atom_b_factor
         return PDBInfo(
             residue_labels=residue_labels,
             residue_insertion_codes=residue_insertion_codes,
@@ -1045,9 +928,7 @@ class PoseStackBuilder:
         for i, pose_stack in enumerate(pose_stacks):
             offset = ps_offsets[i]
             i_nblocks = pose_stack.chain_labels.shape[1]
-            chain_labels[offset : (offset + len(pose_stack)), :i_nblocks] = (
-                pose_stack.chain_labels
-            )
+            chain_labels[offset : (offset + len(pose_stack)), :i_nblocks] = pose_stack.chain_labels
         return chain_labels
 
     @classmethod
@@ -1113,27 +994,21 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
-    def _annotate_bt_w_intraresidue_connection_atom_distances(
-        cls, bt: RefinedResidueType
-    ):
+    def _annotate_bt_w_intraresidue_connection_atom_distances(cls, bt: RefinedResidueType):
         """Annotate the block type with a slice of the path-distances data member
         for only the inter-residue connection atoms
         """
         if hasattr(bt, "conn_at_intrablock_bond_sep"):
             return
         n_conns = len(bt.connections)
-        ind1 = numpy.repeat(bt.ordered_connection_atoms, n_conns, axis=0).reshape(
-            n_conns, n_conns
-        )
+        ind1 = numpy.repeat(bt.ordered_connection_atoms, n_conns, axis=0).reshape(n_conns, n_conns)
         ind2 = numpy.transpose(ind1)
         conn_at_intrablock_bond_sep = bt.path_distance[ind1, ind2]
         setattr(bt, "conn_at_intrablock_bond_sep", conn_at_intrablock_bond_sep)
 
     @classmethod
     @validate_args
-    def _annotate_pbt_w_intraresidue_connection_atom_distances(
-        cls, pbt: PackedBlockTypes
-    ):
+    def _annotate_pbt_w_intraresidue_connection_atom_distances(cls, pbt: PackedBlockTypes):
         """Note the number of chemical bonds that separate all pairs of
         connection atoms. This information is needed in order to construct the
         starting (weighted) graph describing the chemical bonds in the system
@@ -1241,9 +1116,7 @@ class PoseStackBuilder:
     ]:
         device = pbt.device
         real_res = (
-            numpy.tile(numpy.arange(max_n_res, dtype=numpy.int32), n_poses).reshape(
-                (n_poses, max_n_res)
-            )
+            numpy.tile(numpy.arange(max_n_res, dtype=numpy.int32), n_poses).reshape((n_poses, max_n_res))
             < n_res[:, None]
         )
 
@@ -1263,20 +1136,15 @@ class PoseStackBuilder:
             triples = ", ".join(
                 [
                     "({} at pose {} residue {})".format(n, p, r)
-                    for n, p, r in zip(
-                        undefined_names, undefined_pose_ind, undefined_res_ind
-                    )
+                    for n, p, r in zip(undefined_names, undefined_pose_ind, undefined_res_ind)
                 ]
             )
-            error = (
-                "Fatal error: could not resolve residue type by"
-                + " name for the following residues: {}\n".format(triples)
+            error = "Fatal error: could not resolve residue type by" + " name for the following residues: {}\n".format(
+                triples
             )
             raise ValueError(error)
 
-        condensed_bt_inds = pbt.bt_mapping_w_lcaa_1lc["bt_ind"][
-            condensed_bt_df_inds
-        ].values
+        condensed_bt_inds = pbt.bt_mapping_w_lcaa_1lc["bt_ind"][condensed_bt_df_inds].values
 
         bt_inds = numpy.full((n_poses, max_n_res), -1, dtype=numpy.int32)
         bt_inds[real_res] = condensed_bt_inds
@@ -1326,12 +1194,8 @@ class PoseStackBuilder:
         npose_arange = torch.arange(n_poses, dtype=torch.int64, device=device)
         res_is_real_and_not_c_term[npose_arange, n_res - 1] = False
 
-        connected_up_conn_inds = pbt.up_conn_inds[
-            block_type_ind64[res_is_real_and_not_c_term]
-        ].to(torch.int64)
-        connected_down_conn_inds = pbt.down_conn_inds[
-            block_type_ind64[res_is_real_and_not_n_term]
-        ].to(torch.int64)
+        connected_up_conn_inds = pbt.up_conn_inds[block_type_ind64[res_is_real_and_not_c_term]].to(torch.int64)
+        connected_down_conn_inds = pbt.down_conn_inds[block_type_ind64[res_is_real_and_not_n_term]].to(torch.int64)
 
         # TO DO: handle termini patches!
 
@@ -1374,9 +1238,7 @@ class PoseStackBuilder:
             n_chains = [len(c_lens) for c_lens in chain_lengths]
             max_n_chains_minus1 = max(n_chains) - 1
             n_chains = torch.tensor(n_chains, dtype=torch.int64, device=device)
-            chain_lengths_t = torch.full(
-                (n_poses, max_n_chains_minus1), -1, dtype=torch.int64
-            )
+            chain_lengths_t = torch.full((n_poses, max_n_chains_minus1), -1, dtype=torch.int64)
             for i, c_lens in enumerate(chain_lengths):
                 for j, l in enumerate(c_lens):
                     if j != len(c_lens) - 1:
@@ -1390,9 +1252,7 @@ class PoseStackBuilder:
             # to get chain IDs
             cl_real_real = (chain_lengths_t != -1) & (cl_offsets <= n_res[:, None])
             cl_real_real_pose_ind, _ = torch.nonzero(cl_real_real, as_tuple=True)
-            chain_id = torch.zeros(
-                (n_poses, max_n_res), dtype=torch.int32, device=device
-            )
+            chain_id = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
             chain_id[cl_real_real_pose_ind, cl_offsets[cl_real_real]] = 1
             chain_id = torch.cumsum(chain_id, dim=1).to(torch.int32)
             chain_id[torch.logical_not(real_res)] = -1
@@ -1408,18 +1268,12 @@ class PoseStackBuilder:
             down_conn_for_nterm = pbt.down_conn_inds[nterm_bts].to(torch.int64)
 
             # sentinel out the down connection residue and connection
-            inter_residue_connections64[
-                nz_cl_real_pose_ind, n_term_res, down_conn_for_nterm, 0:2
-            ] = -1
+            inter_residue_connections64[nz_cl_real_pose_ind, n_term_res, down_conn_for_nterm, 0:2] = -1
             # sentinel out the up connection residue and connection
-            inter_residue_connections64[
-                nz_cl_real_pose_ind, c_term_res, up_conn_for_cterm, 0:1
-            ] = -1
+            inter_residue_connections64[nz_cl_real_pose_ind, c_term_res, up_conn_for_cterm, 0:1] = -1
         else:
             # everything is in a single chain, so mark the real residues as chain 0
-            chain_id = torch.full(
-                (n_poses, max_n_res), -1, dtype=torch.int32, device=device
-            )
+            chain_id = torch.full((n_poses, max_n_res), -1, dtype=torch.int32, device=device)
             chain_id[real_res] = 0
 
         return inter_residue_connections64, chain_id
@@ -1439,11 +1293,7 @@ class PoseStackBuilder:
             device=device,
         )
         expoly_conns_t = torch.tensor(
-            [
-                conn_info
-                for pconn_list in expoly_connections
-                for conn_info in pconn_list
-            ],
+            [conn_info for pconn_list in expoly_connections for conn_info in pconn_list],
             dtype=torch.int64,
             device=device,
         )
@@ -1452,19 +1302,19 @@ class PoseStackBuilder:
         expoly_conn2_block_ind = expoly_conns_t[:, 2]
         expoly_conn2_conn_ind = expoly_conns_t[:, 3]
 
-        inter_residue_connections64[
-            expoly_conn_pose_ind, expoly_conn1_block_ind, expoly_conn1_conn_ind, 0
-        ] = expoly_conn2_block_ind
-        inter_residue_connections64[
-            expoly_conn_pose_ind, expoly_conn1_block_ind, expoly_conn1_conn_ind, 1
-        ] = expoly_conn2_conn_ind
+        inter_residue_connections64[expoly_conn_pose_ind, expoly_conn1_block_ind, expoly_conn1_conn_ind, 0] = (
+            expoly_conn2_block_ind
+        )
+        inter_residue_connections64[expoly_conn_pose_ind, expoly_conn1_block_ind, expoly_conn1_conn_ind, 1] = (
+            expoly_conn2_conn_ind
+        )
 
-        inter_residue_connections64[
-            expoly_conn_pose_ind, expoly_conn2_block_ind, expoly_conn2_conn_ind, 0
-        ] = expoly_conn1_block_ind
-        inter_residue_connections64[
-            expoly_conn_pose_ind, expoly_conn2_block_ind, expoly_conn2_conn_ind, 1
-        ] = expoly_conn1_conn_ind
+        inter_residue_connections64[expoly_conn_pose_ind, expoly_conn2_block_ind, expoly_conn2_conn_ind, 0] = (
+            expoly_conn1_block_ind
+        )
+        inter_residue_connections64[expoly_conn_pose_ind, expoly_conn2_block_ind, expoly_conn2_conn_ind, 1] = (
+            expoly_conn1_conn_ind
+        )
 
     @classmethod
     def _incorporate_inter_residue_connections_into_connectivity_graph(
@@ -1477,18 +1327,13 @@ class PoseStackBuilder:
             nz_real_conn_conn_ind,
         ) = torch.nonzero(real_connections, as_tuple=True)
 
-        pconn_from = (
-            pconn_offset[nz_real_conn_pose_ind, nz_real_conn_block_ind]
-            + nz_real_conn_conn_ind
-        )
+        pconn_from = pconn_offset[nz_real_conn_pose_ind, nz_real_conn_block_ind] + nz_real_conn_conn_ind
         real_to_block = inter_residue_connections[
             nz_real_conn_pose_ind, nz_real_conn_block_ind, nz_real_conn_conn_ind, 0
         ]
         pconn_to = (
             pconn_offset[nz_real_conn_pose_ind, real_to_block]
-            + inter_residue_connections[
-                nz_real_conn_pose_ind, nz_real_conn_block_ind, nz_real_conn_conn_ind, 1
-            ]
+            + inter_residue_connections[nz_real_conn_pose_ind, nz_real_conn_block_ind, nz_real_conn_conn_ind, 1]
         )
 
         pconn_matrix[nz_real_conn_pose_ind, pconn_from, pconn_to] = 1
@@ -1697,21 +1542,14 @@ class PoseStackBuilder:
         #           D[i, j,  up,  up] = abs(C[i,j] - A[i] + A[j])
 
         # A: down_up_separation
-        down_up_separation = torch.full(
-            (n_chains, max_n_res), 0, dtype=torch.int64, device=device
-        )
-        down_up_separation[real_res] = bt_polymeric_down_to_up_nbonds[
-            block_type_ind64[real_res]
-        ].to(torch.int64)
+        down_up_separation = torch.full((n_chains, max_n_res), 0, dtype=torch.int64, device=device)
+        down_up_separation[real_res] = bt_polymeric_down_to_up_nbonds[block_type_ind64[real_res]].to(torch.int64)
 
         # B: down_to_down_chain_distance
         down_to_down_chain_distance = exclusive_cumsum2d(down_up_separation + 1)
 
         # C: pair_distances
-        pair_distances = (
-            down_to_down_chain_distance[:, None, :]
-            - down_to_down_chain_distance[:, :, None]
-        )
+        pair_distances = down_to_down_chain_distance[:, None, :] - down_to_down_chain_distance[:, :, None]
 
         # D: inter_block_bondsep
         inter_block_bondsep64 = torch.full(
@@ -1723,11 +1561,7 @@ class PoseStackBuilder:
 
         down_up_distance = torch.abs(pair_distances + down_up_separation[:, None, :])
         up_down_distance = torch.abs(pair_distances - down_up_separation[:, :, None])
-        up_up_distance = torch.abs(
-            pair_distances
-            - down_up_separation[:, :, None]
-            + down_up_separation[:, None, :]
-        )
+        up_up_distance = torch.abs(pair_distances - down_up_separation[:, :, None] + down_up_separation[:, None, :])
 
         both_res_real = torch.logical_and(real_res[:, :, None], real_res[:, None, :])
         nz_brr = torch.nonzero(both_res_real, as_tuple=False)
@@ -1744,12 +1578,12 @@ class PoseStackBuilder:
 
         # finally we can enter the information for these connections into their
         # positions in the output tensor
-        inter_block_bondsep64[
-            nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_upconn_1, nz_brr_downconn_2
-        ] = up_down_distance[both_res_real]
-        inter_block_bondsep64[
-            nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_downconn_1, nz_brr_upconn_2
-        ] = down_up_distance[both_res_real]
+        inter_block_bondsep64[nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_upconn_1, nz_brr_downconn_2] = (
+            up_down_distance[both_res_real]
+        )
+        inter_block_bondsep64[nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_downconn_1, nz_brr_upconn_2] = (
+            down_up_distance[both_res_real]
+        )
         inter_block_bondsep64[
             nz_brr[:, 0],
             nz_brr[:, 1],
@@ -1757,8 +1591,8 @@ class PoseStackBuilder:
             nz_brr_downconn_1,
             nz_brr_downconn_2,
         ] = torch.abs(pair_distances[both_res_real])
-        inter_block_bondsep64[
-            nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_upconn_1, nz_brr_upconn_2
-        ] = up_up_distance[both_res_real]
+        inter_block_bondsep64[nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_upconn_1, nz_brr_upconn_2] = (
+            up_up_distance[both_res_real]
+        )
 
         return inter_block_bondsep64

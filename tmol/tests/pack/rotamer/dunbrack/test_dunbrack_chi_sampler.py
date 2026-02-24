@@ -564,12 +564,8 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[is_gbt_dun_allowed]
     dun_allowed_bt_to_gbt_torch = torch.tensor(dun_allowed_bt_to_gbt, device=dun_sampler.device)
 
-    dun_allowed_bt_names = numpy.array(
-        [bt.name for bt in dun_allowed_blocktypes], dtype=object
-    )
-    dun_allowed_bt_base_names = numpy.array(
-        [bt.name.partition(":")[0] for bt in dun_allowed_blocktypes], dtype=object
-    )
+    dun_allowed_bt_names = numpy.array([bt.name for bt in dun_allowed_blocktypes], dtype=object)
+    dun_allowed_bt_base_names = numpy.array([bt.name.partition(":")[0] for bt in dun_allowed_blocktypes], dtype=object)
     pbt = pose_stack.packed_block_types
 
     # the source block for each dun-allowed block type
@@ -719,9 +715,7 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     )
     offsets_for_gbt = exclusive_cumsum1d(n_rots_for_gbt)
 
-    n_rots_for_gbt_gold = numpy.zeros(
-        all_considered_restypes.shape[0], dtype=numpy.int32
-    )
+    n_rots_for_gbt_gold = numpy.zeros(all_considered_restypes.shape[0], dtype=numpy.int32)
 
     n_rots_for_gbt_gold = numpy.zeros(all_considered_restypes.shape[0], dtype=numpy.int32)
 

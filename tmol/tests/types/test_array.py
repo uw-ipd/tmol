@@ -67,9 +67,7 @@ converstion_examples = [
         "conversions": [
             (
                 [((1, 1, 1), 10), ((2, 2, 2), 20)],
-                numpy.array(
-                    [((1.0, 1.0, 1.0), 10), ((2.0, 2.0, 2.0), 20)], dtype=packed_dtype
-                ),
+                numpy.array([((1.0, 1.0, 1.0), 10), ((2.0, 2.0, 2.0), 20)], dtype=packed_dtype),
             ),
             (numpy.zeros(3, dtype=packed_dtype), numpy.zeros(3, packed_dtype)),
         ],

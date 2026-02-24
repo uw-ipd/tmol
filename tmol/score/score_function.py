@@ -1,16 +1,15 @@
+from typing import Sequence
+
 import torch
 
-from typing import Sequence
-from tmol.types.torch import Tensor
-
 from tmol.database import ParameterDatabase
+from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_types import ScoreType
 
 # force registration of the terms with the ScoreTermFactory
 from tmol.score.terms import *  # noqa: F401, F403
 from tmol.score.terms.score_term_factory import ScoreTermFactory
-
-from tmol.pose.pose_stack import PoseStack
+from tmol.types.torch import Tensor
 
 
 class ScoreFunction:
@@ -56,9 +55,7 @@ class ScoreFunction:
         return False
 
     def retrieve_term_for_score_type(self, st: ScoreType):
-        term = ScoreTermFactory.create_term_for_score_type(
-            st, self._param_db, self._device
-        )
+        term = ScoreTermFactory.create_term_for_score_type(st, self._param_db, self._device)
         # sanity check: if the ScoreTermFactory returns the wrong term,
         # we want to know
         assert st in term.score_types()
@@ -91,45 +88,35 @@ class ScoreFunction:
         Do not modify this list directly
         """
         if self._all_terms_out_of_date:
-            self._all_terms, self._all_score_types = self.get_sorted_terms(
-                self._all_terms_unordered
-            )
+            self._all_terms, self._all_score_types = self.get_sorted_terms(self._all_terms_unordered)
             self._all_terms_out_of_date = False
 
         return self._all_terms
 
     def all_score_types(self):
         if self._all_terms_out_of_date:
-            self._all_terms, self._all_score_types = self.get_sorted_terms(
-                self._all_terms_unordered
-            )
+            self._all_terms, self._all_score_types = self.get_sorted_terms(self._all_terms_unordered)
             self._all_terms_out_of_date = False
 
         return self._all_score_types
 
     def one_body_terms(self):
         if self._one_body_terms_out_of_date:
-            self._one_body_terms, _ = self.get_sorted_terms(
-                self._one_body_terms_unordered
-            )
+            self._one_body_terms, _ = self.get_sorted_terms(self._one_body_terms_unordered)
             self._one_body_terms_out_of_date = False
 
         return self._one_body_terms
 
     def two_body_terms(self):
         if self._two_body_terms_out_of_date:
-            self._two_body_terms, _ = self.get_sorted_terms(
-                self._two_body_terms_unordered
-            )
+            self._two_body_terms, _ = self.get_sorted_terms(self._two_body_terms_unordered)
             self._two_body_terms_out_of_date = False
 
         return self._two_body_terms
 
     def multi_body_terms(self):
         if self._multi_body_terms_out_of_date:
-            self._multi_body_terms, _ = self.get_sorted_terms(
-                self._multi_body_terms_unordered
-            )
+            self._multi_body_terms, _ = self.get_sorted_terms(self._multi_body_terms_unordered)
             self._multi_body_terms_out_of_date = False
 
         return self._multi_body_terms
@@ -144,12 +131,8 @@ class ScoreFunction:
         shape (n_poses,).
         """
         self.pre_work_initialization(pose_stack)
-        term_modules = [
-            t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()
-        ]
-        return WholePoseScoringModule(
-            self.weights_tensor(), term_modules, output_block_pair_energies=False
-        )
+        term_modules = [t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()]
+        return WholePoseScoringModule(self.weights_tensor(), term_modules, output_block_pair_energies=False)
 
     def render_block_pair_scoring_module(self, pose_stack: PoseStack):
         """Create an object designed to evaluate the score of a set of Poses
@@ -161,15 +144,13 @@ class ScoreFunction:
         shape (n_poses, max_n_blocks, max_n_blocks).
         """
         self.pre_work_initialization(pose_stack)
-        term_modules = [
-            t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()
-        ]
-        return WholePoseScoringModule(
-            self.weights_tensor(), term_modules, output_block_pair_energies=True
-        )
+        term_modules = [t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()]
+        return WholePoseScoringModule(self.weights_tensor(), term_modules, output_block_pair_energies=True)
 
     def render_rotamer_scoring_module(
-        self, pose_stack: PoseStack, rotamer_set: "RotamerSet"  # noqa: F405
+        self,
+        pose_stack: PoseStack,
+        rotamer_set: "RotamerSet",  # noqa: F405
     ):
         """Create an object designed to evaluate the score a RotamerSet
         repeatedly as the Poses change their conformation, e.g., as in
@@ -180,10 +161,7 @@ class ScoreFunction:
         shape (n_poses, max_n_blocks, max_n_blocks).
         """
         self.pre_work_initialization(pose_stack)
-        term_modules = [
-            t.render_rotamer_scoring_module(pose_stack, rotamer_set)
-            for t in self.all_terms()
-        ]
+        term_modules = [t.render_rotamer_scoring_module(pose_stack, rotamer_set) for t in self.all_terms()]
         return RotamerScoringModule(self.weights_tensor(), term_modules)
 
     def pre_work_initialization(self, pose_stack: PoseStack):
@@ -198,11 +176,7 @@ class ScoreFunction:
     def weights_tensor(self):
         if self._weights_tensor_out_of_date:
             self._weights_tensor = torch.tensor(
-                [
-                    self._weights[st.value]
-                    for term in self.all_terms()
-                    for st in term.score_types()
-                ],
+                [self._weights[st.value] for term in self.all_terms() for st in term.score_types()],
                 dtype=torch.float32,
                 device=self._device,
             )
@@ -293,9 +267,7 @@ class RotamerScoringModule:
         weights: Tensor[torch.float32][:],
         term_modules: Sequence[torch.nn.Module],
     ):
-        self.weights = torch.nn.Parameter(
-            weights.view(-1, 1, 1, 1), requires_grad=False
-        )
+        self.weights = torch.nn.Parameter(weights.view(-1, 1, 1, 1), requires_grad=False)
         self.term_modules = term_modules
 
     def __call__(self, coords):
@@ -305,8 +277,7 @@ class RotamerScoringModule:
             sparse_values = term(coords)
             n_weights_for_term = sparse_values.shape[0]
             weighted = torch.sum(
-                self.weights[weights_offset : (n_weights_for_term + weights_offset)]
-                * sparse_values,
+                self.weights[weights_offset : (n_weights_for_term + weights_offset)] * sparse_values,
                 dim=0,
             )
             weights_offset += n_weights_for_term

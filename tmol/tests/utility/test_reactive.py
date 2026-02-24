@@ -1,8 +1,7 @@
+import attr
 import pytest
 
-import attr
-
-from tmol.utility.reactive import reactive_attrs, reactive_property, _ReactiveProperty
+from tmol.utility.reactive import _ReactiveProperty, reactive_attrs, reactive_property
 
 
 def test_no_self():
@@ -248,9 +247,7 @@ def test_binding_in_subclass():
             return "baz"
 
     # Properties are resolved from class and superclass, order insensitive comparison
-    assert sorted(SubFoo.__reactive_props__.keys()) == sorted(
-        ("bar", "baz", "bat", "bun")
-    )
+    assert sorted(SubFoo.__reactive_props__.keys()) == sorted(("bar", "baz", "bat", "bun"))
 
     # The subclass properties override superclass values
     assert SubFoo.bar is SubFoo.__reactive_props__["bar"]

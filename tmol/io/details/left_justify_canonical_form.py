@@ -1,12 +1,14 @@
-import torch
-import numpy
-from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
 from typing import Optional
+
+import numpy
+import torch
+
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.score.common.stack_condense import (
     condense_torch_inds,
 )
-from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
 
 def left_justify_canonical_form(
@@ -32,13 +34,9 @@ def left_justify_canonical_form(
         # kinda surprised I don't already have this??
         selected_values = torch.full_like(x, fill)
         if len(x.shape) > 2:
-            selected_values[nz_cinds[:, 0], nz_cinds[:, 1], :] = x[
-                nz_cinds[:, 0], good_cinds, :
-            ]
+            selected_values[nz_cinds[:, 0], nz_cinds[:, 1], :] = x[nz_cinds[:, 0], good_cinds, :]
         else:
-            selected_values[nz_cinds[:, 0], nz_cinds[:, 1]] = x[
-                nz_cinds[:, 0], good_cinds
-            ]
+            selected_values[nz_cinds[:, 0], nz_cinds[:, 1]] = x[nz_cinds[:, 0], good_cinds]
         return selected_values
 
     np_good_cinds = good_cinds.cpu().numpy()
@@ -46,13 +44,9 @@ def left_justify_canonical_form(
     def lj_np(x, fill):
         new_x = numpy.full_like(x, fill)
         if len(x.shape) > 2:
-            new_x[np_nz_cinds[:, 0], np_nz_cinds[:, 1], :] = x[
-                np_nz_cinds[:, 0], np_good_cinds, :
-            ]
+            new_x[np_nz_cinds[:, 0], np_nz_cinds[:, 1], :] = x[np_nz_cinds[:, 0], np_good_cinds, :]
         else:
-            new_x[np_nz_cinds[:, 0], np_nz_cinds[:, 1]] = x[
-                np_nz_cinds[:, 0], np_good_cinds
-            ]
+            new_x[np_nz_cinds[:, 0], np_nz_cinds[:, 1]] = x[np_nz_cinds[:, 0], np_good_cinds]
         return new_x
 
     chain_id = lj(chain_id, -1)
@@ -63,9 +57,7 @@ def left_justify_canonical_form(
         atom_is_present = lj(atom_is_present, 0)
 
     if disulfides is not None:
-        old_2_new = torch.full(
-            res_types.shape, -1, dtype=torch.int64, device=res_types.device
-        )
+        old_2_new = torch.full(res_types.shape, -1, dtype=torch.int64, device=res_types.device)
         old_2_new[old_res_types_real] = torch.nonzero(res_types != -1)[:, 1]
         dslf_pose_ind = disulfides[:, 0]
         dslf_res1_ind = disulfides[:, 1]
@@ -84,16 +76,8 @@ def left_justify_canonical_form(
     res_labels = lj_np(res_labels, 0) if res_labels is not None else None
     res_ins_codes = lj_np(res_ins_codes, "") if res_ins_codes is not None else None
     chain_labels = lj_np(chain_labels, "") if chain_labels is not None else None
-    atom_occupancy = (
-        lj_np(atom_occupancy, DEFAULT_ATOM_OCCUPANCY)
-        if atom_occupancy is not None
-        else None
-    )
-    atom_b_factor = (
-        lj_np(atom_b_factor, DEFAULT_ATOM_B_FACTOR)
-        if atom_b_factor is not None
-        else None
-    )
+    atom_occupancy = lj_np(atom_occupancy, DEFAULT_ATOM_OCCUPANCY) if atom_occupancy is not None else None
+    atom_b_factor = lj_np(atom_b_factor, DEFAULT_ATOM_B_FACTOR) if atom_b_factor is not None else None
 
     return (
         chain_id,

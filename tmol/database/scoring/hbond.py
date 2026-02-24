@@ -1,9 +1,9 @@
+from typing import Tuple
+
 import attr
 import cattr
-import yaml
 import pandas
-
-from typing import Tuple
+import yaml
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -108,9 +108,7 @@ class HBondDatabase:
         acc_ind = pandas.Index([x.a for x in hbr.acceptor_atom_types])
         don_ind = pandas.Index([x.d for x in hbr.donor_atom_types])
 
-        atypes, acctypes = zip(
-            *([(x.a, x.acceptor_type) for x in hbr.acceptor_atom_types])
-        )
+        atypes, acctypes = zip(*([(x.a, x.acceptor_type) for x in hbr.acceptor_atom_types]))
         dtypes, dontypes = zip(*([(x.d, x.donor_type) for x in hbr.donor_atom_types]))
         acc_df = pandas.DataFrame({"a": atypes, "acc_type": acctypes}, index=acc_ind)
         don_df = pandas.DataFrame({"d": dtypes, "don_type": dontypes}, index=don_ind)

@@ -1,22 +1,20 @@
-import torch
-import attr
-import numpy
-
 from typing import Tuple
 
-from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
-from tmol.types.functional import validate_args
+import attr
+import numpy
+import torch
 
-from tmol.score.dunbrack.params import DunbrackParamResolver
-
-from tmol.pack.rotamer.chi_sampler import ChiSampler  # noqa F401
+from tmol.chemical.restypes import RefinedResidueType
 
 # from tmol.pack.rotamer.dunbrack.compiled import _compiled  # noqa F401
 from tmol.pack.packer_task import PackerTask
-from tmol.chemical.restypes import RefinedResidueType
+from tmol.pack.rotamer.chi_sampler import ChiSampler  # noqa F401
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+from tmol.score.dunbrack.params import DunbrackParamResolver
+from tmol.types.array import NDArray
+from tmol.types.functional import validate_args
+from tmol.types.torch import Tensor
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -106,9 +104,7 @@ class DunbrackChiSampler(ChiSampler):
         )[0, 0]
 
         if dun_lib_ind >= 0:
-            n_chi = self.dun_param_resolver.scoring_db_aux.nchi_for_table_set[
-                dun_lib_ind
-            ].item()
+            n_chi = self.dun_param_resolver.scoring_db_aux.nchi_for_table_set[dun_lib_ind].item()
 
             n_chi_total = n_chi
             for rt_chi in restype.chi_samples:
@@ -127,9 +123,7 @@ class DunbrackChiSampler(ChiSampler):
             chi_defining_atom = numpy.full(n_chi_total, -1, dtype=numpy.int32)
             # The third atom (atom 2) in the chi defines the dihedral; this
             # atoms needs to be a member of the residue type, and not unresolved
-            chi_defining_atom[:n_chi] = [
-                restype.torsion_to_uaids[chi_name][2][0] for chi_name in chi_names
-            ]
+            chi_defining_atom[:n_chi] = [restype.torsion_to_uaids[chi_name][2][0] for chi_name in chi_names]
 
             if restype.chi_samples:
                 chi_inds = numpy.array(
@@ -138,15 +132,10 @@ class DunbrackChiSampler(ChiSampler):
                 )
                 sort_inds = numpy.argsort(chi_inds)
                 chi_defining_atom[chi_inds[sort_inds]] = [
-                    restype.torsion_to_uaids[restype.chi_samples[ind].chi_dihedral][2][
-                        0
-                    ]
-                    for ind in sort_inds
+                    restype.torsion_to_uaids[restype.chi_samples[ind].chi_dihedral][2][0] for ind in sort_inds
                 ]
 
-            non_dunbrack_sample_counts = numpy.zeros(
-                (n_chi_total, 2), dtype=numpy.int32
-            )
+            non_dunbrack_sample_counts = numpy.zeros((n_chi_total, 2), dtype=numpy.int32)
             max_chi_samples = 0
             for rt_chi in restype.chi_samples:
                 chi_name = rt_chi.chi_dihedral
@@ -159,9 +148,7 @@ class DunbrackChiSampler(ChiSampler):
                 non_dunbrack_sample_counts[chi_ind, 0] = n_samples
                 non_dunbrack_sample_counts[chi_ind, 1] = n_expanded_samples
 
-            non_dunbrack_samples = numpy.zeros(
-                (n_chi_total, 2, max_chi_samples), dtype=numpy.float32
-            )
+            non_dunbrack_samples = numpy.zeros((n_chi_total, 2, max_chi_samples), dtype=numpy.float32)
             for rt_chi in restype.chi_samples:
                 chi_name = rt_chi.chi_dihedral
                 chi_ind = int(chi_name[3:]) - 1
@@ -171,15 +158,12 @@ class DunbrackChiSampler(ChiSampler):
                 for i in range(n_samples):
                     for j in range(n_expansions):
                         if j == 0:
-                            non_dunbrack_samples[chi_ind, 1, n_expansions * i + j] = (
-                                rt_chi.samples[i]
-                            )
+                            non_dunbrack_samples[chi_ind, 1, n_expansions * i + j] = rt_chi.samples[i]
                         else:
                             expansion = (j - 1) // 2
                             factor = -1 if (j - 1) % 2 == 0 else 1
                             non_dunbrack_samples[chi_ind, 1, n_expansions * i + j] = (
-                                rt_chi.samples[i]
-                                + factor * rt_chi.expansions[expansion]
+                                rt_chi.samples[i] + factor * rt_chi.expansions[expansion]
                             )
 
         else:
@@ -206,21 +190,12 @@ class DunbrackChiSampler(ChiSampler):
             # assert hasattr(rt, "dun_sampler_bbdihe_uaids")
             # assert hasattr(rt, "dun_sampler_chi_defining_atom")
 
-        uaids = numpy.stack(
-            [
-                rt.dun_sampler_cache.bbdihe_uaids
-                for rt in packed_block_types.active_block_types
-            ]
-        )
+        uaids = numpy.stack([rt.dun_sampler_cache.bbdihe_uaids for rt in packed_block_types.active_block_types])
         uaids = torch.tensor(uaids, dtype=torch.int32, device=self.device)
 
-        max_n_chi = max(
-            rt.dun_sampler_cache.chi_defining_atom.shape[0]
-            for rt in packed_block_types.active_block_types
-        )
+        max_n_chi = max(rt.dun_sampler_cache.chi_defining_atom.shape[0] for rt in packed_block_types.active_block_types)
         max_chi_samples = max(
-            rt.dun_sampler_cache.non_dunbrack_samples.shape[2]
-            for rt in packed_block_types.active_block_types
+            rt.dun_sampler_cache.non_dunbrack_samples.shape[2] for rt in packed_block_types.active_block_types
         )
 
         chi_defining_atom = torch.full(
@@ -230,12 +205,10 @@ class DunbrackChiSampler(ChiSampler):
             device=packed_block_types.device,
         )
         for i, rt in enumerate(packed_block_types.active_block_types):
-            chi_defining_atom[i, : rt.dun_sampler_cache.chi_defining_atom.shape[0]] = (
-                torch.tensor(
-                    rt.dun_sampler_cache.chi_defining_atom,
-                    dtype=torch.int32,
-                    device=self.device,
-                )
+            chi_defining_atom[i, : rt.dun_sampler_cache.chi_defining_atom.shape[0]] = torch.tensor(
+                rt.dun_sampler_cache.chi_defining_atom,
+                dtype=torch.int32,
+                device=self.device,
             )
         non_dunbrack_sample_counts = torch.full(
             (packed_block_types.n_types, max_n_chi, 2),
@@ -257,10 +230,8 @@ class DunbrackChiSampler(ChiSampler):
             )
             if rt_ndsc.shape[0] == 0 or rt_nds.shape[2] == 0:
                 continue
-            non_dunbrack_samples[i, : rt_ndsc.shape[0], :, : rt_nds.shape[2]] = (
-                torch.tensor(
-                    rt_nds, dtype=torch.float32, device=packed_block_types.device
-                )
+            non_dunbrack_samples[i, : rt_ndsc.shape[0], :, : rt_nds.shape[2]] = torch.tensor(
+                rt_nds, dtype=torch.float32, device=packed_block_types.device
             )
 
         cache = DunSamplerPBTCache(
@@ -337,16 +308,10 @@ class DunbrackChiSampler(ChiSampler):
         )
         n_gbt_total = is_gbt_dun_allowed.shape[0]
         # equiv: numpy.nonzero(is_gbt_dun_allowed)
-        dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[
-            is_gbt_dun_allowed
-        ]
-        dun_allowed_bt_to_gbt_torch = torch.tensor(
-            dun_allowed_bt_to_gbt, device=self.device
-        )
+        dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[is_gbt_dun_allowed]
+        dun_allowed_bt_to_gbt_torch = torch.tensor(dun_allowed_bt_to_gbt, device=self.device)
 
-        dun_allowed_bt_names = numpy.array(
-            [bt.name for bt in dun_allowed_blocktypes], dtype=object
-        )
+        dun_allowed_bt_names = numpy.array([bt.name for bt in dun_allowed_blocktypes], dtype=object)
         dun_allowed_bt_base_names = numpy.array(
             [bt.name.partition(":")[0] for bt in dun_allowed_blocktypes], dtype=object
         )
@@ -376,28 +341,18 @@ class DunbrackChiSampler(ChiSampler):
         # the subset of dun_rot_inds_for_dun_allowed_bts with a non-sentinel
         # value represents the buildable block types
         block_type_ind_for_bbt = torch.tensor(
-            pbt.restype_index.get_indexer(
-                dun_allowed_bt_names[
-                    dun_rot_inds_for_dun_allowed_bts.cpu().numpy() != -1
-                ]
-            ),
+            pbt.restype_index.get_indexer(dun_allowed_bt_names[dun_rot_inds_for_dun_allowed_bts.cpu().numpy() != -1]),
             dtype=torch.int64,
             device=self.device,
         )
 
-        inds_of_phi = self.atom_indices_for_backbone_dihedral(pose_stack, 0).reshape(
-            -1, 4
-        )
-        inds_of_psi = self.atom_indices_for_backbone_dihedral(pose_stack, 1).reshape(
-            -1, 4
-        )
+        inds_of_phi = self.atom_indices_for_backbone_dihedral(pose_stack, 0).reshape(-1, 4)
+        inds_of_psi = self.atom_indices_for_backbone_dihedral(pose_stack, 1).reshape(-1, 4)
 
         is_dun_allowed_bt_bbt = dun_rot_inds_for_dun_allowed_bts != -1
         dun_allowed_bt_that_are_bbt = torch.nonzero(is_dun_allowed_bt_bbt)[:, 0]
         bbt_to_gbt_torch = dun_allowed_bt_to_gbt_torch[dun_allowed_bt_that_are_bbt]
-        rottable_set_for_bbt = dun_rot_inds_for_dun_allowed_bts[
-            dun_allowed_bt_that_are_bbt
-        ]
+        rottable_set_for_bbt = dun_rot_inds_for_dun_allowed_bts[dun_allowed_bt_that_are_bbt]
 
         # the "indices" of the blocks that the block types we will be building come
         # from, assuming we are colapsing the n_sys x max_n_blocks into a single
@@ -428,42 +383,27 @@ class DunbrackChiSampler(ChiSampler):
 
         # map the residue-numbered list of dihedral angles to their positions in
         # the set of residues that the Dunbrack library will provide chi samples for
-        dihedral_atom_inds = torch.full(
-            (2 * n_sampling_blocks, 4), -1, dtype=torch.int32, device=self.device
-        )
+        dihedral_atom_inds = torch.full((2 * n_sampling_blocks, 4), -1, dtype=torch.int32, device=self.device)
         dihedral_atom_inds[
             2 * torch.arange(n_sampling_blocks, dtype=torch.int64, device=self.device),
             :,
         ] = inds_of_phi[uniq_block_for_bbt, :]
         dihedral_atom_inds[
-            2 * torch.arange(n_sampling_blocks, dtype=torch.int64, device=self.device)
-            + 1,
+            2 * torch.arange(n_sampling_blocks, dtype=torch.int64, device=self.device) + 1,
             :,
         ] = inds_of_psi[uniq_block_for_bbt, :]
 
-        n_dihe_for_block = torch.full(
-            (n_sampling_blocks,), 2, dtype=torch.int32, device=self.device
-        )
-        dihedral_offset_for_block = 2 * torch.arange(
-            n_sampling_blocks, dtype=torch.int32, device=self.device
-        )
+        n_dihe_for_block = torch.full((n_sampling_blocks,), 2, dtype=torch.int32, device=self.device)
+        dihedral_offset_for_block = 2 * torch.arange(n_sampling_blocks, dtype=torch.int32, device=self.device)
 
         n_bbts = dun_allowed_bt_that_are_bbt.shape[0]
 
         max_n_chi = pose_stack.packed_block_types.dun_sampler_cache.max_n_chi
-        chi_expansion_for_bbt = torch.full(
-            (n_bbts, max_n_chi), 0, dtype=torch.int32, device=self.device
-        )
+        chi_expansion_for_bbt = torch.full((n_bbts, max_n_chi), 0, dtype=torch.int32, device=self.device)
         chi_expansion_for_gbt = torch.cat(
-            [
-                torch.tensor(blt.chi_expansion)
-                for one_pose_blts in task.blts
-                for blt in one_pose_blts
-            ],
+            [torch.tensor(blt.chi_expansion) for one_pose_blts in task.blts for blt in one_pose_blts],
         ).to(self.device)
-        chi_expansion_for_bbt = (chi_expansion_for_gbt[is_gbt_dun_allowed])[
-            is_dun_allowed_bt_bbt
-        ]
+        chi_expansion_for_bbt = (chi_expansion_for_gbt[is_gbt_dun_allowed])[is_dun_allowed_bt_bbt]
         # chi_expansion_for_bbt = chi_expansion_for_bbt
 
         # ok, we'll go to the block types and look at their protonation
@@ -471,13 +411,9 @@ class DunbrackChiSampler(ChiSampler):
         # chi_expansions_for_buildable_restype tensor
 
         sampling_db = self.dun_param_resolver.sampling_db
-        n_chi_for_bbt = sampling_db.nchi_for_table_set[
-            rottable_set_for_bbt[:, 1].to(torch.int64)
-        ]
+        n_chi_for_bbt = sampling_db.nchi_for_table_set[rottable_set_for_bbt[:, 1].to(torch.int64)]
 
-        non_dunbrack_expansion_counts_for_bbt = torch.zeros(
-            (n_bbts, max_n_chi), dtype=torch.int32, device=self.device
-        )
+        non_dunbrack_expansion_counts_for_bbt = torch.zeros((n_bbts, max_n_chi), dtype=torch.int32, device=self.device)
 
         # TEMP! Treat everything as exposed (0)
         sc = pbt.dun_sampler_cache
@@ -485,14 +421,10 @@ class DunbrackChiSampler(ChiSampler):
         non_dunbrack_expansion_counts_for_bbt = ndecfbbt
 
         # TEMP! Treat everything as exposed (0)
-        non_dunbrack_expansion_for_bbt = sc.non_dunbrack_samples[
-            block_type_ind_for_bbt, 0
-        ]
+        non_dunbrack_expansion_for_bbt = sc.non_dunbrack_samples[block_type_ind_for_bbt, 0]
 
         # treat all residues as if they are exposed
-        prob_cumsum_limit_for_bbt = torch.full(
-            (n_bbts,), 0.95, dtype=torch.float32, device=self.device
-        )
+        prob_cumsum_limit_for_bbt = torch.full((n_bbts,), 0.95, dtype=torch.float32, device=self.device)
 
         # the sampled chi returned are a tuple containing info for BBTs:
         # these have to be mapped back to info for GBTs, which is handled
@@ -521,9 +453,7 @@ class DunbrackChiSampler(ChiSampler):
         )
 
     @validate_args
-    def atom_indices_for_backbone_dihedral(
-        self, pose_stack: PoseStack, bb_dihedral_ind: int
-    ):
+    def atom_indices_for_backbone_dihedral(self, pose_stack: PoseStack, bb_dihedral_ind: int):
         assert hasattr(pose_stack.packed_block_types, "dun_sampler_cache")
         n_pose_stack = pose_stack.block_type_ind.shape[0]
         max_n_blocks = pose_stack.block_type_ind.shape[1]
@@ -548,9 +478,7 @@ class DunbrackChiSampler(ChiSampler):
         ].to(torch.int64)
 
         # what we will return
-        dihe_atom_inds = torch.full(
-            (n_pose_stack, max_n_blocks, 4), -1, dtype=torch.int32, device=self.device
-        )
+        dihe_atom_inds = torch.full((n_pose_stack, max_n_blocks, 4), -1, dtype=torch.int32, device=self.device)
 
         # copy over all atom ids from the uaids as if they were resolved; the
         # atoms that are unresolved will be overwritten later
@@ -577,9 +505,7 @@ class DunbrackChiSampler(ChiSampler):
             (inter_res[:, 0] * max_n_atoms * max_n_blocks).to(torch.int32)
             + dest_res * max_n_atoms
             + pbts.atom_downstream_of_conn[
-                pose_stack.block_type_ind[inter_res[:, 0], inter_res[:, 1]].to(
-                    torch.int64
-                ),
+                pose_stack.block_type_ind[inter_res[:, 0], inter_res[:, 1]].to(torch.int64),
                 dest_conn,
                 uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 2],
             ]
@@ -656,9 +582,7 @@ class DunbrackChiSampler(ChiSampler):
         assert sampled_chi[0].shape[0] == n_bbt
         assert sampled_chi[1].shape[0] == n_bbt
 
-        n_rots_for_rt = torch.zeros(
-            (n_gbt_total,), dtype=torch.int32, device=self.device
-        )
+        n_rots_for_rt = torch.zeros((n_gbt_total,), dtype=torch.int32, device=self.device)
         n_rots_for_rt[bbt_to_gbt] = sampled_chi[0]
         n_rots_for_rt_offsets = torch.zeros_like(n_rots_for_rt)
         n_rots_for_rt_offsets[bbt_to_gbt] = sampled_chi[1]

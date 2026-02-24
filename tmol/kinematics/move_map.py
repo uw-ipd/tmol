@@ -1,20 +1,19 @@
-import torch
-import attrs
-
 from typing import Optional, Union
-from tmol.types.torch import Tensor
 
-from tmol.pose.pose_stack import PoseStack
+import attrs
+import torch
+
 from tmol.kinematics.datatypes import (
     KinematicModuleData,
     n_movable_bond_dof_types,
     n_movable_jump_dof_types,
 )
+from tmol.pose.pose_stack import PoseStack
+from tmol.types.torch import Tensor
 
 
 @attrs.define(slots=True, auto_attribs=True)
 class MoveMap:
-
     move_all_jumps: bool
     move_all_root_jumps: bool
     move_all_mc: bool
@@ -91,9 +90,7 @@ class MoveMap:
         the pose_selection tensor only; if both are not None, then the settings tensor will be indexed by
         both the pose_selection tensor and the jump_selection tensor.
         """
-        self._set_val_and_mask_for_2dim(
-            pose_selection, root_jump_selection, "root_jumps", value
-        )
+        self._set_val_and_mask_for_2dim(pose_selection, root_jump_selection, "root_jumps", value)
 
     def set_move_all_mc_tors_for_blocks(
         self,
@@ -132,9 +129,7 @@ class MoveMap:
         value: bool = True,
     ):
         self._assert_valid_pose_block_selection(pose_selection, block_selection)
-        self._set_val_and_mask_for_2dim(
-            pose_selection, block_selection, "named_torsions", value
-        )
+        self._set_val_and_mask_for_2dim(pose_selection, block_selection, "named_torsions", value)
 
     def set_move_mc_tor_for_blocks(
         self,
@@ -153,9 +148,7 @@ class MoveMap:
         self._assert_valid_pose_block_dof_selection(
             pose_selection, block_selection, tor_selection, self.max_n_named_torsions
         )
-        self._set_val_and_mask_for_3dim(
-            pose_selection, block_selection, tor_selection, "mc", value
-        )
+        self._set_val_and_mask_for_3dim(pose_selection, block_selection, tor_selection, "mc", value)
 
     def set_move_sc_tor_for_blocks(
         self,
@@ -168,9 +161,7 @@ class MoveMap:
         self._assert_valid_pose_block_dof_selection(
             pose_selection, block_selection, dof_selection, self.max_n_named_torsions
         )
-        self._set_val_and_mask_for_3dim(
-            pose_selection, block_selection, dof_selection, "sc", value
-        )
+        self._set_val_and_mask_for_3dim(pose_selection, block_selection, dof_selection, "sc", value)
 
     def set_move_named_torsion_for_blocks(
         self,
@@ -183,9 +174,7 @@ class MoveMap:
         self._assert_valid_pose_block_dof_selection(
             pose_selection, block_selection, tor_selection, self.max_n_named_torsions
         )
-        self._set_val_and_mask_for_3dim(
-            pose_selection, block_selection, tor_selection, "named_torsion", value
-        )
+        self._set_val_and_mask_for_3dim(pose_selection, block_selection, tor_selection, "named_torsion", value)
 
     def set_move_jump_dof_for_jumps(
         self,
@@ -203,9 +192,7 @@ class MoveMap:
         self._assert_valid_pose_block_dof_selection(
             pose_selection, jump_selection, dof_selection, n_movable_jump_dof_types
         )
-        self._set_val_and_mask_for_3dim(
-            pose_selection, jump_selection, dof_selection, "jump_dof", value
-        )
+        self._set_val_and_mask_for_3dim(pose_selection, jump_selection, dof_selection, "jump_dof", value)
 
     def set_move_jump_dof_for_root_jumps(
         self,
@@ -223,9 +210,7 @@ class MoveMap:
         self._assert_valid_pose_block_dof_selection(
             pose_selection, root_jump_selection, dof_selection, n_movable_jump_dof_types
         )
-        self._set_val_and_mask_for_3dim(
-            pose_selection, root_jump_selection, dof_selection, "root_jump_dof", value
-        )
+        self._set_val_and_mask_for_3dim(pose_selection, root_jump_selection, dof_selection, "root_jump_dof", value)
 
     def set_move_atom_dof_for_blocks(
         self,
@@ -252,12 +237,8 @@ class MoveMap:
             self.move_atom_dof[pose_selection] = value
             self.move_atom_dof_mask[pose_selection] = True
         else:
-            self.move_atom_dof[
-                pose_selection, block_selection, atom_selection, dof_selection
-            ] = value
-            self.move_atom_dof_mask[
-                pose_selection, block_selection, atom_selection, dof_selection
-            ] = True
+            self.move_atom_dof[pose_selection, block_selection, atom_selection, dof_selection] = value
+            self.move_atom_dof_mask[pose_selection, block_selection, atom_selection, dof_selection] = True
 
     @property
     def n_poses(self):
@@ -332,42 +313,26 @@ class MoveMap:
         self.move_jump_dof_mask = z_bool_pb((n_movable_jump_dof_types,))
         self.move_root_jump_dof = z_bool_pb((n_movable_jump_dof_types,))
         self.move_root_jump_dof_mask = z_bool_pb((n_movable_jump_dof_types,))
-        self.move_atom_dof = z_bool_pb(
-            (max_n_atoms_per_block, n_movable_bond_dof_types)
-        )
-        self.move_atom_dof_mask = z_bool_pb(
-            (max_n_atoms_per_block, n_movable_bond_dof_types)
-        )
+        self.move_atom_dof = z_bool_pb((max_n_atoms_per_block, n_movable_bond_dof_types))
+        self.move_atom_dof_mask = z_bool_pb((max_n_atoms_per_block, n_movable_bond_dof_types))
 
     def _assert_valid_pose_block_selection(self, pose_sel, block_sel):
         if block_sel is None:
             if isinstance(pose_sel, int):
                 return
-            if (
-                isinstance(pose_sel, torch.Tensor)
-                and pose_sel.dim() == 2
-                and pose_sel.dtype == torch.bool
-            ):
+            if isinstance(pose_sel, torch.Tensor) and pose_sel.dim() == 2 and pose_sel.dtype == torch.bool:
                 assert pose_sel.shape == (self.n_poses, self.max_n_blocks)
         else:
-            if isinstance(pose_sel, torch.Tensor) and isinstance(
-                block_sel, torch.Tensor
-            ):
+            if isinstance(pose_sel, torch.Tensor) and isinstance(block_sel, torch.Tensor):
                 if pose_sel.dtype == torch.int64 and block_sel.dtype == torch.int64:
                     assert pose_sel.shape == block_sel.shape
 
-    def _assert_valid_pose_block_dof_selection(
-        self, pose_sel, block_sel, dof_sel, n_dofs
-    ):
+    def _assert_valid_pose_block_dof_selection(self, pose_sel, block_sel, dof_sel, n_dofs):
         if block_sel is None:
             assert dof_sel is None
             if isinstance(pose_sel, int):
                 return
-            if (
-                isinstance(pose_sel, torch.Tensor)
-                and pose_sel.dim() == 3
-                and pose_sel.dtype == torch.bool
-            ):
+            if isinstance(pose_sel, torch.Tensor) and pose_sel.dim() == 3 and pose_sel.dtype == torch.bool:
                 assert pose_sel.shape == (
                     self.n_poses,
                     self.max_n_blocks,
@@ -375,17 +340,13 @@ class MoveMap:
                 )
         else:
             assert dof_sel is not None
-            if isinstance(pose_sel, torch.Tensor) and isinstance(
-                block_sel, torch.Tensor
-            ):
+            if isinstance(pose_sel, torch.Tensor) and isinstance(block_sel, torch.Tensor):
                 if pose_sel.dtype == torch.int64 and block_sel.dtype == torch.int64:
                     assert pose_sel.shape == block_sel.shape
             if isinstance(pose_sel, torch.Tensor) and isinstance(dof_sel, torch.Tensor):
                 if pose_sel.dtype == torch.int64 and dof_sel.dtype == torch.int64:
                     assert pose_sel.shape == dof_sel.shape
-            if isinstance(block_sel, torch.Tensor) and isinstance(
-                dof_sel, torch.Tensor
-            ):
+            if isinstance(block_sel, torch.Tensor) and isinstance(dof_sel, torch.Tensor):
                 if block_sel.dtype == torch.int64 and dof_sel.dtype == torch.int64:
                     assert block_sel.shape == dof_sel.shape
 

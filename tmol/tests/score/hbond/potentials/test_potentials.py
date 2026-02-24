@@ -1,14 +1,12 @@
+import numpy
 import pytest
+import torch
 from pytest import approx
 from toolz import valmap
 
-import numpy
-import torch
-from tmol.tests.autograd import gradcheck, VectorizedOp
-from tmol.utility.args import _signature
-
 from tmol.score.chemical_database import AcceptorHybridization
-
+from tmol.tests.autograd import VectorizedOp, gradcheck
+from tmol.utility.args import _signature
 
 _hbond_global_param_dict = dict(
     hb_sp2_range_span=1.6,
@@ -96,9 +94,7 @@ def sp2_params(compiled):
         hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_bounds,
     )
 
-    cosBAH_poly = poly_from_lists(
-        poly_cosBAH_off, poly_cosBAH_off_range, poly_cosBAH_off_bounds
-    )
+    cosBAH_poly = poly_from_lists(poly_cosBAH_off, poly_cosBAH_off_range, poly_cosBAH_off_bounds)
     cosAHD_poly = poly_from_lists(poly_AHD_1j, poly_AHD_1j_range, poly_AHD_1j_bounds)
 
     polynomials = merge_polys(AHdist_poly, cosBAH_poly, cosAHD_poly)
@@ -176,9 +172,7 @@ def sp3_params(compiled):
     poly_cosBAH_6i_range = [-0.0193738506669, 1.1]
     poly_cosBAH_6i_bounds = [1.1, 1.1]
 
-    cosBAH_poly = poly_from_lists(
-        poly_cosBAH_6i, poly_cosBAH_6i_range, poly_cosBAH_6i_bounds
-    )
+    cosBAH_poly = poly_from_lists(poly_cosBAH_6i, poly_cosBAH_6i_range, poly_cosBAH_6i_bounds)
 
     poly_AHD_1i = [
         0.0,
@@ -284,9 +278,7 @@ def ring_params(compiled):
         hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_range,
         hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_bounds,
     )
-    cosBAH_poly = poly_from_lists(
-        poly_cosBAH_7, poly_cosBAH_7_range, poly_cosBAH_7_bounds
-    )
+    cosBAH_poly = poly_from_lists(poly_cosBAH_7, poly_cosBAH_7_range, poly_cosBAH_7_bounds)
     cosAHD_poly = poly_from_lists(poly_AHD_1i, poly_AHD_1i_range, poly_AHD_1i_bounds)
     polynomials = merge_polys(AHdist_poly, cosBAH_poly, cosAHD_poly)
 
@@ -339,15 +331,9 @@ def hbsc_subset(params):
     "global_params) that don't match the test's tensor/list format"
 )
 def test_hbond_point_scores(compiled, sp2_params, sp3_params, ring_params):
-    assert compiled.hbond_score_V_dV(**hbsc_subset(sp2_params))[0] == approx(
-        -2.40, abs=0.01
-    )
-    assert compiled.hbond_score_V_dV(**hbsc_subset(sp3_params))[0] == approx(
-        -2.00, abs=0.01
-    )
-    assert compiled.hbond_score_V_dV(**hbsc_subset(ring_params))[0] == approx(
-        -2.17, abs=0.01
-    )
+    assert compiled.hbond_score_V_dV(**hbsc_subset(sp2_params))[0] == approx(-2.40, abs=0.01)
+    assert compiled.hbond_score_V_dV(**hbsc_subset(sp3_params))[0] == approx(-2.00, abs=0.01)
+    assert compiled.hbond_score_V_dV(**hbsc_subset(ring_params))[0] == approx(-2.17, abs=0.01)
 
 
 @pytest.mark.xfail(
@@ -360,9 +346,7 @@ def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_par
 
     def targs(params):
         params = hbsc_subset(params)
-        args = (
-            _signature(compiled.hbond_score_V_dV).bind(**valmap(_t, params)).arguments
-        )
+        args = _signature(compiled.hbond_score_V_dV).bind(**valmap(_t, params)).arguments
 
         args["D"] = args["D"].requires_grad_(True)
         args["H"] = args["H"].requires_grad_(True)
@@ -442,9 +426,7 @@ def test_sp2_chi_energy_gradcheck(compiled, sp2_params):
     def _t(t):
         return torch.tensor(t).to(dtype=torch.double)
 
-    chi = dihedral_angle_V(
-        sp2_params["B0"], sp2_params["B"], sp2_params["A"], sp2_params["H"]
-    )
+    chi = dihedral_angle_V(sp2_params["B0"], sp2_params["B"], sp2_params["A"], sp2_params["H"])
 
     for ang in list(numpy.linspace(0.1, numpy.pi, 16, endpoint=False)):
         params = (

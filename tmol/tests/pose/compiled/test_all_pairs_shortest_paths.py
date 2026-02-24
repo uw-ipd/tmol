@@ -1,5 +1,5 @@
-import torch
 import pytest
+import torch
 
 from tmol.pose.compiled.apsp_ops import stacked_apsp
 from tmol.tests.torch import requires_cuda, zero_padded_counts
@@ -33,9 +33,7 @@ def test_all_pairs_shortest_paths_simple_path_graph1_w_cutoff():
 
     weights_gold = torch.full((1, 32, 32), 6, dtype=torch.int32, device=torch_device)
     for i in range(32):
-        weights_gold[0, i] = torch.min(
-            torch.abs(arange32 - i), torch.full((32,), 6, dtype=torch.int32)
-        )
+        weights_gold[0, i] = torch.min(torch.abs(arange32 - i), torch.full((32,), 6, dtype=torch.int32))
 
     torch.testing.assert_close(weights, weights_gold)
 
@@ -60,9 +58,7 @@ def test_all_pairs_shortest_paths_big_simple_path_graph(torch_device):
     n_nodes = 1000
     n_graphs = 5
 
-    weights = torch.full(
-        (n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device
-    )
+    weights = torch.full((n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device)
     arange_n_nodes = torch.arange(n_nodes, dtype=torch.int64, device=torch_device)
     weights[:, arange_n_nodes, arange_n_nodes] = 0
     weights[:, arange_n_nodes[1:], arange_n_nodes[:-1]] = 1
@@ -70,9 +66,7 @@ def test_all_pairs_shortest_paths_big_simple_path_graph(torch_device):
 
     stacked_apsp(weights)
 
-    weights_gold = torch.full(
-        (n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device
-    )
+    weights_gold = torch.full((n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device)
     for i in range(n_nodes):
         weights_gold[0, i] = torch.abs(arange_n_nodes - i)
     weights_gold[1:] = weights_gold[0:1]
@@ -88,9 +82,7 @@ def test_all_pairs_shortest_paths_w_off_diagonal_bonds():
     n_nodes = 128
     n_graphs = 5
 
-    weights = torch.full(
-        (n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device_cpu
-    )
+    weights = torch.full((n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device_cpu)
     arange_n_nodes = torch.arange(n_nodes, dtype=torch.int64, device=torch_device_cpu)
     weights[:, arange_n_nodes, arange_n_nodes] = 0
     weights[:, arange_n_nodes[1:], arange_n_nodes[:-1]] = 1
@@ -123,9 +115,7 @@ def test_all_pairs_shortest_paths_w_off_diagonal_bonds_and_threshold():
     n_nodes = 128
     n_graphs = 5
 
-    weights = torch.full(
-        (n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device_cpu
-    )
+    weights = torch.full((n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device_cpu)
     arange_n_nodes = torch.arange(n_nodes, dtype=torch.int64, device=torch_device_cpu)
     weights[:, arange_n_nodes, arange_n_nodes] = 0
     weights[:, arange_n_nodes[1:], arange_n_nodes[:-1]] = 1
@@ -154,9 +144,7 @@ def test_all_pairs_shortest_paths_benchmark(benchmark, torch_device, n_graphs, n
     n_nodes = int(n_nodes)
     n_graphs = int(n_graphs)
 
-    weights = torch.full(
-        (n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device
-    )
+    weights = torch.full((n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device)
     arange_n_nodes = torch.arange(n_nodes, dtype=torch.int64, device=torch_device)
     weights[:, arange_n_nodes, arange_n_nodes] = 0
     weights[:, arange_n_nodes[1:], arange_n_nodes[:-1]] = 1

@@ -1,19 +1,21 @@
-import numpy
-import torch
-import attr
-import pandas
 from collections import defaultdict
+from typing import List, Mapping, Optional, Tuple, Union
 
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
-from tmol.database import ParameterDatabase
-from tmol.pose.packed_block_types import PackedBlockTypes
+import attr
+import numpy
+import pandas
+import toolz.functoolz
+import torch
+
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import ResidueTypeSet
-from typing import List, Mapping, Optional, Tuple, Union
+from tmol.database import ParameterDatabase
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.types.functional import validate_args
+from tmol.types.torch import Tensor
+
 from .canonical_form import CanonicalForm
 from .pdb_parsing import parse_pdb
-import toolz.functoolz
 
 
 class ordered_set:
@@ -192,10 +194,7 @@ class CanonicalOrdering:
                 restypes_all_atom_names[restype.name3].add(at.name)
             for at in restype.atom_aliases:
                 if at.alt_name in restypes_alt_atom_name_mapping[restype.name3]:
-                    assert (
-                        restypes_alt_atom_name_mapping[restype.name3][at.alt_name]
-                        == at.name
-                    )
+                    assert restypes_alt_atom_name_mapping[restype.name3][at.alt_name] == at.name
                 else:
                     restypes_alt_atom_name_mapping[restype.name3][at.alt_name] = at.name
 
@@ -205,22 +204,16 @@ class CanonicalOrdering:
             for at in atoms:
                 restypes_all_atom_names[rt_name3].add(at)
 
-        restypes_ordered_atom_names = {
-            name3: ats.ordered_vals for name3, ats in restypes_all_atom_names.items()
-        }
+        restypes_ordered_atom_names = {name3: ats.ordered_vals for name3, ats in restypes_all_atom_names.items()}
         restypes_atom_index_mapping = {
             name3: {at: i for i, at in enumerate(ordered_atoms)}
             for name3, ordered_atoms in restypes_ordered_atom_names.items()
         }
         for name3, mapping in restypes_alt_atom_name_mapping.items():
             for alt_name, name in mapping.items():
-                restypes_atom_index_mapping[name3][alt_name] = (
-                    restypes_atom_index_mapping[name3][name]
-                )
+                restypes_atom_index_mapping[name3][alt_name] = restypes_atom_index_mapping[name3][name]
 
-        max_n_canonical_atoms = max(
-            len(atoms) for _, atoms in restypes_ordered_atom_names.items()
-        )
+        max_n_canonical_atoms = max(len(atoms) for _, atoms in restypes_ordered_atom_names.items())
 
         default_termini_mapping = cls._temp_termini_mapping()
         termini_patch_added_atoms = defaultdict(lambda: set([]))
@@ -249,12 +242,8 @@ class CanonicalOrdering:
             down_termini_patches=down_termini_patches,
             up_termini_patches=up_termini_patches,
             termini_patch_added_atoms=termini_patch_added_atoms,
-            cys_inds=cls._init_cys_special_case_indices(
-                ordered_restypes, restypes_ordered_atom_names
-            ),
-            his_inds=cls._init_his_special_case_indices(
-                ordered_restypes, restypes_ordered_atom_names
-            ),
+            cys_inds=cls._init_cys_special_case_indices(ordered_restypes, restypes_ordered_atom_names),
+            his_inds=cls._init_his_special_case_indices(ordered_restypes, restypes_ordered_atom_names),
         )
 
     @classmethod
@@ -286,9 +275,7 @@ class CanonicalOrdering:
         }
 
     @classmethod
-    def _init_cys_special_case_indices(
-        cls, restype_name3s, restypes_ordered_atom_names
-    ):
+    def _init_cys_special_case_indices(cls, restype_name3s, restypes_ordered_atom_names):
         if "CYS" not in restype_name3s:
             return CysSpecialCaseIndices(
                 cys_co_aa_ind=-1,
@@ -302,9 +289,7 @@ class CanonicalOrdering:
             )
 
     @classmethod
-    def _init_his_special_case_indices(
-        cls, restype_name3s, restypes_ordered_atom_names
-    ):
+    def _init_his_special_case_indices(cls, restype_name3s, restypes_ordered_atom_names):
         if "HIS" not in restype_name3s:
             return HisSpecialCaseIndices(
                 his_co_aa_ind=-1,
@@ -335,9 +320,7 @@ class CanonicalOrdering:
                 his_CG_in_co=his_at_ind("CG"),
             )
 
-    def create_src_2_tmol_mappings(
-        self, src_aa_name3s, src_atom_names_for_name3s, device
-    ):
+    def create_src_2_tmol_mappings(self, src_aa_name3s, src_atom_names_for_name3s, device):
         src_2_tmol_restype_mapping = torch.full(
             (len(src_aa_name3s),),
             -1,
@@ -355,9 +338,7 @@ class CanonicalOrdering:
             -1,
             dtype=torch.int64,
         )
-        src_at_is_real = torch.zeros(
-            (len(src_aa_name3s), src_max_n_ats), dtype=torch.bool
-        )
+        src_at_is_real = torch.zeros((len(src_aa_name3s), src_max_n_ats), dtype=torch.bool)
 
         for i, i_3lc in enumerate(src_aa_name3s):
             if i_3lc not in self.restype_io_equiv_classes:
@@ -430,12 +411,8 @@ def canonical_form_from_pdb(
     """
     atom_records = parse_pdb(pdb_lines_or_fname)
     if residue_start is not None or residue_end is not None:
-        atom_records = select_atom_records_res_subset(
-            atom_records, residue_start, residue_end
-        )
-    return canonical_form_from_atom_records(
-        canonical_ordering, atom_records, device, res_not_connected
-    )
+        atom_records = select_atom_records_res_subset(atom_records, residue_start, residue_end)
+    return canonical_form_from_atom_records(canonical_ordering, atom_records, device, res_not_connected)
 
 
 def select_atom_records_res_subset(
@@ -490,9 +467,7 @@ def canonical_form_from_atom_records(
 
     chain_id = numpy.zeros((1, n_res), dtype=numpy.int32)
     res_types = numpy.full((1, n_res), -2, dtype=numpy.int32)
-    coords = numpy.full(
-        (1, n_res, max_n_canonical_atoms, 3), numpy.nan, dtype=numpy.float32
-    )
+    coords = numpy.full((1, n_res, max_n_canonical_atoms, 3), numpy.nan, dtype=numpy.float32)
     res_labels = numpy.zeros((1, n_res), dtype=int)
     res_ins_codes = numpy.empty((1, n_res), dtype=object)
     chain_labels = numpy.empty((1, n_res), dtype=object)

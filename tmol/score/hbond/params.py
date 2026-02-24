@@ -1,18 +1,15 @@
 import attr
-
 import numpy
 import pandas
+import toolz
 import torch
 
-import toolz
-
-from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
-from tmol.types.attrs import ValidateAttrs, ConvertAttrs
-from tmol.types.functional import validate_args
-
-from tmol.database.scoring.hbond import HBondDatabase
 from tmol.database.chemical import ChemicalDatabase
+from tmol.database.scoring.hbond import HBondDatabase
+from tmol.types.attrs import ConvertAttrs, ValidateAttrs
+from tmol.types.functional import validate_args
+from tmol.types.tensor import TensorGroup
+from tmol.types.torch import Tensor
 
 from ..chemical_database import AcceptorHybridization
 
@@ -29,9 +26,7 @@ class HBondPolyParams(TensorGroup, ConvertAttrs):
         self.coeffs[idx] = value.coeffs[idx]
 
     def to(self, device: torch.device):
-        return type(self)(
-            **toolz.valmap(lambda t: t.to(device), attr.asdict(self, recurse=False))
-        )
+        return type(self)(**toolz.valmap(lambda t: t.to(device), attr.asdict(self, recurse=False)))
 
     @classmethod
     def full(cls, shape, fill_value):
@@ -53,9 +48,7 @@ class HBondPairParams(TensorGroup, ValidateAttrs):
     cosAHD: HBondPolyParams
 
     def to(self, device: torch.device):
-        return type(self)(
-            **toolz.valmap(lambda t: t.to(device), attr.asdict(self, recurse=False))
-        )
+        return type(self)(**toolz.valmap(lambda t: t.to(device), attr.asdict(self, recurse=False)))
 
     @classmethod
     def full(cls, shape, fill_value):
@@ -105,12 +98,9 @@ class HBondParamResolver(ValidateAttrs):
         acceptors = {g.name: g for g in hbond_database.acceptor_type_params}
         acceptor_type_index = pandas.Index(list(acceptors))
 
-        atom_type_hybridization = {
-            a.name: a.acceptor_hybridization for a in chemical_database.atom_types
-        }
+        atom_type_hybridization = {a.name: a.acceptor_hybridization for a in chemical_database.atom_types}
         acceptor_type_hybridization = {
-            g.acceptor_type: atom_type_hybridization[g.a]
-            for g in hbond_database.acceptor_atom_types
+            g.acceptor_type: atom_type_hybridization[g.a] for g in hbond_database.acceptor_atom_types
         }
 
         pair_params = HBondPairParams.full((len(donors), len(acceptors)), numpy.nan)
@@ -124,9 +114,7 @@ class HBondParamResolver(ValidateAttrs):
             (i,) = acceptor_type_index.get_indexer([name])
             pair_params.acceptor_weight[:, i] = g.weight
             pair_params.acceptor_hybridization[:, i] = int(
-                AcceptorHybridization._index.get_indexer_for(
-                    [acceptor_type_hybridization[name]]
-                )[0]
+                AcceptorHybridization._index.get_indexer_for([acceptor_type_hybridization[name]])[0]
             )
 
         # Get polynomial parameters indexed by polynomial name
@@ -144,10 +132,7 @@ class HBondParamResolver(ValidateAttrs):
             )
         )
 
-        poly_params = {
-            p.name: poly_params[i]
-            for i, p in enumerate(hbond_database.polynomial_parameters)
-        }
+        poly_params = {p.name: poly_params[i] for i, p in enumerate(hbond_database.polynomial_parameters)}
 
         # Denormalize polynomial parameters into pair parameter table
         for pp in hbond_database.pair_parameters:
@@ -210,11 +195,7 @@ class CompactedHBondDatabase(ValidateAttrs):
             n: torch.tensor(v, device=device).expand(1).to(dtype=torch.float32)
             for n, v in attr.asdict(hbond_database.global_parameters).items()
         }
-        max_ahdis = max(
-            p.xmax
-            for p in hbond_database.polynomial_parameters
-            if p.dimension == "hbgd_AHdist"
-        )
+        max_ahdis = max(p.xmax for p in hbond_database.polynomial_parameters if p.dimension == "hbgd_AHdist")
 
         # also store the distance of the longest possible hbond
         # by reading the set of hbond polynomials
@@ -234,20 +215,14 @@ class CompactedHBondDatabase(ValidateAttrs):
             ).unsqueeze(0)
         )
 
-        resolver = HBondParamResolver.from_database(
-            chemical_database, hbond_database, device
-        )
+        resolver = HBondParamResolver.from_database(chemical_database, hbond_database, device)
         pp = resolver.pair_params
 
         # Note: acceptor_hybridization is an integer, but can be exactly represented
         # as a float (since it is small). Pack it with the donor and acceptor weights
         # (which themselves could just be pre-multiplied?!) to reduce the number of
         # arguments to the hbond evaluation function
-        pair_param_table = _p(
-            _stack(
-                _f32([pp.acceptor_hybridization, pp.acceptor_weight, pp.donor_weight])
-            )
-        )
+        pair_param_table = _p(_stack(_f32([pp.acceptor_hybridization, pp.acceptor_weight, pp.donor_weight])))
 
         # Eigen allocates space for 12 Reals for an 11x1 matrix
         # so we need to pad out with 0s in between the coefficients

@@ -1,22 +1,20 @@
 from typing import Optional, Tuple, Union
 
 import attr
-
-import torch
-import numpy
 import numba
+import numpy
 
 # import pandas
 import scipy.sparse as sparse
 import scipy.sparse.csgraph as csgraph
+import torch
 
 from tmol.types.array import NDArray
 from tmol.types.functional import convert_args, validate_args
 from tmol.types.tensor import cat
-
 from tmol.utility.ndarray.common_operations import invert_mapping
 
-from ..datatypes import NodeType, KinForest
+from ..datatypes import KinForest, NodeType
 from ..scan_ordering import get_children
 
 ChildParentTuple = Tuple[NDArray[int][:], NDArray[int][:]]
@@ -86,9 +84,7 @@ class _KinematicBuilder:
 
         all_atoms = numpy.concatenate(
             (
-                numpy.concatenate((potential_bonds, prioritized_bonds), axis=0).reshape(
-                    -1
-                ),
+                numpy.concatenate((potential_bonds, prioritized_bonds), axis=0).reshape(-1),
                 roots,
             ),
             axis=0,
@@ -100,9 +96,7 @@ class _KinematicBuilder:
             # All entries must be non-zero or sparse graph tools will entries (??)
             cls.bonds_to_csgraph(max_to_atom_index, potential_bonds, [-1])
             + cls.bonds_to_csgraph(max_to_atom_index, prioritized_bonds, [-0.125])
-            + cls.faux_bonds_between_roots(
-                max_to_atom_index=max_to_atom_index, roots=roots, weights=[-1]
-            )
+            + cls.faux_bonds_between_roots(max_to_atom_index=max_to_atom_index, roots=roots, weights=[-1])
         )
 
         kfo_2_to, to_parents_in_kfo = cls.bonds_to_forest(roots, weighted_bonds)
@@ -204,9 +198,7 @@ class _KinematicBuilder:
 
             bond_graph = cls.bonds_to_csgraph(
                 max_to_atom_index=max_to_atom_index, bonds=bonds
-            ) + cls.faux_bonds_between_roots(
-                roots=roots, weights=[1], max_to_atom_index=max_to_atom_index
-            )
+            ) + cls.faux_bonds_between_roots(roots=roots, weights=[1], max_to_atom_index=max_to_atom_index)
         else:
             # Sparse graph with per-bond weights, generate the minimum
             # spanning tree of the connections before traversing from
@@ -215,9 +207,7 @@ class _KinematicBuilder:
 
         # Perform breadth first traversal from the root of the component
         # to generate the kinematic tree.
-        kfo_2_to, preds = csgraph.breadth_first_order(
-            bond_graph, roots[0], directed=False, return_predecessors=True
-        )
+        kfo_2_to, preds = csgraph.breadth_first_order(bond_graph, roots[0], directed=False, return_predecessors=True)
         to_parents_in_kfo = preds[kfo_2_to]
 
         n_target_atoms = numpy.max(kfo_2_to) + 1
@@ -253,9 +243,7 @@ class _KinematicBuilder:
         mapping that "kfo_2_to" represents.
         """
 
-        assert (
-            kfo_2_to.shape == to_parents_in_kfo.shape
-        ), "elements and parents must be of same length"
+        assert kfo_2_to.shape == to_parents_in_kfo.shape, "elements and parents must be of same length"
 
         assert len(kfo_2_to) >= 3, "Bonded ktree must have at least three entries"
 
@@ -271,9 +259,7 @@ class _KinematicBuilder:
         kfo_roots = to_2_kfo[to_roots]
         kfo_jump_nodes = to_2_kfo[to_jump_nodes]
         kfo_parents = numpy.full((n_kf_atoms,), -1, dtype=numpy.int32)
-        kfo_parents[to_parents_in_kfo >= 0] = to_2_kfo[
-            to_parents_in_kfo[to_parents_in_kfo >= 0]
-        ]
+        kfo_parents[to_parents_in_kfo >= 0] = to_2_kfo[to_parents_in_kfo[to_parents_in_kfo >= 0]]
 
         # Root nodes are self-parented for the purpose of verifying the
         # connected component tree structure, will be rewritten with jump to
@@ -303,9 +289,7 @@ class _KinematicBuilder:
         frame_z[:] = kfo_grandparents
 
         # Now go and set the coordinate-frame-defining atoms for jumps
-        fix_jump_nodes(
-            kfo_parents, frame_x, frame_y, frame_z, kfo_roots, kfo_jump_nodes
-        )
+        fix_jump_nodes(kfo_parents, frame_x, frame_y, frame_z, kfo_roots, kfo_jump_nodes)
 
         # Now prep the arrays for concatenation with the existing kinforest.
         # The KinBuilder will continue to support the concatenation model, in
@@ -365,9 +349,7 @@ def stub_defined_for_jump_atom(jump_atom, atom_is_jump, child_list_span, child_l
     #        myself, my first atom, my second atom
 
     first_nonjump_child = -1
-    for child_ind in range(
-        child_list_span[jump_atom, 0], child_list_span[jump_atom, 1]
-    ):
+    for child_ind in range(child_list_span[jump_atom, 0], child_list_span[jump_atom, 1]):
         child_atom = child_list[child_ind]
         if atom_is_jump[child_atom]:
             continue
@@ -402,9 +384,7 @@ def get_c1_and_c2_atoms(
 
     first_nonjump_child = -1
     second_nonjump_child = -1
-    for child_ind in range(
-        child_list_span[jump_atom, 0], child_list_span[jump_atom, 1]
-    ):
+    for child_ind in range(child_list_span[jump_atom, 0], child_list_span[jump_atom, 1]):
         child_atom = child_list[child_ind]
         if atom_is_jump[child_atom]:
             continue
@@ -417,13 +397,9 @@ def get_c1_and_c2_atoms(
     if first_nonjump_child == -1:
         jump_parent = parents[jump_atom]
         assert jump_parent != jump_atom
-        return get_c1_and_c2_atoms(
-            jump_parent, atom_is_jump, child_list_span, child_list, parents
-        )
+        return get_c1_and_c2_atoms(jump_parent, atom_is_jump, child_list_span, child_list, parents)
 
-    for grandchild_ind in range(
-        child_list_span[first_nonjump_child, 0], child_list_span[first_nonjump_child, 1]
-    ):
+    for grandchild_ind in range(child_list_span[first_nonjump_child, 0], child_list_span[first_nonjump_child, 1]):
         grandchild_atom = child_list[grandchild_ind]
         if not atom_is_jump[grandchild_atom]:
             return first_nonjump_child, grandchild_atom
@@ -431,9 +407,7 @@ def get_c1_and_c2_atoms(
     if second_nonjump_child == -1:
         jump_parent = parents[jump_atom]
         assert jump_parent != jump_atom
-        return get_c1_and_c2_atoms(
-            jump_parent, atom_is_jump, child_list_span, child_list, parents
-        )
+        return get_c1_and_c2_atoms(jump_parent, atom_is_jump, child_list_span, child_list, parents)
 
     return first_nonjump_child, second_nonjump_child
 
@@ -455,13 +429,9 @@ def fix_jump_nodes(
     atom_is_jump[jumps] = 1
 
     for root in roots:
-        assert stub_defined_for_jump_atom(
-            root, atom_is_jump, child_list_span, child_list
-        )
+        assert stub_defined_for_jump_atom(root, atom_is_jump, child_list_span, child_list)
 
-        root_c1, second_descendent = get_c1_and_c2_atoms(
-            root, atom_is_jump, child_list_span, child_list, parents
-        )
+        root_c1, second_descendent = get_c1_and_c2_atoms(root, atom_is_jump, child_list_span, child_list, parents)
 
         # set the frame_x, _y, and _z to the same values for both the root
         # and the root's first child
@@ -487,9 +457,7 @@ def fix_jump_nodes(
 
     for jump in jumps:
         if stub_defined_for_jump_atom(jump, atom_is_jump, child_list_span, child_list):
-            jump_c1, jump_c2 = get_c1_and_c2_atoms(
-                jump, atom_is_jump, child_list_span, child_list, parents
-            )
+            jump_c1, jump_c2 = get_c1_and_c2_atoms(jump, atom_is_jump, child_list_span, child_list, parents)
 
             # set the frame_x, _y, and _z to the same values for both the jump
             # and the jump's first child
@@ -503,9 +471,7 @@ def fix_jump_nodes(
             frame_z[jump_c1] = jump_c2
 
             # all the other children of the jump need an updated kinematic description
-            for child_ind in range(
-                child_list_span[jump, 0] + 1, child_list_span[jump, 1]
-            ):
+            for child_ind in range(child_list_span[jump, 0] + 1, child_list_span[jump, 1]):
                 child = child_list[child_ind]
                 if atom_is_jump[child]:
                     continue
@@ -518,9 +484,7 @@ def fix_jump_nodes(
             # ok, so... I don't understand the atom tree well enough to understand this
             # situation. If the jump has no non-jump children, then certainly none
             # of them need their frame definitions updated
-            c1, c2 = get_c1_and_c2_atoms(
-                parents[jump], atom_is_jump, child_list_span, child_list, parents
-            )
+            c1, c2 = get_c1_and_c2_atoms(parents[jump], atom_is_jump, child_list_span, child_list, parents)
 
             frame_x[jump] = c1
             frame_y[jump] = jump
@@ -529,9 +493,7 @@ def fix_jump_nodes(
             # the jump may have one child; it's not entirely clear to me
             # what frame the child should have!
             # TO DO: figure this out
-            for child_ind in range(
-                child_list_span[jump, 0] + 1, child_list_span[jump, 1]
-            ):
+            for child_ind in range(child_list_span[jump, 0] + 1, child_list_span[jump, 1]):
                 child = child_list[child_ind]
                 if atom_is_jump[child]:
                     continue

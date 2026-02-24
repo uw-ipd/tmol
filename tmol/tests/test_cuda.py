@@ -1,5 +1,6 @@
 import pytest
 import torch
+
 from .torch import requires_cuda
 
 
@@ -33,9 +34,7 @@ def test_float_perf(benchmark, torch_device, dtype):
 
     @benchmark
     def sum_distances():
-        delta = test_coords.reshape((test_size, 1, 3)) - test_coords.reshape(
-            (1, test_size, 3)
-        )
+        delta = test_coords.reshape((test_size, 1, 3)) - test_coords.reshape((1, test_size, 3))
 
         dists = delta.norm(dim=-1)
 

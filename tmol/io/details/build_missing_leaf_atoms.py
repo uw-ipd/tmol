@@ -1,14 +1,13 @@
+import attr
 import numpy
 import torch
-import attr
 
-from tmol.types.torch import Tensor
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.io.details.compiled.compiled import gen_pose_leaf_atoms
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.types.array import NDArray
 from tmol.types.functional import validate_args
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.chemical.restypes import RefinedResidueType
-
-from tmol.io.details.compiled.compiled import gen_pose_leaf_atoms
+from tmol.types.torch import Tensor
 
 
 @validate_args
@@ -95,26 +94,19 @@ def _setup_for_leaf_atom_coord_building(
         dim=1,
     )
     pose_at_is_real = (
-        torch.arange(max_n_ats, dtype=torch.int64, device=device).repeat(n_poses, 1)
-        < n_ats_inccumsum[:, -1:]
+        torch.arange(max_n_ats, dtype=torch.int64, device=device).repeat(n_poses, 1) < n_ats_inccumsum[:, -1:]
     )
 
-    block_at_is_leaf = torch.zeros(
-        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=device
-    )
+    block_at_is_leaf = torch.zeros((n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=device)
     block_at_is_leaf[real_blocks] = pbt.is_leaf_atom[block_types64[real_blocks]]
 
     # error checking: have we been asked to build an atom that cannot be built?
-    non_leaf_atom_is_missing = torch.logical_and(
-        block_atom_missing, torch.logical_not(block_at_is_leaf)
-    )
+    non_leaf_atom_is_missing = torch.logical_and(block_atom_missing, torch.logical_not(block_at_is_leaf))
     if torch.any(non_leaf_atom_is_missing):
         err_msg = []
         leaf_atom_missing_inds = torch.nonzero(non_leaf_atom_is_missing)
         for i in range(leaf_atom_missing_inds.shape[0]):
-            i_bt_ind = block_types64[
-                leaf_atom_missing_inds[i, 0], leaf_atom_missing_inds[i, 1]
-            ]
+            i_bt_ind = block_types64[leaf_atom_missing_inds[i, 0], leaf_atom_missing_inds[i, 1]]
             i_bt = packed_block_types.active_block_types[i_bt_ind]
             err_msg.append(
                 " ".join(
@@ -139,12 +131,8 @@ def _setup_for_leaf_atom_coord_building(
         raise ValueError("\n".join(err_msg))
 
     block_leaf_atom_is_missing = torch.logical_and(block_at_is_leaf, block_atom_missing)
-    pose_stack_atom_is_missing = torch.zeros(
-        (n_poses, max_n_ats), dtype=torch.bool, device=device
-    )
-    pose_stack_atom_is_missing[pose_at_is_real] = block_leaf_atom_is_missing[
-        real_block_atoms
-    ]
+    pose_stack_atom_is_missing = torch.zeros((n_poses, max_n_ats), dtype=torch.bool, device=device)
+    pose_stack_atom_is_missing[pose_at_is_real] = block_leaf_atom_is_missing[real_block_atoms]
 
     return (
         real_block_atoms,
@@ -173,9 +161,7 @@ def _actually_build_leaf_coords(
     n_poses = block_coords.shape[0]
     max_n_ats = pose_stack_atom_is_missing.shape[1]
 
-    pose_like_coords = torch.zeros(
-        (n_poses, max_n_ats, 3), dtype=torch.float32, device=device
-    )
+    pose_like_coords = torch.zeros((n_poses, max_n_ats, 3), dtype=torch.float32, device=device)
     pose_like_coords[pose_at_is_real] = block_coords[real_block_atoms]
 
     # ok, we're ready
@@ -210,34 +196,24 @@ def _annotate_packed_block_types_atom_is_leaf_atom(pbt: PackedBlockTypes):
 
     for i, block_type in enumerate(pbt.active_block_types):
         _annotate_block_type_atom_is_leaf_atom(block_type, pbt.atom_is_hydrogen[i, :])
-        is_leaf_atom[i, : block_type.n_atoms] = torch.from_numpy(
-            block_type.leaf_atom_ann.is_leaf
-        )
+        is_leaf_atom[i, : block_type.n_atoms] = torch.from_numpy(block_type.leaf_atom_ann.is_leaf)
 
     setattr(pbt, "is_leaf_atom", is_leaf_atom.to(device=pbt.device))
 
 
 @validate_args
-def _annotate_block_type_atom_is_leaf_atom(
-    block_type: RefinedResidueType, is_hydrogen: Tensor[torch.int32][:]
-):
+def _annotate_block_type_atom_is_leaf_atom(block_type: RefinedResidueType, is_hydrogen: Tensor[torch.int32][:]):
     if hasattr(block_type, "leaf_atom_ann"):
         return
-    is_hydrogen = is_hydrogen.cpu().numpy()[
-        : block_type.n_atoms
-    ]  # ugh, should this just live in the block type?!
+    is_hydrogen = is_hydrogen.cpu().numpy()[: block_type.n_atoms]  # ugh, should this just live in the block type?!
     is_parent = numpy.zeros(block_type.n_atoms, dtype=bool)
     icoor_is_parent = numpy.zeros(block_type.n_icoors, dtype=bool)
     icoor_is_parent[block_type.icoors_ancestors[:, 0]] = True
 
     icoorind_to_atomind = numpy.full(block_type.n_icoors, -1, dtype=numpy.int32)
-    icoorind_to_atomind[block_type.at_to_icoor_ind] = numpy.arange(
-        block_type.n_atoms, dtype=numpy.int32
-    )
+    icoorind_to_atomind[block_type.at_to_icoor_ind] = numpy.arange(block_type.n_atoms, dtype=numpy.int32)
 
-    is_parent[icoorind_to_atomind[icoorind_to_atomind != -1]] = icoor_is_parent[
-        icoorind_to_atomind != -1
-    ]
+    is_parent[icoorind_to_atomind[icoorind_to_atomind != -1]] = icoor_is_parent[icoorind_to_atomind != -1]
 
     # We also need to turn off "is leaf" for any atom that is the
     # fourth one defining a named dihedral, unless, however, that atom
@@ -290,16 +266,10 @@ def _annotate_packed_block_types_w_leaf_atom_icoors(pbt: PackedBlockTypes):
 
     assert hasattr(pbt, "is_leaf_atom")
     assert hasattr(pbt, "atom_is_hydrogen")
-    icoor_atom_ancestor_uaids = numpy.full(
-        (pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32
-    )
+    icoor_atom_ancestor_uaids = numpy.full((pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32)
     icoor_geom = numpy.full((pbt.n_types, pbt.max_n_atoms, 3), -1, dtype=numpy.float32)
-    icoor_atom_ancestor_uaids_backup = numpy.full(
-        (pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32
-    )
-    icoor_geom_backup = numpy.full(
-        (pbt.n_types, pbt.max_n_atoms, 3), -1, dtype=numpy.float32
-    )
+    icoor_atom_ancestor_uaids_backup = numpy.full((pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32)
+    icoor_geom_backup = numpy.full((pbt.n_types, pbt.max_n_atoms, 3), -1, dtype=numpy.float32)
     atom_is_hydrogen_cpu = pbt.atom_is_hydrogen.cpu()
     for i, bt in enumerate(pbt.active_block_types):
         _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen_cpu[i, :])
@@ -311,12 +281,8 @@ def _annotate_packed_block_types_w_leaf_atom_icoors(pbt: PackedBlockTypes):
         icoor_atom_ancestor_uaids_backup[i, : bt.n_atoms] = ann.anc_uaids_backup
 
     icoor_geom = torch.tensor(icoor_geom, dtype=torch.float32, device=pbt.device)
-    icoor_atom_ancestor_uaids = torch.tensor(
-        icoor_atom_ancestor_uaids, dtype=torch.int32, device=pbt.device
-    )
-    icoor_geom_backup = torch.tensor(
-        icoor_geom_backup, dtype=torch.float32, device=pbt.device
-    )
+    icoor_atom_ancestor_uaids = torch.tensor(icoor_atom_ancestor_uaids, dtype=torch.int32, device=pbt.device)
+    icoor_geom_backup = torch.tensor(icoor_geom_backup, dtype=torch.float32, device=pbt.device)
     icoor_atom_ancestor_uaids_backup = torch.tensor(
         icoor_atom_ancestor_uaids_backup, dtype=torch.int32, device=pbt.device
     )
@@ -420,10 +386,7 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
                         j,
                         bt.atoms[j].name,
                     )
-                    raise RuntimeError(
-                        "Infinite loop detected in icoor ancestor traversal for residue type "
-                        + bt.name
-                    )
+                    raise RuntimeError("Infinite loop detected in icoor ancestor traversal for residue type " + bt.name)
                 else:
                     seen[ggp_ind] = True
                 j_icoor = bt.icoors[ggp_ind]

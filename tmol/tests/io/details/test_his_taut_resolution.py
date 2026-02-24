@@ -1,19 +1,19 @@
+import attr
 import numpy
 import torch
-import attr
 
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.io.canonical_ordering import (
-    default_canonical_ordering,
     CanonicalOrdering,
     canonical_form_from_pdb,
+    default_canonical_ordering,
 )
 from tmol.io.details.his_taut_resolution import (
     HisTautomerResolution,
-    resolve_his_tautomerization,
-    his_taut_variant_NE2_protonated,
     his_taut_variant_ND1_protonated,
+    his_taut_variant_NE2_protonated,
+    resolve_his_tautomerization,
 )
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 
 def test_resolve_his_HD1_provided():
@@ -92,20 +92,14 @@ def test_resolve_his_HD1_provided():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
-        co, res_types, res_type_variants, coords, atom_is_present
-    )
+    ) = resolve_his_tautomerization(co, res_types, res_type_variants, coords, atom_is_present)
 
     his_taut_res = his_taut_res.cpu().numpy()
-    his_taut_res_gold = numpy.array(
-        [[HisTautomerResolution.his_taut_HD1.value]], dtype=numpy.int32
-    )
+    his_taut_res_gold = numpy.array([[HisTautomerResolution.his_taut_HD1.value]], dtype=numpy.int32)
     numpy.testing.assert_equal(his_taut_res, his_taut_res_gold)
 
     res_type_variants = res_type_variants.cpu().numpy()
-    res_type_variants_gold = numpy.array(
-        [[his_taut_variant_ND1_protonated]], dtype=numpy.int32
-    )
+    res_type_variants_gold = numpy.array([[his_taut_variant_ND1_protonated]], dtype=numpy.int32)
     numpy.testing.assert_equal(res_type_variants, res_type_variants_gold)
 
     resolved_coords = resolved_coords.cpu().numpy()
@@ -193,20 +187,14 @@ def test_resolve_his_HE2_provided():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
-        co, res_types, res_type_variants, coords, atom_is_present
-    )
+    ) = resolve_his_tautomerization(co, res_types, res_type_variants, coords, atom_is_present)
 
     his_taut_res = his_taut_res.cpu().numpy()
-    his_taut_res_gold = numpy.array(
-        [[HisTautomerResolution.his_taut_HE2.value]], dtype=numpy.int32
-    )
+    his_taut_res_gold = numpy.array([[HisTautomerResolution.his_taut_HE2.value]], dtype=numpy.int32)
     numpy.testing.assert_equal(his_taut_res, his_taut_res_gold)
 
     res_type_variants = res_type_variants.cpu().numpy()
-    res_type_variants_gold = numpy.array(
-        [[his_taut_variant_NE2_protonated]], dtype=numpy.int32
-    )
+    res_type_variants_gold = numpy.array([[his_taut_variant_NE2_protonated]], dtype=numpy.int32)
     numpy.testing.assert_equal(res_type_variants, res_type_variants_gold)
 
     resolved_coords = resolved_coords.cpu().numpy()
@@ -274,20 +262,14 @@ def test_resolve_his_HD1_provided_as_HN():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
-        co, res_types, res_type_variants, coords, atom_is_present
-    )
+    ) = resolve_his_tautomerization(co, res_types, res_type_variants, coords, atom_is_present)
 
     his_taut_res = his_taut_res.cpu().numpy()
-    his_taut_res_gold = numpy.array(
-        [[HisTautomerResolution.his_taut_HD1.value]], dtype=numpy.int32
-    )
+    his_taut_res_gold = numpy.array([[HisTautomerResolution.his_taut_HD1.value]], dtype=numpy.int32)
     numpy.testing.assert_equal(his_taut_res, his_taut_res_gold)
 
     res_type_variants = res_type_variants.cpu().numpy()
-    res_type_variants_gold = numpy.array(
-        [[his_taut_variant_ND1_protonated]], dtype=numpy.int32
-    )
+    res_type_variants_gold = numpy.array([[his_taut_variant_ND1_protonated]], dtype=numpy.int32)
     numpy.testing.assert_equal(res_type_variants, res_type_variants_gold)
 
     resolved_coords = resolved_coords.cpu().numpy()
@@ -357,20 +339,14 @@ def test_resolve_his_HE2_provided_as_HN():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
-        co, res_types, res_type_variants, coords, atom_is_present
-    )
+    ) = resolve_his_tautomerization(co, res_types, res_type_variants, coords, atom_is_present)
 
     his_taut_res = his_taut_res.cpu().numpy()
-    his_taut_res_gold = numpy.array(
-        [[HisTautomerResolution.his_taut_HE2.value]], dtype=numpy.int32
-    )
+    his_taut_res_gold = numpy.array([[HisTautomerResolution.his_taut_HE2.value]], dtype=numpy.int32)
     numpy.testing.assert_equal(his_taut_res, his_taut_res_gold)
 
     res_type_variants = res_type_variants.cpu().numpy()
-    res_type_variants_gold = numpy.array(
-        [[his_taut_variant_NE2_protonated]], dtype=numpy.int32
-    )
+    res_type_variants_gold = numpy.array([[his_taut_variant_NE2_protonated]], dtype=numpy.int32)
     numpy.testing.assert_equal(res_type_variants, res_type_variants_gold)
 
     resolved_coords = resolved_coords.cpu().numpy()
@@ -440,20 +416,14 @@ def test_resolve_his_ND1_provided_as_NH():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
-        co, res_types, res_type_variants, coords, atom_is_present
-    )
+    ) = resolve_his_tautomerization(co, res_types, res_type_variants, coords, atom_is_present)
 
     his_taut_res = his_taut_res.cpu().numpy()
-    his_taut_res_gold = numpy.array(
-        [[HisTautomerResolution.his_taut_NH_is_ND1.value]], dtype=numpy.int32
-    )
+    his_taut_res_gold = numpy.array([[HisTautomerResolution.his_taut_NH_is_ND1.value]], dtype=numpy.int32)
     numpy.testing.assert_equal(his_taut_res, his_taut_res_gold)
 
     res_type_variants = res_type_variants.cpu().numpy()
-    res_type_variants_gold = numpy.array(
-        [[his_taut_variant_ND1_protonated]], dtype=numpy.int32
-    )
+    res_type_variants_gold = numpy.array([[his_taut_variant_ND1_protonated]], dtype=numpy.int32)
     numpy.testing.assert_equal(res_type_variants, res_type_variants_gold)
 
     resolved_coords = resolved_coords.cpu().numpy()
@@ -527,20 +497,14 @@ def test_resolve_his_NE2_provided_as_NH():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
-        co, res_types, res_type_variants, coords, atom_is_present
-    )
+    ) = resolve_his_tautomerization(co, res_types, res_type_variants, coords, atom_is_present)
 
     his_taut_res = his_taut_res.cpu().numpy()
-    his_taut_res_gold = numpy.array(
-        [[HisTautomerResolution.his_taut_NN_is_ND1.value]], dtype=numpy.int32
-    )
+    his_taut_res_gold = numpy.array([[HisTautomerResolution.his_taut_NN_is_ND1.value]], dtype=numpy.int32)
     numpy.testing.assert_equal(his_taut_res, his_taut_res_gold)
 
     res_type_variants = res_type_variants.cpu().numpy()
-    res_type_variants_gold = numpy.array(
-        [[his_taut_variant_NE2_protonated]], dtype=numpy.int32
-    )
+    res_type_variants_gold = numpy.array([[his_taut_variant_NE2_protonated]], dtype=numpy.int32)
     numpy.testing.assert_equal(res_type_variants, res_type_variants_gold)
 
     resolved_coords = resolved_coords.cpu().numpy()
@@ -558,9 +522,7 @@ def test_resolve_his_NE2_provided_as_NH():
     numpy.testing.assert_equal(resolved_atom_is_present, resolved_atom_is_present_gold)
 
 
-def test_resolve_his_taut_no_his_in_canonical_ordering(
-    ubq_pdb, default_database, torch_device
-):
+def test_resolve_his_taut_no_his_in_canonical_ordering(ubq_pdb, default_database, torch_device):
     chem_db = default_database.chemical
     only_met = [res for res in chem_db.residues if res.name == "MET"]
 
@@ -580,13 +542,9 @@ def test_resolve_his_taut_no_his_in_canonical_ordering(
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
-        small_co, res_types, orig_res_type_variants, coords, atom_is_present
-    )
+    ) = resolve_his_tautomerization(small_co, res_types, orig_res_type_variants, coords, atom_is_present)
     assert orig_res_type_variants is res_type_variants
     assert resolved_coords is coords
     assert resolved_atom_is_present is atom_is_present
 
-    numpy.testing.assert_equal(
-        res_type_variants.cpu().numpy(), his_taut_res.cpu().numpy()
-    )
+    numpy.testing.assert_equal(res_type_variants.cpu().numpy(), his_taut_res.cpu().numpy())

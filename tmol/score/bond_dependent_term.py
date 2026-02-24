@@ -1,13 +1,13 @@
 import numpy
 import torch
 
-from tmol.database import ParameterDatabase
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.restypes import RefinedResidueType
+from tmol.database import ParameterDatabase
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.score.energy_term import EnergyTerm
 from tmol.score.bonded_atom import IndexedBonds
+from tmol.score.energy_term import EnergyTerm
 
 
 # @attr.s(auto_attribs=True)
@@ -58,9 +58,7 @@ class BondDependentTerm(EnergyTerm):
             dtype=torch.int32,
             device=packed_block_types.device,
         )
-        max_n_all_bonds = max(
-            bt.all_bonds.shape[0] for bt in packed_block_types.active_block_types
-        )
+        max_n_all_bonds = max(bt.all_bonds.shape[0] for bt in packed_block_types.active_block_types)
         all_bonds = torch.full(
             (packed_block_types.n_types, max_n_all_bonds, 3),
             -1,

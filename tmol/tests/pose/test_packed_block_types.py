@@ -3,9 +3,7 @@ import numpy
 from tmol.pose.packed_block_types import PackedBlockTypes
 
 
-def test_load_packed_residue_types(
-    default_database, fresh_default_restype_set, torch_device
-):
+def test_load_packed_residue_types(default_database, fresh_default_restype_set, torch_device):
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical,
         fresh_default_restype_set,
@@ -15,9 +13,7 @@ def test_load_packed_residue_types(
     assert pbt
 
 
-def test_determine_real_atoms(
-    default_database, fresh_default_restype_set, torch_device
-):
+def test_determine_real_atoms(default_database, fresh_default_restype_set, torch_device):
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical,
         fresh_default_restype_set,
@@ -30,9 +26,7 @@ def test_determine_real_atoms(
             assert pbt.atom_is_real[i, j] == (j < i_nats)
 
 
-def test_packed_residue_type_atoms_downstream_of_conn(
-    default_database, fresh_default_restype_set, torch_device
-):
+def test_packed_residue_type_atoms_downstream_of_conn(default_database, fresh_default_restype_set, torch_device):
     rt_list = fresh_default_restype_set.residue_types
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical,
@@ -53,14 +47,10 @@ def test_packed_residue_type_atoms_downstream_of_conn(
 
     for i, res in enumerate(rt_list):
         adoc = res.atom_downstream_of_conn
-        numpy.testing.assert_equal(
-            pbt_adoc[i, : len(res.connections), : len(res.atoms)], adoc
-        )
+        numpy.testing.assert_equal(pbt_adoc[i, : len(res.connections), : len(res.atoms)], adoc)
 
 
-def test_packed_block_types_ordered_torsions(
-    default_database, fresh_default_restype_set, torch_device
-):
+def test_packed_block_types_ordered_torsions(default_database, fresh_default_restype_set, torch_device):
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical,
         fresh_default_restype_set,
@@ -87,9 +77,7 @@ def test_packed_block_types_ordered_torsions(
             assert bool(pbt.torsion_is_real[i, j].cpu().item()) == (j < i_n_tor)
 
 
-def test_packed_block_types_device(
-    fresh_default_restype_set, default_database, torch_device
-):
+def test_packed_block_types_device(fresh_default_restype_set, default_database, torch_device):
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical,
         fresh_default_restype_set,

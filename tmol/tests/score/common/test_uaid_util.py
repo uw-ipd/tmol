@@ -1,6 +1,6 @@
 import numpy
-import torch
 import pytest
+import torch
 
 from tmol.tests.score.common.uaid_util import resolve_uaids
 
@@ -19,9 +19,7 @@ def uaid_pose_stack():
     pose_stack_block_coord_offset[0, 4] = 80
     pose_stack_block_coord_offset[0, 5] = 100
 
-    pose_stack_inter_block_connections = torch.zeros(
-        (1, n_blocks, 2, 2), dtype=torch.int32
-    )
+    pose_stack_inter_block_connections = torch.zeros((1, n_blocks, 2, 2), dtype=torch.int32)
     # first residue
     pose_stack_inter_block_connections[0, 0, 0, 0] = -1
     pose_stack_inter_block_connections[0, 0, 0, 1] = -1
@@ -131,9 +129,7 @@ def test_resolve_uaids_intra_res(uaid_pose_stack):
 
     block_inds64 = block_inds.to(torch.int64)
     pose_inds64 = pose_inds.to(torch.int64)
-    resolved_gold = (
-        pose_stack_block_coord_offset[pose_inds64, block_inds64] + uaids[:, 0]
-    )
+    resolved_gold = pose_stack_block_coord_offset[pose_inds64, block_inds64] + uaids[:, 0]
     numpy.testing.assert_equal(resolved_gold.numpy(), resolved.numpy())
 
 

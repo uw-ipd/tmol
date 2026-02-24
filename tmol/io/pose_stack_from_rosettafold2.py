@@ -1,16 +1,17 @@
-import torch
+from typing import List
+
 import numpy
 import toolz
+import torch
 
-from typing import List
-from tmol.types.functional import validate_args
-from tmol.types.torch import Tensor
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io.canonical_form import CanonicalForm
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+from tmol.types.functional import validate_args
+from tmol.types.torch import Tensor
 
 
 @validate_args
@@ -75,14 +76,10 @@ def canonical_form_from_rosettafold2(
     max_n_ats = xyz.shape[1]
 
     rf2_pose_ind_for_atom = (
-        torch.arange(n_poses, dtype=torch.int64, device=device)
-        .reshape(-1, 1, 1)
-        .expand(-1, max_n_res, max_n_ats)
+        torch.arange(n_poses, dtype=torch.int64, device=device).reshape(-1, 1, 1).expand(-1, max_n_res, max_n_ats)
     )
     rf2_res_ind_for_atom = (
-        torch.arange(max_n_res, dtype=torch.int64, device=device)
-        .reshape(1, -1, 1)
-        .expand(n_poses, -1, max_n_ats)
+        torch.arange(max_n_res, dtype=torch.int64, device=device).reshape(1, -1, 1).expand(n_poses, -1, max_n_ats)
     )
 
     assert device == seq.device
@@ -122,19 +119,13 @@ def canonical_form_from_rosettafold2(
     chain_id = chain_id.unsqueeze(0)
 
     # Now let's turn off the H atoms for any n-term residues
-    supress_atom = torch.zeros(
-        (n_poses, max_n_res, co.max_n_canonical_atoms), dtype=torch.bool, device=device
-    )
+    supress_atom = torch.zeros((n_poses, max_n_res, co.max_n_canonical_atoms), dtype=torch.bool, device=device)
     nterm_res = torch.zeros((max_n_res,), dtype=torch.bool, device=device)
     nterm_res[0] = True
     if len(chainlens) > 1:
         nterm_res[chainbegins] = True
     supress_atom = supress_atom_for_nterm[seq]
-    nterm_atom = (
-        nterm_res.unsqueeze(0)
-        .unsqueeze(2)
-        .expand(n_poses, -1, co.max_n_canonical_atoms)
-    )
+    nterm_atom = nterm_res.unsqueeze(0).unsqueeze(2).expand(n_poses, -1, co.max_n_canonical_atoms)
     supress = torch.logical_and(supress_atom, nterm_atom)
     tmol_coords[supress] = numpy.nan
 
@@ -166,9 +157,7 @@ def _paramdb_for_rosettafold2() -> ParameterDatabase:
     # hard coding
     desired_variants_display_names = ["nterm", "cterm"]
 
-    return ParameterDatabase.get_default().create_stable_subset(
-        desired_rt_names, desired_variants_display_names
-    )
+    return ParameterDatabase.get_default().create_stable_subset(desired_rt_names, desired_variants_display_names)
 
 
 @toolz.functoolz.memoize
@@ -205,9 +194,7 @@ def packed_block_types_for_rosettafold2(device: torch.device) -> PackedBlockType
 
     restype_set = _restype_set_for_rosettafold2()
 
-    return PackedBlockTypes.from_restype_list(
-        restype_set.chem_db, restype_set, restype_set.residue_types, device
-    )
+    return PackedBlockTypes.from_restype_list(restype_set.chem_db, restype_set, restype_set.residue_types, device)
 
 
 @toolz.functoolz.memoize
@@ -218,18 +205,13 @@ def _get_rf2_2_tmol_mappings(device: torch.device):
 
     co = canonical_ordering_for_rosettafold2()
     from tmol.extern.rosettafold2.chemical import (
-        num2aa,
         aa2long,
+        num2aa,
     )
 
-    rf2_atom_names_for_name3s = {
-        x: [at.strip() if at is not None else "" for at in y]
-        for x, y in zip(num2aa, aa2long)
-    }
+    rf2_atom_names_for_name3s = {x: [at.strip() if at is not None else "" for at in y] for x, y in zip(num2aa, aa2long)}
 
-    (rt_map, atname_map, at_is_real) = co.create_src_2_tmol_mappings(
-        num2aa, rf2_atom_names_for_name3s, device
-    )
+    (rt_map, atname_map, at_is_real) = co.create_src_2_tmol_mappings(num2aa, rf2_atom_names_for_name3s, device)
 
     # also want to turn off n-term "H" atoms
     supress_atom_at_nterm = torch.zeros(

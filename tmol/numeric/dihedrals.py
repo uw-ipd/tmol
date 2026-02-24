@@ -8,9 +8,7 @@ Angles = Tensor[float][:]
 
 
 @validate_args
-def coord_dihedrals(
-    a: Coord64Array, b: Coord64Array, c: Coord64Array, d: Coord64Array
-) -> Angles:
+def coord_dihedrals(a: Coord64Array, b: Coord64Array, c: Coord64Array, d: Coord64Array) -> Angles:
     """Dihedral angle in [-pi, pi] over the planes defined by {a, b, c} & {b, c, d}.
 
     Calculate dihedral angle from four coordinate locations, using the

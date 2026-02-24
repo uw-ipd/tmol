@@ -1,6 +1,7 @@
+from typing import Tuple
+
 import attr
 import torch
-from typing import Tuple
 
 from tmol.types.torch import Tensor
 
@@ -9,12 +10,8 @@ from tmol.types.torch import Tensor
 class RotamericDataForAA:
     rotamers: Tensor[int][:, :]  # nrotamers x nchi
     rotamer_probabilities: Tensor[float]  # (1 + n-bb) dimensional table
-    rotamer_means: Tensor[
-        float
-    ]  # (1 + n-bb + 1) dimensional table: nrots x [nbb] x nchi
-    rotamer_stdvs: Tensor[
-        float
-    ]  # ( 1 + n-bb + 1 ) dimensional table: nrotx x [nbb] x nchi
+    rotamer_means: Tensor[float]  # (1 + n-bb + 1) dimensional table: nrots x [nbb] x nchi
+    rotamer_stdvs: Tensor[float]  # ( 1 + n-bb + 1 ) dimensional table: nrotx x [nbb] x nchi
     prob_sorted_rot_inds: Tensor[int]  # (n-bb+1)-dimensional table
     backbone_dihedral_start: Tensor[float][:]
     backbone_dihedral_step: Tensor[float][:]

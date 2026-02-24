@@ -1,14 +1,12 @@
+import numpy
 import pytest
 import torch
-import numpy
 
 import tmol.score.common.stack_condense as sc
 
 
 def test_condense_numpy_inds():
-    vals = numpy.array(
-        [[0, 1, -1, 3, 4], [-1, 1, 2, -1, -1], [0, -1, 2, 3, -1]], dtype=int
-    )
+    vals = numpy.array([[0, 1, -1, 3, 4], [-1, 1, 2, -1, -1], [0, -1, 2, 3, -1]], dtype=int)
     selection = vals != -1
     condensed_inds = sc.condense_numpy_inds(selection)
 
@@ -36,9 +34,7 @@ def test_condense_torch_inds(torch_device):
 
 def test_take_values_w_sentineled_index1(torch_device):
     values = 2 * torch.arange(10, dtype=torch.int32, device=torch_device)
-    index = torch.tensor(
-        [[5, 4, 3, 2, -1], [9, 8, -1, 7, 6]], dtype=torch.int64, device=torch_device
-    )
+    index = torch.tensor([[5, 4, 3, 2, -1], [9, 8, -1, 7, 6]], dtype=torch.int64, device=torch_device)
     index_values = sc.take_values_w_sentineled_index(values, index)
     expected = torch.tensor(
         [[10, 8, 6, 4, -1], [18, 16, -1, 14, 12]],
@@ -75,12 +71,7 @@ def test_take_values_w_sentineled_index_and_dest(torch_device):
 
 def test_condense_subset(torch_device):
     vals = 2 * torch.arange(30, dtype=torch.int32, device=torch_device).view(2, 5, 3)
-    vals_to_keep = (
-        torch.tensor(
-            [[1, 1, 0, 1, 1], [0, 1, 1, 0, 1]], dtype=torch.int32, device=torch_device
-        )
-        != 0
-    )
+    vals_to_keep = torch.tensor([[1, 1, 0, 1, 1], [0, 1, 1, 0, 1]], dtype=torch.int32, device=torch_device) != 0
     expected = torch.tensor(
         [
             [[0, 2, 4], [6, 8, 10], [18, 20, 22], [24, 26, 28]],
@@ -110,55 +101,33 @@ def test_condense_torch_inds_from_doc_string():
 
 def test_take_values_w_sentineled_index_from_doc_string():
     values = torch.tensor([10, 11, 12, 13, 14, 15], dtype=torch.int32)
-    sentineled_index_tensor = torch.tensor(
-        [[2, 1, 2, 5, -1], [1, 4, 1, 5, 2]], dtype=torch.int64
-    )
-    expected_output = torch.tensor(
-        [[12, 11, 12, 15, -1], [11, 14, 11, 15, 12]], dtype=torch.int32
-    )
+    sentineled_index_tensor = torch.tensor([[2, 1, 2, 5, -1], [1, 4, 1, 5, 2]], dtype=torch.int64)
+    expected_output = torch.tensor([[12, 11, 12, 15, -1], [11, 14, 11, 15, 12]], dtype=torch.int32)
     actual_output = sc.take_values_w_sentineled_index(values, sentineled_index_tensor)
     torch.testing.assert_close(actual_output, expected_output)
 
 
 def test_take_values_w_sentineled_index_and_dest_from_doc_string():
     values = torch.tensor([10, 11, 12, 13, 14, 15], dtype=torch.float)
-    sentineled_index_tensor = torch.tensor(
-        [[2, -1, 2, 5, -1], [1, 4, -1, 5, 2]], dtype=torch.int64
-    )
+    sentineled_index_tensor = torch.tensor([[2, -1, 2, 5, -1], [1, 4, -1, 5, 2]], dtype=torch.int64)
 
-    sentineled_dest_tensor = torch.tensor(
-        [[1, 1, 1, -1], [1, 1, 1, 1]], dtype=torch.int32
-    )
+    sentineled_dest_tensor = torch.tensor([[1, 1, 1, -1], [1, 1, 1, 1]], dtype=torch.int32)
 
-    expected_output = torch.tensor(
-        [[12, 12, 15, -1], [11, 14, 15, 12]], dtype=torch.float
-    )
+    expected_output = torch.tensor([[12, 12, 15, -1], [11, 14, 15, 12]], dtype=torch.float)
 
-    actual_output = sc.take_values_w_sentineled_index_and_dest(
-        values, sentineled_index_tensor, sentineled_dest_tensor
-    )
+    actual_output = sc.take_values_w_sentineled_index_and_dest(values, sentineled_index_tensor, sentineled_dest_tensor)
     torch.testing.assert_close(actual_output, expected_output)
 
 
 def test_take_values_w_sentineled_dest_from_doc_string():
-    values = torch.tensor(
-        [[10, 11, 12, 13, 14], [20, 21, 22, 23, 24]], dtype=torch.int32
-    )
-    values_to_take = (
-        torch.tensor([[1, 0, 1, 1, 0], [1, 1, 0, 1, 1]], dtype=torch.int32) == 1
-    )
+    values = torch.tensor([[10, 11, 12, 13, 14], [20, 21, 22, 23, 24]], dtype=torch.int32)
+    values_to_take = torch.tensor([[1, 0, 1, 1, 0], [1, 1, 0, 1, 1]], dtype=torch.int32) == 1
 
-    sentineled_dest_tensor = torch.tensor(
-        [[1, 1, 1, -1], [1, 1, 1, 1]], dtype=torch.int32
-    )
+    sentineled_dest_tensor = torch.tensor([[1, 1, 1, -1], [1, 1, 1, 1]], dtype=torch.int32)
 
-    expected_output = torch.tensor(
-        [[10, 12, 13, -1], [20, 21, 23, 24]], dtype=torch.int32
-    )
+    expected_output = torch.tensor([[10, 12, 13, -1], [20, 21, 23, 24]], dtype=torch.int32)
 
-    actual_output = sc.take_values_w_sentineled_dest(
-        values, values_to_take, sentineled_dest_tensor
-    )
+    actual_output = sc.take_values_w_sentineled_dest(values, values_to_take, sentineled_dest_tensor)
     torch.testing.assert_close(actual_output, expected_output)
 
 
@@ -170,9 +139,7 @@ def test_condense_subset_from_doc_string():
         ],
         dtype=torch.int32,
     )
-    values_to_keep = (
-        torch.tensor([[1, 0, 1, 1, 0], [1, 1, 0, 1, 1]], dtype=torch.int32) == 1
-    )
+    values_to_keep = torch.tensor([[1, 0, 1, 1, 0], [1, 1, 0, 1, 1]], dtype=torch.int32) == 1
 
     expected_output = torch.tensor(
         [
@@ -193,12 +160,8 @@ def test_take_condensed_3d_subset_from_doc_string():
         ],
         dtype=torch.int32,
     )
-    condensed_inds_to_keep = torch.tensor(
-        [[0, -1, 2, 3], [4, 3, 2, 4]], dtype=torch.int64
-    )
-    condensed_dest_tensor = torch.tensor(
-        [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [1, 3]], dtype=torch.int64
-    )
+    condensed_inds_to_keep = torch.tensor([[0, -1, 2, 3], [4, 3, 2, 4]], dtype=torch.int64)
+    condensed_dest_tensor = torch.tensor([[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [1, 3]], dtype=torch.int64)
 
     expected_output = torch.tensor(
         [
@@ -207,17 +170,13 @@ def test_take_condensed_3d_subset_from_doc_string():
         ],
         dtype=torch.int32,
     )
-    actual_output = sc.take_condensed_3d_subset(
-        values, condensed_inds_to_keep, condensed_dest_tensor
-    )
+    actual_output = sc.take_condensed_3d_subset(values, condensed_inds_to_keep, condensed_dest_tensor)
     torch.testing.assert_close(actual_output, expected_output)
 
 
 @pytest.mark.parametrize("torch_dtype", [torch.int32, torch.int64])
 def test_tile_subset_indices_torch(torch_device, torch_dtype):
-    heavy_inds = torch.tensor(
-        [0, 1, 2, 3, 4, 5, 8, 10, 11, 12, 13], dtype=torch_dtype, device=torch_device
-    )
+    heavy_inds = torch.tensor([0, 1, 2, 3, 4, 5, 8, 10, 11, 12, 13], dtype=torch_dtype, device=torch_device)
     heavy_subset_wi_tile, n_in_tile = sc.tile_subset_indices(heavy_inds, 8)
     heavy_inds = heavy_inds.cpu()
     assert heavy_subset_wi_tile.device == torch_device
@@ -227,9 +186,7 @@ def test_tile_subset_indices_torch(torch_device, torch_dtype):
 
     heavy_subset_wi_tile = heavy_subset_wi_tile.cpu().numpy()
     n_in_tile = n_in_tile.cpu().numpy()
-    gold_subset_wi_tile = numpy.array(
-        [0, 1, 2, 3, 4, 5, -1, -1, 0, 2, 3, 4, 5, -1, -1, -1], dtype=numpy.int64
-    )
+    gold_subset_wi_tile = numpy.array([0, 1, 2, 3, 4, 5, -1, -1, 0, 2, 3, 4, 5, -1, -1, -1], dtype=numpy.int64)
     gold_n_in_tile = numpy.array([6, 5], dtype=numpy.int64)
     numpy.testing.assert_equal(gold_subset_wi_tile, heavy_subset_wi_tile)
     numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)
@@ -237,9 +194,7 @@ def test_tile_subset_indices_torch(torch_device, torch_dtype):
 
 @pytest.mark.parametrize("torch_dtype", [torch.int32, torch.int64])
 def test_tile_subset_indices_torch2(torch_device, torch_dtype):
-    heavy_inds = torch.tensor(
-        [0, 1, 2, 8, 10, 11], dtype=torch_dtype, device=torch_device
-    )
+    heavy_inds = torch.tensor([0, 1, 2, 8, 10, 11], dtype=torch_dtype, device=torch_device)
     heavy_subset_wi_tile, n_in_tile = sc.tile_subset_indices(heavy_inds, 8)
     heavy_inds = heavy_inds.cpu()
     assert heavy_subset_wi_tile.device == torch_device
@@ -249,9 +204,7 @@ def test_tile_subset_indices_torch2(torch_device, torch_dtype):
 
     heavy_subset_wi_tile = heavy_subset_wi_tile.cpu().numpy()
     n_in_tile = n_in_tile.cpu().numpy()
-    gold_subset_wi_tile = numpy.array(
-        [0, 1, 2, -1, -1, -1, -1, -1, 0, 2, 3, -1, -1, -1, -1, -1], dtype=numpy.int64
-    )
+    gold_subset_wi_tile = numpy.array([0, 1, 2, -1, -1, -1, -1, -1, 0, 2, 3, -1, -1, -1, -1, -1], dtype=numpy.int64)
     gold_n_in_tile = numpy.array([3, 3], dtype=numpy.int64)
     numpy.testing.assert_equal(gold_subset_wi_tile, heavy_subset_wi_tile)
     numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)
@@ -264,9 +217,7 @@ def test_tile_subset_indices_numpy(numpy_dtype):
     assert heavy_subset_wi_tile.dtype == numpy_dtype
     assert n_in_tile.dtype == numpy_dtype
 
-    gold_subset_wi_tile = numpy.array(
-        [0, 1, 2, 3, 4, 5, -1, -1, 0, 2, 3, 4, 5, -1, -1, -1], dtype=numpy.int64
-    )
+    gold_subset_wi_tile = numpy.array([0, 1, 2, 3, 4, 5, -1, -1, 0, 2, 3, 4, 5, -1, -1, -1], dtype=numpy.int64)
     gold_n_in_tile = numpy.array([6, 5], dtype=numpy.int64)
     numpy.testing.assert_equal(gold_subset_wi_tile, heavy_subset_wi_tile)
     numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)
@@ -279,9 +230,7 @@ def test_tile_subset_indices_numpy2(numpy_dtype):
     assert heavy_subset_wi_tile.dtype == numpy_dtype
     assert n_in_tile.dtype == numpy_dtype
 
-    gold_subset_wi_tile = numpy.array(
-        [0, 1, 2, 3, -1, -1, -1, -1, 0, 2, 3, -1, -1, -1, -1, -1], dtype=numpy_dtype
-    )
+    gold_subset_wi_tile = numpy.array([0, 1, 2, 3, -1, -1, -1, -1, 0, 2, 3, -1, -1, -1, -1, -1], dtype=numpy_dtype)
     gold_n_in_tile = numpy.array([4, 3], dtype=numpy_dtype)
     numpy.testing.assert_equal(gold_subset_wi_tile, heavy_subset_wi_tile)
     numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)
@@ -289,9 +238,7 @@ def test_tile_subset_indices_numpy2(numpy_dtype):
 
 @pytest.mark.parametrize("torch_dtype", [torch.int32, torch.int64])
 def test_arg_tile_subset_indices_torch(torch_device, torch_dtype):
-    heavy_inds = torch.tensor(
-        [0, 1, 2, 3, 4, 5, 8, 10, 11, 12, 13], dtype=torch_dtype, device=torch_device
-    )
+    heavy_inds = torch.tensor([0, 1, 2, 3, 4, 5, 8, 10, 11, 12, 13], dtype=torch_dtype, device=torch_device)
     tiled_subset_orig_inds, n_in_tile = sc.arg_tile_subset_indices(heavy_inds, 8)
     heavy_inds = heavy_inds.cpu()
     assert tiled_subset_orig_inds.device == torch_device
@@ -301,9 +248,7 @@ def test_arg_tile_subset_indices_torch(torch_device, torch_dtype):
 
     tiled_subset_orig_inds = tiled_subset_orig_inds.cpu().numpy()
     n_in_tile = n_in_tile.cpu().numpy()
-    gold_tiled_subset_orig_inds = numpy.array(
-        [0, 1, 2, 3, 4, 5, -1, -1, 6, 7, 8, 9, 10, -1, -1, -1], dtype=numpy.int64
-    )
+    gold_tiled_subset_orig_inds = numpy.array([0, 1, 2, 3, 4, 5, -1, -1, 6, 7, 8, 9, 10, -1, -1, -1], dtype=numpy.int64)
     gold_n_in_tile = numpy.array([6, 5], dtype=numpy.int64)
     numpy.testing.assert_equal(gold_tiled_subset_orig_inds, tiled_subset_orig_inds)
     numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)
@@ -311,9 +256,7 @@ def test_arg_tile_subset_indices_torch(torch_device, torch_dtype):
 
 @pytest.mark.parametrize("torch_dtype", [torch.int32, torch.int64])
 def test_arg_tile_subset_indices_torch2(torch_device, torch_dtype):
-    heavy_inds = torch.tensor(
-        [0, 1, 2, 8, 10, 11], dtype=torch_dtype, device=torch_device
-    )
+    heavy_inds = torch.tensor([0, 1, 2, 8, 10, 11], dtype=torch_dtype, device=torch_device)
     tiled_subset_orig_inds, n_in_tile = sc.arg_tile_subset_indices(heavy_inds, 8)
     heavy_inds = heavy_inds.cpu()
     assert tiled_subset_orig_inds.device == torch_device
@@ -333,9 +276,7 @@ def test_arg_tile_subset_indices_torch2(torch_device, torch_dtype):
 
 @pytest.mark.parametrize("torch_dtype", [torch.int32, torch.int64])
 def test_arg_tile_subset_indices_torch_w_max_n_entries(torch_device, torch_dtype):
-    heavy_inds = torch.tensor(
-        [0, 1, 2, 8, 10, 11], dtype=torch_dtype, device=torch_device
-    )
+    heavy_inds = torch.tensor([0, 1, 2, 8, 10, 11], dtype=torch_dtype, device=torch_device)
     tiled_subset_orig_inds, n_in_tile = sc.arg_tile_subset_indices(heavy_inds, 8, 20)
     heavy_inds = heavy_inds.cpu()
     assert tiled_subset_orig_inds.device == torch_device
@@ -387,9 +328,7 @@ def test_arg_tile_subset_indices_numpy(numpy_dtype):
     assert tiled_subset_orig_inds.dtype == numpy_dtype
     assert n_in_tile.dtype == numpy_dtype
 
-    gold_tiled_subset_orig_inds = numpy.array(
-        [0, 1, 2, 3, 4, 5, -1, -1, 6, 7, 8, 9, 10, -1, -1, -1], dtype=numpy_dtype
-    )
+    gold_tiled_subset_orig_inds = numpy.array([0, 1, 2, 3, 4, 5, -1, -1, 6, 7, 8, 9, 10, -1, -1, -1], dtype=numpy_dtype)
     gold_n_in_tile = numpy.array([6, 5], dtype=numpy_dtype)
     numpy.testing.assert_equal(gold_tiled_subset_orig_inds, tiled_subset_orig_inds)
     numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)

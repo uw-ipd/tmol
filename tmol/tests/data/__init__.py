@@ -1,5 +1,6 @@
-import pytest
 import os
+
+import pytest
 import torch
 
 from . import pdb
@@ -111,9 +112,7 @@ def pertuzumab_and_nearby_erbb2_pdb_and_segments():
     segment_lengths = (214, 222, 3, 3, 3, 15, 7, 8, 6, 9)
 
     seg_range_end = numpy.cumsum(numpy.array(segment_lengths, dtype=numpy.int32))
-    seg_range_start = numpy.concatenate(
-        (numpy.zeros((1,), dtype=numpy.int32), seg_range_end[:-1])
-    )
+    seg_range_start = numpy.concatenate((numpy.zeros((1,), dtype=numpy.int32), seg_range_end[:-1]))
     n_res_tot = seg_range_end[-1]
     res_not_connected = numpy.zeros((1, n_res_tot, 2), dtype=bool)
     # do not make any of the ERBB2 residues n- or c-termini,
@@ -127,9 +126,7 @@ def pertuzumab_and_nearby_erbb2_pdb_and_segments():
 
 @pytest.fixture()
 def openfold_ubq_and_sumo_pred(torch_device):
-    fname = os.path.join(
-        __file__.rpartition("/")[0], "openfold", "openfold_ubq_and_sumo.pt"
-    )
+    fname = os.path.join(__file__.rpartition("/")[0], "openfold", "openfold_ubq_and_sumo.pt")
     return torch.load(fname, map_location=torch_device)
 
 
@@ -149,9 +146,7 @@ def no_termini_pose_stack_from_pdb(pdb, torch_device, residue_start, residue_end
     from tmol.io import pose_stack_from_pdb
 
     n_res = residue_end - residue_start
-    res_not_connected = torch.zeros(
-        (1, n_res, 2), dtype=torch.bool, device=torch_device
-    )
+    res_not_connected = torch.zeros((1, n_res, 2), dtype=torch.bool, device=torch_device)
     res_not_connected[0, 0, 0] = True
     res_not_connected[0, n_res - 1, 1] = True
     return pose_stack_from_pdb(

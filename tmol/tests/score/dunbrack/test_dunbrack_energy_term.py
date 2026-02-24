@@ -1,7 +1,6 @@
 import torch
 
 from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
-
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
@@ -11,9 +10,7 @@ def test_smoke(default_database, torch_device: torch.device):
     assert dunbrack_energy.device == torch_device
 
 
-def test_annotate_block_types(
-    fresh_default_packed_block_types, default_database, torch_device: torch.device
-):
+def test_annotate_block_types(fresh_default_packed_block_types, default_database, torch_device: torch.device):
     dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
 
     pbt = fresh_default_packed_block_types
@@ -37,9 +34,7 @@ class TestDunbrackEnergyTerm(EnergyTermTestBase):
 
     @classmethod
     def test_whole_pose_scoring_10(cls, ubq_pdb, default_database, torch_device):
-        return super().test_whole_pose_scoring_10(
-            ubq_pdb, default_database, torch_device, update_baseline=False
-        )
+        return super().test_whole_pose_scoring_10(ubq_pdb, default_database, torch_device, update_baseline=False)
 
     @classmethod
     def test_whole_pose_scoring_jagged(
@@ -48,24 +43,16 @@ class TestDunbrackEnergyTerm(EnergyTermTestBase):
         default_database,
         torch_device: torch.device,
     ):
-        return super().test_whole_pose_scoring_jagged(
-            ubq_pdb, default_database, torch_device, update_baseline=False
-        )
+        return super().test_whole_pose_scoring_jagged(ubq_pdb, default_database, torch_device, update_baseline=False)
 
     @classmethod
     def test_whole_pose_scoring_gradcheck(cls, ubq_pdb, default_database, torch_device):
         resnums = [(0, 4)]
-        return super().test_whole_pose_scoring_gradcheck(
-            ubq_pdb, default_database, torch_device, resnums=resnums
-        )
+        return super().test_whole_pose_scoring_gradcheck(ubq_pdb, default_database, torch_device, resnums=resnums)
 
     @classmethod
-    def test_block_scoring_matches_whole_pose_scoring(
-        cls, ubq_pdb, default_database, torch_device
-    ):
-        return super().test_block_scoring_matches_whole_pose_scoring(
-            ubq_pdb, default_database, torch_device
-        )
+    def test_block_scoring_matches_whole_pose_scoring(cls, ubq_pdb, default_database, torch_device):
+        return super().test_block_scoring_matches_whole_pose_scoring(ubq_pdb, default_database, torch_device)
 
     @classmethod
     def test_block_scoring(cls, ubq_pdb, default_database, torch_device):
@@ -79,9 +66,7 @@ class TestDunbrackEnergyTerm(EnergyTermTestBase):
         )
 
     @classmethod
-    def test_block_scoring_reweighted_gradcheck(
-        cls, ubq_pdb, default_database, torch_device
-    ):
+    def test_block_scoring_reweighted_gradcheck(cls, ubq_pdb, default_database, torch_device):
         resnums = [(0, 4)]
         return super().test_block_scoring_reweighted_gradcheck(
             ubq_pdb,

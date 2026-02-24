@@ -395,11 +395,10 @@ specify a set of expected argument names when added as a `reactive_property`.
 """
 
 import inspect
-from collections import defaultdict
-from typing import Callable, Any, Optional, Tuple, Union
 import sys
-
 import types
+from collections import defaultdict
+from typing import Any, Callable, Optional, Tuple, Union
 
 import attr
 import toolz
@@ -539,9 +538,7 @@ def _code(**kwargs):
     elif sys.version_info[:2] == (3, 9):
         return _code_py39(**kwargs)
     else:
-        raise NotImplementedError(
-            f"_code not implemented for python {sys.version_info}"
-        )
+        raise NotImplementedError(f"_code not implemented for python {sys.version_info}")
 
 
 def _code_attrs(c):
@@ -556,9 +553,7 @@ def _rename_code_object(func, new_name):
     cattrs = _code_attrs(func.__code__)
     cattrs["name"] = new_name
 
-    return types.FunctionType(
-        _code(**cattrs), func.__globals__, new_name, func.__defaults__, func.__closure__
-    )
+    return types.FunctionType(_code(**cattrs), func.__globals__, new_name, func.__defaults__, func.__closure__)
 
 
 def reactive_attrs(maybe_cls=None, **attrs_kwargs):
@@ -658,19 +653,13 @@ class ReactiveProperty(property):
         self.__doc__ = prop.f.__doc__
 
     def getter(self, _):
-        raise NotImplementedError(
-            "ReactiveProperty does not support getter modifications"
-        )
+        raise NotImplementedError("ReactiveProperty does not support getter modifications")
 
     def setter(self, _):
-        raise NotImplementedError(
-            "ReactiveProperty does not support setter modifications"
-        )
+        raise NotImplementedError("ReactiveProperty does not support setter modifications")
 
     def deleter(self, _):
-        raise NotImplementedError(
-            "ReactiveProperty does not support deleter modifications"
-        )
+        raise NotImplementedError("ReactiveProperty does not support deleter modifications")
 
 
 @attr.s(slots=True, auto_attribs=True)
@@ -695,9 +684,7 @@ class _ReactiveProperty:
         return f
 
     @classmethod
-    def from_function(
-        cls, fun: Callable, kwargs: Optional[Union[str, Tuple[str, ...]]] = None
-    ):
+    def from_function(cls, fun: Callable, kwargs: Optional[Union[str, Tuple[str, ...]]] = None):
         """Init property from function, inferring parameters from signature."""
         parameters = inspect.signature(fun).parameters.values()
 
@@ -713,23 +700,18 @@ class _ReactiveProperty:
             )
             for param_type in param_types
         ):
-            raise ValueError(
-                f"function signature contains invalid parameter type: {parameters}"
-            )
+            raise ValueError(f"function signature contains invalid parameter type: {parameters}")
 
         ### Get name of all keyword params
         parameter_names = tuple(
             p.name
             for p in parameters
-            if p.kind
-            in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+            if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
         )
 
         ### Check for "self" parameter
         if "self" in parameter_names:
-            raise ValueError(
-                "Reactive property value function do not bind 'self' parameter."
-            )
+            raise ValueError("Reactive property value function do not bind 'self' parameter.")
 
         ### Check for **kwargs, and add request kwarg names if provided
         if inspect.Parameter.VAR_KEYWORD in param_types:
@@ -737,21 +719,16 @@ class _ReactiveProperty:
                 kwargs = (kwargs,)
 
             if kwargs is None:
-                raise ValueError(
-                    "Function binds **kwargs, but no kwarg names provided."
-                )
+                raise ValueError("Function binds **kwargs, but no kwarg names provided.")
             elif set(parameter_names).intersection(kwargs):
                 raise ValueError(
-                    f"Specified kwarg is already an explicit parameter. "
-                    f"parameters: {parameter_names} kwargs: {kwargs}"
+                    f"Specified kwarg is already an explicit parameter. parameters: {parameter_names} kwargs: {kwargs}"
                 )
 
             parameter_names = parameter_names + tuple(kwargs)
         else:
             if kwargs is not None:
-                raise ValueError(
-                    "Function does not bind **kwargs, but kwarg names provided."
-                )
+                raise ValueError("Function does not bind **kwargs, but kwarg names provided.")
 
         return cls(parameters=parameter_names, f=fun)
 
@@ -773,11 +750,7 @@ def _setup_reactive(cls):
         setattr(cls, n, v)
 
     # Gather all ReactiveProperty defined in the class (and bases)
-    reactive_props = {
-        n: getattr(cls, n)
-        for n in dir(cls)
-        if isinstance(getattr(cls, n), ReactiveProperty)
-    }
+    reactive_props = {n: getattr(cls, n) for n in dir(cls) if isinstance(getattr(cls, n), ReactiveProperty)}
 
     setattr(cls, "__reactive_props__", reactive_props)
 
@@ -800,9 +773,7 @@ def _setup_reactive(cls):
     setattr(
         cls,
         "_reactive_values",
-        attr.ib(
-            default=attr.Factory(ReactiveValues), init=False, cmp=False, repr=False
-        ),
+        attr.ib(default=attr.Factory(ReactiveValues), init=False, cmp=False, repr=False),
     )
 
     setattr(cls, "__annotations__", cls.__dict__.get("__annotations__", dict()))

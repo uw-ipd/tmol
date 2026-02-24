@@ -48,4 +48,3 @@ def ensure_compiled_or_jit() -> bool:
             )
             return True
         raise
-

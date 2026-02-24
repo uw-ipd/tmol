@@ -115,8 +115,7 @@ struct HBondBlockPairSharedData {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Real,
@@ -164,8 +163,7 @@ void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     int TILE_SIZE,
@@ -215,8 +213,7 @@ void TMOL_DEVICE_FUNC hbond_load_block_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Int,
@@ -355,8 +352,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     int TILE_SIZE,
@@ -408,8 +404,7 @@ void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     int TILE_SIZE,
@@ -460,8 +455,7 @@ void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Int,
@@ -562,8 +556,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     int TILE_SIZE,
@@ -610,8 +603,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     int TILE_SIZE,
@@ -1069,8 +1061,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Func,
@@ -1106,8 +1097,7 @@ void TMOL_DEVICE_FUNC eval_interres_don_acc_pair_energies(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Func,

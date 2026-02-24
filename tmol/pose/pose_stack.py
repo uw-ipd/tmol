@@ -1,12 +1,13 @@
-import attr
-import torch
 from typing import Optional
 
-from tmol.types.torch import Tensor
+import attr
+import torch
+
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.pdb_info import PDBInfo
-from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.constraint_set import ConstraintSet
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pdb_info import PDBInfo
+from tmol.types.torch import Tensor
 
 
 @attr.s(auto_attribs=True)
@@ -112,41 +113,32 @@ class PoseStack:
         self.block_ind_for_rot = block_inds.flatten()
 
         pose_inds = (
-            torch.arange(0, n_poses, dtype=torch.int32, device=self.device)
-            .unsqueeze(1)
-            .expand((n_poses, n_blocks))
+            torch.arange(0, n_poses, dtype=torch.int32, device=self.device).unsqueeze(1).expand((n_poses, n_blocks))
         )
         self.pose_ind_for_rot = pose_inds.flatten()
 
         self.block_type_ind_for_rot = self.block_type_ind.flatten()
 
-        self.rot_offset_for_block = torch.arange(
-            0, n_poses * n_blocks, dtype=torch.int32, device=self.device
-        ).view(n_poses, n_blocks)
+        self.rot_offset_for_block = torch.arange(0, n_poses * n_blocks, dtype=torch.int32, device=self.device).view(
+            n_poses, n_blocks
+        )
         self.first_rot_for_block = self.rot_offset_for_block
         self.first_rot_block_type = self.block_type_ind
 
-        self.n_rots_for_pose = torch.tensor(
-            [n_blocks], dtype=torch.int32, device=self.device
-        ).expand(n_poses)
+        self.n_rots_for_pose = torch.tensor([n_blocks], dtype=torch.int32, device=self.device).expand(n_poses)
         self.rot_offset_for_pose = self.n_rots_for_pose * torch.arange(
             0, n_poses, dtype=torch.int32, device=self.device
         )
-        coord_offset_for_pose = self.coords.size(1) * torch.arange(
-            0, n_poses, dtype=torch.int32, device=self.device
-        )
+        coord_offset_for_pose = self.coords.size(1) * torch.arange(0, n_poses, dtype=torch.int32, device=self.device)
         self.n_rots_for_block = torch.full_like(self.block_coord_offset, 1)
 
-        self.rot_coord_offset = (
-            self.block_coord_offset.flatten()
-            + torch.repeat_interleave(coord_offset_for_pose, n_blocks)
+        self.rot_coord_offset = self.block_coord_offset.flatten() + torch.repeat_interleave(
+            coord_offset_for_pose, n_blocks
         )
 
         self.max_n_rots_per_pose = n_blocks
 
-        pose_atom_offsets = self.rot_coord_offset.index_select(
-            0, self.rot_offset_for_pose
-        )
+        pose_atom_offsets = self.rot_coord_offset.index_select(0, self.rot_offset_for_pose)
         atom_to_pose = torch.zeros(
             self.coords.size(0) * self.coords.size(1),
             dtype=torch.int32,
@@ -188,9 +180,7 @@ class PoseStack:
     def n_ats_per_block(self) -> Tensor[torch.int64][:, :]:
         """Return the number of atoms in each block"""
 
-        n_ats_per_block = torch.zeros(
-            (self.n_poses, self.max_n_blocks), dtype=torch.int64, device=self.device
-        )
+        n_ats_per_block = torch.zeros((self.n_poses, self.max_n_blocks), dtype=torch.int64, device=self.device)
         n_ats_per_block[self.block_type_ind != -1] = self.packed_block_types.n_atoms[
             self.block_type_ind[self.block_type_ind != -1].to(torch.int64)
         ].to(torch.int64)
@@ -210,9 +200,7 @@ class PoseStack:
 
     def clone(self) -> "PoseStack":
         """Deep-copy clone of this PoseStack"""
-        new_constraint_set = (
-            self.constraint_set.clone() if self.constraint_set is not None else None
-        )
+        new_constraint_set = self.constraint_set.clone() if self.constraint_set is not None else None
         return PoseStack(
             packed_block_types=self.packed_block_types,
             coords=self.coords.detach().clone(),
@@ -244,9 +232,7 @@ class PoseStack:
             .repeat(self.n_poses * self.max_n_blocks)
             .view(self.n_poses, self.max_n_blocks, self.max_n_block_atoms)
         )
-        real_expanded_pose_ats = (
-            n_ats_per_block_arange_expanded < self.n_ats_per_block.unsqueeze(2)
-        )
+        real_expanded_pose_ats = n_ats_per_block_arange_expanded < self.n_ats_per_block.unsqueeze(2)
 
         # now perform the actual copy
         expanded_coords = torch.zeros(
@@ -270,16 +256,12 @@ class PoseStack:
     def block_type(self, pose_ind: int, block_ind: int) -> RefinedResidueType:
         """Look up the block type for a particular pose and block and retrieve it
         from the PackedBlockTypes object. is_real_block must return True"""
-        return self.packed_block_types.active_block_types[
-            self.block_type_ind[pose_ind, block_ind]
-        ]
+        return self.packed_block_types.active_block_types[self.block_type_ind[pose_ind, block_ind]]
 
     def get_constraint_set(self):
         return self.constraint_set
 
     def block_identity_map(self):
         identity_map = torch.zeros_like(self.block_coord_offset)
-        identity_map[:, :] = torch.arange(
-            self.block_coord_offset.size(1), device=self.device
-        )
+        identity_map[:, :] = torch.arange(self.block_coord_offset.size(1), device=self.device)
         return identity_map

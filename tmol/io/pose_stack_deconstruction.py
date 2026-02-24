@@ -1,22 +1,20 @@
-import torch
 import numpy
+import torch
 
-from tmol.pose.pose_stack import PoseStack
-from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.io.canonical_form import CanonicalForm
 from tmol.io.canonical_ordering import (
     CanonicalOrdering,
 )
-from tmol.io.canonical_form import CanonicalForm
 from tmol.io.chain_deduction import chain_inds_for_pose_stack
 from tmol.io.details.select_from_canonical import (
     _annotate_packed_block_types_w_canonical_res_order,
 )
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose.pose_stack import PoseStack
 
 
-def canonical_form_from_pose_stack(
-    canonical_ordering: CanonicalOrdering, pose_stack: PoseStack, chain_id=None
-):
+def canonical_form_from_pose_stack(canonical_ordering: CanonicalOrdering, pose_stack: PoseStack, chain_id=None):
     pbt = pose_stack.packed_block_types
     co = canonical_ordering
     _annotate_packed_block_types_w_canonical_res_order(co, pbt)
@@ -29,22 +27,15 @@ def canonical_form_from_pose_stack(
     max_n_atoms_per_res = pbt.max_n_atoms
     max_n_canonical_atoms = co.max_n_canonical_atoms
 
-    cf_res_types = torch.full(
-        (n_poses, max_n_res), -1, dtype=torch.int64, device=device
-    )
+    cf_res_types = torch.full((n_poses, max_n_res), -1, dtype=torch.int64, device=device)
 
     # not all blocks in the pose are real
     is_real_block = pose_stack.block_type_ind != -1
     real_bt_inds64 = pose_stack.block_type_ind[is_real_block].to(torch.int64)
-    cf_res_types[is_real_block] = can_ann.bt_ind_to_canonical_io_equiv_class_ind[
-        real_bt_inds64
-    ]
+    cf_res_types[is_real_block] = can_ann.bt_ind_to_canonical_io_equiv_class_ind[real_bt_inds64]
 
     expanded_coords, real_expanded_pose_ats = pose_stack.expand_coords()
-    if (
-        pose_stack.pdb_info.atom_occupancy is not None
-        or pose_stack.pdb_info.atom_b_factor is not None
-    ):
+    if pose_stack.pdb_info.atom_occupancy is not None or pose_stack.pdb_info.atom_b_factor is not None:
         real_expanded_pose_ats = real_expanded_pose_ats.cpu().numpy()
         real_atoms = pose_stack.real_atoms.cpu().numpy()
 
@@ -54,9 +45,7 @@ def canonical_form_from_pose_stack(
             DEFAULT_ATOM_B_FACTOR,
             dtype=numpy.float32,
         )
-        expanded_b_factor[real_expanded_pose_ats] = pose_stack.pdb_info.atom_b_factor[
-            real_atoms
-        ]
+        expanded_b_factor[real_expanded_pose_ats] = pose_stack.pdb_info.atom_b_factor[real_atoms]
     else:
         expanded_b_factor = None
 
@@ -66,15 +55,11 @@ def canonical_form_from_pose_stack(
             DEFAULT_ATOM_OCCUPANCY,
             dtype=numpy.float32,
         )
-        expanded_occupancy[real_expanded_pose_ats] = pose_stack.pdb_info.atom_occupancy[
-            real_atoms
-        ]
+        expanded_occupancy[real_expanded_pose_ats] = pose_stack.pdb_info.atom_occupancy[real_atoms]
     else:
         expanded_occupancy = None
 
-    block_atom_is_real = torch.zeros(
-        (n_poses, max_n_res, max_n_atoms_per_res), dtype=torch.bool, device=device
-    )
+    block_atom_is_real = torch.zeros((n_poses, max_n_res, max_n_atoms_per_res), dtype=torch.bool, device=device)
     block_atom_is_real[is_real_block] = pbt.atom_is_real[real_bt_inds64]
     (
         nz_pose_ind_for_real_atom,
@@ -84,9 +69,7 @@ def canonical_form_from_pose_stack(
 
     canonical_atom_inds_for_bt = can_ann.bt_canonical_atom_ind_map[real_bt_inds64]
     is_real_canonical_atom_ind_for_bt = canonical_atom_inds_for_bt != -1
-    real_canonical_atom_inds_for_bt = canonical_atom_inds_for_bt[
-        is_real_canonical_atom_ind_for_bt
-    ]
+    real_canonical_atom_inds_for_bt = canonical_atom_inds_for_bt[is_real_canonical_atom_ind_for_bt]
     cf_coords = torch.full(
         (n_poses, max_n_res, max_n_canonical_atoms, 3),
         torch.nan,
@@ -99,23 +82,17 @@ def canonical_form_from_pose_stack(
         nz_res_ind_for_real_atom,
         real_canonical_atom_inds_for_bt,
     ] = expanded_coords[block_atom_is_real]
-    atom_is_present = torch.zeros(
-        (n_poses, max_n_res, max_n_canonical_atoms), dtype=torch.bool, device=device
-    )
+    atom_is_present = torch.zeros((n_poses, max_n_res, max_n_canonical_atoms), dtype=torch.bool, device=device)
     atom_is_present[
         nz_pose_ind_for_real_atom,
         nz_res_ind_for_real_atom,
         real_canonical_atom_inds_for_bt,
     ] = True
 
-    disulfide_conn_ind = torch.full(
-        (n_poses, max_n_res), -1, dtype=torch.int64, device=device
-    )
+    disulfide_conn_ind = torch.full((n_poses, max_n_res), -1, dtype=torch.int64, device=device)
     disulfide_conn_ind[is_real_block] = pbt.canonical_dslf_conn_ind[real_bt_inds64]
     is_real_disulfide_conn = disulfide_conn_ind != -1
-    nz_pose_ind_for_dslf, nz_res_ind_for_dslf = torch.nonzero(
-        is_real_disulfide_conn, as_tuple=True
-    )
+    nz_pose_ind_for_dslf, nz_res_ind_for_dslf = torch.nonzero(is_real_disulfide_conn, as_tuple=True)
     dslf_partner = pose_stack.inter_residue_connections[
         nz_pose_ind_for_dslf,
         nz_res_ind_for_dslf,
@@ -126,18 +103,12 @@ def canonical_form_from_pose_stack(
     def _u1(x):
         return x.unsqueeze(1)
 
-    redundant_dslf_tuples = torch.cat(
-        (_u1(nz_pose_ind_for_dslf), _u1(nz_res_ind_for_dslf), _u1(dslf_partner)), dim=1
-    )
-    is_non_redundant_dslf_tuple = (
-        redundant_dslf_tuples[:, 1] < redundant_dslf_tuples[:, 2]
-    )
+    redundant_dslf_tuples = torch.cat((_u1(nz_pose_ind_for_dslf), _u1(nz_res_ind_for_dslf), _u1(dslf_partner)), dim=1)
+    is_non_redundant_dslf_tuple = redundant_dslf_tuples[:, 1] < redundant_dslf_tuples[:, 2]
     disulfides = redundant_dslf_tuples[is_non_redundant_dslf_tuple, :]
 
     if chain_id is None:
-        chain_id = torch.tensor(
-            chain_inds_for_pose_stack(pose_stack), dtype=torch.int32, device=device
-        )
+        chain_id = torch.tensor(chain_inds_for_pose_stack(pose_stack), dtype=torch.int32, device=device)
     else:
         assert chain_id.shape == (n_poses, max_n_res)
 
@@ -159,9 +130,7 @@ def canonical_form_from_pose_stack(
     )
 
 
-def _annotate_packed_block_types_w_termini_types(
-    co: CanonicalOrdering, pbt: PackedBlockTypes
-):
+def _annotate_packed_block_types_w_termini_types(co: CanonicalOrdering, pbt: PackedBlockTypes):
     # The CanonicalOrdering class examines the
     # PatchedChemicalDatabase and the Patches that define
     # the removal of up and down connections
@@ -178,9 +147,7 @@ def _annotate_packed_block_types_w_termini_types(
     setattr(pbt, "is_term_bt", is_term_bt.to(pbt.device))
 
 
-def determine_res_not_connected_from_pose_stack(
-    co, pose_stack, chain_id, is_real_block, real_bt_inds64
-):
+def determine_res_not_connected_from_pose_stack(co, pose_stack, chain_id, is_real_block, real_bt_inds64):
     pbt = pose_stack.packed_block_types
     _annotate_packed_block_types_w_termini_types(co, pbt)
     # now let's figure out which residues are either a)
@@ -191,9 +158,7 @@ def determine_res_not_connected_from_pose_stack(
     max_n_res = pose_stack.max_n_blocks
     device = pbt.device
 
-    is_term_block = torch.zeros(
-        (n_poses, max_n_res, 2), dtype=torch.bool, device=device
-    )
+    is_term_block = torch.zeros((n_poses, max_n_res, 2), dtype=torch.bool, device=device)
     is_term_block[is_real_block] = pbt.is_term_bt[real_bt_inds64]
     is_chain_first = torch.zeros(
         (n_poses, max_n_res),
@@ -237,18 +202,10 @@ def determine_res_not_connected_from_pose_stack(
     res_up_conn[is_real_block] = pbt.up_conn_inds[real_bt_inds64].to(torch.int64)
     res_has_up_conn[is_real_block] = res_up_conn[is_real_block] != -1
 
-    nz_down_conn_pose_ind, nz_down_conn_res_ind = torch.nonzero(
-        res_has_down_conn, as_tuple=True
-    )
-    nz_up_conn_pose_ind, nz_up_conn_res_ind = torch.nonzero(
-        res_has_up_conn, as_tuple=True
-    )
+    nz_down_conn_pose_ind, nz_down_conn_res_ind = torch.nonzero(res_has_down_conn, as_tuple=True)
+    nz_up_conn_pose_ind, nz_up_conn_res_ind = torch.nonzero(res_has_up_conn, as_tuple=True)
 
-    res_arange = (
-        torch.arange(max_n_res, dtype=torch.int32, device=device)
-        .unsqueeze(0)
-        .expand(n_poses, -1)
-    )
+    res_arange = torch.arange(max_n_res, dtype=torch.int32, device=device).unsqueeze(0).expand(n_poses, -1)
     res_next_ind = res_arange + 1
     res_prev_ind = res_arange - 1
     is_res_disconnected_from_prev[nz_down_conn_pose_ind, nz_down_conn_res_ind] = (
@@ -261,25 +218,17 @@ def determine_res_not_connected_from_pose_stack(
         != res_prev_ind[nz_down_conn_pose_ind, nz_down_conn_res_ind]
     )
     is_res_disconnected_from_next[nz_up_conn_pose_ind, nz_up_conn_res_ind] = (
-        pose_stack.inter_residue_connections[
-            nz_up_conn_pose_ind, nz_up_conn_res_ind, res_up_conn[res_has_up_conn], 0
-        ]
+        pose_stack.inter_residue_connections[nz_up_conn_pose_ind, nz_up_conn_res_ind, res_up_conn[res_has_up_conn], 0]
         != res_next_ind[nz_up_conn_pose_ind, nz_up_conn_res_ind]
     )
 
-    res_not_connected = torch.zeros(
-        (n_poses, max_n_res, 2), dtype=torch.bool, device=device
-    )
+    res_not_connected = torch.zeros((n_poses, max_n_res, 2), dtype=torch.bool, device=device)
     res_not_connected[:, :, 0] = torch.logical_or(
-        torch.logical_and(
-            torch.logical_not(is_chain_first), is_res_disconnected_from_prev
-        ),
+        torch.logical_and(torch.logical_not(is_chain_first), is_res_disconnected_from_prev),
         torch.logical_and(is_chain_first, res_has_down_conn),
     )
     res_not_connected[:, :, 1] = torch.logical_or(
-        torch.logical_and(
-            torch.logical_not(is_chain_last), is_res_disconnected_from_next
-        ),
+        torch.logical_and(torch.logical_not(is_chain_last), is_res_disconnected_from_next),
         torch.logical_and(is_chain_last, res_has_up_conn),
     )
 

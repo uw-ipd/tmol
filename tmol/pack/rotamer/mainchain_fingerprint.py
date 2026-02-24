@@ -1,21 +1,18 @@
+from typing import Mapping, Tuple
+
 import attr
 import numpy
 import torch
 
-from typing import Tuple, Mapping
-
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
-
-from tmol.numeric.dihedrals import coord_dihedrals
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-
-from tmol.pack.rotamer.chi_sampler import ChiSampler
+from tmol.numeric.dihedrals import coord_dihedrals
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms_jit
-
+from tmol.pack.rotamer.chi_sampler import ChiSampler
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.types.array import NDArray
+from tmol.types.functional import validate_args
+from tmol.types.torch import Tensor
 
 # what atoms should we copy over?
 # everything north of "first sidechain atom"?
@@ -113,9 +110,7 @@ def create_non_sidechain_fingerprint(
     # TO DO: mainchain_atoms determined programatically from
     # shortest path between up- and down-connection atoms
     mc_at_names = rt.properties.polymer.mainchain_atoms
-    mc_atoms = numpy.array(
-        [rt.atom_to_idx[at] for at in mc_at_names], dtype=numpy.int32
-    )
+    mc_atoms = numpy.array([rt.atom_to_idx[at] for at in mc_at_names], dtype=numpy.int32)
     # mc_ind: which mainchain atom [0..n_mc_atoms) is a particular
     # atom by atom index
     mc_ind = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
@@ -128,9 +123,7 @@ def create_non_sidechain_fingerprint(
     n_nonh_bonds = numpy.zeros(rt.n_atoms, dtype=numpy.int32)
     for i in range(rt.bond_indices.shape[0]):
         bonded_atom_type = rt.atoms[rt.bond_indices[i, 1]].atom_type
-        bonded_elem_name = next(
-            at.element for at in chem_db.atom_types if at.name == bonded_atom_type
-        )
+        bonded_elem_name = next(at.element for at in chem_db.atom_types if at.name == bonded_atom_type)
         n_bonds[rt.bond_indices[i, 0]] += 1
         if bonded_elem_name != "H":
             n_nonh_bonds[rt.bond_indices[i, 0]] += 1
@@ -179,9 +172,7 @@ def create_non_sidechain_fingerprint(
                 # mc atom and two other mc atoms
 
                 mc_ind_for_mc_anc = mc_ind[mc_anc]
-                mc1_icoor_ind, mc2_icoor_ind = _mc_inds_for_chiral_mc_atom(
-                    rt, mc_atoms, mc_ind_for_mc_anc
-                )
+                mc1_icoor_ind, mc2_icoor_ind = _mc_inds_for_chiral_mc_atom(rt, mc_atoms, mc_ind_for_mc_anc)
 
                 mc_anc_icoor_ind = rt.at_to_icoor_ind[mc_anc]
 
@@ -194,11 +185,7 @@ def create_non_sidechain_fingerprint(
                 at4_coord = t64(rt.ideal_coords[rt.at_to_icoor_ind[nsc_at]])
 
                 # now we have four coordinates, measure the dihedral
-                dihe = numpy.degrees(
-                    coord_dihedrals(at4_coord, at2_coord, at1_coord, at3_coord).numpy()[
-                        0
-                    ]
-                )
+                dihe = numpy.degrees(coord_dihedrals(at4_coord, at2_coord, at1_coord, at3_coord).numpy()[0])
                 # some atoms are going to be placed in the plane
                 # defined by the three "main chain" atoms. If the
                 # atoms are within an epsilon of a dihedral angle of 0 or 180
@@ -215,12 +202,8 @@ def create_non_sidechain_fingerprint(
                 chirality = 0
 
         atom_type_name = rt.atoms[nsc_at].atom_type
-        elem_name = next(
-            at.element for at in chem_db.atom_types if at.name == atom_type_name
-        )
-        atomic_number = next(
-            el.atomic_number for el in chem_db.element_types if el.name == elem_name
-        )
+        elem_name = next(at.element for at in chem_db.atom_types if at.name == atom_type_name)
+        atomic_number = next(el.atomic_number for el in chem_db.element_types if el.name == elem_name)
         at_fingerprint = AtomFingerprint(
             mc_ind=mc_anc,
             mc_bond_dist=bonds_from_mc,
@@ -253,9 +236,7 @@ def _mc_inds_for_chiral_mc_atom(
                 # TO DO
                 # ?? I don't know
                 # I am having trouble envisioning this "main chain"
-                raise NotImplementedError(
-                    "No logic yet to handle packing a two-atom main chain"
-                )
+                raise NotImplementedError("No logic yet to handle packing a two-atom main chain")
             else:
                 # TO DO
                 # ie. elif len(mc_atoms) == 1:
@@ -264,9 +245,7 @@ def _mc_inds_for_chiral_mc_atom(
                 # sheared off a sugar residue to be packed
                 # independently and the "sidechain" is the hydroxyl H
                 # and the "mainchain" is the hydroxyl O.
-                raise NotImplementedError(
-                    "No logic yet to handle packing a one-atom main chain"
-                )
+                raise NotImplementedError("No logic yet to handle packing a one-atom main chain")
 
     elif mc_ind_for_mc_anc == len(mc_atoms) - 1:
         if "up" in rt.icoors:
@@ -284,9 +263,7 @@ def _mc_inds_for_chiral_mc_atom(
                 # it will be the first MC atom, and then we will not reach
                 # the "elif mc_ind_for_mc_anc == len(mc_atoms) - 1"
                 # I don't know what this mainchain looks like
-                raise NotImplementedError(
-                    "No logic yet to handle packing a two-atom main chain"
-                )
+                raise NotImplementedError("No logic yet to handle packing a two-atom main chain")
     else:
         # somewhere in the middle of the main chain (e.g. CA)
         mc1_icoor_ind = rt.at_to_icoor_ind[mc_atoms[mc_ind_for_mc_anc - 1]]
@@ -296,9 +273,7 @@ def _mc_inds_for_chiral_mc_atom(
 
 
 @validate_args
-def create_mainchain_fingerprint(
-    rt: RefinedResidueType, sc_roots: Tuple[str, ...], chem_db: PatchedChemicalDatabase
-):
+def create_mainchain_fingerprint(rt: RefinedResidueType, sc_roots: Tuple[str, ...], chem_db: PatchedChemicalDatabase):
     id = rt.rotamer_kinforest.id
     parents = rt.rotamer_kinforest.parent.copy()
     parents[parents < 0] = 0
@@ -306,9 +281,7 @@ def create_mainchain_fingerprint(
 
     sc_roots = tuple(rt.atom_to_idx[at] for at in sc_roots)
 
-    sidechain_atoms = bfs_sidechain_atoms_jit(
-        parents, numpy.array(sc_roots, dtype=numpy.int32)
-    )
+    sidechain_atoms = bfs_sidechain_atoms_jit(parents, numpy.array(sc_roots, dtype=numpy.int32))
     return create_non_sidechain_fingerprint(rt, parents, sidechain_atoms, chem_db)
 
 
@@ -326,9 +299,7 @@ def annotate_residue_type_with_sampler_fingerprints(
                 setattr(restype, "mc_fingerprints", {})
 
             sc_roots = sampler.first_sc_atoms_for_rt(restype)
-            mc_ats, mc_at_fps, at_for_fp = create_mainchain_fingerprint(
-                restype, sc_roots, chem_db
-            )
+            mc_ats, mc_at_fps, at_for_fp = create_mainchain_fingerprint(restype, sc_roots, chem_db)
             fingerprint = tuple(sorted(mc_at_fps))
             restype.mc_fingerprints[sampler.sampler_name()] = MCFingerprint(
                 mc_ats=mc_ats,
@@ -338,9 +309,7 @@ def annotate_residue_type_with_sampler_fingerprints(
             )
 
 
-def find_max_length_fp_among_res_samplers(
-    pbt: PackedBlockTypes, sampler_types, fp_sets
-):
+def find_max_length_fp_among_res_samplers(pbt: PackedBlockTypes, sampler_types, fp_sets):
     fp_to_ind = {fp: i for i, fp in enumerate(fp_sets)}
     n_fps_for_rt = numpy.zeros((pbt.n_types,), dtype=numpy.int32)
     max_sampler_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
@@ -354,9 +323,7 @@ def find_max_length_fp_among_res_samplers(
                     if j_len > n_fps_for_rt[i]:
                         n_fps_for_rt[i] = j_len
                         max_sampler_for_rt[i] = j
-                        max_fp_for_rt[i] = fp_to_ind[
-                            rt.mc_fingerprints[sampler].fingerprint
-                        ]
+                        max_fp_for_rt[i] = fp_to_ind[rt.mc_fingerprints[sampler].fingerprint]
     return (n_fps_for_rt, max_sampler_for_rt, max_fp_for_rt, fp_to_ind)
 
 
@@ -422,9 +389,7 @@ def find_unique_fingerprints(
                     continue
                 rt_fingerprint = rt.mc_fingerprints[sampler]
                 for ll, at_fp in enumerate(fp):
-                    mc_atom_inds_for_rt_for_sampler[ii, jj, kk, ll] = (
-                        rt_fingerprint.at_for_fingerprint.get(at_fp, -1)
-                    )
+                    mc_atom_inds_for_rt_for_sampler[ii, jj, kk, ll] = rt_fingerprint.at_for_fingerprint.get(at_fp, -1)
 
     def _t(arr):
         return torch.tensor(arr, dtype=torch.int64, device=pbt.device)
