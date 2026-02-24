@@ -72,10 +72,8 @@ jobs:
 
           # Install missing deps to the bind-mounted directory.
           # Use --prefix (not --target) so bin/ scripts are created for CLI tools.
-          # Pin numpy to the container's version so uv doesn't upgrade it.
-          CONTAINER_NUMPY=$(python3 -c "import numpy; print(numpy.__version__)")
-          uv pip install --prefix /ci-pip-pkgs --break-system-packages \
-            -r /tmp/to_install.txt 'packaging>=24.2' "numpy==${CONTAINER_NUMPY}"
+          uv pip install --prefix /ci-pip-pkgs --python /usr/bin/python3 --break-system-packages \
+            -r /tmp/to_install.txt 'packaging>=24.2'
 
           # Clean stale build artifacts from previous (potentially failed) builds
           rm -rf build/
