@@ -218,7 +218,6 @@ Tensor resolve_his_tautomerization(
   return his_taut;
 }
 
-// See https://stackoverflow.com/a/3221914
 TORCH_LIBRARY(tmol_io, m) {
   m.def("gen_pose_leaf_atoms", &pose_leaf_atom_gen_op);
   m.def("resolve_his_taut", &resolve_his_tautomerization);
