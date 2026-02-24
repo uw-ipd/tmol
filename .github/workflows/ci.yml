@@ -91,6 +91,7 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
           ruff check . || echo "::warning::ruff check found issues"
@@ -102,6 +103,7 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
@@ -125,6 +127,7 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           # Use V100s (GPUs 1,2, sm_70) — supported by PyTorch 2.5 (24.10 container).
           # Skip RTX 4000 (GPU 0) which is occupied by vLLM.
           export CUDA_VISIBLE_DEVICES=1,2
@@ -154,6 +157,7 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export CUDA_VISIBLE_DEVICES=1,2
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
@@ -186,6 +190,7 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export CUDA_VISIBLE_DEVICES=1,2
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
