@@ -1,7 +1,8 @@
 # Publish sdist to TestPyPI + wheels to GitHub Release.
 #
-# MANUAL TRIGGER ONLY — runs when you bump the version in pyproject.toml
-# and intentionally want to publish.
+# Runs on push to kdidi/jit_and_precompiled or manual trigger.
+# Safe to run on every push: TestPyPI rejects duplicate versions,
+# so the upload step is a no-op if the version already exists.
 #
 # PyPI/TestPyPI rejects wheel filenames with "+" local version segments
 # (e.g. +cu12torch2.5), so wheels are distributed via GitHub Releases
@@ -13,6 +14,9 @@
 name: Publish to TestPyPI
 
 on:
+  push:
+    branches:
+      - "kdidi/jit_and_precompiled"
   workflow_dispatch:
 
 jobs:
@@ -159,7 +163,7 @@ jobs:
         env:
           TWINE_USERNAME: "__token__"
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: python -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+        run: python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*
 
       # ── Upload wheels to a GitHub Release ──
       - name: Determine version from sdist filename
