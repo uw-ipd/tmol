@@ -1,3 +1,5 @@
+import os
+
 import torch
 import pytest
 
@@ -14,123 +16,97 @@ from tmol.io.pose_stack_from_atomworks import (
     _ATOMWORKS_MAX_PROTEIN_IDX,
 )
 
-
-def _make_synthetic_atomworks_batch(n_poses, n_res, device):
-    """Create a synthetic atomworks batch with random coords for ALA/GLY/VAL.
-
-    Returns (coords, residue_type, chain_iid) tensors.
-    OXT is never populated: tmol handles terminal oxygen via its patch system,
-    so it is excluded from the forward mapping and cannot round-trip.
-    """
-    # Pick a few AA types: ALA=1, GLY=8, VAL=20
-    aa_choices = torch.tensor([1, 8, 20], dtype=torch.int64, device=device)
-    residue_type = aa_choices[
-        torch.randint(0, len(aa_choices), (n_poses, n_res), device=device)
-    ]
-
-    # Build coords: random non-zero coords for real atoms, zeros for absent
-    coords = torch.zeros((n_poses, n_res, 37, 3), dtype=torch.float32, device=device)
-    for p in range(n_poses):
-        for r in range(n_res):
-            rt_idx = residue_type[p, r].item()
-            name3 = ATOMWORKS_NAME3S[rt_idx]
-            atoms = ATOMWORKS_ATOM37_NAMES[name3]
-            for a, at_name in enumerate(atoms):
-                if at_name == "" or at_name == "OXT":
-                    continue
-                coords[p, r, a] = torch.randn(3, device=device) * 10.0
-
-    # Single chain per pose
-    chain_iid = torch.zeros((n_poses, n_res), dtype=torch.int64, device=device)
-
-    return coords, residue_type, chain_iid
+_FIXTURE_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "data", "atomworks", "ubq_atomworks.pt"
+)
 
 
-def test_pose_stack_from_atomworks_basic(torch_device):
-    """Test that we can build a PoseStack from synthetic atomworks tensors."""
-    coords, residue_type, chain_iid = _make_synthetic_atomworks_batch(
-        n_poses=2, n_res=5, device=torch_device
-    )
+@pytest.fixture(scope="session")
+def ubq_atomworks_data():
+    """Load the ubiquitin atomworks fixture (device-agnostic, loaded once)."""
+    return torch.load(_FIXTURE_PATH, weights_only=True)
+
+
+@pytest.fixture
+def ubq_atomworks(ubq_atomworks_data, torch_device):
+    """Ubiquitin atomworks tensors on the test device."""
+    return {k: v.to(torch_device) for k, v in ubq_atomworks_data.items()}
+
+
+def test_pose_stack_from_atomworks_basic(ubq_atomworks, torch_device):
+    """Test that we can build a PoseStack from ubiquitin atomworks tensors."""
+    coords = ubq_atomworks["coords"]
+    residue_type = ubq_atomworks["residue_type"]
+    chain_iid = ubq_atomworks["chain_iid"]
+
     ps = pose_stack_from_atomworks(coords, residue_type, chain_iid)
-    assert len(ps) == 2
-    assert ps.max_n_blocks == 5
+    assert len(ps) == 1
+    assert ps.max_n_blocks == 76
     assert ps.coords.device == torch_device
 
 
-def test_canonical_form_from_atomworks(torch_device):
+def test_canonical_form_from_atomworks(ubq_atomworks, torch_device):
     """Test that canonical form has correct shapes and non-NaN backbone coords."""
-    coords, residue_type, chain_iid = _make_synthetic_atomworks_batch(
-        n_poses=1, n_res=3, device=torch_device
-    )
-    cf = canonical_form_from_atomworks(coords, residue_type, chain_iid)
-    assert cf.res_types.shape == (1, 3)
-    assert cf.coords.shape[0] == 1
-    assert cf.coords.shape[1] == 3
+    coords = ubq_atomworks["coords"]
+    residue_type = ubq_atomworks["residue_type"]
+    chain_iid = ubq_atomworks["chain_iid"]
 
-    # All protein residues should have valid N, CA, C coords (backbone)
-    # which should not be NaN since we populated them
+    cf = canonical_form_from_atomworks(coords, residue_type, chain_iid)
+    assert cf.res_types.shape == (1, 76)
+    assert cf.coords.shape[0] == 1
+    assert cf.coords.shape[1] == 76
+
     co = canonical_ordering_for_atomworks()
-    for r in range(3):
+    for r in range(76):
         rt_idx = residue_type[0, r].item()
         name3 = ATOMWORKS_NAME3S[rt_idx]
         for atname in ["N", "CA", "C"]:
             canon_idx = co.restypes_atom_index_mapping[name3][atname]
             assert not torch.isnan(
                 cf.coords[0, r, canon_idx, 0]
-            ).item(), f"Expected non-NaN coord for {name3} atom {atname}"
+            ).item(), f"Expected non-NaN coord for {name3} atom {atname} at res {r}"
 
 
-def test_round_trip_atomworks_posestack(torch_device):
+def test_round_trip_atomworks_posestack(ubq_atomworks, torch_device):
     """Test that atomworks -> PoseStack -> atomworks is a faithful round trip."""
-    coords, residue_type, chain_iid = _make_synthetic_atomworks_batch(
-        n_poses=2, n_res=6, device=torch_device
-    )
+    coords = ubq_atomworks["coords"]
+    residue_type = ubq_atomworks["residue_type"]
+    chain_iid = ubq_atomworks["chain_iid"]
 
-    # Forward: atomworks -> PoseStack
     ps = pose_stack_from_atomworks(coords, residue_type, chain_iid)
-
-    # Reverse: PoseStack -> atomworks
     rt_coords, rt_residue_type, rt_chain_iid = atomworks_from_pose_stack(ps)
 
-    # Residue types should match
     assert torch.equal(residue_type, rt_residue_type)
-
-    # Chain IDs should match
     assert torch.equal(chain_iid, rt_chain_iid)
 
-    # Coords should match for all real non-OXT atoms (within tolerance).
-    # OXT is excluded from the forward mapping (tmol handles it via patches).
-    for p in range(coords.shape[0]):
-        for r in range(coords.shape[1]):
-            rt_idx = residue_type[p, r].item()
-            name3 = ATOMWORKS_NAME3S[rt_idx]
-            atoms = ATOMWORKS_ATOM37_NAMES[name3]
-            for a, at_name in enumerate(atoms):
-                if at_name == "" or at_name == "OXT":
-                    continue
-                torch.testing.assert_close(
-                    coords[p, r, a],
-                    rt_coords[p, r, a],
-                    atol=1e-4,
-                    rtol=1e-4,
-                    msg=f"Mismatch at pose={p}, res={r}, atom={at_name} (slot {a})",
-                )
+    for r in range(coords.shape[1]):
+        rt_idx = residue_type[0, r].item()
+        name3 = ATOMWORKS_NAME3S[rt_idx]
+        atoms = ATOMWORKS_ATOM37_NAMES[name3]
+        for a, at_name in enumerate(atoms):
+            if at_name == "" or at_name == "OXT":
+                continue
+            torch.testing.assert_close(
+                coords[0, r, a],
+                rt_coords[0, r, a],
+                atol=1e-4,
+                rtol=1e-4,
+                msg=f"Mismatch at res={r}, atom={at_name} (slot {a})",
+            )
 
 
-def test_multichain(torch_device):
+def test_multichain(ubq_atomworks, torch_device):
     """Test that multi-chain structures are handled correctly."""
-    n_poses, n_res = 1, 8
-    coords, residue_type, chain_iid = _make_synthetic_atomworks_batch(
-        n_poses=n_poses, n_res=n_res, device=torch_device
-    )
-    # Two chains: 0,0,0,0,1,1,1,1
-    chain_iid[0, :4] = 0
-    chain_iid[0, 4:] = 1
+    coords = ubq_atomworks["coords"]
+    residue_type = ubq_atomworks["residue_type"]
+    chain_iid = ubq_atomworks["chain_iid"].clone()
+
+    # Split ubiquitin into two chains at residue 38
+    chain_iid[0, 38:] = 1
 
     ps = pose_stack_from_atomworks(coords, residue_type, chain_iid)
     assert len(ps) == 1
 
-    # Round-trip
     rt_coords, rt_residue_type, rt_chain_iid = atomworks_from_pose_stack(ps)
     assert torch.equal(chain_iid, rt_chain_iid)
     assert torch.equal(residue_type, rt_residue_type)
@@ -141,12 +117,10 @@ def test_protein_only_validation(torch_device):
     coords = torch.zeros((1, 3, 37, 3), dtype=torch.float32, device=torch_device)
     chain_iid = torch.zeros((1, 3), dtype=torch.int64, device=torch_device)
 
-    # Index 0 (mask) is out of protein range
     residue_type = torch.tensor([[0, 1, 2]], dtype=torch.int64, device=torch_device)
     with pytest.raises(ValueError, match="protein only"):
         canonical_form_from_atomworks(coords, residue_type, chain_iid)
 
-    # Index 22 (RNA) is out of range
     residue_type = torch.tensor([[1, 22, 3]], dtype=torch.int64, device=torch_device)
     with pytest.raises(ValueError, match="protein only"):
         canonical_form_from_atomworks(coords, residue_type, chain_iid)
@@ -154,15 +128,15 @@ def test_protein_only_validation(torch_device):
 
 def test_all_20_amino_acids(torch_device):
     """Test that all 20 standard amino acids can be round-tripped."""
+    torch.manual_seed(42)
+
     n_res = 20
     residue_type = torch.arange(
         _ATOMWORKS_MIN_PROTEIN_IDX,
         _ATOMWORKS_MAX_PROTEIN_IDX + 1,
         dtype=torch.int64,
         device=torch_device,
-    ).unsqueeze(
-        0
-    )  # [1, 20]
+    ).unsqueeze(0)
 
     coords = torch.zeros((1, n_res, 37, 3), dtype=torch.float32, device=torch_device)
     for r in range(n_res):
