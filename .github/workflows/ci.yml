@@ -59,30 +59,19 @@ jobs:
 
           # Use the container's installed packages as constraints so uv
           # resolves to matching versions and doesn't try to replace them.
-          # Freeze container packages as constraints, but exclude packages
-          # not in the container (they'll be resolved freely by uv for the correct Python version).
-          pip freeze --path /usr/local/lib/python${PYVER}/dist-packages 2>/dev/null | grep -vE '(file://|^-e |^#)' > /tmp/container_pins.txt
+          pip freeze | grep -vE '(file://|^-e |^#)' > /tmp/container_pins.txt
           uv pip compile pyproject.toml --all-extras \
-            --python /usr/bin/python3 \
             --constraint /tmp/container_pins.txt \
             --output-file /tmp/requirements.txt
 
           # Filter out packages provided by the NGC base image
-          # Filter out packages provided by the NGC base image.
-          # Filter out ALL packages provided by the NGC base image.
-          # Any package with C extensions compiled against the container's numpy 1.x
-          # must NOT be replaced, or numpy 2.x gets pulled in and breaks everything.
-          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy|pyarrow|matplotlib|pillow|contourpy|kiwisolver|fonttools|setuptools|sympy|networkx|packaging|filelock|jinja2|markupsafe|certifi|charset-normalizer|idna|urllib3|requests|six|python-dateutil|pyparsing|cycler|pytz|sortedcontainers|pyyaml)==" \
+          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml)==" \
             /tmp/requirements.txt > /tmp/to_install.txt
 
           # Install missing deps to the bind-mounted directory.
           # Use --prefix (not --target) so bin/ scripts are created for CLI tools.
-          # Use --python to force the container's Python (not any venv on /net/scratch).
-          # Pin numpy to the container's version so transitive deps don't upgrade it.
-          # numpy 2.x breaks torch/pandas compiled against numpy 1.x.
-          CONTAINER_NUMPY=$(python3 -c "import numpy; print(numpy.__version__)")
-          uv pip install --prefix /ci-pip-pkgs --python /usr/bin/python3 --break-system-packages \
-            -r /tmp/to_install.txt 'packaging>=24.2' 'setuptools>=77' "numpy==${CONTAINER_NUMPY}"
+          uv pip install --prefix /ci-pip-pkgs --break-system-packages \
+            -r /tmp/to_install.txt 'packaging>=24.2'
 
           # Clean stale build artifacts from previous (potentially failed) builds
           rm -rf build/
@@ -100,7 +89,6 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
           ruff check . || echo "::warning::ruff check found issues"
@@ -112,7 +100,6 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
@@ -139,7 +126,6 @@ jobs:
           # Use V100s (GPUs 1,2, sm_70) — supported by PyTorch 2.5 (24.10 container).
           # Skip RTX 4000 (GPU 0) which is occupied by vLLM.
           export CUDA_VISIBLE_DEVICES=1,2
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
@@ -167,7 +153,6 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export CUDA_VISIBLE_DEVICES=1,2
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
@@ -200,13 +185,9 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export CUDA_VISIBLE_DEVICES=1,2
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
           export TMOL_USE_JIT=1
-          # JIT compilation needs the same arch list as AOT — default includes
-          # compute_52 which doesn't support atomicAdd(double*, double).
-          export TORCH_CUDA_ARCH_LIST="7.0 8.0 9.0+PTX"
 
           echo "+++ tests (CUDA JIT)"
           pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cuda.jit.junit.xml

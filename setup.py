@@ -426,14 +426,6 @@ def _test_extensions():
 
     exts.append(
         _make_pybind_ext(
-            "tmol.tests.score.ljlk.potentials._sphere_overlap",
-            ["tmol/tests/score/ljlk/potentials/sphere_overlap.cu"],
-            cuda=True,
-        )
-    )
-
-    exts.append(
-        _make_pybind_ext(
             "tmol.tests.kinematics.segscan._ext",
             ["tmol/tests/kinematics/segscan/segscan.cu"],
             cuda=True,

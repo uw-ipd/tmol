@@ -179,23 +179,6 @@ ignore = [
     "B010",   # do not call setattr with a constant attribute
     "B020",   # loop control variable overrides iterable
     "B023",   # function definition does not bind loop variable
-    "B007",   # loop control variable not used within loop body
-    "B018",   # found useless expression (used in pytest.raises blocks)
-    "B905",   # zip() without explicit strict= parameter
-    "C401",   # unnecessary generator (rewrite as set comprehension)
-    "C403",   # unnecessary list comprehension (rewrite as set comprehension)
-    "C405",   # unnecessary list/tuple literal (rewrite as set literal)
-    "C408",   # unnecessary dict/list/tuple call (rewrite as literal)
-    "C409",   # unnecessary list literal passed to tuple()
-    "C414",   # unnecessary list() call within sorted()
-    "C416",   # unnecessary list comprehension (rewrite using list())
-    "C417",   # unnecessary map() usage
-    "E731",   # do not assign a lambda expression, use a def
-    "F821",   # undefined name (false positives on forward-ref type annotations)
-    "T100",   # import for pdb (false positive on tmol.tests.data.pdb module)
-    "B011",   # do not assert False
-    "B017",   # do not assert blind exception
-    "B904",   # raise exceptions with raise ... from err in except clauses
 ]
 
 [tool.ruff.lint.per-file-ignores]
