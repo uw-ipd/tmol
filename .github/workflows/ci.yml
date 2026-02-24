@@ -59,19 +59,23 @@ jobs:
 
           # Use the container's installed packages as constraints so uv
           # resolves to matching versions and doesn't try to replace them.
-          pip freeze | grep -vE '(file://|^-e |^#)' > /tmp/container_pins.txt
+          # Exclude pandas/scipy — their pinned versions may conflict with
+          # the container's numpy; let uv resolve compatible versions.
+          pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==)' > /tmp/container_pins.txt
           uv pip compile pyproject.toml --all-extras \
             --constraint /tmp/container_pins.txt \
             --output-file /tmp/requirements.txt
 
           # Filter out packages provided by the NGC base image
-          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml)==" \
+          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" \
             /tmp/requirements.txt > /tmp/to_install.txt
 
           # Install missing deps to the bind-mounted directory.
           # Use --prefix (not --target) so bin/ scripts are created for CLI tools.
+          # Pin numpy to the container's version so uv doesn't upgrade it.
+          CONTAINER_NUMPY=$(python3 -c "import numpy; print(numpy.__version__)")
           uv pip install --prefix /ci-pip-pkgs --break-system-packages \
-            -r /tmp/to_install.txt 'packaging>=24.2'
+            -r /tmp/to_install.txt 'packaging>=24.2' "numpy==${CONTAINER_NUMPY}"
 
           # Clean stale build artifacts from previous (potentially failed) builds
           rm -rf build/
