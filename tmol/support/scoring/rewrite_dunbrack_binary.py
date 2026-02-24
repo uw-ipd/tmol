@@ -1,22 +1,22 @@
-import argparse
 import gzip
+import numpy
 import os
 from pathlib import Path
-
-import attr
-import cattr
-import numpy
+import argparse
 import torch
 import yaml
-
+import attr
+import cattr
 from tmol.database.scoring.dunbrack_libraries import (
     DunbrackRotamerLibrary,
-    RotamericAADunbrackLibrary,
     RotamericDataForAA,
+    RotamericAADunbrackLibrary,
     SemiRotamericAADunbrackLibrary,
 )
 
-rotamer_aliases = {"pro": numpy.array([[1, 3, 1, 1, 1, 1], [3, 1, 3, 2, 1, 1]], dtype=int)}
+rotamer_aliases = {
+    "pro": numpy.array([[1, 3, 1, 1, 1, 1], [3, 1, 3, 2, 1, 1]], dtype=int)
+}
 
 
 def create_rotameric_data_for_aa(aa_lines, nchi, rotamer_alias=None):
@@ -53,10 +53,16 @@ def create_rotameric_data_for_aa(aa_lines, nchi, rotamer_alias=None):
 
         prob = float(cols[8])
         probabilities[rot_ind, phi_ind, psi_ind] = prob
-        means[rot_ind, phi_ind, psi_ind, :] = numpy.array([float(x) for x in cols[9 : (9 + nchi)]], dtype=float)
-        stdvs[rot_ind, phi_ind, psi_ind, :] = numpy.array([float(x) for x in cols[13 : (13 + nchi)]], dtype=float)
+        means[rot_ind, phi_ind, psi_ind, :] = numpy.array(
+            [float(x) for x in cols[9 : (9 + nchi)]], dtype=float
+        )
+        stdvs[rot_ind, phi_ind, psi_ind, :] = numpy.array(
+            [float(x) for x in cols[13 : (13 + nchi)]], dtype=float
+        )
         count_for_ppbin = count_rots_in_ppbin[phi_ind, psi_ind]
-        prob_sorted_rots_by_phi_psi[phi_ind, psi_ind, count_for_ppbin] = rot_to_rot_ind[rot_id]
+        prob_sorted_rots_by_phi_psi[phi_ind, psi_ind, count_for_ppbin] = rot_to_rot_ind[
+            rot_id
+        ]
         rotprob_by_phi_psi_order[phi_ind, psi_ind, count_for_ppbin] = -1 * prob
         count_rots_in_ppbin[phi_ind, psi_ind] = count_for_ppbin + 1
 
@@ -65,7 +71,9 @@ def create_rotameric_data_for_aa(aa_lines, nchi, rotamer_alias=None):
         prob_sorted_rots_by_phi_psi, rotprob_by_phi_psi_order_inds, axis=2
     )
 
-    numpy.testing.assert_array_equal(count_rots_in_ppbin, nrots * numpy.ones([36, 36], dtype=int))
+    numpy.testing.assert_array_equal(
+        count_rots_in_ppbin, nrots * numpy.ones([36, 36], dtype=int)
+    )
 
     return RotamericDataForAA(
         rotamers=torch.tensor(sorted_rots_array),
@@ -101,7 +109,9 @@ def create_semi_rotameric_aa_dunbrack_library(
 
     rotameric_data = create_rotameric_data_for_aa(bb_rotamer_lines, nchi)
     n_rotamers = rotameric_data.rotamers.shape[0]
-    allchi_rot_to_rot_ind = {tuple(rotameric_data.rotamers[i, :].tolist()): i for i in range(n_rotamers)}
+    allchi_rot_to_rot_ind = {
+        tuple(rotameric_data.rotamers[i, :].tolist()): i for i in range(n_rotamers)
+    }
 
     # read the chi labels, the number of non-rotameric chi samples, and the
     # non-rotameric chi start, step and period from the comments at the top
@@ -200,7 +210,9 @@ def create_dunbrack_rotamer_library(path_to_db_dir, path_to_reference_db_dir):
     dun_lookup = None
     with open(path_lookup, "r") as infile_lookup:
         raw = yaml.load(infile_lookup, Loader=yaml.FullLoader)
-        dun_lookup = cattr.structure(raw["dunbrack_lookup"], attr.fields(DunbrackRotamerLibrary).dun_lookup.type)
+        dun_lookup = cattr.structure(
+            raw["dunbrack_lookup"], attr.fields(DunbrackRotamerLibrary).dun_lookup.type
+        )
 
     # Rotameric residues:
     # CYS, ILE, LYS, LEU, MET, PRO, ARG, SER, THR, VAL
@@ -216,7 +228,10 @@ def create_dunbrack_rotamer_library(path_to_db_dir, path_to_reference_db_dir):
         "thr",
         "val",
     ]
-    lib_files = [os.path.join(path_to_db_dir, x + ".bbdep.rotamers.lib.gz") for x in rotameric_aas]
+    lib_files = [
+        os.path.join(path_to_db_dir, x + ".bbdep.rotamers.lib.gz")
+        for x in rotameric_aas
+    ]
     rdls = []
     for i, lib_file in enumerate(lib_files):
         # print("processing", lib_file)
@@ -227,7 +242,9 @@ def create_dunbrack_rotamer_library(path_to_db_dir, path_to_reference_db_dir):
         rotamer_alias = None
         if aa in rotamer_aliases:
             rotamer_alias = rotamer_aliases[aa]
-        rot_lib = create_rotameric_aa_dunbrack_library(rotameric_aas[i], lines, nchi_for_aa[aa.upper()], rotamer_alias)
+        rot_lib = create_rotameric_aa_dunbrack_library(
+            rotameric_aas[i], lines, nchi_for_aa[aa.upper()], rotamer_alias
+        )
         rdls.append(rot_lib)
 
     semirot_aas = ["asp", "glu", "phe", "his", "asn", "gln", "trp", "tyr"]
@@ -274,7 +291,9 @@ def create_dunbrack_rotamer_library(path_to_db_dir, path_to_reference_db_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rosetta_dir", default=os.path.join(Path.home(), "Rosetta/main/"))
+    parser.add_argument(
+        "--rosetta_dir", default=os.path.join(Path.home(), "Rosetta/main/")
+    )
     args, _ = parser.parse_known_args()
     parser.add_argument(
         "--path_to_db_dir",

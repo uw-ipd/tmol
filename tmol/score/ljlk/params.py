@@ -1,14 +1,18 @@
 import attr
 import cattr
+
 import pandas
+
 import torch
 
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from tmol.database.scoring.ljlk import LJLKDatabase
+
+from tmol.types.torch import Tensor
+from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
-from tmol.types.tensor import TensorGroup
-from tmol.types.torch import Tensor
+
+from tmol.database.scoring.ljlk import LJLKDatabase
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 from ..chemical_database import AtomTypeParamResolver
 
@@ -89,7 +93,9 @@ class LJLKParamResolver(ValidateAttrs):
 
     @classmethod
     @validate_args
-    def from_param_resolver(cls, atom_type_resolver: AtomTypeParamResolver, ljlk_database: LJLKDatabase):
+    def from_param_resolver(
+        cls, atom_type_resolver: AtomTypeParamResolver, ljlk_database: LJLKDatabase
+    ):
         # Reference existing atom type index from atom_type_resolver
         atom_type_index = atom_type_resolver.index
         device = atom_type_resolver.device
@@ -112,7 +118,9 @@ class LJLKParamResolver(ValidateAttrs):
         # the param resolver type index. This appends a "nan" row at the end of
         # the frame for the invalid/None entry added above.
         param_records = (
-            pandas.DataFrame.from_records(cattr.unstructure(ljlk_database.atom_type_parameters))
+            pandas.DataFrame.from_records(
+                cattr.unstructure(ljlk_database.atom_type_parameters)
+            )
             .set_index("name")
             .reindex(index=atom_type_index)
         )
@@ -126,9 +134,12 @@ class LJLKParamResolver(ValidateAttrs):
             is_hydroxyl=atom_type_resolver.params.is_hydroxyl,
             is_polarh=atom_type_resolver.params.is_polarh,
             **{
-                f.name: torch.tensor(param_records[f.name].values, dtype=f.type.dtype, device=device)
+                f.name: torch.tensor(
+                    param_records[f.name].values, dtype=f.type.dtype, device=device
+                )
                 for f in attr.fields(LJLKTypeParams)
-                if f.name in ("lj_radius", "lj_wdepth", "lk_dgfree", "lk_lambda", "lk_volume")
+                if f.name
+                in ("lj_radius", "lj_wdepth", "lk_dgfree", "lk_lambda", "lk_volume")
             },
             is_hydrogen=atom_type_resolver.params.is_hydrogen,
         )

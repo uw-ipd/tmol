@@ -1,18 +1,21 @@
-import cattr
-import numpy
 import torch
+import numpy
+import cattr
 
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.pack.packer_task import PackerPalette, PackerTask
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.pack.packer_task import PackerTask, PackerPalette
+from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
+
 from tmol.tests.data import no_termini_pose_stack_from_pdb
 
 
 def test_annotate_residue_type_smoke(default_database):
     ala_restype = cattr.structure(
-        cattr.unstructure(next(res for res in default_database.chemical.residues if res.name == "ALA")),
+        cattr.unstructure(
+            next(res for res in default_database.chemical.residues if res.name == "ALA")
+        ),
         RefinedResidueType,
     )
 
@@ -29,20 +32,28 @@ def test_annotate_packed_block_types_smoke(default_database, torch_device):
         for res in default_database.chemical.residues
         if res.name in desired
     ]
-    restype_set = ResidueTypeSet.from_restype_list(default_database.chemical, all_restypes)
+    restype_set = ResidueTypeSet.from_restype_list(
+        default_database.chemical, all_restypes
+    )
 
     sampler = FixedAAChiSampler()
     for restype in all_restypes:
         sampler.annotate_residue_type(restype)
 
-    pbt = PackedBlockTypes.from_restype_list(default_database.chemical, restype_set, all_restypes, torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical, restype_set, all_restypes, torch_device
+    )
     sampler.annotate_packed_block_types(pbt)
 
 
 def test_chi_sampler_smoke(ubq_pdb, torch_device, default_restype_set):
     torch_device = torch.device("cpu")
-    p1 = no_termini_pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=5, residue_end=11)
-    p2 = no_termini_pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=8)
+    p1 = no_termini_pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_start=5, residue_end=11
+    )
+    p2 = no_termini_pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_start=1, residue_end=8
+    )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette(default_restype_set)
     task = PackerTask(poses, palette)

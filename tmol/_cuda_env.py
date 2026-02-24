@@ -123,7 +123,9 @@ def _find_pip_cuda_home() -> str | None:
         if not os.path.isdir(nvidia_dir):
             continue
         # Sort descending so we prefer the newest cu version (e.g. cu13 > cu12)
-        for cuda_dir in sorted(glob.glob(os.path.join(nvidia_dir, "cu*")), reverse=True):
+        for cuda_dir in sorted(
+            glob.glob(os.path.join(nvidia_dir, "cu*")), reverse=True
+        ):
             nvcc = os.path.join(cuda_dir, "bin", "nvcc")
             if os.path.isfile(nvcc) and os.access(nvcc, os.X_OK):
                 return cuda_dir

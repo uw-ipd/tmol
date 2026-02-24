@@ -1,15 +1,16 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_pdb
-from tmol.io.canonical_ordering import (
-    canonical_form_from_pdb,
-    default_canonical_ordering,
-    default_packed_block_types,
-)
-from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+
+from tmol.io.canonical_ordering import (
+    default_canonical_ordering,
+    default_packed_block_types,
+    canonical_form_from_pdb,
+)
+from tmol.io import pose_stack_from_pdb
+from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
 @pytest.fixture
@@ -34,7 +35,9 @@ def fresh_default_packed_block_types(fresh_default_restype_set, torch_device):
 def stack_of_two_six_res_ubqs(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_start=0, residue_end=6)
+    canonical_form = canonical_form_from_pdb(
+        co, ubq_pdb, torch_device, residue_start=0, residue_end=6
+    )
 
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     return PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
@@ -44,9 +47,13 @@ def stack_of_two_six_res_ubqs(ubq_pdb, torch_device):
 def stack_of_two_six_res_ubqs_no_term(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_start=1, residue_end=7)
+    canonical_form = canonical_form_from_pdb(
+        co, ubq_pdb, torch_device, residue_start=1, residue_end=7
+    )
 
-    canonical_form.res_not_connected = torch.zeros((1, 6, 2), dtype=torch.bool, device=torch_device)
+    canonical_form.res_not_connected = torch.zeros(
+        (1, 6, 2), dtype=torch.bool, device=torch_device
+    )
     canonical_form.res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
     canonical_form.res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
@@ -59,7 +66,11 @@ def jagged_stack_of_465_res_ubqs(ubq_pdb, torch_device):
     pbt = default_packed_block_types(torch_device)
 
     def pose_stack_of_nres(nres):
-        canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_start=0, residue_end=nres)
+        canonical_form = canonical_form_from_pdb(
+            co, ubq_pdb, torch_device, residue_start=0, residue_end=nres
+        )
         return pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
-    return PoseStackBuilder.from_poses([pose_stack_of_nres(x) for x in [4, 6, 5]], torch_device)
+    return PoseStackBuilder.from_poses(
+        [pose_stack_of_nres(x) for x in [4, 6, 5]], torch_device
+    )

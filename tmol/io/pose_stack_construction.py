@@ -1,15 +1,14 @@
-from typing import Optional
-
-import numpy
 import torch
+import numpy
 
-from tmol.io.canonical_ordering import CanonicalOrdering
-from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.types.torch import Tensor
+from tmol.types.array import NDArray
+from typing import Optional
+from tmol.types.functional import validate_args
 from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.pose_stack import PoseStack
-from tmol.types.array import NDArray
-from tmol.types.functional import validate_args
-from tmol.types.torch import Tensor
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.io.canonical_ordering import CanonicalOrdering
 
 
 @validate_args
@@ -128,14 +127,14 @@ def pose_stack_from_canonical_form(
 
     """
 
-    from tmol.io.details.build_missing_leaf_atoms import build_missing_leaf_atoms
+    from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
     from tmol.io.details.disulfide_search import find_disulfides
     from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
-    from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
     from tmol.io.details.select_from_canonical import (
         assign_block_types,
         take_block_type_atoms_from_canonical,
     )
+    from tmol.io.details.build_missing_leaf_atoms import build_missing_leaf_atoms
 
     assert chain_id.device == res_types.device
     assert chain_id.device == coords.device
@@ -220,7 +219,9 @@ def pose_stack_from_canonical_form(
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(canonical_ordering, res_types, res_type_variants, coords, atom_is_present)
+    ) = resolve_his_tautomerization(
+        canonical_ordering, res_types, res_type_variants, coords, atom_is_present
+    )
 
     # 5
     (
@@ -246,17 +247,21 @@ def pose_stack_from_canonical_form(
         real_canonical_atom_inds,
         atom_occupancy,
         atom_b_factor,
-    ) = take_block_type_atoms_from_canonical(pbt, block_types64, coords, atom_is_present, atom_occupancy, atom_b_factor)
+    ) = take_block_type_atoms_from_canonical(
+        pbt, block_types64, coords, atom_is_present, atom_occupancy, atom_b_factor
+    )
 
     # 7
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
-    pose_stack_coords, block_coord_offset, real_block_atoms, pose_at_is_real = build_missing_leaf_atoms(
-        pbt,
-        block_types64,
-        real_atoms,
-        block_coords,
-        missing_atoms,
-        inter_residue_connections,
+    pose_stack_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
+        build_missing_leaf_atoms(
+            pbt,
+            block_types64,
+            real_atoms,
+            block_coords,
+            missing_atoms,
+            inter_residue_connections,
+        )
     )
 
     def i64(x):
@@ -270,11 +275,15 @@ def pose_stack_from_canonical_form(
         real_block_atoms = real_block_atoms.cpu().numpy()
         pose_at_is_real = pose_at_is_real.cpu().numpy()
     if atom_occupancy is not None:
-        atom_occupancy_pose_layout = numpy.full(pose_stack_coords.shape[:2], 1.0, dtype=numpy.float32)
+        atom_occupancy_pose_layout = numpy.full(
+            pose_stack_coords.shape[:2], 1.0, dtype=numpy.float32
+        )
         atom_occupancy_pose_layout[pose_at_is_real] = atom_occupancy[real_block_atoms]
         atom_occupancy = atom_occupancy_pose_layout
     if atom_b_factor is not None:
-        atom_b_factor_pose_layout = numpy.full(pose_stack_coords.shape[:2], 0.0, dtype=numpy.float32)
+        atom_b_factor_pose_layout = numpy.full(
+            pose_stack_coords.shape[:2], 0.0, dtype=numpy.float32
+        )
         atom_b_factor_pose_layout[pose_at_is_real] = atom_b_factor[real_block_atoms]
         atom_b_factor = atom_b_factor_pose_layout
 
@@ -312,7 +321,10 @@ def pose_stack_from_canonical_form(
             nz_block_layout_block_ind,
             nz_block_at_ind,
         ) = torch.nonzero(real_atoms, as_tuple=True)
-        pose_atom_ind = block_coord_offset64[nz_block_layout_pose_ind, nz_block_layout_block_ind] + nz_block_at_ind
+        pose_atom_ind = (
+            block_coord_offset64[nz_block_layout_pose_ind, nz_block_layout_block_ind]
+            + nz_block_at_ind
+        )
 
         def _u1(x):
             return x.unsqueeze(1)

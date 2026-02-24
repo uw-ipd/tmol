@@ -1,9 +1,7 @@
-from typing import List, Optional, Tuple, Union
-
 import torch
-
-from tmol.types.functional import validate_args
+from typing import List, Tuple, Union, Optional
 from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
 
 
 @validate_args
@@ -23,7 +21,13 @@ def stretch2(t: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]], cou
          tensor([[0 0 0 1 1 1 2 2 2 3 3 3],[4 4 4 5 5 5 6 6 6 7 7 7]])
     this is equivalent to numpy's repeat
     """
-    return t.repeat(1, count).view(t.shape[0], count, -1).permute(0, 2, 1).contiguous().view(t.shape[0], -1)
+    return (
+        t.repeat(1, count)
+        .view(t.shape[0], count, -1)
+        .permute(0, 2, 1)
+        .contiguous()
+        .view(t.shape[0], -1)
+    )
 
 
 @validate_args
@@ -109,8 +113,12 @@ def nplus1d_tensor_from_list(
     newdimsizes = [len(tensors)] + max_sizes
 
     newt = torch.zeros(newdimsizes, dtype=tensors[0].dtype, device=tensors[0].device)
-    sizes = torch.zeros((len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device)
-    strides = torch.zeros((len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device)
+    sizes = torch.zeros(
+        (len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device
+    )
+    strides = torch.zeros(
+        (len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device
+    )
 
     for i, t in enumerate(tensors):
         ti = newt[i, :]
@@ -140,9 +148,15 @@ def cat_differently_sized_tensors(
 
     newt = torch.zeros(new_sizes, dtype=tensors[0].dtype, device=device)
 
-    sizes = torch.zeros((n_entries_for_catdim, tensors[0].dim() - 1), dtype=torch.int64, device=device)
-    strides = torch.zeros((n_entries_for_catdim, tensors[0].dim() - 1), dtype=torch.int64, device=device)
-    strides[:] = torch.unsqueeze(torch.tensor(newt.stride()[1:], dtype=torch.int64, device=device), dim=0)
+    sizes = torch.zeros(
+        (n_entries_for_catdim, tensors[0].dim() - 1), dtype=torch.int64, device=device
+    )
+    strides = torch.zeros(
+        (n_entries_for_catdim, tensors[0].dim() - 1), dtype=torch.int64, device=device
+    )
+    strides[:] = torch.unsqueeze(
+        torch.tensor(newt.stride()[1:], dtype=torch.int64, device=device), dim=0
+    )
 
     start = 0
     for i, t in enumerate(tensors):
@@ -151,7 +165,9 @@ def cat_differently_sized_tensors(
             ti = ti.narrow(j, 0, t.shape[j])
         ti[:] = t
         size_i = sizes[start : (start + catdim_sizes[i]), :]
-        size_i[:] = torch.unsqueeze(torch.tensor((t.shape[1:]), dtype=torch.int64, device=device), dim=0)
+        size_i[:] = torch.unsqueeze(
+            torch.tensor((t.shape[1:]), dtype=torch.int64, device=device), dim=0
+        )
 
         start += catdim_sizes[i]
     return newt, sizes, strides
@@ -191,7 +207,9 @@ def join_tensors_and_report_real_entries(tensors: List, sentinel: int = -1):
     max_d0 = max(t.shape[0] for t in tensors)
     new_shape = (len(tensors), max_d0) + tensors[0].shape[1:]
 
-    n_elements = torch.tensor([t.shape[0] for t in tensors], dtype=torch.int32, device=device)
+    n_elements = torch.tensor(
+        [t.shape[0] for t in tensors], dtype=torch.int32, device=device
+    )
 
     combo = torch.full(new_shape, sentinel, dtype=dtype, device=device)
     real = torch.full((len(tensors), max_d0), False, dtype=torch.bool, device=device)
@@ -212,7 +230,11 @@ def invert_mapping(
     if n_elements_b is None:
         n_elements_b = torch.max(a_2_b) + 1
 
-    b_2_a = torch.full((n_elements_b,), sentinel, dtype=a_2_b.dtype, device=a_2_b.device)
+    b_2_a = torch.full(
+        (n_elements_b,), sentinel, dtype=a_2_b.dtype, device=a_2_b.device
+    )
 
-    b_2_a[a_2_b.to(torch.int64)] = torch.arange(a_2_b.shape[0], dtype=a_2_b.dtype, device=a_2_b.device)
+    b_2_a[a_2_b.to(torch.int64)] = torch.arange(
+        a_2_b.shape[0], dtype=a_2_b.dtype, device=a_2_b.device
+    )
     return b_2_a

@@ -1,17 +1,18 @@
-import numpy
 import torch
+import numpy
 
-from tmol.chemical.restypes import RefinedResidueType
+from ..energy_term import EnergyTerm
+
 from tmol.database import ParameterDatabase
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
 from tmol.score.disulfide.params import DisulfideGlobalParams
 from tmol.score.disulfide.potentials.compiled import (
     disulfide_pose_scores,
     disulfide_rotamer_scores,
 )
 
-from ..energy_term import EnergyTerm
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pose_stack import PoseStack
 
 
 class DisulfideEnergyTerm(EnergyTerm):
@@ -20,7 +21,9 @@ class DisulfideEnergyTerm(EnergyTerm):
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super(DisulfideEnergyTerm, self).__init__(param_db=param_db, device=device)
 
-        self.global_params = DisulfideGlobalParams.from_database(param_db.scoring.disulfide, device)
+        self.global_params = DisulfideGlobalParams.from_database(
+            param_db.scoring.disulfide, device
+        )
         self.device = device
 
     @classmethod
@@ -44,7 +47,9 @@ class DisulfideEnergyTerm(EnergyTerm):
 
         disulfide_connections = numpy.array([], dtype=numpy.int32)
         if "dslf" in block_type.connection_to_cidx.keys():
-            disulfide_connections = numpy.append(disulfide_connections, [block_type.connection_to_cidx["dslf"]])
+            disulfide_connections = numpy.append(
+                disulfide_connections, [block_type.connection_to_cidx["dslf"]]
+            )
 
         setattr(block_type, "disulfide_connections", disulfide_connections)
 

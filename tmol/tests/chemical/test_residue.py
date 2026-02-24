@@ -1,7 +1,7 @@
 import cattr
 import numpy
 
-from tmol.chemical.ideal_coords import build_ideal_coords, normalize
+from tmol.chemical.ideal_coords import normalize, build_ideal_coords
 from tmol.chemical.restypes import (
     RefinedResidueType,
     ResidueTypeSet,
@@ -53,7 +53,9 @@ def test_refined_residue_ideal_coords(default_database):
         )
     )
 
-    cb_dis = numpy.linalg.norm(leu_rt.ideal_coords[ca_ind, :] - leu_rt.ideal_coords[cb_ind])
+    cb_dis = numpy.linalg.norm(
+        leu_rt.ideal_coords[ca_ind, :] - leu_rt.ideal_coords[cb_ind]
+    )
 
     assert abs(cb_ang - (numpy.pi - leu_rt.icoors_geom[cb_ind, 1])) < 1e-5
     assert abs(cb_dis - leu_rt.icoors_geom[cb_ind, 2]) < 1e-5
@@ -71,7 +73,9 @@ def test_refined_residue_ordered_torsions(default_database):
         for j in range(4):
             numpy.testing.assert_equal(
                 leu_rt.ordered_torsions[i, j],
-                numpy.array(leu_rt.torsion_to_uaids[r.torsions[i].name][j], dtype=numpy.int32),
+                numpy.array(
+                    leu_rt.torsion_to_uaids[r.torsions[i].name][j], dtype=numpy.int32
+                ),
             )
 
 
@@ -116,7 +120,9 @@ def test_all_bonds_construction(fresh_default_restype_set):
 
 
 def test_mc_sc_torsion_properties(fresh_default_restype_set):
-    leu_restype = next(x for x in fresh_default_restype_set.residue_types if x.name == "LEU")
+    leu_restype = next(
+        x for x in fresh_default_restype_set.residue_types if x.name == "LEU"
+    )
     assert leu_restype.n_mc_torsions == 3
     assert leu_restype.n_sc_torsions == 2
     assert leu_restype.is_torsion_mc[0]

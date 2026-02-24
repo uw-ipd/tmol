@@ -1,13 +1,16 @@
-import attr
-import numpy
 import pytest
+
+import numpy
 import torch
 
-import tmol.types.tensor as tensor
-from tmol.tests.torch import requires_cuda
-from tmol.types.array import NDArray
+import attr
+
 from tmol.types.tensor import TensorGroup
+import tmol.types.tensor as tensor
+from tmol.types.array import NDArray
 from tmol.types.torch import Tensor, like_kwargs
+
+from tmol.tests.torch import requires_cuda
 
 
 def test_attr_checking():
@@ -225,21 +228,33 @@ def test_tensorgroup_cat():
     assert len(m3) == 3
 
     assert m3.foo.shape == (3, 10, 2)
-    numpy.testing.assert_array_equal(m3.foo, numpy.concatenate((m1.foo, m2.foo), axis=1))
+    numpy.testing.assert_array_equal(
+        m3.foo, numpy.concatenate((m1.foo, m2.foo), axis=1)
+    )
 
     assert m3.s.shape == (3, 10)
-    numpy.testing.assert_array_equal(m3.s.a, numpy.concatenate((m1.s.a, m2.s.a), axis=1))
-    numpy.testing.assert_array_equal(m3.s.b, numpy.concatenate((m1.s.b, m2.s.b), axis=1))
+    numpy.testing.assert_array_equal(
+        m3.s.a, numpy.concatenate((m1.s.a, m2.s.a), axis=1)
+    )
+    numpy.testing.assert_array_equal(
+        m3.s.b, numpy.concatenate((m1.s.b, m2.s.b), axis=1)
+    )
 
     # Negative dimension spec
     m3 = tensor.cat((m1, m2), dim=-1)
 
     assert m3.foo.shape == (3, 10, 2)
-    numpy.testing.assert_array_equal(m3.foo, numpy.concatenate((m1.foo, m2.foo), axis=1))
+    numpy.testing.assert_array_equal(
+        m3.foo, numpy.concatenate((m1.foo, m2.foo), axis=1)
+    )
 
     assert m3.s.shape == (3, 10)
-    numpy.testing.assert_array_equal(m3.s.a, numpy.concatenate((m1.s.a, m2.s.a), axis=1))
-    numpy.testing.assert_array_equal(m3.s.b, numpy.concatenate((m1.s.b, m2.s.b), axis=1))
+    numpy.testing.assert_array_equal(
+        m3.s.a, numpy.concatenate((m1.s.a, m2.s.a), axis=1)
+    )
+    numpy.testing.assert_array_equal(
+        m3.s.b, numpy.concatenate((m1.s.b, m2.s.b), axis=1)
+    )
 
     # Invalid dimension, mismatch shape
     with pytest.raises(RuntimeError):
@@ -264,9 +279,13 @@ def test_tensorgroup_to_dtypes():
         d: Tensor[torch.double][...]
         sub: STG
 
-    cpu_float = dict(dtype=torch.float, layout=torch.strided, device=torch.device("cpu"))
+    cpu_float = dict(
+        dtype=torch.float, layout=torch.strided, device=torch.device("cpu")
+    )
 
-    cpu_double = dict(dtype=torch.double, layout=torch.strided, device=torch.device("cpu"))
+    cpu_double = dict(
+        dtype=torch.double, layout=torch.strided, device=torch.device("cpu")
+    )
 
     cpu_het_group = TG.full(10, numpy.pi)
     assert like_kwargs(cpu_het_group.s) == cpu_float
@@ -300,8 +319,12 @@ def test_tensorgroup_to_device():
         d: Tensor[torch.float64][...]
         sub: STG
 
-    cpu_float = dict(dtype=torch.float, layout=torch.strided, device=torch.device("cpu"))
-    cpu_double = dict(dtype=torch.double, layout=torch.strided, device=torch.device("cpu"))
+    cpu_float = dict(
+        dtype=torch.float, layout=torch.strided, device=torch.device("cpu")
+    )
+    cpu_double = dict(
+        dtype=torch.double, layout=torch.strided, device=torch.device("cpu")
+    )
     cuda_float = dict(
         dtype=torch.float,
         layout=torch.strided,

@@ -1,7 +1,6 @@
+import torch
 import numpy
 import pytest
-import torch
-
 from tmol.numeric.bspline import BSplineInterpolation
 
 
@@ -69,7 +68,9 @@ def test_2d_bspline_not_square(input):
     numpy.testing.assert_allclose(zint, zgold, atol=1e-5)
 
 
-@pytest.mark.parametrize("input", [torch.tensor([2.0, 3.0, 5.0]), torch.tensor([3.0, 4.0, 1.0])])
+@pytest.mark.parametrize(
+    "input", [torch.tensor([2.0, 3.0, 5.0]), torch.tensor([3.0, 4.0, 1.0])]
+)
 def test_3d_bspline(input):
     # 3d
     x = torch.arange(-5, 6, dtype=torch.float).reshape(-1, 1, 1)
@@ -85,7 +86,9 @@ def test_3d_bspline(input):
     numpy.testing.assert_allclose(wint, wgold, atol=1e-5)
 
 
-@pytest.mark.parametrize("input", [torch.tensor([2.0, 3.0, 5.0]), torch.tensor([3.0, 4.0, 1.0])])
+@pytest.mark.parametrize(
+    "input", [torch.tensor([2.0, 3.0, 5.0]), torch.tensor([3.0, 4.0, 1.0])]
+)
 def test_3d_bspline_not_square(input):
     # 3d
     x = torch.arange(-4, 5, dtype=torch.float).reshape(-1, 1, 1)
@@ -101,14 +104,18 @@ def test_3d_bspline_not_square(input):
     numpy.testing.assert_allclose(wint, wgold, atol=1e-5)
 
 
-@pytest.mark.parametrize("input", [torch.tensor([2.0, 3.0, 5.0, 7.0]), torch.tensor([3.0, 4.0, 1.0, 7.0])])
+@pytest.mark.parametrize(
+    "input", [torch.tensor([2.0, 3.0, 5.0, 7.0]), torch.tensor([3.0, 4.0, 1.0, 7.0])]
+)
 def test_4d_bspline(input):
     # 3d
     x = torch.arange(-5, 6, dtype=torch.float).reshape(-1, 1, 1, 1)
     y = torch.arange(-5, 6, dtype=torch.float).reshape(1, -1, 1, 1)
     z = torch.arange(-5, 6, dtype=torch.float).reshape(1, 1, -1, 1)
     w = torch.arange(-5, 6, dtype=torch.float).reshape(1, 1, 1, -1)
-    u = (1 - x * x - y * y - z * z - w * w) * torch.exp(-0.5 * (x * x + y * y + z * z + w * w))
+    u = (1 - x * x - y * y - z * z - w * w) * torch.exp(
+        -0.5 * (x * x + y * y + z * z + w * w)
+    )
     u = u.type(torch.float)
 
     uspline = BSplineInterpolation.from_coordinates(u)

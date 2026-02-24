@@ -1,14 +1,17 @@
 import attr
 import cattr
+
 import numpy
 import torch
 
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.database.scoring.elec import ElecDatabase
+from tmol.types.torch import Tensor
+from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
-from tmol.types.tensor import TensorGroup
-from tmol.types.torch import Tensor
+
+from tmol.database.scoring.elec import ElecDatabase
+
+from tmol.chemical.restypes import RefinedResidueType
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -50,12 +53,20 @@ class ElecParamResolver(ValidateAttrs):
             if not res_found:
                 return 0.0
             if atm.name not in self.partial_charges[res]:
-                raise KeyError("Elec charge for atom " + block_type.name + "," + atm.name + " not found")
+                raise KeyError(
+                    "Elec charge for atom "
+                    + block_type.name
+                    + ","
+                    + atm.name
+                    + " not found"
+                )
             for vi in vars:
                 if vi in self.partial_charges[res][atm.name]:
                     return self.partial_charges[res][atm.name][vi]
 
-        partial_charge = numpy.vectorize(lookup_charge, otypes=[numpy.float32])(block_type.atoms)
+        partial_charge = numpy.vectorize(lookup_charge, otypes=[numpy.float32])(
+            block_type.atoms
+        )
 
         return partial_charge
 
@@ -89,9 +100,13 @@ class ElecParamResolver(ValidateAttrs):
                 continue
 
             if inner not in block_type.atom_to_idx:
-                raise KeyError("Invalid elec cp mapping: " + res + " " + outer + "->" + str(inner))
+                raise KeyError(
+                    "Invalid elec cp mapping: " + res + " " + outer + "->" + str(inner)
+                )
 
-            representative_mapping[block_type.atom_to_idx[inner]] = block_type.atom_to_idx[outer]
+            representative_mapping[block_type.atom_to_idx[inner]] = (
+                block_type.atom_to_idx[outer]
+            )
 
         return representative_mapping
 
@@ -101,12 +116,17 @@ class ElecParamResolver(ValidateAttrs):
         """Initialize param resolver for all atoms defined in database."""
         # Load global params, coerce to 1D Tensors
         global_params = ElecGlobalParams(
-            **{n: torch.tensor(v, device=device) for n, v in cattr.unstructure(elec_database.global_parameters).items()}
+            **{
+                n: torch.tensor(v, device=device)
+                for n, v in cattr.unstructure(elec_database.global_parameters).items()
+            }
         )
 
         def res_patch_from_line(line):
             tag = line.res.split(":")
-            assert len(tag) <= 2, "Each atom charge can only be specialized by one patch!"
+            assert (
+                len(tag) <= 2
+            ), "Each atom charge can only be specialized by one patch!"
             if len(tag) == 1:
                 return tag[0], ""
             return tag[0], tag[1]

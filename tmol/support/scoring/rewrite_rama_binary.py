@@ -1,15 +1,15 @@
-import argparse
-import os
-from pathlib import Path
-
-import attr
-import cattr
 import numpy
 import torch
+from pathlib import Path
+import os
+import argparse
 import yaml
+import attr
+import cattr
 
-from tmol.database.scoring.rama import RamaDatabase, RamaTables
+
 from tmol.numeric.bspline import BSplineInterpolation
+from tmol.database.scoring.rama import RamaDatabase, RamaTables
 
 # A conversion script from rosetta BB probability tables to
 # tmol probability tables.  tmol stores tables which contain
@@ -49,7 +49,9 @@ def parse_lines_as_ndarrays(lines, aacol=0, phipsicol=1, probcol=3):
         curaa = cols[aacol]
         if curaa not in prob_tables.keys():
             prob_tables[curaa] = numpy.zeros((36, 36), dtype=float)
-        phi_ind, psi_ind = (int(float(x)) // 10 + 18 for x in cols[phipsicol : (phipsicol + 2)])
+        phi_ind, psi_ind = (
+            int(float(x)) // 10 + 18 for x in cols[phipsicol : (phipsicol + 2)]
+        )
         prob_tables[curaa][phi_ind, psi_ind] = float(cols[probcol])
     return prob_tables
 
@@ -67,7 +69,9 @@ def parse_all_tables(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
         energies = -numpy.log(prob / paa[aa])
 
         # resample, shifting -5 degrees
-        espline = BSplineInterpolation.from_coordinates(torch.tensor(energies, dtype=torch.float))
+        espline = BSplineInterpolation.from_coordinates(
+            torch.tensor(energies, dtype=torch.float)
+        )
         x = torch.arange(36, dtype=torch.float) - 0.5
         xx, yy = torch.meshgrid((x, x))
         Xs = torch.stack((xx, yy)).reshape(2, -1).transpose(0, 1).contiguous()
@@ -99,7 +103,9 @@ def parse_all_tables(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
 
 
 def create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
-    general, prepro = parse_all_tables(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir)
+    general, prepro = parse_all_tables(
+        rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir
+    )
 
     rama_tables = []
     for aa, prob in general.items():
@@ -126,7 +132,9 @@ def create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_di
 
     with open(path_lookup, "r") as infile_lookup:
         raw = yaml.safe_load(infile_lookup)
-        rama_lookup = cattr.structure(raw["rama_lookup"], attr.fields(RamaDatabase).rama_lookup.type)
+        rama_lookup = cattr.structure(
+            raw["rama_lookup"], attr.fields(RamaDatabase).rama_lookup.type
+        )
 
     input_uniq_id = hash((rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir))
 
@@ -136,11 +144,15 @@ def create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_di
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rosetta_dir", default=os.path.join(Path.home(), "Rosetta/main/"))
+    parser.add_argument(
+        "--rosetta_dir", default=os.path.join(Path.home(), "Rosetta/main/")
+    )
     args, _ = parser.parse_known_args()
     parser.add_argument(
         "--r3_rama_dir",
-        default=os.path.join(args.rosetta_dir, "database/scoring/score_functions/rama/fd_beta_nov2016/"),
+        default=os.path.join(
+            args.rosetta_dir, "database/scoring/score_functions/rama/fd_beta_nov2016/"
+        ),
     )
     parser.add_argument(
         "--r3_paapp_dir",
@@ -151,7 +163,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--r3_paa_dir",
-        default=os.path.join(args.rosetta_dir, "database/scoring/score_functions/P_AA_pp/"),
+        default=os.path.join(
+            args.rosetta_dir, "database/scoring/score_functions/P_AA_pp/"
+        ),
     )
     parser.add_argument(
         "--output",
@@ -163,6 +177,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     torch.save(
-        create_rama_database(0.5, args.r3_rama_dir, 0.61, args.r3_paapp_dir, args.r3_paa_dir),
+        create_rama_database(
+            0.5, args.r3_rama_dir, 0.61, args.r3_paapp_dir, args.r3_paa_dir
+        ),
         args.output,
     )

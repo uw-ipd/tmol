@@ -85,14 +85,19 @@ def assert_allclose(baseline, measured, atol, rtol):
     try:
         numpy.testing.assert_allclose(baseline, measured, atol=atol, rtol=rtol)
     except AssertionError as err:
-        raise AssertionError(get_notallclose_msg(measured, baseline, atol, rtol)) from err
+        raise AssertionError(
+            get_notallclose_msg(measured, baseline, atol, rtol)
+        ) from err
 
 
 def print_table(table):
     col_width = [max(len(str(x)) for x in col) for col in zip(*table, strict=False)]
     retstr = ""
     for line in table:
-        retstr += " | ".join("{:{}}".format(str(x), col_width[i]) for i, x in enumerate(line)) + "\n"
+        retstr += (
+            " | ".join("{:{}}".format(str(x), col_width[i]) for i, x in enumerate(line))
+            + "\n"
+        )
     return retstr
 
 
@@ -101,10 +106,14 @@ def pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums=None):
         return pose_stack_from_pdb(pdb, torch_device)
 
     atom_records = parse_pdb(pdb)
-    atom_subsets = pandas.concat([select_atom_records_res_subset(atom_records, i, j) for i, j in resnums])
+    atom_subsets = pandas.concat(
+        [select_atom_records_res_subset(atom_records, i, j) for i, j in resnums]
+    )
     canonical_ordering = default_canonical_ordering()
     packed_block_types = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_atom_records(canonical_ordering, atom_subsets, torch_device)
+    canonical_form = canonical_form_from_atom_records(
+        canonical_ordering, atom_subsets, torch_device
+    )
 
     res_not_connected = []
     for i, j in resnums:
@@ -118,9 +127,13 @@ def pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums=None):
                 res_not_connected.append((False, True))
             else:
                 res_not_connected.append((False, False))
-    canonical_form.res_not_connected = torch.tensor([res_not_connected], dtype=torch.bool, device=torch_device)
+    canonical_form.res_not_connected = torch.tensor(
+        [res_not_connected], dtype=torch.bool, device=torch_device
+    )
 
-    pose_stack = pose_stack_from_canonical_form(canonical_ordering, packed_block_types, *canonical_form)
+    pose_stack = pose_stack_from_canonical_form(
+        canonical_ordering, packed_block_types, *canonical_form
+    )
     return pose_stack
 
 
@@ -129,7 +142,9 @@ class EnergyTermTestBase:
 
     @classmethod
     def get_test_baseline_data_filename(cls, testname):
-        dirname = os.path.join("tmol", "tests", "data", "term_baselines", cls.energy_term_class.__name__)
+        dirname = os.path.join(
+            "tmol", "tests", "data", "term_baselines", cls.energy_term_class.__name__
+        )
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         filename = os.path.join(dirname, testname + ".yaml")
@@ -144,7 +159,9 @@ class EnergyTermTestBase:
 
     @classmethod
     def block_pair_to_dict(cls, data):
-        out = cls.recursive_reformat_to_dicts(data, names=["term", "pose", "res", "res"])
+        out = cls.recursive_reformat_to_dicts(
+            data, names=["term", "pose", "res", "res"]
+        )
         return out
 
     @classmethod
@@ -158,7 +175,8 @@ class EnergyTermTestBase:
             return float(data)
         else:
             return {
-                names[dim] + str(ind): cls.recursive_reformat_to_dicts(val, names, dim + 1)
+                names[dim]
+                + str(ind): cls.recursive_reformat_to_dicts(val, names, dim + 1)
                 for ind, val in enumerate(data)
             }
 
@@ -175,10 +193,16 @@ class EnergyTermTestBase:
         filename = cls.get_test_baseline_data_filename(testname)
         try:
             with open(filename, "r") as infile:
-                return numpy.array(cls.recursive_reformat_from_dicts(yaml.safe_load(infile)))
+                return numpy.array(
+                    cls.recursive_reformat_from_dicts(yaml.safe_load(infile))
+                )
         except FileNotFoundError as err:
             raise Exception(
-                "Baselines not found for " + cls.__name__ + ":" + testname + ". Re-run with update_baselines=True"
+                "Baselines not found for "
+                + cls.__name__
+                + ":"
+                + testname
+                + ". Re-run with update_baselines=True"
             ) from err
 
     @classmethod
@@ -243,7 +267,9 @@ class EnergyTermTestBase:
         scores = pose_scorer(coords).cpu().detach().numpy()
 
         if update_baseline:
-            cls.save_test_baseline_data(cls.test_whole_pose_scoring_10.__name__, cls.whole_pose_to_dict(scores))
+            cls.save_test_baseline_data(
+                cls.test_whole_pose_scoring_10.__name__, cls.whole_pose_to_dict(scores)
+            )
         gold_vals = cls.get_test_baseline_data(cls.test_whole_pose_scoring_10.__name__)
 
         assert_allclose(gold_vals, scores, atol, rtol)
@@ -278,7 +304,9 @@ class EnergyTermTestBase:
 
         # monkeypatch more sane error reporting
         torchgrad = importlib.import_module("torch.autograd.gradcheck")
-        torchgrad._get_notallclose_msg = functools.partial(_get_notallclose_msg, atol=atol, rtol=rtol)
+        torchgrad._get_notallclose_msg = functools.partial(
+            _get_notallclose_msg, atol=atol, rtol=rtol
+        )
 
         torchgrad.gradcheck(
             score,
@@ -318,7 +346,9 @@ class EnergyTermTestBase:
                 cls.test_whole_pose_scoring_jagged.__name__,
                 cls.whole_pose_to_dict(scores),
             )
-        gold_vals = cls.get_test_baseline_data(cls.test_whole_pose_scoring_jagged.__name__)
+        gold_vals = cls.get_test_baseline_data(
+            cls.test_whole_pose_scoring_jagged.__name__
+        )
 
         assert_allclose(gold_vals, scores, atol, rtol)
 
@@ -339,7 +369,9 @@ class EnergyTermTestBase:
             p1 = edit_pose_stack_fn(p1)
 
         pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
-        block_pair_scorer = cls.get_block_pair_scorer(p1, default_database, torch_device)
+        block_pair_scorer = cls.get_block_pair_scorer(
+            p1, default_database, torch_device
+        )
 
         coords = torch.nn.Parameter(p1.coords.clone())
         block_pair_scores = block_pair_scorer(coords).to_dense().cpu().detach().numpy()
@@ -365,41 +397,23 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             p1 = edit_pose_stack_fn(p1)
 
-        block_pair_scorer = cls.get_block_pair_scorer(p1, default_database, torch_device)
+        block_pair_scorer = cls.get_block_pair_scorer(
+            p1, default_database, torch_device
+        )
 
         coords = torch.nn.Parameter(p1.coords.clone())
         scores = block_pair_scorer(coords).to_dense().cpu().detach().numpy()
 
-        test_name = cls.test_block_scoring.__name__ if (override_baseline_name is None) else override_baseline_name
+        test_name = (
+            cls.test_block_scoring.__name__
+            if (override_baseline_name is None)
+            else override_baseline_name
+        )
         if update_baseline:
             cls.save_test_baseline_data(test_name, cls.block_pair_to_dict(scores))
         gold_vals = cls.get_test_baseline_data(test_name)
 
-        # reshape these values for the new block-pair scoring scheme
-        gold_vals_upper_triangle = numpy.zeros_like(gold_vals)
-        assert gold_vals.shape[2] == gold_vals.shape[3]
-        n_poses = gold_vals.shape[1]
-        n_res = gold_vals.shape[2]
-        assert n_poses == 1
-        inds_arange = numpy.arange(n_res, dtype=int)
-        inds_arange_i = inds_arange.reshape(-1, 1)
-        inds_arange_j = inds_arange.reshape(1, -1)
-        ij_is_upper_triangle = inds_arange_i < inds_arange_j
-        ij_is_diagonal = inds_arange_i == inds_arange_j
-        gold_vals_upper_triangle[:, :, ij_is_diagonal] = gold_vals[:, :, ij_is_diagonal]
-        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] = gold_vals[:, :, ij_is_upper_triangle]
-        gold_vals_transposed = numpy.transpose(gold_vals, (0, 1, 3, 2))
-        # print("gold_vals_transposed")
-        # print(gold_vals_transposed)
-        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] += gold_vals_transposed[:, :, ij_is_upper_triangle]
-
-        scores_upper_triangle = numpy.zeros_like(scores)
-        scores_upper_triangle[:, :, ij_is_diagonal] = scores[:, :, ij_is_diagonal]
-        scores_upper_triangle[:, :, ij_is_upper_triangle] = scores[:, :, ij_is_upper_triangle]
-        scores_transposed = numpy.transpose(scores, (0, 1, 3, 2))
-        scores_upper_triangle[:, :, ij_is_upper_triangle] += scores_transposed[:, :, ij_is_upper_triangle]
-
-        assert_allclose(gold_vals_upper_triangle, scores_upper_triangle, atol, rtol)
+        assert_allclose(gold_vals, scores, atol, rtol)
 
     @classmethod
     def test_block_scoring_reweighted_gradcheck(
@@ -419,16 +433,22 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             p1 = edit_pose_stack_fn(p1)
 
-        block_pair_scorer = cls.get_block_pair_scorer(p1, default_database, torch_device)
+        block_pair_scorer = cls.get_block_pair_scorer(
+            p1, default_database, torch_device
+        )
 
         def score(coords):
             scores = block_pair_scorer(coords)
-            scale = 0.01 * torch.arange(torch.numel(scores), device=scores.device).reshape(scores.shape)
+            scale = 0.01 * torch.arange(
+                torch.numel(scores), device=scores.device
+            ).reshape(scores.shape)
             return torch.sum(scale * scores)
 
         # monkeypatch more sane error reporting
         torchgrad = importlib.import_module("torch.autograd.gradcheck")
-        torchgrad._get_notallclose_msg = functools.partial(_get_notallclose_msg, atol=atol, rtol=rtol)
+        torchgrad._get_notallclose_msg = functools.partial(
+            _get_notallclose_msg, atol=atol, rtol=rtol
+        )
 
         torchgrad.gradcheck(
             score,
@@ -452,7 +472,9 @@ class EnergyTermBaseTester(EnergyTermTestBase):
 # This test just makes sure the updating_baseline functionality works (only tests the '10' variant currently)
 def test_energy_term_base_write_baseline_smoke(ubq_pdb, default_database, torch_device):
     test_class = EnergyTermBaseTester()
-    test_class.test_whole_pose_scoring_10(ubq_pdb, default_database, torch_device, update_baseline=True)
+    test_class.test_whole_pose_scoring_10(
+        ubq_pdb, default_database, torch_device, update_baseline=True
+    )
 
 
 # This test makes sure that the 'jagged' test of the DummyEnergyTerm (Ref) fails. The baselines for the Dummy term's 'jagged' test have been manually modified and should always fail
@@ -461,7 +483,9 @@ def test_energy_term_fail(ubq_pdb, default_database, torch_device):
     failed = False
 
     try:
-        test_class.test_whole_pose_scoring_jagged(ubq_pdb, default_database, torch_device, update_baseline=False)
+        test_class.test_whole_pose_scoring_jagged(
+            ubq_pdb, default_database, torch_device, update_baseline=False
+        )
         failed = True
     except AssertionError:
         pass

@@ -1,13 +1,12 @@
 import os
-from typing import List
-
 import attr
-
-# maybe this should live in the database?
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+from typing import List
 
 from .chemical import ChemicalDatabase
 from .scoring import ScoringDatabase
+
+# maybe this should live in the database?
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 
 @attr.s
@@ -20,7 +19,9 @@ class ParameterDatabase:
     def get_default(cls) -> "ParameterDatabase":
         """Load and return default parameter database."""
         if cls.__default is None:
-            cls.__default = ParameterDatabase.from_file(os.path.join(os.path.dirname(__file__), "default"))
+            cls.__default = ParameterDatabase.from_file(
+                os.path.join(os.path.dirname(__file__), "default")
+            )
         return cls.__default
 
     scoring: ScoringDatabase = attr.ib()
@@ -35,7 +36,9 @@ class ParameterDatabase:
             chemical=patched_chemdb,
         )
 
-    def create_stable_subset(self, desired_names: List[str], desired_variants: List[str]):
+    def create_stable_subset(
+        self, desired_names: List[str], desired_variants: List[str]
+    ):
         """Create a ParameterDatabase representing a subset of the
         RefinedResidueTypes in this PD's PatchedChemicalDatabase from a list
         of RRT names and patched with the given variants (identified by their
@@ -81,6 +84,10 @@ class ParameterDatabase:
             residues=unpatched_residue_subset,
             variants=desired_variants,
         )
-        patched_chemical_db_subset = PatchedChemicalDatabase.from_chem_db(chemical_db_subset)
+        patched_chemical_db_subset = PatchedChemicalDatabase.from_chem_db(
+            chemical_db_subset
+        )
 
-        return ParameterDatabase(scoring=self.scoring, chemical=patched_chemical_db_subset)
+        return ParameterDatabase(
+            scoring=self.scoring, chemical=patched_chemical_db_subset
+        )

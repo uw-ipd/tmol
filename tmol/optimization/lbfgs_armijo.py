@@ -1,6 +1,5 @@
-from functools import reduce
-
 import torch
+from functools import reduce
 from torch.optim import Optimizer
 
 
@@ -141,7 +140,9 @@ class LBFGS_Armijo(Optimizer):
         super(LBFGS_Armijo, self).__init__(params, defaults)
 
         if len(self.param_groups) != 1:
-            raise ValueError("LBFGS doesn't support per-parameter options (parameter groups)")
+            raise ValueError(
+                "LBFGS doesn't support per-parameter options " "(parameter groups)"
+            )
 
         self._params = self.param_groups[0]["params"]
         self._numel_cache = None
@@ -151,7 +152,9 @@ class LBFGS_Armijo(Optimizer):
     # * this code is based off PyTorch default LBFGS implementation
     def _numel(self):
         if self._numel_cache is None:
-            self._numel_cache = reduce(lambda total, p: total + p.numel(), self._params, 0)
+            self._numel_cache = reduce(
+                lambda total, p: total + p.numel(), self._params, 0
+            )
         return self._numel_cache
 
     # pack gradients into a single flat tensor
@@ -184,7 +187,9 @@ class LBFGS_Armijo(Optimizer):
         for p in self._params:
             numel = p.numel()
             if p.data.is_sparse:
-                p.data.copy_(update[offset : offset + numel].view_as(p.data).to_sparse())
+                p.data.copy_(
+                    update[offset : offset + numel].view_as(p.data).to_sparse()
+                )
             else:
                 # view as to avoid deprecated pointwise semantics
                 p.data.copy_(update[offset : offset + numel].view_as(p.data))
@@ -247,8 +252,12 @@ class LBFGS_Armijo(Optimizer):
         # Pre-allocate stacked matrices for L-BFGS (reused each iteration)
         L = x.numel()
         if "old_dirs_mat" not in state:
-            state["old_dirs_mat"] = torch.empty((history_size, L), device=x.device, dtype=x.dtype)
-            state["old_stps_mat"] = torch.empty((history_size, L), device=x.device, dtype=x.dtype)
+            state["old_dirs_mat"] = torch.empty(
+                (history_size, L), device=x.device, dtype=x.dtype
+            )
+            state["old_stps_mat"] = torch.empty(
+                (history_size, L), device=x.device, dtype=x.dtype
+            )
             state["history_start"] = 0  # Circular buffer start index
             state["history_count"] = 0  # Number of items in history
 
@@ -300,7 +309,9 @@ class LBFGS_Armijo(Optimizer):
                         # Buffer full, need to reorder: [start:end] + [0:start]
                         indices = torch.cat(
                             [
-                                torch.arange(history_start, history_size, device=x.device),
+                                torch.arange(
+                                    history_start, history_size, device=x.device
+                                ),
                                 torch.arange(0, history_start, device=x.device),
                             ]
                         )
@@ -326,7 +337,9 @@ class LBFGS_Armijo(Optimizer):
 
                     # Second loop: forward pass - fully batched
                     r = q
-                    be = torch.mv(old_dirs_view, r) * ro  # All dot products in one matmul
+                    be = (
+                        torch.mv(old_dirs_view, r) * ro
+                    )  # All dot products in one matmul
 
                     # Single batched update: r += old_stps_mat.T @ (al - be)
                     r.add_(torch.mv(old_stps_view.t(), al - be))

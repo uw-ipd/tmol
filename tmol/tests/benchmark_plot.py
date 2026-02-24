@@ -3,9 +3,9 @@
 import argparse
 import json
 
+from toolz import merge, dissoc
 import pandas
 from matplotlib import pyplot
-from toolz import dissoc, merge
 
 
 class BenchmarkPlot:
@@ -19,7 +19,9 @@ class BenchmarkPlot:
         if not isinstance(benchmark_data, pandas.DataFrame):
             benchmark_data = cls.load_benchmarks(benchmark_data)
 
-        benchmark_data = benchmark_data.applymap(lambda x: tuple(x) if isinstance(x, list) else x)
+        benchmark_data = benchmark_data.applymap(
+            lambda x: tuple(x) if isinstance(x, list) else x
+        )
 
         return benchmark_data.query(cls.query)
 

@@ -1,9 +1,10 @@
 import torch
 
-from tmol.io import pose_stack_from_pdb
 from tmol.pose.constraint_set import ConstraintSet
-from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
+
+from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.io import pose_stack_from_pdb
 
 
 def test_constraint_set_empty_initialization(torch_device):
@@ -23,7 +24,12 @@ def test_constraint_set_add_constraints(torch_device, ubq_pdb):
     n_poses = 2
 
     pose_stack = PoseStackBuilder.from_poses(
-        [pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20 + i) for i in range(n_poses)],
+        [
+            pose_stack_from_pdb(
+                ubq_pdb, torch_device, residue_start=0, residue_end=20 + i
+            )
+            for i in range(n_poses)
+        ],
         torch_device,
     )
 
@@ -54,7 +60,12 @@ def test_constraint_set_concatenate_constraints(torch_device, ubq_pdb):
     n_poses = 2
 
     pose_stack = PoseStackBuilder.from_poses(
-        [pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20 + i) for i in range(n_poses)],
+        [
+            pose_stack_from_pdb(
+                ubq_pdb, torch_device, residue_start=0, residue_end=20 + i
+            )
+            for i in range(n_poses)
+        ],
         torch_device,
     )
 
@@ -69,7 +80,9 @@ def test_constraint_set_concatenate_constraints(torch_device, ubq_pdb):
     cnstr_atoms1[0, 1] = torch.tensor([0, 4, res2_type.atom_to_idx["N"]])
     cnstr_params1[0, 0] = 1.47
 
-    cs1 = cs1.add_constraints(ConstraintEnergyTerm.harmonic, cnstr_atoms1, cnstr_params1)
+    cs1 = cs1.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms1, cnstr_params1
+    )
 
     cs2 = ConstraintSet.create_empty(torch_device, n_poses)
     # a distance constraint
@@ -82,7 +95,9 @@ def test_constraint_set_concatenate_constraints(torch_device, ubq_pdb):
     cnstr_atoms2[0, 1] = torch.tensor([0, 7, res2_type.atom_to_idx["N"]])
     cnstr_params2[0, 0] = 1.47
 
-    cs2 = cs2.add_constraints(ConstraintEnergyTerm.harmonic, cnstr_atoms2, cnstr_params2)
+    cs2 = cs2.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms2, cnstr_params2
+    )
 
     cs = ConstraintSet.concatenate([cs1, cs2], from_multiple_pose_stacks=False)
 
@@ -103,11 +118,21 @@ def test_constraint_set_concatenate_constraints_2(torch_device, ubq_pdb):
     n_poses_B = 3
 
     pose_stack_A = PoseStackBuilder.from_poses(
-        [pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20 + i) for i in range(n_poses_A)],
+        [
+            pose_stack_from_pdb(
+                ubq_pdb, torch_device, residue_start=0, residue_end=20 + i
+            )
+            for i in range(n_poses_A)
+        ],
         torch_device,
     )
     pose_stack_B = PoseStackBuilder.from_poses(
-        [pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20 + i) for i in range(n_poses_B)],
+        [
+            pose_stack_from_pdb(
+                ubq_pdb, torch_device, residue_start=0, residue_end=20 + i
+            )
+            for i in range(n_poses_B)
+        ],
         torch_device,
     )
 
@@ -123,12 +148,16 @@ def test_constraint_set_concatenate_constraints_2(torch_device, ubq_pdb):
     # print("cnstr_atoms1:", cnstr_atoms1)
     cnstr_params1[0, 0] = 1.47
 
-    cs1 = cs1.add_constraints(ConstraintEnergyTerm.harmonic, cnstr_atoms1, cnstr_params1)
+    cs1 = cs1.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms1, cnstr_params1
+    )
 
     cs2 = ConstraintSet.create_empty(torch_device, n_poses_B)
     # a distance constraint
     cnstr_atoms2 = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
-    shifted_cnstr_atoms2 = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
+    shifted_cnstr_atoms2 = torch.full(
+        (1, 2, 3), 0, dtype=torch.int32, device=torch_device
+    )
     cnstr_params2 = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
 
     res1_type = pose_stack_B.block_type(2, 6)
@@ -139,7 +168,9 @@ def test_constraint_set_concatenate_constraints_2(torch_device, ubq_pdb):
     shifted_cnstr_atoms2[0, 1] = torch.tensor([4, 7, res2_type.atom_to_idx["N"]])
     cnstr_params2[0, 0] = 1.47
 
-    cs2 = cs2.add_constraints(ConstraintEnergyTerm.harmonic, cnstr_atoms2, cnstr_params2)
+    cs2 = cs2.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms2, cnstr_params2
+    )
 
     cs = ConstraintSet.concatenate([cs1, cs2], from_multiple_pose_stacks=True)
 

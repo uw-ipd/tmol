@@ -1,11 +1,12 @@
 import numpy
-
 from tmol.database.scoring.elec import CountPairReps, ElecDatabase
 from tmol.score.elec.params import ElecParamResolver
 
 
 def test_construct_elec_param_resolver_smoke(default_database, torch_device):
-    params = ElecParamResolver.from_database(default_database.scoring.elec, torch_device)
+    params = ElecParamResolver.from_database(
+        default_database.scoring.elec, torch_device
+    )
     assert params is not None
 
 
@@ -16,7 +17,9 @@ def test_elec_param_resolver_w_missing_cp_rep_exception_handling(
     # let's just Leave One Out (LOO)
     left_out_rt_name = orig_elec_db.atom_cp_reps_parameters[0].res
     loo_cp_reps_parameters = tuple(
-        x for x in orig_elec_db.atom_cp_reps_parameters if x.res.partition(":")[0] != left_out_rt_name
+        x
+        for x in orig_elec_db.atom_cp_reps_parameters
+        if x.res.partition(":")[0] != left_out_rt_name
     )
     loo_elec_db = ElecDatabase(
         global_parameters=orig_elec_db.global_parameters,
@@ -25,13 +28,17 @@ def test_elec_param_resolver_w_missing_cp_rep_exception_handling(
     )
     loo_params = ElecParamResolver.from_database(loo_elec_db, torch_device)
 
-    left_out_rt = next(x for x in fresh_default_restype_set.residue_types if x.name == left_out_rt_name)
+    left_out_rt = next(
+        x for x in fresh_default_restype_set.residue_types if x.name == left_out_rt_name
+    )
     left_out_res_reps = loo_params.get_bonded_path_length_mapping_for_block(left_out_rt)
     gold_reps = numpy.arange(len(left_out_rt.atoms), dtype=numpy.int32)
     numpy.testing.assert_equal(gold_reps, left_out_res_reps)
 
 
-def test_elec_param_resolver_w_bad_cp_rep_exception_handling(default_database, fresh_default_restype_set, torch_device):
+def test_elec_param_resolver_w_bad_cp_rep_exception_handling(
+    default_database, fresh_default_restype_set, torch_device
+):
     orig_elec_db = default_database.scoring.elec
 
     first_rt_name = orig_elec_db.atom_cp_reps_parameters[0].res
@@ -49,7 +56,9 @@ def test_elec_param_resolver_w_bad_cp_rep_exception_handling(default_database, f
     )
     bad_params = ElecParamResolver.from_database(bad_elec_db, torch_device)
 
-    first_rt = next(x for x in fresh_default_restype_set.residue_types if x.name == first_rt_name)
+    first_rt = next(
+        x for x in fresh_default_restype_set.residue_types if x.name == first_rt_name
+    )
     assert "XX" not in first_rt.atom_to_idx
     try:
         bad_params.get_bonded_path_length_mapping_for_block(first_rt)
@@ -75,9 +84,18 @@ def test_elec_param_resolver_w_missing_partial_charge_exception_handling(
     )
     bad_params = ElecParamResolver.from_database(bad_elec_db, torch_device)
 
-    first_rt = next(x for x in fresh_default_restype_set.residue_types if x.name == first_rt_name)
+    first_rt = next(
+        x for x in fresh_default_restype_set.residue_types if x.name == first_rt_name
+    )
     try:
         bad_params.get_partial_charges_for_block(first_rt)
         assert False
     except KeyError as err:
-        assert str(err) == "'Elec charge for atom " + first_rt_name + "," + first_atom_name + " not found'"
+        assert (
+            str(err)
+            == "'Elec charge for atom "
+            + first_rt_name
+            + ","
+            + first_atom_name
+            + " not found'"
+        )

@@ -1,16 +1,19 @@
 """`pint <pint:index>`-based unit support functions."""
 
 import math
-from typing import NewType, Tuple, Union
 
-import cattr
+from typing import Union, Tuple, NewType
+
 import pint
+import cattr
 
 ureg = pint.UnitRegistry()
 u = ureg.parse_expression
 
 
-def parse_angle(angle: Union[float, str], lim: Tuple[float, float] = (-2 * math.pi, 2 * math.pi)) -> float:
+def parse_angle(
+    angle: Union[float, str], lim: Tuple[float, float] = (-2 * math.pi, 2 * math.pi)
+) -> float:
     """Parse an angle via :doc:`pint <pint:index>` and convert to radians.
 
     Args:

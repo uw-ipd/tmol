@@ -13,25 +13,15 @@ repos:
                 tmol/extern/.* |
                 dev/.* 
             )$
-      - id: ruff-format
-        name: ruff format
-        description: 'Format Python files with ruff.'
-        entry: ruff format
+      - id: black
+        name: black
+        description: 'Black: The uncompromising Python code formatter'
+        entry: black
         language: system
         types: [python]
         exclude: >
             (?x)^(
                 tmol/extern/.* |
                 dev/.* 
-            )$
-      - id: ruff-check
-        name: ruff check
-        description: 'Lint Python files with ruff.'
-        entry: ruff check --fix
-        language: system
-        types: [python]
-        exclude: >
-            (?x)^(
-                tmol/extern/.* |
-                dev/.* 
+                \.conda/.*
             )$

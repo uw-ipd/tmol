@@ -1,11 +1,11 @@
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pack.rotamer.build_rotamers import RotamerSet
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+from tmol.pack.rotamer.build_rotamers import RotamerSet
 from tmol.score.common.scoring_module import (
+    TermWholePoseScoringModule,
     TermBlockPairScoringModule,
     TermRotamerScoringModule,
-    TermWholePoseScoringModule,
 )
 
 
@@ -122,7 +122,9 @@ class EnergyTerm:
             f,
         )
 
-    def render_rotamer_scoring_module(self, pose_stack: PoseStack, rotamer_set: RotamerSet):
+    def render_rotamer_scoring_module(
+        self, pose_stack: PoseStack, rotamer_set: RotamerSet
+    ):
         try:
             f = self.get_rotamer_score_term_function()
         except NotImplementedError:

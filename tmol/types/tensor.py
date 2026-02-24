@@ -1,16 +1,17 @@
 """Type annotations for multidimensional tensors."""
 
+import inspect
 import collections
 import functools
-import inspect
+import attr
 import typing
 
-import attr
+from .shape import Shape
 
 from .converters import register_converter
-from .shape import Shape
-from .subscriptable import SubscriptableType
 from .validators import register_validator
+
+from .subscriptable import SubscriptableType
 
 _NOTHING = object()
 
@@ -99,7 +100,9 @@ class _TensorType(metaclass=_TensorTypeMeta):
 
     @classmethod
     def full(cls, shape, fill_value, **kwargs):
-        return cls._module.full(cls._expanded_shape(shape), fill_value, dtype=cls.dtype, **kwargs)
+        return cls._module.full(
+            cls._expanded_shape(shape), fill_value, dtype=cls.dtype, **kwargs
+        )
 
     @classmethod
     def _broadcasted_shape(cls, instance):
@@ -119,7 +122,10 @@ class _TensorType(metaclass=_TensorTypeMeta):
 class TensorGroup:
     @property
     def _pure_tensor(self):
-        return all(issubclass(a.type, (_TensorType, TensorGroup)) for a in attr.fields(type(self)))
+        return all(
+            issubclass(a.type, (_TensorType, TensorGroup))
+            for a in attr.fields(type(self))
+        )
 
     def _check_pure_tensor(self):
         if not self._pure_tensor:
@@ -145,11 +151,16 @@ class TensorGroup:
         else:
             shape = tuple(shape)
 
-        reshapes = {a.name: a.type._expanded_shape(shape) for a in attr.fields(type(self))}
+        reshapes = {
+            a.name: a.type._expanded_shape(shape) for a in attr.fields(type(self))
+        }
 
         return attr.evolve(
             self,
-            **{n: getattr(self, n).reshape(reshapes[n]) for n in (f.name for f in attr.fields(type(self)))},
+            **{
+                n: getattr(self, n).reshape(reshapes[n])
+                for n in (f.name for f in attr.fields(type(self)))
+            },
         )
 
     @property
@@ -161,7 +172,12 @@ class TensorGroup:
 
     @classmethod
     def full(cls, shape, fill_value, **kwargs):
-        return cls(**{a.name: a.type.full(shape, fill_value, **kwargs) for a in attr.fields(cls)})
+        return cls(
+            **{
+                a.name: a.type.full(shape, fill_value, **kwargs)
+                for a in attr.fields(cls)
+            }
+        )
 
     @classmethod
     def zeros(cls, shape, **kwargs):
@@ -177,9 +193,14 @@ class TensorGroup:
 
     @classmethod
     def _broadcasted_shape(cls, instance):
-        field_shapes = {a.type._broadcasted_shape(getattr(instance, a.name)) for a in attr.fields(cls)}
+        field_shapes = {
+            a.type._broadcasted_shape(getattr(instance, a.name))
+            for a in attr.fields(cls)
+        }
 
-        assert len(field_shapes) == 1, f"Group contained inconsistent shapes: {field_shapes}"
+        assert (
+            len(field_shapes) == 1
+        ), f"Group contained inconsistent shapes: {field_shapes}"
 
         return field_shapes.pop()
 
@@ -220,7 +241,9 @@ def cat(seq, dim=0, out=None):
 
 @functools.singledispatch
 def _cat_internal(first_element, rest, dim=0, out=None):
-    raise NotImplementedError(f"Unknown tensor type for cat, needs _cat_internal overload: {first_element}")
+    raise NotImplementedError(
+        f"Unknown tensor type for cat, needs _cat_internal overload: {first_element}"
+    )
 
 
 @_cat_internal.register(TensorGroup)
@@ -230,7 +253,9 @@ def _cat_tensorgroup(first, rest, dim=0, out=None):
     cls = type(first)
 
     if dim < 0:
-        component_ndims = {len(type(v)._broadcasted_shape(v)) for v in (first,) + tuple(rest)}
+        component_ndims = {
+            len(type(v)._broadcasted_shape(v)) for v in (first,) + tuple(rest)
+        }
         if len(component_ndims) > 1:
             raise ValueError("Can not broadcast cat with negative dimension.")
 
@@ -244,11 +269,17 @@ def _cat_tensorgroup(first, rest, dim=0, out=None):
 
     return cls(
         **{
-            a.name: cat([getattr(first, a.name)] + [getattr(e, a.name) for e in rest], dim=dim)
+            a.name: cat(
+                [getattr(first, a.name)] + [getattr(e, a.name) for e in rest], dim=dim
+            )
             for a in attr.fields(cls)
         }
     )
 
 
-register_validator(lambda t: inspect.isclass(t) and issubclass(t, _TensorType), lambda t: t.validate)
-register_converter(lambda t: inspect.isclass(t) and issubclass(t, _TensorType), lambda t: t.convert)
+register_validator(
+    lambda t: inspect.isclass(t) and issubclass(t, _TensorType), lambda t: t.validate
+)
+register_converter(
+    lambda t: inspect.isclass(t) and issubclass(t, _TensorType), lambda t: t.convert
+)

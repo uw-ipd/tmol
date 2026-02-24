@@ -3,11 +3,12 @@ import numpy
 import yaml
 from attrs import evolve
 
-from tmol.chemical.ideal_coords import normalize
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.database.chemical import RawResidueType, VariantType
 from tmol.io import pose_stack_from_pdb
+from tmol.chemical.ideal_coords import normalize
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+
+from tmol.database.chemical import VariantType, RawResidueType
 
 
 def test_patched_residue_construction_smoke(default_database):
@@ -60,7 +61,9 @@ def test_patched_residue_ideal_coords(default_database):
         )
     )
 
-    oxtc_dis = numpy.linalg.norm(leu_rt.ideal_coords[oxt_ind, :] - leu_rt.ideal_coords[c_ind])
+    oxtc_dis = numpy.linalg.norm(
+        leu_rt.ideal_coords[oxt_ind, :] - leu_rt.ideal_coords[c_ind]
+    )
 
     assert abs(oco_ang - (numpy.pi - leu_rt.icoors_geom[oxt_ind, 1])) < 1e-5
     assert abs(oxtc_dis - leu_rt.icoors_geom[oxt_ind, 2]) < 1e-5
@@ -102,8 +105,12 @@ def test_uncommon_patching_options(default_unpatched_chemical_database):
     icoors:
     - { name: thiol, phi: -180.0 deg, theta: 84.011803 deg, d: 1.329369, parent: <S1>, grand_parent: <C2>, great_grand_parent: <C1>}
     """
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, variants=variant_from_yaml(patch))
-    patched_chemdb = PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, variants=variant_from_yaml(patch)
+    )
+    patched_chemdb = PatchedChemicalDatabase.from_chem_db(
+        unpatched_chemical_database
+    )  # apply patches
     patched_names = [x.name for x in patched_chemdb.residues]
     assert "CYS:addconn" in patched_names
 
@@ -123,8 +130,12 @@ def test_uncommon_patching_options(default_unpatched_chemical_database):
     icoors:
     - { name: CDX, source: <H1>}
     """
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, variants=variant_from_yaml(patch))
-    patched_chemdb = PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, variants=variant_from_yaml(patch)
+    )
+    patched_chemdb = PatchedChemicalDatabase.from_chem_db(
+        unpatched_chemical_database
+    )  # apply patches
     patched_names = [x.name for x in patched_chemdb.residues]
     assert "CYS:oddconn" in patched_names
 
@@ -145,10 +156,14 @@ def test_patch_error_checks(default_unpatched_chemical_database):
     icoors:
     - { name: HG, source: <H1>}
     """
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, variants=variant_from_yaml(patch))
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, variants=variant_from_yaml(patch)
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [
@@ -179,10 +194,14 @@ def test_patch_error_checks(default_unpatched_chemical_database):
     icoors:
     - { name: HG2, source: <H1>}
     """
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, variants=variant_from_yaml(patch))
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, variants=variant_from_yaml(patch)
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [
@@ -212,10 +231,14 @@ def test_patch_validation_missing_fields(default_unpatched_chemical_database):
     """
     variants = variant_from_yaml(patch)
     variants[0].modify_atoms = None  # drop a field!
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, variants=variants)
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, variants=variants
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [
@@ -229,10 +252,14 @@ def test_patch_validation_missing_fields(default_unpatched_chemical_database):
     assert threw
 
     variants[0].remove_atoms = None  # drop another field!
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, variants=variants)
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, variants=variants
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [
@@ -261,10 +288,14 @@ def test_patch_validation_remove_atoms_reference(default_unpatched_chemical_data
     icoors: []
     """
 
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, variants=variant_from_yaml(patch))
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, variants=variant_from_yaml(patch)
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [
@@ -295,10 +326,14 @@ def test_patch_validation_modify_atoms_reference(default_unpatched_chemical_data
     icoors: []
     """
 
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, variants=variant_from_yaml(patch))
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, variants=variant_from_yaml(patch)
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [
@@ -329,10 +364,14 @@ def test_patch_validation_illegal_add_alias(default_unpatched_chemical_database)
     icoors: []
     """
 
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, variants=variant_from_yaml(patch))
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, variants=variant_from_yaml(patch)
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [
@@ -363,10 +402,14 @@ def test_patch_validation_illegal_bond(default_unpatched_chemical_database):
     icoors: []
     """
 
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, variants=variant_from_yaml(patch))
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, variants=variant_from_yaml(patch)
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [
@@ -400,10 +443,14 @@ def test_patch_validation_illegal_icoor(default_unpatched_chemical_database):
     - { name:     SG, source: <H1>, phi:   80.0 deg, theta: 60.0 deg, d: 1.2, grand_parent: <C1>, great_grand_parent: <C2>}
     """
 
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, variants=variant_from_yaml(patch))
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, variants=variant_from_yaml(patch)
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [
@@ -477,10 +524,14 @@ def test_res_error_checks(default_unpatched_chemical_database):
     chi_samples: []
     default_jump_connection_atom: CA
     """
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, residues=residues_from_yaml(rawres))
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, residues=residues_from_yaml(rawres)
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [
@@ -581,10 +632,14 @@ def test_validate_restype_bad_conns(default_unpatched_chemical_database):
     chi_samples: []
     default_jump_connection_atom: CA
 """
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, residues=residues_from_yaml(rawres))
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, residues=residues_from_yaml(rawres)
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [
@@ -684,10 +739,14 @@ def test_validate_restype_bad_icoor(default_unpatched_chemical_database):
     chi_samples: []
     default_jump_connection_atom: CA
 """
-    unpatched_chemical_database = evolve(default_unpatched_chemical_database, residues=residues_from_yaml(rawres))
+    unpatched_chemical_database = evolve(
+        default_unpatched_chemical_database, residues=residues_from_yaml(rawres)
+    )
     threw = False
     try:
-        PatchedChemicalDatabase.from_chem_db(unpatched_chemical_database)  # apply patches
+        PatchedChemicalDatabase.from_chem_db(
+            unpatched_chemical_database
+        )  # apply patches
     except RuntimeError as err:
         gold_err = "\n".join(
             [

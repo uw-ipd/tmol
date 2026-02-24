@@ -1,14 +1,16 @@
 import torch
 
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.database import ParameterDatabase
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.hbond.potentials.compiled import hbond_pose_scores, hbond_rotamer_scores
-
-from ..atom_type_dependent_term import AtomTypeDependentTerm
 from .hbond_dependent_term import HBondDependentTerm
 from .params import CompactedHBondDatabase
+from ..atom_type_dependent_term import AtomTypeDependentTerm
+
+from tmol.database import ParameterDatabase
+
+from tmol.score.hbond.potentials.compiled import hbond_pose_scores, hbond_rotamer_scores
+
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pose_stack import PoseStack
 
 
 class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
@@ -18,7 +20,9 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super(HBondEnergyTerm, self).__init__(param_db=param_db, device=device)
         self.tile_size = HBondEnergyTerm.tile_size
-        self.hb_param_db = CompactedHBondDatabase.from_database(param_db.chemical, param_db.scoring.hbond, device)
+        self.hb_param_db = CompactedHBondDatabase.from_database(
+            param_db.chemical, param_db.scoring.hbond, device
+        )
 
     @classmethod
     def class_name(cls):

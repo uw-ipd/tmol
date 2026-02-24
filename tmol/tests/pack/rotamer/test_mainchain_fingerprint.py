@@ -2,21 +2,22 @@ import numpy
 import torch
 
 from tmol.chemical.restypes import ResidueTypeSet
-from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pack.rotamer.mainchain_fingerprint import (
-    AtomFingerprint,
-    annotate_residue_type_with_sampler_fingerprints,
-    create_mainchain_fingerprint,
-    create_non_sidechain_fingerprint,
-    find_unique_fingerprints,
-)
+
+from tmol.score.dunbrack.params import DunbrackParamResolver
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pack.rotamer.single_residue_kinforest import (
     construct_single_residue_kinforest,
 )
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.score.dunbrack.params import DunbrackParamResolver
+from tmol.pack.rotamer.mainchain_fingerprint import (
+    create_non_sidechain_fingerprint,
+    create_mainchain_fingerprint,
+    AtomFingerprint,
+    annotate_residue_type_with_sampler_fingerprints,
+    find_unique_fingerprints,
+)
+from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
+from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 
 def test_create_non_sidechain_fingerprint(default_database):
@@ -31,7 +32,9 @@ def test_create_non_sidechain_fingerprint(default_database):
     parents[parents < 0] = 0
     parents[id] = id[parents]
 
-    non_sc_ats, fingerprints, _ = create_non_sidechain_fingerprint(leu_rt, parents, sc_atoms, default_database.chemical)
+    non_sc_ats, fingerprints, _ = create_non_sidechain_fingerprint(
+        leu_rt, parents, sc_atoms, default_database.chemical
+    )
 
     non_sc_ats_gold = numpy.array(
         sorted([leu_rt.atom_to_idx[at] for at in ("N", "CA", "C", "HA", "H", "O")]),
@@ -91,11 +94,15 @@ def test_annotate_rt_w_mainchain_fingerprint(default_database):
     torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
     leu_rt = rts.restype_map["LEU"][0]
-    param_resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
     dun_sampler = DunbrackChiSampler.from_database(param_resolver)
 
     construct_single_residue_kinforest(leu_rt)
-    annotate_residue_type_with_sampler_fingerprints(leu_rt, [dun_sampler], default_database.chemical)
+    annotate_residue_type_with_sampler_fingerprints(
+        leu_rt, [dun_sampler], default_database.chemical
+    )
 
     assert hasattr(leu_rt, "mc_fingerprints")
     assert dun_sampler.sampler_name() in leu_rt.mc_fingerprints
@@ -135,7 +142,9 @@ def test_merge_fingerprints(default_database):
     torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
-    param_resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
     dun_sampler = DunbrackChiSampler.from_database(param_resolver)
     fixed_sampler = FixedAAChiSampler()
 
@@ -163,13 +172,19 @@ def test_merge_fingerprints(default_database):
         "TYR",
     ]
 
-    rt_list = [next(rt for rt in rts.residue_types if rt.name == aa) for aa in canonical_aas]
+    rt_list = [
+        next(rt for rt in rts.residue_types if rt.name == aa) for aa in canonical_aas
+    ]
 
     for rt in rt_list:
         construct_single_residue_kinforest(rt)
-        annotate_residue_type_with_sampler_fingerprints(rt, [dun_sampler, fixed_sampler], default_database.chemical)
+        annotate_residue_type_with_sampler_fingerprints(
+            rt, [dun_sampler, fixed_sampler], default_database.chemical
+        )
     # print([x.name for x in rt_list])
-    pbt = PackedBlockTypes.from_restype_list(default_database.chemical, rts, rt_list, device=torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical, rts, rt_list, device=torch_device
+    )
     find_unique_fingerprints(pbt)
 
     # we should find that the pbt has been annotated
@@ -204,7 +219,9 @@ def test_merge_fingerprints(default_database):
     dun_sampler_ind = pbt.mc_fingerprints.sampler_mapping[dun_sampler.sampler_name()]
 
     assert fixed_sampler.sampler_name() in pbt.mc_fingerprints.sampler_mapping
-    fixed_sampler_ind = pbt.mc_fingerprints.sampler_mapping[fixed_sampler.sampler_name()]
+    fixed_sampler_ind = pbt.mc_fingerprints.sampler_mapping[
+        fixed_sampler.sampler_name()
+    ]
 
     # fd what does the dimensionality of this mean?
     # fd seems like (n_samplers, n_mcs, pbt.n_types, max_n_mc_atoms)
@@ -230,8 +247,12 @@ def test_merge_fingerprints(default_database):
             # now the atom mapping:
             # print(rt_new.atom_to_idx)
             for k in range(6):
-                k_orig = pbt.mc_fingerprints.atom_mapping[orig_rt_sampler, orig_max_fp, i, k]
-                k_new = pbt.mc_fingerprints.atom_mapping[new_rt_sampler, orig_max_fp, j, k]
+                k_orig = pbt.mc_fingerprints.atom_mapping[
+                    orig_rt_sampler, orig_max_fp, i, k
+                ]
+                k_new = pbt.mc_fingerprints.atom_mapping[
+                    new_rt_sampler, orig_max_fp, j, k
+                ]
 
                 if k_orig >= 0 and k_new >= 0:
                     assert rt_orig.atoms[k_orig].name == orig_mc_ats[k]

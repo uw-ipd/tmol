@@ -1,17 +1,22 @@
 import typing
-from enum import IntEnum
 
 import attr
 import cattr
-import numpy
+
 import pandas
+
 import torch
+import numpy
 
 from tmol.database.chemical import ChemicalDatabase
+
+from tmol.types.torch import Tensor
+from tmol.types.tensor import TensorGroup
 from tmol.types.array import NDArray
 from tmol.types.attrs import ValidateAttrs
-from tmol.types.tensor import TensorGroup
-from tmol.types.torch import Tensor
+
+
+from enum import IntEnum
 
 
 class AcceptorHybridization(IntEnum):
@@ -65,7 +70,9 @@ class AtomTypeParamResolver(ValidateAttrs):
         if not isinstance(atom_types, numpy.ndarray):
             atom_types = numpy.array(atom_types, dtype=object)
 
-        return torch.from_numpy(self.index.get_indexer(atom_types.ravel()).reshape(atom_types.shape)).to(self.device)
+        return torch.from_numpy(
+            self.index.get_indexer(atom_types.ravel()).reshape(atom_types.shape)
+        ).to(self.device)
 
     @classmethod
     def from_database(cls, chemical_database: ChemicalDatabase, device: torch.device):
@@ -81,7 +88,9 @@ class AtomTypeParamResolver(ValidateAttrs):
         # the param resolver type index. This appends a "nan" row at the end of
         # the frame for the invalid/None entry added above.
         param_records = (
-            pandas.DataFrame.from_records(cattr.unstructure(chemical_database.atom_types))
+            pandas.DataFrame.from_records(
+                cattr.unstructure(chemical_database.atom_types)
+            )
             .set_index("name")
             .reindex(index=atom_type_index)
         )
@@ -91,22 +100,28 @@ class AtomTypeParamResolver(ValidateAttrs):
 
         # Map acceptor hybridization from string space to index space
         param_records.loc[None, "acceptor_hybridization"] = None
-        param_records["acceptor_hybridization"] = AcceptorHybridization._index.get_indexer_for(
-            param_records["acceptor_hybridization"]
+        param_records["acceptor_hybridization"] = (
+            AcceptorHybridization._index.get_indexer_for(
+                param_records["acceptor_hybridization"]
+            )
         )
 
         # Convert boolean types for torch, setting the invalid/None
         # entry to 0/false
         for field in attr.fields(AtomTypeParams):
             if field.type.dtype == torch.bool:
-                (param_records[field.name]) = param_records[field.name].fillna(value=0).astype(bool)
+                param_records[field.name] = (
+                    param_records[field.name].fillna(value=0).astype(bool)
+                )
 
         assert not (param_records["acceptor_hybridization"] == -1).any()
 
         # Convert the param record dataframe into typed TensorGroup
         atom_type_params = AtomTypeParams(
             **{
-                f.name: torch.tensor(param_records[f.name].values, dtype=f.type.dtype, device=device)
+                f.name: torch.tensor(
+                    param_records[f.name].values, dtype=f.type.dtype, device=device
+                )
                 for f in attr.fields(AtomTypeParams)
             }
         )

@@ -8,7 +8,9 @@ class ConvertAttrs:
     def __attrs_post_init__(self):
         for a in self.__attrs_attrs__:
             if not a.converter:
-                object.__setattr__(self, a.name, get_converter(a.type)(getattr(self, a.name)))
+                object.__setattr__(
+                    self, a.name, get_converter(a.type)(getattr(self, a.name))
+                )
 
 
 class ValidateAttrs:
@@ -18,4 +20,6 @@ class ValidateAttrs:
                 try:
                     get_validator(a.type)(getattr(self, a.name))
                 except TypeError as e:
-                    raise TypeError("Failed to validate attribute '" + a.name + "': " + str(e))
+                    raise TypeError(
+                        "Failed to validate attribute '" + a.name + "': " + str(e)
+                    )

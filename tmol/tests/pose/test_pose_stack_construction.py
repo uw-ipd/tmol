@@ -2,6 +2,7 @@ import torch
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.io import pose_stack_from_pdb
+
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
@@ -36,7 +37,9 @@ def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
     n_chains = 1
     max_n_res = 4
     max_n_conn = 2
-    real_res = torch.tensor([[True, True, True, True]], dtype=torch.bool, device=torch_device)
+    real_res = torch.tensor(
+        [[True, True, True, True]], dtype=torch.bool, device=torch_device
+    )
     block_type_ind64 = i64([[1, 2, 0, 1]])
 
     ibs64 = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
@@ -103,7 +106,9 @@ def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
     n_chains = 1
     max_n_res = 4
     max_n_conn = 2
-    real_res = torch.tensor([[True, True, True, True]], dtype=torch.bool, device=torch_device)
+    real_res = torch.tensor(
+        [[True, True, True, True]], dtype=torch.bool, device=torch_device
+    )
     block_type_ind64 = i64([[1, 2, 4, 1]])
 
     ibs64 = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
@@ -234,7 +239,9 @@ def test_take_real_conn_conn_intrablock_pairs_heavy(torch_device):
     torch.testing.assert_close(pconn_matrix_gold, pconn_matrix)
 
 
-def test_find_connection_pairs_for_residue_subset(fresh_default_packed_block_types, torch_device):
+def test_find_connection_pairs_for_residue_subset(
+    fresh_default_packed_block_types, torch_device
+):
     pbt = fresh_default_packed_block_types
     ala_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ALA")
     cyd_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "CYD")
@@ -262,7 +269,9 @@ def test_find_connection_pairs_for_residue_subset(fresh_default_packed_block_typ
             assert conn == conn_gold
 
 
-def test_find_connection_pairs_for_residue_subset2(fresh_default_packed_block_types, torch_device):
+def test_find_connection_pairs_for_residue_subset2(
+    fresh_default_packed_block_types, torch_device
+):
     pbt = fresh_default_packed_block_types
     abt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ALA")
     cbt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "CYD")
@@ -301,7 +310,9 @@ def test_find_connections_in_sequences(fresh_default_packed_block_types, torch_d
         ["ALA", "ALA", "CYD--dslf-first", "ALA", "CYD--dslf-first"],
         ["ALA", "CYD--dslf-foo", "ALA", "CYD--dslf-foo"],
     ]
-    trimmed_seqs, ps_conns = PoseStackBuilder._find_connections_in_sequences(pbt, sequences)
+    trimmed_seqs, ps_conns = PoseStackBuilder._find_connections_in_sequences(
+        pbt, sequences
+    )
 
     trimmed_seqs_gold = [
         ["ALA", "ALA", "CYD", "ALA", "CYD"],
@@ -313,7 +324,9 @@ def test_find_connections_in_sequences(fresh_default_packed_block_types, torch_d
     assert ps_conns == ps_conns_gold
 
 
-def test_find_connection_pairs_for_residue_subset_w_errors1(fresh_default_packed_block_types, torch_device):
+def test_find_connection_pairs_for_residue_subset_w_errors1(
+    fresh_default_packed_block_types, torch_device
+):
     pbt = fresh_default_packed_block_types
     ala_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ALA")
     cyd_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "CYD")
@@ -331,7 +344,9 @@ def test_find_connection_pairs_for_residue_subset_w_errors1(fresh_default_packed
 
     succeeded = False
     try:
-        _ = PoseStackBuilder._find_connection_pairs_for_residue_subset(pbt, sequences, block_types, residue_connections)
+        _ = PoseStackBuilder._find_connection_pairs_for_residue_subset(
+            pbt, sequences, block_types, residue_connections
+        )
         succeeded = True
     except ValueError as e:
         assert str(e) == (
@@ -343,7 +358,9 @@ def test_find_connection_pairs_for_residue_subset_w_errors1(fresh_default_packed
     assert not succeeded
 
 
-def test_find_connection_pairs_for_residue_subset_w_errors2(fresh_default_packed_block_types, torch_device):
+def test_find_connection_pairs_for_residue_subset_w_errors2(
+    fresh_default_packed_block_types, torch_device
+):
     pbt = fresh_default_packed_block_types
     ala_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ALA")
     cyd_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "CYD")
@@ -361,7 +378,9 @@ def test_find_connection_pairs_for_residue_subset_w_errors2(fresh_default_packed
 
     succeeded = False
     try:
-        _ = PoseStackBuilder._find_connection_pairs_for_residue_subset(pbt, sequences, block_types, residue_connections)
+        _ = PoseStackBuilder._find_connection_pairs_for_residue_subset(
+            pbt, sequences, block_types, residue_connections
+        )
         succeeded = True
     except ValueError as e:
         assert str(e) == (
@@ -375,7 +394,9 @@ def test_find_connection_pairs_for_residue_subset_w_errors2(fresh_default_packed
 
 def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device):
     pbt_max_n_conn = 3
-    block_n_conn = torch.tensor([[2, 2, 3, 2, 3], [2, 3, 2, 3, 0]], dtype=torch.int32, device=torch_device)
+    block_n_conn = torch.tensor(
+        [[2, 2, 3, 2, 3], [2, 3, 2, 3, 0]], dtype=torch.int32, device=torch_device
+    )
     pose_n_pconn = torch.tensor([12, 10], dtype=torch.int32, device=torch_device)
     pconn_matrix = torch.tensor(
         [
@@ -526,7 +547,9 @@ def test_incorporate_extra_connections_into_inter_res_conn_set(torch_device):
     inter_residue_connections64_gold[1, 3, 2, 0] = 1
     inter_residue_connections64_gold[1, 3, 2, 1] = 2
 
-    torch.testing.assert_close(inter_residue_connections64_gold, inter_residue_connections64)
+    torch.testing.assert_close(
+        inter_residue_connections64_gold, inter_residue_connections64
+    )
 
 
 def test_incorporate_extra_connections_into_inter_res_conn_set2(torch_device):
@@ -559,7 +582,9 @@ def test_incorporate_extra_connections_into_inter_res_conn_set2(torch_device):
     inter_residue_connections64_gold[1, 3, 2, 0] = 1
     inter_residue_connections64_gold[1, 3, 2, 1] = 2
 
-    torch.testing.assert_close(inter_residue_connections64_gold, inter_residue_connections64)
+    torch.testing.assert_close(
+        inter_residue_connections64_gold, inter_residue_connections64
+    )
 
 
 def test_incorporate_inter_residue_connections_into_connectivity_graph(torch_device):
@@ -593,7 +618,9 @@ def test_incorporate_inter_residue_connections_into_connectivity_graph(torch_dev
         resolved_expoly_connections, inter_residue_connections64
     )
 
-    pconn_offset = torch.tensor([[0, 2, 4, 7, 9], [0, 2, 5, 7, 7]], dtype=torch.int64, device=torch_device)
+    pconn_offset = torch.tensor(
+        [[0, 2, 4, 7, 9], [0, 2, 5, 7, 7]], dtype=torch.int64, device=torch_device
+    )
 
     pconn_matrix = torch.full(
         (n_poses, max_n_pconn, max_n_pconn),
@@ -610,7 +637,9 @@ def test_incorporate_inter_residue_connections_into_connectivity_graph(torch_dev
                     j_offset = pconn_offset[i, j]
                     partner_offset = pconn_offset[i, partner]
                     partner_conn = inter_residue_connections64[i, j, k, 1]
-                    pconn_matrix_gold[i, j_offset + k, partner_offset + partner_conn] = 1
+                    pconn_matrix_gold[
+                        i, j_offset + k, partner_offset + partner_conn
+                    ] = 1
 
     PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
         inter_residue_connections64, pconn_offset, pconn_matrix
@@ -619,14 +648,18 @@ def test_incorporate_inter_residue_connections_into_connectivity_graph(torch_dev
     torch.testing.assert_close(pconn_matrix_gold, pconn_matrix)
 
 
-def test_construct_pose_stack_containing_disulfides_smoke(fresh_default_packed_block_types, torch_device):
+def test_construct_pose_stack_containing_disulfides_smoke(
+    fresh_default_packed_block_types, torch_device
+):
     pbt = fresh_default_packed_block_types
     sequences = [
         ["ALA", "PRO", "CYD--dslf-first", "LEU", "CYD--dslf-first", "PHE"],
         ["PHE", "CYD--dslf-foo", "PRO", "CYD--dslf-foo", "ASP"],
     ]
 
-    _ = PoseStackBuilder.pose_stack_from_monomer_sequences_w_extrapolymeric_conns(pbt, sequences)
+    _ = PoseStackBuilder.pose_stack_from_monomer_sequences_w_extrapolymeric_conns(
+        pbt, sequences
+    )
 
 
 def interblock_dslf_self_correction(ibb, res_bound_to_next, p, i):
@@ -663,7 +696,9 @@ def interblock_dslf_pair_correction(ibb, res_bound_to_next, p, i, j):
         ibb[p, i, j + 1, 2, 0] = 5
 
 
-def test_pose_stack_from_sequences_smoke(fresh_default_packed_block_types, torch_device):
+def test_pose_stack_from_sequences_smoke(
+    fresh_default_packed_block_types, torch_device
+):
     pbt = fresh_default_packed_block_types
     n_poses, max_n_res, max_n_conn = 2, 8, 3
     sequences = [
@@ -672,8 +707,13 @@ def test_pose_stack_from_sequences_smoke(fresh_default_packed_block_types, torch
     ]
     chain_lengths = [[2, 4], [3, 3, 2]]
     # derived data
-    has_dslf = [[True if resname.find("dslf") != -1 else False for resname in seq] for seq in sequences]
-    res_bound_to_next = torch.full((n_poses, max_n_res), False, dtype=torch.bool)  # leave on cpu
+    has_dslf = [
+        [True if resname.find("dslf") != -1 else False for resname in seq]
+        for seq in sequences
+    ]
+    res_bound_to_next = torch.full(
+        (n_poses, max_n_res), False, dtype=torch.bool
+    )  # leave on cpu
     for i, lens in enumerate(chain_lengths):
         count = 0
         for j in lens:
@@ -681,10 +721,14 @@ def test_pose_stack_from_sequences_smoke(fresh_default_packed_block_types, torch
             count += j
 
     # the call we are testing
-    pose_stack = PoseStackBuilder.pose_stack_from_sequences(pbt, sequences, chain_lengths)
+    pose_stack = PoseStackBuilder.pose_stack_from_sequences(
+        pbt, sequences, chain_lengths
+    )
 
     # what is the inter_block_bondsep that should be computed?
-    i_to_ip1_no_dslf_gold = torch.tensor([[3, 5, 6], [1, 3, 6], [6, 6, 6]], dtype=torch.int32, device=torch_device)
+    i_to_ip1_no_dslf_gold = torch.tensor(
+        [[3, 5, 6], [1, 3, 6], [6, 6, 6]], dtype=torch.int32, device=torch_device
+    )
     ibb_gold = torch.full(
         (n_poses, max_n_res, max_n_res, max_n_conn, max_n_conn),
         MAX_SIG_BOND_SEPARATION,
@@ -698,7 +742,11 @@ def test_pose_stack_from_sequences_smoke(fresh_default_packed_block_types, torch
         if i - 2 >= 0 and res_bound_to_next[p, i - 2] and res_bound_to_next[p, i - 1]:
             ibb_gold[p, i - 2, i, 1, 0] = 4
             ibb_gold[p, i, i - 2, 0, 1] = 4
-        if i + 2 < max_n_res and res_bound_to_next[p, i] and res_bound_to_next[p, i + 1]:
+        if (
+            i + 2 < max_n_res
+            and res_bound_to_next[p, i]
+            and res_bound_to_next[p, i + 1]
+        ):
             ibb_gold[p, i + 2, i, 0, 1] = 4
             ibb_gold[p, i, i + 2, 1, 0] = 4
 
@@ -707,7 +755,9 @@ def test_pose_stack_from_sequences_smoke(fresh_default_packed_block_types, torch
             if res_bound_to_next[i, j]:
                 fill_i_to_ip1_gold(i, j)
 
-    i_self_no_dslf_gold = torch.tensor([[0, 2, 6], [2, 0, 6], [6, 6, 6]], dtype=torch.int32, device=torch_device)
+    i_self_no_dslf_gold = torch.tensor(
+        [[0, 2, 6], [2, 0, 6], [6, 6, 6]], dtype=torch.int32, device=torch_device
+    )
 
     def set_self_nodslf(p, i):
         ibb_gold[p, i, i] = i_self_no_dslf_gold

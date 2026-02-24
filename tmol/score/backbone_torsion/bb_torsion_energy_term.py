@@ -1,20 +1,23 @@
-import attr
 import numpy
 import torch
 
-from tmol.chemical.restypes import RefinedResidueType, uaid_t
+import attr
+
+from tmol.types.torch import Tensor
+from tmol.types.array import NDArray
+
+from tmol.score.energy_term import EnergyTerm
+from .params import BackboneTorsionParamResolver
 from tmol.database import ParameterDatabase
+
+from tmol.chemical.restypes import RefinedResidueType, uaid_t
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+
 from tmol.score.backbone_torsion.potentials.compiled import (
     backbone_torsion_pose_score,
     backbone_torsion_rotamer_score,
 )
-from tmol.score.energy_term import EnergyTerm
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
-
-from .params import BackboneTorsionParamResolver
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -46,7 +49,9 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
     omega_table_params: Tensor[torch.float32][:, :, :]
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
-        super(BackboneTorsionEnergyTerm, self).__init__(param_db=param_db, device=device)
+        super(BackboneTorsionEnergyTerm, self).__init__(
+            param_db=param_db, device=device
+        )
         self.device = device
 
         self.param_resolver = BackboneTorsionParamResolver.from_database(
@@ -78,7 +83,9 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
     def score_types(cls):
         import tmol.score.terms.backbone_torsion_creator
 
-        return tmol.score.terms.backbone_torsion_creator.BackboneTorsionTermCreator.score_types()
+        return (
+            tmol.score.terms.backbone_torsion_creator.BackboneTorsionTermCreator.score_types()
+        )
 
     def n_bodies(self):
         return 2
@@ -97,15 +104,21 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         rname = block_type.name
         lookups = numpy.array([[rname, "_"], [rname, "PRO"]], dtype=object)
         rama_table_inds = self.param_resolver.rama_lookup.index.get_indexer(lookups)
-        rama_table_inds = self.param_resolver.rama_lookup.iloc[rama_table_inds, :]["table_id"].values
+        rama_table_inds = self.param_resolver.rama_lookup.iloc[rama_table_inds, :][
+            "table_id"
+        ].values
         omega_table_inds = self.param_resolver.omega_lookup.index.get_indexer(lookups)
-        omega_table_inds = self.param_resolver.omega_lookup.iloc[omega_table_inds, :]["table_id"].values
+        omega_table_inds = self.param_resolver.omega_lookup.iloc[omega_table_inds, :][
+            "table_id"
+        ].values
 
         backbone_torsion_atoms = numpy.full((3, 4), -1, dtype=uaid_t)
         if rama_table_inds[0] != -1 or rama_table_inds[1] != -1:
             for i, tor in enumerate(["phi", "psi", "omega"]):
                 if tor in block_type.torsion_to_uaids:
-                    backbone_torsion_atoms[i] = uaids_to_np(block_type.torsion_to_uaids[tor])
+                    backbone_torsion_atoms[i] = uaids_to_np(
+                        block_type.torsion_to_uaids[tor]
+                    )
         backbone_torsion_atoms = backbone_torsion_atoms.reshape(-1)
 
         lower_conn_id = numpy.full((1,), -1, dtype=numpy.int32)
@@ -131,7 +144,9 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         setattr(block_type, "backbone_torsion_params", bt_bbtors_params)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
-        super(BackboneTorsionEnergyTerm, self).setup_packed_block_types(packed_block_types)
+        super(BackboneTorsionEnergyTerm, self).setup_packed_block_types(
+            packed_block_types
+        )
         if hasattr(packed_block_types, "backbone_torsion_params"):
             return
         n_types = packed_block_types.n_types
@@ -150,7 +165,9 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             bt_lower_conn_ind[i] = i_bbtors_params.lower_conn_ind[0]
             bt_upper_conn_ind[i] = i_bbtors_params.upper_conn_ind[0]
             bt_is_pro[i] = i_bbtors_params.is_pro[0]
-            bt_backbone_torsion_atoms[i] = i_bbtors_params.backbone_torsion_atoms.view(numpy.int32).reshape(12, 3)
+            bt_backbone_torsion_atoms[i] = i_bbtors_params.backbone_torsion_atoms.view(
+                numpy.int32
+            ).reshape(12, 3)
 
         def _t(t):
             return torch.tensor(t, device=packed_block_types.device)

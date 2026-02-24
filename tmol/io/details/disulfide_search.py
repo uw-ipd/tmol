@@ -1,13 +1,12 @@
-from typing import Optional
-
-import numba
 import numpy
 import torch
+import numba
 
-from tmol.io.canonical_ordering import CanonicalOrdering
+from typing import Optional
 from tmol.types.array import NDArray
-from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
+from tmol.io.canonical_ordering import CanonicalOrdering
 
 
 @validate_args
@@ -33,7 +32,9 @@ def find_disulfides(
         # mark the disulfide-bonded residues
         restype_variants[disulfides[:, 0], disulfides[:, 1]] = 1
         restype_variants[disulfides[:, 0], disulfides[:, 2]] = 1
-        unpaired_cys_present = torch.sum(torch.logical_and(cys_res, restype_variants != 1))
+        unpaired_cys_present = torch.sum(
+            torch.logical_and(cys_res, restype_variants != 1)
+        )
         # if all the cys in the PoseStack are paired, then we do not
         # need to run disulfide detection;
         if unpaired_cys_present == 0 or not find_additional_disulfides:
@@ -132,7 +133,9 @@ def find_disulf_numba(
             j_res = cys_res_ind[j]
             if already_paired[j]:
                 continue
-            dis2 = numpy.sum(numpy.square(i_coord - coords[j_pose, j_res, sg_atom_for_co_cys]))
+            dis2 = numpy.sum(
+                numpy.square(i_coord - coords[j_pose, j_res, sg_atom_for_co_cys])
+            )
             if dis2 < cutoff_dis2 and (closest_dis2 < 0 or dis2 < closest_dis2):
                 closest_dis2 = dis2
                 closest_match = j

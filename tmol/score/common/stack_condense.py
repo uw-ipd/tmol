@@ -1,11 +1,10 @@
-from typing import Optional, Union
-
-import numpy
 import torch
-
-from tmol.types.array import NDArray
-from tmol.types.functional import validate_args
+import numpy
 from tmol.types.torch import Tensor
+from tmol.types.array import NDArray
+from typing import Union, Optional
+
+from tmol.types.functional import validate_args
 
 ##################################################################
 # For operations on stacked systems, we have to deal with the fact
@@ -78,7 +77,9 @@ def condense_torch_inds(selection: Tensor[bool][:, :], device: torch.device):
     nkeep = torch.sum(selection, dim=1).view((nstacks, 1))
     max_keep = torch.max(nkeep)
     inds = torch.full((nstacks, max_keep), -1, dtype=torch.int64, device=device)
-    counts = torch.arange(max_keep, dtype=torch.int64, device=device).view((1, max_keep))
+    counts = torch.arange(max_keep, dtype=torch.int64, device=device).view(
+        (1, max_keep)
+    )
     lowinds = counts < nkeep
 
     inds[lowinds] = nz_selection[:, 1]
@@ -86,7 +87,9 @@ def condense_torch_inds(selection: Tensor[bool][:, :], device: torch.device):
 
 
 @validate_args
-def take_values_w_sentineled_index(value_tensor, sentineled_index_tensor: Tensor[torch.int64][:, :], default_fill=-1):
+def take_values_w_sentineled_index(
+    value_tensor, sentineled_index_tensor: Tensor[torch.int64][:, :], default_fill=-1
+):
     """The sentinel in the sentineled_index_tensor is -1: the positions
     with the sentinel value should not be used as an index into the
     value tensor. This function returns a tensor of the same shape as
@@ -234,7 +237,9 @@ def condense_subset(
         device=values.device,
     )
     nz_cinds = torch.nonzero(cinds >= 0, as_tuple=False)
-    selected_values[nz_cinds[:, 0], nz_cinds[:, 1], :] = values[nz_cinds[:, 0], cinds[cinds >= 0].view(-1), :]
+    selected_values[nz_cinds[:, 0], nz_cinds[:, 1], :] = values[
+        nz_cinds[:, 0], cinds[cinds >= 0].view(-1), :
+    ]
     return selected_values
 
 
@@ -401,10 +406,16 @@ def _value_or_arg_tile_subset_indices(
         if max_entry is None:
             max_entry = torch.max(indices)
         n_tiles = max_entry // tile_size + 1
-        tiled_indices = torch.full((n_tiles * tile_size,), -1, dtype=indices.dtype, device=indices.device)
-        n_in_tile = torch.full((n_tiles,), 0, dtype=indices.dtype, device=indices.device)
+        tiled_indices = torch.full(
+            (n_tiles * tile_size,), -1, dtype=indices.dtype, device=indices.device
+        )
+        n_in_tile = torch.full(
+            (n_tiles,), 0, dtype=indices.dtype, device=indices.device
+        )
         if return_args:
-            ind_arange = torch.arange(indices.shape[0], dtype=indices.dtype, device=indices.device)
+            ind_arange = torch.arange(
+                indices.shape[0], dtype=indices.dtype, device=indices.device
+            )
     elif isinstance(indices, numpy.ndarray):
         if max_entry is None:
             max_entry = numpy.amax(indices)

@@ -1,17 +1,16 @@
-import time
-
 import attr
 import torch
+import time
 
-from tmol.kinematics.fold_forest import FoldForest
+from tmol.pose.pose_stack import PoseStack
+from tmol.score.score_function import ScoreFunction
 from tmol.kinematics.move_map import MoveMap
-from tmol.optimization.kin_min import run_kin_min
+from tmol.kinematics.fold_forest import FoldForest
 from tmol.pack.pack_rotamers import pack_rotamers
 from tmol.pack.packer_task import PackerPalette, PackerTask
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
+from tmol.optimization.kin_min import run_kin_min
 
 
 def fast_relax(
@@ -54,12 +53,14 @@ def fast_relax(
         # 3. includes the current rotamer
 
         torch_device = pose_stack.device
-        import tmol.database
-        from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
         from tmol.score.dunbrack.params import DunbrackParamResolver
+        from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
+        import tmol.database
 
         default_database = tmol.database.ParameterDatabase.get_default()
-        param_resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
+        param_resolver = DunbrackParamResolver.from_database(
+            default_database.scoring.dun, torch_device
+        )
         dun_sampler = DunbrackChiSampler.from_database(param_resolver)
 
         def default_op(task):
@@ -149,7 +150,9 @@ def relax_pack_min_step(
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time2 = time.perf_counter()
-    minimized_pose_stack = run_kin_min(packed_pose_stack, sfxn, fold_forest, move_map, verbose)
+    minimized_pose_stack = run_kin_min(
+        packed_pose_stack, sfxn, fold_forest, move_map, verbose
+    )
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time3 = time.perf_counter()
@@ -157,7 +160,7 @@ def relax_pack_min_step(
     if verbose:
         print(
             f"pack-min {end_time3 - start_time: .2f} task-init {end_time1 - start_time: .2f}"
-            + f" packing {end_time2 - end_time1: .2f} min {end_time3 - end_time2: .2f}"
+            + f" packing {end_time2 - end_time1: .2f} min {end_time3-end_time2: .2f}"
         )
 
     return minimized_pose_stack
@@ -177,7 +180,9 @@ def accept_best(
     def select_better(tensor_name):
         tensor = getattr(best_pose_stack, tensor_name)
         new_tensor = tensor.detach().clone()
-        new_tensor[better_mask] = getattr(candidate_pose_stack, tensor_name)[better_mask]
+        new_tensor[better_mask] = getattr(candidate_pose_stack, tensor_name)[
+            better_mask
+        ]
         return new_tensor
 
     if better_mask.any():

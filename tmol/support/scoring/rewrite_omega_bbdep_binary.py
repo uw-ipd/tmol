@@ -1,12 +1,11 @@
-import argparse
-import os
-from pathlib import Path
-
-import attr
-import cattr
 import numpy
+from pathlib import Path
+import os
+import argparse
 import torch
 import yaml
+import attr
+import cattr
 
 from tmol.database.scoring.omega_bbdep import OmegaBBDepDatabase, OmegaBBDepTables
 
@@ -33,7 +32,9 @@ def parse_all_tables(r3_bbdepomega_dir):
     # load tables
     tables = {}
     for tid in ["all", "gly", "prepro", "pro", "valile"]:
-        tables[tid] = parse_lines_as_ndarrays(open(r3_bbdepomega_dir + "omega_ppdep." + tid + ".txt").readlines())
+        tables[tid] = parse_lines_as_ndarrays(
+            open(r3_bbdepomega_dir + "omega_ppdep." + tid + ".txt").readlines()
+        )
 
     return tables
 
@@ -79,11 +80,15 @@ def create_omega_db(r3_bbdepomega_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rosetta_dir", default=os.path.join(Path.home(), "Rosetta/main/"))
+    parser.add_argument(
+        "--rosetta_dir", default=os.path.join(Path.home(), "Rosetta/main/")
+    )
     args, _ = parser.parse_known_args()
     parser.add_argument(
         "--r3_bbdepomega_dir",
-        default=os.path.join(args.rosetta_dir, "database/scoring/score_functions/omega/"),
+        default=os.path.join(
+            args.rosetta_dir, "database/scoring/score_functions/omega/"
+        ),
     )
     parser.add_argument(
         "--output",

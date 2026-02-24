@@ -1,8 +1,8 @@
-import enum
-
-import pandas
 import pytest
 
+import pandas
+
+import enum
 from tmol.utility.categorical import names_to_val_cat, vals_to_name_cat
 
 
@@ -23,7 +23,9 @@ def test_categorical_conversion():
 
     assert list(pandas.isna(names_to_val_cat(TE, missing_names))) == missing_mask
 
-    assert list(pandas.isna(vals_to_name_cat(TE, [TE.a, TE.b, TE.c, -1]))) == missing_mask
+    assert (
+        list(pandas.isna(vals_to_name_cat(TE, [TE.a, TE.b, TE.c, -1]))) == missing_mask
+    )
 
 
 def test_flag_enum():

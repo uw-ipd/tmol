@@ -1,32 +1,31 @@
-from functools import partial
-
-import cattr
 import numpy
 import torch
+
+import cattr
 import yaml
 from attrs import evolve
+from functools import partial
 from toolz.curried import groupby
-
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.database.chemical import ChemicalDatabase, VariantType
+from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.io.canonical_ordering import (
-    CanonicalOrdering,
     canonical_form_from_pdb,
     default_canonical_ordering,
     default_packed_block_types,
+    CanonicalOrdering,
 )
+from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
 from tmol.io.details.disulfide_search import find_disulfides
 from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
-from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
 from tmol.io.details.select_from_canonical import (
-    CanonicalOrderingAnnotation,
-    _annotate_packed_block_types_w_canonical_res_order,
     assign_block_types,
     take_block_type_atoms_from_canonical,
+    _annotate_packed_block_types_w_canonical_res_order,
+    CanonicalOrderingAnnotation,
 )
-from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.tests.io.details.test_left_justify_canonical_form import add_two_res_at_gap
 
 
@@ -34,7 +33,9 @@ def not_any_nancoord(coords):
     return torch.logical_not(torch.any(torch.isnan(coords), dim=3))
 
 
-def dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts, coords, at_is_pres, chain_labels):
+def dslf_and_his_resolved_pose_stack_from_canonical_form(
+    co, pbt, ch_id, can_rts, coords, at_is_pres, chain_labels
+):
     (
         ch_id,
         can_rts,
@@ -47,7 +48,9 @@ def dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts
         chain_labels,
         _occ,
         _bf,
-    ) = left_justify_canonical_form(ch_id, can_rts, coords, at_is_pres, chain_labels=chain_labels)
+    ) = left_justify_canonical_form(
+        ch_id, can_rts, coords, at_is_pres, chain_labels=chain_labels
+    )
 
     # 2
     found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
@@ -86,7 +89,9 @@ def test_annotate_pbt_w_canonical_res_order(fresh_default_restype_set, torch_dev
     assert isinstance(ann, CanonicalOrderingAnnotation)
 
 
-def test_annotate_pbt_w_canonical_res_order_caching(fresh_default_restype_set, torch_device):
+def test_annotate_pbt_w_canonical_res_order_caching(
+    fresh_default_restype_set, torch_device
+):
     pbt = PackedBlockTypes.from_restype_list(
         chem_db=fresh_default_restype_set.chem_db,
         restype_set=fresh_default_restype_set,
@@ -126,21 +131,34 @@ def test_assign_block_types(torch_device, ubq_pdb):
         resolved_coords,
         resolved_atom_is_present,
         ch_lab,
-    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
 
     # now we'll invoke assign_block_types
     (
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
 
     # ubq seq
-    ubq_1lc = [x for x in "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"]
+    ubq_1lc = [
+        x
+        for x in "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"
+    ]
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
-    ubq_bt_inds = numpy.expand_dims(pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0)
-    ubq_bt_inds[0, 0] = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm")
-    ubq_bt_inds[0, -1] = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "GLY:cterm")
+    ubq_bt_inds = numpy.expand_dims(
+        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
+    )
+    ubq_bt_inds[0, 0] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
+    )
+    ubq_bt_inds[0, -1] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "GLY:cterm"
+    )
 
     assert block_types.device == torch_device
     assert inter_residue_connections64.device == torch_device
@@ -149,7 +167,9 @@ def test_assign_block_types(torch_device, ubq_pdb):
     numpy.testing.assert_equal(block_types.cpu().numpy(), ubq_bt_inds)
 
 
-def test_assign_block_types_w_exotic_termini_options(default_database, ubq_pdb, torch_device):
+def test_assign_block_types_w_exotic_termini_options(
+    default_database, ubq_pdb, torch_device
+):
     floro_nterm_patch = """
   - name:  AminoFloroTerminus
     display_name: floro_nterm
@@ -214,7 +234,9 @@ def test_assign_block_types_w_exotic_termini_options(default_database, ubq_pdb, 
         chem_db=patched_chem_db,
     )
 
-    pbt = PackedBlockTypes.from_restype_list(patched_chem_db, restype_set, restype_list, torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        patched_chem_db, restype_set, restype_list, torch_device
+    )
 
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
@@ -237,21 +259,34 @@ def test_assign_block_types_w_exotic_termini_options(default_database, ubq_pdb, 
         resolved_coords,
         resolved_atom_is_present,
         ch_lab,
-    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
 
     # now we'll invoke assign_block_types
     (
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
 
     # ubq seq
-    ubq_1lc = [x for x in "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"]
+    ubq_1lc = [
+        x
+        for x in "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"
+    ]
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
-    ubq_bt_inds = numpy.expand_dims(pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0)
-    ubq_bt_inds[0, 0] = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm")
-    ubq_bt_inds[0, -1] = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "GLY:cterm")
+    ubq_bt_inds = numpy.expand_dims(
+        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
+    )
+    ubq_bt_inds[0, 0] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
+    )
+    ubq_bt_inds[0, -1] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "GLY:cterm"
+    )
 
     assert block_types.device == torch_device
     assert inter_residue_connections64.device == torch_device
@@ -315,27 +350,44 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
         resolved_coords,
         resolved_atom_is_present,
         ch_lab,
-    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
 
     # now we'll invoke assign_block_types
     (
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
 
     # ubq seq
-    ubq_1lc = [x for x in "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"]
+    ubq_1lc = [
+        x
+        for x in "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"
+    ]
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
-    ubq_bt_inds = numpy.expand_dims(pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0)
+    ubq_bt_inds = numpy.expand_dims(
+        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
+    )
 
     jagged_gold_bt_inds = numpy.full((2, 6), -1, dtype=numpy.int64)
     jagged_gold_bt_inds[0, :4] = ubq_bt_inds[0, :4]
-    jagged_gold_bt_inds[0, 0] = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm")
-    jagged_gold_bt_inds[0, 3] = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "PHE:cterm")
+    jagged_gold_bt_inds[0, 0] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
+    )
+    jagged_gold_bt_inds[0, 3] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "PHE:cterm"
+    )
     jagged_gold_bt_inds[1, :6] = ubq_bt_inds[0, :6]
-    jagged_gold_bt_inds[1, 0] = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm")
-    jagged_gold_bt_inds[1, 5] = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "LYS:cterm")
+    jagged_gold_bt_inds[1, 0] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
+    )
+    jagged_gold_bt_inds[1, 5] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "LYS:cterm"
+    )
 
     assert block_types.device == torch_device
     assert inter_residue_connections64.device == torch_device
@@ -379,14 +431,18 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
         resolved_coords,
         resolved_atom_is_present,
         ch_lab,
-    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
 
     # now we'll invoke assign_block_types
     (
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
 
     inter_res_conn_gold = numpy.full((1, 12, 3, 2), -1, dtype=numpy.int64)
 
@@ -412,7 +468,9 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     inter_res_conn_gold[0, 8, 1, :] = p(9, 0)
     inter_res_conn_gold[0, 9, 0, :] = p(8, 1)
 
-    numpy.testing.assert_equal(inter_res_conn_gold, inter_residue_connections64.cpu().numpy())
+    numpy.testing.assert_equal(
+        inter_res_conn_gold, inter_residue_connections64.cpu().numpy()
+    )
 
 
 def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
@@ -451,19 +509,27 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
     orig_chain_id = cf.chain_id
 
     ocis = orig_chain_id.shape
-    new_chain_id = torch.zeros((ocis[0], ocis[1] + 1), dtype=torch.int32, device=torch_device)
+    new_chain_id = torch.zeros(
+        (ocis[0], ocis[1] + 1), dtype=torch.int32, device=torch_device
+    )
     new_chain_id[0, :-1] = orig_chain_id
-    new_chain_id[0, -1] = orig_chain_id[0, -1]  # give the vrt res the same chain id as the last residue
+    new_chain_id[0, -1] = orig_chain_id[
+        0, -1
+    ]  # give the vrt res the same chain id as the last residue
 
     orig_restypes = cf.res_types
     ors = orig_restypes.shape
-    new_restypes = torch.full((ors[0], ors[1] + 1), -1, dtype=torch.int32, device=torch_device)
+    new_restypes = torch.full(
+        (ors[0], ors[1] + 1), -1, dtype=torch.int32, device=torch_device
+    )
     new_restypes[0, :-1] = orig_restypes
     new_restypes[0, -1] = vrt_co_ind
 
     orig_chain_labels = cf.chain_labels
     ocls = orig_chain_labels.shape
-    new_chain_labels = numpy.full((ocls[0], ocls[1] + 1), "", dtype=orig_chain_labels.dtype)
+    new_chain_labels = numpy.full(
+        (ocls[0], ocls[1] + 1), "", dtype=orig_chain_labels.dtype
+    )
     new_chain_labels[0, :-1] = orig_chain_labels
     new_chain_labels[0, -1] = orig_chain_labels[0, -1]  # same chain label
 
@@ -494,21 +560,27 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
         resolved_coords,
         resolved_atom_is_present,
         ch_lab,
-    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
 
     # now we'll invoke assign_block_types
     (
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
 
     penultimate_res_block_type = block_types[0, -2]
     penultimate_bt = pbt.active_block_types[penultimate_res_block_type]
     assert penultimate_bt.name.partition(":")[2] == "cterm"
 
 
-def test_assign_block_types_for_pert_and_antigen(pertuzumab_and_nearby_erbb2_pdb_and_segments, torch_device):
+def test_assign_block_types_for_pert_and_antigen(
+    pertuzumab_and_nearby_erbb2_pdb_and_segments, torch_device
+):
     co = default_canonical_ordering()
     (
         pert_and_erbb2_lines,
@@ -539,7 +611,9 @@ def test_assign_block_types_for_pert_and_antigen(pertuzumab_and_nearby_erbb2_pdb
         resolved_coords,
         resolved_atom_is_present,
         ch_lab,
-    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
     # skip dslf and his-taut steps
 
     # now we'll invoke assign_block_types
@@ -626,14 +700,18 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
         resolved_coords,
         resolved_atom_is_present,
         ch_lab,
-    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
 
     # now we'll invoke assign_block_types
     (
         block_types64,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
 
     (
         block_coords,
@@ -725,7 +803,10 @@ def co_and_pbt_from_new_variants(ducd, patches, device):
     new_pucd = PatchedChemicalDatabase.from_chem_db(new_ucd)
 
     co = CanonicalOrdering.from_chemdb(new_pucd)
-    restype_list = [cattr.structure(cattr.unstructure(rt), RefinedResidueType) for rt in new_pucd.residues]
+    restype_list = [
+        cattr.structure(cattr.unstructure(rt), RefinedResidueType)
+        for rt in new_pucd.residues
+    ]
     restype_map = groupby(lambda restype: restype.name3, restype_list)
 
     restype_set = ResidueTypeSet(
@@ -734,7 +815,9 @@ def co_and_pbt_from_new_variants(ducd, patches, device):
         chem_db=new_pucd,
     )
 
-    pbt = PackedBlockTypes.from_restype_list(new_pucd, restype_set, restype_list, device)
+    pbt = PackedBlockTypes.from_restype_list(
+        new_pucd, restype_set, restype_list, device
+    )
 
     return co, pbt, new_pucd
 
@@ -789,13 +872,17 @@ def test_select_best_block_type_candidate_choosing_default_term(
         resolved_coords,
         resolved_atom_is_present,
         ch_lab,
-    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
 
     (
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
 
     # let's look at the block type assigned to c-term
     bt_cterm_ind = block_types[0, -1].item()
@@ -856,7 +943,9 @@ def pser_and_mser_patches():
     """
 
 
-def test_select_best_block_type_candidate_w_mult_opts(torch_device, ubq_pdb, default_unpatched_chemical_database):
+def test_select_best_block_type_candidate_w_mult_opts(
+    torch_device, ubq_pdb, default_unpatched_chemical_database
+):
     ducd = default_unpatched_chemical_database
 
     # two patches that do the job of adding atoms to the SER/THR
@@ -904,21 +993,36 @@ def test_select_best_block_type_candidate_w_mult_opts(torch_device, ubq_pdb, def
         resolved_coords,
         resolved_atom_is_present,
         ch_lab,
-    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
 
     (
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
 
     # ubq seq
-    ubq_1lc = [x for x in "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"]
+    ubq_1lc = [
+        x
+        for x in "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"
+    ]
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
-    ubq_bt_inds = numpy.expand_dims(pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0)
-    ubq_bt_inds[0, 0] = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm")
-    ubq_bt_inds[0, -1] = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "GLY:cterm")
-    ubq_bt_inds[0, 19] = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "SER:mospho")
+    ubq_bt_inds = numpy.expand_dims(
+        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
+    )
+    ubq_bt_inds[0, 0] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
+    )
+    ubq_bt_inds[0, -1] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "GLY:cterm"
+    )
+    ubq_bt_inds[0, 19] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "SER:mospho"
+    )
     numpy.testing.assert_equal(block_types.cpu().numpy(), ubq_bt_inds)
 
 
@@ -972,7 +1076,9 @@ def test_select_best_block_type_candidate_error_impossible_combo(
         resolved_coords,
         resolved_atom_is_present,
         ch_lab,
-    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
 
     expected_err_msg = """failed to resolve a block type from the candidates available
  Failed to resolve block type for 0 19 SER
@@ -994,6 +1100,8 @@ def test_select_best_block_type_candidate_error_impossible_combo(
             block_types,
             inter_residue_connections64,
             inter_block_bondsep64,
-        ) = assign_block_types(co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides)
+        ) = assign_block_types(
+            co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+        )
     except RuntimeError as err:
         assert str(err) == expected_err_msg

@@ -1,11 +1,10 @@
 import numpy
-import scipy
 import torch
-
-from tmol.pose.packed_block_types import PackedBlockTypes
+import scipy
 from tmol.pose.pose_stack import PoseStack
-from tmol.types.array import NDArray
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.types.functional import validate_args
+from tmol.types.array import NDArray
 from tmol.utility.ndarray.common_operations import exclusive_cumsum1d
 
 
@@ -41,8 +40,12 @@ def chain_inds_for_pose_stack(
         device=pose_stack.device,
     )
     real_blocks = pose_stack.block_type_ind != -1
-    unreal_blocks = torch.logical_not(real_blocks).cpu().numpy()  # save for later when on CPU
-    is_valid_conn[real_blocks] = pbt.connection_mask_for_chain_detection[pose_stack.block_type_ind64[real_blocks]]
+    unreal_blocks = (
+        torch.logical_not(real_blocks).cpu().numpy()
+    )  # save for later when on CPU
+    is_valid_conn[real_blocks] = pbt.connection_mask_for_chain_detection[
+        pose_stack.block_type_ind64[real_blocks]
+    ]
 
     conn_targets = torch.full(
         (n_poses, max_n_blocks, max_n_conn),
@@ -50,11 +53,17 @@ def chain_inds_for_pose_stack(
         dtype=torch.int32,
         device=pose_stack.device,
     )
-    conn_targets[is_valid_conn] = pose_stack.inter_residue_connections[:, :, :, 0][is_valid_conn]
+    conn_targets[is_valid_conn] = pose_stack.inter_residue_connections[:, :, :, 0][
+        is_valid_conn
+    ]
     conn_targets = conn_targets.view(n_poses, max_n_blocks * max_n_conn)
     res_ind_arange = (
         torch.arange(max_n_blocks, dtype=torch.int32, device=pose_stack.device)
-        .repeat_interleave(torch.full((max_n_blocks,), max_n_conn, dtype=torch.int64, device=pose_stack.device))
+        .repeat_interleave(
+            torch.full(
+                (max_n_blocks,), max_n_conn, dtype=torch.int64, device=pose_stack.device
+            )
+        )
         .repeat((n_poses, 1))
     )
 
@@ -70,7 +79,9 @@ def chain_inds_for_pose_stack(
     nz_real_bond_pose, _ = torch.nonzero(is_real_bond, as_tuple=True)
 
     # and now let's increment the residue indices by pose source
-    bond_pairs = nz_real_bond_pose.unsqueeze(dim=1) * max_n_blocks + (bond_pairs[is_real_bond])
+    bond_pairs = nz_real_bond_pose.unsqueeze(dim=1) * max_n_blocks + (
+        bond_pairs[is_real_bond]
+    )
 
     # Caution: here forward, we will be on the CPU!
     bond_pairs = bond_pairs.cpu().numpy()
@@ -83,7 +94,9 @@ def chain_inds_for_pose_stack(
         shape=(n_poses * max_n_blocks, n_poses * max_n_blocks),
     )
 
-    n_components, labels = scipy.sparse.csgraph.connected_components(csr_bond_pairs, directed=False, return_labels=True)
+    n_components, labels = scipy.sparse.csgraph.connected_components(
+        csr_bond_pairs, directed=False, return_labels=True
+    )
 
     labels = labels.reshape(n_poses, max_n_blocks)
     n_ccs = numpy.amax(labels, axis=1) - numpy.amin(labels, axis=1) + 1

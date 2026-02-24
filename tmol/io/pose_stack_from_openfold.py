@@ -1,14 +1,14 @@
+import torch
 import numpy
 import toolz
-import torch
 
+from tmol.types.functional import validate_args
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io.canonical_form import CanonicalForm
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.types.functional import validate_args
 
 
 @validate_args
@@ -64,9 +64,15 @@ def canonical_form_from_openfold(openfold_result_dictionary) -> CanonicalForm:
     of_coords = openfold_result_dictionary["positions"][-1]
     of_chain_ind = openfold_result_dictionary["chain_index"]
 
-    assert len(of_aatypes.shape) == 2, 'openfold_result_dictionary["aatype"] must be 2D tensor'
-    assert len(of_coords.shape) == 4, 'openfold_result_dictionary["positions"][-1] must be 4D tensor'
-    assert len(of_chain_ind.shape) == 2, 'openfold_result_dictionary["chain_index"] must be 2D tensor'
+    assert (
+        len(of_aatypes.shape) == 2
+    ), 'openfold_result_dictionary["aatype"] must be 2D tensor'
+    assert (
+        len(of_coords.shape) == 4
+    ), 'openfold_result_dictionary["positions"][-1] must be 4D tensor'
+    assert (
+        len(of_chain_ind.shape) == 2
+    ), 'openfold_result_dictionary["chain_index"] must be 2D tensor'
 
     device = of_aatypes.device
     n_poses = of_coords.shape[0]
@@ -74,10 +80,14 @@ def canonical_form_from_openfold(openfold_result_dictionary) -> CanonicalForm:
     max_n_ats = of_coords.shape[2]
 
     of_pose_ind_for_atom = (
-        torch.arange(n_poses, dtype=torch.int64, device=device).reshape(-1, 1, 1).expand(-1, max_n_res, max_n_ats)
+        torch.arange(n_poses, dtype=torch.int64, device=device)
+        .reshape(-1, 1, 1)
+        .expand(-1, max_n_res, max_n_ats)
     )
     of_res_ind_for_atom = (
-        torch.arange(max_n_res, dtype=torch.int64, device=device).reshape(1, -1, 1).expand(n_poses, -1, max_n_ats)
+        torch.arange(max_n_res, dtype=torch.int64, device=device)
+        .reshape(1, -1, 1)
+        .expand(n_poses, -1, max_n_ats)
     )
 
     assert device == of_coords.device
@@ -139,7 +149,9 @@ def _paramdb_for_openfold() -> ParameterDatabase:
     # hard coding
     desired_variants_display_names = ["nterm", "cterm"]
 
-    return ParameterDatabase.get_default().create_stable_subset(desired_rt_names, desired_variants_display_names)
+    return ParameterDatabase.get_default().create_stable_subset(
+        desired_rt_names, desired_variants_display_names
+    )
 
 
 @toolz.functoolz.memoize
@@ -175,7 +187,9 @@ def packed_block_types_for_openfold(device: torch.device) -> PackedBlockTypes:
     """
     restype_set = _restype_set_for_openfold()
 
-    return PackedBlockTypes.from_restype_list(restype_set.chem_db, restype_set, restype_set.residue_types, device)
+    return PackedBlockTypes.from_restype_list(
+        restype_set.chem_db, restype_set, restype_set.residue_types, device
+    )
 
 
 @toolz.functoolz.memoize
@@ -190,4 +204,6 @@ def _get_of_2_tmol_mappings(device: torch.device):
     )
 
     of_name3s = [one2three(x) for x in restypes] + ["XXX"]
-    return co.create_src_2_tmol_mappings(of_name3s, restype_name_to_atom14_names, device)
+    return co.create_src_2_tmol_mappings(
+        of_name3s, restype_name_to_atom14_names, device
+    )

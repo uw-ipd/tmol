@@ -1,5 +1,4 @@
 import itertools
-
 import tmol.database
 
 
@@ -27,7 +26,9 @@ def test_hbond_defs(default_database: tmol.database.ParameterDatabase):
     # chemical database, and the atom is flagged as is_acceptor with a
     # hybridization state.
     acceptor_types = {t.name: t for t in db.acceptor_type_params}
-    assert len(acceptor_types) == len(db.acceptor_type_params), "acceptor types not unique."
+    assert len(acceptor_types) == len(
+        db.acceptor_type_params
+    ), "acceptor types not unique."
     for at in db.acceptor_type_params:
         assert at.weight
 

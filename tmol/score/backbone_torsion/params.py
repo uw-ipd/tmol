@@ -1,15 +1,19 @@
 import attr
 import cattr
+
 import pandas
-import toolz.functoolz
 import torch
 
-from tmol.database.scoring.omega_bbdep import OmegaBBDepDatabase
-from tmol.database.scoring.rama import RamaDatabase
-from tmol.numeric.bspline import BSplineInterpolation
-from tmol.types.attrs import ConvertAttrs, ValidateAttrs
-from tmol.types.functional import validate_args
+import toolz.functoolz
+
 from tmol.types.torch import Tensor
+from tmol.types.attrs import ValidateAttrs, ConvertAttrs
+from tmol.types.functional import validate_args
+
+from tmol.numeric.bspline import BSplineInterpolation
+
+from tmol.database.scoring.rama import RamaDatabase
+from tmol.database.scoring.omega_bbdep import OmegaBBDepDatabase
 
 
 # the rama database packed into a single tensor
@@ -61,9 +65,9 @@ class BackboneTorsionParamResolver(ValidateAttrs):
     ):
         ## RAMA
         # setup name to index mapping
-        rama_lookup = pandas.DataFrame.from_records(cattr.unstructure(rama_database.rama_lookup)).set_index(
-            ["res_middle", "res_upper"]
-        )
+        rama_lookup = pandas.DataFrame.from_records(
+            cattr.unstructure(rama_database.rama_lookup)
+        ).set_index(["res_middle", "res_upper"])
         tindices = pandas.Index([f.table_id for f in rama_database.rama_tables])
 
         # map table names to indices
@@ -98,7 +102,9 @@ class BackboneTorsionParamResolver(ValidateAttrs):
         omega_lookup = pandas.DataFrame.from_records(
             cattr.unstructure(bbdep_omega_database.bbdep_omega_lookup)
         ).set_index(["res_middle", "res_upper"])
-        tindices = pandas.Index([f.table_id for f in bbdep_omega_database.bbdep_omega_tables])
+        tindices = pandas.Index(
+            [f.table_id for f in bbdep_omega_database.bbdep_omega_tables]
+        )
 
         # map table names to indices
         omega_lookup.table_id = tindices.get_indexer(omega_lookup.table_id)

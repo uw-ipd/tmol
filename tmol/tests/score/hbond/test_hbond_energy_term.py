@@ -5,6 +5,7 @@ from tmol.io import pose_stack_from_pdb
 from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
+
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
@@ -24,7 +25,9 @@ def test_hbond_in_sfxn(default_database, torch_device):
     assert isinstance(sfxn.all_terms()[0], HBondEnergyTerm)
 
 
-def test_annotate_restypes(fresh_default_packed_block_types, default_database, torch_device):
+def test_annotate_restypes(
+    fresh_default_packed_block_types, default_database, torch_device
+):
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
 
     pbt = fresh_default_packed_block_types
@@ -60,7 +63,9 @@ def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device
 
     # make sure we're still good
     torch.arange(100, device=torch_device)
-    numpy.testing.assert_allclose(gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5)
+    numpy.testing.assert_allclose(
+        gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
+    )
 
 
 class TestHBondEnergyTerm(EnergyTermTestBase):
@@ -68,7 +73,9 @@ class TestHBondEnergyTerm(EnergyTermTestBase):
 
     @classmethod
     def test_whole_pose_scoring_10(cls, ubq_pdb, default_database, torch_device):
-        return super().test_whole_pose_scoring_10(ubq_pdb, default_database, torch_device, update_baseline=False)
+        return super().test_whole_pose_scoring_10(
+            ubq_pdb, default_database, torch_device, update_baseline=False
+        )
 
     @classmethod
     def test_whole_pose_scoring_jagged(
@@ -77,7 +84,9 @@ class TestHBondEnergyTerm(EnergyTermTestBase):
         default_database,
         torch_device: torch.device,
     ):
-        return super().test_whole_pose_scoring_jagged(ubq_pdb, default_database, torch_device, update_baseline=False)
+        return super().test_whole_pose_scoring_jagged(
+            ubq_pdb, default_database, torch_device, update_baseline=False
+        )
 
     @classmethod
     def test_whole_pose_scoring_gradcheck(cls, ubq_pdb, default_database, torch_device):
@@ -90,8 +99,12 @@ class TestHBondEnergyTerm(EnergyTermTestBase):
         )
 
     @classmethod
-    def test_block_scoring_matches_whole_pose_scoring(cls, ubq_pdb, default_database, torch_device):
-        return super().test_block_scoring_matches_whole_pose_scoring(ubq_pdb, default_database, torch_device)
+    def test_block_scoring_matches_whole_pose_scoring(
+        cls, ubq_pdb, default_database, torch_device
+    ):
+        return super().test_block_scoring_matches_whole_pose_scoring(
+            ubq_pdb, default_database, torch_device
+        )
 
     @classmethod
     def test_block_scoring(cls, ubq_pdb, default_database, torch_device):
@@ -105,7 +118,9 @@ class TestHBondEnergyTerm(EnergyTermTestBase):
         )
 
     @classmethod
-    def test_block_scoring_reweighted_gradcheck(cls, ubq_pdb, default_database, torch_device):
+    def test_block_scoring_reweighted_gradcheck(
+        cls, ubq_pdb, default_database, torch_device
+    ):
         resnums = [(6, 8), (10, 12)]
         return super().test_block_scoring_reweighted_gradcheck(
             ubq_pdb,

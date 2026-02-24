@@ -135,21 +135,33 @@ class Shape:
 
         if len(dims) < len(adims):
             if dims[0].size is not Ellipsis:
-                raise ValueError(f"No implied broadcast to shape. expected: {self!s} received: {adims}")
+                raise ValueError(
+                    f"No implied broadcast to shape. "
+                    f"expected: {self!s} received: {adims}"
+                )
 
             dims = [Dim(Ellipsis)] * (len(adims) - len(dims)) + dims
         elif len(dims) > len(adims):
             if not len(dims) - len(adims) == 1:
-                raise ValueError(f"Fewer than expected dims in shape. expected: {self!s} received: {adims}")
-            elif dims[0].size is not Ellipsis:
-                raise ValueError(f"No implied broadcast to shape. expected: {self!s} received: {adims}")
+                raise ValueError(
+                    f"Fewer than expected dims in shape. "
+                    f"expected: {self!s} received: {adims}"
+                )
+            elif not dims[0].size is Ellipsis:
+                raise ValueError(
+                    f"No implied broadcast to shape. "
+                    f"expected: {self!s} received: {adims}"
+                )
             dims = dims[1:]
 
         assert len(dims) == len(adims)
 
         for d, a in zip(dims, adims):
             if d.size and d.size is not Ellipsis and d.size is not a:
-                raise ValueError(f"Invalid dimension size. expected: {self!s} received: {adims} dim: {d} size: {a}")
+                raise ValueError(
+                    f"Invalid dimension size. "
+                    f"expected: {self!s} received: {adims} dim: {d} size: {a}"
+                )
 
         return True
 

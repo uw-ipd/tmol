@@ -1,16 +1,18 @@
 import torch
 
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.database import ParameterDatabase
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.common.stack_condense import tile_subset_indices
-from tmol.score.ljlk.params import LJLKParamResolver
-from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores, ljlk_rotamer_scores
-
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..bond_dependent_term import BondDependentTerm
-from .params import LJLKGlobalParams, LJLKTypeParams
+from .params import LJLKTypeParams, LJLKGlobalParams
+
+from tmol.database import ParameterDatabase
+from tmol.score.common.stack_condense import tile_subset_indices
+from tmol.score.ljlk.params import LJLKParamResolver
+
+from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores, ljlk_rotamer_scores
+
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pose_stack import PoseStack
 
 
 class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
@@ -19,7 +21,9 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     tile_size: int = 32
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
-        ljlk_param_resolver = LJLKParamResolver.from_database(param_db.chemical, param_db.scoring.ljlk, device=device)
+        ljlk_param_resolver = LJLKParamResolver.from_database(
+            param_db.chemical, param_db.scoring.ljlk, device=device
+        )
         super(LJLKEnergyTerm, self).__init__(param_db=param_db, device=device)
         self.type_params = ljlk_param_resolver.type_params
         self.global_params = ljlk_param_resolver.global_params
@@ -43,7 +47,9 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         if hasattr(block_type, "ljlk_heavy_atoms_in_tile"):
             assert hasattr(block_type, "ljlk_n_heavy_atoms_in_tile")
             return
-        heavy_atoms_in_tile, n_in_tile = tile_subset_indices(block_type.heavy_atom_inds, self.tile_size)
+        heavy_atoms_in_tile, n_in_tile = tile_subset_indices(
+            block_type.heavy_atom_inds, self.tile_size
+        )
         setattr(block_type, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
         setattr(block_type, "ljlk_n_heavy_atoms_in_tile", n_in_tile)
 

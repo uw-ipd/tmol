@@ -1,6 +1,6 @@
+from toolz.curried import compose, map
 import numpy
 import torch
-from toolz.curried import compose, map
 
 from tmol.numeric.dihedrals import coord_dihedrals
 from tmol.utility.units import parse_angle
@@ -22,7 +22,9 @@ def test_coord_dihedrals():
         dtype=torch.float64,
     )
 
-    dihedral_atoms = torch.LongTensor([[0, 1, 2, 3], [0, 1, 4, 5], [1, 4, 5, 6], [1, 4, 5, 7], [8, 0, 1, 3]])
+    dihedral_atoms = torch.LongTensor(
+        [[0, 1, 2, 3], [0, 1, 4, 5], [1, 4, 5, 6], [1, 4, 5, 7], [8, 0, 1, 3]]
+    )
 
     dihedrals = compose(numpy.array, list, map(parse_angle))(
         ["-71.21515 deg", "-171.94319 deg", "60.82226 deg", "-177.63641 deg", numpy.nan]

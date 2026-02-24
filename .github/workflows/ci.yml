@@ -94,8 +94,9 @@ jobs:
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
-          ruff check . || echo "::warning::ruff check found issues"
-          ruff format --check . || echo "::warning::ruff format found issues"
+          pre-commit install
+          pre-commit run --all-files --show-diff-on-failure || echo "::warning::pre-commit found issues"
+          flake8 || echo "::warning::flake8 found issues"
           EOF
 
       - name: Test CPU

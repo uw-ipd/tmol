@@ -13,7 +13,9 @@ def test_setup_block_type(fresh_default_restype_set, default_database, torch_dev
         assert hasattr(rt, "heavy_atom_inds")
 
 
-def test_store_atom_types_in_packed_residue_types(default_database, fresh_default_restype_set, torch_device):
+def test_store_atom_types_in_packed_residue_types(
+    default_database, fresh_default_restype_set, torch_device
+):
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical,
         fresh_default_restype_set,
@@ -36,7 +38,10 @@ def test_store_atom_types_in_packed_residue_types(default_database, fresh_defaul
             #     "atdt.atom_type_index.get_indexer([at.name])",
             #     atdt.atom_type_index.get_indexer([at.atom_type]),
             # )
-            assert atdt.atom_type_index.get_indexer([at.atom_type]) == pbt.atom_types[i, j].item()
+            assert (
+                atdt.atom_type_index.get_indexer([at.atom_type])
+                == pbt.atom_types[i, j].item()
+            )
     # print(atdt.atom_type_index)
     # print(pbt.atom_types)
 

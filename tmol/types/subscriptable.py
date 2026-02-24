@@ -15,7 +15,7 @@ class SubscriptableType(type):
 
     >>> class SomeType(metaclass=SubscriptableType):
     ...     pass
-    >>> SomeTypeSub = SomeType["some args"]
+    >>> SomeTypeSub = SomeType['some args']
     >>> SomeTypeSub.__args__
     'some args'
     >>> SomeTypeSub.__origin__.__name__
@@ -64,5 +64,7 @@ class SubscriptableType(type):
             self_qualname = getattr(self, "__qualname__", None)
             self_origin = getattr(self, "__origin__", None)
             self_args = getattr(self, "__args__", None)
-            self._hash = hash("{}{}{}{}".format(self_module, self_qualname, self_origin, self_args))
+            self._hash = hash(
+                "{}{}{}{}".format(self_module, self_qualname, self_origin, self_args)
+            )
         return self._hash

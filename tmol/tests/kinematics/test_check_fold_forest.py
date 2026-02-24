@@ -1,10 +1,11 @@
 import numpy
 
 from tmol.kinematics.check_fold_forest import (
-    bfs_proper_forest,
     mark_polymeric_bonds_in_foldforest_edges,
+    bfs_proper_forest,
     validate_fold_forest,
 )
+
 from tmol.kinematics.fold_forest import EdgeType
 
 
@@ -20,8 +21,8 @@ def test_mark_polymeric_bonds_in_foldforest_edges_1():
     edges[:, 1, 1] = -1
     edges[:, 1, 2] = 0
 
-    polymeric_connection_in_edge, count_bad_edges, bad_edges = mark_polymeric_bonds_in_foldforest_edges(
-        3, 11, n_res_per_tree, edges
+    polymeric_connection_in_edge, count_bad_edges, bad_edges = (
+        mark_polymeric_bonds_in_foldforest_edges(3, 11, n_res_per_tree, edges)
     )
 
     polymeric_connections_gold = numpy.zeros((3, 11, 11), dtype=numpy.int64)
@@ -79,7 +80,9 @@ def test_mark_polymeric_bonds_in_foldforest_edges_2():
     edges[2, 1, 2] = 4
     n_res_per_tree = numpy.array([8, 11, 5], dtype=numpy.int64)
 
-    polymeric_connection_in_edge, _1, _2 = mark_polymeric_bonds_in_foldforest_edges(3, 11, n_res_per_tree, edges)
+    polymeric_connection_in_edge, _1, _2 = mark_polymeric_bonds_in_foldforest_edges(
+        3, 11, n_res_per_tree, edges
+    )
 
     polymeric_connections_gold = numpy.zeros((3, 11, 11), dtype=numpy.int64)
     polymeric_edges = [
@@ -136,7 +139,9 @@ def test_mark_polymeric_bonds_in_foldforest_edges_3():
 
     n_res_per_tree = numpy.array([8, 11, 5], dtype=numpy.int64)
 
-    polymeric_connection_in_edge, _1, _2 = mark_polymeric_bonds_in_foldforest_edges(3, 11, n_res_per_tree, edges)
+    polymeric_connection_in_edge, _1, _2 = mark_polymeric_bonds_in_foldforest_edges(
+        3, 11, n_res_per_tree, edges
+    )
 
     polymeric_connections_gold = numpy.zeros((3, 11, 11), dtype=numpy.int64)
     polymeric_edges = [
@@ -402,7 +407,8 @@ def test_validate_fold_forest_2c():
     except ValueError as verr:
         # print(verr)
         assert (
-            verr.args[0] == "FOLD FOREST ERROR: Bad edge 5 in pose 1 gives end index 5 out of range; (n_blocks[1] = 5)"
+            verr.args[0]
+            == "FOLD FOREST ERROR: Bad edge 5 in pose 1 gives end index 5 out of range; (n_blocks[1] = 5)"
         )
         threw = True
     assert threw
@@ -481,7 +487,8 @@ def test_validate_fold_forest_4():
         validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         assert (
-            verr.args[0] == "FOLD FOREST ERROR: Bad edge 1 in pose 0 gives end index 7 out of range; (n_blocks[0] = 6)"
+            verr.args[0]
+            == "FOLD FOREST ERROR: Bad edge 1 in pose 0 gives end index 7 out of range; (n_blocks[0] = 6)"
         )
         threw = True
     assert threw
@@ -561,7 +568,10 @@ def test_validate_fold_forest_6():
         validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         # print(verr)
-        assert verr.args[0] == "FOLD FOREST ERROR: Jump [p=1, s=0, e=6, ind=-1] in pose 1 has negative jump index"
+        assert (
+            verr.args[0]
+            == "FOLD FOREST ERROR: Jump [p=1, s=0, e=6, ind=-1] in pose 1 has negative jump index"
+        )
         threw = True
     assert threw
 

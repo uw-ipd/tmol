@@ -1,11 +1,10 @@
-import enum
-
-import attr
 import numpy
 import torch
+import attr
+import enum
 
-from tmol.pose.pose_stack import PoseStack
 from tmol.types.array import NDArray
+from tmol.pose.pose_stack import PoseStack
 
 
 class EdgeType(enum.IntEnum):
@@ -69,9 +68,9 @@ class FoldForest:
         n_chains_per_pose = torch.max(pose_stack.chain_id64, dim=1)[0] + 1
         max_n_chains = torch.max(n_chains_per_pose).cpu().item()
         max_n_edges = 2 * max_n_chains
-        is_pci_chain_real = torch.arange(max_n_chains, dtype=torch.int64, device=pose_stack.device).unsqueeze(0) < (
-            n_chains_per_pose.unsqueeze(1)
-        )
+        is_pci_chain_real = torch.arange(
+            max_n_chains, dtype=torch.int64, device=pose_stack.device
+        ).unsqueeze(0) < (n_chains_per_pose.unsqueeze(1))
         real_chain_indices = torch.nonzero(is_pci_chain_real, as_tuple=False)
 
         edges = torch.full(
@@ -80,17 +79,23 @@ class FoldForest:
             dtype=torch.int64,
             device=pose_stack.device,
         )
-        n_edges = torch.zeros((pose_stack.n_poses,), dtype=int, device=pose_stack.device)
+        n_edges = torch.zeros(
+            (pose_stack.n_poses,), dtype=int, device=pose_stack.device
+        )
 
         chain_boundaries = torch.zeros(
             (pose_stack.n_poses, pose_stack.max_n_blocks),
             dtype=torch.bool,
             device=pose_stack.device,
         )
-        chain_boundaries[:, :-1] = pose_stack.chain_id64[:, 1:] != pose_stack.chain_id64[:, :-1]
+        chain_boundaries[:, :-1] = (
+            pose_stack.chain_id64[:, 1:] != pose_stack.chain_id64[:, :-1]
+        )
         # last residue is end of a chain; but will not be marked as such if n_res == max_n_res
         chain_boundaries[
-            torch.arange(pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device),
+            torch.arange(
+                pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
+            ),
             pose_n_residues - 1,
         ] = True
 
@@ -113,29 +118,37 @@ class FoldForest:
         # This is just one greater than the last residue of the previous chain,
         # except, we have to overwrite the index of the first chain in each
         # pose to be zero.
-        chain_begin_indices_pci[real_pci_chains[1:, 0], real_pci_chains[1:, 1]] = chain_end_indices_ci[:-1, 1] + 1
+        chain_begin_indices_pci[real_pci_chains[1:, 0], real_pci_chains[1:, 1]] = (
+            chain_end_indices_ci[:-1, 1] + 1
+        )
         chain_begin_indices_pci[:, 0] = 0
 
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 0] = EdgeType.polymer
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 1] = chain_begin_indices_pci[
-            real_chain_indices[:, 0], real_chain_indices[:, 1]
-        ]
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 2] = chain_end_indices_pci[
-            real_chain_indices[:, 0], real_chain_indices[:, 1]
-        ]
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 0] = (
+            EdgeType.polymer
+        )
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 1] = (
+            chain_begin_indices_pci[real_chain_indices[:, 0], real_chain_indices[:, 1]]
+        )
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 2] = (
+            chain_end_indices_pci[real_chain_indices[:, 0], real_chain_indices[:, 1]]
+        )
 
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 0] = EdgeType.root_jump
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 0] = (
+            EdgeType.root_jump
+        )
         # edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1]+ 1, 0] == -1 already
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 2] = chain_begin_indices_pci[
-            real_chain_indices[:, 0], real_chain_indices[:, 1]
-        ]
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 2] = (
+            chain_begin_indices_pci[real_chain_indices[:, 0], real_chain_indices[:, 1]]
+        )
         # jump number for root-jumps
         edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 3] = (
             torch.arange(max_n_chains, dtype=torch.int64, device=pose_stack.device)
             .unsqueeze(0)
             .expand(pose_stack.n_poses, max_n_chains)[is_pci_chain_real]
         )
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 3] = real_chain_indices[:, 1]
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 3] = (
+            real_chain_indices[:, 1]
+        )
         edges = edges.cpu().numpy()
         n_edges = (2 * n_chains_per_pose).cpu().numpy()
 

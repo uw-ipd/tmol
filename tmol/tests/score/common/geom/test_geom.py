@@ -1,11 +1,14 @@
 import attr
+
 import pytest
-import torch
-from numpy import array, cos, linspace, nan, pi, sin
 from pytest import approx
+
+import torch
+
+from numpy import array, cos, sin, linspace, pi, nan
 from scipy.stats import special_ortho_group
 
-from tmol.tests.autograd import VectorizedOp, gradcheck
+from tmol.tests.autograd import gradcheck, VectorizedOp
 
 
 @pytest.fixture(scope="session")
@@ -180,7 +183,9 @@ def dihedral_test_data():
         ]
     )
 
-    dihedral_atoms = array([[0, 1, 2, 3], [0, 1, 4, 5], [1, 4, 5, 6], [1, 4, 5, 7], [8, 0, 1, 3]])
+    dihedral_atoms = array(
+        [[0, 1, 2, 3], [0, 1, 4, 5], [1, 4, 5, 6], [1, 4, 5, 7], [8, 0, 1, 3]]
+    )
 
     dihedrals = array(
         list(
@@ -202,7 +207,9 @@ def dihedral_test_data():
         )
     )
 
-    return DihedralDat(coords=coords, dihedral_atoms=dihedral_atoms, dihedrals=dihedrals)
+    return DihedralDat(
+        coords=coords, dihedral_atoms=dihedral_atoms, dihedrals=dihedrals
+    )
 
 
 def test_coord_dihedrals(geom, dihedral_test_data):
@@ -212,9 +219,9 @@ def test_coord_dihedrals(geom, dihedral_test_data):
         coords[atoms.T[0]], coords[atoms.T[1]], coords[atoms.T[2]], coords[atoms.T[3]]
     ) == approx(dihedrals, nan_ok=True)
 
-    assert geom.dihedral_angle_V_dV(coords[atoms.T[0]], coords[atoms.T[1]], coords[atoms.T[2]], coords[atoms.T[3]])[
-        0
-    ] == approx(dihedrals, nan_ok=True)
+    assert geom.dihedral_angle_V_dV(
+        coords[atoms.T[0]], coords[atoms.T[1]], coords[atoms.T[2]], coords[atoms.T[3]]
+    )[0] == approx(dihedrals, nan_ok=True)
 
 
 def test_coord_dihedral_angle_gradcheck(geom, dihedral_test_data):

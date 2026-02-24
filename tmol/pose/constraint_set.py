@@ -1,8 +1,7 @@
-from typing import Optional, Tuple
-
-import attr
 import torch
+import attr
 
+from typing import Optional, Tuple
 from tmol.types.torch import Tensor
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
@@ -27,11 +26,19 @@ class ConstraintSet:
         return ConstraintSet(
             device=device,
             n_poses=n_poses,
-            constraint_function_inds=torch.full((0,), 0, dtype=torch.int32, device=device),
-            constraint_atoms=torch.full((0, cls.MAX_N_ATOMS, 3), 0, dtype=torch.int32, device=device),
+            constraint_function_inds=torch.full(
+                (0,), 0, dtype=torch.int32, device=device
+            ),
+            constraint_atoms=torch.full(
+                (0, cls.MAX_N_ATOMS, 3), 0, dtype=torch.int32, device=device
+            ),
             constraint_params=torch.full((0, 1), 0, dtype=torch.float32, device=device),
-            constraint_num_unique_blocks=torch.full((0,), 0, dtype=torch.int32, device=device),
-            constraint_unique_blocks=torch.full((0, 3), 0, dtype=torch.int32, device=device),
+            constraint_num_unique_blocks=torch.full(
+                (0,), 0, dtype=torch.int32, device=device
+            ),
+            constraint_unique_blocks=torch.full(
+                (0, 3), 0, dtype=torch.int32, device=device
+            ),
             constraint_functions=tuple(),
         )
 
@@ -62,7 +69,9 @@ class ConstraintSet:
                 if device is None:
                     device = cs.device
                 else:
-                    assert device == cs.device, "All ConstraintSets must be on the same device"
+                    assert (
+                        device == cs.device
+                    ), "All ConstraintSets must be on the same device"
 
         if device is None:
             return None
@@ -85,11 +94,16 @@ class ConstraintSet:
                     )
                 )
             else:
-                ps_offset = torch.zeros((len(constraint_sets),), dtype=torch.int64, device=device)
+                ps_offset = torch.zeros(
+                    (len(constraint_sets),), dtype=torch.int64, device=device
+                )
 
         cs_offset = exclusive_cumsum1d(
             torch.tensor(
-                [cs.constraint_atoms.shape[0] if cs is not None else 0 for cs in constraint_sets],
+                [
+                    cs.constraint_atoms.shape[0] if cs is not None else 0
+                    for cs in constraint_sets
+                ],
                 dtype=torch.int64,
             )
         )
@@ -108,7 +122,9 @@ class ConstraintSet:
                             break
                     if not found_existing:
                         constraint_functions_list.append(func)
-                        constraint_function_inds[-1].append(len(constraint_functions_list) - 1)
+                        constraint_function_inds[-1].append(
+                            len(constraint_functions_list) - 1
+                        )
 
         new_constraint_function_inds = torch.tensor(
             [
@@ -121,13 +137,25 @@ class ConstraintSet:
             dtype=torch.int32,
         )
         n_constraints = new_constraint_function_inds.size(0)
-        new_constraint_atoms = torch.full((n_constraints, cls.MAX_N_ATOMS, 3), -1, dtype=torch.int32, device=device)
-        max_n_params = (
-            max(cs.constraint_params.size(1) for cs in constraint_sets if cs is not None) if n_constraints > 0 else 0
+        new_constraint_atoms = torch.full(
+            (n_constraints, cls.MAX_N_ATOMS, 3), -1, dtype=torch.int32, device=device
         )
-        new_constraint_params = torch.full((n_constraints, max_n_params), 0.0, dtype=torch.float32, device=device)
-        new_constraint_num_unique_blocks = torch.full((n_constraints,), 0, dtype=torch.int32, device=device)
-        new_constraint_unique_blocks = torch.full((n_constraints, 3), 0, dtype=torch.int32, device=device)
+        max_n_params = (
+            max(
+                cs.constraint_params.size(1) for cs in constraint_sets if cs is not None
+            )
+            if n_constraints > 0
+            else 0
+        )
+        new_constraint_params = torch.full(
+            (n_constraints, max_n_params), 0.0, dtype=torch.float32, device=device
+        )
+        new_constraint_num_unique_blocks = torch.full(
+            (n_constraints,), 0, dtype=torch.int32, device=device
+        )
+        new_constraint_unique_blocks = torch.full(
+            (n_constraints, 3), 0, dtype=torch.int32, device=device
+        )
         for i, cs in enumerate(constraint_sets):
             if cs is not None:
                 n_cs_constraints = cs.constraint_function_inds.size(0)
@@ -136,17 +164,19 @@ class ConstraintSet:
                 is_real_pose = constraint_atoms_pose[:, :] != -1
                 constraint_atoms_pose[is_real_pose] += ps_offset[i]
                 constraint_atoms_shifted[:, :, 0] = constraint_atoms_pose
-                new_constraint_atoms[cs_offset[i] : cs_offset[i] + n_cs_constraints, :, :] = constraint_atoms_shifted
+                new_constraint_atoms[
+                    cs_offset[i] : cs_offset[i] + n_cs_constraints, :, :
+                ] = constraint_atoms_shifted
                 new_constraint_params[
                     cs_offset[i] : cs_offset[i] + n_cs_constraints,
                     0 : cs.constraint_params.size(1),
                 ] = cs.constraint_params
-                new_constraint_num_unique_blocks[cs_offset[i] : cs_offset[i] + n_cs_constraints] = (
-                    cs.constraint_num_unique_blocks
-                )
-                new_constraint_unique_blocks[cs_offset[i] : cs_offset[i] + n_cs_constraints, :] = (
-                    cs.constraint_unique_blocks
-                )
+                new_constraint_num_unique_blocks[
+                    cs_offset[i] : cs_offset[i] + n_cs_constraints
+                ] = cs.constraint_num_unique_blocks
+                new_constraint_unique_blocks[
+                    cs_offset[i] : cs_offset[i] + n_cs_constraints, :
+                ] = cs.constraint_unique_blocks
         return ConstraintSet(
             device=device,
             n_poses=n_poses,
@@ -192,7 +222,9 @@ class ConstraintSet:
         temp = diffs.sum(dim=1) + 1
         return temp
 
-    def add_constraints_to_all_poses(self, fn, atom_indices, params=None) -> "ConstraintSet":
+    def add_constraints_to_all_poses(
+        self, fn, atom_indices, params=None
+    ) -> "ConstraintSet":
         """If all Poses in the PoseStack should be constrained in the same way, then
         this convenience function will take a list of atom indices for a single Pose
         and replicate them across all the Poses in the PoseStack."""
@@ -220,14 +252,18 @@ class ConstraintSet:
         constraint_functions_list = list(self.constraint_functions)
         fn_index = find_or_insert(fn, constraint_functions_list)
 
-        if atom_indices.size(2) == 2:  # The user did not input pose indices, copy to all poses
+        if (
+            atom_indices.size(2) == 2
+        ):  # The user did not input pose indices, copy to all poses
             filled_atom_indices = torch.zeros(
                 (atom_indices.size(0), atom_indices.size(1), 3),
                 dtype=torch.float32,
                 device=self.device,
             )
             filled_atom_indices[:, :, 1:3] = atom_indices
-            atom_indices, params = self.replicate_constraints(self.n_poses, filled_atom_indices, params)
+            atom_indices, params = self.replicate_constraints(
+                self.n_poses, filled_atom_indices, params
+            )
 
         # constraints
         num_to_add = atom_indices.size(0)
@@ -239,31 +275,47 @@ class ConstraintSet:
         uniq_cnt = torch.unique_consecutive(flat, return_counts=True)[1]
         # make sure those sizes are all divisible by the # of atoms
         if (uniq_cnt % atom_indices.size(1)).any():
-            raise Exception("One or more constraints contains atoms from multiple poses")
+            raise Exception(
+                "One or more constraints contains atoms from multiple poses"
+            )
 
         constraint_poses = atom_indices[:, 0, 0]
         constraint_blocks = atom_indices[:, :, 1]
         constraint_blocks_rolled = constraint_blocks.roll(shifts=1, dims=-1)
-        constraint_blocks_changed = (constraint_blocks != constraint_blocks_rolled).to(torch.int32)
+        constraint_blocks_changed = (constraint_blocks != constraint_blocks_rolled).to(
+            torch.int32
+        )
         constraint_blocks_changed[:, 0] = 0
-        constraint_block_first_change = torch.argmax(constraint_blocks_changed, dim=1).unsqueeze(-1)
+        constraint_block_first_change = torch.argmax(
+            constraint_blocks_changed, dim=1
+        ).unsqueeze(-1)
         first_block_inds = constraint_blocks[:, 0]
-        second_block_inds = constraint_blocks.gather(1, constraint_block_first_change).squeeze(-1)
+        second_block_inds = constraint_blocks.gather(
+            1, constraint_block_first_change
+        ).squeeze(-1)
 
         if not empty_at_start:
             new_constraint_unique_blocks = torch.cat(
                 [
                     self.constraint_unique_blocks,
-                    torch.stack([constraint_poses, first_block_inds, second_block_inds], dim=1),
+                    torch.stack(
+                        [constraint_poses, first_block_inds, second_block_inds], dim=1
+                    ),
                 ]
             )
         else:
-            new_constraint_unique_blocks = torch.stack([constraint_poses, first_block_inds, second_block_inds], dim=1)
+            new_constraint_unique_blocks = torch.stack(
+                [constraint_poses, first_block_inds, second_block_inds], dim=1
+            )
 
-        constraint_function_inds = torch.full((num_to_add,), 0, dtype=torch.int32, device=self.device)
+        constraint_function_inds = torch.full(
+            (num_to_add,), 0, dtype=torch.int32, device=self.device
+        )
         constraint_function_inds[:] = fn_index
         if not empty_at_start:
-            new_constraint_function_inds = torch.cat((self.constraint_function_inds, constraint_function_inds))
+            new_constraint_function_inds = torch.cat(
+                (self.constraint_function_inds, constraint_function_inds)
+            )
         else:
             new_constraint_function_inds = constraint_function_inds
 
@@ -275,7 +327,9 @@ class ConstraintSet:
         else:
             new_constraint_num_unique_blocks = num_unique_blocks_per_constraint
 
-        new_atom_indices = torch.full((num_to_add, self.MAX_N_ATOMS, 3), -1, dtype=torch.int32, device=self.device)
+        new_atom_indices = torch.full(
+            (num_to_add, self.MAX_N_ATOMS, 3), -1, dtype=torch.int32, device=self.device
+        )
         new_atom_indices[:, 0 : atom_indices.size(1), :] = atom_indices
         # now copy the last real atom into the final atom slot so that we can attribute score correctly later
         new_atom_indices[:, self.MAX_N_ATOMS - 1, :] = atom_indices[:, -1, :]
@@ -284,7 +338,9 @@ class ConstraintSet:
         else:
             new_constraint_atoms = new_atom_indices
 
-        new_params = torch.full((num_to_add, 0), 0.0, dtype=torch.float32, device=self.device)
+        new_params = torch.full(
+            (num_to_add, 0), 0.0, dtype=torch.float32, device=self.device
+        )
         if params is not None:
             new_params = params
         max_params = max(new_params.size(1), self.constraint_params.size(1))
@@ -295,7 +351,9 @@ class ConstraintSet:
                 device=self.device,
             )
             t1[:, 0 : self.constraint_params.size(1)] = self.constraint_params
-        t2 = torch.zeros((new_params.size(0), max_params), dtype=torch.float32, device=self.device)
+        t2 = torch.zeros(
+            (new_params.size(0), max_params), dtype=torch.float32, device=self.device
+        )
         t2[:, 0 : new_params.size(1)] = new_params
         if not empty_at_start:
             new_constraint_params = torch.cat((t1, t2))

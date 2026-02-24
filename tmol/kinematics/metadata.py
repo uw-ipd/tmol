@@ -2,14 +2,18 @@ import enum
 import math
 
 import attr
-import pandas
-import torch
 
-from tmol.kinematics.datatypes import KinDOF, KinForest, NodeType
+import torch
+import pandas
+
 from tmol.types.attrs import ConvertAttrs
+
 from tmol.types.tensor import TensorGroup
 from tmol.types.torch import Tensor
-from tmol.utility.categorical import names_to_val_cat, vals_to_name_cat
+
+from tmol.utility.categorical import vals_to_name_cat, names_to_val_cat
+
+from tmol.kinematics.datatypes import NodeType, KinDOF, KinForest
 
 
 class DOFTypes(enum.IntEnum):
@@ -80,7 +84,10 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
         parentIdx = kinforest.parent.to(dtype=torch.long)
         # count the number of children each KFO node has and then ask is that number > 0
         node_has_children = (
-            torch.zeros_like(kinforest.id).put_(parentIdx, torch.ones_like(kinforest.parent), accumulate=True) > 0
+            torch.zeros_like(kinforest.id).put_(
+                parentIdx, torch.ones_like(kinforest.parent), accumulate=True
+            )
+            > 0
         )
 
         bsel = kinforest.doftype == NodeType.bond
@@ -126,7 +133,9 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
         cols = {n: c.values for n, c in dict(frame).items()}
 
         if isinstance(cols["dof_type"], pandas.Categorical):
-            cols["dof_type"] = names_to_val_cat(DOFTypes, cols["dof_type"]).codes.astype(int)
+            cols["dof_type"] = names_to_val_cat(
+                DOFTypes, cols["dof_type"]
+            ).codes.astype(int)
 
         return cls(
             node_idx=cols["node_idx"],

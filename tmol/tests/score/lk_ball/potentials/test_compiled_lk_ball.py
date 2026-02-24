@@ -1,14 +1,12 @@
-import math
-
-import numpy
 import pytest
+import math
 import torch
 import torch.autograd
-
-from tmol.score.chemical_database import AtomTypeParamResolver
-from tmol.score.ljlk.params import LJLKParamResolver
-from tmol.tests.autograd import gradcheck
 from tmol.utility.units import parse_angle
+import numpy
+from tmol.tests.autograd import gradcheck
+from tmol.score.ljlk.params import LJLKParamResolver
+from tmol.score.chemical_database import AtomTypeParamResolver
 
 
 @pytest.fixture
@@ -20,7 +18,9 @@ def ljlk_params(default_database):
 
 @pytest.fixture
 def atype_params(default_database):
-    return AtomTypeParamResolver.from_database(default_database.chemical, torch.device("cpu"))
+    return AtomTypeParamResolver.from_database(
+        default_database.chemical, torch.device("cpu")
+    )
 
 
 def test_build_acc_waters():
@@ -37,7 +37,9 @@ def test_build_acc_waters():
     angle = parse_angle("109.0 deg")
     torsions = tensor([parse_angle(f"{a} deg") for a in (120.0, 240.0)])
 
-    waters_ref = tensor([[-7.42086525, -1.79165583, -5.14882262], [-7.75428876, 0.40906314, -1.4232189]])
+    waters_ref = tensor(
+        [[-7.42086525, -1.79165583, -5.14882262], [-7.75428876, 0.40906314, -1.4232189]]
+    )
 
     for torsion, water_ref in zip(torsions, waters_ref):
         water = BuildAcceptorWater.apply(A, B, B0, dist, angle, torsion)
@@ -73,7 +75,7 @@ def test_build_don_water():
 
 
 def test_lk_fraction():
-    from .compiled import BuildAcceptorWater, LKFraction
+    from .compiled import LKFraction, BuildAcceptorWater
 
     tensor = torch.DoubleTensor
     coords_I = dict(  # noqa
@@ -87,7 +89,9 @@ def test_lk_fraction():
 
     WI = torch.stack(
         [
-            BuildAcceptorWater.apply(coords_I["A"], coords_I["B"], coords_I["B0"], dist, angle, torsion)
+            BuildAcceptorWater.apply(
+                coords_I["A"], coords_I["B"], coords_I["B0"], dist, angle, torsion
+            )
             for torsion in torsions
         ]
     )
@@ -105,7 +109,7 @@ def test_lk_fraction():
 
 
 def test_lk_bridge_fraction():
-    from .compiled import BuildAcceptorWater, LKBridgeFraction
+    from .compiled import LKBridgeFraction, BuildAcceptorWater
 
     tensor = torch.DoubleTensor
 
@@ -119,7 +123,9 @@ def test_lk_bridge_fraction():
     torsions = tensor([parse_angle(f"{a} deg") for a in (60.0, 300.0)])
     WI = torch.stack(
         [
-            BuildAcceptorWater.apply(coords_I["A"], coords_I["B"], coords_I["B0"], dist, angle, torsion)
+            BuildAcceptorWater.apply(
+                coords_I["A"], coords_I["B"], coords_I["B0"], dist, angle, torsion
+            )
             for torsion in torsions
         ]
     )
@@ -133,7 +139,9 @@ def test_lk_bridge_fraction():
     torsions = tensor([parse_angle(f"{a} deg") for a in (120.0, 240.0)])
     WJ = torch.stack(
         [
-            BuildAcceptorWater.apply(coords_J["A"], coords_J["B"], coords_J["B0"], dist, angle, torsion)
+            BuildAcceptorWater.apply(
+                coords_J["A"], coords_J["B"], coords_J["B0"], dist, angle, torsion
+            )
             for torsion in torsions
         ]
     )
@@ -142,7 +150,9 @@ def test_lk_bridge_fraction():
     assert float(lkbr_frac) == pytest.approx(0.025, abs=0.001)
 
     gradcheck(
-        lambda coords_I, coords_J, WI, WJ: LKBridgeFraction.apply(coords_I, coords_J, WI, WJ, dist),
+        lambda coords_I, coords_J, WI, WJ: LKBridgeFraction.apply(
+            coords_I, coords_J, WI, WJ, dist
+        ),
         (
             coords_I["A"].requires_grad_(True),
             coords_J["A"].requires_grad_(True),
@@ -164,7 +174,7 @@ def lkball_score_and_gradcheck(
     at_i,
     at_j,
 ):
-    from .compiled import LKBallScore, LKBridgeFraction, LKFraction
+    from .compiled import LKBallScore, LKFraction, LKBridgeFraction
 
     aidx_j = ljlk_params.atom_type_index.get_loc(at_j)
 
@@ -173,7 +183,9 @@ def lkball_score_and_gradcheck(
     score = op.apply(coords_I, coords_J, WI, WJ, bonded_path_length, at_i, at_j)
 
     gradcheck(
-        lambda WI, coords_J: LKFraction.apply(WI, coords_J, ljlk_params.type_params[aidx_j].lj_radius),
+        lambda WI, coords_J: LKFraction.apply(
+            WI, coords_J, ljlk_params.type_params[aidx_j].lj_radius
+        ),
         (WI.requires_grad_(True), coords_J.requires_grad_(True)),
         eps=2e-3,
     )
@@ -192,7 +204,9 @@ def lkball_score_and_gradcheck(
     )
 
     gradcheck(
-        lambda coords_I, coords_J, WI, WJ: op.apply(coords_I, coords_J, WI, WJ, bonded_path_length, at_i, at_j),
+        lambda coords_I, coords_J, WI, WJ: op.apply(
+            coords_I, coords_J, WI, WJ, bonded_path_length, at_i, at_j
+        ),
         (
             coords_I.requires_grad_(True),
             coords_J.requires_grad_(False),
@@ -229,11 +243,15 @@ def test_lk_ball_donor_donor_spotcheck(ljlk_params, atype_params):
 
     coord_i = coords[0]
     at_i = atom_types[0]
-    waters_i = torch.stack([BuildDonorWater.apply(coords[0], H_c, dist) for H_c in coords[[1, 2, 3]]])
+    waters_i = torch.stack(
+        [BuildDonorWater.apply(coords[0], H_c, dist) for H_c in coords[[1, 2, 3]]]
+    )
 
     coord_j = coords[4]
     at_j = atom_types[4]
-    waters_j = torch.stack([BuildDonorWater.apply(coords[4], H_c, dist) for H_c in coords[[5, 6, 7]]])
+    waters_j = torch.stack(
+        [BuildDonorWater.apply(coords[4], H_c, dist) for H_c in coords[[5, 6, 7]]]
+    )
 
     bonded_path_length = tensor([5.0])[()]
 
@@ -260,7 +278,9 @@ def test_lk_ball_donor_donor_spotcheck(ljlk_params, atype_params):
         at_j,
     )
 
-    torch.testing.assert_close(i_by_j + j_by_i, tensor([0.3355, 0.0, 0.2649, 0.7896]), atol=1e-4, rtol=1e-4)
+    torch.testing.assert_close(
+        i_by_j + j_by_i, tensor([0.3355, 0.0, 0.2649, 0.7896]), atol=1e-4, rtol=1e-4
+    )
 
 
 def test_lk_ball_sp2_nonpolar_spotcheck(ljlk_params, atype_params):
@@ -348,7 +368,11 @@ def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
             )
             for torsion in ljlk_params.global_params.lkb_water_tors_sp3
         ]
-        + [BuildDonorWater.apply(coords[1], coords[2], ljlk_params.global_params.lkb_water_dist)]
+        + [
+            BuildDonorWater.apply(
+                coords[1], coords[2], ljlk_params.global_params.lkb_water_dist
+            )
+        ]
     )
 
     ring_at = atom_types[4]
@@ -399,7 +423,9 @@ def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
         sp3_at,
     )
 
-    scores = numpy.array([i + j for i, j in zip(sp3_by_ring.detach(), ring_by_sp3.detach())])
+    scores = numpy.array(
+        [i + j for i, j in zip(sp3_by_ring.detach(), ring_by_sp3.detach())]
+    )
     scores_ref = numpy.array([0.09018922, 0.0901892, 0.0441963, 0.4900393])
     assert scores == pytest.approx(scores_ref, abs=1e-4)
 
@@ -415,7 +441,9 @@ def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
         atom_types[3],
     )
 
-    torch.testing.assert_close(sp3_by_nonpolar, tensor([0.00385956, 0.0001626, 0.0, 0.0]), atol=1e-4, rtol=1e-4)
+    torch.testing.assert_close(
+        sp3_by_nonpolar, tensor([0.00385956, 0.0001626, 0.0, 0.0]), atol=1e-4, rtol=1e-4
+    )
 
     sp3_by_nonpolar = lkball_score_and_gradcheck(
         ljlk_params,
@@ -429,7 +457,9 @@ def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
         atom_types[5],
     )
 
-    torch.testing.assert_close(sp3_by_nonpolar, tensor([0.00369549, 0.0028072, 0.0, 0.0]), atol=1e-4, rtol=1e-4)
+    torch.testing.assert_close(
+        sp3_by_nonpolar, tensor([0.00369549, 0.0028072, 0.0, 0.0]), atol=1e-4, rtol=1e-4
+    )
 
     ring_by_nonpolar = lkball_score_and_gradcheck(
         ljlk_params,

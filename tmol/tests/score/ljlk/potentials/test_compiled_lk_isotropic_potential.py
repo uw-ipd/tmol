@@ -1,10 +1,12 @@
-import numpy
 import pytest
-import torch
 from pytest import approx
 
-from tmol.score.ljlk.params import LJLKParamResolver
+import torch
+import numpy
+
 from tmol.tests.autograd import gradcheck
+
+from tmol.score.ljlk.params import LJLKParamResolver
 
 
 @pytest.fixture
@@ -15,8 +17,7 @@ def params(default_database):
 
 
 parametrize_atom_pairs = pytest.mark.parametrize(
-    "iname,jname",
-    [("CNH2", "COO"), ("Ntrp", "OOC")],  # standard, donor/acceptor
+    "iname,jname", [("CNH2", "COO"), ("Ntrp", "OOC")]  # standard, donor/acceptor
 )
 
 
@@ -33,7 +34,9 @@ def test_lk_isotropic_gradcheck(params, iname, jname, bonded_path_length):
     global_params = params.global_params
 
     gradcheck(
-        lambda dist: compiled.LKScore.apply(dist, bonded_path_length, i_params, j_params, global_params).sum(),
+        lambda dist: compiled.LKScore.apply(
+            dist, bonded_path_length, i_params, j_params, global_params
+        ).sum(),
         (torch.linspace(1, 8, 20, dtype=torch.double).requires_grad_(True),),
         eps=3e-4,
         atol=1e-5,
@@ -61,15 +64,19 @@ def test_lk_spotcheck(params, iname, jname):
     cpoly_close_dmax = numpy.sqrt(d_min * d_min + 1.05)
 
     def eval_f_desolv(d):
-        return compiled.f_desolv_V(d, i.lj_radius, i.lk_dgfree, i.lk_lambda, j.lk_volume) + compiled.f_desolv_V(
-            d, j.lj_radius, j.lk_dgfree, j.lk_lambda, i.lk_volume
-        )
+        return compiled.f_desolv_V(
+            d, i.lj_radius, i.lk_dgfree, i.lk_lambda, j.lk_volume
+        ) + compiled.f_desolv_V(d, j.lj_radius, j.lk_dgfree, j.lk_lambda, i.lk_volume)
 
     def eval_lk_isotropic(d, bonded_path_length=5):
-        return compiled.LKScore.apply(torch.tensor(d), bonded_path_length, i, j, g).numpy()
+        return compiled.LKScore.apply(
+            torch.tensor(d), bonded_path_length, i, j, g
+        ).numpy()
 
     # Constant region
-    assert eval_lk_isotropic(numpy.linspace(0, cpoly_close_dmin, 100)) == approx(eval_f_desolv(d_min))
+    assert eval_lk_isotropic(numpy.linspace(0, cpoly_close_dmin, 100)) == approx(
+        eval_f_desolv(d_min)
+    )
 
     def is_between(a_b, x):
         a, b = a_b

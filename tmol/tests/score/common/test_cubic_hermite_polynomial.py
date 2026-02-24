@@ -1,11 +1,13 @@
-import math
-from math import nan
+import pytest
 
 import hypothesis
 import hypothesis.strategies
-import numpy
-import pytest
 import toolz
+
+
+import math
+from math import nan
+import numpy
 
 
 def approx_for(values):
@@ -16,7 +18,9 @@ def approx_for(values):
 
 
 real = (
-    hypothesis.strategies.decimals(allow_infinity=False, places=3, max_value=1e5, min_value=-1e5)
+    hypothesis.strategies.decimals(
+        allow_infinity=False, places=3, max_value=1e5, min_value=-1e5
+    )
     .filter(lambda v: not v.is_snan())
     .map(float)
 )
@@ -32,7 +36,7 @@ def cubic_hermite_polynomial():
 
 @hypothesis.given(real, real, real, real)
 def test_unit_interpolate(cubic_hermite_polynomial, p0, dp0, p1, dp1):
-    from tmol.score.common.cubic_hermite_polynomial import interpolate_dt, interpolate_t
+    from tmol.score.common.cubic_hermite_polynomial import interpolate_t, interpolate_dt
 
     params = (p0, dp0, p1, dp1)
     approx = approx_for(params)
@@ -52,8 +56,8 @@ def test_unit_interpolate(cubic_hermite_polynomial, p0, dp0, p1, dp1):
 @hypothesis.given(real, real)
 def test_unit_interpolate_to_zero(cubic_hermite_polynomial, p0, dp0):
     from tmol.score.common.cubic_hermite_polynomial import (
-        interpolate_to_zero_dt,
         interpolate_to_zero_t,
+        interpolate_to_zero_dt,
     )
 
     params = (p0, dp0)

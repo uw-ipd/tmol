@@ -1,6 +1,6 @@
-from tmol.io import pose_stack_from_pdb
-from tmol.pack.packer_task import BlockLevelTask, PackerPalette, PackerTask
+from tmol.pack.packer_task import PackerPalette, BlockLevelTask, PackerTask
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.io import pose_stack_from_pdb
 
 
 def test_packer_palette_smoke(default_restype_set):
@@ -31,12 +31,18 @@ def test_packer_task_smoke(ubq_pdb, default_restype_set, torch_device):
     assert task
 
 
-def test_residue_level_task_his_restrict_to_repacking(ubq_pdb, default_restype_set, torch_device):
+def test_residue_level_task_his_restrict_to_repacking(
+    ubq_pdb, default_restype_set, torch_device
+):
     palette = PackerPalette(default_restype_set)
 
     pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
     pbt = pose_stack.packed_block_types
-    i, his_res = next((i, res) for (i, res) in enumerate(pbt.active_block_types) if res.name in ["HIS", "HIS_D"])
+    i, his_res = next(
+        (i, res)
+        for (i, res) in enumerate(pbt.active_block_types)
+        if res.name in ["HIS", "HIS_D"]
+    )
     assert his_res
     blt = BlockLevelTask(i, his_res, palette)
     assert len(blt.considered_block_types) == 21

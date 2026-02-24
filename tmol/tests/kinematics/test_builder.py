@@ -2,9 +2,9 @@ import numpy
 
 from tmol.kinematics.old.builder import (
     _KinematicBuilder,
-    fix_jump_nodes,
-    get_c1_and_c2_atoms,
     stub_defined_for_jump_atom,
+    get_c1_and_c2_atoms,
+    fix_jump_nodes,
 )
 
 
@@ -25,7 +25,9 @@ def test_stub_defined_for_jump_atom_two_descendents_of_jump():
     atom_is_jump = numpy.zeros((10,), dtype=bool)
     atom_is_jump[5] = True
 
-    is_defined = stub_defined_for_jump_atom(5, atom_is_jump, child_list_span, child_list)
+    is_defined = stub_defined_for_jump_atom(
+        5, atom_is_jump, child_list_span, child_list
+    )
     assert is_defined
 
 
@@ -54,7 +56,9 @@ def test_stub_defined_for_jump_atom_two_direct_children_of_jump():
     atom_is_jump = numpy.zeros((10,), dtype=bool)
     atom_is_jump[5] = True
 
-    is_defined = stub_defined_for_jump_atom(5, atom_is_jump, child_list_span, child_list)
+    is_defined = stub_defined_for_jump_atom(
+        5, atom_is_jump, child_list_span, child_list
+    )
     assert is_defined
 
 
@@ -84,7 +88,9 @@ def test_stub_defined_for_jump_atom_w_jump_children_of_jump():
     atom_is_jump[jump_atom] = True
     atom_is_jump[jump_atom + 1] = True
 
-    is_defined = stub_defined_for_jump_atom(5, atom_is_jump, child_list_span, child_list)
+    is_defined = stub_defined_for_jump_atom(
+        5, atom_is_jump, child_list_span, child_list
+    )
     assert is_defined
 
 
@@ -114,7 +120,9 @@ def test_stub_defined_for_jump_atom_w_insufficient_children_excluding_jumps():
     atom_is_jump[jump_atom] = True
     atom_is_jump[jump_atom + 1] = True
 
-    is_defined = stub_defined_for_jump_atom(5, atom_is_jump, child_list_span, child_list)
+    is_defined = stub_defined_for_jump_atom(
+        5, atom_is_jump, child_list_span, child_list
+    )
     assert not is_defined
 
 
@@ -603,7 +611,9 @@ def test_builder_define_forest_with_prioritized_bonds():
     (
         kfo_2_to,
         to_parents_in_kfo,
-    ) = _KinematicBuilder().define_trees_with_prioritized_bonds(roots, potential_bonds, prioritized_bonds, 10)
+    ) = _KinematicBuilder().define_trees_with_prioritized_bonds(
+        roots, potential_bonds, prioritized_bonds, 10
+    )
 
     kfo_2_to_gold = numpy.arange(10, dtype=numpy.int32)
     to_parents_in_kfo_gold = numpy.arange(10, dtype=numpy.int32) - 1
@@ -631,7 +641,9 @@ def test_builder_define_forest_with_prioritized_bonds2():
     (
         kfo_2_to,
         to_parents_in_kfo,
-    ) = _KinematicBuilder().define_trees_with_prioritized_bonds(roots, potential_bonds, prioritized_bonds, 10)
+    ) = _KinematicBuilder().define_trees_with_prioritized_bonds(
+        roots, potential_bonds, prioritized_bonds, 10
+    )
 
     kfo_2_to_gold = numpy.arange(10, dtype=numpy.int32)
     to_parents_in_kfo_gold = numpy.arange(10, dtype=numpy.int32) - 1

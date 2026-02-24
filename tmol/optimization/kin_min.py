@@ -1,12 +1,12 @@
 import time
-
 import torch
+from tmol.pose.pose_stack import PoseStack
 
 from tmol.kinematics.fold_forest import FoldForest
-from tmol.kinematics.move_map import MinimizerMap, MoveMap
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
-from tmol.pose.pose_stack import PoseStack
+from tmol.kinematics.move_map import MoveMap, MinimizerMap
 from tmol.score.score_function import ScoreFunction
+
+from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 
 
 def build_kinforest_network(
@@ -33,7 +33,9 @@ def build_kinforest_network(
         torch.cuda.synchronize()
     end_time2 = time.perf_counter()
 
-    kf_network = KinForestSfxnNetwork(sfxn, pose_stack, kin_module, minimizer_map.dof_mask)
+    kf_network = KinForestSfxnNetwork(
+        sfxn, pose_stack, kin_module, minimizer_map.dof_mask
+    )
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time3 = time.perf_counter()
@@ -41,8 +43,8 @@ def build_kinforest_network(
     if verbose:
         print(
             f"build_kinforest_network {end_time3 - start_time: .2f}"
-            + f" s1: {end_time1 - start_time: .2f} s2: {end_time2 - end_time1: .2f}"
-            + f" s3: {end_time3 - end_time2: .2f}"
+            + f" s1: {end_time1-start_time: .2f} s2: {end_time2 - end_time1: .2f}"
+            + f" s3: {end_time3-end_time2: .2f}"
         )
 
     return kf_network
@@ -87,8 +89,8 @@ def run_kin_min(
 
     if verbose:
         print(
-            f"kin_min {end_time3 - start_time: .2f} setup: {end_time1 - start_time: .2f}"
-            + f" opt {end_time2 - end_time1: .2f} stack-ctor: {end_time3 - end_time2: .2f}"
+            f"kin_min {end_time3 - start_time: .2f} setup: {end_time1-start_time: .2f}"
+            + f" opt {end_time2 - end_time1: .2f} stack-ctor: {end_time3-end_time2: .2f}"
         )
 
     return new_pose_stack

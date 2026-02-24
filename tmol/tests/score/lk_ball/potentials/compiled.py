@@ -4,22 +4,24 @@ import attr
 import cattr
 import torch
 
-from tmol.score.chemical_database import AtomTypeParamResolver
-from tmol.score.ljlk.params import LJLKParamResolver
-from tmol.tests.score.lk_ball.potentials._ext import (
-    build_acc_water_dV,
-    build_acc_water_V,
-    build_don_water_dV,
-    build_don_water_V,
-    lk_ball_score_dV,
-    lk_ball_score_V,
-    lk_bridge_fraction_dV,
-    lk_bridge_fraction_V,
-    lk_fraction_dV,
-    lk_fraction_V,
-)
-from tmol.types.tensor import TensorGroup
 from tmol.types.torch import Tensor
+from tmol.types.tensor import TensorGroup
+
+from tmol.score.ljlk.params import LJLKParamResolver
+from tmol.score.chemical_database import AtomTypeParamResolver
+
+from tmol.tests.score.lk_ball.potentials._ext import (
+    build_acc_water_V,
+    build_acc_water_dV,
+    build_don_water_V,
+    build_don_water_dV,
+    lk_fraction_V,
+    lk_fraction_dV,
+    lk_bridge_fraction_V,
+    lk_bridge_fraction_dV,
+    lk_ball_score_V,
+    lk_ball_score_dV,
+)
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -82,7 +84,9 @@ class BuildAcceptorWater(torch.autograd.Function):
 
 class BuildDonorWater(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, D: Tensor[float][:, 3], H: Tensor[float][:, 3], dist: float) -> Tensor[float][:, 3]:
+    def forward(
+        ctx, D: Tensor[float][:, 3], H: Tensor[float][:, 3], dist: float
+    ) -> Tensor[float][:, 3]:
         rgrad, (D, H) = detach_maybe_requires_grad(D, H)
         inputs = (D, H, dist)
 
@@ -157,22 +161,31 @@ class LKBallScore:
         if coord_i.dtype != type_params.lj_radius.dtype:
             type_params = attr.evolve(
                 self.param_resolver.type_params,
-                **{n: t.to(coord_i.dtype) if t.is_floating_point() else t for n, t in attr.asdict(type_params).items()},
+                **{
+                    n: t.to(coord_i.dtype) if t.is_floating_point() else t
+                    for n, t in attr.asdict(type_params).items()
+                },
             )
 
         iidx = self.param_resolver.atom_type_index.get_loc(atom_type_i)
         params_i = cattr.unstructure(type_params[iidx])
-        params_i = LKBallTypeParams(**{x.name: params_i[x.name] for x in attr.fields(LKBallTypeParams)})
+        params_i = LKBallTypeParams(
+            **{x.name: params_i[x.name] for x in attr.fields(LKBallTypeParams)}
+        )
 
         jidx = self.param_resolver.atom_type_index.get_loc(atom_type_j)
         params_j = cattr.unstructure(type_params[jidx])
-        params_j = LKBallTypeParams(**{x.name: params_j[x.name] for x in attr.fields(LKBallTypeParams)})
+        params_j = LKBallTypeParams(
+            **{x.name: params_j[x.name] for x in attr.fields(LKBallTypeParams)}
+        )
 
         params_global = {
             **cattr.unstructure(self.param_resolver.global_params),
             **cattr.unstructure(self.atom_resolver.params),
         }
-        params_global = LKBallGlobalParams(**{x.name: params_global[x.name] for x in attr.fields(LKBallGlobalParams)})
+        params_global = LKBallGlobalParams(
+            **{x.name: params_global[x.name] for x in attr.fields(LKBallGlobalParams)}
+        )
 
         return LKBallScoreFun.apply(
             coord_i,
@@ -203,4 +216,6 @@ class LKBallScoreFun(torch.autograd.Function):
 
         dargs = map(torch.tensor, lk_ball_score_dV(*args))
 
-        return tuple((d.transpose(0, -1) * dE_dV).sum(dim=-1) for d in dargs) + tuple(None for _ in args[4:])
+        return tuple((d.transpose(0, -1) * dE_dV).sum(dim=-1) for d in dargs) + tuple(
+            None for _ in args[4:]
+        )

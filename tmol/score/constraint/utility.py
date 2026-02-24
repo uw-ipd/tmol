@@ -1,5 +1,5 @@
-import attrs
 import torch
+import attrs
 
 from tmol.pose.constraint_set import ConstraintSet
 from tmol.pose.pose_stack import PoseStack
@@ -18,7 +18,9 @@ def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
                 block_type = pose_stack.block_type(pose_ind, block_ind)
 
                 ca_ind = block_type.atom_to_idx["CA"]
-                ca_coords = pose_stack.coords[pose_ind][pose_stack.block_coord_offset[pose_ind, block_ind] + ca_ind]
+                ca_coords = pose_stack.coords[pose_ind][
+                    pose_stack.block_coord_offset[pose_ind, block_ind] + ca_ind
+                ]
 
                 cnstr_atoms = torch.cat(
                     [
@@ -32,8 +34,12 @@ def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
                 )
                 cnstr_params = torch.cat([cnstr_params, ca_coords.unsqueeze(0)])
     if constraint_set is None:
-        constraint_set = ConstraintSet.create_empty(pose_stack.device, pose_stack.n_poses)
-    constraint_set = constraint_set.add_constraints(ConstraintEnergyTerm.harmonic_coordinate, cnstr_atoms, cnstr_params)
+        constraint_set = ConstraintSet.create_empty(
+            pose_stack.device, pose_stack.n_poses
+        )
+    constraint_set = constraint_set.add_constraints(
+        ConstraintEnergyTerm.harmonic_coordinate, cnstr_atoms, cnstr_params
+    )
 
     return attrs.evolve(
         pose_stack,
