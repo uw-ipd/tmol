@@ -196,6 +196,7 @@ jobs:
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
           export TMOL_USE_JIT=1
+          export TORCH_CUDA_ARCH_LIST="7.0 8.0 9.0+PTX"
 
           echo "+++ tests (CUDA JIT)"
           pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cuda.jit.junit.xml

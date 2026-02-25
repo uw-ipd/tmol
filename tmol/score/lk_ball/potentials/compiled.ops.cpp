@@ -962,9 +962,7 @@ std::vector<Tensor> lkball_rotamer_score(
       output_block_pair_energies);
 }
 
-// See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_lk_ball, m) {
   m.def("lk_ball_pose_score", &lkball_pose_score);
   m.def("lk_ball_rotamer_score", &lkball_rotamer_score);
   m.def("gen_pose_waters", &pose_watergen_op);
