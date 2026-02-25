@@ -209,16 +209,17 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
 
 ## Code Style
 
-tmol uses [ruff](https://docs.astral.sh/ruff/) for Python linting and formatting, and [clang-format](https://clang.llvm.org/docs/ClangFormat.html) for C++.
+tmol uses [black](https://black.readthedocs.io/) for Python formatting, [flake8](https://flake8.pycqa.org/) for linting, and [clang-format](https://clang.llvm.org/docs/ClangFormat.html) for C++.
 
 ```bash
-# Check
-ruff check .
-ruff format --check .
+# Check formatting
+black --check .
 
-# Auto-fix
-ruff check --fix .
-ruff format .
+# Auto-format
+black .
+
+# Lint
+flake8
 ```
 
 ### Pre-commit hooks
@@ -228,7 +229,7 @@ pip install -e ".[dev]"
 pre-commit install
 ```
 
-Pre-commit runs `clang-format` (C++) and `ruff` (Python) on staged files. If formatting changes are needed, the first commit attempt will fail and the tools will reformat your code. Run `git diff` to review, then `git add` and commit again.
+Pre-commit runs `clang-format` (C++) and `black` (Python) on staged files. If formatting changes are needed, the first commit attempt will fail and the tools will reformat your code. Run `git diff` to review, then `git add` and commit again.
 
 ### Pull requests
 

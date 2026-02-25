@@ -81,7 +81,7 @@ This requires `nvcc` (CUDA toolkit) and a C++17-capable compiler.
 
 ```bash
 pip install tmol              # requires nvcc for kernel compilation
-pip install tmol[dev]         # includes development tools (ruff, pytest, etc.)
+pip install tmol[dev]         # includes development tools (black, flake8, pytest, etc.)
 ```
 
 ### From source
