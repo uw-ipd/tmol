@@ -15,7 +15,7 @@ if ensure_compiled_or_jit():
         is_python_module=False,
     )
 
-    _ops = getattr(torch.ops, modulename(__name__))
+    _ops = torch.ops.tmol_kin
 else:
     _ops = torch.ops.tmol_kin
 forward_kin_op = _ops.forward_kin_op

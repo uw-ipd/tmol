@@ -22,7 +22,7 @@ if ensure_compiled_or_jit():
         is_python_module=False,
     )
 
-    _ops = getattr(torch.ops, modulename(__name__))
+    _ops = torch.ops.tmol_io
 else:
     _ops = torch.ops.tmol_io
 
