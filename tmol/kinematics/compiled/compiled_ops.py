@@ -15,9 +15,9 @@ if ensure_compiled_or_jit():
         is_python_module=False,
     )
 
-# Ops are registered under TORCH_LIBRARY(tmol_kin, ...) in compiled_ops.cpp,
-# so the namespace is always tmol_kin regardless of JIT vs AOT.
-_ops = torch.ops.tmol_kin
+    _ops = getattr(torch.ops, modulename(__name__))
+else:
+    _ops = torch.ops.tmol_kin
 forward_kin_op = _ops.forward_kin_op
 forward_only_op = _ops.forward_only_op
 get_kfo_indices_for_atoms = _ops.get_kfo_indices_for_atoms

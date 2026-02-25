@@ -20,8 +20,9 @@ if ensure_compiled_or_jit():
         is_python_module=False,
     )
 
-# Ops registered under TORCH_LIBRARY(tmol_dunbrack, ...) in C++
-_ops = torch.ops.tmol_dunbrack
+    _ops = getattr(torch.ops, modulename(__name__))
+else:
+    _ops = torch.ops.tmol_dunbrack
 
 dunbrack_pose_scores = _ops.dunbrack_pose_scores
 dunbrack_rotamer_scores = _ops.dunbrack_rotamer_scores

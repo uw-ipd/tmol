@@ -16,7 +16,6 @@ from ..extern import include_paths as extern_include_paths
 
 _cuda_env_setup()
 
-import torch  # noqa: E402
 import torch.utils.cpp_extension  # noqa: E402
 from torch.utils.cpp_extension import _is_cuda_file  # noqa: E402
 
@@ -45,6 +44,11 @@ else:
     _default_flags = ["-O3"]
 
 
+# TO DO! Look at what OS we're running on
+# only add the -ccbin gcc-8 flag if we're on ubuntu 20.04 or higher
+#
+#
+# which version of torch are we compiling against?
 def get_torch_version():
     return torch.__version__.split(".")[0:2]
 
@@ -56,29 +60,52 @@ _required_cuda_flags = [
     "--expt-extended-lambda",
     "-DWITH_NVTX",
     "-w",
+    # "-G",
     f"-DTORCH_VERSION_MAJOR={torch_major}",
     f"-DTORCH_VERSION_MINOR={torch_minor}",
 ]
 
-# GPU architecture flags (--gpu-architecture / -gencode) are NOT added here.
-# PyTorch's cpp_extension.load() reads TORCH_CUDA_ARCH_LIST natively and
-# produces proper multi-arch -gencode flags.  If TORCH_CUDA_ARCH_LIST is
-# unset, PyTorch auto-detects the local GPU's compute capability.
 
-# Find NVTX include path for -DWITH_NVTX support.
-# Try the pip-installed nvidia.nvtx package first, then fall back to CUDA_HOME.
-try:
-    import nvidia.nvtx as _nvtx
+# Add an additional --gpu-architecture flag to the nvcc command:
+# The flag we pass to nvcc should be controllable from the TORCH_CUDA_ARCH_LIST
+# environment variable; if this is set, then use that. If it is not set, then
+# we will query the device. This lets us use an older version of torch with a
+# more recent GPU (e.g. an A100 with cuda10.1)
+if torch.cuda.is_available():
+    import os
 
-    _nvtx_include = os.path.join(_nvtx.__path__[0], "include")
-    if os.path.isdir(_nvtx_include):
-        _default_include_paths.append(_nvtx_include)
-except ImportError:
-    _cuda_home = os.environ.get("CUDA_HOME") or os.environ.get("CUDA_PATH")
-    if _cuda_home:
-        _nvtx_candidate = os.path.join(_cuda_home, "include")
-        if os.path.isdir(_nvtx_candidate):
-            _default_include_paths.append(_nvtx_candidate)
+    arch_list = os.environ.get("TORCH_CUDA_ARCH_LIST", None)
+    # If not given, determine what's needed for the GPU that can be found
+    if not arch_list:
+        _major, _minor = torch.cuda.get_device_capability(0)
+    else:
+        # Take the first architecture listed.
+        # Deal with lists that are ' ' or ';' separated
+        _major, _minor = arch_list.replace(" ", ";").split(";")[0].split(".")
+    _required_cuda_flags.append(f"--gpu-architecture=sm_{_major}{_minor}")
+
+    # we need to add the search path for nvtx3
+    # which should be installed relative to nvcc
+
+    import subprocess
+    import sys
+
+    # Find nvtx include path — works for both pip and conda layouts
+    try:
+        import nvidia.nvtx as _nvtx
+
+        _nvtx_include = os.path.join(_nvtx.__path__[0], "include")
+        if os.path.isdir(_nvtx_include):
+            _default_include_paths.append(_nvtx_include)
+    except ImportError:
+        # Fallback: guess relative to nvcc location (conda layout)
+        path = subprocess.run(["which", "nvcc"], capture_output=True, text=True)
+        nvcc_dir = os.path.dirname(path.stdout.strip())
+        ver_info = sys.version_info
+        _default_include_paths.append(
+            f"{nvcc_dir}/../lib/python{ver_info.major}.{ver_info.minor}"
+            f"/site-packages/nvidia/nvtx/include"
+        )
 
 _default_cuda_flags = []
 

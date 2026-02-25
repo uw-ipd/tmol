@@ -20,8 +20,9 @@ if ensure_compiled_or_jit():
         is_python_module=False,
     )
 
-# Ops registered under TORCH_LIBRARY(tmol_cartbonded, ...) in C++
-_ops = torch.ops.tmol_cartbonded
+    _ops = getattr(torch.ops, modulename(__name__))
+else:
+    _ops = torch.ops.tmol_cartbonded
 
 cartbonded_pose_scores = _ops.cartbonded_pose_scores
 cartbonded_rotamer_scores = _ops.cartbonded_rotamer_scores

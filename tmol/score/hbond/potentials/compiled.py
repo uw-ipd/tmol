@@ -20,8 +20,9 @@ if ensure_compiled_or_jit():
         is_python_module=False,
     )
 
-# Ops registered under TORCH_LIBRARY(tmol_hbond, ...) in C++
-_ops = torch.ops.tmol_hbond
+    _ops = getattr(torch.ops, modulename(__name__))
+else:
+    _ops = torch.ops.tmol_hbond
 
 hbond_pose_scores = _ops.hbond_pose_scores
 hbond_rotamer_scores = _ops.hbond_rotamer_scores
