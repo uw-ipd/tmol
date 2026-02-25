@@ -38,22 +38,34 @@ The ABI must match because C++ extensions are linked against PyTorch's C++ stand
 
 **x86_64 (Linux):**
 
-| PyTorch | CUDA | ABI   | Wheel tag                              |
-|---------|------|-------|----------------------------------------|
-| 2.8     | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
-| 2.8     | 12.6 | FALSE | `+cu126torch2.8cxx11abiFALSE`         |
-| 2.9     | 13.0 | TRUE  | `+cu130torch2.9cxx11abiTRUE`          |
-| 2.9     | 12.6 | FALSE | `+cu126torch2.9cxx11abiFALSE`         |
-| 2.10    | 13.1 | TRUE  | `+cu131torch2.10cxx11abiTRUE`         |
-| 2.10    | 12.6 | FALSE | `+cu126torch2.10cxx11abiFALSE`        |
+| PyTorch | Python | CUDA | ABI   | Wheel tag                              |
+|---------|--------|------|-------|----------------------------------------|
+| 2.8     | 3.12   | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
+| 2.8     | 3.12   | 12.6 | FALSE | `+cu126torch2.8cxx11abiFALSE`         |
+| 2.9     | 3.12   | 13.0 | TRUE  | `+cu130torch2.9cxx11abiTRUE`          |
+| 2.9     | 3.12   | 12.6 | FALSE | `+cu126torch2.9cxx11abiFALSE`         |
+| 2.10    | 3.12   | 13.1 | TRUE  | `+cu131torch2.10cxx11abiTRUE`         |
+| 2.10    | 3.12   | 12.6 | FALSE | `+cu126torch2.10cxx11abiFALSE`        |
+| 2.8     | 3.10   | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
+| 2.8     | 3.10   | 12.6 | FALSE | `+cu126torch2.8cxx11abiFALSE`         |
+| 2.9     | 3.10   | 12.6 | TRUE  | `+cu126torch2.9cxx11abiTRUE`          |
+| 2.9     | 3.10   | 12.6 | FALSE | `+cu126torch2.9cxx11abiFALSE`         |
+| 2.10    | 3.10   | 12.6 | TRUE  | `+cu126torch2.10cxx11abiTRUE`         |
+| 2.10    | 3.10   | 12.6 | FALSE | `+cu126torch2.10cxx11abiFALSE`        |
 
 **ARM64 / aarch64 (Linux, e.g., Grace Hopper, Jetson):**
 
-| PyTorch | CUDA | ABI   | Wheel tag                              |
-|---------|------|-------|----------------------------------------|
-| 2.8     | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
-| 2.9     | 13.0 | TRUE  | `+cu130torch2.9cxx11abiTRUE`          |
-| 2.10    | 13.1 | TRUE  | `+cu131torch2.10cxx11abiTRUE`         |
+| PyTorch | Python | CUDA | ABI   | Wheel tag                              |
+|---------|--------|------|-------|----------------------------------------|
+| 2.8     | 3.12   | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
+| 2.9     | 3.12   | 13.0 | TRUE  | `+cu130torch2.9cxx11abiTRUE`          |
+| 2.10    | 3.12   | 13.1 | TRUE  | `+cu131torch2.10cxx11abiTRUE`         |
+| 2.8     | 3.10   | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
+| 2.9     | 3.10   | 12.6 | TRUE  | `+cu126torch2.9cxx11abiTRUE`          |
+| 2.10    | 3.10   | 12.6 | TRUE  | `+cu126torch2.10cxx11abiTRUE`         |
+
+> [!NOTE]
+> Python 3.10 wheels use `cp310` in the filename; Python 3.12 wheels use `cp312`. pip automatically selects the correct one for your Python version. Python 3.11 users can install from the source distribution (requires nvcc).
 
 > [!TIP]
 > CUDA wheels are **forward-compatible** within a major version: a `cu124` wheel works on any CUDA 12.x driver >= 12.4. You do not need an exact CUDA version match.
@@ -61,7 +73,7 @@ The ABI must match because C++ extensions are linked against PyTorch's C++ stand
 Check your environment:
 
 ```bash
-python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, ABI: {torch._C._GLIBCXX_USE_CXX11_ABI}')"
+python -c "import sys; import torch; print(f'Python: {sys.version_info.major}.{sys.version_info.minor}, PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, ABI: {torch._C._GLIBCXX_USE_CXX11_ABI}')"
 ```
 
 Install from [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
