@@ -26,19 +26,27 @@ def test_bonded_atom_two_iterations(ubq_pdb, default_database, torch_device):
     )
 
     bt_ind = p1.block_type_ind64[0, 0]
-    one_step_gold = pbt.all_bonds[bt_ind, pbt.atom_all_bond_ranges[bt_ind, :, 0].to(dtype=torch.int64), 1]
+    one_step_gold = pbt.all_bonds[
+        bt_ind, pbt.atom_all_bond_ranges[bt_ind, :, 0].to(dtype=torch.int64), 1
+    ]
     two_step_tentative = pbt.all_bonds[
         bt_ind,
-        pbt.atom_all_bond_ranges[bt_ind, one_step_gold.to(dtype=torch.int64), 0].to(dtype=torch.int64),
+        pbt.atom_all_bond_ranges[bt_ind, one_step_gold.to(dtype=torch.int64), 0].to(
+            dtype=torch.int64
+        ),
         1,
     ]
 
     torch.testing.assert_close(one_step_gold, one_step[0, 0, :, 1])
 
-    two_step_wrong = two_step_tentative == torch.arange(pbt.max_n_atoms, dtype=torch.int32, device=torch_device)
+    two_step_wrong = two_step_tentative == torch.arange(
+        pbt.max_n_atoms, dtype=torch.int32, device=torch_device
+    )
     two_step_tentative[two_step_wrong] = pbt.all_bonds[
         bt_ind,
-        pbt.atom_all_bond_ranges[bt_ind, one_step_gold[two_step_wrong].to(dtype=torch.int64), 0].to(dtype=torch.int64)
+        pbt.atom_all_bond_ranges[
+            bt_ind, one_step_gold[two_step_wrong].to(dtype=torch.int64), 0
+        ].to(dtype=torch.int64)
         + 1,
         1,
     ]

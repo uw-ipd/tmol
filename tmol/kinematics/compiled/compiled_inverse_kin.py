@@ -1,4 +1,6 @@
-from tmol.kinematics.compiled._compiled_inverse_kin import inverse_kin as _inverse_kin_dispatch
+from tmol.kinematics.compiled._compiled_inverse_kin import (
+    inverse_kin as _inverse_kin_dispatch,
+)
 
 
 def inverse_kin(*args, **kwargs):

@@ -29,7 +29,12 @@ def test_tensor_struct(tensor_struct):
         assert accessor(attr.asdict(tdata)) == asum
 
         # Data structure extra fields are ignored.
-        assert accessor(toolz.merge(attr.asdict(tdata), {"c": torch.full((100,), 2.998e8)})) == asum
+        assert (
+            accessor(
+                toolz.merge(attr.asdict(tdata), {"c": torch.full((100,), 2.998e8)})
+            )
+            == asum
+        )
 
         # Direct pass of attrs-class raises type error
         with pytest.raises(TypeError):

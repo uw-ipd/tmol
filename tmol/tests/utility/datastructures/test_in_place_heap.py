@@ -73,7 +73,9 @@ def test_heap_construction_2(in_place_heap, reverse_insert10_heap_structure):
 def test_heap_clear_and_reconstruction(in_place_heap, reverse_insert10_heap_structure):
     tvec1 = torch.arange(10, dtype=torch.int32)
     tvec2 = torch.flip(torch.arange(10, dtype=torch.int32), dims=[0])
-    node_order, heap_order, values = in_place_heap.clear_heap_after_creation(tvec1, tvec2)
+    node_order, heap_order, values = in_place_heap.clear_heap_after_creation(
+        tvec1, tvec2
+    )
     gold_heap_order, gold_node_order, gold_values = reverse_insert10_heap_structure
 
     numpy.testing.assert_equal(gold_node_order, node_order.numpy())
@@ -81,10 +83,14 @@ def test_heap_clear_and_reconstruction(in_place_heap, reverse_insert10_heap_stru
     numpy.testing.assert_equal(gold_values, values.numpy())
 
 
-def test_heap_clear_and_reconstruction_smaller_subset(in_place_heap, reverse_insert10_heap_structure):
+def test_heap_clear_and_reconstruction_smaller_subset(
+    in_place_heap, reverse_insert10_heap_structure
+):
     tvec1 = torch.arange(20, dtype=torch.int32)
     tvec2 = torch.flip(torch.arange(10, dtype=torch.int32), dims=[0])
-    node_order, heap_order, values = in_place_heap.clear_heap_after_creation(tvec1, tvec2)
+    node_order, heap_order, values = in_place_heap.clear_heap_after_creation(
+        tvec1, tvec2
+    )
     gold_heap_order, gold_node_order, gold_values = reverse_insert10_heap_structure
 
     numpy.testing.assert_equal(gold_node_order, node_order.numpy())

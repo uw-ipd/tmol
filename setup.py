@@ -191,9 +191,13 @@ def _make_pybind_ext(name, sources, cuda=False, extra_include_dirs=None):
     last_component = name.rsplit(".", 1)[-1]
     macros = [("TORCH_EXTENSION_NAME", last_component)]
     if cuda:
-        return _make_cuda_ext(name, sources, define_macros=macros, extra_include_dirs=extra_include_dirs)
+        return _make_cuda_ext(
+            name, sources, define_macros=macros, extra_include_dirs=extra_include_dirs
+        )
     else:
-        return _make_cpp_ext(name, sources, define_macros=macros, extra_include_dirs=extra_include_dirs)
+        return _make_cpp_ext(
+            name, sources, define_macros=macros, extra_include_dirs=extra_include_dirs
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -520,7 +524,9 @@ class NinjaBuildExtension(BuildExtension):
 # (from flash-attention)
 # ---------------------------------------------------------------------------
 
-BASE_WHEEL_URL = "https://github.com/uw-ipd/tmol/releases/download/{tag_name}/{wheel_name}"
+BASE_WHEEL_URL = (
+    "https://github.com/uw-ipd/tmol/releases/download/{tag_name}/{wheel_name}"
+)
 
 
 def _get_package_version():
@@ -581,13 +587,18 @@ try:
                 if not os.path.exists(self.dist_dir):
                     os.makedirs(self.dist_dir)
                 impl_tag, abi_tag, plat_tag = self.get_tag()
-                archive_basename = f"{self.wheel_dist_name}-{impl_tag}-{abi_tag}-{plat_tag}"
+                archive_basename = (
+                    f"{self.wheel_dist_name}-{impl_tag}-{abi_tag}-{plat_tag}"
+                )
                 wheel_path = os.path.join(self.dist_dir, archive_basename + ".whl")
                 os.rename(wheel_filename, wheel_path)
                 print(f"[tmol] Using pre-built wheel: {wheel_path}")
             except (urllib.error.HTTPError, urllib.error.URLError, Exception) as e:
-                print(f"[tmol] Pre-built wheel not found ({e}). Building from source...")
+                print(
+                    f"[tmol] Pre-built wheel not found ({e}). Building from source..."
+                )
                 super().run()
+
 except ImportError:
     CachedWheelsCommand = None
 

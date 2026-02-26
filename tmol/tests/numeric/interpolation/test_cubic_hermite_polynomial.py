@@ -18,7 +18,6 @@ from tmol.numeric.interpolation.cubic_hermite_polynomial import (
     interpolate_to_zero_dt,
 )
 
-
 # Use width=16 restricting test values to "reasonable" precision (e > -8)
 real = hypothesis.strategies.floats(allow_infinity=False, width=16)
 

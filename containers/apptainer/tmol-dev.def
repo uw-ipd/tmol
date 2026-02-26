@@ -17,10 +17,6 @@ IncludeCmd: yes
     mkdir ${APPTAINER_ROOTFS}/tmol_host
     # ... for mounting `/projects` with --bind
     mkdir ${APPTAINER_ROOTFS}/projects
-    # ... for mounting `/net` with --bind
-    mkdir ${APPTAINER_ROOTFS}/net
-    # ... for mounting `/squash` with --bind
-    mkdir ${APPTAINER_ROOTFS}/squash
 
 %files
     /etc/localtime
@@ -31,11 +27,8 @@ IncludeCmd: yes
     ## GENERAL SETUP
 
     # Common symlinks (within container)
-    ln -s /net/databases /databases
-    ln -s /net/software /software
     ln -s /home /mnt/home
     ln -s /projects /mnt/projects
-    ln -s /net /mnt/net
 
     # Update system and install essential packages
     apt-get update && apt-get install -y \
