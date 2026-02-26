@@ -78,14 +78,31 @@ find_package(pybind11 CONFIG REQUIRED)
 
 # Caffe2's TorchConfig.cmake unconditionally appends the -gencode flags that
 # PyTorch was originally built with (e.g. sm_52 through sm_90 for NGC containers)
-# into CMAKE_CUDA_FLAGS. These are global and apply to ALL CUDA targets, conflicting
-# with our CMAKE_CUDA_ARCHITECTURES (which controls per-target gencode flags).
-# Strip them so only our CMAKE_CUDA_ARCHITECTURES controls architecture selection.
+# into CMAKE_CUDA_FLAGS. These are global and apply to ALL CUDA targets.
+# Replace them with gencode flags matching our CMAKE_CUDA_ARCHITECTURES.
+# We must put them in CMAKE_CUDA_FLAGS because Caffe2 disables CMake's native
+# CUDA_ARCHITECTURES handling by setting CMAKE_CUDA_ARCHITECTURES to empty/OFF
+# for some PyTorch versions.
 string(REGEX REPLACE "-gencode[;= ]arch=compute_[0-9]+,code=sm_[0-9]+" "" CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
 string(REGEX REPLACE "-gencode[;= ]arch=compute_[0-9]+,code=compute_[0-9]+" "" CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
 string(REGEX REPLACE " +" " " CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
 string(STRIP "${CMAKE_CUDA_FLAGS}" CMAKE_CUDA_FLAGS)
-message(STATUS "tmol: CMAKE_CUDA_FLAGS after stripping Caffe2 gencode = ${CMAKE_CUDA_FLAGS}")
+
+# Re-add gencode flags for our desired architectures
+set(_TMOL_GENCODE_FLAGS "")
+foreach(_A ${CMAKE_CUDA_ARCHITECTURES})
+  string(REPLACE "-real" "" _A_CLEAN "${_A}")
+  if("${_A}" STREQUAL "${_A_CLEAN}")
+    # Bare number (e.g. "90"): emit both real + virtual (forward compat)
+    set(_TMOL_GENCODE_FLAGS "${_TMOL_GENCODE_FLAGS} -gencode arch=compute_${_A_CLEAN},code=sm_${_A_CLEAN} -gencode arch=compute_${_A_CLEAN},code=compute_${_A_CLEAN}")
+  else()
+    # Has -real suffix: emit only real code
+    set(_TMOL_GENCODE_FLAGS "${_TMOL_GENCODE_FLAGS} -gencode arch=compute_${_A_CLEAN},code=sm_${_A_CLEAN}")
+  endif()
+endforeach()
+string(STRIP "${_TMOL_GENCODE_FLAGS}" _TMOL_GENCODE_FLAGS)
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${_TMOL_GENCODE_FLAGS}")
+message(STATUS "tmol: CMAKE_CUDA_FLAGS after fixing gencode = ${CMAKE_CUDA_FLAGS}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Compiler flags — match PyTorch's ABI and set tmol defaults
