@@ -78,6 +78,11 @@ message(STATUS "tmol: Setting TORCH_CUDA_ARCH_LIST=${_TORCH_ARCH_STR} for find_p
 find_package(Torch REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
+# torch_python provides pybind11 type_casters for at::Tensor.
+# Required by pybind11 modules that accept/return PyTorch tensors.
+find_library(TORCH_PYTHON_LIBRARY torch_python PATHS "${TORCH_INSTALL_PREFIX}/lib" NO_DEFAULT_PATH)
+message(STATUS "tmol: TORCH_PYTHON_LIBRARY = ${TORCH_PYTHON_LIBRARY}")
+
 # Caffe2's TorchConfig.cmake unconditionally appends the -gencode flags that
 # PyTorch was originally built with (e.g. sm_52 through sm_90 for NGC containers)
 # into CMAKE_CUDA_FLAGS. These are global and apply to ALL CUDA targets.
@@ -196,6 +201,7 @@ function(tmol_add_pybind_cuda_ext TARGET_NAME INSTALL_DIR EXT_NAME)
   pybind11_add_module(${TARGET_NAME} MODULE ${ARGN})
   target_compile_definitions(${TARGET_NAME} PRIVATE TORCH_EXTENSION_NAME=${EXT_NAME})
   tmol_set_cuda_flags(${TARGET_NAME})
+  target_link_libraries(${TARGET_NAME} PRIVATE ${TORCH_PYTHON_LIBRARY})
   set_target_properties(${TARGET_NAME} PROPERTIES
     OUTPUT_NAME "${EXT_NAME}"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${INSTALL_DIR}"
@@ -208,6 +214,7 @@ function(tmol_add_pybind_cpp_ext TARGET_NAME INSTALL_DIR EXT_NAME)
   pybind11_add_module(${TARGET_NAME} MODULE ${ARGN})
   target_compile_definitions(${TARGET_NAME} PRIVATE TORCH_EXTENSION_NAME=${EXT_NAME})
   tmol_set_cpp_flags(${TARGET_NAME})
+  target_link_libraries(${TARGET_NAME} PRIVATE ${TORCH_PYTHON_LIBRARY})
   set_target_properties(${TARGET_NAME} PROPERTIES
     OUTPUT_NAME "${EXT_NAME}"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${INSTALL_DIR}"
