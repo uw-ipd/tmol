@@ -95,58 +95,117 @@ def biotite_from_pose_stack(pose_stack):
 
 # @validate_args # TODO
 def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalForm:
-    """Convert a biottite AtomArray or AtomArrayStack to a CanonicalForm.
-    Unlike some other data sources, atom and residue types are represented
-    as strings in an AtomArray, so we do mapping a little differently.
-    If the biotite_structure is an AtomArrayStack, there are many structures
-    that share some of the same metadata, so we put each set of coords into a
-    separate pose and then replicate the metadata for each.
+    """Convert a Biotite AtomArray or AtomArrayStack to a CanonicalForm.
+
+    This function bridges between Biotite's data structures and tmol's internal
+    representation by converting atom and residue information from string-based
+    identifiers to tmol's canonical integer-based indexing system.
+
+    The conversion process involves:
+    1. Extracting residue and atom information from the Biotite structure
+    2. Mapping Biotite residue names to tmol's canonical residue type indices
+    3. Mapping atom names to canonical atom indices for each residue type
+    4. Constructing coordinate tensors with proper NaN handling for missing atoms
+    5. Preserving optional metadata (B-factors, occupancy, chain labels, etc.)
+
+    Args:
+        biotite_structure: A Biotite AtomArray (single structure) or
+            AtomArrayStack (multiple structures) containing the molecular data.
+            Must contain atom coordinates, residue names, atom names, chain IDs,
+            and optionally B-factors and occupancy values.
+        torch_device: PyTorch device (e.g., torch.device('cuda') or torch.device('cpu'))
+            where the resulting tensors should be allocated.
+
+    Returns:
+        CanonicalForm: A data structure containing:
+            - chain_id: Tensor mapping residues to chain indices
+            - res_types: Tensor mapping residues to tmol residue type indices
+            - coords: 4D tensor of atomic coordinates (poses x residues x atoms x 3)
+            - res_labels: Original residue sequence numbers from the structure
+            - residue_insertion_codes: PDB insertion codes for residues
+            - chain_labels: Original chain identifiers from the structure
+            - atom_occupancy: Optional tensor of atom occupancy values
+            - atom_b_factor: Optional tensor of atom B-factor values
+            - disulfides: None (not handled in this conversion)
+            - res_not_connected: None (not handled in this conversion)
+
+    Notes:
+        - Missing atoms are represented as NaN coordinates in the output tensor
+        - For AtomArrayStack inputs, metadata is replicated across all poses
+        - The function handles both standard amino acids and special variants like HIS_D
+        - B-factor and occupancy data are preserved if present in the input structure
+        - Chain labels are limited to single characters as per Biotite's AtomArray design
     """
 
+    # ========================================
+    # 1. Determine structure dimensions and setup
+    # ========================================
+    # Determine number of poses (1 for AtomArray, multiple for AtomArrayStack)
     device = torch_device
     n_poses = 1
     if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
         n_poses = biotite_structure.coord.shape[0]
 
+    # ========================================
+    # 2. Extract residue-level metadata
+    # ========================================
+    # Extract residue-level metadata from Biotite structure
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
     biotite_chain_id_for_res = biotite.structure.chains.get_all_chain_positions(
         biotite_structure
     )[biotite_residue_starts]
     biotite_chain_labels = biotite_structure.chain_id[biotite_residue_starts]
     biotite_insertion_codes = biotite_structure.ins_code[biotite_residue_starts]
-    biotite_res_ind_for_atom = biotite.structure.get_all_residue_positions(
-        biotite_structure
-    )  # res_id
-    biotite_name_for_atom = biotite_structure.atom_name
-    biotite_res_name_for_atom = biotite_structure.res_name
 
-    # get the tmol residue indices
+    # Extract residue labels and names for mapping to tmol canonical form
     biotite_residue_labels = biotite.structure.get_residues(biotite_structure)[0]
     biotite_residues = biotite.structure.get_residues(biotite_structure)[1]
 
+    # ========================================
+    # 3. Extract atom-level data
+    # ========================================
+    # Extract atom-level data from Biotite structure
+    atom_res_inds = biotite.structure.get_all_residue_positions(biotite_structure)
+    biotite_name_for_atom = biotite_structure.atom_name
+    biotite_res_name_for_atom = biotite_structure.res_name
+
+    # ========================================
+    # 4. Setup canonical ordering and mapping
+    # ========================================
+    # Get canonical ordering for mapping Biotite names to tmol indices
     co = canonical_ordering_for_biotite()
 
+    # Map Biotite residue names to tmol residue type indices
     tmol_restypes = [
         co.restype_io_equiv_classes.index(i_3lc) for i_3lc in biotite_residues
     ]
-    atom_mapping = [
+
+    # Map atom names to canonical atom indices for each residue type
+    atom_inds = [
         co.restypes_atom_index_mapping[resname][atname]
         for resname, atname in zip(biotite_res_name_for_atom, biotite_name_for_atom)
     ]
 
+    # ========================================
+    # 5. Initialize and populate coordinate tensor
+    # ========================================
     tmol_coords = torch.full(
         (n_poses, len(biotite_residues), co.max_n_canonical_atoms, 3),
         numpy.nan,
         dtype=torch.float32,
         device=device,
     )
-    res_inds = biotite_res_ind_for_atom
-    atom_inds = atom_mapping
     biotite_coords = torch.tensor(biotite_structure.coord, device=torch_device)
 
-    def copy_for_all_poses(dat):
-        return numpy.repeat(dat[numpy.newaxis, ...], n_poses, axis=0)
+    if n_poses == 1:
+        tmol_coords[0, atom_res_inds, atom_inds] = biotite_coords
+    else:
+        for pose_ind in range(n_poses):
+            tmol_coords[pose_ind, atom_res_inds, atom_inds] = biotite_coords[pose_ind]
 
+    # ========================================
+    # 6. Handle optional metadata (B-factors, occupancy)
+    # ========================================
     biotite_b_factors = None
     biotite_occupancy = None
 
@@ -156,7 +215,7 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
             0,
             dtype=numpy.float32,
         )
-        biotite_b_factors[0, res_inds, atom_inds] = biotite_structure.b_factor
+        biotite_b_factors[0, atom_res_inds, atom_inds] = biotite_structure.b_factor
 
     if hasattr(biotite_structure, "occupancy"):
         biotite_occupancy = numpy.full(
@@ -164,13 +223,14 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
             0,
             dtype=numpy.float32,
         )
-        biotite_occupancy[0, res_inds, atom_inds] = biotite_structure.occupancy
+        biotite_occupancy[0, atom_res_inds, atom_inds] = biotite_structure.occupancy
 
-    if n_poses == 1:
-        tmol_coords[0, res_inds, atom_inds] = biotite_coords
-    else:
-        for pose_ind in range(n_poses):
-            tmol_coords[pose_ind, res_inds, atom_inds] = biotite_coords[pose_ind]
+    # ========================================
+    # 7. Prepare metadata for output
+    # ========================================
+
+    def copy_for_all_poses(dat):
+        return numpy.repeat(dat[numpy.newaxis, ...], n_poses, axis=0)
 
     biotite_residue_labels = copy_for_all_poses(biotite_residue_labels)
     biotite_chain_labels = copy_for_all_poses(biotite_chain_labels)
@@ -187,6 +247,9 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
         .repeat(n_poses, 1)
     )
 
+    # ========================================
+    # 8. Return CanonicalForm with all converted data
+    # ========================================
     return CanonicalForm(
         chain_id=chain_id,
         res_types=res_types,
@@ -196,8 +259,8 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
         residue_insertion_codes=biotite_insertion_codes.astype(object),
         atom_occupancy=biotite_occupancy,
         atom_b_factor=biotite_b_factors,
-        disulfides=None,
-        res_not_connected=None,
+        disulfides=None,  # TODO: Not handled in this conversion
+        res_not_connected=None,  # TODO: Not handled in this conversion
     )
 
 
