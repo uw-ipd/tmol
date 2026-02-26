@@ -77,18 +77,11 @@ jobs:
             echo "Replacing NGC PyTorch with pip PyTorch (CXX11_ABI=FALSE)"
             pip config unset global.constraint || true
             export PIP_CONSTRAINT=""
-            pip install --break-system-packages --force-reinstall --no-deps \
+            # Force-reinstall torch WITH its dependencies so NVIDIA library
+            # versions match what this torch version was built against.
+            pip install --break-system-packages --force-reinstall \
               torch==${{ inputs.torch-version }}.* \
               --index-url ${{ inputs.pip-torch-cuda-url }}
-            # Install NVIDIA runtime libs that pip torch depends on.
-            # --no-deps above skips them; pip will only install what is missing
-            # from the container (e.g. nvidia-nvshmem-cu12 added in torch 2.10).
-            pip install --break-system-packages \
-              nvidia-nvshmem-cu12 nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 \
-              nvidia-cudnn-cu12 nvidia-cufft-cu12 nvidia-curand-cu12 \
-              nvidia-cusolver-cu12 nvidia-cusparse-cu12 nvidia-cusparselt-cu12 \
-              nvidia-nccl-cu12 nvidia-nvtx-cu12 nvidia-nvjitlink-cu12 \
-              nvidia-cuda-nvrtc-cu12 nvidia-cuda-cupti-cu12 nvidia-cufile-cu12
             python3 -c "import torch; print(f'"'"'Reinstalled: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}'"'"')"
           '
 
