@@ -43,8 +43,10 @@ message(STATUS "tmol: CMAKE_CUDA_ARCHITECTURES = ${CMAKE_CUDA_ARCHITECTURES}")
 
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
-# Save Python include dirs NOW — Torch's internal find_package(Python) may
-# overwrite them with a minimal Interpreter-only result.
+# Save values NOW — find_package(Torch) / Caffe2 will overwrite both:
+#  - Python_INCLUDE_DIRS: Caffe2 calls find_package(Python Interpreter) which may clear it
+#  - CMAKE_CUDA_ARCHITECTURES: Caffe2 sets it to OFF to manage gencode flags itself
+set(_TMOL_CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}")
 set(_TMOL_PYTHON_INCLUDE_DIRS "${Python_INCLUDE_DIRS}")
 if(NOT _TMOL_PYTHON_INCLUDE_DIRS)
   execute_process(
@@ -88,9 +90,10 @@ string(REGEX REPLACE "-gencode[;= ]arch=compute_[0-9]+,code=compute_[0-9]+" "" C
 string(REGEX REPLACE " +" " " CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
 string(STRIP "${CMAKE_CUDA_FLAGS}" CMAKE_CUDA_FLAGS)
 
-# Re-add gencode flags for our desired architectures
+# Re-add gencode flags for our desired architectures (using saved copy,
+# since Caffe2 overwrites CMAKE_CUDA_ARCHITECTURES to OFF)
 set(_TMOL_GENCODE_FLAGS "")
-foreach(_A ${CMAKE_CUDA_ARCHITECTURES})
+foreach(_A ${_TMOL_CUDA_ARCHITECTURES})
   string(REPLACE "-real" "" _A_CLEAN "${_A}")
   if("${_A}" STREQUAL "${_A_CLEAN}")
     # Bare number (e.g. "90"): emit both real + virtual (forward compat)
