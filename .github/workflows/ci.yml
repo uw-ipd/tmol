@@ -82,7 +82,7 @@ jobs:
           # fela: 56 cores / 251GB RAM, 23 extension modules, 3 GPU arch targets.
           export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
           export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
-          MAX_JOBS=12 pip install --no-build-isolation --no-deps --prefix /ci-pip-pkgs \
+          MAX_JOBS=12 pip install -v --no-build-isolation --no-deps --prefix /ci-pip-pkgs \
             -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="70;80;90" \
             -Ccmake.define.TMOL_BUILD_TESTS=ON \
             -Ccmake.define.TMOL_NVCC_THREADS=2 \
