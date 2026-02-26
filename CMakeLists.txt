@@ -1,5 +1,41 @@
 cmake_minimum_required(VERSION 3.18)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CUDA architecture selection — MUST be set before project() so that
+# enable_language(CUDA) uses our architectures, not the nvcc defaults.
+# ═══════════════════════════════════════════════════════════════════════════════
+# CMAKE_CUDA_ARCHITECTURES can be set via:
+#   -DCMAKE_CUDA_ARCHITECTURES="80;86;89;90"  (from scikit-build-core -C flags)
+#   TORCH_CUDA_ARCH_LIST env var (PyTorch format: "7.0 8.0 9.0+PTX")
+#   or falls back to a sensible default.
+
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+  if(DEFINED ENV{TORCH_CUDA_ARCH_LIST})
+    set(_ARCH_STR "$ENV{TORCH_CUDA_ARCH_LIST}")
+    # Parse PyTorch format "7.0 8.0 9.0+PTX" -> CMake format "70-real;80-real;90"
+    # "+PTX" means emit both real code AND PTX for forward compat.
+    # In CMake: bare "90" emits both real+virtual; "90-real" emits only real.
+    string(REPLACE " " ";" _ARCH_LIST "${_ARCH_STR}")
+    set(_CLEAN_ARCHS "")
+    foreach(_A ${_ARCH_LIST})
+      string(FIND "${_A}" "+PTX" _HAS_PTX)
+      string(REPLACE "+PTX" "" _A "${_A}")
+      string(REPLACE "." "" _A "${_A}")
+      if(_HAS_PTX GREATER_EQUAL 0)
+        list(APPEND _CLEAN_ARCHS "${_A}")
+      else()
+        list(APPEND _CLEAN_ARCHS "${_A}-real")
+      endif()
+    endforeach()
+    set(CMAKE_CUDA_ARCHITECTURES ${_CLEAN_ARCHS} CACHE STRING "CUDA architectures")
+  else()
+    set(CMAKE_CUDA_ARCHITECTURES "80;86;89;90" CACHE STRING "CUDA architectures")
+  endif()
+endif()
+
 project(tmol LANGUAGES CXX CUDA)
+
+message(STATUS "tmol: CMAKE_CUDA_ARCHITECTURES = ${CMAKE_CUDA_ARCHITECTURES}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Dependencies
@@ -8,43 +44,6 @@ project(tmol LANGUAGES CXX CUDA)
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 find_package(Torch REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# CUDA architecture selection
-# ═══════════════════════════════════════════════════════════════════════════════
-# CMAKE_CUDA_ARCHITECTURES can be set via:
-#   -DCMAKE_CUDA_ARCHITECTURES="80;86;89;90"
-#   or via pyproject.toml [tool.scikit-build.cmake.define]
-# If not set, parse TORCH_CUDA_ARCH_LIST env var (PyTorch format: "7.0 8.0 9.0+PTX")
-
-if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-  if(DEFINED ENV{TORCH_CUDA_ARCH_LIST})
-    set(_ARCH_STR "$ENV{TORCH_CUDA_ARCH_LIST}")
-    # Parse PyTorch format "7.0 8.0 9.0+PTX" -> CMake format "70-real;80-real;90"
-    # "+PTX" means emit both real code AND PTX for forward compat.
-    # In CMake: bare "90" emits both real+virtual; "90-real" emits only real.
-    # So "+PTX" -> bare number (CMake default), no "+PTX" -> append "-real".
-    string(REPLACE " " ";" _ARCH_LIST "${_ARCH_STR}")
-    set(_CLEAN_ARCHS "")
-    foreach(_A ${_ARCH_LIST})
-      string(FIND "${_A}" "+PTX" _HAS_PTX)
-      string(REPLACE "+PTX" "" _A "${_A}")
-      string(REPLACE "." "" _A "${_A}")
-      if(_HAS_PTX GREATER_EQUAL 0)
-        # Emit both real code and PTX (CMake default for bare arch number)
-        list(APPEND _CLEAN_ARCHS "${_A}")
-      else()
-        # Emit only real code (no PTX)
-        list(APPEND _CLEAN_ARCHS "${_A}-real")
-      endif()
-    endforeach()
-    set(CMAKE_CUDA_ARCHITECTURES ${_CLEAN_ARCHS})
-  else()
-    set(CMAKE_CUDA_ARCHITECTURES 80 86 89 90)
-  endif()
-endif()
-
-message(STATUS "tmol: CMAKE_CUDA_ARCHITECTURES = ${CMAKE_CUDA_ARCHITECTURES}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Compiler flags — match PyTorch's ABI and set tmol defaults
