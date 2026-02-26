@@ -26,7 +26,7 @@ def test_pose_stack_from_and_to_biotite_1ubq(biotite_1ubq, torch_device):
     file = PDBFile()
     file.set_structure(biotite_atom_array)
     file.write("test_out.pdb")
-    print(biotite_atom_array)
+    # print(biotite_atom_array)
 
 
 def test_pose_stack_from_biotite_1ubq_slice(biotite_1ubq, torch_device):

@@ -1,7 +1,7 @@
 import pytest
 import os
 import torch
-import biotite
+import biotite.structure.io
 
 from . import pdb
 
@@ -148,8 +148,6 @@ def rosettafold2_sumo_pred(torch_device):
 
 @pytest.fixture()
 def biotite_1ubq():
-    import biotite.structure.io
-
     fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1ubq.pdb")
     return biotite.structure.io.load_structure(
         fname, extra_fields=["occupancy", "b_factor"]
@@ -158,8 +156,6 @@ def biotite_1ubq():
 
 @pytest.fixture()
 def biotite_1r21():
-    import biotite.structure.io
-
     fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1R21.pdb")
     return biotite.structure.io.load_structure(
         fname, extra_fields=["occupancy", "b_factor"]
@@ -168,8 +164,6 @@ def biotite_1r21():
 
 @pytest.fixture()
 def biotite_1bl8():
-    import biotite.structure.io
-
     fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1BL8.pdb")
     return biotite.structure.io.load_structure(
         fname, extra_fields=["occupancy", "b_factor"]
