@@ -175,7 +175,7 @@ jobs:
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: Build sdist
-        run: python -m build --sdist --outdir dist
+        run: python -m build --sdist --no-isolation --outdir dist
 
       - name: Log sdist
         run: ls -lh dist/
