@@ -287,6 +287,7 @@ add_library(_C MODULE
 set_target_properties(_C PROPERTIES
   PREFIX ""
   OUTPUT_NAME "_C"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/tmol"
 )
 # Python module suffix (.cpython-312-x86_64-linux-gnu.so)
 execute_process(
