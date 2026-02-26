@@ -20,15 +20,23 @@ find_package(pybind11 CONFIG REQUIRED)
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
   if(DEFINED ENV{TORCH_CUDA_ARCH_LIST})
     set(_ARCH_STR "$ENV{TORCH_CUDA_ARCH_LIST}")
-    # Replace dots: "7.0" -> "70", "9.0+PTX" -> "90+PTX" (CMake handles +PTX natively)
+    # Parse PyTorch format "7.0 8.0 9.0+PTX" -> CMake format "70-real;80-real;90"
+    # "+PTX" means emit both real code AND PTX for forward compat.
+    # In CMake: bare "90" emits both real+virtual; "90-real" emits only real.
+    # So "+PTX" -> bare number (CMake default), no "+PTX" -> append "-real".
     string(REPLACE " " ";" _ARCH_LIST "${_ARCH_STR}")
     set(_CLEAN_ARCHS "")
     foreach(_A ${_ARCH_LIST})
-      string(REPLACE "." "" _A "${_A}")
-      # CMake uses "-real" suffix instead of "+PTX" for virtual-only
-      # But CMake 3.18+ actually handles "90" as real and just works
+      string(FIND "${_A}" "+PTX" _HAS_PTX)
       string(REPLACE "+PTX" "" _A "${_A}")
-      list(APPEND _CLEAN_ARCHS "${_A}")
+      string(REPLACE "." "" _A "${_A}")
+      if(_HAS_PTX GREATER_EQUAL 0)
+        # Emit both real code and PTX (CMake default for bare arch number)
+        list(APPEND _CLEAN_ARCHS "${_A}")
+      else()
+        # Emit only real code (no PTX)
+        list(APPEND _CLEAN_ARCHS "${_A}-real")
+      endif()
     endforeach()
     set(CMAKE_CUDA_ARCHITECTURES ${_CLEAN_ARCHS})
   else()
@@ -69,6 +77,7 @@ set(TMOL_NVCC_THREADS "4" CACHE STRING "Threads per nvcc invocation")
 set(TMOL_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/tmol/extern
+  ${TORCH_INCLUDE_DIRS}
 )
 
 # NVTX includes (from pip nvidia-nvtx package or CUDA toolkit)
@@ -83,7 +92,10 @@ execute_process(
 if(_NVTX_RESULT EQUAL 0 AND EXISTS "${_NVTX_INCLUDE}")
   list(APPEND TMOL_INCLUDE_DIRS "${_NVTX_INCLUDE}")
 else()
-  list(APPEND TMOL_INCLUDE_DIRS "${CUDAToolkit_INCLUDE_DIRS}")
+  find_package(CUDAToolkit QUIET)
+  if(CUDAToolkit_FOUND)
+    list(APPEND TMOL_INCLUDE_DIRS "${CUDAToolkit_INCLUDE_DIRS}")
+  endif()
 endif()
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -367,7 +379,7 @@ if(TMOL_BUILD_TESTS)
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tmol/tests/utility/torchscript"
   )
   target_compile_definitions(test_custom_op PRIVATE TORCH_EXTENSION_NAME=_custom_op)
-  tmol_set_cuda_flags(test_custom_op)
+  tmol_set_cpp_flags(test_custom_op)
   install(TARGETS test_custom_op DESTINATION "tmol/tests/utility/torchscript")
 
 endif()

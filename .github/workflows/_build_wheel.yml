@@ -113,7 +113,6 @@ jobs:
       - name: Build wheel
         run: |
           docker exec \
-            -e TMOL_FORCE_CXX11_ABI=${{ inputs.cxx11_abi }} \
             -e MAX_JOBS=1 \
             $BUILDER bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
@@ -124,10 +123,7 @@ jobs:
             else
               CUDA_ARCHS="80;86;89;90"
             fi
-            # Force ABI if requested
-            if [ "$TMOL_FORCE_CXX11_ABI" = "TRUE" ]; then
-              python3 -c "import torch; torch._C._GLIBCXX_USE_CXX11_ABI = True"
-            fi
+            # CMake reads ABI from find_package(Torch) — no manual override needed.
             export CMAKE_PREFIX_PATH=$(python3 -c "import torch; print(torch.utils.cmake_prefix_path)")
             pip wheel . --no-build-isolation -w dist \
               -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
