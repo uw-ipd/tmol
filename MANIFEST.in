@@ -8,10 +8,10 @@ recursive-include tmol/database *.yaml
 # Include test fixture data
 recursive-include tmol/tests/data *.pdb *.pickle *.fa *.npz
 
-# Include project metadata
+# Include project metadata and build files
 include LICENSE
 include README.md
 include pyproject.toml
-include setup.py
+include CMakeLists.txt
 
 

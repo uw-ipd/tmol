@@ -6,7 +6,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from tmol._load_ext import ensure_compiled_or_jit as _ensure_compiled_or_jit
 
-# Extensions may not be built yet (e.g. during setup.py or sdist).
+# Extensions may not be built yet (e.g. during sdist creation).
 # Individual compiled.py modules will raise a clear error if needed.
 with contextlib.suppress(Exception):
     _ensure_compiled_or_jit()

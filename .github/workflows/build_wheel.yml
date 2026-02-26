@@ -17,8 +17,9 @@ on:
     branches:
       - "kdidi/precompiled_extensions"
       - "kdidi/jit_and_precompiled"
+      - "kdidi/scikit-build-core"
     paths:
-      - "setup.py"
+      - "CMakeLists.txt"
       - "pyproject.toml"
       - "tmol/**"
       - ".github/workflows/**"

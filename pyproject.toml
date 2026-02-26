@@ -91,26 +91,27 @@ repository = "https://github.com/uw-ipd/tmol"
 
 # Build settings ---------------------------------------------------------------
 [build-system]
-requires = ["setuptools>=68", "wheel", "torch>=2.5", "ninja", "psutil", "packaging"]
-build-backend = "setuptools.build_meta"
-
-[tool.uv.extra-build-dependencies]
-tmol = ["torch>=2.5"]
-
-[tool.setuptools]
-packages = { find = { include = ["tmol*"] } }
-
-[tool.setuptools.package-data]
-"tmol" = [
-    # Database YAML
-    "database/default/chemical/**/*.yaml",
-    "database/default/scoring/**/*.yaml",
-    # Test fixture data
-    "tests/data/pdb/**/*.pdb",
-    "tests/data/rosetta_baselines/**/*.pickle",
-    "tests/data/constraints/**/*.fa",
-    "tests/data/constraints/**/*.npz",
+requires = [
+    "scikit-build-core>=0.10",
+    "torch>=2.5",
+    "pybind11>=2.12",
+    "ninja",
+    "packaging",
 ]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+minimum-version = "0.10"
+build-dir = "build/{wheel_tag}"
+cmake.build-type = "Release"
+cmake.version = ">=3.18"
+wheel.packages = ["tmol"]
+wheel.install-dir = "."
+sdist.cmake = false
+
+[tool.scikit-build.cmake.define]
+CMAKE_CUDA_ARCHITECTURES = {env = "CMAKE_CUDA_ARCHITECTURES", default = "80;86;89;90"}
+TMOL_BUILD_TESTS = {env = "TMOL_BUILD_TESTS", default = "OFF"}
 
 # Test settings ----------------------------------------------------------------
 [tool.pytest.ini_options]

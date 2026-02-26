@@ -17,39 +17,36 @@ This document covers building, testing, and contributing to tmol.
 
 ```bash
 git clone https://github.com/uw-ipd/tmol.git && cd tmol
-pip install -e ".[dev]"
-
-# Build C++/CUDA extensions in-place
-python setup.py build_ext --inplace
+pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
 ```
 
-Requirements: Python 3.10+, PyTorch 2.5+, `nvcc` (CUDA toolkit), C++17 compiler.
+Requirements: Python 3.10+, PyTorch 2.5+, `nvcc` (CUDA toolkit), C++17 compiler, CMake 3.18+.
 
 ## Building Extensions
 
-tmol ships custom C++/CUDA kernels that need to be compiled. `setup.py build_ext --inplace` compiles them and places `.so` files alongside the Python source.
+tmol ships custom C++/CUDA kernels that are compiled via CMake (using scikit-build-core as the build backend). `pip install -e .` handles compilation automatically.
 
 ```bash
-# Full build (production + test extensions)
-python setup.py build_ext --inplace
+# Full build (production extensions only)
+pip install -e .
 
-# Skip test extensions (faster)
-TMOL_SKIP_TEST_EXTS=TRUE python setup.py build_ext --inplace
+# Build with test extensions
+pip install -e . -Ccmake.define.TMOL_BUILD_TESTS=ON
 
-# Target specific GPU architectures (default: "8.0 8.6 8.9 9.0 10.0+PTX")
-TORCH_CUDA_ARCH_LIST="8.0 9.0+PTX" python setup.py build_ext --inplace
+# Target specific GPU architectures (default: "80;86;89;90")
+pip install -e . -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;90"
 
 # Control parallelism
-MAX_JOBS=4 NVCC_THREADS=2 python setup.py build_ext --inplace
+MAX_JOBS=4 pip install -e . -Ccmake.define.TMOL_NVCC_THREADS=2
 ```
 
-Environment variables for `setup.py`:
+CMake build options:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `TMOL_SKIP_CUDA_BUILD` | `FALSE` | Skip CUDA extension compilation entirely |
-| `TMOL_SKIP_TEST_EXTS` | `FALSE` | Skip test-only extensions |
-| `TMOL_FORCE_BUILD` | `FALSE` | Force rebuild even if extensions exist |
+| `CMAKE_CUDA_ARCHITECTURES` | `80;86;89;90` | GPU compute capabilities to compile for |
+| `TMOL_BUILD_TESTS` | `OFF` | Build test-only C++/CUDA extensions |
+| `TMOL_NVCC_THREADS` | `4` | Threads per nvcc invocation |
 | `TMOL_FORCE_CXX11_ABI` | `FALSE` | Force C++11 ABI (for NGC container compat) |
 | `TORCH_CUDA_ARCH_LIST` | `8.0 8.6 8.9 9.0 10.0+PTX` | GPU architectures to compile for |
 | `MAX_JOBS` | auto | Max parallel compilation jobs |

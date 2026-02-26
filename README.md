@@ -100,8 +100,7 @@ pip install tmol[dev]         # includes development tools (black, flake8, pytes
 
 ```bash
 git clone https://github.com/uw-ipd/tmol.git && cd tmol
-pip install -e ".[dev]"
-python setup.py build_ext --inplace   # build C++/CUDA extensions
+pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
 ```
 
 ## Usage

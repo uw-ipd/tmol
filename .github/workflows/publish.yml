@@ -17,6 +17,7 @@ on:
   push:
     branches:
       - "kdidi/jit_and_precompiled"
+      - "kdidi/scikit-build-core"
   workflow_dispatch:
 
 jobs:
@@ -170,14 +171,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install "setuptools>=68" wheel ninja
+          pip install "scikit-build-core>=0.10" ninja "packaging>=24.2" "pybind11>=2.12" build
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: Build sdist
         env:
           TMOL_SKIP_CUDA_BUILD: "TRUE"
-          TMOL_SKIP_TEST_EXTS: "TRUE"
-        run: python setup.py sdist --dist-dir=dist
+        run: python -m build --sdist --outdir dist
 
       - name: Log sdist
         run: ls -lh dist/

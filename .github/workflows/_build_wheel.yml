@@ -107,28 +107,31 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          docker exec $BUILDER pip install --break-system-packages 'setuptools>=68' ninja 'packaging>=24.2' wheel psutil
+          docker exec $BUILDER pip install --break-system-packages \
+            'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
 
       - name: Build wheel
         run: |
           docker exec \
-            -e TMOL_FORCE_BUILD=TRUE \
             -e TMOL_FORCE_CXX11_ABI=${{ inputs.cxx11_abi }} \
-            -e TMOL_SKIP_TEST_EXTS=TRUE \
             -e MAX_JOBS=1 \
-            -e NVCC_THREADS=2 \
             $BUILDER bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
-            # Include Blackwell (sm_100) native when CUDA >= 13; otherwise PTX-only.
+            # Determine CUDA architectures based on CUDA major version.
             CUDA_MAJOR=$(python3 -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
-            # sm_70 (V100) dropped in CUDA 13+; omit entirely for cross-version compat.
-            # sm_100 (Blackwell) only available in CUDA 13+.
             if [ "$CUDA_MAJOR" -ge 13 ]; then
-              export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0 10.0+PTX"
+              CUDA_ARCHS="80;86;89;90;100"
             else
-              export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0+PTX"
+              CUDA_ARCHS="80;86;89;90"
             fi
-            python3 setup.py bdist_wheel --dist-dir=dist
+            # Force ABI if requested
+            if [ "$TMOL_FORCE_CXX11_ABI" = "TRUE" ]; then
+              python3 -c "import torch; torch._C._GLIBCXX_USE_CXX11_ABI = True"
+            fi
+            export CMAKE_PREFIX_PATH=$(python3 -c "import torch; print(torch.utils.cmake_prefix_path)")
+            pip wheel . --no-build-isolation -w dist \
+              -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
+              -Ccmake.define.TMOL_NVCC_THREADS=2
           '
 
           # Rename wheel with CUDA/torch/ABI tags (inside Docker — files are root-owned)
