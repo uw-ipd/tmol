@@ -20,3 +20,6 @@ ignore = E203, E266, E501, E711, E741, W503, B902, B009, B010
 max-line-length = 80
 max-complexity = 18
 select = B,C,E,F,W,T4,B9
+
+per-file-ignores =
+    tmol/io/pose_stack_from_atomworks.py:E201,E231,E241

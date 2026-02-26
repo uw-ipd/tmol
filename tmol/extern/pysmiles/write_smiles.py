@@ -65,16 +65,18 @@ def _write_edge_symbol(molecule, n_idx, n_jdx):
     bool
         Whether an explicit symbol is needed for this edge.
     """
-    order = molecule.edges[n_idx, n_jdx].get('order', 1)
-    aromatic_atoms = molecule.nodes[n_idx].get('element', '*').islower() and\
-                     molecule.nodes[n_jdx].get('element', '*').islower()
+    order = molecule.edges[n_idx, n_jdx].get("order", 1)
+    aromatic_atoms = (
+        molecule.nodes[n_idx].get("element", "*").islower()
+        and molecule.nodes[n_jdx].get("element", "*").islower()
+    )
     aromatic_bond = aromatic_atoms and order == 1.5
     cross_aromatic = aromatic_atoms and order == 1
     single_bond = order == 1
     return cross_aromatic or not (aromatic_bond or single_bond)
 
 
-def write_smiles(molecule, default_element='*', start=None):
+def write_smiles(molecule, default_element="*", start=None):
     """
     Creates a SMILES string describing `molecule` according to the OpenSMILES
     standard.
@@ -101,14 +103,16 @@ def write_smiles(molecule, default_element='*', start=None):
         # Start at a terminal atom, and if possible, a heteroatom.
         def keyfunc(idx):
             """Key function for finding the node at which to start."""
-            return (molecule.degree(idx),
-                    # True > False
-                    molecule.nodes[idx].get('element', default_element) == 'C',
-                    idx)
+            return (
+                molecule.degree(idx),
+                # True > False
+                molecule.nodes[idx].get("element", default_element) == "C",
+                idx,
+            )
+
         start = min(molecule.nodes, key=keyfunc)
 
-
-    order_to_symbol = {0: '.', 1: '-', 1.5: ':', 2: '=', 3: '#', 4: '$'}
+    order_to_symbol = {0: ".", 1: "-", 1.5: ":", 2: "=", 3: "#", 4: "$"}
 
     dfs_successors = nx.dfs_successors(molecule, source=start)
 
@@ -137,13 +141,13 @@ def write_smiles(molecule, default_element='*', start=None):
     branch_depth = 0
     branches = set()
     to_visit = [start]
-    smiles = ''
+    smiles = ""
 
     while to_visit:
         current = to_visit.pop()
         if current in branches:
             branch_depth += 1
-            smiles += '('
+            smiles += "("
             branches.remove(current)
 
         if current in predecessors:
@@ -153,7 +157,7 @@ def write_smiles(molecule, default_element='*', start=None):
             assert len(previous) == 1
             previous = previous[0]
             if _write_edge_symbol(molecule, previous, current):
-                order = molecule.edges[previous, current].get('order', 1)
+                order = molecule.edges[previous, current].get("order", 1)
                 smiles += order_to_symbol[order]
         smiles += format_atom(molecule, current, default_element)
         if current in atom_to_ring_idx:
@@ -170,9 +174,9 @@ def write_smiles(molecule, default_element='*', start=None):
                     new_marker = False
 
                 if _write_edge_symbol(molecule, *ring_bond) and new_marker:
-                    order = molecule.edges[ring_bond].get('order', 1)
+                    order = molecule.edges[ring_bond].get("order", 1)
                     smiles += order_to_symbol[order]
-                smiles += str(marker) if marker < 10 else '%{}'.format(marker)
+                smiles += str(marker) if marker < 10 else "%{}".format(marker)
 
         if current in dfs_successors:
             # Proceed to the next node in this branch
@@ -182,8 +186,8 @@ def write_smiles(molecule, default_element='*', start=None):
             to_visit.extend(next_nodes)
         elif branch_depth:
             # We're finished with this branch.
-            smiles += ')'
+            smiles += ")"
             branch_depth -= 1
 
-    smiles += ')' * branch_depth
+    smiles += ")" * branch_depth
     return smiles

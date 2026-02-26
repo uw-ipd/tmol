@@ -110,7 +110,7 @@ class AtomTypeParamResolver(ValidateAttrs):
         # entry to 0/false
         for field in attr.fields(AtomTypeParams):
             if field.type.dtype == torch.bool:
-                (param_records[field.name]) = (
+                param_records[field.name] = (
                     param_records[field.name].fillna(value=0).astype(bool)
                 )
 

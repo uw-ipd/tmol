@@ -36,7 +36,7 @@ def pack_rotamers(
 
     chunk_size = 16
 
-    (energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
+    energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
         build_interaction_graph(
             chunk_size,
             rotamer_set.n_rots_for_pose,

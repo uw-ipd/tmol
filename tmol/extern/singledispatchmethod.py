@@ -1,5 +1,5 @@
 """Backport of @functools.singledispatchmethod to Python 2.7-3.7.
- 
+
 Externed from https://github.com/ikalnytskyi/singledispatchmethod
 @2cf8335
 
@@ -8,7 +8,6 @@ PSF License.
 
 import functools
 import sys
-
 
 if sys.version_info[0] > 2:
     update_wrapper = functools.update_wrapper
@@ -60,6 +59,7 @@ else:
 if sys.version_info[:2] > (3, 7):
     singledispatchmethod = functools.singledispatchmethod
 else:
+
     class singledispatchmethod(object):
         """Single-dispatch generic method descriptor."""
 

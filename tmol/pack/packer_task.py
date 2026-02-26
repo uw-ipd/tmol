@@ -5,7 +5,6 @@ from tmol.pose.pose_stack import PoseStack
 from tmol.pack.rotamer.conformer_sampler import ConformerSampler
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 
-
 # Architecture is borrowed from Rosetta3:
 # PackerTask: a class holding data describing how the
 #   packer should behave. Each position in the

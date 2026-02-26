@@ -9,7 +9,6 @@ from .. import include_paths as tmol_include_paths
 import torch.utils.cpp_extension
 from torch.utils.cpp_extension import _is_cuda_file
 
-
 # Add warning filter for use of c++ (rather than g++) for extension
 # compilation. c++ is provided by g++ on our platform.
 warnings.filterwarnings(

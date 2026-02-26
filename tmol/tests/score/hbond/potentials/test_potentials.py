@@ -9,7 +9,6 @@ from tmol.utility.args import _signature
 
 from tmol.score.chemical_database import AcceptorHybridization
 
-
 _hbond_global_param_dict = dict(
     hb_sp2_range_span=1.6,
     hb_sp2_BAH180_rise=0.75,

@@ -18,7 +18,6 @@ from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
 from tmol.chemical.ideal_coords import build_coords_from_icoors
 from tmol.chemical.all_bonds import bonds_and_bond_ranges
 
-
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
 BondCount = NewType("BondCount", int)

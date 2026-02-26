@@ -3,7 +3,6 @@ import numpy
 
 from tmol.types.array import NDArray
 
-
 DEFAULT_ATOM_OCCUPANCY = 1.0
 DEFAULT_ATOM_B_FACTOR = 0.0
 

@@ -16,7 +16,6 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms_jit
 
-
 # what atoms should we copy over?
 # everything north of "first sidechain atom"?
 # let's have a map from rt x bb-type --> atom-indices on that rt for those bb

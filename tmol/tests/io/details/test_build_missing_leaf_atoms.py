@@ -327,7 +327,7 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
                 found_disulfides,
             )
 
-            (block_coords, missing_atoms, real_atoms, _, _occ, _bf) = (
+            block_coords, missing_atoms, real_atoms, _, _occ, _bf = (
                 take_block_type_atoms_from_canonical(
                     pbt,
                     block_types64,

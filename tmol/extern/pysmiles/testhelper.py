@@ -33,8 +33,9 @@ def assertEqualGraphs(graph1, graph2):  # pylint: disable=invalid-name
     """
     Asserts that `graph1` and `graph2` are equal up to isomorphism.
     """
-    out = nx.is_isomorphic(graph1, graph2,
-                           node_match=operator.eq, edge_match=operator.eq)
+    out = nx.is_isomorphic(
+        graph1, graph2, node_match=operator.eq, edge_match=operator.eq
+    )
     if out:
         return
 
@@ -73,7 +74,7 @@ def assertEqualGraphs(graph1, graph2):  # pylint: disable=invalid-name
         edge1 = graph1.edges[idx1, jdx1]
         edge2 = graph2.edges[idx2, jdx2]
         if edge1 != edge2:
-            fmt = 'Edge between {} and {} is not equal: {} is not {}'
-            raise AssertionError(fmt.format(graph1.nodes[idx1],
-                                            graph1.nodes[jdx1],
-                                            edge1, edge2))
+            fmt = "Edge between {} and {} is not equal: {} is not {}"
+            raise AssertionError(
+                fmt.format(graph1.nodes[idx1], graph1.nodes[jdx1], edge1, edge2)
+            )

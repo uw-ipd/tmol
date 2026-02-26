@@ -35,7 +35,6 @@ try:
         """Work around some type-checking things."""
         return cast(Callable[[Iterable[T]], List[T]], func)
 
-
 except ImportError:
 
     def _cast(func):
