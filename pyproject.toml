@@ -62,10 +62,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     # Linters & formatters
-    "black>=24,<25",
-    "flake8>=7,<8",
+    "black==26.1.0",
+    "flake8==7.3.0",
     "pre-commit>=4.0,<5",
-    "clang-format>=17,<19",
+    "clang-format==21.1.8",
     # Testing
     "pytest>=8.0,<9",
     "pytest-cov>=4.1,<7",
