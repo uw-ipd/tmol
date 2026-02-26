@@ -43,6 +43,18 @@ message(STATUS "tmol: CMAKE_CUDA_ARCHITECTURES = ${CMAKE_CUDA_ARCHITECTURES}")
 
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
+# Save Python include dirs NOW — Torch's internal find_package(Python) may
+# overwrite them with a minimal Interpreter-only result.
+set(_TMOL_PYTHON_INCLUDE_DIRS "${Python_INCLUDE_DIRS}")
+if(NOT _TMOL_PYTHON_INCLUDE_DIRS)
+  execute_process(
+    COMMAND ${Python_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('include'))"
+    OUTPUT_VARIABLE _TMOL_PYTHON_INCLUDE_DIRS
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+endif()
+message(STATUS "tmol: Python include dirs = ${_TMOL_PYTHON_INCLUDE_DIRS}")
+
 # Set TORCH_CUDA_ARCH_LIST env var BEFORE find_package(Torch) so that
 # Caffe2's cuda.cmake uses our architectures instead of defaulting to
 # all archs nvcc supports (which includes sm_52 that lacks double atomicAdd).
@@ -63,6 +75,17 @@ message(STATUS "tmol: Setting TORCH_CUDA_ARCH_LIST=${_TORCH_ARCH_STR} for find_p
 
 find_package(Torch REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
+
+# Caffe2's TorchConfig.cmake unconditionally appends the -gencode flags that
+# PyTorch was originally built with (e.g. sm_52 through sm_90 for NGC containers)
+# into CMAKE_CUDA_FLAGS. These are global and apply to ALL CUDA targets, conflicting
+# with our CMAKE_CUDA_ARCHITECTURES (which controls per-target gencode flags).
+# Strip them so only our CMAKE_CUDA_ARCHITECTURES controls architecture selection.
+string(REGEX REPLACE "-gencode[;= ]arch=compute_[0-9]+,code=sm_[0-9]+" "" CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
+string(REGEX REPLACE "-gencode[;= ]arch=compute_[0-9]+,code=compute_[0-9]+" "" CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
+string(REGEX REPLACE " +" " " CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
+string(STRIP "${CMAKE_CUDA_FLAGS}" CMAKE_CUDA_FLAGS)
+message(STATUS "tmol: CMAKE_CUDA_FLAGS after stripping Caffe2 gencode = ${CMAKE_CUDA_FLAGS}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Compiler flags — match PyTorch's ABI and set tmol defaults
@@ -96,7 +119,7 @@ set(TMOL_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/tmol/extern
   ${TORCH_INCLUDE_DIRS}
-  ${Python_INCLUDE_DIRS}
+  ${_TMOL_PYTHON_INCLUDE_DIRS}
 )
 
 # NVTX includes (from pip nvidia-nvtx package or CUDA toolkit)
