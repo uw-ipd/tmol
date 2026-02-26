@@ -109,7 +109,6 @@ wheel.packages = ["tmol"]
 wheel.install-dir = "."
 sdist.cmake = false
 editable.mode = "inplace"
-editable.rebuild = true
 
 [tool.scikit-build.cmake.define]
 CMAKE_CUDA_ARCHITECTURES = {env = "CMAKE_CUDA_ARCHITECTURES", default = "80;86;89;90"}
