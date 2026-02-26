@@ -6,7 +6,8 @@ from tmol.score.score_function import ScoreFunction
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
+
+# from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
 from tmol.pack.pack_rotamers import pack_rotamers
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.database import ParameterDatabase
@@ -46,7 +47,8 @@ def build_missing_sidechains_with_missing_atoms(
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()  # no design
 
-    # Iterate through the block level tasks and either disable packing if the sidechain already exists, or else make sure we dont try and load the current sidechain with missing atoms
+    # Iterate through the block level tasks and either disable packing if the sidechain already
+    # exists, or else make sure we dont try and load the current sidechain with missing atoms
     for pose_ind in range(block_has_missing_atoms.size(0)):
         for block_ind in range(block_has_missing_atoms.size(1)):
             if pose_stack.is_real_block(pose_ind, block_ind):
