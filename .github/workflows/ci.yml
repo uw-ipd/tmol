@@ -61,7 +61,7 @@ jobs:
           # resolves to matching versions and doesn't try to replace them.
           # Exclude pandas/scipy — their pinned versions may conflict with
           # the container's numpy; let uv resolve compatible versions.
-          pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==)' > /tmp/container_pins.txt
+          pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==|^clang-format==|^black==|^flake8==|^pathspec==|^click==|^mypy-extensions==)' > /tmp/container_pins.txt
           uv pip compile pyproject.toml --all-extras \
             --constraint /tmp/container_pins.txt \
             --output-file /tmp/requirements.txt
