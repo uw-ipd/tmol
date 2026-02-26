@@ -1,5 +1,3 @@
-import os
-import torch
 import biotite.structure
 from biotite.structure.io.pdb import PDBFile
 
@@ -10,7 +8,6 @@ from tmol.io.pose_stack_from_biotite import (
     pose_stack_from_biotite,
     biotite_from_pose_stack,
 )
-from tmol.io.canonical_form import CanonicalForm
 
 
 def test_canonical_form_from_biotite(biotite_1r21, torch_device):
@@ -53,8 +50,7 @@ def test_pose_stack_from_biotite_his_d(biotite_1r21, torch_device):
 
 
 def test_pose_stack_from_biotite_missing_sidechain(biotite_1bl8, torch_device):
-    starts = biotite.structure.get_residue_starts(biotite_1bl8)
-    bt = biotite_1bl8  # [starts[0] : starts[6]]
+    bt = biotite_1bl8
     pose_stack = pose_stack_from_biotite(bt, torch_device=torch_device)
 
     biotite_atom_array = biotite_from_pose_stack(pose_stack)

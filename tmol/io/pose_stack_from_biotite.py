@@ -3,10 +3,7 @@ import numpy
 import toolz
 import biotite
 
-from typing import List, Mapping
 from tmol.types.functional import validate_args
-from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io.canonical_form import CanonicalForm
@@ -51,6 +48,7 @@ def pose_stack_from_biotite(
     co = canonical_ordering_for_biotite()
     pbt = packed_block_types_for_biotite(cf.coords.device)
 
+    print("cf->pose_stack")
     # Call pose_stack_from_canonical_form with return_block_has_missing_atoms=True
     # to get the missing atoms tensor
     result = pose_stack_from_canonical_form(
@@ -66,6 +64,8 @@ def pose_stack_from_biotite(
     else:
         pose_stack = result
         block_has_missing_atoms = None
+
+    print("check and build missing")
 
     # If there are missing atoms, build the missing sidechains
     if block_has_missing_atoms is not None and torch.any(block_has_missing_atoms):
@@ -98,13 +98,12 @@ def biotite_from_pose_stack(pose_stack):
 
 # @validate_args # TODO
 def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalForm:
-    """The canonical form is intended to represent a stable, serializable intermediate format
-    for a structure so that it can be created today and then be read in years from now
-    and be used to construct a PoseStack in tmol. As residue types are integers,
-    this means that we must guarantee stability of these integer representations, but it also
-    means that you the user must build a PoseStack using the carefully constructed objects
-    returned by the canonical_ordering_for_rosettafold2 and packed_block_types_for_rosettafold2
-    functions.
+    """Convert a biottite AtomArray or AtomArrayStack to a CanonicalForm.
+    Unlike some other data sources, atom and residue types are represented
+    as strings in an AtomArray, so we do mapping a little differently.
+    If the biotite_structure is an AtomArrayStack, there are many structures
+    that share some of the same metadata, so we put each set of coords into a
+    separate pose and then replicate the metadata for each.
     """
 
     device = torch_device
@@ -129,9 +128,8 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
     # get the tmol residue indices
     biotite_residue_labels = biotite.structure.get_residues(biotite_structure)[0]
     biotite_residues = biotite.structure.get_residues(biotite_structure)[1]
-    biotite_residue_names = numpy.unique(biotite_residues)
 
-    co = canonical_ordering_for_biotite()  # biotite_residue_names)
+    co = canonical_ordering_for_biotite()
 
     tmol_restypes = [
         co.restype_io_equiv_classes.index(i_3lc) for i_3lc in biotite_residues
@@ -146,9 +144,6 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
         numpy.nan,
         dtype=torch.float32,
         device=device,
-    )
-    pose_inds = torch.zeros(
-        (len(biotite_structure.res_id),), dtype=torch.int32, device=torch_device
     )
     res_inds = biotite_res_ind_for_atom  # torch.tensor(biotite_res_ind_for_atom, device=torch_device)
     atom_inds = atom_mapping  # torch.tensor(atom_mapping, device=torch_device)
@@ -237,26 +232,9 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
     )
 
 
-def biotite_from_canonical_form(cf):
-    print(cf.res_types.unique())
-    rts = _restype_set_for_biotite(cf.res_types.unique())
-
-    for pose_ind in range(cf.coords.shape[0]):
-        for residue_ind in range(cf.coords.shape[1]):
-            for atom_ind in range(cf.coords.shape[2]):
-                coords = cf.coords[pose_ind, residue_ind, atom_ind]
-                chain_id = cf.chain_id[pose_ind, residue_ind]
-                res_type = cf.res_types[pose_ind, residue_ind]
-                res_name = res_type
-
-
 @toolz.functoolz.memoize
 def _paramdb_for_biotite() -> ParameterDatabase:
-    """Construct the paramdb representing the subset of residues that
-    are "used" in Rosettafold2: the canonical amino acids (including the
-    two histidine tautomers and the disulfid-bonded cysteine) and
-    the canonical n- and c-termini patches.
-    """
+    """For Biotite, let's just get the default param DB"""
 
     # from tmol.extern.rosettafold2.chemical import num2aa
 
@@ -266,9 +244,6 @@ def _paramdb_for_biotite() -> ParameterDatabase:
     # desired_variants_display_names = ["nterm", "cterm"]
 
     return ParameterDatabase.get_default()
-    """.create_stable_subset(
-        desired_rt_names, desired_variants_display_names
-    )"""
 
 
 @toolz.functoolz.memoize
@@ -280,12 +255,10 @@ def _restype_set_for_biotite() -> ResidueTypeSet:
 @validate_args
 @toolz.functoolz.memoize
 def canonical_ordering_for_biotite() -> CanonicalOrdering:
-    """Construct the CanonicalOrdering object that will be used for the
-    subset of residue types that are used by RoseTTAFold2; this will be
-    stable so that the entries in "coords" tensor member of the canonical
-    form dictionary will be interpretable indefinitely and thus a
-    canonical form dictionary can be serialized to disk and read again
-    after an arbitrary amount of time
+    """Construct the CanonicalOrdering object to use for Biotite.
+    This wont be used as a typical CanonicalOrdering object, since
+    we aren't mapping from int-to-int, and instead are going from
+    string-to-int.
     """
 
     paramdb = _paramdb_for_biotite()
@@ -295,12 +268,10 @@ def canonical_ordering_for_biotite() -> CanonicalOrdering:
 @validate_args
 @toolz.functoolz.memoize
 def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
-    """Construct the PackedBlockTypes (PBT) object that will be used for
-    the subset of residue types that are used by RoseTTAFold2. For efficiency
-    we use the same PBT in the creation of multiple PoseStacks. Thus
-    we memoize this function. The user will only interact with this
-    function if they are constructing PoseStacks from deserialized
-    canonical form objects. See canonical_form_from_rosettafold2 for details.
+    """Construct the PackedBlockTypes (PBT) object that will used for Biotite.
+    We'll use the defaults since anything might show up in a Biotite AtomArray.
+    Some things may show up in the AtomArrays that are not handled by this
+    PBT, but that is work for the future.
     """
 
     restype_set = _restype_set_for_biotite()
@@ -355,9 +326,6 @@ def biotite_from_canonical_form(cf: CanonicalForm):
 
     co = canonical_ordering_for_biotite()
     rts = _restype_set_for_biotite()
-
-    # for restype in co.restype_io_equiv_classes:
-    # print(restype)
 
     atoms = []
     for pose_id in range(cf.coords.size(0)):
