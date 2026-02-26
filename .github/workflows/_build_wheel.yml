@@ -118,7 +118,7 @@ jobs:
             fi
             # CMake reads ABI from find_package(Torch) — no manual override needed.
             export CMAKE_PREFIX_PATH=$(python3 -c "import torch; print(torch.utils.cmake_prefix_path)")
-            pip wheel . --no-build-isolation -w dist \
+            pip wheel . --no-build-isolation --no-deps -w dist \
               -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
               -Ccmake.define.TMOL_NVCC_THREADS=2
           '
