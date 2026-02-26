@@ -42,6 +42,25 @@ message(STATUS "tmol: CMAKE_CUDA_ARCHITECTURES = ${CMAKE_CUDA_ARCHITECTURES}")
 # ═══════════════════════════════════════════════════════════════════════════════
 
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
+
+# Set TORCH_CUDA_ARCH_LIST env var BEFORE find_package(Torch) so that
+# Caffe2's cuda.cmake uses our architectures instead of defaulting to
+# all archs nvcc supports (which includes sm_52 that lacks double atomicAdd).
+# Convert CMake format "70;80;90" back to PyTorch format "7.0 8.0 9.0".
+set(_TORCH_ARCH_STR "")
+foreach(_A ${CMAKE_CUDA_ARCHITECTURES})
+  string(REPLACE "-real" "" _A "${_A}")
+  string(LENGTH "${_A}" _ALEN)
+  if(_ALEN GREATER_EQUAL 2)
+    string(SUBSTRING "${_A}" 0 1 _MAJOR)
+    string(SUBSTRING "${_A}" 1 -1 _MINOR)
+    set(_TORCH_ARCH_STR "${_TORCH_ARCH_STR} ${_MAJOR}.${_MINOR}")
+  endif()
+endforeach()
+string(STRIP "${_TORCH_ARCH_STR}" _TORCH_ARCH_STR)
+set(ENV{TORCH_CUDA_ARCH_LIST} "${_TORCH_ARCH_STR}")
+message(STATUS "tmol: Setting TORCH_CUDA_ARCH_LIST=${_TORCH_ARCH_STR} for find_package(Torch)")
+
 find_package(Torch REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
@@ -77,6 +96,7 @@ set(TMOL_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/tmol/extern
   ${TORCH_INCLUDE_DIRS}
+  ${Python_INCLUDE_DIRS}
 )
 
 # NVTX includes (from pip nvidia-nvtx package or CUDA toolkit)
