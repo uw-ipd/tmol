@@ -29,6 +29,16 @@ def test_pose_stack_from_and_to_biotite_1ubq(biotite_1ubq, torch_device):
     # print(biotite_atom_array)
 
 
+def test_pose_stack_from_and_to_biotite_multiple_poses(biotite_1r21, torch_device):
+    pose_stack = pose_stack_from_biotite(biotite_1r21, torch_device=torch_device)
+    # print(pose_stack.coords[0,0:30])
+    biotite_atom_array = biotite_from_pose_stack(pose_stack)
+
+    file = PDBFile()
+    file.set_structure(biotite_atom_array)
+    file.write("test_out.pdb")
+
+
 def test_pose_stack_from_biotite_1ubq_slice(biotite_1ubq, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1ubq)
     bt = biotite_1ubq[0 : starts[30]]

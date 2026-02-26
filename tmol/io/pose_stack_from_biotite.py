@@ -266,7 +266,8 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
 
 @toolz.functoolz.memoize
 def _paramdb_for_biotite() -> ParameterDatabase:
-    """For Biotite, let's just get the default param DB"""
+    """For Biotite, let's just get the default param DB.
+    We shouldn't need a subset since we're mapping from strings(?)"""
 
     # from tmol.extern.rosettafold2.chemical import num2aa
 
@@ -359,17 +360,33 @@ def biotite_from_canonical_form(cf: CanonicalForm):
     co = canonical_ordering_for_biotite()
     # rts = _restype_set_for_biotite()
 
-    atoms = []
-    for pose_id in range(cf.coords.size(0)):
-        for res_id in range(cf.coords.size(1)):
+    n_poses = cf.coords.size(0)
+    n_residues = cf.coords.size(1)
+    max_atoms = cf.coords.size(2)
+
+    if n_poses > 1 and not _poses_have_identical_metadata(cf):
+        raise ValueError(
+            "Cannot convert CanonicalForm with multiple poses to biotite structure: "
+            "poses have different metadata (chain_id, res_types, res_labels, "
+            "residue_insertion_codes, or chain_labels). "
+            "Only coordinate differences are allowed for multi-pose conversion."
+        )
+
+    poses = []
+    pose_id = 0  # Use first pose as template
+
+    for pose_id in range(n_poses):
+        pose_atoms = []
+        poses.append(pose_atoms)
+        for res_id in range(n_residues):
             chain_label = cf.chain_labels[pose_id, res_id]
             res_label = cf.res_labels[pose_id, res_id]
             res_type_id = cf.res_types[pose_id, res_id].cpu()
-            res_name = co.restype_io_equiv_classes[res_type_id]
 
+            res_name = co.restype_io_equiv_classes[res_type_id]
             atom_names = co.restypes_ordered_atom_names[res_name]
 
-            for atom_id in range(cf.coords.size(2)):
+            for atom_id in range(max_atoms):
                 if atom_id >= len(atom_names):
                     continue
 
@@ -380,24 +397,73 @@ def biotite_from_canonical_form(cf: CanonicalForm):
                 if torch.isnan(coords).any():
                     continue
 
-                atoms.append(
+                pose_atoms.append(
                     struc.Atom(
                         coords,
-                        chain_id=chain_label,  # TODO: biotite has a limit of 1 character labels
+                        chain_id=chain_label,
                         res_id=res_label,
                         res_name=res_name,
                         atom_name=atom_name,
                         element=atom_element,
-                        b_factor=cf.atom_b_factor[pose_id, res_id, atom_id],
-                        occupancy=cf.atom_occupancy[pose_id, res_id, atom_id],
+                        b_factor=(
+                            cf.atom_b_factor[pose_id, res_id, atom_id]
+                            if cf.atom_b_factor is not None
+                            else None
+                        ),
+                        occupancy=(
+                            cf.atom_occupancy[pose_id, res_id, atom_id]
+                            if cf.atom_occupancy is not None
+                            else None
+                        ),
                     )
                 )
 
-                # print(
-                # coords,
-                # chain_label,
-                # "%i:%s" % (res_id, res_name),
-                # "%i:%s" % (atom_id, atom_name),
-                # )
+    if n_poses > 1:
+        return struc.stack(poses)
+    else:
+        return struc.array(poses[0])
 
-    return struc.array(atoms)
+
+def _poses_have_identical_metadata(cf: CanonicalForm) -> bool:
+    """Check if all poses in the CanonicalForm have identical metadata.
+
+    Returns True if all poses have the same:
+    - chain_id
+    - res_types
+    - res_labels
+    - residue_insertion_codes
+    - chain_labels
+
+    Only coordinates are allowed to differ between poses.
+    """
+    n_poses = cf.coords.size(0)
+
+    if n_poses <= 1:
+        return True
+
+    # Check chain_id
+    if not torch.all(cf.chain_id[0] == cf.chain_id[1:]).item():
+        return False
+
+    # Check res_types
+    if not torch.all(cf.res_types[0] == cf.res_types[1:]).item():
+        return False
+
+    # Check res_labels (numpy array comparison)
+    for pose_id in range(1, n_poses):
+        if not numpy.array_equal(cf.res_labels[0], cf.res_labels[pose_id]):
+            return False
+
+    # Check residue_insertion_codes (numpy object array comparison)
+    for pose_id in range(1, n_poses):
+        if not numpy.array_equal(
+            cf.residue_insertion_codes[0], cf.residue_insertion_codes[pose_id]
+        ):
+            return False
+
+    # Check chain_labels (numpy object array comparison)
+    for pose_id in range(1, n_poses):
+        if not numpy.array_equal(cf.chain_labels[0], cf.chain_labels[pose_id]):
+            return False
+
+    return True
