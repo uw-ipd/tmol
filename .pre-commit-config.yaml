@@ -13,13 +13,10 @@ repos:
                 tmol/extern/.* |
                 dev/.* 
             )$
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
       - id: black
-        name: black
-        description: 'Black: The uncompromising Python code formatter'
-        entry: black
-        language: system
-        require_serial: true
-        types: [python]
         exclude: >
             (?x)^(
                 tmol/extern/.* |
