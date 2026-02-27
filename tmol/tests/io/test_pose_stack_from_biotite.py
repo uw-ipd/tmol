@@ -1,6 +1,8 @@
 import biotite.structure
 from biotite.structure.io.pdb import PDBFile
 
+import pathlib
+
 
 from tmol.io.pose_stack_from_biotite import (
     biotite_from_canonical_form,
@@ -8,6 +10,35 @@ from tmol.io.pose_stack_from_biotite import (
     pose_stack_from_biotite,
     biotite_from_pose_stack,
 )
+
+
+def test_load_bulk_cif_from_biotite(torch_device):
+    dir_path = pathlib.Path("/home/jflat06/pdbs/")
+
+    for file_path in dir_path.iterdir():
+        exclude = [
+            # pathlib.PosixPath('/home/jflat06/pdbs/7k2e__1__1.A__1.C.cif'),
+            pathlib.PosixPath(
+                "/home/jflat06/pdbs/4tlm__1__1.A_1.B__1.I.cif"
+            ),  # 581 missing sidechains
+            # pathlib.PosixPath('/home/jflat06/pdbs/6h9v__1__1.A_1.B__1.C.cif'), # OXT
+            # pathlib.PosixPath('/home/jflat06/pdbs/3n0i__1__1.A_1.B_1.C__1.D.cif'), # OXT
+            # pathlib.PosixPath('/home/jflat06/pdbs/6c4c__2__1.E_1.F__1.X.cif'), # H
+            # pathlib.PosixPath('/home/jflat06/pdbs/4krm__2__1.C_1.D__1.O.cif'), # H1 H2 H3
+        ]
+        if file_path.is_file() and file_path.suffix == ".cif" and file_path in exclude:
+            print(file_path, end=" ")
+            biotite_structure = biotite.structure.io.load_structure(
+                file_path, extra_fields=["occupancy", "b_factor"]
+            )
+            print("atom_array")
+            pdb = pose_stack_from_biotite(biotite_structure, torch_device)
+            print("pose_stack")
+            try:
+                pdb = pose_stack_from_biotite(biotite_structure, torch_device)
+                print("pose_stack")
+            except:
+                print("CRASH")
 
 
 def test_canonical_form_from_biotite(biotite_1r21, torch_device):
