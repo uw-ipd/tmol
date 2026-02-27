@@ -46,7 +46,7 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
-          export CUDA_VISIBLE_DEVICES=1
+          export CUDA_VISIBLE_DEVICES=0
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           # Install packages to /ci-pip-pkgs (bind-mounted from /net/scratch).
           # No overlay needed — writes go straight to disk.
@@ -83,7 +83,7 @@ jobs:
           export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
           export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
           MAX_JOBS=12 pip install -v --no-build-isolation --no-deps --prefix /ci-pip-pkgs \
-            -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="70;80;90" \
+            -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;89;90;100" \
             -Ccmake.define.TMOL_BUILD_TESTS=ON \
             -Ccmake.define.TMOL_NVCC_THREADS=2 \
             -e .
@@ -132,9 +132,8 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          # Use V100s (GPUs 1,2, sm_70) — supported by PyTorch 2.5 (24.10 container).
-          # Skip RTX 4000 (GPU 0) which is occupied by vLLM.
-          export CUDA_VISIBLE_DEVICES=1,2
+          # Use RTX 4000 Ada (GPU 0, sm_89).
+          export CUDA_VISIBLE_DEVICES=0
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
@@ -162,7 +161,7 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export CUDA_VISIBLE_DEVICES=1,2
+          export CUDA_VISIBLE_DEVICES=0
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
@@ -195,11 +194,11 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export CUDA_VISIBLE_DEVICES=1,2
+          export CUDA_VISIBLE_DEVICES=0
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
           export TMOL_USE_JIT=1
-          export TORCH_CUDA_ARCH_LIST="7.0 8.0 9.0+PTX"
+          export TORCH_CUDA_ARCH_LIST="8.0 8.9 9.0+PTX"
 
           echo "+++ tests (CUDA JIT)"
           pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cuda.jit.junit.xml
