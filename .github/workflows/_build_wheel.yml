@@ -17,6 +17,11 @@ on:
       cxx11_abi:
         required: true
         type: string
+      python-version:
+        required: false
+        type: string
+        default: "312"
+        description: "Python version tag (e.g. 310, 312)"
       pip-torch-cuda-url:
         required: false
         type: string
@@ -38,7 +43,7 @@ jobs:
   build-wheel:
     runs-on: ${{ inputs.runs-on }}
     # NOTE: no `container:` key — we free disk space first, then run Docker manually.
-    name: Build (pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }})
+    name: Build (cp${{ inputs.python-version }}-pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }})
     env:
       CONTAINER_IMAGE: ${{ inputs.container-image }}
       BUILDER: builder-${{ github.run_id }}-${{ strategy.job-index }}
