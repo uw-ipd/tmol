@@ -352,8 +352,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -1090,8 +1089,7 @@ class LKBallPoseScoreDispatch {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>

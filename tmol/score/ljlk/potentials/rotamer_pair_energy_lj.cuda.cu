@@ -110,8 +110,7 @@ void sync_and_destroy_old_score_events(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -1055,7 +1054,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             //
             // }
           }  // for j
-        }    // for i
+        }  // for i
       } else {
         // alt_block_ind == neighb_block_ind
 
@@ -1246,8 +1245,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 alt_n_atoms2);
 
           }  // for j
-        }    // for i
-      }      // else
+        }  // for i
+      }  // else
 
       // Make sure all energy calculations are complete before we overwrite
       // the neighbor-residue data in the shared memory union
@@ -1296,8 +1295,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -1466,8 +1464,7 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>

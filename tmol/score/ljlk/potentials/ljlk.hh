@@ -65,8 +65,7 @@ struct LJLKBlockPairSharedData {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Real,
@@ -107,8 +106,7 @@ void TMOL_DEVICE_FUNC ljlk_load_block_coords_and_params_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -152,8 +150,7 @@ void TMOL_DEVICE_FUNC ljlk_load_block_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Int,
@@ -256,8 +253,7 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -299,8 +295,7 @@ void TMOL_DEVICE_FUNC ljlk_load_interres1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -352,8 +347,7 @@ void TMOL_DEVICE_FUNC ljlk_load_interres_data_from_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Int,
@@ -417,8 +411,7 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_intrares_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -458,8 +451,7 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,

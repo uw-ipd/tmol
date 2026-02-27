@@ -259,41 +259,42 @@ class BackboneTorsionPoseScoreOp
           }));
     }
 
-    return {// common: rot_coords + 12 more arguments
-            dV_d_rot_coords,
+    return {
+        // common: rot_coords + 12 more arguments
+        dV_d_rot_coords,
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            // 14 more arguments
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        // 14 more arguments
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor()};
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor()};
   }
 };
 
@@ -540,41 +541,42 @@ class BackboneTorsionRotamerScoreOp
           }));
     }
 
-    return {// common: rot_coords + 12 more arguments
-            dV_d_rot_coords,
+    return {
+        // common: rot_coords + 12 more arguments
+        dV_d_rot_coords,
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            // 14 more arguments
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        // 14 more arguments
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor()};
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor()};
   }
 };
 

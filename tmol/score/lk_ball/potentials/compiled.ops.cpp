@@ -121,45 +121,46 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
 
     auto max_n_rots_per_pose_tp =
         TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
-    ctx->save_for_backward({// common params
-                            rot_coords,
-                            rot_coord_offset,
-                            pose_ind_for_atom,
-                            first_rot_for_block,
-                            first_rot_block_type,
-                            block_ind_for_rot,
-                            pose_ind_for_rot,
-                            block_type_ind_for_rot,
-                            n_rots_for_pose,
-                            rot_offset_for_pose,
-                            n_rots_for_block,
-                            rot_offset_for_block,
-                            max_n_rots_per_pose_tp.tensor,
+    ctx->save_for_backward(
+        {// common params
+         rot_coords,
+         rot_coord_offset,
+         pose_ind_for_atom,
+         first_rot_for_block,
+         first_rot_block_type,
+         block_ind_for_rot,
+         pose_ind_for_rot,
+         block_type_ind_for_rot,
+         n_rots_for_pose,
+         rot_offset_for_pose,
+         n_rots_for_block,
+         rot_offset_for_block,
+         max_n_rots_per_pose_tp.tensor,
 
-                            pose_stack_inter_residue_connections,
-                            block_type_n_atoms,
+         pose_stack_inter_residue_connections,
+         block_type_n_atoms,
 
-                            block_type_n_interblock_bonds,
-                            block_type_atoms_forming_chemical_bonds,
-                            block_type_n_all_bonds,
-                            block_type_all_bonds,
-                            block_type_atom_all_bond_ranges,
+         block_type_n_interblock_bonds,
+         block_type_atoms_forming_chemical_bonds,
+         block_type_n_all_bonds,
+         block_type_all_bonds,
+         block_type_atom_all_bond_ranges,
 
-                            block_type_tile_n_donH,
-                            block_type_tile_n_acc,
-                            block_type_tile_donH_inds,
-                            block_type_tile_don_hvy_inds,
-                            block_type_tile_which_donH_for_hvy,
+         block_type_tile_n_donH,
+         block_type_tile_n_acc,
+         block_type_tile_donH_inds,
+         block_type_tile_don_hvy_inds,
+         block_type_tile_which_donH_for_hvy,
 
-                            block_type_tile_acc_inds,
-                            block_type_tile_hybridization,
-                            block_type_tile_acc_n_attached_H,
-                            block_type_atom_is_hydrogen,
-                            global_params,
+         block_type_tile_acc_inds,
+         block_type_tile_hybridization,
+         block_type_tile_acc_n_attached_H,
+         block_type_atom_is_hydrogen,
+         global_params,
 
-                            sp2_water_tors,
-                            sp3_water_tors,
-                            ring_water_tors});
+         sp2_water_tors,
+         sp3_water_tors,
+         ring_water_tors});
 
     return waters;
   }
@@ -556,37 +557,38 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
     auto max_n_rots_per_pose_tp =
         TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
 
-    ctx->save_for_backward({// common params
-                            rot_coords,
-                            rot_coord_offset,
-                            pose_ind_for_atom,
-                            first_rot_for_block,
-                            first_rot_block_type,
-                            block_ind_for_rot,
-                            pose_ind_for_rot,
-                            block_type_ind_for_rot,
-                            n_rots_for_pose,
-                            rot_offset_for_pose,
-                            n_rots_for_block,
-                            rot_offset_for_block,
-                            max_n_rots_per_pose_tp.tensor,
-                            pose_stack_inter_residue_connections,
+    ctx->save_for_backward(
+        {// common params
+         rot_coords,
+         rot_coord_offset,
+         pose_ind_for_atom,
+         first_rot_for_block,
+         first_rot_block_type,
+         block_ind_for_rot,
+         pose_ind_for_rot,
+         block_type_ind_for_rot,
+         n_rots_for_pose,
+         rot_offset_for_pose,
+         n_rots_for_block,
+         rot_offset_for_block,
+         max_n_rots_per_pose_tp.tensor,
+         pose_stack_inter_residue_connections,
 
-                            pose_stack_min_bond_separation,
-                            pose_stack_inter_block_bondsep,
-                            block_type_n_atoms,
-                            block_type_n_interblock_bonds,
-                            block_type_atoms_forming_chemical_bonds,
+         pose_stack_min_bond_separation,
+         pose_stack_inter_block_bondsep,
+         block_type_n_atoms,
+         block_type_n_interblock_bonds,
+         block_type_atoms_forming_chemical_bonds,
 
-                            block_type_tile_n_polar_atoms,
-                            block_type_tile_n_occluder_atoms,
-                            block_type_tile_pol_occ_inds,
-                            block_type_tile_lk_ball_params,
-                            block_type_path_distance,
+         block_type_tile_n_polar_atoms,
+         block_type_tile_n_occluder_atoms,
+         block_type_tile_pol_occ_inds,
+         block_type_tile_lk_ball_params,
+         block_type_path_distance,
 
-                            global_params,
-                            water_coords,
-                            block_neighbors});
+         global_params,
+         water_coords,
+         block_neighbors});
 
     ctx->saved_data["block_pair_scoring"] = output_block_pair_energies;
 
@@ -794,37 +796,38 @@ class LKBallRotamerScoreOp
 
     auto max_n_rots_per_pose_tp =
         TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
-    ctx->save_for_backward({// common params
-                            rot_coords,
-                            rot_coord_offset,
-                            pose_ind_for_atom,
-                            first_rot_for_block,
-                            first_rot_block_type,
-                            block_ind_for_rot,
-                            pose_ind_for_rot,
-                            block_type_ind_for_rot,
-                            n_rots_for_pose,
-                            rot_offset_for_pose,
-                            n_rots_for_block,
-                            rot_offset_for_block,
-                            max_n_rots_per_pose_tp.tensor,
-                            pose_stack_inter_residue_connections,
+    ctx->save_for_backward(
+        {// common params
+         rot_coords,
+         rot_coord_offset,
+         pose_ind_for_atom,
+         first_rot_for_block,
+         first_rot_block_type,
+         block_ind_for_rot,
+         pose_ind_for_rot,
+         block_type_ind_for_rot,
+         n_rots_for_pose,
+         rot_offset_for_pose,
+         n_rots_for_block,
+         rot_offset_for_block,
+         max_n_rots_per_pose_tp.tensor,
+         pose_stack_inter_residue_connections,
 
-                            pose_stack_min_bond_separation,
-                            pose_stack_inter_block_bondsep,
-                            block_type_n_atoms,
-                            block_type_n_interblock_bonds,
-                            block_type_atoms_forming_chemical_bonds,
+         pose_stack_min_bond_separation,
+         pose_stack_inter_block_bondsep,
+         block_type_n_atoms,
+         block_type_n_interblock_bonds,
+         block_type_atoms_forming_chemical_bonds,
 
-                            block_type_tile_n_polar_atoms,
-                            block_type_tile_n_occluder_atoms,
-                            block_type_tile_pol_occ_inds,
-                            block_type_tile_lk_ball_params,
-                            block_type_path_distance,
+         block_type_tile_n_polar_atoms,
+         block_type_tile_n_occluder_atoms,
+         block_type_tile_pol_occ_inds,
+         block_type_tile_lk_ball_params,
+         block_type_path_distance,
 
-                            global_params,
-                            water_coords,
-                            dispatch_indices});
+         global_params,
+         water_coords,
+         dispatch_indices});
 
     ctx->saved_data["block_pair_scoring"] = output_block_pair_energies;
 

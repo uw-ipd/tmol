@@ -245,37 +245,38 @@ class CartBondedPoseScoreOp
           }));
     }
 
-    return {// Common params
-            dV_d_pose_coords,
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+    return {
+        // Common params
+        dV_d_pose_coords,
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            // Cart-bonded specific parameters
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        // Cart-bonded specific parameters
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor()};
+        torch::Tensor()};
   }
 };
 
@@ -514,37 +515,38 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
           }));
     }
 
-    return {// Common params
-            dV_d_pose_coords,
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+    return {
+        // Common params
+        dV_d_pose_coords,
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            // Cart-bonded specific parameters
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        // Cart-bonded specific parameters
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor()};
+        torch::Tensor()};
   }
 };
 
