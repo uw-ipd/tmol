@@ -120,7 +120,7 @@ jobs:
             export CMAKE_PREFIX_PATH=$(python3 -c "import torch; print(torch.utils.cmake_prefix_path)")
             pip wheel . --no-build-isolation --no-deps -w dist \
               -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
-              -Ccmake.define.TMOL_NVCC_THREADS=2
+              -Ccmake.define.TMOL_NVCC_THREADS=1
           '
 
           # Rename wheel with CUDA/torch/ABI tags (inside Docker — files are root-owned)
