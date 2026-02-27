@@ -46,7 +46,10 @@ find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 # Save values NOW — find_package(Torch) / Caffe2 will overwrite both:
 #  - Python_INCLUDE_DIRS: Caffe2 calls find_package(Python Interpreter) which may clear it
 #  - CMAKE_CUDA_ARCHITECTURES: Caffe2 sets it to OFF to manage gencode flags itself
-set(_TMOL_CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}")
+# Use the CACHE value (what we or scikit-build-core set), not the possibly
+# modified current value (project() or CMake may have added extra archs).
+get_property(_TMOL_CUDA_ARCHITECTURES CACHE CMAKE_CUDA_ARCHITECTURES PROPERTY VALUE)
+message(STATUS "tmol: _TMOL_CUDA_ARCHITECTURES (from cache) = ${_TMOL_CUDA_ARCHITECTURES}")
 set(_TMOL_PYTHON_INCLUDE_DIRS "${Python_INCLUDE_DIRS}")
 if(NOT _TMOL_PYTHON_INCLUDE_DIRS)
   execute_process(
