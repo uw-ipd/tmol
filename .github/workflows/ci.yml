@@ -1,9 +1,8 @@
-# CI pipeline — runner on fela (as bench), GPU steps dispatched via Slurm srun.
+# CI pipeline — runner on fela (as bench), GPU work dispatched via single Slurm srun.
 #
-# The self-hosted runner runs as user bench on fela. Steps that need a GPU
-# use `srun` to request a Slurm allocation, then run inside the Apptainer
-# container on the allocated GPU node. Non-GPU steps run directly on fela
-# inside the container (no srun needed).
+# The self-hosted runner runs as user bench on fela. All GPU work (build,
+# CUDA tests, benchmarks, JIT tests) runs inside a single srun allocation
+# to avoid re-queuing overhead. Lint runs directly on fela (no GPU needed).
 #
 # All state (pip packages, build artifacts, checkout) lives on /net/scratch
 # and persists across steps automatically.
@@ -23,10 +22,6 @@ concurrency:
 env:
   SIF: /net/software/containers/versions/modelhub/pytorch_24.10-py3.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
-  # Use Ampere (a6000, sm_86) — the NGC 24.10 container (CUDA 12.6, PyTorch 2.5)
-  # does NOT support Blackwell (b4000/b6000, sm_120). Blackwell requires CUDA 12.8+
-  # and PyTorch 2.7+. Switch to b4000 once the SIF is upgraded.
-  SRUN_GPU: srun --gres=gpu:a6000:1 -p gpu --export=ALL
 
 jobs:
   ci:
@@ -46,48 +41,6 @@ jobs:
           git ls-files -- '*.cpp' '*.cu' '*.cuh' '*.h' '*.hh' '*.cc' | \
             xargs -P8 -I{} bash -c 'ts=$(git log -1 --format="%ct" -- "$1") && touch -d "@$ts" "$1"' _ {}
 
-      - name: Setup
-        run: |
-          mkdir -p $PIP_PKGS
-          $SRUN_GPU -t 02:00:00 --cpus-per-task=12 \
-            apptainer exec --nv \
-              --bind /net/scratch:/net/scratch \
-              --bind $PIP_PKGS:/ci-pip-pkgs \
-              --pwd $GITHUB_WORKSPACE \
-              $SIF bash << 'SETUP'
-          set -ex
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export PYTHONUSERBASE=/ci-pip-pkgs
-          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
-
-          command -v uv >/dev/null 2>&1 || pip install --user uv
-
-          pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==|^clang-format==|^black==|^flake8==|^pathspec==|^click==|^mypy-extensions==)' > /tmp/container_pins.txt
-          uv pip compile pyproject.toml --all-extras \
-            --constraint /tmp/container_pins.txt \
-            --output-file /tmp/requirements.txt
-
-          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" \
-            /tmp/requirements.txt > /tmp/to_install.txt
-
-          uv pip install --prefix /ci-pip-pkgs --python /usr/bin/python3 --break-system-packages \
-            -r /tmp/to_install.txt 'packaging>=24.2' 'scikit-build-core>=0.10'
-
-          rm -rf build/
-
-          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
-          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
-
-          GPU_ARCH=$(python3 -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}{c[1]}')")
-          echo "Building for GPU architecture: sm_${GPU_ARCH}"
-          MAX_JOBS=12 pip install -v --no-build-isolation --no-deps --prefix /ci-pip-pkgs \
-            -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${GPU_ARCH}" \
-            -Ccmake.define.TMOL_BUILD_TESTS=ON \
-            -Ccmake.define.TMOL_NVCC_THREADS=2 \
-            -e .
-          SETUP
-
       - name: Lint
         continue-on-error: true
         run: |
@@ -105,96 +58,108 @@ jobs:
           flake8 || echo "::warning::flake8 found issues"
           LINT
 
-      - name: Test CPU
-        continue-on-error: true
+      # All GPU work in a single srun allocation: setup, build, tests, benchmarks.
+      # This avoids re-queuing for each step and keeps the environment consistent.
+      # Use Ampere (a6000, sm_86) — the NGC 24.10 container (CUDA 12.6, PyTorch 2.5)
+      # does NOT support Blackwell (b4000/b6000, sm_120). Blackwell needs CUDA 12.8+
+      # and PyTorch 2.7+. Switch to a6000 -> b4000 once the SIF is upgraded.
+      - name: Build and test (GPU)
         run: |
-          apptainer exec \
-            --bind /net/scratch:/net/scratch \
-            --bind $PIP_PKGS:/ci-pip-pkgs \
-            --pwd $GITHUB_WORKSPACE \
-            $SIF bash << 'CPUTEST'
-          set -ex
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
-
-          echo "--- environment"
-          python --version
-          python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
-
-          echo "+++ tests (CPU only)"
-          CUDA_VISIBLE_DEVICES="" pytest -s -v --durations=25 --cov=./tmol \
-            --junitxml=testing.cpu.junit.xml -k "not cuda"
-          CPUTEST
-
-      - name: Upload CPU test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-cpu
-          path: testing.cpu.junit.xml
-
-      - name: Test CUDA
-        continue-on-error: true
-        run: |
-          $SRUN_GPU -t 01:00:00 \
+          mkdir -p $PIP_PKGS
+          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
+            -t 06:00:00 --cpus-per-task=16 --mem=128G \
             apptainer exec --nv \
               --bind /net/scratch:/net/scratch \
               --bind $PIP_PKGS:/ci-pip-pkgs \
               --pwd $GITHUB_WORKSPACE \
-              $SIF bash << 'CUDATEST'
+              $SIF bash << 'GPU_WORK'
           set -ex
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
-          echo "--- environment"
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+          export PYTHONUSERBASE=/ci-pip-pkgs
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
+
+          # ── Setup ──────────────────────────────────────────────────────
+          command -v uv >/dev/null 2>&1 || pip install --user uv
+
+          pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==|^clang-format==|^black==|^flake8==|^pathspec==|^click==|^mypy-extensions==)' > /tmp/container_pins.txt
+          uv pip compile pyproject.toml --all-extras \
+            --constraint /tmp/container_pins.txt \
+            --output-file /tmp/requirements.txt
+
+          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" \
+            /tmp/requirements.txt > /tmp/to_install.txt
+
+          uv pip install --prefix /ci-pip-pkgs --python /usr/bin/python3 --break-system-packages \
+            -r /tmp/to_install.txt 'packaging>=24.2' 'scikit-build-core>=0.10' 'numpy<2'
+
+          # ── Build ──────────────────────────────────────────────────────
+          rm -rf build/
+
+          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
+          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
+
+          GPU_ARCH=$(python3 -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}{c[1]}')")
+          echo "=== Building for GPU architecture: sm_${GPU_ARCH} ==="
+          MAX_JOBS=12 pip install -v --no-build-isolation --no-deps --prefix /ci-pip-pkgs \
+            -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${GPU_ARCH}" \
+            -Ccmake.define.TMOL_BUILD_TESTS=ON \
+            -Ccmake.define.TMOL_NVCC_THREADS=2 \
+            -e .
+
+          # ── Environment info ───────────────────────────────────────────
+          echo "=== environment ==="
           python --version
           python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPUs: {torch.cuda.device_count()}')"
-          echo "--- nvidia-smi"
           nvidia-smi || true
 
-          echo "+++ tests (CUDA only)"
+          # ── Test CPU ───────────────────────────────────────────────────
+          echo "=== tests (CPU only) ==="
+          CUDA_VISIBLE_DEVICES="" pytest -s -v --durations=25 --cov=./tmol \
+            --junitxml=testing.cpu.junit.xml -k "not cuda" || true
+
+          # ── Test CUDA ──────────────────────────────────────────────────
+          echo "=== tests (CUDA) ==="
           pytest -s -v --durations=25 --cov=./tmol \
-            --junitxml=testing.cuda.junit.xml -k "cuda"
-          CUDATEST
+            --junitxml=testing.cuda.junit.xml -k "cuda" || true
 
-      - name: Upload CUDA test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-cuda
-          path: testing.cuda.junit.xml
-
-      - name: Benchmark
-        continue-on-error: true
-        run: |
-          $SRUN_GPU -t 00:30:00 \
-            apptainer exec --nv \
-              --bind /net/scratch:/net/scratch \
-              --bind $PIP_PKGS:/ci-pip-pkgs \
-              --pwd $GITHUB_WORKSPACE \
-              $SIF bash << 'BENCH'
-          set -ex
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
-
-          BENCHMARK_DIR=benchmark/${{ github.repository }}/${{ github.ref_name }}
-          BENCHMARK_RESULT=${BENCHMARK_DIR}/${{ github.run_number }}.json
+          # ── Benchmark ──────────────────────────────────────────────────
+          echo "=== benchmarks ==="
+          BENCHMARK_DIR=benchmark/$GITHUB_REPOSITORY/$GITHUB_REF_NAME
+          BENCHMARK_RESULT=${BENCHMARK_DIR}/${GITHUB_RUN_NUMBER}.json
           mkdir -p $BENCHMARK_DIR
 
-          echo "--- Benchmark Run"
           pytest --benchmark-enable --benchmark-only \
             --benchmark-name=short --benchmark-sort=fullname \
             --benchmark-columns=ops,mean,iqr \
             --benchmark-json=${BENCHMARK_RESULT} \
-            --benchmark-max-time=.1
+            --benchmark-max-time=.1 || true
 
-          echo "+++ Benchmark Summary"
           pytest-benchmark compare --name=short --sort=fullname \
-            --columns=ops,mean,iqr $(find benchmark -name '*.json')
-          BENCH
+            --columns=ops,mean,iqr $(find benchmark -name '*.json') || true
+
+          # ── Test CUDA (JIT) ────────────────────────────────────────────
+          echo "=== tests (CUDA JIT) ==="
+          export TMOL_USE_JIT=1
+          export TORCH_CUDA_ARCH_LIST=$(python3 -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')")
+          export TORCH_EXTENSIONS_DIR=/ci-pip-pkgs/torch_extensions
+          echo "JIT compiling for TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}"
+
+          pytest -s -v --durations=25 --cov=./tmol \
+            --junitxml=testing.cuda.jit.junit.xml -k "cuda" || true
+
+          GPU_WORK
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            testing.cpu.junit.xml
+            testing.cuda.junit.xml
+            testing.cuda.jit.junit.xml
 
       - name: Upload benchmark results
         if: always()
@@ -202,39 +167,3 @@ jobs:
         with:
           name: benchmark-results
           path: benchmark/**/*
-
-      - name: Test CUDA (JIT)
-        continue-on-error: true
-        run: |
-          $SRUN_GPU -t 02:00:00 \
-            apptainer exec --nv \
-              --bind /net/scratch:/net/scratch \
-              --bind $PIP_PKGS:/ci-pip-pkgs \
-              --pwd $GITHUB_WORKSPACE \
-              $SIF bash << 'JITTEST'
-          set -ex
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
-          export TMOL_USE_JIT=1
-
-          GPU_ARCH=$(python3 -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')")
-          export TORCH_CUDA_ARCH_LIST="$GPU_ARCH"
-          echo "JIT compiling for TORCH_CUDA_ARCH_LIST=${GPU_ARCH}"
-
-          # Persist JIT-compiled extensions on NFS so ninja can skip unchanged
-          # files across CI runs. Without this, git checkout timestamps cause
-          # a full recompile every time (~2h for 14 CUDA extension modules).
-          export TORCH_EXTENSIONS_DIR=/ci-pip-pkgs/torch_extensions
-
-          echo "+++ tests (CUDA JIT)"
-          pytest -s -v --durations=25 --cov=./tmol \
-            --junitxml=testing.cuda.jit.junit.xml -k "cuda"
-          JITTEST
-
-      - name: Upload JIT test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-cuda-jit
-          path: testing.cuda.jit.junit.xml
