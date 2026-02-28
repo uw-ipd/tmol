@@ -83,16 +83,19 @@ jobs:
           # ── Setup ──────────────────────────────────────────────────────
           command -v uv >/dev/null 2>&1 || pip install --user uv
 
-          pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==|^clang-format==|^black==|^flake8==|^pathspec==|^click==|^mypy-extensions==)' > /tmp/container_pins.txt
+          TMPDIR=$GITHUB_WORKSPACE/.ci-tmp
+          mkdir -p $TMPDIR
+
+          pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==|^clang-format==|^black==|^flake8==|^pathspec==|^click==|^mypy-extensions==)' > $TMPDIR/container_pins.txt
           uv pip compile pyproject.toml --all-extras \
-            --constraint /tmp/container_pins.txt \
-            --output-file /tmp/requirements.txt
+            --constraint $TMPDIR/container_pins.txt \
+            --output-file $TMPDIR/requirements.txt
 
           grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" \
-            /tmp/requirements.txt > /tmp/to_install.txt
+            $TMPDIR/requirements.txt > $TMPDIR/to_install.txt
 
           uv pip install --prefix /ci-pip-pkgs --python /usr/bin/python3 --break-system-packages \
-            -r /tmp/to_install.txt 'packaging>=24.2' 'scikit-build-core>=0.10' 'numpy<2'
+            -r $TMPDIR/to_install.txt 'packaging>=24.2' 'scikit-build-core>=0.10' 'numpy<2'
 
           # ── Build ──────────────────────────────────────────────────────
           rm -rf build/
