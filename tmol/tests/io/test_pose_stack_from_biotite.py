@@ -1,7 +1,12 @@
 import biotite.structure
 from biotite.structure.io.pdb import PDBFile
+from biotite.structure.io.pdbx import CIFFile, set_structure
+
+import pandas as pd
+import numpy
 
 import pathlib
+import torch
 
 
 from tmol.io.pose_stack_from_biotite import (
@@ -12,33 +17,76 @@ from tmol.io.pose_stack_from_biotite import (
 )
 
 
-def test_load_bulk_cif_from_biotite(torch_device):
-    dir_path = pathlib.Path("/home/jflat06/pdbs/")
+def test_load_save_bulk_cif_from_biotite(torch_device):
+    dir_path = pathlib.Path("/home/jflat06/pdbs/in")
+    out_path = pathlib.Path("/home/jflat06/pdbs/out")
+    failures_file = pathlib.Path("/home/jflat06/pdbs/out/failures.txt")
+    if torch_device != torch.device("cpu"):
+        return
 
+    from tmol import beta2016_score_function
+
+    sfxn = beta2016_score_function(torch_device)
+
+    # print([str(a).split('.')[1] for a in sfxn.all_score_types()])
+
+    score_data = []
+    failures = []
+    i = 0
     for file_path in dir_path.iterdir():
         exclude = [
-            # pathlib.PosixPath('/home/jflat06/pdbs/7k2e__1__1.A__1.C.cif'),
-            pathlib.PosixPath(
-                "/home/jflat06/pdbs/4tlm__1__1.A_1.B__1.I.cif"
-            ),  # 581 missing sidechains
-            # pathlib.PosixPath('/home/jflat06/pdbs/6h9v__1__1.A_1.B__1.C.cif'), # OXT
-            # pathlib.PosixPath('/home/jflat06/pdbs/3n0i__1__1.A_1.B_1.C__1.D.cif'), # OXT
-            # pathlib.PosixPath('/home/jflat06/pdbs/6c4c__2__1.E_1.F__1.X.cif'), # H
-            # pathlib.PosixPath('/home/jflat06/pdbs/4krm__2__1.C_1.D__1.O.cif'), # H1 H2 H3
+            # pathlib.PosixPath('/home/jflat06/pdbs/in/7k2e__1__1.A__1.C.cif'),
+            # pathlib.PosixPath(
+            # "/home/jflat06/pdbs/in/4tlm__1__1.A_1.B__1.I.cif"
+            # ),  # 581 missing sidechains
+            # pathlib.PosixPath('/home/jflat06/pdbs/in/6h9v__1__1.A_1.B__1.C.cif'), # OXT
+            # pathlib.PosixPath('/home/jflat06/pdbs/in/3n0i__1__1.A_1.B_1.C__1.D.cif'), # OXT
+            # pathlib.PosixPath('/home/jflat06/pdbs/in/6c4c__2__1.E_1.F__1.X.cif'), # H
+            # pathlib.PosixPath('/home/jflat06/pdbs/in/4krm__2__1.C_1.D__1.O.cif'), # H1 H2 H3
         ]
-        if file_path.is_file() and file_path.suffix == ".cif" and file_path in exclude:
+        # i+=1
+        # if i > 5:
+        # break
+        if (
+            file_path.is_file()
+            and file_path.suffix == ".cif"
+            and file_path not in exclude
+        ):
             print(file_path, end=" ")
             biotite_structure = biotite.structure.io.load_structure(
                 file_path, extra_fields=["occupancy", "b_factor"]
             )
-            print("atom_array")
-            pdb = pose_stack_from_biotite(biotite_structure, torch_device)
-            print("pose_stack")
             try:
-                pdb = pose_stack_from_biotite(biotite_structure, torch_device)
-                print("pose_stack")
-            except:
+                pose_stack = pose_stack_from_biotite(biotite_structure, torch_device)
+                scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
+                scores = (
+                    scorer.unweighted_scores(pose_stack.coords)
+                    .squeeze(-1)
+                    .detach()
+                    .numpy()
+                )
+                score_data += [numpy.concat([[file_path.name], scores])]
+
+                print("succesful pose_stack")
+                bio = biotite_from_pose_stack(pose_stack)
+                file = CIFFile()
+                set_structure(file, bio)
+                file.write(out_path / pathlib.PosixPath(file_path.name))
+            except Exception as e:
+                print(e)
                 print("CRASH")
+                failures += [(file_path.name, e)]
+                print(failures)
+
+    df = pd.DataFrame(numpy.stack(score_data))
+    df.columns = ["filename"] + [str(a).split(".")[1] for a in sfxn.all_score_types()]
+    with open("scores.html", "w") as f:
+        f.write(df.style.to_html())
+
+    with open(failures_file, "w") as fail_file:
+        for failure in failures:
+            fail_file.write(failure[0])
+            fail_file.write(str(failure[1]))
 
 
 def test_canonical_form_from_biotite(biotite_1r21, torch_device):
@@ -47,6 +95,10 @@ def test_canonical_form_from_biotite(biotite_1r21, torch_device):
 
 def test_pose_stack_from_biotite_1ubq(biotite_1ubq, torch_device):
     pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+
+
+def test_pose_stack_from_biotite_4tlm_cif(biotite_4tlm, torch_device):
+    pose_stack = pose_stack_from_biotite(biotite_4tlm, torch_device=torch_device)
 
 
 def test_pose_stack_from_and_to_biotite_1ubq(biotite_1ubq, torch_device):
