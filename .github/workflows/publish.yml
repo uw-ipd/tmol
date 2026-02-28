@@ -15,9 +15,7 @@ name: Publish to TestPyPI
 
 on:
   push:
-    branches:
-      - "kdidi/jit_and_precompiled"
-      - "kdidi/scikit-build-core"
+    branches: [main, "kdidi/**"]
   workflow_dispatch:
 
 jobs:

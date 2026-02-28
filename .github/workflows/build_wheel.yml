@@ -14,10 +14,7 @@ name: Build wheels (CI)
 
 on:
   push:
-    branches:
-      - "kdidi/precompiled_extensions"
-      - "kdidi/jit_and_precompiled"
-      - "kdidi/scikit-build-core"
+    branches: [main, "kdidi/**"]
     paths:
       - "CMakeLists.txt"
       - "pyproject.toml"
