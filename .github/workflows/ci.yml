@@ -1,9 +1,12 @@
-# CI pipeline — runs inside Apptainer (NGC PyTorch) on a self-hosted GPU runner.
+# CI pipeline — runner on fela (as bench), GPU steps dispatched via Slurm srun.
 #
-# The self-hosted runner runs bare metal on fela; each step executes inside
-# the Apptainer SIF image via `apptainer exec --nv` for GPU access.
-# An apptainer instance with --writable-tmpfs keeps pip installs and built
-# extensions available across all steps within the job.
+# The self-hosted runner runs as user bench on fela. Steps that need a GPU
+# use `srun` to request a Slurm allocation, then run inside the Apptainer
+# container on the allocated GPU node. Non-GPU steps run directly on fela
+# inside the container (no srun needed).
+#
+# All state (pip packages, build artifacts, checkout) lives on /net/scratch
+# and persists across steps automatically.
 
 name: CI
 
@@ -18,81 +21,81 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Use NGC 24.10 (PyTorch 2.5, CUDA 12.4) — last version with V100 (sm_70) support.
-  # NGC 25.06+ dropped V100 (minimum capability 7.5).
   SIF: /net/software/containers/versions/modelhub/pytorch_24.10-py3.sif
-  INSTANCE_NAME: ci-${{ github.run_id }}
+  PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
+  # Use Ampere (a6000, sm_86) — the NGC 24.10 container (CUDA 12.6, PyTorch 2.5)
+  # does NOT support Blackwell (b4000/b6000, sm_120). Blackwell requires CUDA 12.8+
+  # and PyTorch 2.7+. Switch to b4000 once the SIF is upgraded.
+  SRUN_GPU: srun --gres=gpu:a6000:1 -p gpu --export=ALL
 
 jobs:
   ci:
     runs-on: [self-hosted, gpu]
+    timeout-minutes: 720
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
           submodules: recursive
 
-      - name: Start Apptainer instance
+      - name: Restore source timestamps
         run: |
-          # Persistent pip cache on /net/scratch — no overlay or tmpfs needed.
-          mkdir -p /net/scratch/kdidi/ci-pip-pkgs
-          # GPU selection is done inside each step's heredoc (export CUDA_VISIBLE_DEVICES=...)
-          # because --env on apptainer doesn't reliably propagate.
-          apptainer instance start --nv \
-            --bind /net/scratch/kdidi/ci-pip-pkgs:/ci-pip-pkgs \
-            $SIF $INSTANCE_NAME
+          # Restore git commit timestamps on C++/CUDA sources so ninja doesn't
+          # rebuild unchanged files. Without this, checkout sets all mtimes to
+          # "now", invalidating the JIT extension cache every run (~2h rebuild).
+          git ls-files -- '*.cpp' '*.cu' '*.cuh' '*.h' '*.hh' '*.cc' | \
+            xargs -P8 -I{} bash -c 'ts=$(git log -1 --format="%ct" -- "$1") && touch -d "@$ts" "$1"' _ {}
 
       - name: Setup
         run: |
-          apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
+          mkdir -p $PIP_PKGS
+          $SRUN_GPU -t 02:00:00 --cpus-per-task=12 \
+            apptainer exec --nv \
+              --bind /net/scratch:/net/scratch \
+              --bind $PIP_PKGS:/ci-pip-pkgs \
+              --pwd $GITHUB_WORKSPACE \
+              $SIF bash << 'SETUP'
           set -ex
-          export CUDA_VISIBLE_DEVICES=0
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          # Install packages to /ci-pip-pkgs (bind-mounted from /net/scratch).
-          # No overlay needed — writes go straight to disk.
           export PYTHONUSERBASE=/ci-pip-pkgs
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
-          # Install uv if not present (persists across runs)
           command -v uv >/dev/null 2>&1 || pip install --user uv
 
-          # Use the container's installed packages as constraints so uv
-          # resolves to matching versions and doesn't try to replace them.
-          # Exclude pandas/scipy — their pinned versions may conflict with
-          # the container's numpy; let uv resolve compatible versions.
           pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==|^clang-format==|^black==|^flake8==|^pathspec==|^click==|^mypy-extensions==)' > /tmp/container_pins.txt
           uv pip compile pyproject.toml --all-extras \
             --constraint /tmp/container_pins.txt \
             --output-file /tmp/requirements.txt
 
-          # Filter out packages provided by the NGC base image
           grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" \
             /tmp/requirements.txt > /tmp/to_install.txt
 
-          # Install missing deps to the bind-mounted directory.
-          # Use --prefix (not --target) so bin/ scripts are created for CLI tools.
           uv pip install --prefix /ci-pip-pkgs --python /usr/bin/python3 --break-system-packages \
             -r /tmp/to_install.txt 'packaging>=24.2' 'scikit-build-core>=0.10'
 
-          # Clean stale build artifacts from previous (potentially failed) builds
           rm -rf build/
 
-          # Build C++/CUDA extensions AOT using scikit-build-core + CMake
-          # fela: 56 cores / 251GB RAM, 23 extension modules, 3 GPU arch targets.
           export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
           export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
+
+          GPU_ARCH=$(python3 -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}{c[1]}')")
+          echo "Building for GPU architecture: sm_${GPU_ARCH}"
           MAX_JOBS=12 pip install -v --no-build-isolation --no-deps --prefix /ci-pip-pkgs \
-            -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;89;90" \
+            -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${GPU_ARCH}" \
             -Ccmake.define.TMOL_BUILD_TESTS=ON \
             -Ccmake.define.TMOL_NVCC_THREADS=2 \
             -e .
-          EOF
+          SETUP
 
       - name: Lint
         continue-on-error: true
         run: |
-          apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
+          apptainer exec \
+            --bind /net/scratch:/net/scratch \
+            --bind $PIP_PKGS:/ci-pip-pkgs \
+            --pwd $GITHUB_WORKSPACE \
+            $SIF bash << 'LINT'
           set -ex
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
@@ -100,12 +103,16 @@ jobs:
           pre-commit install
           pre-commit run --all-files --show-diff-on-failure || echo "::warning::pre-commit found issues"
           flake8 || echo "::warning::flake8 found issues"
-          EOF
+          LINT
 
       - name: Test CPU
         continue-on-error: true
         run: |
-          apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
+          apptainer exec \
+            --bind /net/scratch:/net/scratch \
+            --bind $PIP_PKGS:/ci-pip-pkgs \
+            --pwd $GITHUB_WORKSPACE \
+            $SIF bash << 'CPUTEST'
           set -ex
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
@@ -116,8 +123,9 @@ jobs:
           python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
 
           echo "+++ tests (CPU only)"
-          CUDA_VISIBLE_DEVICES="" pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda"
-          EOF
+          CUDA_VISIBLE_DEVICES="" pytest -s -v --durations=25 --cov=./tmol \
+            --junitxml=testing.cpu.junit.xml -k "not cuda"
+          CPUTEST
 
       - name: Upload CPU test results
         if: always()
@@ -129,24 +137,27 @@ jobs:
       - name: Test CUDA
         continue-on-error: true
         run: |
-          apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
+          $SRUN_GPU -t 01:00:00 \
+            apptainer exec --nv \
+              --bind /net/scratch:/net/scratch \
+              --bind $PIP_PKGS:/ci-pip-pkgs \
+              --pwd $GITHUB_WORKSPACE \
+              $SIF bash << 'CUDATEST'
           set -ex
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          # Use RTX 4000 Ada (GPU 0, sm_89).
-          export CUDA_VISIBLE_DEVICES=0
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
           echo "--- environment"
           python --version
           python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPUs: {torch.cuda.device_count()}')"
-
           echo "--- nvidia-smi"
           nvidia-smi || true
 
           echo "+++ tests (CUDA only)"
-          pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cuda.junit.xml -k "cuda"
-          EOF
+          pytest -s -v --durations=25 --cov=./tmol \
+            --junitxml=testing.cuda.junit.xml -k "cuda"
+          CUDATEST
 
       - name: Upload CUDA test results
         if: always()
@@ -158,10 +169,14 @@ jobs:
       - name: Benchmark
         continue-on-error: true
         run: |
-          apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
+          $SRUN_GPU -t 00:30:00 \
+            apptainer exec --nv \
+              --bind /net/scratch:/net/scratch \
+              --bind $PIP_PKGS:/ci-pip-pkgs \
+              --pwd $GITHUB_WORKSPACE \
+              $SIF bash << 'BENCH'
           set -ex
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export CUDA_VISIBLE_DEVICES=0
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
@@ -179,7 +194,7 @@ jobs:
           echo "+++ Benchmark Summary"
           pytest-benchmark compare --name=short --sort=fullname \
             --columns=ops,mean,iqr $(find benchmark -name '*.json')
-          EOF
+          BENCH
 
       - name: Upload benchmark results
         if: always()
@@ -191,18 +206,31 @@ jobs:
       - name: Test CUDA (JIT)
         continue-on-error: true
         run: |
-          apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
+          $SRUN_GPU -t 02:00:00 \
+            apptainer exec --nv \
+              --bind /net/scratch:/net/scratch \
+              --bind $PIP_PKGS:/ci-pip-pkgs \
+              --pwd $GITHUB_WORKSPACE \
+              $SIF bash << 'JITTEST'
           set -ex
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export CUDA_VISIBLE_DEVICES=0
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
           export TMOL_USE_JIT=1
-          export TORCH_CUDA_ARCH_LIST="8.9"
+
+          GPU_ARCH=$(python3 -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')")
+          export TORCH_CUDA_ARCH_LIST="$GPU_ARCH"
+          echo "JIT compiling for TORCH_CUDA_ARCH_LIST=${GPU_ARCH}"
+
+          # Persist JIT-compiled extensions on NFS so ninja can skip unchanged
+          # files across CI runs. Without this, git checkout timestamps cause
+          # a full recompile every time (~2h for 14 CUDA extension modules).
+          export TORCH_EXTENSIONS_DIR=/ci-pip-pkgs/torch_extensions
 
           echo "+++ tests (CUDA JIT)"
-          pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cuda.jit.junit.xml -k "cuda"
-          EOF
+          pytest -s -v --durations=25 --cov=./tmol \
+            --junitxml=testing.cuda.jit.junit.xml -k "cuda"
+          JITTEST
 
       - name: Upload JIT test results
         if: always()
@@ -210,9 +238,3 @@ jobs:
         with:
           name: test-results-cuda-jit
           path: testing.cuda.jit.junit.xml
-
-      - name: Stop Apptainer instance
-        if: always()
-        run: apptainer instance stop $INSTANCE_NAME || true
-
-
