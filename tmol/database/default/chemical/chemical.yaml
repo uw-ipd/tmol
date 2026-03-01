@@ -9,6 +9,8 @@ element_types:
   - {name: S, atomic_number: 16}
   - {name: Cl, atomic_number: 17}
   - {name: K, atomic_number: 19}
+  - {name: Br, atomic_number: 35}
+  - {name: I, atomic_number: 53}
   - {name: Vr, atomic_number: 0}
 
 atom_types:
@@ -62,6 +64,70 @@ atom_types:
   - { name: HNbb, element: H, is_polarh : true }
   - { name: Hwat, element: H, is_polarh : true }
   - { name: Vrt, element: Vr}
+
+  # Generic potential atom types for ligands (from Rosetta generic_potential)
+  # Carbon
+  - { name: CD  , element: C }
+  - { name: CD1 , element: C }
+  - { name: CD2 , element: C }
+  - { name: CDp , element: C }
+  - { name: CR  , element: C }
+  - { name: CRp , element: C }
+  - { name: CS  , element: C }
+  - { name: CS1 , element: C }
+  - { name: CS2 , element: C }
+  - { name: CS3 , element: C }
+  - { name: CSp , element: C }
+  - { name: CSQ , element: C }
+  - { name: CT  , element: C }
+  - { name: CTp , element: C }
+  # Hydrogen
+  - { name: HC  , element: H }
+  - { name: HN  , element: H, is_polarh: true }
+  - { name: HO  , element: H, is_polarh: true }
+  - { name: HR  , element: H }
+  - { name: HG  , element: H, is_polarh: true }
+  # Nitrogen
+  - { name: Nad , element: N, is_donor: true }
+  - { name: Nad3, element: N }
+  - { name: Nam , element: N, is_donor: true }
+  - { name: Nam2, element: N, is_donor: true }
+  - { name: Ngu1, element: N, is_donor: true }
+  - { name: Ngu2, element: N, is_donor: true }
+  - { name: Nim , element: N, is_acceptor: true, acceptor_hybridization: ring }
+  - { name: Nin , element: N, is_donor: true }
+  - { name: NG1 , element: N }
+  - { name: NG2 , element: N }
+  - { name: NG21, element: N, is_donor: true }
+  - { name: NG22, element: N, is_donor: true }
+  - { name: NG3 , element: N }
+  # Oxygen
+  - { name: Oad , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: Oal , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: Oat , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: Oet , element: O }
+  - { name: Ofu , element: O }
+  - { name: Ohx , element: O, is_donor: true, is_acceptor: true, acceptor_hybridization: sp3, is_hydroxyl: true }
+  - { name: Ont , element: O }
+  - { name: OG2 , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: OG3 , element: O, is_acceptor: true, acceptor_hybridization: sp3 }
+  - { name: OG31, element: O, is_acceptor: true, acceptor_hybridization: sp3 }
+  # Sulfur
+  - { name: SR  , element: S }
+  - { name: Ssl , element: S }
+  - { name: Sth , element: S }
+  - { name: SG2 , element: S }
+  - { name: SG3 , element: S }
+  - { name: SG5 , element: S }
+  # Phosphorus
+  - { name: PG3 , element: P }
+  - { name: PG5 , element: P }
+  - { name: Phos, element: P }
+  # Halogens
+  - { name: FR  , element: F }
+  - { name: ClR , element: Cl }
+  - { name: BrR , element: Br }
+  - { name: IR  , element: I }
 
 residues:
   - name:  ALA
