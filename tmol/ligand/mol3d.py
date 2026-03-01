@@ -6,6 +6,8 @@ MMFF94 partial charges, entirely in memory (no file I/O).
 
 import logging
 
+from tmol.ligand.smiles import _import_pybel
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +34,7 @@ def smiles_to_obmol(
     Raises:
         RuntimeError: If 3D generation or charge computation fails.
     """
-    from openbabel import openbabel, pybel
+    openbabel, pybel = _import_pybel()
 
     mol = pybel.readstring("smi", smiles)
     mol.addh()
@@ -65,7 +67,7 @@ def get_partial_charges(mol) -> dict[str, float]:
     Returns:
         A dict mapping atom name to partial charge.
     """
-    from openbabel import openbabel
+    openbabel, _ = _import_pybel()
 
     charges: dict[str, float] = {}
     elem_counts: dict[str, int] = {}

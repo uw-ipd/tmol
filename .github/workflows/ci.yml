@@ -75,19 +75,25 @@ jobs:
               $SIF bash << 'GPU_WORK'
           set -ex
 
-          # Install libxrender needed by openbabel-wheel format plugins.
-          # Extract to persistent /ci-pip-pkgs so it's cached across runs.
-          LIBXRENDER_DIR=/ci-pip-pkgs/syslibs
-          if [ ! -f "$LIBXRENDER_DIR/libXrender.so.1" ]; then
-            mkdir -p "$LIBXRENDER_DIR"
-            UBUNTU_CODENAME=$(lsb_release -cs 2>/dev/null || echo "noble")
-            curl -sL -o /tmp/libxrender1.deb \
-              "http://mirrors.ipd.uw.edu/ubuntu/pool/main/libx/libxrender/libxrender1_0.9.10-1.1build1_amd64.deb" \
-              && dpkg-deb -x /tmp/libxrender1.deb /tmp/libxrender \
-              && cp /tmp/libxrender/usr/lib/x86_64-linux-gnu/libXrender.so* "$LIBXRENDER_DIR/" \
-              || echo "::warning::Failed to fetch libxrender1; ligand tests may fail"
+          # Install X11 libs needed by openbabel-wheel format plugins.
+          # Extract to persistent /ci-pip-pkgs/syslibs so it's cached across runs.
+          SYSLIBS=/ci-pip-pkgs/syslibs
+          if [ ! -f "$SYSLIBS/libX11.so.6" ]; then
+            mkdir -p "$SYSLIBS"
+            MIRROR="http://mirrors.ipd.uw.edu/ubuntu/pool/main"
+            for pkg in \
+              "libx/libxrender/libxrender1_0.9.10-1.1build1_amd64.deb" \
+              "libx/libx11/libx11-6_1.8.7-1build1_amd64.deb" \
+              "libx/libxcb/libxcb1_1.15-1ubuntu2_amd64.deb" \
+              "libx/libxau/libxau6_1.0.11-1build1_amd64.deb" \
+              "libx/libxdmcp/libxdmcp6_1.1.4-1build1_amd64.deb"; do
+              DEB="/tmp/$(basename $pkg)"
+              curl -sL -o "$DEB" "$MIRROR/$pkg" \
+                && dpkg-deb -x "$DEB" /tmp/syslibs 2>/dev/null || true
+            done
+            cp /tmp/syslibs/usr/lib/x86_64-linux-gnu/lib*.so* "$SYSLIBS/" 2>/dev/null || true
           fi
-          export LD_LIBRARY_PATH="$LIBXRENDER_DIR:${LD_LIBRARY_PATH:-}"
+          export LD_LIBRARY_PATH="$SYSLIBS:${LD_LIBRARY_PATH:-}"
 
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PYTHONUSERBASE=/ci-pip-pkgs

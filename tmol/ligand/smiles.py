@@ -6,10 +6,26 @@ target pH using dimorphite_dl.
 """
 
 import logging
+import sys
 
 from tmol.ligand.detect import LigandInfo
 
 logger = logging.getLogger(__name__)
+
+
+def _import_pybel():
+    """Import openbabel and pybel, suppressing noisy format plugin warnings."""
+    import io
+
+    stderr_backup = sys.stderr
+    sys.stderr = io.StringIO()
+    try:
+        from openbabel import openbabel, pybel
+
+        return openbabel, pybel
+    finally:
+        sys.stderr = stderr_backup
+
 
 _ELEMENT_TO_ATOMIC_NUM = {
     "H": 1,
@@ -43,7 +59,7 @@ def perceive_smiles(ligand_info: LigandInfo) -> str:
     Raises:
         ValueError: If the resulting SMILES is empty or perception fails.
     """
-    from openbabel import openbabel, pybel
+    openbabel, pybel = _import_pybel()
 
     obmol = openbabel.OBMol()
     obmol.BeginModify()
