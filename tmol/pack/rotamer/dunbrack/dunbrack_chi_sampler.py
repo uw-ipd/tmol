@@ -370,7 +370,7 @@ class DunbrackChiSampler(ChiSampler):
             dun_allowed_bt_base_names[None, :],
             # ??? torch.device("cpu"),
             self.device,
-        ).squeeze()
+        ).squeeze(dim=0)
 
         # the pbt-assigned block-type indices for each buildable block type
         # the subset of dun_rot_inds_for_dun_allowed_bts with a non-sentinel
