@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SIF: /net/software/containers/versions/modelhub/pytorch_24.10-py3.sif
+  SIF: /net/software/containers/versions/modelhub/pytorch_25.06-py3.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
 
 jobs:
@@ -60,9 +60,9 @@ jobs:
 
       # All GPU work in a single srun allocation: setup, build, tests, benchmarks.
       # This avoids re-queuing for each step and keeps the environment consistent.
-      # Use Ampere (a6000, sm_86) — the NGC 24.10 container (CUDA 12.6, PyTorch 2.5)
-      # does NOT support Blackwell (b4000/b6000, sm_120). Blackwell needs CUDA 12.8+
-      # and PyTorch 2.7+. Switch to a6000 -> b4000 once the SIF is upgraded.
+      # Use Ampere (a6000, sm_86) — the NGC 25.06 container (CUDA 12.8, PyTorch 2.8)
+      # supports up to Ada (sm_89) and Hopper (sm_90). Blackwell (sm_120) needs
+      # CUDA 12.8+ with sm_100 support; switch a6000 -> b4000 once confirmed.
       - name: Build and test (GPU)
         run: |
           mkdir -p $PIP_PKGS
