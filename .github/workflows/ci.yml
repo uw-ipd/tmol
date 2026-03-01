@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SIF: /net/software/containers/versions/modelhub/pytorch_25.06-py3.sif
+  SIF: /net/software/containers/versions/modelhub/pytorch_25.11-py3.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
 
 jobs:
@@ -53,6 +53,8 @@ jobs:
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
+          pip install --break-system-packages --target /ci-pip-pkgs/lib/python${PYVER}/site-packages \
+            pre-commit flake8 black 2>/dev/null || true
           pre-commit install
           pre-commit run --all-files --show-diff-on-failure || echo "::warning::pre-commit found issues"
           flake8 || echo "::warning::flake8 found issues"
@@ -60,9 +62,8 @@ jobs:
 
       # All GPU work in a single srun allocation: setup, build, tests, benchmarks.
       # This avoids re-queuing for each step and keeps the environment consistent.
-      # Use Ampere (a6000, sm_86) — the NGC 25.06 container (CUDA 12.8, PyTorch 2.8)
-      # supports up to Ada (sm_89) and Hopper (sm_90). Blackwell (sm_120) needs
-      # CUDA 12.8+ with sm_100 support; switch a6000 -> b4000 once confirmed.
+      # Use Ampere (a6000, sm_86) — the NGC 25.11 container (Python 3.12, PyTorch 2.9).
+      # Switch a6000 -> b4000 once Blackwell support is confirmed.
       - name: Build and test (GPU)
         run: |
           mkdir -p $PIP_PKGS
@@ -86,7 +87,7 @@ jobs:
           TMPDIR=$GITHUB_WORKSPACE/.ci-tmp
           mkdir -p $TMPDIR
 
-          pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==|^clang-format==|^black==|^flake8==|^pathspec==|^click==|^mypy-extensions==)' > $TMPDIR/container_pins.txt
+          pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==|^clang-format==|^black==|^flake8==|^pathspec==|^click==|^mypy-extensions==|^packaging==)' > $TMPDIR/container_pins.txt
           uv pip compile pyproject.toml --all-extras \
             --constraint $TMPDIR/container_pins.txt \
             --output-file $TMPDIR/requirements.txt
