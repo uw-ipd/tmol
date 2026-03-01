@@ -185,7 +185,7 @@ def canonical_form_from_biotite(
         try:
             if i_3lc not in to_remove:
                 co.restype_io_equiv_classes.index(i_3lc)
-        except:
+        except ValueError:
             print("Unrecognized 3lc %s" % (i_3lc))
             to_remove.add(i_3lc)
     to_remove.add("HOH")
