@@ -5,7 +5,6 @@ SMILES perception, protonation, 3D generation, atom typing, residue
 building, and database registration.
 """
 
-import numpy as np
 import pytest
 
 from tmol.database.chemical import ChemicalDatabase

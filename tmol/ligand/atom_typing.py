@@ -180,57 +180,48 @@ def _assign_nitrogen_type(obatom: openbabel.OBAtom) -> str:
     return "NG2"
 
 
+def _classify_double_bonded_oxygen(obatom: openbabel.OBAtom) -> str:
+    """Classify an oxygen that has a double bond."""
+    c_nbr = None
+    for bond in openbabel.OBAtomBondIter(obatom):
+        nbr = bond.GetNbrAtom(obatom)
+        if nbr.GetAtomicNum() == 6 and bond.GetBondOrder() == 2:
+            c_nbr = nbr
+            break
+
+    if c_nbr is not None:
+        if _count_bonded_element(c_nbr, 8) >= 2:
+            return "Oat"
+        if _count_bonded_element(c_nbr, 7) >= 1:
+            return "Oad"
+        return "Oal"
+
+    for bond in openbabel.OBAtomBondIter(obatom):
+        if bond.GetNbrAtom(obatom).GetAtomicNum() == 15:
+            return "OG2"
+
+    return "Oal"
+
+
 def _assign_oxygen_type(obatom: openbabel.OBAtom) -> str:
     """Assign a tmol atom type for an oxygen atom."""
-    n_heavy = _count_heavy_neighbors(obatom)
-    n_h = _count_h_neighbors(obatom)
-
     if _is_aromatic(obatom):
         return "Ofu"
 
     if _has_any_double_bond(obatom):
-        if n_heavy >= 1:
-            c_nbr = None
-            for bond in openbabel.OBAtomBondIter(obatom):
-                nbr = bond.GetNbrAtom(obatom)
-                if nbr.GetAtomicNum() == 6 and bond.GetBondOrder() == 2:
-                    c_nbr = nbr
-                    break
+        return _classify_double_bonded_oxygen(obatom)
 
-            if c_nbr is not None:
-                n_o_on_c = _count_bonded_element(c_nbr, 8)
-                if n_o_on_c >= 2:
-                    return "Oat"
-                n_n_on_c = _count_bonded_element(c_nbr, 7)
-                if n_n_on_c >= 1:
-                    return "Oad"
-                return "Oal"
-
-            p_nbr = None
-            for bond in openbabel.OBAtomBondIter(obatom):
-                nbr = bond.GetNbrAtom(obatom)
-                if nbr.GetAtomicNum() == 15:
-                    p_nbr = nbr
-                    break
-            if p_nbr is not None:
-                return "OG2"
-
-        return "Oal"
-
-    if n_h >= 1:
+    if _count_h_neighbors(obatom) >= 1:
         return "Ohx"
-    if n_heavy == 2:
+    if _count_heavy_neighbors(obatom) == 2:
         return "Oet"
 
     for bond in openbabel.OBAtomBondIter(obatom):
         nbr = bond.GetNbrAtom(obatom)
         if nbr.GetAtomicNum() == 15:
             return "OG3"
-        if nbr.GetAtomicNum() == 6:
-            if _has_double_bond_to(nbr, 8):
-                n_o_on_c = _count_bonded_element(nbr, 8)
-                if n_o_on_c >= 2:
-                    return "Oat"
+        if nbr.GetAtomicNum() == 6 and _count_bonded_element(nbr, 8) >= 2:
+            return "Oat"
 
     return "OG3"
 

@@ -54,10 +54,9 @@ jobs:
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
           pip install --break-system-packages --target /ci-pip-pkgs/lib/python${PYVER}/site-packages \
-            pre-commit flake8 black 2>/dev/null || true
+            pre-commit 2>/dev/null || true
           pre-commit install
           pre-commit run --all-files --show-diff-on-failure || echo "::warning::pre-commit found issues"
-          flake8 || echo "::warning::flake8 found issues"
           LINT
 
       # All GPU work in a single srun allocation: setup, build, tests, benchmarks.
