@@ -6,8 +6,6 @@ MMFF94 partial charges, entirely in memory (no file I/O).
 
 import logging
 
-from openbabel import openbabel, pybel
-
 logger = logging.getLogger(__name__)
 
 
@@ -15,7 +13,7 @@ def smiles_to_obmol(
     smiles: str,
     minimize_steps: int = 500,
     forcefield: str = "mmff94",
-) -> pybel.Molecule:
+):
     """Convert a SMILES string to a 3D molecule with partial charges.
 
     Generates 3D coordinates, adds explicit hydrogens, performs energy
@@ -28,12 +26,14 @@ def smiles_to_obmol(
         forcefield: Force field for 3D generation and minimization.
 
     Returns:
-        A pybel Molecule with 3D coordinates and partial charges set
+        A pybel.Molecule with 3D coordinates and partial charges set
         on each atom.
 
     Raises:
         RuntimeError: If 3D generation or charge computation fails.
     """
+    from openbabel import openbabel, pybel
+
     mol = pybel.readstring("smi", smiles)
     mol.addh()
     mol.make3D(forcefield=forcefield, steps=50)
@@ -53,18 +53,20 @@ def smiles_to_obmol(
     return mol
 
 
-def get_partial_charges(mol: pybel.Molecule) -> dict[str, float]:
+def get_partial_charges(mol) -> dict[str, float]:
     """Extract per-atom partial charges from a pybel Molecule.
 
     Atom names are generated as element symbol + 1-based index to
     ensure uniqueness (e.g. C1, C2, O3, H4).
 
     Args:
-        mol: A pybel Molecule with charges already computed.
+        mol: A pybel.Molecule with charges already computed.
 
     Returns:
         A dict mapping atom name to partial charge.
     """
+    from openbabel import openbabel
+
     charges: dict[str, float] = {}
     elem_counts: dict[str, int] = {}
 

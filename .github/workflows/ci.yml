@@ -68,12 +68,15 @@ jobs:
           mkdir -p $PIP_PKGS
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
             -t 06:00:00 --cpus-per-task=16 --mem=128G \
-            apptainer exec --nv \
+            apptainer exec --nv --writable-tmpfs \
               --bind /net/scratch:/net/scratch \
               --bind $PIP_PKGS:/ci-pip-pkgs \
               --pwd $GITHUB_WORKSPACE \
               $SIF bash << 'GPU_WORK'
           set -ex
+
+          # Install system libraries needed by openbabel-wheel format plugins
+          apt-get update -qq && apt-get install -y -qq libxrender1 2>/dev/null || true
 
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PYTHONUSERBASE=/ci-pip-pkgs

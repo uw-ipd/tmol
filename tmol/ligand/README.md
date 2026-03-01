@@ -120,6 +120,29 @@ All types have corresponding LJLK scoring parameters in `ljlk.yaml`.
 - **openbabel-wheel** - SMILES perception, 3D generation, MMFF94 charges
 - **dimorphite_dl** - pH-dependent protonation
 
+### System dependency: libxrender
+
+`openbabel-wheel` bundles native format plugins (`.so` files) that link against
+`libXrender.so.1`. This library is present on most desktop Linux systems but
+may be missing on headless servers or minimal Docker containers.
+
+If you see errors like `libXrender.so.1: cannot open shared object file`, install it:
+
+```bash
+# Ubuntu / Debian
+sudo apt-get install libxrender1
+
+# Fedora / RHEL
+sudo dnf install libXrender
+
+# Conda (any platform)
+conda install -c conda-forge xorg-libxrender
+```
+
+The ligand pipeline uses lazy imports so that `import tmol` works even without
+`libXrender` installed. The error only surfaces when ligand preparation
+functions are actually called.
+
 ## Limitations
 
 - Metals and metallocenes are not currently handled

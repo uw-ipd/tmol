@@ -7,9 +7,6 @@ target pH using dimorphite_dl.
 
 import logging
 
-from dimorphite_dl import protonate_smiles
-from openbabel import openbabel, pybel
-
 from tmol.ligand.detect import LigandInfo
 
 logger = logging.getLogger(__name__)
@@ -46,6 +43,8 @@ def perceive_smiles(ligand_info: LigandInfo) -> str:
     Raises:
         ValueError: If the resulting SMILES is empty or perception fails.
     """
+    from openbabel import openbabel, pybel
+
     obmol = openbabel.OBMol()
     obmol.BeginModify()
 
@@ -92,6 +91,8 @@ def protonate_ligand_smiles(
         original SMILES is returned unchanged.
     """
     try:
+        from dimorphite_dl import protonate_smiles
+
         variants = protonate_smiles(
             smiles,
             ph_min=ph,
