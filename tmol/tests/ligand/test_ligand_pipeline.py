@@ -110,15 +110,15 @@ class TestFullPipeline:
 class TestPoseStackWithLigand:
     """Build a PoseStack with ligands and verify scoring runs."""
 
-    def test_i4b_posestack_scores_cuda(self, cif_184l_with_i4b, torch_device):
-        """Full stack: CIF with I4B -> PoseStack -> score without errors."""
+    def _score_cif_with_ligand(self, atom_array, torch_device):
+        """Helper: build PoseStack with ligands and score it."""
         import torch
 
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
         from tmol.score import beta2016_score_function
 
         pose_stack = pose_stack_from_biotite(
-            cif_184l_with_i4b, torch_device, prepare_ligands=True
+            atom_array, torch_device, prepare_ligands=True
         )
         assert pose_stack.coords.shape[0] >= 1
         assert not torch.any(torch.isnan(pose_stack.coords[pose_stack.coords != 0]))
@@ -129,6 +129,18 @@ class TestPoseStackWithLigand:
 
         assert not torch.any(torch.isnan(scores))
         assert not torch.any(torch.isinf(scores))
+
+    def test_i4b_posestack_scores(self, cif_184l_with_i4b, torch_device):
+        """Small drug-like ligand (I4B, 10 atoms) in lysozyme."""
+        self._score_cif_with_ligand(cif_184l_with_i4b, torch_device)
+
+    def test_hem_posestack_scores(self, cif_155c_with_hem, torch_device):
+        """Large ligand (HEM, 43 atoms) in cytochrome c."""
+        self._score_cif_with_ligand(cif_155c_with_hem, torch_device)
+
+    def test_pse_posestack_scores(self, cif_1a25_with_pse, torch_device):
+        """Partial occupancy ligand (PSE, 0.56) scores without errors."""
+        self._score_cif_with_ligand(cif_1a25_with_pse, torch_device)
 
 
 class TestParamsRoundtrip:

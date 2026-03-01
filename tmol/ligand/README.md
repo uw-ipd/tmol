@@ -120,27 +120,29 @@ All types have corresponding LJLK scoring parameters in `ljlk.yaml`.
 - **openbabel-wheel** - SMILES perception, 3D generation, MMFF94 charges
 - **dimorphite_dl** - pH-dependent protonation
 
-### System dependency: libxrender
+### System dependency: X11 libraries
 
-`openbabel-wheel` bundles native format plugins (`.so` files) that link against
-`libXrender.so.1`. This library is present on most desktop Linux systems but
-may be missing on headless servers or minimal Docker containers.
+`openbabel-wheel` bundles native format plugins that link against X11 shared
+libraries (`libXrender`, `libXext`, `libX11`). These are present on most
+desktop Linux systems but may be missing on headless servers, minimal Docker
+containers, or NGC GPU containers.
 
-If you see errors like `libXrender.so.1: cannot open shared object file`, install it:
+If you see errors like `libXrender.so.1: cannot open shared object file` or
+`libXext.so.6: cannot open shared object file`, install the X11 libraries:
 
 ```bash
 # Ubuntu / Debian
-sudo apt-get install libxrender1
+sudo apt-get install libxrender1 libxext6
 
 # Fedora / RHEL
-sudo dnf install libXrender
+sudo dnf install libXrender libXext
 
 # Conda (any platform)
-conda install -c conda-forge xorg-libxrender
+conda install -c conda-forge xorg-libxrender xorg-libxext
 ```
 
 The ligand pipeline uses lazy imports so that `import tmol` works even without
-`libXrender` installed. The error only surfaces when ligand preparation
+these libraries installed. The error only surfaces when ligand preparation
 functions are actually called.
 
 ## Limitations
