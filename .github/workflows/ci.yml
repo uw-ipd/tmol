@@ -68,15 +68,26 @@ jobs:
           mkdir -p $PIP_PKGS
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
             -t 06:00:00 --cpus-per-task=16 --mem=128G \
-            apptainer exec --nv --writable-tmpfs \
+            apptainer exec --nv \
               --bind /net/scratch:/net/scratch \
               --bind $PIP_PKGS:/ci-pip-pkgs \
               --pwd $GITHUB_WORKSPACE \
               $SIF bash << 'GPU_WORK'
           set -ex
 
-          # Install system libraries needed by openbabel-wheel format plugins
-          apt-get update -qq && apt-get install -y -qq libxrender1 2>/dev/null || true
+          # Install libxrender needed by openbabel-wheel format plugins.
+          # Extract to persistent /ci-pip-pkgs so it's cached across runs.
+          LIBXRENDER_DIR=/ci-pip-pkgs/syslibs
+          if [ ! -f "$LIBXRENDER_DIR/libXrender.so.1" ]; then
+            mkdir -p "$LIBXRENDER_DIR"
+            UBUNTU_CODENAME=$(lsb_release -cs 2>/dev/null || echo "noble")
+            curl -sL -o /tmp/libxrender1.deb \
+              "http://mirrors.ipd.uw.edu/ubuntu/pool/main/libx/libxrender/libxrender1_0.9.10-1.1build1_amd64.deb" \
+              && dpkg-deb -x /tmp/libxrender1.deb /tmp/libxrender \
+              && cp /tmp/libxrender/usr/lib/x86_64-linux-gnu/libXrender.so* "$LIBXRENDER_DIR/" \
+              || echo "::warning::Failed to fetch libxrender1; ligand tests may fail"
+          fi
+          export LD_LIBRARY_PATH="$LIBXRENDER_DIR:${LD_LIBRARY_PATH:-}"
 
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PYTHONUSERBASE=/ci-pip-pkgs

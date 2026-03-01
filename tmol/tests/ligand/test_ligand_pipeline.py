@@ -107,6 +107,30 @@ class TestFullPipeline:
         assert len(new_db.residues) == len(chem_db.residues)
 
 
+class TestPoseStackWithLigand:
+    """Build a PoseStack with ligands and verify scoring runs."""
+
+    def test_i4b_posestack_scores_cuda(self, cif_184l_with_i4b, torch_device):
+        """Full stack: CIF with I4B -> PoseStack -> score without errors."""
+        import torch
+
+        from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+        from tmol.score import beta2016_score_function
+
+        pose_stack = pose_stack_from_biotite(
+            cif_184l_with_i4b, torch_device, prepare_ligands=True
+        )
+        assert pose_stack.coords.shape[0] >= 1
+        assert not torch.any(torch.isnan(pose_stack.coords[pose_stack.coords != 0]))
+
+        sfxn = beta2016_score_function(torch_device)
+        scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
+        scores = scorer.unweighted_scores(pose_stack.coords)
+
+        assert not torch.any(torch.isnan(scores))
+        assert not torch.any(torch.isinf(scores))
+
+
 class TestParamsRoundtrip:
     """Write a prepared ligand to .params and read it back."""
 
