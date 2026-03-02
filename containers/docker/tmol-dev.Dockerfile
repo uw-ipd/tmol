@@ -16,6 +16,12 @@ LABEL description="tmol - Dependencies only (for development and scoring)"
 # Create directories for bind mounts
 RUN mkdir -p /tmol_host /projects /net /squash
 
+# Install X11 libraries needed by OpenBabel
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libxrender1 \
+        libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy pyproject.toml to extract dependencies
 COPY pyproject.toml /opt/tmol_pyproject.toml
 
