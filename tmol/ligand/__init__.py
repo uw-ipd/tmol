@@ -113,16 +113,9 @@ def prepare_ligands(
             lig.is_ligand,
         )
 
-        try:
-            restype, charges = prepare_single_ligand(lig, ph=ph)
-            chem_db = register_ligand(chem_db, restype)
-            modified = True
-        except Exception:
-            logger.error(
-                "Failed to prepare ligand %s, skipping",
-                lig.res_name,
-                exc_info=True,
-            )
+        restype, charges = prepare_single_ligand(lig, ph=ph)
+        chem_db = register_ligand(chem_db, restype)
+        modified = True
 
     if modified:
         canonical_ordering = rebuild_canonical_ordering(chem_db)

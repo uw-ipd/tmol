@@ -171,6 +171,17 @@ def biotite_1bl8():
 
 
 @pytest.fixture()
+def biotite_4tlm(tmp_path):
+    """4TLM structure fetched from RCSB (large, 581 missing sidechains)."""
+    from biotite.database import rcsb
+
+    path = rcsb.fetch("4TLM", "cif", target_path=tmp_path)
+    return biotite.structure.io.load_structure(
+        path, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
 def cif_184l_with_i4b():
     """Lysozyme with I4B ligand (10 atoms, small drug-like)."""
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "184l__1__1.A__1.E.cif")

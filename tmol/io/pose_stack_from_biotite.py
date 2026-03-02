@@ -191,9 +191,13 @@ def canonical_form_from_biotite(
     to_remove.add("HOH")
 
     # TODO: set up cut/jump
-    valid_atoms = numpy.array(
-        [atom.res_name not in to_remove for atom in biotite_structure]
-    )
+    # Use the res_name array directly instead of iterating atoms,
+    # which yields ndarray rows (unhashable) for AtomArrayStack.
+    if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
+        res_names = biotite_structure[0].res_name
+    else:
+        res_names = biotite_structure.res_name
+    valid_atoms = numpy.array([name not in to_remove for name in res_names])
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
     valid_res = valid_atoms[biotite_residue_starts]
 
