@@ -2,6 +2,7 @@ import torch
 import numpy
 import toolz
 import biotite
+import biotite.structure
 
 from tmol.types.functional import validate_args
 from tmol.chemical.restypes import ResidueTypeSet
