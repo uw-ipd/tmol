@@ -46,6 +46,50 @@ ELEMENT_SYMBOLS = {
     53: "I",
 }
 
+# HBond properties for ligand atom types, derived from Rosetta
+# fa_standard_genpot/atom_properties.txt. Maps atom type name to
+# (is_donor, is_acceptor, is_polarh, is_hydroxyl, acceptor_hybridization).
+HBOND_PROPERTIES: dict[str, dict] = {
+    # Oxygen acceptors/donors
+    "Oad": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
+    "Oal": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
+    "Oat": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
+    "Ont": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
+    "OG2": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
+    "Oet": {"is_acceptor": True, "acceptor_hybridization": "SP3"},
+    "OG3": {"is_acceptor": True, "acceptor_hybridization": "SP3"},
+    "OG31": {"is_acceptor": True, "acceptor_hybridization": "SP3"},
+    "Ofu": {"is_acceptor": True, "acceptor_hybridization": "RING"},
+    "Ohx": {
+        "is_acceptor": True,
+        "is_donor": True,
+        "is_hydroxyl": True,
+        "acceptor_hybridization": "SP3",
+    },
+    # Nitrogen donors
+    "Nam": {"is_donor": True},
+    "Nam2": {"is_donor": True},
+    "NG21": {"is_donor": True},
+    "NG22": {"is_donor": True},
+    "NG3": {"is_donor": True},
+    "Ngu1": {"is_donor": True},
+    "Ngu2": {"is_donor": True},
+    # Nitrogen acceptors
+    "Nad": {"is_acceptor": True, "acceptor_hybridization": "RING"},
+    "Nad3": {"is_acceptor": True, "acceptor_hybridization": "SP3"},
+    "Nim": {"is_acceptor": True, "acceptor_hybridization": "RING"},
+    "Nin": {"is_acceptor": True, "acceptor_hybridization": "RING"},
+    "NG1": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
+    "NG2": {"is_acceptor": True, "acceptor_hybridization": "RING"},
+    # Polar hydrogens
+    "HN": {"is_polarh": True},
+    "HO": {"is_polarh": True},
+    "HS": {"is_polarh": True},
+    "HG": {"is_polarh": True},
+    # Sulfur
+    "Sth": {"is_donor": True},
+}
+
 
 class AtomTypeAssignment(NamedTuple):
     atom_name: str

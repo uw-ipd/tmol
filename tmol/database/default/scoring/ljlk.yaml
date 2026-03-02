@@ -124,7 +124,12 @@ atom_type_parameters:
   - { name: PG3 , *ljr: 2.159200, *ljw: 0.571600, *lkd:  -3.98380, *lkl: 3.500000, *lkv: 34.800000 }
   - { name: PG5 , *ljr: 2.129000, *ljw: 0.583800, *lkd:  -9.62720, *lkl: 3.500000, *lkv: 34.800000 }
   - { name: Phos, *ljr: 2.150000, *ljw: 0.585000, *lkd: -24.00000, *lkl: 3.500000, *lkv: 34.800000 }
-  # Halogens
+  # Halogens (non-aromatic, from Rosetta fa_standard_genpot/atom_properties.txt)
+  - { name: F   , *ljr: 1.694100, *ljw: 0.075000, *lkd:   2.50000, *lkl: 3.500000, *lkv: 11.500000 }
+  - { name: Cl  , *ljr: 2.049600, *ljw: 0.239900, *lkd:   1.74450, *lkl: 3.500000, *lkv: 24.400000 }
+  - { name: Br  , *ljr: 2.197100, *ljw: 0.325500, *lkd:  -0.05740, *lkl: 3.500000, *lkv: 35.500000 }
+  - { name: I   , *ljr: 2.360000, *ljw: 0.424000, *lkd:  -2.65880, *lkl: 3.500000, *lkv: 44.600000 }
+  # Halogens (aromatic ring, from Rosetta fa_standard_genpot)
   - { name: FR  , *ljr: 1.694100, *ljw: 0.075000, *lkd:   1.64420, *lkl: 3.500000, *lkv: 12.216300 }
   - { name: ClR , *ljr: 2.049600, *ljw: 0.107000, *lkd:   2.36680, *lkl: 3.500000, *lkv: 17.584900 }
   - { name: BrR , *ljr: 2.197100, *ljw: 0.109000, *lkd:   2.79510, *lkl: 3.500000, *lkv: 19.687600 }

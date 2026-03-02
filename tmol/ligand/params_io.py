@@ -98,7 +98,7 @@ def read_params_file(path: str | Path) -> RawResidueType:
 
             if parts[0] == "NAME" and len(parts) >= 2:
                 name = parts[1]
-                name3 = name[:3]
+                name3 = name
 
             elif parts[0] == "ATOM" and len(parts) >= 4:
                 atoms.append(Atom(name=parts[1], atom_type=parts[2]))
