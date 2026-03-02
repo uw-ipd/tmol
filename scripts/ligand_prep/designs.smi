@@ -1,2 +1,2 @@
-N[C@@H]5C[C@@H](C[C@H]5O)CNC2=C1C3=C(CCC3)SC1=NC(C4=CC=CN=C4)=N2	ref1
-N[C@H]1CC[C@H](CNC=2N=C(N=C3SC=4CCCC4C23)C5=CC=CN=C5)CC1	ref2
+Cc1cn([C@@H]2C[C@@H](O)[C@H](CO)O2)c(=O)[nH]c1=O ref1
+Cc1cc2nc3c(=O)[nH]c(=O)nc-3n(C[C@H](O)[C@H](O)[C@H](O)CO)c2cc1C ref2
