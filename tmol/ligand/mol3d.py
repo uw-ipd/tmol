@@ -58,8 +58,8 @@ def smiles_to_obmol(
 def get_partial_charges(mol) -> dict[str, float]:
     """Extract per-atom partial charges from a pybel Molecule.
 
-    Atom names are generated as element symbol + 1-based index to
-    ensure uniqueness (e.g. C1, C2, O3, H4).
+    Atom names follow the Rosetta rename_atoms convention: heavy atoms
+    as <Element><count>, hydrogens as H<bonded_element><count>.
 
     Args:
         mol: A pybel.Molecule with charges already computed.
@@ -68,14 +68,36 @@ def get_partial_charges(mol) -> dict[str, float]:
         A dict mapping atom name to partial charge.
     """
     openbabel, _ = _import_pybel()
+    obmol = mol.OBMol
 
     charges: dict[str, float] = {}
-    elem_counts: dict[str, int] = {}
+    heavy_elem_counts: dict[str, int] = {}
+    heavy_elem_by_idx: dict[int, str] = {}
+    h_atoms: list[tuple[int, int, float]] = []
 
     for atom in mol.atoms:
-        elem = openbabel.GetSymbol(atom.atomicnum)
-        elem_counts[elem] = elem_counts.get(elem, 0) + 1
-        name = f"{elem}{elem_counts[elem]}"
-        charges[name] = atom.partialcharge
+        z = atom.atomicnum
+        idx = atom.idx - 1
+        if z == 1:
+            bonded_heavy_idx = -1
+            obatom = obmol.GetAtom(atom.idx)
+            for bond in openbabel.OBAtomBondIter(obatom):
+                bonded_heavy_idx = bond.GetNbrAtom(obatom).GetIndex()
+                break
+            h_atoms.append((idx, bonded_heavy_idx, atom.partialcharge))
+        else:
+            elem = openbabel.GetSymbol(z)
+            heavy_elem_counts[elem] = heavy_elem_counts.get(elem, 0) + 1
+            name = f"{elem}{heavy_elem_counts[elem]}"
+            heavy_elem_by_idx[idx] = elem
+            charges[name] = atom.partialcharge
+
+    h_name_counts: dict[str, int] = {}
+    for _, heavy_idx, charge in h_atoms:
+        heavy_elem = heavy_elem_by_idx.get(heavy_idx, "")
+        h_prefix = f"H{heavy_elem}"
+        h_name_counts[h_prefix] = h_name_counts.get(h_prefix, 0) + 1
+        name = f"{h_prefix}{h_name_counts[h_prefix]}"
+        charges[name] = charge
 
     return charges

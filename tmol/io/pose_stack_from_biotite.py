@@ -268,11 +268,22 @@ def canonical_form_from_biotite(
         co.restype_io_equiv_classes.index(i_3lc) for i_3lc in biotite_residues
     ]
 
-    # Map atom names to canonical atom indices for each residue type
-    atom_inds = [
-        co.restypes_atom_index_mapping[resname][atname]
-        for resname, atname in zip(biotite_res_name_for_atom, biotite_name_for_atom)
-    ]
+    # Map atom names to canonical atom indices for each residue type.
+    # Atoms whose names aren't in the canonical ordering (e.g. extra CIF
+    # atoms not produced by the ligand pipeline) are skipped and get NaN
+    # coordinates, matching the handling of missing atoms in standard residues.
+    atom_inds = []
+    valid_atom_mask = []
+    for resname, atname in zip(biotite_res_name_for_atom, biotite_name_for_atom):
+        mapping = co.restypes_atom_index_mapping.get(resname, {})
+        idx = mapping.get(atname, -1)
+        atom_inds.append(idx)
+        valid_atom_mask.append(idx >= 0)
+
+    valid_atom_mask = numpy.array(valid_atom_mask)
+    atom_inds_arr = numpy.array(atom_inds)
+    valid_atom_inds = atom_inds_arr[valid_atom_mask]
+    valid_res_inds = atom_res_inds[valid_atom_mask]
 
     # ========================================
     # 5. Initialize and populate coordinate tensor
@@ -286,10 +297,14 @@ def canonical_form_from_biotite(
     biotite_coords = torch.tensor(biotite_structure.coord, device=torch_device)
 
     if n_poses == 1:
-        tmol_coords[0, atom_res_inds, atom_inds] = biotite_coords
+        tmol_coords[0, valid_res_inds, valid_atom_inds] = biotite_coords[
+            valid_atom_mask
+        ]
     else:
         for pose_ind in range(n_poses):
-            tmol_coords[pose_ind, atom_res_inds, atom_inds] = biotite_coords[pose_ind]
+            tmol_coords[pose_ind, valid_res_inds, valid_atom_inds] = biotite_coords[
+                pose_ind
+            ][valid_atom_mask]
 
     # ========================================
     # 6. Handle optional metadata (B-factors, occupancy)
@@ -303,7 +318,9 @@ def canonical_form_from_biotite(
             0,
             dtype=numpy.float32,
         )
-        biotite_b_factors[0, atom_res_inds, atom_inds] = biotite_structure.b_factor
+        biotite_b_factors[0, valid_res_inds, valid_atom_inds] = (
+            biotite_structure.b_factor[valid_atom_mask]
+        )
 
     if hasattr(biotite_structure, "occupancy"):
         biotite_occupancy = numpy.full(
@@ -311,7 +328,9 @@ def canonical_form_from_biotite(
             0,
             dtype=numpy.float32,
         )
-        biotite_occupancy[0, atom_res_inds, atom_inds] = biotite_structure.occupancy
+        biotite_occupancy[0, valid_res_inds, valid_atom_inds] = (
+            biotite_structure.occupancy[valid_atom_mask]
+        )
 
     # ========================================
     # 7. Prepare metadata for output
