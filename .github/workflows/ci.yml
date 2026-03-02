@@ -67,7 +67,7 @@ jobs:
         run: |
           mkdir -p $PIP_PKGS
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
-            -t 06:00:00 --cpus-per-task=16 --mem=128G \
+            -t 10:00:00 --cpus-per-task=16 --mem=128G \
             apptainer exec --nv --writable-tmpfs \
               --bind /net/scratch:/net/scratch \
               --bind $PIP_PKGS:/ci-pip-pkgs \

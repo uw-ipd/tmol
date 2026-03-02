@@ -164,6 +164,24 @@ class TestPoseStackWithLigand:
         """Partial occupancy ligand (PSE, 0.56) scores without errors."""
         self._score_cif_with_ligand(cif_1a25_with_pse, torch_device)
 
+    def test_atp_posestack_scores(self, torch_device, tmp_path):
+        """ATP ligand (31 heavy atoms + H = >32 total) triggers tile edge case.
+
+        ATP has >32 total atoms but <=32 heavy atoms, which exercises the
+        second tile iteration in the LJLK scoring kernel. This was a known
+        crash (see uw-ipd/tmol jflat06/atp_ligand_load branch).
+        """
+        import biotite.structure
+        from biotite.database import rcsb
+
+        path = rcsb.fetch("3QWQ", "cif", target_path=tmp_path)
+        bt = biotite.structure.io.load_structure(
+            path, extra_fields=["occupancy", "b_factor"]
+        )
+        if isinstance(bt, biotite.structure.AtomArrayStack):
+            bt = bt[0]
+        self._score_cif_with_ligand(bt, torch_device)
+
 
 class TestParamsRoundtrip:
     """Write a prepared ligand to .params and read it back."""
