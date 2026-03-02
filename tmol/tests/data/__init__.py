@@ -23,7 +23,11 @@ def ubq_pdb():
 
 @pytest.fixture(scope="session")
 def pdb_1r21():
-    return pdb.data["1r21"]
+    # Two files exist in the repo (`1r21.pdb` and `1R21.pdb`) with different
+    # protonation at residue 1. The lazy loader key normalization can pick
+    # either one depending on directory order. Pin this fixture explicitly.
+    with open(os.path.join(os.path.dirname(__file__), "pdb", "1r21.pdb")) as f:
+        return f.read()
 
 
 @pytest.fixture(scope="session")
