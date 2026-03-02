@@ -1,7 +1,8 @@
 import numpy
 import torch
+import cattr
 
-from tmol.chemical.restypes import ResidueTypeSet
+from tmol.chemical.restypes import ResidueTypeSet, RefinedResidueType
 
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -16,8 +17,24 @@ from tmol.pack.rotamer.mainchain_fingerprint import (
     find_unique_fingerprints,
 )
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms
+from tmol.pack.rotamer.conformer_sampler import ConformerSampler
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
+
+
+class _FakeMainchainSampler(ConformerSampler):
+    @classmethod
+    def sampler_name(cls):
+        return "FakeMainchainSampler"
+
+    def defines_rotamers_for_rt(self, rt):
+        return True
+
+    def requires_mainchain_fingerprint(self) -> bool:
+        return True
+
+    def first_sc_atoms_for_rt(self, rt):
+        return ("CB",)
 
 
 def test_create_non_sidechain_fingerprint(default_database):
@@ -52,6 +69,21 @@ def test_create_non_sidechain_fingerprint(default_database):
         AtomFingerprint(1, 1, 1, 1),  # HA
     )
     assert fingerprints == fingerprints_gold
+
+
+def test_annotate_skips_nonpolymer_mainchain_fingerprint(default_database):
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+    ala_rt = rts.restype_map["ALA"][0]
+    ala_raw = cattr.unstructure(ala_rt)
+    ala_raw["properties"]["polymer"]["is_polymer"] = False
+    ala_raw["properties"]["polymer"]["mainchain_atoms"] = None
+    nonpoly_rt = cattr.structure(ala_raw, RefinedResidueType)
+
+    annotate_residue_type_with_sampler_fingerprints(
+        nonpoly_rt, (_FakeMainchainSampler(),), default_database.chemical
+    )
+
+    assert not hasattr(nonpoly_rt, "mc_fingerprints")
 
 
 def test_create_non_sc_fingerprint_smoke(default_database):

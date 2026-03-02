@@ -13,7 +13,7 @@ from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 
-from tmol.pack.rotamer.chi_sampler import ChiSampler
+from tmol.pack.rotamer.conformer_sampler import ConformerSampler
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms_jit
 
 # what atoms should we copy over?
@@ -112,6 +112,14 @@ def create_non_sidechain_fingerprint(
     # TO DO: mainchain_atoms determined programatically from
     # shortest path between up- and down-connection atoms
     mc_at_names = rt.properties.polymer.mainchain_atoms
+    # Non-polymer residue types (e.g. ligands) may not define mainchain atoms.
+    # Return an empty fingerprint so rotamer annotation can continue safely.
+    if not mc_at_names:
+        return (
+            numpy.zeros((0,), dtype=numpy.int32),
+            tuple(),
+            {},
+        )
     mc_atoms = numpy.array(
         [rt.atom_to_idx[at] for at in mc_at_names], dtype=numpy.int32
     )
@@ -313,28 +321,38 @@ def create_mainchain_fingerprint(
 
 def annotate_residue_type_with_sampler_fingerprints(
     restype: RefinedResidueType,
-    samplers: Tuple[ChiSampler, ...],
+    samplers: Tuple[ConformerSampler, ...],
     chem_db: PatchedChemicalDatabase,
 ):
     for sampler in samplers:
-        if sampler.defines_rotamers_for_rt(restype):
-            if hasattr(restype, "mc_fingerprints"):
-                if sampler.sampler_name() in restype.mc_fingerprints:
-                    continue
-            else:
-                setattr(restype, "mc_fingerprints", {})
+        if not sampler.defines_rotamers_for_rt(restype):
+            continue
+        if not sampler.requires_mainchain_fingerprint():
+            continue
 
-            sc_roots = sampler.first_sc_atoms_for_rt(restype)
-            mc_ats, mc_at_fps, at_for_fp = create_mainchain_fingerprint(
-                restype, sc_roots, chem_db
-            )
-            fingerprint = tuple(sorted(mc_at_fps))
-            restype.mc_fingerprints[sampler.sampler_name()] = MCFingerprint(
-                mc_ats=mc_ats,
-                mc_at_fingerprints=mc_at_fps,
-                fingerprint=fingerprint,
-                at_for_fingerprint=at_for_fp,
-            )
+        # Mainchain fingerprinting is only meaningful for polymer residues that
+        # define a concrete mainchain atom list.
+        polymer = restype.properties.polymer
+        if (not polymer.is_polymer) or (not polymer.mainchain_atoms):
+            continue
+
+        if hasattr(restype, "mc_fingerprints"):
+            if sampler.sampler_name() in restype.mc_fingerprints:
+                continue
+        else:
+            setattr(restype, "mc_fingerprints", {})
+
+        sc_roots = sampler.first_sc_atoms_for_rt(restype)
+        mc_ats, mc_at_fps, at_for_fp = create_mainchain_fingerprint(
+            restype, sc_roots, chem_db
+        )
+        fingerprint = tuple(sorted(mc_at_fps))
+        restype.mc_fingerprints[sampler.sampler_name()] = MCFingerprint(
+            mc_ats=mc_ats,
+            mc_at_fingerprints=mc_at_fps,
+            fingerprint=fingerprint,
+            at_for_fingerprint=at_for_fp,
+        )
 
 
 def find_max_length_fp_among_res_samplers(

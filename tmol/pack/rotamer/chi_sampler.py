@@ -32,6 +32,9 @@ class ChiSampler(ConformerSampler):
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         raise NotImplementedError()
 
+    def requires_mainchain_fingerprint(self) -> bool:
+        return True
+
     @validate_args
     def first_sc_atoms_for_rt(self, rt_name: str) -> Tuple[str, ...]:
         raise NotImplementedError()

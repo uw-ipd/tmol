@@ -25,7 +25,7 @@ from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.ligand.atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand.detect import LigandInfo, detect_nonstandard_residues
 from tmol.ligand.graph_match import match_heavy_atoms
-from tmol.ligand.mol3d import get_partial_charges, smiles_to_obmol
+from tmol.ligand.mol3d import get_partial_charges_by_index, smiles_to_obmol
 from tmol.ligand.registry import (
     get_cached_charges,
     get_cached_ligand,
@@ -122,8 +122,7 @@ def prepare_single_ligand(
     protonated = protonate_ligand_smiles(smiles, ph=ph)
     mol = smiles_to_obmol(protonated)
     atom_types = assign_tmol_atom_types(mol.OBMol)
-    charges = get_partial_charges(mol)
-
+    charges_by_index = get_partial_charges_by_index(mol)
     atom_types = _rename_atoms_to_cif(mol.OBMol, atom_types, ligand_info)
 
     restype = build_residue_type(
@@ -131,6 +130,22 @@ def prepare_single_ligand(
         ligand_info.res_name,
         atom_types,
     )
+
+    # Build final charge map only after names are finalized and residue built.
+    # This guarantees alignment with scoring lookups keyed by (residue, atom_name).
+    charges = {
+        at.atom_name: charges_by_index[at.index]
+        for at in atom_types
+        if at.index in charges_by_index
+    }
+    restype_atom_names = {a.name for a in restype.atoms}
+    charges = {name: q for name, q in charges.items() if name in restype_atom_names}
+    missing_names = sorted(restype_atom_names - set(charges))
+    if missing_names:
+        raise RuntimeError(
+            f"{ligand_info.res_name}: missing partial charges for atoms: {missing_names}"
+        )
+
     return restype, charges
 
 

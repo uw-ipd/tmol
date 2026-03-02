@@ -20,7 +20,7 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import PackerTask
-from tmol.pack.rotamer.chi_sampler import ChiSampler
+from tmol.pack.rotamer.conformer_sampler import ConformerSampler
 
 from tmol.pack.rotamer.single_residue_kinforest import (
     construct_single_residue_kinforest,
@@ -176,7 +176,7 @@ def rebuild_poses_if_necessary(
 
 def annotate_restype(
     restype: RefinedResidueType,
-    samplers: Tuple[ChiSampler, ...],
+    samplers: Tuple[ConformerSampler, ...],
     chem_db: ChemicalDatabase,
 ):
     construct_single_residue_kinforest(restype)
@@ -189,7 +189,9 @@ def annotate_packed_block_types(pbt: PackedBlockTypes):
 
 
 def annotate_everything(
-    chem_db: ChemicalDatabase, samplers: Tuple[ChiSampler, ...], pbt: PackedBlockTypes
+    chem_db: ChemicalDatabase,
+    samplers: Tuple[ConformerSampler, ...],
+    pbt: PackedBlockTypes,
 ):
     # annotate residue types and packed block types
     # give the samplers a chance first to annotate the

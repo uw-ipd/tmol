@@ -53,28 +53,36 @@ def smiles_to_obmol(
     return mol
 
 
-def get_partial_charges(mol: pybel.Molecule) -> dict[str, float]:
-    """Extract per-atom partial charges from a pybel Molecule.
+def get_partial_charges_by_index(mol: pybel.Molecule) -> dict[int, float]:
+    """Extract per-atom partial charges keyed by OpenBabel atom index.
 
-    Atom names are generated as element symbol + 1-based index to
-    ensure uniqueness (e.g. C1, C2, O3, H4).
-
-    Args:
-        mol: A pybel Molecule with charges already computed.
-
-    Returns:
-        A dict mapping atom name to partial charge.
+    Index keys are OBMol 0-based atom indices (``OBAtom.GetIndex()``), which
+    are stable across later renaming and therefore safer than name-based maps.
     """
+    charges: dict[int, float] = {}
+    for obatom in openbabel.OBMolAtomIter(mol.OBMol):
+        charges[obatom.GetIndex()] = float(obatom.GetPartialCharge())
+    return charges
+
+
+def get_partial_charges(mol: pybel.Molecule) -> dict[str, float]:
+    """Extract per-atom partial charges with legacy generated atom names.
+
+    This API is kept for backward compatibility with existing tests/utilities.
+    For robust pipeline usage, prefer :func:`get_partial_charges_by_index`.
+    """
+    charges_by_index = get_partial_charges_by_index(mol)
     charges: dict[str, float] = {}
     elem_counts: dict[str, int] = {}
 
-    for atom in mol.atoms:
+    for obatom in openbabel.OBMolAtomIter(mol.OBMol):
+        idx = obatom.GetIndex()
         if hasattr(openbabel, "OBElements"):
-            elem = openbabel.OBElements.GetSymbol(atom.atomicnum)
+            elem = openbabel.OBElements.GetSymbol(obatom.GetAtomicNum())
         else:
-            elem = openbabel.GetSymbol(atom.atomicnum)
+            elem = openbabel.GetSymbol(obatom.GetAtomicNum())
         elem_counts[elem] = elem_counts.get(elem, 0) + 1
         name = f"{elem}{elem_counts[elem]}"
-        charges[name] = atom.partialcharge
+        charges[name] = charges_by_index[idx]
 
     return charges
