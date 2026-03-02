@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pytest
 
-from tmol.database.chemical import ChemicalDatabase
 from tmol.io.pose_stack_from_biotite import canonical_ordering_for_biotite
 from tmol.ligand import prepare_ligands, prepare_single_ligand
 from tmol.ligand.detect import detect_nonstandard_residues
@@ -59,17 +58,19 @@ class TestFullPipeline:
     """End-to-end: CIF -> detect -> prepare -> register -> verify."""
 
     @pytest.fixture
-    def chem_db(self):
-        return ChemicalDatabase.get_default()
+    def param_db(self):
+        from tmol.database import ParameterDatabase
 
-    def test_i4b_small_drug(self, cif_184l_with_i4b, chem_db):
+        return ParameterDatabase.get_default()
+
+    def test_i4b_small_drug(self, cif_184l_with_i4b, param_db):
         """Small drug-like ligand (I4B, 10 heavy atoms) in lysozyme."""
-        new_db, new_co = prepare_ligands(cif_184l_with_i4b, chem_db=chem_db)
+        param_db, new_co = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
 
-        assert "I4B" in {r.name for r in new_db.residues}
+        assert "I4B" in {r.name for r in param_db.chemical.residues}
         assert "I4B" in new_co.restype_io_equiv_classes
 
-        i4b_rt = next(r for r in new_db.residues if r.name == "I4B")
+        i4b_rt = next(r for r in param_db.chemical.residues if r.name == "I4B")
         assert len(i4b_rt.atoms) > 0
         assert len(i4b_rt.bonds) > 0
         assert len(i4b_rt.icoors) == len(i4b_rt.atoms)
@@ -85,33 +86,109 @@ class TestFullPipeline:
         for a, b in i4b_rt.bonds:
             assert a in atom_name_set and b in atom_name_set
 
-    def test_hem_large_ligand(self, cif_155c_with_hem, chem_db):
+    def test_hem_large_ligand(self, cif_155c_with_hem, param_db):
         """Large ligand (HEM, 43 heavy atoms) in cytochrome c."""
-        new_db, new_co = prepare_ligands(cif_155c_with_hem, chem_db=chem_db)
+        param_db, new_co = prepare_ligands(cif_155c_with_hem, param_db=param_db)
 
-        assert "HEM" in {r.name for r in new_db.residues}
-        hem_rt = next(r for r in new_db.residues if r.name == "HEM")
+        assert "HEM" in {r.name for r in param_db.chemical.residues}
+        hem_rt = next(r for r in param_db.chemical.residues if r.name == "HEM")
         assert len(hem_rt.atoms) > 30
-        # Fe loses its element identity (Z=0) during SMILES roundtrip,
-        # so the icoor tree has one fewer entry than the atom list.
         assert len(hem_rt.icoors) >= len(hem_rt.atoms) - 1
 
-    def test_pse_partial_occupancy(self, cif_1a25_with_pse, chem_db):
+    def test_pse_partial_occupancy(self, cif_1a25_with_pse, param_db):
         """Ligand with partial occupancy (PSE, 0.56) still prepares."""
-        new_db, new_co = prepare_ligands(cif_1a25_with_pse, chem_db=chem_db)
+        param_db, new_co = prepare_ligands(cif_1a25_with_pse, param_db=param_db)
 
-        assert "PSE" in {r.name for r in new_db.residues}
+        assert "PSE" in {r.name for r in param_db.chemical.residues}
 
-    def test_caching_prevents_duplicate_work(self, cif_184l_with_i4b, chem_db):
-        db1, _ = prepare_ligands(cif_184l_with_i4b, chem_db=chem_db)
-        n_residues_after_first = len(db1.residues)
+    def test_caching_prevents_duplicate_work(self, cif_184l_with_i4b, param_db):
+        n_before = len(param_db.chemical.residues)
+        param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
+        n_after = len(param_db.chemical.residues)
+        assert n_after > n_before
 
-        db2, _ = prepare_ligands(cif_184l_with_i4b, chem_db=db1)
-        assert len(db2.residues) == n_residues_after_first
+        param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
+        assert len(param_db.chemical.residues) == n_after
 
-    def test_ubq_passes_through_unchanged(self, biotite_1ubq, chem_db):
-        new_db, _ = prepare_ligands(biotite_1ubq, chem_db=chem_db)
-        assert len(new_db.residues) == len(chem_db.residues)
+    def test_ubq_passes_through_unchanged(self, biotite_1ubq, param_db):
+        n_before = len(param_db.chemical.residues)
+        param_db, _ = prepare_ligands(biotite_1ubq, param_db=param_db)
+        assert len(param_db.chemical.residues) == n_before
+
+
+class TestLigandScoringData:
+    """Verify that scoring databases are correctly populated for ligands."""
+
+    def test_elec_charges_populated(self, cif_184l_with_i4b):
+        """Elec partial charges are injected into the ParameterDatabase."""
+        from tmol.database import ParameterDatabase
+
+        param_db = ParameterDatabase.get_default()
+        param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
+
+        i4b_charges = [
+            p for p in param_db.scoring.elec.atom_charge_parameters if p.res == "I4B"
+        ]
+        assert len(i4b_charges) > 0, "No elec charges for I4B"
+        assert any(abs(p.charge) > 1e-6 for p in i4b_charges), "All I4B charges zero"
+
+    def test_cartbonded_params_populated(self, cif_184l_with_i4b):
+        """CartBonded params (lengths, angles, impropers) are in the DB."""
+        from tmol.database import ParameterDatabase
+
+        param_db = ParameterDatabase.get_default()
+        param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
+
+        assert "I4B" in param_db.scoring.cartbonded.residue_params
+        cart_res = param_db.scoring.cartbonded.residue_params["I4B"]
+        assert len(cart_res.length_parameters) > 0, "No bond length params for I4B"
+        assert len(cart_res.angle_parameters) > 0, "No bond angle params for I4B"
+
+    def test_hbond_atom_types_annotated(self, cif_184l_with_i4b):
+        """New atom types have correct donor/acceptor/hybridization flags."""
+        from tmol.database import ParameterDatabase
+
+        param_db = ParameterDatabase.get_default()
+        param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
+
+        atom_types_by_name = {at.name: at for at in param_db.chemical.atom_types}
+        if "Ohx" in atom_types_by_name:
+            ohx = atom_types_by_name["Ohx"]
+            assert ohx.is_acceptor, "Ohx should be an acceptor"
+            assert ohx.is_donor, "Ohx should be a donor"
+        if "HN" in atom_types_by_name:
+            hn = atom_types_by_name["HN"]
+            assert hn.is_polarh, "HN should be polar hydrogen"
+
+    def test_ljlk_halogen_params_exist(self):
+        """All halogen types (aromatic and non-aromatic) have LJLK params."""
+        from tmol.database import ParameterDatabase
+
+        param_db = ParameterDatabase.get_default()
+        ljlk_names = {p.name for p in param_db.scoring.ljlk.atom_type_parameters}
+        for halogen in ["F", "Cl", "Br", "I", "FR", "ClR", "BrR", "IR"]:
+            assert halogen in ljlk_names, f"Missing LJLK params for {halogen}"
+
+    def test_remove_residue_scoring_params(self, cif_184l_with_i4b):
+        """add/remove API works correctly."""
+        from tmol.database import ParameterDatabase
+
+        param_db = ParameterDatabase.get_default()
+        param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
+
+        assert "I4B" in param_db.scoring.cartbonded.residue_params
+        i4b_charges = [
+            p for p in param_db.scoring.elec.atom_charge_parameters if p.res == "I4B"
+        ]
+        assert len(i4b_charges) > 0
+
+        param_db.remove_residue_scoring_params("I4B")
+
+        assert "I4B" not in param_db.scoring.cartbonded.residue_params
+        i4b_charges_after = [
+            p for p in param_db.scoring.elec.atom_charge_parameters if p.res == "I4B"
+        ]
+        assert len(i4b_charges_after) == 0
 
 
 class TestPoseStackWithLigand:
@@ -121,17 +198,19 @@ class TestPoseStackWithLigand:
     def _score_cif_with_ligand(atom_array, torch_device):
         import torch
 
+        from tmol.database import ParameterDatabase
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
         from tmol.score import beta2016_score_function
 
+        param_db = ParameterDatabase.get_default()
         pose_stack = pose_stack_from_biotite(
-            atom_array, torch_device, prepare_ligands=True
+            atom_array, torch_device, prepare_ligands=True, param_db=param_db
         )
         assert pose_stack.coords.shape[0] >= 1
         nonzero_coords = pose_stack.coords[pose_stack.coords != 0]
         assert not torch.any(torch.isnan(nonzero_coords))
 
-        sfxn = beta2016_score_function(torch_device)
+        sfxn = beta2016_score_function(torch_device, param_db=param_db)
         scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
         scores = scorer.unweighted_scores(pose_stack.coords)
 
@@ -151,10 +230,12 @@ class TestPoseStackWithLigand:
         """
         import torch
 
+        from tmol.database import ParameterDatabase
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
 
+        param_db = ParameterDatabase.get_default()
         pose_stack = pose_stack_from_biotite(
-            cif_155c_with_hem, torch_device, prepare_ligands=True
+            cif_155c_with_hem, torch_device, prepare_ligands=True, param_db=param_db
         )
         assert pose_stack.coords.shape[0] >= 1
         nonzero_coords = pose_stack.coords[pose_stack.coords != 0]

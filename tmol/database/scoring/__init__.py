@@ -12,7 +12,7 @@ from .rama import RamaDatabase
 from .ref import RefDatabase
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(auto_attribs=True, slots=True)
 class ScoringDatabase:
     cartbonded: CartBondedDatabase
     disulfide: DisulfideDatabase

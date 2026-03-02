@@ -1,9 +1,11 @@
 import os
 import attr
-from typing import List
+from typing import List, Optional
 
 from .chemical import ChemicalDatabase
 from .scoring import ScoringDatabase
+from .scoring.elec import PartialCharges
+from .scoring.cartbonded import CartRes
 
 # maybe this should live in the database?
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
@@ -26,6 +28,44 @@ class ParameterDatabase:
 
     scoring: ScoringDatabase = attr.ib()
     chemical: PatchedChemicalDatabase = attr.ib()
+
+    def add_residue_scoring_params(
+        self,
+        res_name: str,
+        partial_charges: Optional[dict[str, float]] = None,
+        cartbonded_params: Optional[CartRes] = None,
+    ):
+        """Add temporary scoring parameters for a residue type.
+
+        Routes to the appropriate sub-databases internally.
+        For permanent additions, edit the YAML files in tmol/database/default/scoring/.
+
+        Args:
+            res_name: Residue name (e.g. "I4B", "ATP").
+            partial_charges: Per-atom partial charges {atom_name: charge}.
+            cartbonded_params: CartRes with bond lengths, angles, and impropers.
+        """
+        if partial_charges is not None:
+            new_entries = tuple(
+                PartialCharges(res=res_name, atom=atom, charge=charge)
+                for atom, charge in partial_charges.items()
+            )
+            self.scoring.elec.atom_charge_parameters = (
+                self.scoring.elec.atom_charge_parameters + new_entries
+            )
+        if cartbonded_params is not None:
+            self.scoring.cartbonded.residue_params[res_name] = cartbonded_params
+
+    def remove_residue_scoring_params(self, res_name: str):
+        """Remove all temporary scoring parameters for a residue type.
+
+        Args:
+            res_name: Residue name to remove.
+        """
+        self.scoring.elec.atom_charge_parameters = tuple(
+            p for p in self.scoring.elec.atom_charge_parameters if p.res != res_name
+        )
+        self.scoring.cartbonded.residue_params.pop(res_name, None)
 
     @classmethod
     def from_file(cls, path):

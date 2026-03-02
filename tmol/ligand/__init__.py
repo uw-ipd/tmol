@@ -3,15 +3,15 @@
 Detects non-standard residues in biotite AtomArrays, builds SMILES
 representations, protonates them at a target pH, generates 3D structures
 with MMFF94 partial charges, assigns Rosetta-compatible atom types, and
-registers the resulting residue types in tmol's ChemicalDatabase for
+registers the resulting residue types in tmol's ParameterDatabase for
 transparent loading via PoseStack.
 
 Typical usage::
 
     from tmol.ligand import prepare_ligands
 
-    chem_db, co = prepare_ligands(atom_array)
-    # Now use chem_db and co to build a PoseStack that includes ligands.
+    param_db, co = prepare_ligands(atom_array)
+    # param_db now contains chemical + scoring data for all ligands.
 """
 
 import logging
@@ -19,13 +19,15 @@ from typing import Optional
 
 import biotite.structure as struc
 
-from tmol.database.chemical import ChemicalDatabase, RawResidueType
+from tmol.database import ParameterDatabase
+from tmol.database.chemical import RawResidueType
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.ligand.atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand.detect import LigandInfo, detect_nonstandard_residues
 from tmol.ligand.graph_match import match_heavy_atoms
 from tmol.ligand.mol3d import get_partial_charges, smiles_to_obmol
 from tmol.ligand.registry import (
+    get_cached_charges,
     get_cached_ligand,
     rebuild_canonical_ordering,
     register_ligand,
@@ -134,41 +136,36 @@ def prepare_single_ligand(
 
 def prepare_ligands(
     atom_array: struc.AtomArray,
-    chem_db: Optional[ChemicalDatabase] = None,
-    canonical_ordering: Optional[CanonicalOrdering] = None,
+    param_db: Optional[ParameterDatabase] = None,
     ph: float = 7.4,
-) -> tuple[ChemicalDatabase, CanonicalOrdering]:
+) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Detect, prepare, and register all non-standard residues.
 
-    Scans the input AtomArray for residues not in the ChemicalDatabase,
+    Scans the input AtomArray for residues not in the ParameterDatabase,
     runs each through the ligand preparation pipeline (SMILES perception,
     protonation, 3D generation, atom typing, residue building), and
-    registers them in the database.
+    registers them — extending both the chemical and scoring databases.
 
     Args:
         atom_array: A biotite AtomArray from a CIF or PDB file.
-        chem_db: The ChemicalDatabase to extend. If None, the default
-            database is loaded.
-        canonical_ordering: The current CanonicalOrdering. If None, a
-            default ordering is built from chem_db.
+        param_db: The ParameterDatabase to extend. If None, the default
+            database is loaded. Mutated in place.
         ph: Target pH for ligand protonation.
 
     Returns:
-        A (ChemicalDatabase, CanonicalOrdering) tuple with all detected
-        ligands registered. If no ligands are found, the inputs are
-        returned unchanged.
+        A (ParameterDatabase, CanonicalOrdering) tuple with all detected
+        ligands registered.
     """
-    if chem_db is None:
-        chem_db = ChemicalDatabase.get_default()
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
 
-    if canonical_ordering is None:
-        canonical_ordering = rebuild_canonical_ordering(chem_db)
+    canonical_ordering = rebuild_canonical_ordering(param_db)
 
     ligands = detect_nonstandard_residues(atom_array, canonical_ordering)
 
     if not ligands:
         logger.info("No non-standard residues detected")
-        return chem_db, canonical_ordering
+        return param_db, canonical_ordering
 
     logger.info("Found %d non-standard residue type(s) to prepare", len(ligands))
 
@@ -177,7 +174,9 @@ def prepare_ligands(
         cached = get_cached_ligand(lig.res_name)
         if cached is not None:
             logger.info("Using cached preparation for %s", lig.res_name)
-            chem_db = register_ligand(chem_db, cached)
+            register_ligand(
+                param_db, cached, partial_charges=get_cached_charges(lig.res_name)
+            )
             modified = True
             continue
 
@@ -189,10 +188,10 @@ def prepare_ligands(
         )
 
         restype, charges = prepare_single_ligand(lig, ph=ph)
-        chem_db = register_ligand(chem_db, restype)
+        register_ligand(param_db, restype, partial_charges=charges)
         modified = True
 
     if modified:
-        canonical_ordering = rebuild_canonical_ordering(chem_db)
+        canonical_ordering = rebuild_canonical_ordering(param_db)
 
-    return chem_db, canonical_ordering
+    return param_db, canonical_ordering
