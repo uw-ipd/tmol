@@ -8,10 +8,10 @@ import logging
 import math
 from typing import Optional
 
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import (
     AtomType,
-    ChemicalDatabase,
     RawResidueType,
 )
 from tmol.database.scoring.cartbonded import (
@@ -142,7 +142,7 @@ def _build_cartbonded_params(residue_type: RawResidueType) -> CartRes:
 
 
 def _collect_new_atom_types(
-    chem_db: ChemicalDatabase,
+    chem_db: PatchedChemicalDatabase,
     residue_type: RawResidueType,
 ) -> list[AtomType]:
     """Identify atom types used by the residue that aren't in the database.
@@ -193,8 +193,6 @@ def register_ligand(
         residue_type: The ligand RawResidueType to register.
         partial_charges: Optional per-atom partial charges {atom_name: charge}.
     """
-    from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-
     chem_db = param_db.chemical
 
     existing_names = {r.name for r in chem_db.residues}
@@ -219,13 +217,7 @@ def register_ligand(
         len(residue_type.bonds),
     )
 
-    new_chem_db = ChemicalDatabase(
-        element_types=chem_db.element_types,
-        atom_types=chem_db.atom_types + tuple(new_atom_types),
-        residues=chem_db.residues + (residue_type,),
-        variants=chem_db.variants,
-    )
-    param_db.chemical = PatchedChemicalDatabase.from_chem_db(new_chem_db)
+    param_db.add_residue_type(residue_type, new_atom_types=new_atom_types or None)
 
     cart_res = _build_cartbonded_params(residue_type)
     param_db.add_residue_scoring_params(

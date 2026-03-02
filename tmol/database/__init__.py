@@ -2,7 +2,7 @@ import os
 import attr
 from typing import List, Optional
 
-from .chemical import ChemicalDatabase
+from .chemical import AtomType, ChemicalDatabase, RawResidueType
 from .scoring import ScoringDatabase
 from .scoring.elec import PartialCharges
 from .scoring.cartbonded import CartRes
@@ -66,6 +66,31 @@ class ParameterDatabase:
             p for p in self.scoring.elec.atom_charge_parameters if p.res != res_name
         )
         self.scoring.cartbonded.residue_params.pop(res_name, None)
+
+    def add_residue_type(
+        self,
+        residue_type: RawResidueType,
+        new_atom_types: Optional[list[AtomType]] = None,
+    ):
+        """Add a residue type to the chemical database.
+
+        Args:
+            residue_type: The RawResidueType to add.
+            new_atom_types: Optional list of new AtomType entries to register.
+        """
+        if new_atom_types:
+            self.chemical.atom_types = (*self.chemical.atom_types, *new_atom_types)
+        self.chemical.residues = [*self.chemical.residues, residue_type]
+
+    def remove_residue_type(self, res_name: str):
+        """Remove a residue type from the chemical database.
+
+        Args:
+            res_name: Residue name to remove.
+        """
+        self.chemical.residues = [
+            r for r in self.chemical.residues if r.name != res_name
+        ]
 
     @classmethod
     def from_file(cls, path):
