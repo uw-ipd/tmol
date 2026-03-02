@@ -78,9 +78,9 @@ jobs:
           # Install X11 libs needed by openbabel-wheel format plugins.
           # Extract to persistent /ci-pip-pkgs/syslibs so it's cached across runs.
           SYSLIBS=/ci-pip-pkgs/syslibs
-          if [ ! -f "$SYSLIBS/libXext.so.6" ]; then
-            rm -rf "$SYSLIBS"
-            mkdir -p "$SYSLIBS"
+          if [ ! -f "$SYSLIBS/libXau.so.6" ]; then
+            rm -rf "$SYSLIBS" /tmp/syslibs
+            mkdir -p "$SYSLIBS" /tmp/syslibs
             MIRROR="http://mirrors.ipd.uw.edu/ubuntu/pool/main"
             for pkg in \
               "libx/libxrender/libxrender1_0.9.10-1.1build1_amd64.deb" \
@@ -90,10 +90,11 @@ jobs:
               "libx/libxau/libxau6_1.0.11-1build1_amd64.deb" \
               "libx/libxdmcp/libxdmcp6_1.1.4-1build1_amd64.deb"; do
               DEB="/tmp/$(basename $pkg)"
-              curl -sL -o "$DEB" "$MIRROR/$pkg" \
-                && dpkg-deb -x "$DEB" /tmp/syslibs 2>/dev/null || true
+              curl -sL -o "$DEB" "$MIRROR/$pkg" 2>/dev/null
+              dpkg-deb -x "$DEB" /tmp/syslibs 2>/dev/null || true
             done
-            cp /tmp/syslibs/usr/lib/x86_64-linux-gnu/lib*.so* "$SYSLIBS/" 2>/dev/null || true
+            find /tmp/syslibs -name 'lib*.so*' -exec cp {} "$SYSLIBS/" \;
+            echo "=== Installed syslibs ===" && ls -la "$SYSLIBS/"
           fi
           export LD_LIBRARY_PATH="$SYSLIBS:${LD_LIBRARY_PATH:-}"
 
