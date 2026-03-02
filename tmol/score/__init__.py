@@ -41,15 +41,24 @@ def _non_memoized_beta2016(
 
 
 @toolz.functoolz.memoize
+def _memoized_beta2016(device: torch.device):
+    return _non_memoized_beta2016(device, None)
+
+
 def beta2016_score_function(
     device: torch.device, param_db: Optional[ParameterDatabase] = None
 ):
     """Return a ScoreFunction implementing the beta_nov2016 score function
     of Rosetta3.
 
+    When param_db is None, returns a memoized instance using the default
+    ParameterDatabase. When param_db is provided, creates a fresh
+    ScoreFunction (no memoization — the caller owns the ParameterDatabase).
+
     See:
     https://pubs.acs.org/doi/10.1021/acs.jctc.6b0081 and
     https://pubs.acs.org/doi/full/10.1021/acs.jctc.7b00125
     """
-
-    return _non_memoized_beta2016(device, param_db)
+    if param_db is not None:
+        return _non_memoized_beta2016(device, param_db)
+    return _memoized_beta2016(device)
