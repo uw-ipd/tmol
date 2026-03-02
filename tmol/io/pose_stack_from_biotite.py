@@ -128,27 +128,20 @@ def biotite_from_pose_stack(
     return biotite_from_canonical_form(cf)
 
 
-def _map_atoms_to_canonical(
-    co, connect, chain_ids_for_res, atom_res_inds, res_names, atom_names
-):
+def _map_atoms_to_canonical(co, connect, atom_res_inds, res_names, atom_names):
     """Map Biotite atom names to canonical ordering indices.
 
     Suppresses atoms that conflict with block type resolution:
     - "H" on N-terminal residues (CIF amide H vs tmol's H1/H2/H3)
     - "OXT" on non-C-terminal residues (CIF chain-break OXT)
 
+    The ``connect`` array must already incorporate chain boundaries
+    (see ``canonical_form_from_biotite``).
+
     Returns (valid_atom_mask, valid_atom_inds, valid_res_inds).
     """
-    is_nterm_res = ~connect[:, 0]
-    is_cterm_res = ~connect[:, 1]
-
-    if len(chain_ids_for_res) > 1:
-        chain_breaks = chain_ids_for_res[1:] != chain_ids_for_res[:-1]
-        is_nterm_res[1:] |= chain_breaks
-        is_cterm_res[:-1] |= chain_breaks
-
-    is_nterm_atom = is_nterm_res[atom_res_inds]
-    is_cterm_atom = is_cterm_res[atom_res_inds]
+    is_nterm_atom = ~connect[atom_res_inds, 0]
+    is_cterm_atom = ~connect[atom_res_inds, 1]
 
     atom_inds = []
     valid = []
@@ -253,26 +246,12 @@ def canonical_form_from_biotite(
     upper = upper[valid_res]
 
     connect = numpy.column_stack((lower, upper))
-    with numpy.printoptions(threshold=999999):
-        pass
-        # print(lower)
-        # print(upper)
-        # print(connect)
-        # print(valid_atoms)
-    res_not_connected = torch.tensor(
-        connect, dtype=torch.bool, device=torch_device
-    ).unsqueeze(
-        0
-    )  # TODO:
 
-    # print(valid_atoms)
     biotite_structure = biotite_structure[valid_atoms]
-    # print(biotite_structure)
 
     # ========================================
     # 1. Determine structure dimensions and setup
     # ========================================
-    # Determine number of poses (1 for AtomArray, multiple for AtomArrayStack)
     device = torch_device
     n_poses = 1
     if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
@@ -281,11 +260,21 @@ def canonical_form_from_biotite(
     # ========================================
     # 2. Extract residue-level metadata
     # ========================================
-    # Extract residue-level metadata from Biotite structure
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
     biotite_chain_id_for_res = biotite.structure.chains.get_all_chain_positions(
         biotite_structure
     )[biotite_residue_starts]
+
+    # Incorporate chain boundaries into connectivity: residues on different
+    # chains are not bonded even if they're adjacent in the filtered array.
+    if len(biotite_chain_id_for_res) > 1:
+        chain_breaks = biotite_chain_id_for_res[1:] != biotite_chain_id_for_res[:-1]
+        connect[1:, 0] &= ~chain_breaks  # not connected to previous
+        connect[:-1, 1] &= ~chain_breaks  # not connected to next
+
+    res_not_connected = torch.tensor(
+        connect, dtype=torch.bool, device=torch_device
+    ).unsqueeze(0)
     biotite_chain_labels = biotite_structure.chain_id[biotite_residue_starts]
     biotite_insertion_codes = biotite_structure.ins_code[biotite_residue_starts]
 
@@ -313,12 +302,7 @@ def canonical_form_from_biotite(
     ]
 
     valid_atom_mask, valid_atom_inds, valid_res_inds = _map_atoms_to_canonical(
-        co,
-        connect,
-        biotite_chain_id_for_res,
-        atom_res_inds,
-        biotite_res_name_for_atom,
-        biotite_name_for_atom,
+        co, connect, atom_res_inds, biotite_res_name_for_atom, biotite_name_for_atom
     )
 
     # ========================================
