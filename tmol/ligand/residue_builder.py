@@ -216,6 +216,7 @@ def build_residue_type(
     obmol: openbabel.OBMol,
     res_name: str,
     atom_types: list[AtomTypeAssignment],
+    atom_aliases: tuple = (),
 ) -> RawResidueType:
     """Build a complete RawResidueType from an OBMol.
 
@@ -226,6 +227,7 @@ def build_residue_type(
         obmol: An OpenBabel OBMol with 3D coordinates and bonds.
         res_name: Three-letter residue name (e.g. "LG1", "ATP").
         atom_types: Atom type assignments from assign_tmol_atom_types().
+        atom_aliases: Optional tuple of AtomAlias for CIF name mapping.
 
     Returns:
         A fully populated RawResidueType.
@@ -271,7 +273,7 @@ def build_residue_type(
         name3=res_name,
         io_equiv_class=res_name,
         atoms=atoms,
-        atom_aliases=(),
+        atom_aliases=atom_aliases,
         bonds=tuple(bonds),
         connections=(),
         torsions=(),

@@ -19,10 +19,11 @@ from typing import Optional
 
 import biotite.structure as struc
 
-from tmol.database.chemical import ChemicalDatabase, RawResidueType
+from tmol.database.chemical import AtomAlias, ChemicalDatabase, RawResidueType
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.ligand.atom_typing import assign_tmol_atom_types
 from tmol.ligand.detect import LigandInfo, detect_nonstandard_residues
+from tmol.ligand.graph_match import match_heavy_atoms
 from tmol.ligand.mol3d import get_partial_charges, smiles_to_obmol
 from tmol.ligand.registry import (
     get_cached_ligand,
@@ -30,9 +31,77 @@ from tmol.ligand.registry import (
     register_ligand,
 )
 from tmol.ligand.residue_builder import build_residue_type
-from tmol.ligand.smiles import perceive_smiles, protonate_ligand_smiles
+from tmol.ligand.smiles import (
+    _import_pybel,
+    perceive_smiles,
+    protonate_ligand_smiles,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _build_cif_obmol(ligand_info: LigandInfo):
+    """Build an OBMol from CIF atom names, elements, and coordinates."""
+    openbabel, _ = _import_pybel()
+    from tmol.ligand.smiles import _ELEMENT_TO_ATOMIC_NUM
+
+    obmol = openbabel.OBMol()
+    obmol.BeginModify()
+    for elem, coord in zip(ligand_info.elements, ligand_info.coords):
+        obatom = obmol.NewAtom()
+        atomic_num = _ELEMENT_TO_ATOMIC_NUM.get(elem.strip(), 0)
+        if atomic_num == 0:
+            atomic_num = openbabel.GetAtomicNum(elem.strip())
+        obatom.SetAtomicNum(atomic_num)
+        obatom.SetVector(float(coord[0]), float(coord[1]), float(coord[2]))
+    obmol.EndModify()
+    obmol.ConnectTheDots()
+    obmol.PerceiveBondOrders()
+    return obmol
+
+
+def _build_atom_aliases(
+    pipeline_obmol,
+    atom_types: list,
+    ligand_info: LigandInfo,
+) -> tuple[AtomAlias, ...]:
+    """Build atom aliases mapping CIF atom names to pipeline atom names.
+
+    Uses graph isomorphism to match heavy atoms between the pipeline
+    OBMol and the CIF OBMol, then creates AtomAlias entries for each
+    heavy atom whose CIF name differs from the pipeline name.
+    """
+    cif_obmol = _build_cif_obmol(ligand_info)
+
+    try:
+        idx_mapping = match_heavy_atoms(pipeline_obmol, cif_obmol)
+    except ValueError:
+        logger.warning(
+            "Could not match CIF atoms for %s, skipping aliases",
+            ligand_info.res_name,
+        )
+        return ()
+
+    pipeline_idx_to_name = {a.index: a.atom_name for a in atom_types}
+
+    # CIF OBMol atoms are in the same order as ligand_info.atom_names
+    cif_idx_to_name = {}
+    cif_i = 0
+    from openbabel import openbabel
+
+    for obatom in openbabel.OBMolAtomIter(cif_obmol):
+        if cif_i < len(ligand_info.atom_names):
+            cif_idx_to_name[obatom.GetIndex()] = ligand_info.atom_names[cif_i]
+        cif_i += 1
+
+    aliases = []
+    for pipeline_idx, cif_idx in idx_mapping.items():
+        pipeline_name = pipeline_idx_to_name.get(pipeline_idx)
+        cif_name = cif_idx_to_name.get(cif_idx)
+        if pipeline_name and cif_name and pipeline_name != cif_name:
+            aliases.append(AtomAlias(name=pipeline_name, alt_name=cif_name))
+
+    return tuple(aliases)
 
 
 def prepare_single_ligand(
@@ -53,7 +122,15 @@ def prepare_single_ligand(
     mol = smiles_to_obmol(protonated)
     atom_types = assign_tmol_atom_types(mol.OBMol)
     charges = get_partial_charges(mol)
-    restype = build_residue_type(mol.OBMol, ligand_info.res_name, atom_types)
+
+    aliases = _build_atom_aliases(mol.OBMol, atom_types, ligand_info)
+
+    restype = build_residue_type(
+        mol.OBMol,
+        ligand_info.res_name,
+        atom_types,
+        atom_aliases=aliases,
+    )
     return restype, charges
 
 
