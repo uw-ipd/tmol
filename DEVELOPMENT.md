@@ -152,6 +152,24 @@ apptainer build tmol-dev.sif containers/apptainer/tmol-dev.def
 apptainer run --nv --bind $(pwd):/tmol_host tmol-dev.sif
 ```
 
+### OpenBabel / X11 troubleshooting
+
+`openbabel-wheel` requires X11 shared libraries (`libXrender`, `libXext`) at runtime.
+If you see errors like `ImportError: libXrender.so.1: cannot open shared object file`, the
+container is missing these libraries.
+
+**Install X11 libs at runtime:**
+```bash
+apt-get update -qq && apt-get install -y -qq --no-install-recommends libxrender1 libxext6
+```
+
+**Verifying openbabel works:**
+
+```bash
+python3 -c "from openbabel import pybel; print('openbabel OK:', pybel.readstring('smi', 'CCO').formula)"
+# Expected output: openbabel OK: C2H6O
+```
+
 ## CI Pipeline
 
 tmol uses GitHub Actions for all CI:
