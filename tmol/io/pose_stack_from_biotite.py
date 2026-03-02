@@ -247,7 +247,10 @@ def canonical_form_from_biotite(
 
     connect = numpy.column_stack((lower, upper))
 
-    biotite_structure = biotite_structure[valid_atoms]
+    if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
+        biotite_structure = biotite_structure[:, valid_atoms]
+    else:
+        biotite_structure = biotite_structure[valid_atoms]
 
     # ========================================
     # 1. Determine structure dimensions and setup
@@ -272,7 +275,7 @@ def canonical_form_from_biotite(
         connect[1:, 0] &= ~chain_breaks  # not connected to previous
         connect[:-1, 1] &= ~chain_breaks  # not connected to next
 
-    res_not_connected = torch.tensor(
+    res_not_connected_1 = torch.tensor(
         connect, dtype=torch.bool, device=torch_device
     ).unsqueeze(0)
     biotite_chain_labels = biotite_structure.chain_id[biotite_residue_starts]
@@ -373,6 +376,7 @@ def canonical_form_from_biotite(
         .unsqueeze(0)
         .repeat(n_poses, 1)
     )
+    res_not_connected = res_not_connected_1.repeat(n_poses, 1, 1)
 
     # ========================================
     # 8. Return CanonicalForm with all converted data
@@ -386,7 +390,7 @@ def canonical_form_from_biotite(
         residue_insertion_codes=biotite_insertion_codes.astype(object),
         atom_occupancy=biotite_occupancy,
         atom_b_factor=biotite_b_factors,
-        disulfides=None,  # TODO: Not handled in this conversion
+        disulfides=None,
         res_not_connected=res_not_connected,
     )
 
@@ -502,56 +506,66 @@ def biotite_from_canonical_form(
             "Only coordinate differences are allowed for multi-pose conversion."
         )
 
-    poses = []
-    pose_id = 0  # Use first pose as template
+    # For multi-pose (NMR) structures, all poses must have the same atom
+    # annotations. Use the union of non-NaN atoms across all poses to build
+    # a consistent atom list; missing atoms in individual poses get NaN coords.
+    atom_mask = torch.any(~torch.isnan(cf.coords[:, :, :, 0]), dim=0)
 
-    for pose_id in range(n_poses):
-        pose_atoms = []
-        poses.append(pose_atoms)
-        for res_id in range(n_residues):
-            chain_label = cf.chain_labels[pose_id, res_id]
-            res_label = cf.res_labels[pose_id, res_id]
-            res_type_id = cf.res_types[pose_id, res_id].cpu()
+    template_atoms = []
+    atom_indices = []
+    for res_id in range(n_residues):
+        chain_label = cf.chain_labels[0, res_id]
+        res_label = cf.res_labels[0, res_id]
+        res_type_id = cf.res_types[0, res_id].cpu()
 
-            res_name = co.restype_io_equiv_classes[res_type_id]
-            atom_names = co.restypes_ordered_atom_names[res_name]
+        res_name = co.restype_io_equiv_classes[res_type_id]
+        atom_name_list = co.restypes_ordered_atom_names[res_name]
 
-            for atom_id in range(max_atoms):
-                if atom_id >= len(atom_names):
-                    continue
+        for atom_id in range(min(max_atoms, len(atom_name_list))):
+            if not atom_mask[res_id, atom_id]:
+                continue
 
-                atom_name = atom_names[atom_id]
-                atom_element = get_element_from_atom_name(atom_name)
-
-                coords = cf.coords[pose_id, res_id, atom_id].cpu()
-                if torch.isnan(coords).any():
-                    continue
-
-                pose_atoms.append(
-                    struc.Atom(
-                        coords,
-                        chain_id=chain_label,
-                        res_id=res_label,
-                        res_name=res_name,
-                        atom_name=atom_name,
-                        element=atom_element,
-                        b_factor=(
-                            cf.atom_b_factor[pose_id, res_id, atom_id]
-                            if cf.atom_b_factor is not None
-                            else None
-                        ),
-                        occupancy=(
-                            cf.atom_occupancy[pose_id, res_id, atom_id]
-                            if cf.atom_occupancy is not None
-                            else None
-                        ),
-                    )
+            atom_name = atom_name_list[atom_id]
+            template_atoms.append(
+                struc.Atom(
+                    [0.0, 0.0, 0.0],
+                    chain_id=chain_label,
+                    res_id=res_label,
+                    res_name=res_name,
+                    atom_name=atom_name,
+                    element=get_element_from_atom_name(atom_name),
+                    b_factor=(
+                        cf.atom_b_factor[0, res_id, atom_id]
+                        if cf.atom_b_factor is not None
+                        else None
+                    ),
+                    occupancy=(
+                        cf.atom_occupancy[0, res_id, atom_id]
+                        if cf.atom_occupancy is not None
+                        else None
+                    ),
                 )
+            )
+            atom_indices.append((res_id, atom_id))
 
-    if n_poses > 1:
-        return struc.stack(poses)
-    else:
-        return struc.array(poses[0])
+    template = struc.array(template_atoms)
+
+    if n_poses == 1:
+        for i, (res_id, atom_id) in enumerate(atom_indices):
+            template.coord[i] = cf.coords[0, res_id, atom_id].cpu().numpy()
+        return template
+
+    poses = []
+    for pose_id in range(n_poses):
+        arr = template.copy()
+        for i, (res_id, atom_id) in enumerate(atom_indices):
+            c = cf.coords[pose_id, res_id, atom_id].cpu()
+            if torch.isnan(c).any():
+                arr.coord[i] = [float("nan")] * 3
+            else:
+                arr.coord[i] = c.numpy()
+        poses.append(arr)
+    return struc.stack(poses)
 
 
 @validate_args

@@ -29,18 +29,23 @@ from tmol.ligand.atom_typing import AtomTypeAssignment
 logger = logging.getLogger(__name__)
 
 
-def _find_nbr_atom(obmol: openbabel.OBMol) -> int:
+def _find_nbr_atom(obmol: openbabel.OBMol, skip_indices=None) -> int:
     """Find the neighbor atom (root) for the atom tree.
 
     Selects the heavy atom closest to the center of mass that has
-    at least 2 bonds, avoiding hydrogens and terminal atoms.
+    at least 2 bonds, avoiding hydrogens, terminal atoms, and any
+    indices in ``skip_indices``.
 
     Args:
         obmol: An OBMol with 3D coordinates.
+        skip_indices: Optional set of 0-based atom indices to exclude.
 
     Returns:
         0-based atom index for the NBR atom.
     """
+    if skip_indices is None:
+        skip_indices = set()
+
     n_atoms = obmol.NumAtoms()
     coords = np.zeros((n_atoms, 3))
     for obatom in openbabel.OBMolAtomIter(obmol):
@@ -55,6 +60,8 @@ def _find_nbr_atom(obmol: openbabel.OBMol) -> int:
 
     for obatom in openbabel.OBMolAtomIter(obmol):
         idx = obatom.GetIndex()
+        if idx in skip_indices:
+            continue
         if obatom.GetAtomicNum() == 1:
             continue
         if obatom.GetTotalDegree() < 2:
@@ -223,6 +230,9 @@ def build_residue_type(
     Constructs atoms, bonds, internal coordinates, and non-polymer
     properties suitable for registration in tmol's ChemicalDatabase.
 
+    Atoms with unknown elements (atomic number 0, e.g. metals that
+    lost identity during SMILES roundtrip) are silently dropped.
+
     Args:
         obmol: An OpenBabel OBMol with 3D coordinates and bonds.
         res_name: Three-letter residue name (e.g. "LG1", "ATP").
@@ -232,8 +242,21 @@ def build_residue_type(
     Returns:
         A fully populated RawResidueType.
     """
+    dropped = [at for at in atom_types if at.element == "*"]
+    if dropped:
+        logger.warning(
+            "%s: dropping %d atom(s) with unknown element: %s",
+            res_name,
+            len(dropped),
+            ", ".join(at.atom_name for at in dropped),
+        )
+        keep_indices = {at.index for at in atom_types if at.element != "*"}
+        atom_types = [at for at in atom_types if at.element != "*"]
+    else:
+        keep_indices = None
+
     idx_to_name = {at.index: at.atom_name for at in atom_types}
-    atom_names = [idx_to_name[i] for i in range(obmol.NumAtoms())]
+    atom_names = [idx_to_name.get(i) for i in range(obmol.NumAtoms())]
 
     atoms = tuple(Atom(name=at.atom_name, atom_type=at.atom_type) for at in atom_types)
 
@@ -241,10 +264,29 @@ def build_residue_type(
     for obbond in openbabel.OBMolBondIter(obmol):
         a = obbond.GetBeginAtomIdx() - 1
         b = obbond.GetEndAtomIdx() - 1
+        if atom_names[a] is None or atom_names[b] is None:
+            continue
         bonds.append((atom_names[a], atom_names[b]))
 
-    nbr_idx = _find_nbr_atom(obmol)
+    nbr_idx = _find_nbr_atom(
+        obmol,
+        skip_indices=keep_indices and (set(range(obmol.NumAtoms())) - keep_indices),
+    )
     order, parent, grandparents = _build_atom_tree(obmol, nbr_idx)
+    if keep_indices is not None:
+        order = [i for i in order if i in keep_indices]
+
+    valid_set = set(order)
+    for idx in order:
+        if parent[idx] not in valid_set:
+            parent[idx] = idx
+        gp, ggp = grandparents[idx]
+        if gp not in valid_set:
+            gp = parent[idx]
+        if ggp not in valid_set:
+            ggp = gp
+        grandparents[idx] = (gp, ggp)
+
     icoors = _compute_icoors(obmol, order, parent, grandparents, atom_names)
 
     properties = ChemicalProperties(
