@@ -1,9 +1,10 @@
 repos:
-  - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v21.1.8
+  - repo: local
     hooks:
       - id: clang-format
-        args: ['-i']
+        name: clang-format
+        entry: clang-format -i
+        language: system
         files: \.(c|cc|cpp|h|hh|cu|cuh)$
         exclude: >
             (?x)^(

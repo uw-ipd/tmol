@@ -121,12 +121,12 @@ jobs:
 
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
-          CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
+          CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -p instafail -s -v --tb=short --durations=25 \
             --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda" || true
 
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
-          pytest -p no:rerunfailures -s -v --durations=25 --cov=./tmol \
+          pytest -p no:rerunfailures -p instafail -s -v --tb=short --durations=25 --cov=./tmol \
             --junitxml=testing.cuda.junit.xml -k "cuda" || true
 
           # ── Benchmark ──────────────────────────────────────────────────
@@ -151,7 +151,7 @@ jobs:
           export TORCH_EXTENSIONS_DIR=/ci-pip-pkgs/torch_extensions
           echo "JIT compiling for TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}"
 
-          pytest -p no:rerunfailures -s -v --durations=25 --cov=./tmol \
+          pytest -p no:rerunfailures -p instafail -s -v --tb=short --durations=25 --cov=./tmol \
             --junitxml=testing.cuda.jit.junit.xml -k "cuda" || true
 
           GPU_WORK

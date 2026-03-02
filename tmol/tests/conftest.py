@@ -24,6 +24,7 @@ from .data import (  # noqa: F401
     biotite_1ubq,
     biotite_1r21,
     biotite_1bl8,
+    biotite_4tlm,
     cif_184l_with_i4b,
     cif_155c_with_hem,
     cif_1a25_with_pse,

@@ -84,7 +84,14 @@ string(STRIP "${_TORCH_ARCH_STR}" _TORCH_ARCH_STR)
 set(ENV{TORCH_CUDA_ARCH_LIST} "${_TORCH_ARCH_STR}")
 message(STATUS "tmol: Setting TORCH_CUDA_ARCH_LIST=${_TORCH_ARCH_STR} for find_package(Torch)")
 
+# Temporarily unset CMAKE_CUDA_ARCHITECTURES so Caffe2's cuda.cmake doesn't
+# warn about ignoring it. We already saved the value in _TMOL_CUDA_ARCHITECTURES
+# and set TORCH_CUDA_ARCH_LIST, which is what Caffe2 actually uses.
+set(_SAVED_CMAKE_CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}")
+unset(CMAKE_CUDA_ARCHITECTURES)
+unset(CMAKE_CUDA_ARCHITECTURES CACHE)
 find_package(Torch REQUIRED)
+set(CMAKE_CUDA_ARCHITECTURES "${_SAVED_CMAKE_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures" FORCE)
 find_package(pybind11 CONFIG REQUIRED)
 
 # torch_python provides pybind11 type_casters for at::Tensor.

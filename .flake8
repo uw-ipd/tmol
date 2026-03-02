@@ -6,6 +6,8 @@ exclude=tmol/extern,.conda
 # http://pep8.readthedocs.io/en/latest/intro.html#error-codes
 # E203 - operator whitespace, error in pycodestyle
 #        https://github.com/PyCQA/pycodestyle/issues/373
+# E226 - missing whitespace around arithmetic operator (black-compatible)
+# E231 - missing whitespace after ',' (black-compatible, false positives in f-strings)
 # E266 - Comment leading '###'
 # E501 - line length, handled by B950
 # E503 - Break before binary operator
@@ -15,7 +17,7 @@ exclude=tmol/extern,.conda
 # B009 - getattr warning
 # B010 - setattr warning
 
-ignore = E203, E266, E501, E711, E741, W503, B902, B009, B010
+ignore = E203, E226, E231, E266, E501, E711, E741, W503, B902, B009, B010
 
 max-line-length = 80
 max-complexity = 18

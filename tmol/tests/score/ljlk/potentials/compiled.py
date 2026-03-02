@@ -1,6 +1,6 @@
 import torch
 
-from tmol.tests.score.ljlk.potentials._ext import (
+from tmol.tests.score.ljlk.potentials._ext import (  # noqa: F401
     lj_score_V,
     lj_score_V_dV,
     lk_isotropic_score_V,

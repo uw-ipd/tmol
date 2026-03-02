@@ -128,6 +128,50 @@ def biotite_from_pose_stack(
     return biotite_from_canonical_form(cf)
 
 
+def _map_atoms_to_canonical(
+    co, connect, chain_ids_for_res, atom_res_inds, res_names, atom_names
+):
+    """Map Biotite atom names to canonical ordering indices.
+
+    Suppresses atoms that conflict with block type resolution:
+    - "H" on N-terminal residues (CIF amide H vs tmol's H1/H2/H3)
+    - "OXT" on non-C-terminal residues (CIF chain-break OXT)
+
+    Returns (valid_atom_mask, valid_atom_inds, valid_res_inds).
+    """
+    is_nterm_res = ~connect[:, 0]
+    is_cterm_res = ~connect[:, 1]
+
+    if len(chain_ids_for_res) > 1:
+        chain_breaks = chain_ids_for_res[1:] != chain_ids_for_res[:-1]
+        is_nterm_res[1:] |= chain_breaks
+        is_cterm_res[:-1] |= chain_breaks
+
+    is_nterm_atom = is_nterm_res[atom_res_inds]
+    is_cterm_atom = is_cterm_res[atom_res_inds]
+
+    atom_inds = []
+    valid = []
+    for i, (resname, atname) in enumerate(zip(res_names, atom_names)):
+        mapping = co.restypes_atom_index_mapping.get(resname, {})
+        idx = mapping.get(atname, -1)
+        if idx >= 0:
+            if atname == "H" and is_nterm_atom[i]:
+                idx = -1
+            elif atname == "OXT" and not is_cterm_atom[i]:
+                idx = -1
+        atom_inds.append(idx)
+        valid.append(idx >= 0)
+
+    valid_atom_mask = numpy.array(valid)
+    atom_inds_arr = numpy.array(atom_inds)
+    return (
+        valid_atom_mask,
+        atom_inds_arr[valid_atom_mask],
+        atom_res_inds[valid_atom_mask],
+    )
+
+
 @validate_args
 def canonical_form_from_biotite(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
@@ -268,22 +312,14 @@ def canonical_form_from_biotite(
         co.restype_io_equiv_classes.index(i_3lc) for i_3lc in biotite_residues
     ]
 
-    # Map atom names to canonical atom indices for each residue type.
-    # Atoms whose names aren't in the canonical ordering (e.g. extra CIF
-    # atoms not produced by the ligand pipeline) are skipped and get NaN
-    # coordinates, matching the handling of missing atoms in standard residues.
-    atom_inds = []
-    valid_atom_mask = []
-    for resname, atname in zip(biotite_res_name_for_atom, biotite_name_for_atom):
-        mapping = co.restypes_atom_index_mapping.get(resname, {})
-        idx = mapping.get(atname, -1)
-        atom_inds.append(idx)
-        valid_atom_mask.append(idx >= 0)
-
-    valid_atom_mask = numpy.array(valid_atom_mask)
-    atom_inds_arr = numpy.array(atom_inds)
-    valid_atom_inds = atom_inds_arr[valid_atom_mask]
-    valid_res_inds = atom_res_inds[valid_atom_mask]
+    valid_atom_mask, valid_atom_inds, valid_res_inds = _map_atoms_to_canonical(
+        co,
+        connect,
+        biotite_chain_id_for_res,
+        atom_res_inds,
+        biotite_res_name_for_atom,
+        biotite_name_for_atom,
+    )
 
     # ========================================
     # 5. Initialize and populate coordinate tensor
