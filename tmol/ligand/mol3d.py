@@ -73,7 +73,7 @@ def get_partial_charges(mol) -> dict[str, float]:
     elem_counts: dict[str, int] = {}
 
     for atom in mol.atoms:
-        elem = openbabel.OBElements.GetSymbol(atom.atomicnum)
+        elem = openbabel.GetSymbol(atom.atomicnum)
         elem_counts[elem] = elem_counts.get(elem, 0) + 1
         name = f"{elem}{elem_counts[elem]}"
         charges[name] = atom.partialcharge

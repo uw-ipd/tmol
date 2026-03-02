@@ -30,12 +30,16 @@ class AtomTypeAssignment(NamedTuple):
     index: int
 
 
+def _is_hydrogen(obatom: openbabel.OBAtom) -> bool:
+    return obatom.GetAtomicNum() == 1
+
+
 def _count_heavy_neighbors(obatom: openbabel.OBAtom) -> int:
     """Count non-hydrogen neighbor atoms."""
     return sum(
         1
         for bond in openbabel.OBAtomBondIter(obatom)
-        if not bond.GetNbrAtom(obatom).IsHydrogen()
+        if not _is_hydrogen(bond.GetNbrAtom(obatom))
     )
 
 
@@ -44,7 +48,7 @@ def _count_h_neighbors(obatom: openbabel.OBAtom) -> int:
     return sum(
         1
         for bond in openbabel.OBAtomBondIter(obatom)
-        if bond.GetNbrAtom(obatom).IsHydrogen()
+        if _is_hydrogen(bond.GetNbrAtom(obatom))
     )
 
 
@@ -298,7 +302,7 @@ def assign_tmol_atom_types(
 
     for obatom in openbabel.OBMolAtomIter(obmol):
         atomic_num = obatom.GetAtomicNum()
-        elem = openbabel.OBElements.GetSymbol(atomic_num)
+        elem = openbabel.GetSymbol(atomic_num)
 
         if atomic_num == 1:
             atom_type = _assign_hydrogen_type(obatom)

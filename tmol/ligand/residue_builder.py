@@ -55,7 +55,7 @@ def _find_nbr_atom(obmol: openbabel.OBMol) -> int:
 
     for obatom in openbabel.OBMolAtomIter(obmol):
         idx = obatom.GetIndex()
-        if obatom.IsHydrogen():
+        if obatom.GetAtomicNum() == 1:
             continue
         if obatom.GetTotalDegree() < 2:
             continue

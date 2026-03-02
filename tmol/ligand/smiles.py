@@ -68,7 +68,7 @@ def perceive_smiles(ligand_info: LigandInfo) -> str:
         obatom = obmol.NewAtom()
         atomic_num = _ELEMENT_TO_ATOMIC_NUM.get(elem.strip(), 0)
         if atomic_num == 0:
-            atomic_num = openbabel.OBElements.GetAtomicNum(elem.strip())
+            atomic_num = openbabel.GetAtomicNum(elem.strip())
         obatom.SetAtomicNum(atomic_num)
         obatom.SetVector(float(coord[0]), float(coord[1]), float(coord[2]))
 

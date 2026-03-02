@@ -70,18 +70,15 @@ def test_pose_stack_from_biotite_4tlm_cif(biotite_4tlm, torch_device):
 
 def test_pose_stack_from_and_to_biotite_1ubq(biotite_1ubq, torch_device):
     pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
-    # print(pose_stack.coords[0,0:30])
     biotite_atom_array = biotite_from_pose_stack(pose_stack)
 
     file = PDBFile()
     file.set_structure(biotite_atom_array)
     file.write("test_out.pdb")
-    # print(biotite_atom_array)
 
 
 def test_pose_stack_from_and_to_biotite_multiple_poses(biotite_1r21, torch_device):
     pose_stack = pose_stack_from_biotite(biotite_1r21, torch_device=torch_device)
-    # print(pose_stack.coords[0,0:30])
     biotite_atom_array = biotite_from_pose_stack(pose_stack)
 
     file = PDBFile()
@@ -114,8 +111,6 @@ def test_pose_stack_from_biotite_missing_sidechain(biotite_1bl8, torch_device):
     biotite_atom_array = biotite_from_pose_stack(pose_stack)
     file = PDBFile()
     file.set_structure(biotite_atom_array)
-    # file.write("test_out.pdb")
-    # print(biotite_atom_array)
 
 
 def test_pose_stack_from_biotite_missing_single_sidechain(biotite_1bl8, torch_device):
@@ -126,5 +121,3 @@ def test_pose_stack_from_biotite_missing_single_sidechain(biotite_1bl8, torch_de
     biotite_atom_array = biotite_from_pose_stack(pose_stack)
     file = PDBFile()
     file.set_structure(biotite_atom_array)
-    # file.write("test_out.pdb")
-    # print(biotite_atom_array)
