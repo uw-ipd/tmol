@@ -71,18 +71,12 @@ def get_partial_charges(mol: pybel.Molecule) -> dict[str, float]:
     This API is kept for backward compatibility with existing tests/utilities.
     For robust pipeline usage, prefer :func:`get_partial_charges_by_index`.
     """
+    from tmol.ligand.atom_typing import assign_tmol_atom_types
+
     charges_by_index = get_partial_charges_by_index(mol)
-    charges: dict[str, float] = {}
-    elem_counts: dict[str, int] = {}
-
-    for obatom in openbabel.OBMolAtomIter(mol.OBMol):
-        idx = obatom.GetIndex()
-        if hasattr(openbabel, "OBElements"):
-            elem = openbabel.OBElements.GetSymbol(obatom.GetAtomicNum())
-        else:
-            elem = openbabel.GetSymbol(obatom.GetAtomicNum())
-        elem_counts[elem] = elem_counts.get(elem, 0) + 1
-        name = f"{elem}{elem_counts[elem]}"
-        charges[name] = charges_by_index[idx]
-
-    return charges
+    atom_types = assign_tmol_atom_types(mol.OBMol)
+    return {
+        atom.atom_name: charges_by_index[atom.index]
+        for atom in atom_types
+        if atom.index in charges_by_index
+    }

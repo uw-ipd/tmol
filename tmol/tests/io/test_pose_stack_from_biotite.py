@@ -4,6 +4,8 @@ from biotite.structure.io.pdbx import CIFFile, set_structure
 import pytest
 import torch
 
+from tmol.database import ParameterDatabase
+from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.io.pose_stack_from_biotite import (
     build_context_from_biotite,
     canonical_form_from_biotite,
@@ -78,6 +80,21 @@ def test_pose_stack_from_biotite_return_context(biotite_1ubq, torch_device):
 def test_build_context_from_biotite(biotite_1ubq, torch_device):
     context = build_context_from_biotite(biotite_1ubq, torch_device=torch_device)
     assert context.canonical_form.coords.device == torch_device
+
+
+def test_build_context_honors_param_db_without_ligands(biotite_1ubq, torch_device):
+    param_db = ParameterDatabase.get_fresh_default()
+    context = build_context_from_biotite(
+        biotite_1ubq,
+        torch_device=torch_device,
+        prepare_ligands=False,
+        param_db=param_db,
+    )
+    expected_co = CanonicalOrdering.from_chemdb(param_db.chemical)
+    assert context.parameter_database is param_db
+    assert context.canonical_ordering.restype_io_equiv_classes == (
+        expected_co.restype_io_equiv_classes
+    )
 
 
 def test_pose_stack_from_biotite_4tlm_cif(biotite_4tlm, torch_device):

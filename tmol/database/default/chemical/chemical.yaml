@@ -39,7 +39,7 @@ atom_types:
   - { name: NH2O, element: N, is_donor : true }
   - { name: Nlys, element: N, is_donor : true }
   - { name: Narg, element: N, is_donor : true }
-  - { name: Npro, element: N, }
+  - { name: Npro, element: N, is_donor : true }
 
   - { name: OH      , element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true }
   - { name: OHphenol, element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true } # Phenol hydrogen in TYR
@@ -88,34 +88,34 @@ atom_types:
   - { name: HR  , element: H }
   - { name: HG  , element: H, is_polarh: true }
   # Nitrogen
-  - { name: Nad , element: N, is_donor: true }
-  - { name: Nad3, element: N }
-  - { name: Nam , element: N, is_donor: true }
-  - { name: Nam2, element: N, is_donor: true }
+  - { name: Nad , element: N, is_donor: true, is_acceptor: true, acceptor_hybridization: ring }
+  - { name: Nad3, element: N, is_acceptor: true, acceptor_hybridization: sp3 }
+  - { name: Nam , element: N, is_donor: true, acceptor_hybridization: sp3 }
+  - { name: Nam2, element: N, is_donor: true, acceptor_hybridization: sp3 }
   - { name: Ngu1, element: N, is_donor: true }
   - { name: Ngu2, element: N, is_donor: true }
   - { name: Nim , element: N, is_acceptor: true, acceptor_hybridization: ring }
-  - { name: Nin , element: N, is_donor: true }
-  - { name: NG1 , element: N }
-  - { name: NG2 , element: N }
+  - { name: Nin , element: N, is_donor: true, is_acceptor: true, acceptor_hybridization: ring }
+  - { name: NG1 , element: N, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: NG2 , element: N, is_acceptor: true, acceptor_hybridization: ring }
   - { name: NG21, element: N, is_donor: true }
   - { name: NG22, element: N, is_donor: true }
-  - { name: NG3 , element: N }
+  - { name: NG3 , element: N, is_donor: true }
   # Oxygen
   - { name: Oad , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
   - { name: Oal , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
   - { name: Oat , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
-  - { name: Oet , element: O }
-  - { name: Ofu , element: O }
+  - { name: Oet , element: O, is_acceptor: true, acceptor_hybridization: sp3 }
+  - { name: Ofu , element: O, is_acceptor: true, acceptor_hybridization: ring }
   - { name: Ohx , element: O, is_donor: true, is_acceptor: true, acceptor_hybridization: sp3, is_hydroxyl: true }
-  - { name: Ont , element: O }
+  - { name: Ont , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
   - { name: OG2 , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
   - { name: OG3 , element: O, is_acceptor: true, acceptor_hybridization: sp3 }
   - { name: OG31, element: O, is_acceptor: true, acceptor_hybridization: sp3 }
   # Sulfur
   - { name: SR  , element: S }
   - { name: Ssl , element: S }
-  - { name: Sth , element: S }
+  - { name: Sth , element: S, is_donor: true }
   - { name: SG2 , element: S }
   - { name: SG3 , element: S }
   - { name: SG5 , element: S }
@@ -124,6 +124,10 @@ atom_types:
   - { name: PG5 , element: P }
   - { name: Phos, element: P }
   # Halogens
+  - { name: F   , element: F, acceptor_hybridization: sp3 }
+  - { name: Cl  , element: Cl, acceptor_hybridization: sp3 }
+  - { name: Br  , element: Br, acceptor_hybridization: sp3 }
+  - { name: I   , element: I, acceptor_hybridization: sp3 }
   - { name: FR  , element: F }
   - { name: ClR , element: Cl }
   - { name: BrR , element: Br }

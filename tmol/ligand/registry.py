@@ -6,6 +6,7 @@ scoring parameters built by the ligand preparation pipeline.
 
 import logging
 import math
+import copy
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -70,7 +71,8 @@ def get_cached_ligand(
 ) -> Optional[RawResidueType]:
     """Retrieve a previously prepared ligand by residue name."""
     cache = cache or _default_cache
-    return cache.ligands_by_name.get(res_name)
+    cached = cache.ligands_by_name.get(res_name)
+    return copy.deepcopy(cached) if cached is not None else None
 
 
 def get_cached_ligand_for_key(
@@ -78,7 +80,8 @@ def get_cached_ligand_for_key(
 ) -> Optional[RawResidueType]:
     """Retrieve a cached ligand by full preparation key."""
     cache = cache or _default_cache
-    return cache.ligands_by_key.get(cache_key)
+    cached = cache.ligands_by_key.get(cache_key)
+    return copy.deepcopy(cached) if cached is not None else None
 
 
 def get_cached_charges(
@@ -86,7 +89,8 @@ def get_cached_charges(
 ) -> Optional[dict[str, float]]:
     """Retrieve cached partial charges by residue name."""
     cache = cache or _default_cache
-    return cache.charges_by_name.get(res_name)
+    cached = cache.charges_by_name.get(res_name)
+    return dict(cached) if cached is not None else None
 
 
 def get_cached_charges_for_key(
@@ -94,7 +98,8 @@ def get_cached_charges_for_key(
 ) -> Optional[dict[str, float]]:
     """Retrieve cached partial charges by full preparation key."""
     cache = cache or _default_cache
-    return cache.charges_by_key.get(cache_key)
+    cached = cache.charges_by_key.get(cache_key)
+    return dict(cached) if cached is not None else None
 
 
 def cache_ligand(
@@ -107,13 +112,15 @@ def cache_ligand(
 ) -> None:
     """Store a prepared ligand and its charges in the cache."""
     cache = cache or _default_cache
-    cache.ligands_by_name[res_name] = restype
+    restype_snapshot = copy.deepcopy(restype)
+    charges_snapshot = dict(charges) if charges is not None else None
+    cache.ligands_by_name[res_name] = restype_snapshot
     if charges is not None:
-        cache.charges_by_name[res_name] = charges
+        cache.charges_by_name[res_name] = charges_snapshot
     if cache_key is not None:
-        cache.ligands_by_key[cache_key] = restype
+        cache.ligands_by_key[cache_key] = copy.deepcopy(restype_snapshot)
         if charges is not None:
-            cache.charges_by_key[cache_key] = charges
+            cache.charges_by_key[cache_key] = dict(charges_snapshot)
 
 
 def clear_cache(cache: Optional[LigandPreparationCache] = None) -> None:
@@ -280,7 +287,7 @@ def register_ligand(
     atom_type_elements: Optional[dict[str, str]] = None,
     *,
     strict_atom_types: bool = False,
-) -> None:
+) -> bool:
     """Register a new ligand residue type in the ParameterDatabase.
 
     Extends the chemical database with the new residue and atom types,
@@ -295,13 +302,16 @@ def register_ligand(
             newly introduced atom types.
         strict_atom_types: If True, fail when an unknown atom type element
             cannot be resolved from atom_type_elements.
+    Returns:
+        True when a new residue type is inserted into the database, otherwise
+        False if the residue was already present.
     """
     chem_db = param_db.chemical
 
     existing_names = {r.name for r in chem_db.residues}
     if residue_type.name in existing_names:
         logger.info("Residue %s already registered, skipping", residue_type.name)
-        return
+        return False
 
     new_atom_types = _collect_new_atom_types(
         chem_db,
@@ -331,6 +341,7 @@ def register_ligand(
         partial_charges=partial_charges,
         cartbonded_params=cart_res,
     )
+    return True
 
 
 def rebuild_canonical_ordering(

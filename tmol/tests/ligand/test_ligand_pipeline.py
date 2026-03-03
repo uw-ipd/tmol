@@ -17,6 +17,8 @@ from tmol.ligand.detect import detect_nonstandard_residues
 from tmol.ligand.params_io import read_params_file, write_params_file
 from tmol.ligand.registry import get_default_cache
 from tmol.ligand.registry import clear_cache
+from tmol.ligand.registry import get_cached_charges_for_key, get_cached_ligand_for_key
+from tmol.ligand.registry import register_ligand
 
 
 @pytest.fixture(autouse=True)
@@ -119,6 +121,51 @@ class TestFullPipeline:
         prepare_ligands(cif_184l_with_i4b, param_db=param_db, ph=6.8, cache=cache)
         i4b_keys = [k for k in cache.ligands_by_key.keys() if k[0] == "I4B"]
         assert len(i4b_keys) >= 2
+
+    def test_cache_accessors_return_defensive_copies(self, cif_184l_with_i4b, param_db):
+        clear_cache()
+        cache = get_default_cache()
+        prepare_ligands(cif_184l_with_i4b, param_db=param_db, ph=7.4, cache=cache)
+        i4b_keys = [k for k in cache.ligands_by_key.keys() if k[0] == "I4B"]
+        assert i4b_keys
+        key = i4b_keys[0]
+
+        cached_restype = get_cached_ligand_for_key(key, cache=cache)
+        assert cached_restype is not None
+        reread_restype = get_cached_ligand_for_key(key, cache=cache)
+        assert reread_restype is not None
+        assert reread_restype is not cached_restype
+
+        cached_charges = get_cached_charges_for_key(key, cache=cache)
+        assert cached_charges is not None
+        some_atom = next(iter(cached_charges))
+        cached_charges[some_atom] = 999.0  # mutate caller copy
+        reread_charges = get_cached_charges_for_key(key, cache=cache)
+        assert reread_charges is not None
+        assert reread_charges[some_atom] != 999.0
+
+    def test_register_ligand_returns_inserted_status(self, cif_184l_with_i4b, param_db):
+        ligands = detect_nonstandard_residues(
+            cif_184l_with_i4b, canonical_ordering_for_biotite()
+        )
+        i4b = next(l for l in ligands if l.res_name == "I4B")
+        restype, charges, atom_type_elements = prepare_single_ligand(i4b, ph=7.4)
+
+        inserted = register_ligand(
+            param_db,
+            restype,
+            partial_charges=charges,
+            atom_type_elements=atom_type_elements,
+        )
+        assert inserted is True
+
+        inserted_again = register_ligand(
+            param_db,
+            restype,
+            partial_charges=charges,
+            atom_type_elements=atom_type_elements,
+        )
+        assert inserted_again is False
 
     def test_ubq_passes_through_unchanged(self, biotite_1ubq, param_db):
         n_before = len(param_db.chemical.residues)

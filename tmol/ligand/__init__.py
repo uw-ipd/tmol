@@ -15,6 +15,7 @@ Typical usage::
 """
 
 import logging
+import functools
 from typing import Optional
 
 import biotite.structure as struc
@@ -43,6 +44,16 @@ from tmol.ligand.smiles import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@functools.cache
+def _default_detection_ordering() -> CanonicalOrdering:
+    """Canonical ordering used to detect non-standard residues.
+
+    Detection should be stable across repeated calls even when ``param_db`` has
+    already been extended with ligands in earlier invocations.
+    """
+    return CanonicalOrdering.from_chemdb(ParameterDatabase.get_fresh_default().chemical)
 
 
 def _build_cif_obmol(ligand_info: LigandInfo):
@@ -196,7 +207,7 @@ def prepare_ligands(
 
     canonical_ordering = rebuild_canonical_ordering(param_db)
 
-    ligands = detect_nonstandard_residues(atom_array, canonical_ordering)
+    ligands = detect_nonstandard_residues(atom_array, _default_detection_ordering())
 
     if not ligands:
         logger.info("No non-standard residues detected")
@@ -215,13 +226,13 @@ def prepare_ligands(
         cached = get_cached_ligand_for_key(cache_key, cache=cache)
         if cached is not None:
             logger.info("Using cached preparation for %s", lig.res_name)
-            register_ligand(
+            inserted = register_ligand(
                 param_db,
                 cached,
                 partial_charges=get_cached_charges_for_key(cache_key, cache=cache),
                 strict_atom_types=strict_atom_types,
             )
-            modified = True
+            modified = modified or inserted
             continue
 
         logger.info(
@@ -232,7 +243,7 @@ def prepare_ligands(
         )
 
         restype, charges, atom_type_elements = prepare_single_ligand(lig, ph=ph)
-        register_ligand(
+        inserted = register_ligand(
             param_db,
             restype,
             partial_charges=charges,
@@ -246,7 +257,7 @@ def prepare_ligands(
             cache_key=cache_key,
             cache=cache,
         )
-        modified = True
+        modified = modified or inserted
 
     if modified:
         canonical_ordering = rebuild_canonical_ordering(param_db)
