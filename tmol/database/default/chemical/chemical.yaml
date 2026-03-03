@@ -39,7 +39,7 @@ atom_types:
   - { name: NH2O, element: N, is_donor : true }
   - { name: Nlys, element: N, is_donor : true }
   - { name: Narg, element: N, is_donor : true }
-  - { name: Npro, element: N, is_donor : true }
+  - { name: Npro, element: N, }
 
   - { name: OH      , element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true }
   - { name: OHphenol, element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true } # Phenol hydrogen in TYR
