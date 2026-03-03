@@ -1,18 +1,24 @@
+from __future__ import annotations
+
 import toolz.functoolz
 import torch
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from tmol.database import ParameterDatabase
+
+if TYPE_CHECKING:
+    from .score_function import ScoreFunction
 
 
 def _non_memoized_beta2016(
     device: torch.device, param_db: Optional[ParameterDatabase] = None
-):
+) -> ScoreFunction:
+    """Build a beta_nov2016 score function without memoization."""
     from tmol.database import ParameterDatabase
     from .score_function import ScoreFunction
     from .score_types import ScoreType
 
     if param_db is None:
-        param_db = ParameterDatabase.get_default()
+        param_db = ParameterDatabase.get_current()
 
     sfxn = ScoreFunction(param_db, device)
     sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
@@ -41,19 +47,27 @@ def _non_memoized_beta2016(
 
 
 @toolz.functoolz.memoize
-def _memoized_beta2016(device: torch.device):
+def _memoized_beta2016(device: torch.device) -> ScoreFunction:
+    """Build and cache a score function keyed by device."""
     return _non_memoized_beta2016(device, None)
 
 
 def beta2016_score_function(
     device: torch.device, param_db: Optional[ParameterDatabase] = None
-):
+) -> ScoreFunction:
     """Return a ScoreFunction implementing the beta_nov2016 score function
     of Rosetta3.
 
-    When param_db is None, returns a memoized instance using the default
-    ParameterDatabase. When param_db is provided, creates a fresh
-    ScoreFunction (no memoization — the caller owns the ParameterDatabase).
+    Args:
+        device: Target torch device.
+        param_db: Optional parameter database. If omitted, uses the process
+            default parameter database and a memoized score function.
+
+    Returns:
+        Configured `ScoreFunction`.
+
+    When `param_db` is provided, this creates a fresh score function
+    (no memoization — caller owns database lifecycle).
 
     See:
     https://pubs.acs.org/doi/10.1021/acs.jctc.6b0081 and

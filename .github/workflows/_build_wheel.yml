@@ -74,38 +74,60 @@ jobs:
             $CONTAINER_IMAGE sleep infinity
           docker start $BUILDER
 
+      - name: Select Python interpreter
+        run: |
+          target="${{ inputs.python-version }}"
+          pybin="python${target:0:1}.${target:1}"
+          echo "Requested Python: ${pybin}"
+
+          docker exec $BUILDER bash -x -e -o pipefail -c '
+            pybin="'"${pybin}"'"
+            if ! command -v "$pybin" >/dev/null 2>&1; then
+              echo "Python ${pybin} not found in container; installing via deadsnakes"
+              apt-get update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common ca-certificates curl
+              add-apt-repository -y ppa:deadsnakes/ppa
+              apt-get update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y "${pybin}" "${pybin}-dev" "${pybin}-venv"
+              curl -sS https://bootstrap.pypa.io/get-pip.py | "$pybin"
+            fi
+            "$pybin" --version
+            "$pybin" -m pip --version
+          '
+          echo "PYBIN=${pybin}" >> $GITHUB_ENV
+
       - name: Reinstall PyTorch from pip (ABI=FALSE)
         if: inputs.pip-torch-cuda-url != ''
         run: |
           docker exec $BUILDER bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
             echo "Replacing NGC PyTorch with pip PyTorch (CXX11_ABI=FALSE)"
-            pip config unset global.constraint || true
+            ${{ env.PYBIN }} -m pip config unset global.constraint || true
             export PIP_CONSTRAINT=""
             # Force-reinstall torch WITH its dependencies so NVIDIA library
             # versions match what this torch version was built against.
-            pip install --break-system-packages --force-reinstall \
+            ${{ env.PYBIN }} -m pip install --break-system-packages --force-reinstall \
               torch==${{ inputs.torch-version }}.* \
               --index-url ${{ inputs.pip-torch-cuda-url }}
-            python3 -c "import torch; print(f'"'"'Reinstalled: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}'"'"')"
+            ${{ env.PYBIN }} -c "import torch; print(f'"'"'Reinstalled: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}'"'"')"
           '
 
       - name: Set version variables
         run: |
-          PYTHON_VERSION=$(docker exec $BUILDER python3 -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
-          TORCH_VERSION=$(docker exec $BUILDER python3 -c "import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')")
-          CUDA_VERSION=$(docker exec $BUILDER python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])")
+          PYTHON_VERSION=$(docker exec $BUILDER ${{ env.PYBIN }} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
+          TORCH_VERSION=$(docker exec $BUILDER ${{ env.PYBIN }} -c "import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')")
+          CUDA_VERSION=$(docker exec $BUILDER ${{ env.PYBIN }} -c "import torch; print(torch.version.cuda.replace('.','')[:3])")
 
           echo "MATRIX_PYTHON_VERSION=${PYTHON_VERSION}" >> $GITHUB_ENV
           echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> $GITHUB_ENV
           echo "WHEEL_CUDA_VERSION=${CUDA_VERSION%%[0-9]}" >> $GITHUB_ENV
 
           docker exec $BUILDER nvcc --version
-          docker exec $BUILDER python3 -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
+          docker exec $BUILDER ${{ env.PYBIN }} -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
 
       - name: Install build dependencies
         run: |
-          docker exec $BUILDER pip install --break-system-packages \
+          docker exec $BUILDER ${{ env.PYBIN }} -m pip install --break-system-packages \
             'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
 
       - name: Build wheel
@@ -115,15 +137,15 @@ jobs:
             $BUILDER bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
             # Determine CUDA architectures based on CUDA major version.
-            CUDA_MAJOR=$(python3 -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
+            CUDA_MAJOR=$(${{ env.PYBIN }} -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
             if [ "$CUDA_MAJOR" -ge 13 ]; then
               CUDA_ARCHS="80;86;89;90;100"
             else
               CUDA_ARCHS="80;86;89;90"
             fi
             # CMake reads ABI from find_package(Torch) — no manual override needed.
-            export CMAKE_PREFIX_PATH=$(python3 -c "import torch; print(torch.utils.cmake_prefix_path)")
-            pip wheel . --no-build-isolation --no-deps -w dist \
+            export CMAKE_PREFIX_PATH=$(${{ env.PYBIN }} -c "import torch; print(torch.utils.cmake_prefix_path)")
+            ${{ env.PYBIN }} -m pip wheel . --no-build-isolation --no-deps -w dist \
               -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
               -Ccmake.define.TMOL_NVCC_THREADS=1
           '

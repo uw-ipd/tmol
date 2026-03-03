@@ -6,6 +6,7 @@ scoring parameters built by the ligand preparation pipeline.
 
 import logging
 import math
+from dataclasses import dataclass, field
 from typing import Optional
 
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
@@ -24,8 +25,20 @@ from tmol.io.canonical_ordering import CanonicalOrdering
 
 logger = logging.getLogger(__name__)
 
-_ligand_cache: dict[str, RawResidueType] = {}
-_ligand_charges_cache: dict[str, dict[str, float]] = {}
+CacheKey = tuple[str, float, tuple[str, ...], tuple[str, ...]]
+
+
+@dataclass
+class LigandPreparationCache:
+    """Mutable cache object for ligand preparation products."""
+
+    ligands_by_key: dict[CacheKey, RawResidueType] = field(default_factory=dict)
+    charges_by_key: dict[CacheKey, dict[str, float]] = field(default_factory=dict)
+    ligands_by_name: dict[str, RawResidueType] = field(default_factory=dict)
+    charges_by_name: dict[str, dict[str, float]] = field(default_factory=dict)
+
+
+_default_cache = LigandPreparationCache()
 
 SP2_ATOM_TYPES = frozenset(
     [
@@ -47,31 +60,69 @@ SP2_ATOM_TYPES = frozenset(
 )
 
 
-def get_cached_ligand(res_name: str) -> Optional[RawResidueType]:
-    """Retrieve a previously prepared ligand from the cache."""
-    return _ligand_cache.get(res_name)
+def get_default_cache() -> LigandPreparationCache:
+    """Return the process-global ligand preparation cache."""
+    return _default_cache
 
 
-def get_cached_charges(res_name: str) -> Optional[dict[str, float]]:
-    """Retrieve cached partial charges for a previously prepared ligand."""
-    return _ligand_charges_cache.get(res_name)
+def get_cached_ligand(
+    res_name: str, cache: Optional[LigandPreparationCache] = None
+) -> Optional[RawResidueType]:
+    """Retrieve a previously prepared ligand by residue name."""
+    cache = cache or _default_cache
+    return cache.ligands_by_name.get(res_name)
+
+
+def get_cached_ligand_for_key(
+    cache_key: CacheKey, cache: Optional[LigandPreparationCache] = None
+) -> Optional[RawResidueType]:
+    """Retrieve a cached ligand by full preparation key."""
+    cache = cache or _default_cache
+    return cache.ligands_by_key.get(cache_key)
+
+
+def get_cached_charges(
+    res_name: str, cache: Optional[LigandPreparationCache] = None
+) -> Optional[dict[str, float]]:
+    """Retrieve cached partial charges by residue name."""
+    cache = cache or _default_cache
+    return cache.charges_by_name.get(res_name)
+
+
+def get_cached_charges_for_key(
+    cache_key: CacheKey, cache: Optional[LigandPreparationCache] = None
+) -> Optional[dict[str, float]]:
+    """Retrieve cached partial charges by full preparation key."""
+    cache = cache or _default_cache
+    return cache.charges_by_key.get(cache_key)
 
 
 def cache_ligand(
     res_name: str,
     restype: RawResidueType,
     charges: Optional[dict[str, float]] = None,
+    *,
+    cache_key: Optional[CacheKey] = None,
+    cache: Optional[LigandPreparationCache] = None,
 ) -> None:
     """Store a prepared ligand and its charges in the cache."""
-    _ligand_cache[res_name] = restype
+    cache = cache or _default_cache
+    cache.ligands_by_name[res_name] = restype
     if charges is not None:
-        _ligand_charges_cache[res_name] = charges
+        cache.charges_by_name[res_name] = charges
+    if cache_key is not None:
+        cache.ligands_by_key[cache_key] = restype
+        if charges is not None:
+            cache.charges_by_key[cache_key] = charges
 
 
-def clear_cache() -> None:
-    """Clear the ligand cache."""
-    _ligand_cache.clear()
-    _ligand_charges_cache.clear()
+def clear_cache(cache: Optional[LigandPreparationCache] = None) -> None:
+    """Clear ligand cache contents."""
+    cache = cache or _default_cache
+    cache.ligands_by_key.clear()
+    cache.charges_by_key.clear()
+    cache.ligands_by_name.clear()
+    cache.charges_by_name.clear()
 
 
 def _build_cartbonded_params(residue_type: RawResidueType) -> CartRes:
@@ -102,25 +153,53 @@ def _build_cartbonded_params(residue_type: RawResidueType) -> CartRes:
         atom_neighbors.setdefault(b, []).append(a)
 
     angles = []
+    seen_angles: set[tuple[str, str, str]] = set()
     for center, neighbors in atom_neighbors.items():
         for i in range(len(neighbors)):
             for j in range(i + 1, len(neighbors)):
                 a1, a3 = neighbors[i], neighbors[j]
-                ic_center = icoor_by_name.get(center)
-                if ic_center and ic_center.theta > 0:
-                    angle_rad = math.pi - ic_center.theta
-                    if angle_rad > 0:
-                        angles.append(
-                            AngleGroup(
-                                atm1=a1, atm2=center, atm3=a3, x0=angle_rad, K=80.0
-                            )
-                        )
+                angle_key = (min(a1, a3), center, max(a1, a3))
+                if angle_key in seen_angles:
+                    continue
+                seen_angles.add(angle_key)
+
+                ic1 = icoor_by_name.get(a1)
+                ic3 = icoor_by_name.get(a3)
+                angle_rad = None
+                # Prefer child-local icoors when both neighbors are children of center.
+                # This avoids assigning the same center angle to all neighbor pairs.
+                if (
+                    ic1 is not None
+                    and ic3 is not None
+                    and ic1.parent == center
+                    and ic3.parent == center
+                    and ic1.theta > 0
+                    and ic3.theta > 0
+                ):
+                    delta = abs(ic1.phi - ic3.phi)
+                    if delta > math.pi:
+                        delta = (2.0 * math.pi) - delta
+                    angle_rad = delta
+                else:
+                    ic_center = icoor_by_name.get(center)
+                    if ic_center and ic_center.theta > 0:
+                        angle_rad = math.pi - ic_center.theta
+
+                if angle_rad is not None and angle_rad > 0:
+                    angles.append(
+                        AngleGroup(atm1=a1, atm2=center, atm3=a3, x0=angle_rad, K=80.0)
+                    )
 
     impropers = []
+    seen_impropers: set[tuple[str, str, str, str]] = set()
     for center, neighbors in atom_neighbors.items():
         atype = atom_type_by_name.get(center, "")
         if atype in SP2_ATOM_TYPES and len(neighbors) == 3:
-            n = neighbors
+            n = sorted(neighbors)
+            improper_key = (n[0], n[1], center, n[2])
+            if improper_key in seen_impropers:
+                continue
+            seen_impropers.add(improper_key)
             impropers.append(
                 ImproperGroup(
                     atm1=n[0],
@@ -144,6 +223,9 @@ def _build_cartbonded_params(residue_type: RawResidueType) -> CartRes:
 def _collect_new_atom_types(
     chem_db: PatchedChemicalDatabase,
     residue_type: RawResidueType,
+    atom_type_elements: Optional[dict[str, str]] = None,
+    *,
+    strict_atom_types: bool = False,
 ) -> list[AtomType]:
     """Identify atom types used by the residue that aren't in the database.
 
@@ -160,9 +242,23 @@ def _collect_new_atom_types(
             needed[atom.atom_type] = atom.atom_type
 
     result = []
+    atom_type_elements = atom_type_elements or {}
     for name in needed:
         props = HBOND_PROPERTIES.get(name, {})
-        element = "H" if props.get("is_polarh") else "C"
+        element = atom_type_elements.get(name)
+        if element is None:
+            msg = (
+                f"Unknown element mapping for atom type '{name}' while registering "
+                f"residue {residue_type.name}"
+            )
+            if strict_atom_types:
+                raise ValueError(msg)
+            logger.warning("%s; using heuristic fallback", msg)
+            element = (
+                "H"
+                if props.get("is_polarh")
+                else ("H" if name.startswith("H") else "C")
+            )
         result.append(
             AtomType(
                 name=name,
@@ -181,6 +277,9 @@ def register_ligand(
     param_db: ParameterDatabase,
     residue_type: RawResidueType,
     partial_charges: Optional[dict[str, float]] = None,
+    atom_type_elements: Optional[dict[str, str]] = None,
+    *,
+    strict_atom_types: bool = False,
 ) -> None:
     """Register a new ligand residue type in the ParameterDatabase.
 
@@ -192,6 +291,10 @@ def register_ligand(
         param_db: The ParameterDatabase to extend (mutated in place).
         residue_type: The ligand RawResidueType to register.
         partial_charges: Optional per-atom partial charges {atom_name: charge}.
+        atom_type_elements: Optional mapping {atom_type: element_symbol} for
+            newly introduced atom types.
+        strict_atom_types: If True, fail when an unknown atom type element
+            cannot be resolved from atom_type_elements.
     """
     chem_db = param_db.chemical
 
@@ -200,15 +303,18 @@ def register_ligand(
         logger.info("Residue %s already registered, skipping", residue_type.name)
         return
 
-    new_atom_types = _collect_new_atom_types(chem_db, residue_type)
+    new_atom_types = _collect_new_atom_types(
+        chem_db,
+        residue_type,
+        atom_type_elements=atom_type_elements,
+        strict_atom_types=strict_atom_types,
+    )
     if new_atom_types:
         logger.info(
             "Adding %d new atom types: %s",
             len(new_atom_types),
             [at.name for at in new_atom_types],
         )
-
-    cache_ligand(residue_type.name, residue_type, charges=partial_charges)
 
     logger.info(
         "Registering ligand %s (%d atoms, %d bonds)",

@@ -27,8 +27,11 @@ from tmol.ligand.detect import LigandInfo, detect_nonstandard_residues
 from tmol.ligand.graph_match import match_heavy_atoms
 from tmol.ligand.mol3d import get_partial_charges_by_index, smiles_to_obmol
 from tmol.ligand.registry import (
-    get_cached_charges,
-    get_cached_ligand,
+    LigandPreparationCache,
+    cache_ligand,
+    get_cached_charges_for_key,
+    get_cached_ligand_for_key,
+    get_default_cache,
     rebuild_canonical_ordering,
     register_ligand,
 )
@@ -108,7 +111,7 @@ def _rename_atoms_to_cif(
 def prepare_single_ligand(
     ligand_info: LigandInfo,
     ph: float = 7.4,
-) -> tuple[RawResidueType, dict[str, float]]:
+) -> tuple[RawResidueType, dict[str, float], dict[str, str]]:
     """Run the full preparation pipeline for a single ligand.
 
     Args:
@@ -116,7 +119,7 @@ def prepare_single_ligand(
         ph: Target pH for protonation.
 
     Returns:
-        A (RawResidueType, partial_charges) tuple.
+        A tuple of (RawResidueType, partial_charges, atom_type_elements).
     """
     smiles = perceive_smiles(ligand_info)
     protonated = protonate_ligand_smiles(smiles, ph=ph)
@@ -138,6 +141,15 @@ def prepare_single_ligand(
         for at in atom_types
         if at.index in charges_by_index
     }
+    atom_type_elements: dict[str, str] = {}
+    for at in atom_types:
+        prev = atom_type_elements.get(at.atom_type)
+        if prev is not None and prev != at.element:
+            raise RuntimeError(
+                f"{ligand_info.res_name}: inconsistent element assignment for atom type "
+                f"{at.atom_type} ({prev} vs {at.element})"
+            )
+        atom_type_elements[at.atom_type] = at.element
     restype_atom_names = {a.name for a in restype.atoms}
     charges = {name: q for name, q in charges.items() if name in restype_atom_names}
     missing_names = sorted(restype_atom_names - set(charges))
@@ -146,13 +158,15 @@ def prepare_single_ligand(
             f"{ligand_info.res_name}: missing partial charges for atoms: {missing_names}"
         )
 
-    return restype, charges
+    return restype, charges, atom_type_elements
 
 
 def prepare_ligands(
     atom_array: struc.AtomArray,
     param_db: Optional[ParameterDatabase] = None,
     ph: float = 7.4,
+    strict_atom_types: bool = False,
+    cache: LigandPreparationCache | None = None,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Detect, prepare, and register all non-standard residues.
 
@@ -164,15 +178,21 @@ def prepare_ligands(
     Args:
         atom_array: A biotite AtomArray from a CIF or PDB file.
         param_db: The ParameterDatabase to extend. If None, the default
-            database is loaded. Mutated in place.
+            database is loaded as a fresh instance. Mutated in place.
         ph: Target pH for ligand protonation.
+        strict_atom_types: If True, fail when unknown atom-type element
+            mappings are encountered during registration.
+        cache: Optional cache object controlling ligand reuse behavior.
+            If None, uses the process-global default cache.
 
     Returns:
         A (ParameterDatabase, CanonicalOrdering) tuple with all detected
         ligands registered.
     """
     if param_db is None:
-        param_db = ParameterDatabase.get_default()
+        param_db = ParameterDatabase.get_fresh_default()
+    if cache is None:
+        cache = get_default_cache()
 
     canonical_ordering = rebuild_canonical_ordering(param_db)
 
@@ -186,11 +206,20 @@ def prepare_ligands(
 
     modified = False
     for lig in ligands:
-        cached = get_cached_ligand(lig.res_name)
+        cache_key = (
+            lig.res_name,
+            round(ph, 3),
+            tuple(lig.atom_names),
+            tuple(lig.elements),
+        )
+        cached = get_cached_ligand_for_key(cache_key, cache=cache)
         if cached is not None:
             logger.info("Using cached preparation for %s", lig.res_name)
             register_ligand(
-                param_db, cached, partial_charges=get_cached_charges(lig.res_name)
+                param_db,
+                cached,
+                partial_charges=get_cached_charges_for_key(cache_key, cache=cache),
+                strict_atom_types=strict_atom_types,
             )
             modified = True
             continue
@@ -202,8 +231,21 @@ def prepare_ligands(
             lig.is_ligand,
         )
 
-        restype, charges = prepare_single_ligand(lig, ph=ph)
-        register_ligand(param_db, restype, partial_charges=charges)
+        restype, charges, atom_type_elements = prepare_single_ligand(lig, ph=ph)
+        register_ligand(
+            param_db,
+            restype,
+            partial_charges=charges,
+            atom_type_elements=atom_type_elements,
+            strict_atom_types=strict_atom_types,
+        )
+        cache_ligand(
+            lig.res_name,
+            restype,
+            charges=charges,
+            cache_key=cache_key,
+            cache=cache,
+        )
         modified = True
 
     if modified:

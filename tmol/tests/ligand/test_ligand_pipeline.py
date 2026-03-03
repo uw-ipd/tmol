@@ -7,6 +7,7 @@ against reference pipeline outputs.
 """
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -14,6 +15,7 @@ from tmol.io.pose_stack_from_biotite import canonical_ordering_for_biotite
 from tmol.ligand import prepare_ligands, prepare_single_ligand
 from tmol.ligand.detect import detect_nonstandard_residues
 from tmol.ligand.params_io import read_params_file, write_params_file
+from tmol.ligand.registry import get_default_cache
 from tmol.ligand.registry import clear_cache
 
 
@@ -61,7 +63,7 @@ class TestFullPipeline:
     def param_db(self):
         from tmol.database import ParameterDatabase
 
-        return ParameterDatabase.get_default()
+        return ParameterDatabase.get_fresh_default()
 
     def test_i4b_small_drug(self, cif_184l_with_i4b, param_db):
         """Small drug-like ligand (I4B, 10 heavy atoms) in lysozyme."""
@@ -110,6 +112,14 @@ class TestFullPipeline:
         param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
         assert len(param_db.chemical.residues) == n_after
 
+    def test_cache_key_includes_ph(self, cif_184l_with_i4b, param_db):
+        clear_cache()
+        cache = get_default_cache()
+        prepare_ligands(cif_184l_with_i4b, param_db=param_db, ph=7.4, cache=cache)
+        prepare_ligands(cif_184l_with_i4b, param_db=param_db, ph=6.8, cache=cache)
+        i4b_keys = [k for k in cache.ligands_by_key.keys() if k[0] == "I4B"]
+        assert len(i4b_keys) >= 2
+
     def test_ubq_passes_through_unchanged(self, biotite_1ubq, param_db):
         n_before = len(param_db.chemical.residues)
         param_db, _ = prepare_ligands(biotite_1ubq, param_db=param_db)
@@ -123,7 +133,7 @@ class TestLigandScoringData:
         """Elec partial charges are injected into the ParameterDatabase."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_default()
+        param_db = ParameterDatabase.get_fresh_default()
         param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
 
         i4b_charges = [
@@ -136,7 +146,7 @@ class TestLigandScoringData:
         """CartBonded params (lengths, angles, impropers) are in the DB."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_default()
+        param_db = ParameterDatabase.get_fresh_default()
         param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
 
         assert "I4B" in param_db.scoring.cartbonded.residue_params
@@ -148,7 +158,7 @@ class TestLigandScoringData:
         """New atom types have correct donor/acceptor/hybridization flags."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_default()
+        param_db = ParameterDatabase.get_fresh_default()
         param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
 
         atom_types_by_name = {at.name: at for at in param_db.chemical.atom_types}
@@ -164,7 +174,7 @@ class TestLigandScoringData:
         """All halogen types (aromatic and non-aromatic) have LJLK params."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_default()
+        param_db = ParameterDatabase.get_fresh_default()
         ljlk_names = {p.name for p in param_db.scoring.ljlk.atom_type_parameters}
         for halogen in ["F", "Cl", "Br", "I", "FR", "ClR", "BrR", "IR"]:
             assert halogen in ljlk_names, f"Missing LJLK params for {halogen}"
@@ -173,7 +183,7 @@ class TestLigandScoringData:
         """add/remove API works correctly."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_default()
+        param_db = ParameterDatabase.get_fresh_default()
         param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
 
         assert "I4B" in param_db.scoring.cartbonded.residue_params
@@ -202,7 +212,7 @@ class TestPoseStackWithLigand:
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
         from tmol.score import beta2016_score_function
 
-        param_db = ParameterDatabase.get_default()
+        param_db = ParameterDatabase.get_fresh_default()
         pose_stack = pose_stack_from_biotite(
             atom_array, torch_device, prepare_ligands=True, param_db=param_db
         )
@@ -233,7 +243,7 @@ class TestPoseStackWithLigand:
         from tmol.database import ParameterDatabase
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
 
-        param_db = ParameterDatabase.get_default()
+        param_db = ParameterDatabase.get_fresh_default()
         pose_stack = pose_stack_from_biotite(
             cif_155c_with_hem, torch_device, prepare_ligands=True, param_db=param_db
         )
@@ -263,6 +273,59 @@ class TestPoseStackWithLigand:
             bt = bt[0]
         self._score_cif_with_ligand(bt, torch_device)
 
+    def test_i4b_minimize_and_cif_roundtrip(
+        self, cif_184l_with_i4b, torch_device, tmp_path
+    ):
+        """Build with ligands, minimize briefly, and write back to CIF."""
+        import biotite.structure
+        import torch
+        from biotite.structure.io.pdbx import CIFFile, set_structure
+
+        from tmol.database import ParameterDatabase
+        from tmol.io.pose_stack_from_biotite import (
+            biotite_from_pose_stack,
+            pose_stack_from_biotite,
+        )
+        from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
+        from tmol.optimization.sfxn_modules import CartesianSfxnNetwork
+        from tmol.score import beta2016_score_function
+
+        if torch_device != torch.device("cpu"):
+            pytest.skip("Roundtrip minimization test runs on CPU only")
+
+        pose_stack, context = pose_stack_from_biotite(
+            cif_184l_with_i4b,
+            torch_device,
+            prepare_ligands=True,
+            param_db=ParameterDatabase.get_fresh_default(),
+            return_context=True,
+        )
+        sfxn = beta2016_score_function(
+            torch_device, param_db=context.parameter_database
+        )
+        network = CartesianSfxnNetwork(sfxn, pose_stack)
+        optimizer = LBFGS_Armijo(network.parameters(), lr=0.05, max_iter=5)
+
+        def closure():
+            optimizer.zero_grad()
+            e = network().sum()
+            e.backward()
+            return e
+
+        optimizer.step(closure)
+
+        out = biotite_from_pose_stack(pose_stack, co=context.canonical_ordering)
+        assert isinstance(
+            out, (biotite.structure.AtomArray, biotite.structure.AtomArrayStack)
+        )
+        cif = CIFFile()
+        set_structure(
+            cif, out if isinstance(out, biotite.structure.AtomArray) else out[0]
+        )
+        out_path = tmp_path / "i4b_minimized_roundtrip.cif"
+        cif.write(out_path)
+        assert out_path.exists()
+
 
 class TestParamsRoundtrip:
     """Write a prepared ligand to .params and read it back."""
@@ -271,7 +334,7 @@ class TestParamsRoundtrip:
         co = canonical_ordering_for_biotite()
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
         i4b = next(lig for lig in ligands if lig.res_name == "I4B")
-        restype, charges = prepare_single_ligand(i4b)
+        restype, charges, atom_type_elements = prepare_single_ligand(i4b)
 
         path = tmp_path / "I4B.params"
         write_params_file(restype, path, partial_charges=charges)
@@ -281,6 +344,23 @@ class TestParamsRoundtrip:
         assert len(loaded.atoms) == len(restype.atoms)
         assert len(loaded.bonds) == len(restype.bonds)
         assert len(loaded.icoors) == len(restype.icoors)
+        assert len(atom_type_elements) > 0
+
+
+def test_collect_new_atom_types_strict_mode_errors(default_database):
+    from tmol.ligand.registry import _collect_new_atom_types
+
+    residue = SimpleNamespace(
+        name="UNK",
+        atoms=(SimpleNamespace(name="X1", atom_type="ZZZ"),),
+    )
+    with pytest.raises(ValueError, match="Unknown element mapping"):
+        _collect_new_atom_types(
+            default_database.chemical,
+            residue,
+            atom_type_elements={},
+            strict_atom_types=True,
+        )
 
 
 def _parse_reference_params(path):

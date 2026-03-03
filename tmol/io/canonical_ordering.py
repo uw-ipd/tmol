@@ -392,7 +392,7 @@ class CanonicalOrdering:
 def default_canonical_ordering() -> CanonicalOrdering:
     """Create a CanonicalOrdering object from the default set of residue types"""
 
-    chemdb = ParameterDatabase.get_default().chemical
+    chemdb = ParameterDatabase.get_current().chemical
     return CanonicalOrdering.from_chemdb(chemdb)
 
 

@@ -1,10 +1,16 @@
 from tmol.database import ParameterDatabase
 
 
-def test_get_default():
-    param_db1 = ParameterDatabase.get_default()
-    param_db2 = ParameterDatabase.get_default()
+def test_get_current():
+    param_db1 = ParameterDatabase.get_current()
+    param_db2 = ParameterDatabase.get_current()
     assert param_db1 is param_db2
+
+
+def test_get_fresh_default():
+    param_db1 = ParameterDatabase.get_fresh_default()
+    param_db2 = ParameterDatabase.get_fresh_default()
+    assert param_db1 is not param_db2
 
 
 def test_create_stable_subset(default_database):

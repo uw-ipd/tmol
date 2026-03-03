@@ -1,6 +1,9 @@
 import attr
 import torch
 import time
+import logging
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_function import ScoreFunction
@@ -12,6 +15,8 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.score.score_types import ScoreType
 from tmol.optimization.kin_min import run_kin_min
 
+logger = logging.getLogger(__name__)
+
 
 def fast_relax(
     pose_stack: PoseStack,
@@ -19,9 +24,23 @@ def fast_relax(
     packer_pallete: PackerPalette,
     move_map: MoveMap,
     fold_forest: FoldForest,
-    task_operations=None,
-    verbose=False,
-):
+    task_operations: Sequence[Callable[[PackerTask], None]] | None = None,
+    verbose: bool = False,
+) -> PoseStack:
+    """Run a short Rosetta-style relax protocol.
+
+    Args:
+        pose_stack: Input poses to relax.
+        sfxn: Score function used for packing and minimization.
+        packer_pallete: Palette describing allowed residue identities.
+        move_map: Degree-of-freedom controls for minimization.
+        fold_forest: Kinematic topology for minimization.
+        task_operations: Optional operations applied to a `PackerTask`.
+        verbose: If True, emit timing and progress logs.
+
+    Returns:
+        Relaxed `PoseStack`.
+    """
     # Jack Maguire's tuned MonomerRelax2019.txt
     # repeat %%nrepeats%%
     # coord_cst_weight 1.0
@@ -57,13 +76,13 @@ def fast_relax(
         from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
         import tmol.database
 
-        default_database = tmol.database.ParameterDatabase.get_default()
+        default_database = tmol.database.ParameterDatabase.get_current()
         param_resolver = DunbrackParamResolver.from_database(
             default_database.scoring.dun, torch_device
         )
         dun_sampler = DunbrackChiSampler.from_database(param_resolver)
 
-        def default_op(task):
+        def default_op(task: PackerTask) -> None:
             task.restrict_to_repacking()
             task.set_include_current()
 
@@ -118,16 +137,17 @@ def fast_relax(
 
 
 def relax_pack_min_step(
-    pose_stack,
-    sfxn,
-    fold_forest,
-    move_map,
-    packer_pallete,
-    fa_rep_pack_weight,
-    fa_rep_min_weight,
-    task_operations,
-    verbose,
-):
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    fold_forest: FoldForest,
+    move_map: MoveMap,
+    packer_pallete: PackerPalette,
+    fa_rep_pack_weight: float,
+    fa_rep_min_weight: float,
+    task_operations: Sequence[Callable[[PackerTask], None]],
+    verbose: bool,
+) -> PoseStack:
+    """Run one repack/minimize cycle under provided `fa_rep` weights."""
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -138,7 +158,7 @@ def relax_pack_min_step(
 
     sfxn.set_weight(ScoreType.fa_ljrep, fa_rep_pack_weight)
     if verbose:
-        print(f"packing with fa_rep of {fa_rep_pack_weight: .2f}")
+        logger.info("packing with fa_rep of %.2f", fa_rep_pack_weight)
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time1 = time.perf_counter()
@@ -146,7 +166,7 @@ def relax_pack_min_step(
 
     sfxn.set_weight(ScoreType.fa_ljrep, fa_rep_min_weight)
     if verbose:
-        print(f"minimizing with fa_rep of {fa_rep_min_weight: .2f}")
+        logger.info("minimizing with fa_rep of %.2f", fa_rep_min_weight)
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time2 = time.perf_counter()
@@ -158,9 +178,12 @@ def relax_pack_min_step(
     end_time3 = time.perf_counter()
 
     if verbose:
-        print(
-            f"pack-min {end_time3 - start_time: .2f} task-init {end_time1 - start_time: .2f}"
-            + f" packing {end_time2 - end_time1: .2f} min {end_time3-end_time2: .2f}"
+        logger.info(
+            "pack-min %.2f task-init %.2f packing %.2f min %.2f",
+            end_time3 - start_time,
+            end_time1 - start_time,
+            end_time2 - end_time1,
+            end_time3 - end_time2,
         )
 
     return minimized_pose_stack
@@ -171,13 +194,14 @@ def accept_best(
     best_pose_stack: PoseStack,
     best_pose_score: torch.Tensor,
     candidate_pose_stack: PoseStack,
-    verbose=False,
-):
+    verbose: bool = False,
+) -> tuple[PoseStack, torch.Tensor]:
+    """Return better per-pose results between `best` and `candidate`."""
     wpsm = sfxn.render_whole_pose_scoring_module(candidate_pose_stack)
     candidate_score = wpsm(candidate_pose_stack.coords)
     better_mask = candidate_score < best_pose_score
 
-    def select_better(tensor_name):
+    def select_better(tensor_name: str) -> Any:
         tensor = getattr(best_pose_stack, tensor_name)
         new_tensor = tensor.detach().clone()
         new_tensor[better_mask] = getattr(candidate_pose_stack, tensor_name)[
@@ -187,9 +211,9 @@ def accept_best(
 
     if better_mask.any():
         if verbose:
-            print("accepting new best scores")
-            print(f" old best score: {best_pose_score[better_mask]}")
-            print(f" new best score: {candidate_score[better_mask]}")
+            logger.info("accepting new best scores")
+            logger.info(" old best score: %s", best_pose_score[better_mask])
+            logger.info(" new best score: %s", candidate_score[better_mask])
 
         new_coords = select_better("coords")
         new_block_coord_offset = select_better("block_coord_offset")

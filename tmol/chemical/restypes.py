@@ -539,7 +539,7 @@ class ResidueTypeSet:
     def get_default(cls) -> "ResidueTypeSet":
         """Load and return the residue type set constructed from the default param db"""
         if cls.__default is None:
-            cls.__default = cls.from_database(ParameterDatabase.get_default().chemical)
+            cls.__default = cls.from_database(ParameterDatabase.get_current().chemical)
         return cls.__default
 
     @classmethod

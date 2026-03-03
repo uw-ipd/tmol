@@ -166,7 +166,7 @@ def _paramdb_for_rosettafold2() -> ParameterDatabase:
     # hard coding
     desired_variants_display_names = ["nterm", "cterm"]
 
-    return ParameterDatabase.get_default().create_stable_subset(
+    return ParameterDatabase.get_current().create_stable_subset(
         desired_rt_names, desired_variants_display_names
     )
 

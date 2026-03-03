@@ -5,6 +5,7 @@ import pytest
 import torch
 
 from tmol.io.pose_stack_from_biotite import (
+    build_context_from_biotite,
     canonical_form_from_biotite,
     pose_stack_from_biotite,
     biotite_from_pose_stack,
@@ -64,6 +65,21 @@ def test_pose_stack_from_biotite_1ubq(biotite_1ubq, torch_device):
     pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
 
 
+def test_pose_stack_from_biotite_return_context(biotite_1ubq, torch_device):
+    pose_stack, context = pose_stack_from_biotite(
+        biotite_1ubq, torch_device=torch_device, return_context=True
+    )
+    assert pose_stack is not None
+    assert context.canonical_form is not None
+    assert context.canonical_ordering is not None
+    assert context.packed_block_types is not None
+
+
+def test_build_context_from_biotite(biotite_1ubq, torch_device):
+    context = build_context_from_biotite(biotite_1ubq, torch_device=torch_device)
+    assert context.canonical_form.coords.device == torch_device
+
+
 def test_pose_stack_from_biotite_4tlm_cif(biotite_4tlm, torch_device):
     pose_stack_from_biotite(biotite_4tlm, torch_device=torch_device)
 
@@ -84,6 +100,16 @@ def test_pose_stack_from_and_to_biotite_multiple_poses(biotite_1r21, torch_devic
     file = PDBFile()
     file.set_structure(biotite_atom_array)
     file.write("test_out.pdb")
+
+
+def test_canonical_form_multpose_metadata_propagation(biotite_1r21, torch_device):
+    cf = canonical_form_from_biotite(biotite_1r21, torch_device=torch_device)
+    assert cf.atom_b_factor is not None
+    assert cf.atom_occupancy is not None
+    assert cf.atom_b_factor.shape[0] == biotite_1r21.stack_depth()
+    assert cf.atom_occupancy.shape[0] == biotite_1r21.stack_depth()
+    assert float(cf.atom_b_factor[1].sum()) > 0.0
+    assert float(cf.atom_occupancy[1].sum()) > 0.0
 
 
 def test_pose_stack_from_biotite_1ubq_slice(biotite_1ubq, torch_device):
