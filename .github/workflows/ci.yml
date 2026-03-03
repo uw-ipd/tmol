@@ -121,13 +121,15 @@ jobs:
 
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
-          CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -p instafail -s -v --tb=short --durations=25 \
-            --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda" || true
+          CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -p instafail -p no:benchmark -s -v --tb=short --durations=25 \
+            --cov=./tmol --junitxml=testing.cpu.junit.xml -o faulthandler_timeout=300 \
+            -k "not cuda and not benchmark and not score_function_benchmarks" || true
 
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
-          pytest -p no:rerunfailures -p instafail -s -v --tb=short --durations=25 --cov=./tmol \
-            --junitxml=testing.cuda.junit.xml -k "cuda" || true
+          pytest -p no:rerunfailures -p instafail -p no:benchmark -s -v --tb=short --durations=25 --no-cov \
+            --junitxml=testing.cuda.junit.xml -o faulthandler_timeout=300 \
+            -k "cuda and not benchmark and not score_function_benchmarks" || true
 
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
@@ -151,8 +153,9 @@ jobs:
           export TORCH_EXTENSIONS_DIR=/ci-pip-pkgs/torch_extensions
           echo "JIT compiling for TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}"
 
-          pytest -p no:rerunfailures -p instafail -s -v --tb=short --durations=25 --cov=./tmol \
-            --junitxml=testing.cuda.jit.junit.xml -k "cuda" || true
+          pytest -p no:rerunfailures -p instafail -p no:benchmark -s -v --tb=short --durations=25 --no-cov \
+            --junitxml=testing.cuda.jit.junit.xml -o faulthandler_timeout=300 \
+            -k "cuda and not benchmark and not score_function_benchmarks" || true
 
           GPU_WORK
 
