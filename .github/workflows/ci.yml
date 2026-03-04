@@ -79,10 +79,13 @@ jobs:
           export PYTHONUSERBASE=/ci-pip-pkgs
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
+          SAFE_REPO=${GITHUB_REPOSITORY//\//_}
+          SAFE_REF=${GITHUB_REF_NAME//\//_}
           export TMOL_CACHE_ROOT=/net/scratch/bench/ci-caches/tmol
           export TMOL_PRECOMPILED_BUILD_DIR=$TMOL_CACHE_ROOT/precompiled-build
-          export TMOL_JIT_CACHE_DIR=$TMOL_CACHE_ROOT/jit-extensions
-          mkdir -p "$TMOL_PRECOMPILED_BUILD_DIR" "$TMOL_JIT_CACHE_DIR"
+          export TMOL_CPP_EXT_CACHE_DIR=$TMOL_CACHE_ROOT/torch-extensions/precompiled/${SAFE_REPO}/${SAFE_REF}/py${PYVER}
+          export TMOL_JIT_CACHE_DIR=$TMOL_CACHE_ROOT/torch-extensions/jit/${SAFE_REPO}/${SAFE_REF}/py${PYVER}
+          mkdir -p "$TMOL_PRECOMPILED_BUILD_DIR" "$TMOL_CPP_EXT_CACHE_DIR" "$TMOL_JIT_CACHE_DIR"
 
           # ── Setup ──────────────────────────────────────────────────────
           command -v uv >/dev/null 2>&1 || pip install --user uv
@@ -128,7 +131,8 @@ jobs:
           echo "=== tests (CPU only) ==="
           unset TMOL_USE_JIT
           export TMOL_JIT_FALLBACK=0
-          unset TORCH_EXTENSIONS_DIR
+          export TORCH_EXTENSIONS_DIR=$TMOL_CPP_EXT_CACHE_DIR
+          echo "TORCH_EXTENSIONS_DIR (CPU)=$TORCH_EXTENSIONS_DIR"
           CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -p instafail -s -v --tb=short --durations=25 \
             --cov=./tmol --junitxml=testing.cpu.junit.xml -o faulthandler_timeout=300 \
             -k "not cuda and not benchmark and not score_function_benchmarks"
@@ -137,7 +141,8 @@ jobs:
           echo "=== tests (CUDA) ==="
           unset TMOL_USE_JIT
           export TMOL_JIT_FALLBACK=0
-          unset TORCH_EXTENSIONS_DIR
+          export TORCH_EXTENSIONS_DIR=$TMOL_CPP_EXT_CACHE_DIR
+          echo "TORCH_EXTENSIONS_DIR (CUDA)=$TORCH_EXTENSIONS_DIR"
           pytest -p no:rerunfailures -p instafail -s -v --tb=short --durations=25 --no-cov \
             --junitxml=testing.cuda.junit.xml -o faulthandler_timeout=300 \
             -k "cuda and not benchmark and not score_function_benchmarks"
@@ -164,6 +169,7 @@ jobs:
           export TORCH_CUDA_ARCH_LIST=$(python3 -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')")
           export TORCH_EXTENSIONS_DIR=$TMOL_JIT_CACHE_DIR
           echo "JIT compiling for TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}"
+          echo "TORCH_EXTENSIONS_DIR (JIT)=$TORCH_EXTENSIONS_DIR"
 
           pytest -p no:rerunfailures -p instafail -s -v --tb=short --durations=25 --no-cov \
             --junitxml=testing.cuda.jit.junit.xml -o faulthandler_timeout=300 \
