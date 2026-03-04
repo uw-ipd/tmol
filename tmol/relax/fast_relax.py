@@ -26,6 +26,7 @@ def fast_relax(
     fold_forest: FoldForest,
     task_operations: Sequence[Callable[[PackerTask], None]] | None = None,
     verbose: bool = False,
+    n_repeats: int = 5,
 ) -> PoseStack:
     """Run a short Rosetta-style relax protocol.
 
@@ -37,6 +38,8 @@ def fast_relax(
         fold_forest: Kinematic topology for minimization.
         task_operations: Optional operations applied to a `PackerTask`.
         verbose: If True, emit timing and progress logs.
+        n_repeats: Number of outer relax iterations. Default 5 reproduces the
+            standard short protocol.
 
     Returns:
         Relaxed `PoseStack`.
@@ -110,7 +113,10 @@ def fast_relax(
         verbose,
     ]
     ps = pose_stack
-    for _ in range(5):
+    if n_repeats < 1:
+        raise ValueError(f"n_repeats must be >= 1, got {n_repeats}")
+
+    for _ in range(n_repeats):
         rpms_args[0] = ps
         rpms_args[5] = 0.040 * fa_rep_start
         rpms_args[6] = 0.051 * fa_rep_start

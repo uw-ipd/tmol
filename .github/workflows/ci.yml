@@ -171,9 +171,18 @@ jobs:
           echo "JIT compiling for TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}"
           echo "TORCH_EXTENSIONS_DIR (JIT)=$TORCH_EXTENSIONS_DIR"
 
+          echo "TMOL_USE_JIT=${TMOL_USE_JIT} TMOL_JIT_FALLBACK=${TMOL_JIT_FALLBACK} TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}"
+          # Keep routine JIT coverage fast and stable by excluding known long-running relax tests.
           pytest -p no:rerunfailures -p instafail -s -v --tb=short --durations=25 --no-cov \
             --junitxml=testing.cuda.jit.junit.xml -o faulthandler_timeout=300 \
-            -k "cuda and not benchmark and not score_function_benchmarks"
+            -k "cuda and not benchmark and not score_function_benchmarks and not test_fast_relax_pertuz and not test_fast_relax_for_different_shapes"
+
+          echo "=== tests (CUDA JIT slow relax) ==="
+          echo "TMOL_USE_JIT=${TMOL_USE_JIT} TMOL_JIT_FALLBACK=${TMOL_JIT_FALLBACK} TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}"
+          pytest -p no:rerunfailures -p instafail -s -v --tb=short --durations=25 --no-cov \
+            --junitxml=testing.cuda.jit.slow.junit.xml -o faulthandler_timeout=1200 \
+            tmol/tests/relax/test_fast_relax.py \
+            -k "cuda and (test_fast_relax_pertuz or test_fast_relax_for_different_shapes)"
 
           GPU_WORK
 
@@ -186,6 +195,7 @@ jobs:
             testing.cpu.junit.xml
             testing.cuda.junit.xml
             testing.cuda.jit.junit.xml
+            testing.cuda.jit.slow.junit.xml
 
       - name: Upload benchmark results
         if: always()

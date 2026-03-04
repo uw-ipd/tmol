@@ -79,7 +79,7 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 
     verbose = True
     new_pose_stack = fast_relax(
-        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose
+        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose, n_repeats=1
     )
 
     if torch_device == torch.device("cuda"):
@@ -156,7 +156,7 @@ def test_fast_relax_pertuz(
 
     verbose = True
     new_pose_stack = fast_relax(
-        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose
+        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose, n_repeats=1
     )
 
     if torch_device == torch.device("cuda"):
@@ -222,7 +222,7 @@ def test_fast_relax_for_different_shapes(
 
     verbose = True
     new_pose_stack = fast_relax(
-        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose
+        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose, n_repeats=1
     )
 
     if torch_device == torch.device("cuda"):
