@@ -100,7 +100,6 @@ requires = [
     "scikit-build-core>=0.10",
     "torch>=2.5",
     "pybind11>=2.12",
-    "ninja",
     "packaging",
 ]
 build-backend = "scikit_build_core.build"
