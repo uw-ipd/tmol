@@ -8,19 +8,15 @@ SMILES are obtained via a tiered strategy:
      If the MOL block has no bonds (novel ligand), RDKit infers them from
      coordinates via rdDetermineBonds.
 
-Protonation at a target pH uses the vendored dimorphite_dl script.
+Protonation at a target pH uses the vendored dimorphite_dl module in-process.
 """
 
 import logging
-import subprocess
 import sys
-import tempfile
-from pathlib import Path
 
 from tmol.ligand.detect import LigandInfo, _atom_array_to_smiles
 
 logger = logging.getLogger(__name__)
-_VENDORED_DIMORPHITE = Path(__file__).resolve().parent / "dimorphite_dl.py"
 
 
 def _import_pybel():
@@ -106,6 +102,10 @@ def protonate_ligand_smiles(
 ) -> str:
     """Protonate a SMILES string at a target pH using dimorphite_dl.
 
+    Calls the vendored Dimorphite-DL ``Protonate`` iterator in-process
+    rather than spawning a subprocess, avoiding temp-file I/O and an
+    extra SMILES round-trip.
+
     Args:
         smiles: Input SMILES string (may be un-protonated).
         ph: Target pH for protonation (both min and max are set to this).
@@ -116,60 +116,26 @@ def protonate_ligand_smiles(
         variants, the first one is used. If protonation fails, the
         original SMILES is returned unchanged.
     """
-    # Replicate guangfeng/ligand_prep protonation workflow using vendored script:
-    # python dimorphite_dl.py --smiles_file ... --min_ph X --max_ph X
-    # --output_file ... --pka_precision Y
     try:
-        if not _VENDORED_DIMORPHITE.exists():
-            logger.warning(
-                "Vendored dimorphite script not found: %s", _VENDORED_DIMORPHITE
+        from tmol.ligand.dimorphite_dl import Protonate
+
+        args = {
+            "smiles": smiles,
+            "min_ph": ph,
+            "max_ph": ph,
+            "pka_precision": precision,
+            "max_variants": 128,
+            "silent": True,
+        }
+        for protonated_smi in Protonate(args):
+            result = protonated_smi.split("\t")[0]
+            logger.debug(
+                "Protonated SMILES at pH %.1f: %s -> %s",
+                ph,
+                smiles,
+                result,
             )
-            return smiles
-
-        with tempfile.TemporaryDirectory(prefix="tmol_dimorphite_") as tmpdir:
-            tmp = Path(tmpdir)
-            smiles_file = tmp / "designs.smi"
-            output_file = tmp / "designs.prot.smi"
-            smiles_file.write_text(f"{smiles}\tmol\n")
-
-            proc = subprocess.run(
-                [
-                    sys.executable,
-                    str(_VENDORED_DIMORPHITE),
-                    "--smiles_file",
-                    str(smiles_file),
-                    "--min_ph",
-                    str(ph),
-                    "--max_ph",
-                    str(ph),
-                    "--output_file",
-                    str(output_file),
-                    "--pka_precision",
-                    str(precision),
-                ],
-                capture_output=True,
-                text=True,
-            )
-            if proc.returncode != 0:
-                logger.warning(
-                    "Vendored dimorphite invocation failed for %s: %s",
-                    smiles,
-                    proc.stderr.strip(),
-                )
-                return smiles
-
-            if output_file.exists():
-                for line in output_file.read_text().splitlines():
-                    parts = line.strip().split()
-                    if parts:
-                        result = parts[0]
-                        logger.debug(
-                            "Vendored protonated SMILES at pH %.1f: %s -> %s",
-                            ph,
-                            smiles,
-                            result,
-                        )
-                        return result
+            return result
     except Exception:
-        logger.warning("Vendored dimorphite protonation failed for %s", smiles)
+        logger.warning("Dimorphite-DL protonation failed for %s", smiles)
     return smiles
