@@ -260,13 +260,30 @@ def build_residue_type(
 
     atoms = tuple(Atom(name=at.atom_name, atom_type=at.atom_type) for at in atom_types)
 
-    bonds: list[tuple[str, str]] = []
+    bonds: list[tuple[str, str, str]] = []
     for obbond in openbabel.OBMolBondIter(obmol):
         a = obbond.GetBeginAtomIdx() - 1
         b = obbond.GetEndAtomIdx() - 1
+
         if atom_names[a] is None or atom_names[b] is None:
             continue
-        bonds.append((atom_names[a], atom_names[b]))
+
+        # Determine the bond type string
+        order = obbond.GetBondOrder()
+        if obbond.IsAromatic():
+            b_type = "AROMATIC"  # aro check before ring!
+        elif obbond.IsInRing():
+            b_type = "RING"
+        elif order == 1:
+            b_type = "SINGLE"
+        elif order == 2:
+            b_type = "DOUBLE"
+        elif order == 3:
+            b_type = "TRIPLE"
+        else:
+            b_type = "SINGLE"  # default to single
+
+        bonds.append((atom_names[a], atom_names[b], b_type))
 
     nbr_idx = _find_nbr_atom(
         obmol,

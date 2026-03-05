@@ -65,6 +65,7 @@ class Icoor:
 class Connection:
     name: str
     atom: str
+    type: str = "SINGLE"
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -130,7 +131,7 @@ class RawResidueType:
     io_equiv_class: str
     atoms: Tuple[Atom, ...]
     atom_aliases: Tuple[AtomAlias, ...]
-    bonds: Tuple[Tuple[str, str], ...]
+    bonds: Tuple[Tuple[str, str, str], ...]
     connections: Tuple[Connection, ...]
     torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
@@ -174,7 +175,7 @@ class VariantType:
     add_atom_aliases: Tuple[AtomAlias, ...]
     modify_atoms: Tuple[Atom, ...]
     add_connections: Tuple[Connection, ...]
-    add_bonds: Tuple[Tuple[str, str], ...]
+    add_bonds: Tuple[Tuple[str, str, str], ...]
     icoors: Tuple[IcoorVariant, ...]
 
 

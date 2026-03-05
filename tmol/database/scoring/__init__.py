@@ -2,6 +2,7 @@ import os
 import attr
 
 from .cartbonded import CartBondedDatabase
+from .genbonded import GenBondedDatabase
 from .disulfide import DisulfideDatabase
 from .dunbrack_libraries import DunbrackRotamerLibrary
 from .elec import ElecDatabase
@@ -15,6 +16,7 @@ from .ref import RefDatabase
 @attr.s(auto_attribs=True, slots=True)
 class ScoringDatabase:
     cartbonded: CartBondedDatabase
+    genbonded: GenBondedDatabase
     disulfide: DisulfideDatabase
     dun: DunbrackRotamerLibrary
     elec: ElecDatabase
@@ -31,6 +33,7 @@ class ScoringDatabase:
             cartbonded=CartBondedDatabase.from_file(
                 os.path.join(path, "cartbonded.yaml")
             ),
+            genbonded=GenBondedDatabase.from_file(os.path.join(path, "genbonded.yaml")),
             disulfide=DisulfideDatabase.from_file(os.path.join(path, "disulfide.yaml")),
             dun=DunbrackRotamerLibrary.from_file(os.path.join(path, "dunbrack.bin")),
             elec=ElecDatabase.from_file(os.path.join(path, "elec.yaml")),

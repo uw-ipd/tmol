@@ -47,8 +47,8 @@ def write_params_file(
             charge = partial_charges[atom.name]
         lines.append(f"ATOM {atom.name:4s} {atom.atom_type:4s} X {charge:8.4f}")
 
-    for a, b in restype.bonds:
-        lines.append(f"BOND {a:4s} {b:4s}")
+    for a, b, c in restype.bonds:
+        lines.append(f"BOND {a:4s} {b:4s} {c:12s}")
 
     if restype.default_jump_connection_atom:
         lines.append(f"NBR_ATOM {restype.default_jump_connection_atom}")
