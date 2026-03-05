@@ -20,6 +20,17 @@ from tmol.database.chemical import (
 
 logger = logging.getLogger(__name__)
 
+_BOND_TOK_TO_TYPE = {
+    "1": "SINGLE",
+    "2": "DOUBLE",
+    "3": "TRIPLE",
+    "SINGLE": "SINGLE",
+    "DOUBLE": "DOUBLE",
+    "TRIPLE": "TRIPLE",
+    "AROMATIC": "AROMATIC",
+    "ARO": "AROMATIC",
+}
+
 
 def write_params_file(
     restype: RawResidueType,
@@ -86,7 +97,7 @@ def read_params_file(path: str | Path) -> RawResidueType:
     name = "UNK"
     name3 = "UNK"
     atoms: list[Atom] = []
-    bonds: list[tuple[str, str]] = []
+    bonds: list[tuple[str, str, str]] = []
     icoors: list[Icoor] = []
     nbr_atom = ""
 
@@ -104,7 +115,15 @@ def read_params_file(path: str | Path) -> RawResidueType:
                 atoms.append(Atom(name=parts[1], atom_type=parts[2]))
 
             elif parts[0] == "BOND" and len(parts) >= 3:
-                bonds.append((parts[1], parts[2]))
+                bond_type = "SINGLE"
+                if len(parts) >= 4:
+                    bond_type = _BOND_TOK_TO_TYPE.get(parts[3].upper(), "SINGLE")
+                bonds.append((parts[1], parts[2], bond_type))
+            elif parts[0] == "BOND_TYPE" and len(parts) >= 4:
+                order = _BOND_TOK_TO_TYPE.get(parts[3].upper(), "SINGLE")
+                ring = len(parts) >= 5 and parts[4].upper() == "RING"
+                bond_type = "RING" if ring and order != "AROMATIC" else order
+                bonds.append((parts[1], parts[2], bond_type))
 
             elif parts[0] == "NBR_ATOM" and len(parts) >= 2:
                 nbr_atom = parts[1]

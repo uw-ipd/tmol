@@ -190,7 +190,7 @@ def cif_184l_with_i4b():
     """Lysozyme with I4B ligand (10 atoms, small drug-like)."""
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "184l__1__1.A__1.E.cif")
     return biotite.structure.io.load_structure(
-        fname, extra_fields=["occupancy", "b_factor"]
+        fname, extra_fields=["occupancy", "b_factor"], include_bonds=True
     )
 
 
@@ -199,7 +199,7 @@ def cif_155c_with_hem():
     """Cytochrome c with HEM ligand (43 atoms) and ACE caps."""
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "155c__1__1.A__1.B.cif")
     return biotite.structure.io.load_structure(
-        fname, extra_fields=["occupancy", "b_factor"]
+        fname, extra_fields=["occupancy", "b_factor"], include_bonds=True
     )
 
 
@@ -208,7 +208,7 @@ def cif_1a25_with_pse():
     """Structure with PSE ligand at partial occupancy (0.56)."""
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "1a25__1__1.B__1.I.cif")
     return biotite.structure.io.load_structure(
-        fname, extra_fields=["occupancy", "b_factor"]
+        fname, extra_fields=["occupancy", "b_factor"], include_bonds=True
     )
 
 

@@ -12,6 +12,7 @@ from typing import Optional
 
 import attr
 import biotite.structure as struc
+import biotite.structure.info as struc_info
 import biotite.structure.info.ccd as ccd
 import numpy as np
 
@@ -59,6 +60,8 @@ class LigandInfo:
         atom_names: Atom names for one representative instance.
         elements: Element symbols for each atom.
         coords: Cartesian coordinates of shape (n_atoms, 3).
+        atom_array: The ligand sub-AtomArray (with bonds if available).
+        ccd_smiles: Canonical SMILES from the CCD, or None if unavailable.
     """
 
     res_name: str
@@ -66,7 +69,9 @@ class LigandInfo:
     is_ligand: bool
     atom_names: tuple[str, ...]
     elements: tuple[str, ...]
-    coords: np.ndarray
+    coords: np.ndarray = attr.ib(eq=False, hash=False)
+    atom_array: struc.AtomArray = attr.ib(eq=False, hash=False)
+    ccd_smiles: Optional[str] = None
 
 
 @functools.cache
@@ -89,6 +94,110 @@ def get_chem_comp_type(res_name: str) -> Optional[str]:
         or None if the code is not found in the CCD.
     """
     return _chem_comp_type_dict().get(res_name.upper())
+
+
+_METAL_SYMBOLS = frozenset(
+    {
+        "Fe",
+        "Zn",
+        "Cu",
+        "Mn",
+        "Co",
+        "Ni",
+        "Mg",
+        "Ca",
+        "Na",
+        "K",
+        "Cr",
+        "Mo",
+        "W",
+        "V",
+        "Pt",
+        "Pd",
+        "Ru",
+        "Rh",
+        "Ir",
+        "Os",
+    }
+)
+
+
+def _strip_metals(mol):
+    """Remove metal atoms from an RDKit Mol.
+
+    OpenBabel downstream cannot parse CCD coordination-bond SMILES, and
+    metals are dropped during ligand preparation anyway.
+    """
+    from rdkit.Chem import RWMol
+
+    metals = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() in _METAL_SYMBOLS]
+    if metals:
+        em = RWMol(mol)
+        for idx in sorted(metals, reverse=True):
+            em.RemoveAtom(idx)
+        return em.GetMol()
+    return mol
+
+
+def _atom_array_to_smiles(atom_array: struc.AtomArray) -> Optional[str]:
+    """Convert an AtomArray to a canonical SMILES string via RDKit.
+
+    Uses biotite.interface.rdkit.to_mol() for arrays with bonds.
+    Falls back to rdDetermineBonds for arrays without bonds.
+    Metal atoms are stripped since OpenBabel cannot handle coordination
+    bond SMILES downstream.
+    """
+    try:
+        from rdkit import Chem
+        from rdkit.Chem import rdDetermineBonds
+        from biotite.interface.rdkit import to_mol
+    except ImportError:
+        return None
+
+    has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
+
+    try:
+        if has_bonds:
+            mol = to_mol(atom_array)
+        else:
+            if len(atom_array) == 0:
+                return None
+            rwmol = Chem.RWMol()
+            conf = Chem.Conformer(len(atom_array))
+            for i, (elem, coord) in enumerate(
+                zip(atom_array.element, atom_array.coord)
+            ):
+                rwmol.AddAtom(Chem.Atom(elem.strip().capitalize()))
+                conf.SetAtomPosition(
+                    i, (float(coord[0]), float(coord[1]), float(coord[2]))
+                )
+            rwmol.AddConformer(conf, assignId=True)
+            if rwmol.GetNumAtoms() > 1:
+                rdDetermineBonds.DetermineBonds(rwmol)
+            mol = rwmol.GetMol()
+    except Exception:
+        return None
+
+    mol = Chem.RemoveHs(mol)
+    mol = _strip_metals(mol)
+    smi = Chem.MolToSmiles(mol)
+    return smi if smi else None
+
+
+def _get_ccd_smiles(res_name: str) -> Optional[str]:
+    """Look up canonical SMILES for a residue from the CCD.
+
+    Uses biotite.structure.info.residue() to get the full CCD AtomArray
+    (with bonds) and converts to SMILES via RDKit.
+    Returns None if the component is not in the CCD or conversion fails.
+    """
+    try:
+        ccd_array = struc_info.residue(res_name)
+    except KeyError:
+        return None
+    if ccd_array is None:
+        return None
+    return _atom_array_to_smiles(ccd_array)
 
 
 def _classify_residue(res_name: str) -> tuple[str, bool]:
@@ -145,13 +254,16 @@ def detect_nonstandard_residues(
 
         sub = atom_array[mask]
         ccd_type, is_ligand = _classify_residue(res_name)
+        ccd_smiles = _get_ccd_smiles(res_name)
 
         logger.info(
-            "Detected non-standard residue %s (CCD type: %s, ligand: %s, %d atoms)",
+            "Detected non-standard residue %s (CCD type: %s, ligand: %s, "
+            "%d atoms, CCD SMILES: %s)",
             res_name,
             ccd_type,
             is_ligand,
             len(sub),
+            ccd_smiles,
         )
 
         ligands.append(
@@ -162,6 +274,8 @@ def detect_nonstandard_residues(
                 atom_names=tuple(sub.atom_name),
                 elements=tuple(sub.element),
                 coords=sub.coord.copy(),
+                atom_array=sub,
+                ccd_smiles=ccd_smiles,
             )
         )
 

@@ -12,26 +12,11 @@ from typing import NamedTuple
 
 from openbabel import openbabel
 
+from tmol.ligand.chemistry_tables import get_hbond_properties, get_polar_classes
+
 logger = logging.getLogger(__name__)
 
-POLARCLASSES = frozenset(
-    [
-        "Oat",
-        "Oad",
-        "Ohx",
-        "Oal",
-        "OG23",
-        "OG2",
-        "OG3",
-        "Nam",
-        "Ngu1",
-        "Ngu2",
-        "NG22",
-        "SG5",
-        "PG3",
-        "PG5",
-    ]
-)
+POLARCLASSES = get_polar_classes()
 
 ELEMENT_SYMBOLS = {
     1: "H",
@@ -46,49 +31,8 @@ ELEMENT_SYMBOLS = {
     53: "I",
 }
 
-# HBond properties for ligand atom types, derived from Rosetta
-# fa_standard_genpot/atom_properties.txt. Maps atom type name to
-# (is_donor, is_acceptor, is_polarh, is_hydroxyl, acceptor_hybridization).
-HBOND_PROPERTIES: dict[str, dict] = {
-    # Oxygen acceptors/donors
-    "Oad": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
-    "Oal": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
-    "Oat": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
-    "Ont": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
-    "OG2": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
-    "Oet": {"is_acceptor": True, "acceptor_hybridization": "SP3"},
-    "OG3": {"is_acceptor": True, "acceptor_hybridization": "SP3"},
-    "OG31": {"is_acceptor": True, "acceptor_hybridization": "SP3"},
-    "Ofu": {"is_acceptor": True, "acceptor_hybridization": "RING"},
-    "Ohx": {
-        "is_acceptor": True,
-        "is_donor": True,
-        "is_hydroxyl": True,
-        "acceptor_hybridization": "SP3",
-    },
-    # Nitrogen donors
-    "Nam": {"is_donor": True},
-    "Nam2": {"is_donor": True},
-    "NG21": {"is_donor": True},
-    "NG22": {"is_donor": True},
-    "NG3": {"is_donor": True},
-    "Ngu1": {"is_donor": True},
-    "Ngu2": {"is_donor": True},
-    # Nitrogen acceptors
-    "Nad": {"is_acceptor": True, "acceptor_hybridization": "RING"},
-    "Nad3": {"is_acceptor": True, "acceptor_hybridization": "SP3"},
-    "Nim": {"is_acceptor": True, "acceptor_hybridization": "RING"},
-    "Nin": {"is_acceptor": True, "acceptor_hybridization": "RING"},
-    "NG1": {"is_acceptor": True, "acceptor_hybridization": "SP2"},
-    "NG2": {"is_acceptor": True, "acceptor_hybridization": "RING"},
-    # Polar hydrogens
-    "HN": {"is_polarh": True},
-    "HO": {"is_polarh": True},
-    "HS": {"is_polarh": True},
-    "HG": {"is_polarh": True},
-    # Sulfur
-    "Sth": {"is_donor": True},
-}
+# Database-backed HBond properties keyed by atom type name.
+HBOND_PROPERTIES: dict[str, dict] = get_hbond_properties()
 
 
 class AtomTypeAssignment(NamedTuple):
@@ -107,6 +51,19 @@ def _elem_symbol(atomic_num: int) -> str:
 
 def _is_hydrogen(obatom: openbabel.OBAtom) -> bool:
     return obatom.GetAtomicNum() == 1
+
+
+def _ensure_explicit_hydrogens(obmol: openbabel.OBMol) -> None:
+    """Add explicit hydrogens when an OBMol has none.
+
+    Rosetta's degree-based carbon typing assumes explicit H neighbors are
+    present; without them, saturated carbons can be misclassified as CD/CT.
+    """
+    has_hydrogen = any(
+        obatom.GetAtomicNum() == 1 for obatom in openbabel.OBMolAtomIter(obmol)
+    )
+    if not has_hydrogen:
+        obmol.AddHydrogens()
 
 
 def _neighbor_counts(obatom: openbabel.OBAtom) -> tuple[int, int, int, int, int, int]:
@@ -182,6 +139,10 @@ def _classify_C(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
 
     if hyb == 9:
         prefix = "CR"
+    elif obatom.IsChiral():
+        # Chiral tetrahedral carbons should remain saturated even if
+        # bond-order perception undercounts attached hydrogens.
+        prefix = "CS"
     elif nbonds == 4:
         prefix = "CS"
     elif nbonds == 3:
@@ -541,6 +502,10 @@ def assign_tmol_atom_types(
         35: _classify_halogen,
         53: _classify_halogen,
     }
+
+    # Ensure degree-based atom typing sees explicit hydrogens, matching
+    # legacy mol2genparams behavior for aliphatic carbons.
+    _ensure_explicit_hydrogens(obmol)
 
     # Pass 1: classify all atoms, name heavy atoms
     heavy_assignments: list[tuple[int, str, str, int]] = []

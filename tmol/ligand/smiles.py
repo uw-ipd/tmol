@@ -1,16 +1,26 @@
-"""SMILES perception from coordinates and protonation via dimorphite_dl.
+"""SMILES perception and protonation via dimorphite_dl.
 
-Follows the approach from Guangfeng's ligand_prep pipeline: SMILES are
-perceived from atom coordinates using OpenBabel, then protonated at a
-target pH using dimorphite_dl.
+SMILES are obtained via a tiered strategy:
+  1. CCD lookup -- the LigandInfo carries a pre-resolved canonical SMILES
+     from the wwPDB Chemical Component Dictionary when available.
+  2. CIF sub-array -- the ligand AtomArray (with bonds from the CIF) is
+     written to MOL via Biotite, loaded into RDKit, and converted to SMILES.
+     If the MOL block has no bonds (novel ligand), RDKit infers them from
+     coordinates via rdDetermineBonds.
+
+Protonation at a target pH uses the vendored dimorphite_dl script.
 """
 
 import logging
+import subprocess
 import sys
+import tempfile
+from pathlib import Path
 
-from tmol.ligand.detect import LigandInfo
+from tmol.ligand.detect import LigandInfo, _atom_array_to_smiles
 
 logger = logging.getLogger(__name__)
+_VENDORED_DIMORPHITE = Path(__file__).resolve().parent / "dimorphite_dl.py"
 
 
 def _import_pybel():
@@ -44,49 +54,49 @@ _ELEMENT_TO_ATOMIC_NUM = {
 
 
 def perceive_smiles(ligand_info: LigandInfo) -> str:
-    """Perceive a SMILES string from ligand atom coordinates via OpenBabel.
+    """Obtain a canonical SMILES string for a detected ligand.
 
-    Builds an OBMol from the atoms, elements, and coordinates in the
-    LigandInfo, lets OpenBabel perceive bonds, and writes a canonical
-    SMILES string.
+    Tier 1: Return the CCD canonical SMILES if available (pre-resolved
+    during detection and stored on ligand_info.ccd_smiles).
+
+    Tier 2: Write the ligand's AtomArray (from the CIF, with bonds) to a
+    MOL block via Biotite, load into RDKit, and convert to SMILES.  If
+    the molecule has no bonds, rdDetermineBonds infers them from 3D
+    coordinates.
 
     Args:
-        ligand_info: A LigandInfo with atom_names, elements, and coords.
+        ligand_info: A LigandInfo with ccd_smiles, atom_array, and
+            fallback atom_names / elements / coords.
 
     Returns:
         A canonical SMILES string for the molecule.
 
     Raises:
-        ValueError: If the resulting SMILES is empty or perception fails.
+        ValueError: If SMILES cannot be determined by any tier.
     """
-    openbabel, pybel = _import_pybel()
-
-    obmol = openbabel.OBMol()
-    obmol.BeginModify()
-
-    for i, (elem, coord) in enumerate(zip(ligand_info.elements, ligand_info.coords)):
-        obatom = obmol.NewAtom()
-        atomic_num = _ELEMENT_TO_ATOMIC_NUM.get(elem.strip(), 0)
-        if atomic_num == 0:
-            atomic_num = openbabel.GetAtomicNum(elem.strip())
-        obatom.SetAtomicNum(atomic_num)
-        obatom.SetVector(float(coord[0]), float(coord[1]), float(coord[2]))
-
-    obmol.EndModify()
-    obmol.ConnectTheDots()
-    obmol.PerceiveBondOrders()
-
-    mol = pybel.Molecule(obmol)
-    mol.removeh()
-    smi = mol.write("can").strip()
-
-    if not smi:
-        raise ValueError(
-            f"Failed to perceive SMILES for residue {ligand_info.res_name}"
+    # Tier 1: CCD canonical SMILES
+    if ligand_info.ccd_smiles:
+        logger.debug(
+            "Using CCD SMILES for %s: %s",
+            ligand_info.res_name,
+            ligand_info.ccd_smiles,
         )
+        return ligand_info.ccd_smiles
 
-    logger.debug("Perceived SMILES for %s: %s", ligand_info.res_name, smi)
-    return smi
+    # Tier 2: CIF sub-array -> MOL -> RDKit -> SMILES
+    smi = _atom_array_to_smiles(ligand_info.atom_array)
+    if smi:
+        logger.debug(
+            "Perceived SMILES from CIF AtomArray for %s: %s",
+            ligand_info.res_name,
+            smi,
+        )
+        return smi
+
+    raise ValueError(
+        f"Failed to perceive SMILES for residue {ligand_info.res_name}: "
+        f"not in CCD and CIF sub-array conversion failed"
+    )
 
 
 def protonate_ligand_smiles(
@@ -106,24 +116,60 @@ def protonate_ligand_smiles(
         variants, the first one is used. If protonation fails, the
         original SMILES is returned unchanged.
     """
+    # Replicate guangfeng/ligand_prep protonation workflow using vendored script:
+    # python dimorphite_dl.py --smiles_file ... --min_ph X --max_ph X
+    # --output_file ... --pka_precision Y
     try:
-        from dimorphite_dl import protonate_smiles
+        if not _VENDORED_DIMORPHITE.exists():
+            logger.warning(
+                "Vendored dimorphite script not found: %s", _VENDORED_DIMORPHITE
+            )
+            return smiles
 
-        variants = protonate_smiles(
-            smiles,
-            ph_min=ph,
-            ph_max=ph,
-            precision=precision,
-            max_variants=1,
-        )
-        if variants:
-            result = variants[0]
-            logger.debug("Protonated SMILES at pH %.1f: %s -> %s", ph, smiles, result)
-            return result
+        with tempfile.TemporaryDirectory(prefix="tmol_dimorphite_") as tmpdir:
+            tmp = Path(tmpdir)
+            smiles_file = tmp / "designs.smi"
+            output_file = tmp / "designs.prot.smi"
+            smiles_file.write_text(f"{smiles}\tmol\n")
+
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(_VENDORED_DIMORPHITE),
+                    "--smiles_file",
+                    str(smiles_file),
+                    "--min_ph",
+                    str(ph),
+                    "--max_ph",
+                    str(ph),
+                    "--output_file",
+                    str(output_file),
+                    "--pka_precision",
+                    str(precision),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            if proc.returncode != 0:
+                logger.warning(
+                    "Vendored dimorphite invocation failed for %s: %s",
+                    smiles,
+                    proc.stderr.strip(),
+                )
+                return smiles
+
+            if output_file.exists():
+                for line in output_file.read_text().splitlines():
+                    parts = line.strip().split()
+                    if parts:
+                        result = parts[0]
+                        logger.debug(
+                            "Vendored protonated SMILES at pH %.1f: %s -> %s",
+                            ph,
+                            smiles,
+                            result,
+                        )
+                        return result
     except Exception:
-        logger.warning(
-            "dimorphite_dl protonation failed for %s, using original",
-            smiles,
-            exc_info=True,
-        )
+        logger.warning("Vendored dimorphite protonation failed for %s", smiles)
     return smiles

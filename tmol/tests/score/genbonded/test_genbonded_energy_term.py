@@ -9,6 +9,7 @@ Two tests — one per ligand example — exercise:
 """
 
 import torch
+from types import SimpleNamespace
 
 from tmol.database import ParameterDatabase
 from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
@@ -142,3 +143,22 @@ def test_hem_genbonded_smoke(cif_155c_with_hem, torch_device):
     assert scores.shape[0] == 1, "expected one score per score type"
     assert not torch.any(torch.isnan(scores)), "NaN in genbonded scores (hem)"
     assert not torch.any(torch.isinf(scores)), "Inf in genbonded scores (hem)"
+
+
+def test_genbonded_rotamer_noop_module(torch_device):
+    param_db = ParameterDatabase.get_fresh_default()
+    term = GenBondedEnergyTerm(param_db=param_db, device=torch_device)
+
+    fake_rotamer_set = SimpleNamespace(
+        n_rots_for_pose=torch.tensor([2], dtype=torch.int32, device=torch_device),
+        coord_offset_for_rot=torch.tensor(
+            [0, 10], dtype=torch.int32, device=torch_device
+        ),
+    )
+    module = term.render_rotamer_scoring_module(None, fake_rotamer_set)
+
+    coords = torch.zeros((20, 3), dtype=torch.float32, device=torch_device)
+    sparse_scores = module(coords)
+
+    assert sparse_scores.shape[0] == 1
+    assert sparse_scores.shape[1:] == (1, 2, 2)

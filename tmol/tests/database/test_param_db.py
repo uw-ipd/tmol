@@ -11,6 +11,7 @@ def test_get_fresh_default():
     param_db1 = ParameterDatabase.get_fresh_default()
     param_db2 = ParameterDatabase.get_fresh_default()
     assert param_db1 is not param_db2
+    assert hasattr(param_db1.scoring, "genbonded")
 
 
 def test_create_stable_subset(default_database):

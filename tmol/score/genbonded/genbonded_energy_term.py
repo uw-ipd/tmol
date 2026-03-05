@@ -474,6 +474,31 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
     def get_rotamer_score_term_function(self):
         return genbonded_rotamer_scores
 
+    def render_rotamer_scoring_module(self, pose_stack: PoseStack, rotamer_set):
+        # Rotamer dispatch in the C++ backend is not implemented yet.
+        # Return a no-op sparse module so packer paths do not crash when
+        # gen_torsions is present in the ScoreFunction.
+        class _NoOpGenBondedRotamerModule(torch.nn.Module):
+            def __init__(self, n_poses: int, n_rots: int):
+                super().__init__()
+                self.n_poses = n_poses
+                self.n_rots = n_rots
+
+            def forward(self, coords):
+                empty_idx = torch.zeros((3, 0), dtype=torch.int64, device=coords.device)
+                empty_vals = torch.zeros((0,), dtype=coords.dtype, device=coords.device)
+                zero_sparse = torch.sparse_coo_tensor(
+                    empty_idx,
+                    empty_vals,
+                    size=(self.n_poses, self.n_rots, self.n_rots),
+                    device=coords.device,
+                )
+                return torch.stack([zero_sparse])
+
+        n_poses = int(rotamer_set.n_rots_for_pose.shape[0])
+        n_rots = int(rotamer_set.coord_offset_for_rot.shape[0])
+        return _NoOpGenBondedRotamerModule(n_poses=n_poses, n_rots=n_rots)
+
     def get_score_term_attributes(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types
 

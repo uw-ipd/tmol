@@ -23,6 +23,7 @@ from tmol.database.scoring.cartbonded import (
     LengthGroup,
 )
 from tmol.io.canonical_ordering import CanonicalOrdering
+from tmol.ligand.chemistry_tables import get_hbond_properties, get_sp2_atom_types
 
 logger = logging.getLogger(__name__)
 
@@ -40,25 +41,6 @@ class LigandPreparationCache:
 
 
 _default_cache = LigandPreparationCache()
-
-SP2_ATOM_TYPES = frozenset(
-    [
-        "CD",
-        "CD1",
-        "CD2",
-        "CDp",
-        "CR",
-        "CRp",
-        "Oad",
-        "Oal",
-        "Oat",
-        "Ont",
-        "OG2",
-        "Nad",
-        "Nim",
-        "Nin",
-    ]
-)
 
 
 def get_default_cache() -> LigandPreparationCache:
@@ -198,10 +180,11 @@ def _build_cartbonded_params(residue_type: RawResidueType) -> CartRes:
                     )
 
     impropers = []
+    sp2_atom_types = get_sp2_atom_types()
     seen_impropers: set[tuple[str, str, str, str]] = set()
     for center, neighbors in atom_neighbors.items():
         atype = atom_type_by_name.get(center, "")
-        if atype in SP2_ATOM_TYPES and len(neighbors) == 3:
+        if atype in sp2_atom_types and len(neighbors) == 3:
             n = sorted(neighbors)
             improper_key = (n[0], n[1], center, n[2])
             if improper_key in seen_impropers:
@@ -239,10 +222,9 @@ def _collect_new_atom_types(
     Sets hbond properties (is_donor, is_acceptor, acceptor_hybridization)
     from the HBOND_PROPERTIES lookup in atom_typing.py.
     """
-    from tmol.ligand.atom_typing import HBOND_PROPERTIES
-
     existing = {at.name for at in chem_db.atom_types}
     needed: dict[str, str] = {}
+    hbond_properties = get_hbond_properties()
 
     for atom in residue_type.atoms:
         if atom.atom_type not in existing and atom.atom_type not in needed:
@@ -251,7 +233,7 @@ def _collect_new_atom_types(
     result = []
     atom_type_elements = atom_type_elements or {}
     for name in needed:
-        props = HBOND_PROPERTIES.get(name, {})
+        props = hbond_properties.get(name, {})
         element = atom_type_elements.get(name)
         if element is None:
             msg = (
