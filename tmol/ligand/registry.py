@@ -155,7 +155,7 @@ def _build_cartbonded_params(residue_type: RawResidueType) -> CartRes:
             lengths.append(LengthGroup(atm1=ic.name, atm2=ic.parent, x0=ic.d, K=300.0))
 
     atom_neighbors: dict[str, list[str]] = {}
-    for a, b in residue_type.bonds:
+    for a, b, _ in residue_type.bonds:
         atom_neighbors.setdefault(a, []).append(b)
         atom_neighbors.setdefault(b, []).append(a)
 

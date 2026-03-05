@@ -273,6 +273,10 @@ add_library(_C MODULE
   tmol/score/cartbonded/potentials/compiled.ops.cpp
   tmol/score/cartbonded/potentials/cartbonded_pose_score.cpu.cpp
   tmol/score/cartbonded/potentials/cartbonded_pose_score.cuda.cu
+  # score/genbonded
+  tmol/score/genbonded/potentials/compiled.ops.cpp
+  tmol/score/genbonded/potentials/genbonded_pose_score.cpu.cpp
+  tmol/score/genbonded/potentials/genbonded_pose_score.cuda.cu
   # score/constraint
   tmol/score/constraint/potentials/compiled.ops.cpp
   tmol/score/constraint/potentials/constraint_score.cpu.cpp

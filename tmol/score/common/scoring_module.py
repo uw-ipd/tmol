@@ -94,6 +94,12 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
     ):
         # ignore the dispatch_indices return tensor
         args = self.format_arguments(coords, False)
+        for i, x in enumerate(args):
+            print(
+                f"{i}: {x}"
+                if isinstance(x, (int, float))
+                else f"{i}: {x.shape}, {x.stride()}, {x.dtype}"
+            )
         scores, _ = self.term_score_poses(*args)
         return scores
 

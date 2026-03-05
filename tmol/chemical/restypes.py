@@ -1,5 +1,7 @@
+from enum import IntEnum
+
 from frozendict import frozendict
-from toolz.curried import concat, map, compose, groupby
+from toolz.curried import concat, compose, groupby
 import typing
 from typing import Mapping, Optional, NewType, Tuple, Sequence, List, Set, Union
 import attr
@@ -21,6 +23,23 @@ from tmol.chemical.all_bonds import bonds_and_bond_ranges
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
 BondCount = NewType("BondCount", int)
+
+
+class BondType(IntEnum):
+    SINGLE = 1
+    DOUBLE = 2
+    TRIPLE = 3
+    RING = 4
+    AROMATIC = 5
+
+
+BOND_TYPE_FROM_STR = {
+    "SINGLE": BondType.SINGLE,
+    "DOUBLE": BondType.DOUBLE,
+    "TRIPLE": BondType.TRIPLE,
+    "RING": BondType.RING,
+    "AROMATIC": BondType.AROMATIC,
+}
 
 # As of cattr 24.1.0, more types must be explicitly registered in order to
 # use cattr.structure. We use that here
@@ -152,11 +171,29 @@ class RefinedResidueType(RawResidueType):
     def _setup_bond_indices(self):
         bondi = compose(list, sorted, set, concat)(
             [(ai, bi), (bi, ai)]
-            for ai, bi in map(map(self.atom_to_idx.get), self.bonds)
+            for ai, bi in (
+                (self.atom_to_idx.get(b[0]), self.atom_to_idx.get(b[1]))
+                for b in self.bonds
+            )
         )
         bond_array = numpy.array(bondi, dtype=numpy.int32)
         bond_array.flags.writeable = False
         return bond_array
+
+    bond_to_type: Mapping = attr.ib()
+
+    @bond_to_type.default
+    def _setup_bond_to_type(self):
+        bt_map = {}
+        for b in self.bonds:
+            a0, a1, btype_str = b[0], b[1], b[2]
+            ai = self.atom_to_idx.get(a0)
+            bi = self.atom_to_idx.get(a1)
+            if ai is not None and bi is not None:
+                bt_int = int(BOND_TYPE_FROM_STR.get(btype_str, BondType.SINGLE))
+                bt_map[(ai, bi)] = bt_int
+                bt_map[(bi, ai)] = bt_int
+        return frozendict(bt_map)
 
     @property
     def n_conn(self):
@@ -183,6 +220,20 @@ class RefinedResidueType(RawResidueType):
         return numpy.array(
             [self.atom_to_idx[c.atom] for c in self.connections], dtype=numpy.int32
         )
+
+    connection_bond_types: numpy.ndarray = attr.ib()
+
+    @connection_bond_types.default
+    def _setup_connection_bond_types(self):
+        arr = numpy.array(
+            [
+                int(BOND_TYPE_FROM_STR.get(c.type, BondType.SINGLE))
+                for c in self.connections
+            ],
+            dtype=numpy.int32,
+        )
+        arr.flags.writeable = False
+        return arr
 
     # The set of "all-bonds" includes both inter- and intra- block chemical bonds
     # Each all-bond (think of "all" here as an adjective like "inter" or "intra")
