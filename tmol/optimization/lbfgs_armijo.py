@@ -1,6 +1,9 @@
+import logging
 import torch
 from functools import reduce
 from torch.optim import Optimizer
+
+logger = logging.getLogger(__name__)
 
 
 def armijo_linesearch(
@@ -88,12 +91,10 @@ def armijo_linesearch(
         if alpha1 < minstep:
             if phi_a1 >= phi0:
                 finite_diff = (phi_a1 - phi0) / alpha1
-                print(
-                    "Inaccurate G! Step=",
+                logger.warning(
+                    "Inaccurate gradient estimate: step=%s deriv=%s finite_diff=%s",
                     alpha1,
-                    " Deriv=",
                     derphi0,
-                    " Finite=",
                     finite_diff,
                 )
                 return 0.0, phi0

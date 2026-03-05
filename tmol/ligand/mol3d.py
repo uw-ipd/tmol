@@ -39,18 +39,42 @@ def smiles_to_obmol(
     mol.make3D(forcefield=forcefield, steps=50)
     mol.localopt(forcefield=forcefield, steps=minimize_steps)
 
+    _compute_partial_charges(mol, forcefield, input_label=smiles)
+
+    return mol
+
+
+def rdkit_mol_to_obmol(
+    rdkit_mol,
+    minimize_steps: int = 500,
+    forcefield: str = "mmff94",
+) -> pybel.Molecule:
+    """Convert an RDKit Mol to an OpenBabel molecule with 3D and charges."""
+    from rdkit import Chem
+
+    mol_block = Chem.MolToMolBlock(rdkit_mol)
+    mol = pybel.readstring("mol", mol_block)
+    mol.addh()
+    mol.make3D(forcefield=forcefield, steps=50)
+    mol.localopt(forcefield=forcefield, steps=minimize_steps)
+    _compute_partial_charges(mol, forcefield, input_label="rdkit_mol")
+    return mol
+
+
+def _compute_partial_charges(
+    mol: pybel.Molecule, forcefield: str, input_label: str
+) -> None:
+    """Compute partial charges on an OpenBabel molecule."""
     charge_model = openbabel.OBChargeModel.FindType(forcefield)
     if charge_model is None or not charge_model.ComputeCharges(mol.OBMol):
         logger.warning(
             "MMFF94 charge computation failed for %s, falling back to "
             "Gasteiger charges",
-            smiles,
+            input_label,
         )
         gasteiger = openbabel.OBChargeModel.FindType("gasteiger")
         if gasteiger is not None:
             gasteiger.ComputeCharges(mol.OBMol)
-
-    return mol
 
 
 def get_partial_charges_by_index(mol: pybel.Molecule) -> dict[int, float]:

@@ -1,10 +1,10 @@
 """Ligand preparation pipeline for tmol.
 
-Detects non-standard residues in biotite AtomArrays, builds SMILES
-representations, protonates them at a target pH, generates 3D structures
-with MMFF94 partial charges, assigns Rosetta-compatible atom types, and
-registers the resulting residue types in tmol's ParameterDatabase for
-transparent loading via PoseStack.
+Detects non-standard residues in biotite AtomArrays, builds RDKit molecules
+directly from atom arrays, protonates them at a target pH, generates 3D
+structures with MMFF94 partial charges, assigns Rosetta-compatible atom
+types, and registers the resulting residue types in tmol's ParameterDatabase
+for transparent loading via PoseStack.
 
 Typical usage::
 
@@ -26,7 +26,11 @@ from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.ligand.atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand.detect import LigandInfo, detect_nonstandard_residues
 from tmol.ligand.graph_match import match_heavy_atoms
-from tmol.ligand.mol3d import get_partial_charges_by_index, smiles_to_obmol
+from tmol.ligand.mol3d import (
+    get_partial_charges_by_index,
+    rdkit_mol_to_obmol,
+    smiles_to_obmol,
+)
 from tmol.ligand.registry import (
     LigandPreparationCache,
     cache_ligand,
@@ -39,7 +43,9 @@ from tmol.ligand.registry import (
 from tmol.ligand.residue_builder import build_residue_type
 from tmol.ligand.smiles import (
     _import_pybel,
+    ligand_atom_array_to_rdkit_mol,
     perceive_smiles,
+    protonate_ligand_mol,
     protonate_ligand_smiles,
 )
 
@@ -119,6 +125,35 @@ def _rename_atoms_to_cif(
     ]
 
 
+def _rename_atoms_to_cif_by_index(
+    atom_types: list[AtomTypeAssignment], ligand_info: LigandInfo
+) -> list[AtomTypeAssignment] | None:
+    """Rename heavy atoms from CIF names using direct index alignment.
+
+    Returns None if index-based mapping is not safe, so callers can fall
+    back to graph-based matching.
+    """
+    if len(ligand_info.atom_names) != len(ligand_info.elements):
+        return None
+
+    renamed: list[AtomTypeAssignment] = []
+    seen_names: set[str] = set()
+    for at in atom_types:
+        new_name = at.atom_name
+        if at.element != "H":
+            if at.index >= len(ligand_info.atom_names):
+                return None
+            cif_elem = ligand_info.elements[at.index].strip().upper()
+            if cif_elem != at.element.upper():
+                return None
+            new_name = ligand_info.atom_names[at.index]
+        if new_name in seen_names:
+            return None
+        seen_names.add(new_name)
+        renamed.append(at._replace(atom_name=new_name))
+    return renamed
+
+
 def prepare_single_ligand(
     ligand_info: LigandInfo,
     ph: float = 7.4,
@@ -132,12 +167,25 @@ def prepare_single_ligand(
     Returns:
         A tuple of (RawResidueType, partial_charges, atom_type_elements).
     """
-    smiles = perceive_smiles(ligand_info)
-    protonated = protonate_ligand_smiles(smiles, ph=ph)
-    mol = smiles_to_obmol(protonated)
+    try:
+        rdkit_mol = ligand_atom_array_to_rdkit_mol(ligand_info)
+        protonated_rdkit = protonate_ligand_mol(rdkit_mol, ph=ph)
+        mol = rdkit_mol_to_obmol(protonated_rdkit)
+    except Exception:
+        logger.warning(
+            "Direct Mol protonation failed for %s; falling back to SMILES path",
+            ligand_info.res_name,
+        )
+        smiles = perceive_smiles(ligand_info)
+        protonated = protonate_ligand_smiles(smiles, ph=ph)
+        mol = smiles_to_obmol(protonated)
     atom_types = assign_tmol_atom_types(mol.OBMol)
     charges_by_index = get_partial_charges_by_index(mol)
-    atom_types = _rename_atoms_to_cif(mol.OBMol, atom_types, ligand_info)
+    atom_types_by_index = _rename_atoms_to_cif_by_index(atom_types, ligand_info)
+    if atom_types_by_index is not None:
+        atom_types = atom_types_by_index
+    else:
+        atom_types = _rename_atoms_to_cif(mol.OBMol, atom_types, ligand_info)
 
     restype = build_residue_type(
         mol.OBMol,
@@ -182,9 +230,9 @@ def prepare_ligands(
     """Detect, prepare, and register all non-standard residues.
 
     Scans the input AtomArray for residues not in the ParameterDatabase,
-    runs each through the ligand preparation pipeline (SMILES perception,
-    protonation, 3D generation, atom typing, residue building), and
-    registers them — extending both the chemical and scoring databases.
+    runs each through the ligand preparation pipeline (direct RDKit molecule
+    construction, protonation, 3D generation, atom typing, residue building),
+    and registers them — extending both the chemical and scoring databases.
 
     Args:
         atom_array: A biotite AtomArray from a CIF or PDB file.

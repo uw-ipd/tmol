@@ -13,7 +13,10 @@ import pytest
 
 from tmol.io.pose_stack_from_biotite import canonical_ordering_for_biotite
 from tmol.ligand import prepare_ligands, prepare_single_ligand
+import tmol.ligand as ligand_module
 from tmol.ligand.detect import detect_nonstandard_residues
+from tmol.ligand.dimorphite_dl import protonate_mol_variants
+from tmol.ligand.smiles import protonate_ligand_smiles
 from tmol.ligand.params_io import read_params_file, write_params_file
 from tmol.ligand.registry import get_default_cache
 from tmol.ligand.registry import clear_cache
@@ -458,6 +461,52 @@ def test_collect_new_atom_types_strict_mode_errors(default_database):
             atom_type_elements={},
             strict_atom_types=True,
         )
+
+
+def test_dimorphite_mol_path_matches_smiles_path():
+    from rdkit import Chem
+
+    input_smiles = "CC(=O)ON"
+    from_smiles = protonate_ligand_smiles(input_smiles, ph=7.4, precision=0.1)
+
+    mol = Chem.MolFromSmiles(input_smiles)
+    assert mol is not None
+    mol_variants = protonate_mol_variants(
+        mol,
+        min_ph=7.4,
+        max_ph=7.4,
+        pka_precision=0.1,
+        max_variants=128,
+        silent=True,
+    )
+    assert mol_variants
+    from_mol = Chem.MolToSmiles(mol_variants[0], isomericSmiles=True)
+
+    canon_from_smiles = Chem.MolToSmiles(
+        Chem.MolFromSmiles(from_smiles), isomericSmiles=True
+    )
+    canon_from_mol = Chem.MolToSmiles(Chem.MolFromSmiles(from_mol), isomericSmiles=True)
+    assert canon_from_mol == canon_from_smiles
+
+
+def test_prepare_single_ligand_uses_index_mapping_before_graph(
+    cif_184l_with_i4b, monkeypatch
+):
+    ligands = detect_nonstandard_residues(
+        cif_184l_with_i4b, canonical_ordering_for_biotite()
+    )
+    i4b = next(l for l in ligands if l.res_name == "I4B")
+
+    def _fail_graph_match(*_args, **_kwargs):
+        raise AssertionError("Graph matching should not be called in direct Mol path")
+
+    monkeypatch.setattr(ligand_module, "_rename_atoms_to_cif", _fail_graph_match)
+    restype, charges, _ = prepare_single_ligand(i4b, ph=7.4)
+    atom_names = {a.name for a in restype.atoms}
+    assert "C3'" in atom_names
+    assert "C4'" in atom_names
+    assert "C2'" in atom_names
+    assert "C3'" in charges
 
 
 def _parse_reference_params(path):

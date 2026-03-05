@@ -13,16 +13,16 @@ detect_nonstandard_residues()
   Classify via Biotite CCD (modified AA vs ligand)
         │
         ▼
-perceive_smiles()
-  OpenBabel SMILES from atom coordinates
+ligand_atom_array_to_rdkit_mol()
+  Build RDKit Mol directly from ligand AtomArray
         │
         ▼
-protonate_ligand_smiles()
-  dimorphite_dl at target pH (default 7.4)
+protonate_ligand_mol()
+  dimorphite_dl protonation on RDKit Mol at target pH (default 7.4)
         │
         ▼
-smiles_to_obmol()
-  OpenBabel 3D structure generation
+rdkit_mol_to_obmol()
+  OpenBabel 3D structure generation from RDKit Mol
   MMFF94 partial charges + energy minimization
         │
         ▼
@@ -62,8 +62,8 @@ chem_db, canonical_ordering = prepare_ligands(atom_array)
 | Module | Purpose |
 |--------|---------|
 | `detect.py` | Detect non-standard residues, classify via CCD |
-| `smiles.py` | SMILES perception (OpenBabel) + protonation (dimorphite_dl) |
-| `mol3d.py` | 3D generation, MMFF94 charges, minimization |
+| `smiles.py` | RDKit Mol construction + protonation (dimorphite_dl) |
+| `mol3d.py` | RDKit/OpenBabel conversion, 3D generation, MMFF94 charges |
 | `atom_typing.py` | Map element + bonding to Rosetta atom types |
 | `residue_builder.py` | Build RawResidueType (atoms, bonds, icoors) |
 | `registry.py` | Register in ChemicalDatabase, rebuild CanonicalOrdering |
@@ -78,14 +78,14 @@ Each module can be used independently:
 from tmol.ligand.detect import detect_nonstandard_residues
 ligands = detect_nonstandard_residues(atom_array, canonical_ordering)
 
-# Perceive SMILES from coordinates
-from tmol.ligand.smiles import perceive_smiles, protonate_ligand_smiles
-smi = perceive_smiles(ligand_info)
-protonated = protonate_ligand_smiles(smi, ph=7.4)
+# Build/protonate RDKit Mol directly from AtomArray
+from tmol.ligand.smiles import ligand_atom_array_to_rdkit_mol, protonate_ligand_mol
+rdmol = ligand_atom_array_to_rdkit_mol(ligand_info)
+protonated = protonate_ligand_mol(rdmol, ph=7.4)
 
 # Generate 3D structure with charges
-from tmol.ligand.mol3d import smiles_to_obmol, get_partial_charges
-mol = smiles_to_obmol(protonated)
+from tmol.ligand.mol3d import rdkit_mol_to_obmol, get_partial_charges
+mol = rdkit_mol_to_obmol(protonated)
 charges = get_partial_charges(mol)
 
 # Assign atom types
