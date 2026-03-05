@@ -1,0 +1,6 @@
+# Default genbonded parameter database.
+# Populated entries can be added incrementally as parameters are curated.
+
+atoms: {}
+torsions: []
+impropers: []
