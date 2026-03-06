@@ -47,13 +47,24 @@ def build_missing_sidechains_with_missing_atoms(
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()  # no design
 
-    # Iterate through the block level tasks and either disable packing if the sidechain already
-    # exists, or else make sure we dont try and load the current sidechain with missing atoms
+    def _is_dunbrack_rebuild_eligible(restype) -> bool:
+        polymer = restype.properties.polymer
+        return (
+            polymer.is_polymer
+            and polymer.polymer_type == "amino_acid"
+            and polymer.backbone_type == "alpha"
+        )
+
+    # Iterate through block-level tasks:
+    # - Rebuild only amino-acid alpha-backbone polymers supported by Dunbrack.
+    # - Disable packing for all other blocks (including ligands/non-polymers),
+    #   even if they have missing atoms, to avoid invalid Dunbrack sampling.
     for pose_ind in range(block_has_missing_atoms.size(0)):
         for block_ind in range(block_has_missing_atoms.size(1)):
             if pose_stack.is_real_block(pose_ind, block_ind):
                 has_missing = block_has_missing_atoms[pose_ind, block_ind]
-                if has_missing:
+                restype = pose_stack.block_type(pose_ind, block_ind)
+                if has_missing and _is_dunbrack_rebuild_eligible(restype):
                     task.blts[pose_ind][block_ind].include_current = False
                 else:
                     task.blts[pose_ind][block_ind].disable_packing()

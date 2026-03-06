@@ -282,6 +282,39 @@ class TestLigandScoringData:
             ), f"Improper center incorrectly includes saturated atom {name}"
 
 
+def test_prepare_ligands_missing_sidechain_rebuild_skips_ligand_dunbrack(
+    cif_184l_with_i4b, torch_device
+):
+    """Missing-sidechain rebuild should not invoke Dunbrack on ligand blocks."""
+    import numpy
+    import torch
+
+    from tmol.database import ParameterDatabase
+    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+
+    bt = cif_184l_with_i4b.copy()
+    protein_cb = (bt.res_name != "I4B") & (bt.atom_name == "CB")
+    if not numpy.any(protein_cb):
+        pytest.skip("Could not find a protein CB atom to remove")
+
+    first_cb = numpy.nonzero(protein_cb)[0][0]
+    keep_mask = numpy.ones(bt.array_length(), dtype=bool)
+    keep_mask[first_cb] = False
+    bt_missing = bt[keep_mask]
+
+    pose_stack = pose_stack_from_biotite(
+        bt_missing,
+        torch_device,
+        prepare_ligands=True,
+        param_db=ParameterDatabase.get_fresh_default(),
+    )
+
+    assert pose_stack.coords.shape[0] >= 1
+    nonzero_coords = pose_stack.coords[pose_stack.coords != 0]
+    assert not torch.any(torch.isnan(nonzero_coords))
+    assert not torch.any(torch.isinf(nonzero_coords))
+
+
 @pytest.mark.skip(
     reason="Rotamer/Dunbrack energy term does not yet support ligands; "
     "crashes with SIGFPE before pytest can catch the error",

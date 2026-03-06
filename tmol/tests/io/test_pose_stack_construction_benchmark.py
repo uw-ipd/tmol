@@ -1,6 +1,5 @@
 import numpy
 import pytest
-import sys
 from tmol.tests.torch import zero_padded_counts
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
@@ -9,8 +8,6 @@ from tmol.io.canonical_ordering import (
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.score import beta2016_score_function
-
-_SKIP_DUNBRACK_SCORING_BENCH = sys.version_info >= (3, 12)
 
 
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form")
@@ -50,10 +47,6 @@ def test_build_pose_stack_from_canonical_form_pert_benchmark(
 
 
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form_and_score")
-@pytest.mark.skipif(
-    _SKIP_DUNBRACK_SCORING_BENCH,
-    reason="Known Dunbrack SIGFPE during scorefunction init on Python 3.12.",
-)
 def test_build_and_score_ubq_benchmark(benchmark, torch_device, ubq_pdb):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
@@ -133,10 +126,6 @@ def test_build_pose_stack_from_canonical_form_pertuzumab_benchmark(
 
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30]))
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form_and_score")
-@pytest.mark.skipif(
-    _SKIP_DUNBRACK_SCORING_BENCH,
-    reason="Known Dunbrack SIGFPE during scorefunction init on Python 3.12.",
-)
 def test_build_and_score_pertuzumab_benchmark(
     benchmark, pertuzumab_pdb, n_poses, torch_device
 ):
