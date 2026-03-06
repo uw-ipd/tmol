@@ -96,7 +96,7 @@ class ParameterDatabase:
         """
         if new_atom_types:
             self.chemical.atom_types = (*self.chemical.atom_types, *new_atom_types)
-        self.chemical.residues = [*self.chemical.residues, residue_type]
+        self.chemical.residues = (*self.chemical.residues, residue_type)
 
     def remove_residue_type(self, res_name: str) -> None:
         """Remove a residue type from the chemical database.

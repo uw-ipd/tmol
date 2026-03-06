@@ -6,7 +6,7 @@ import yaml
 from attrs import evolve
 from functools import partial
 from toolz.curried import groupby
-from tmol.database.chemical import ChemicalDatabase, VariantType
+from tmol.database.chemical import ChemicalDatabase, VariantType, normalize_bond_tuples
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.io.canonical_ordering import (
@@ -201,6 +201,7 @@ def test_assign_block_types_w_exotic_termini_options(
 
     def variant_from_yaml(yml_string):
         raw = yaml.safe_load(yml_string)
+        raw = normalize_bond_tuples(raw)
         return tuple(cattr.structure(x, VariantType) for x in raw)
 
     floro_nterm_variant = variant_from_yaml(floro_nterm_patch)
@@ -794,6 +795,7 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
 
 def variants_from_yaml(yml_string):
     raw = yaml.safe_load(yml_string)
+    raw = normalize_bond_tuples(raw)
     return tuple(cattr.structure(x, VariantType) for x in raw)
 
 

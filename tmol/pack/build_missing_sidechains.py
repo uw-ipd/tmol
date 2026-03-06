@@ -96,18 +96,21 @@ def build_missing_sidechains_with_missing_atoms(
         return pose_stack
 
     # Configure per-block behavior:
-    # - targeted blocks get Dunbrack/FixedAA sidechain rebuilding.
+    # - targeted blocks get sidechain rebuilding (include_current=False).
     # - all others are fixed to their current coordinates.
-    fixed_sampler = FixedAAChiSampler()
     for pose_ind, one_pose_blts in enumerate(task.blts):
         for blt in one_pose_blts:
             block_key = (pose_ind, blt.seqpos)
             if block_key in rebuild_targets:
                 blt.include_current = False
-                blt.add_conformer_sampler(dunbrack_sampler)
-                blt.add_conformer_sampler(fixed_sampler)
             else:
                 blt.disable_packing()
+
+    # Add samplers globally so sampler output dimensions remain aligned with the
+    # global block-type indexing expected by rotamer-building internals.
+    fixed_sampler = FixedAAChiSampler()
+    task.add_conformer_sampler(dunbrack_sampler)
+    task.add_conformer_sampler(fixed_sampler)
 
     # Call pack_rotamers to build the missing sidechains
     return pack_rotamers(pose_stack, sfxn, task, verbose=True)
