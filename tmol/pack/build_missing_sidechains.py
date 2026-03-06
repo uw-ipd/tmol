@@ -1,4 +1,5 @@
 import torch
+import logging
 
 from tmol.types.torch import Tensor
 from tmol.pose.pose_stack import PoseStack
@@ -11,6 +12,8 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.pack.pack_rotamers import pack_rotamers
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.database import ParameterDatabase
+
+logger = logging.getLogger(__name__)
 
 
 def build_missing_sidechains_with_missing_atoms(
@@ -55,24 +58,56 @@ def build_missing_sidechains_with_missing_atoms(
             and polymer.backbone_type == "alpha"
         )
 
-    # Iterate through block-level tasks:
-    # - Rebuild only amino-acid alpha-backbone polymers supported by Dunbrack.
-    # - Disable packing for all other blocks (including ligands/non-polymers),
-    #   even if they have missing atoms, to avoid invalid Dunbrack sampling.
-    for pose_ind in range(block_has_missing_atoms.size(0)):
-        for block_ind in range(block_has_missing_atoms.size(1)):
-            if pose_stack.is_real_block(pose_ind, block_ind):
-                has_missing = block_has_missing_atoms[pose_ind, block_ind]
-                restype = pose_stack.block_type(pose_ind, block_ind)
-                if has_missing and _is_dunbrack_rebuild_eligible(restype):
-                    task.blts[pose_ind][block_ind].include_current = False
-                else:
-                    task.blts[pose_ind][block_ind].disable_packing()
+    def _collect_dunbrack_rebuild_targets():
+        targets = set()
+        skipped_noneligible_missing = {}
+        for pose_ind, one_pose_blts in enumerate(task.blts):
+            for blt in one_pose_blts:
+                block_ind = blt.seqpos
+                has_missing = bool(block_has_missing_atoms[pose_ind, block_ind])
+                if not has_missing:
+                    continue
 
-    # Add the samplers
+                restype = pose_stack.block_type(pose_ind, block_ind)
+                if _is_dunbrack_rebuild_eligible(restype):
+                    targets.add((pose_ind, block_ind))
+                else:
+                    skipped_noneligible_missing[restype.name] = (
+                        skipped_noneligible_missing.get(restype.name, 0) + 1
+                    )
+        return targets, skipped_noneligible_missing
+
+    rebuild_targets, skipped_noneligible_missing = _collect_dunbrack_rebuild_targets()
+
+    if skipped_noneligible_missing:
+        logger.info(
+            "Skipping missing-sidechain rebuild for %d non-Dunbrack blocks: %s",
+            sum(skipped_noneligible_missing.values()),
+            ", ".join(
+                f"{name}:{count}"
+                for name, count in sorted(skipped_noneligible_missing.items())
+            ),
+        )
+
+    # If only non-eligible blocks (e.g. ligands) are missing, there is nothing
+    # Dunbrack can build. Return the original pose stack to avoid invoking the
+    # sampler with an empty buildable set.
+    if not rebuild_targets:
+        return pose_stack
+
+    # Configure per-block behavior:
+    # - targeted blocks get Dunbrack/FixedAA sidechain rebuilding.
+    # - all others are fixed to their current coordinates.
     fixed_sampler = FixedAAChiSampler()
-    task.add_conformer_sampler(dunbrack_sampler)
-    task.add_conformer_sampler(fixed_sampler)
+    for pose_ind, one_pose_blts in enumerate(task.blts):
+        for blt in one_pose_blts:
+            block_key = (pose_ind, blt.seqpos)
+            if block_key in rebuild_targets:
+                blt.include_current = False
+                blt.add_conformer_sampler(dunbrack_sampler)
+                blt.add_conformer_sampler(fixed_sampler)
+            else:
+                blt.disable_packing()
 
     # Call pack_rotamers to build the missing sidechains
     return pack_rotamers(pose_stack, sfxn, task, verbose=True)

@@ -877,6 +877,45 @@ def test_chi_sampler_smoke(ubq_pdb, default_database, default_restype_set):
     sampler.sample_chi_for_poses(poses, task)
 
 
+def test_chi_sampler_returns_empty_when_no_buildable_block_types(
+    ubq_pdb, default_database, default_restype_set
+):
+    torch_device = torch.device("cpu")
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=5)
+    poses = PoseStackBuilder.from_poses([p1], torch_device)
+    palette = PackerPalette(default_restype_set)
+    task = PackerTask(poses, palette)
+    task.restrict_to_repacking()
+
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    sampler = DunbrackChiSampler.from_database(param_resolver)
+    task.add_conformer_sampler(sampler)
+
+    for one_pose_blts in task.blts:
+        for blt in one_pose_blts:
+            blt.disable_packing()
+
+    for rt in poses.packed_block_types.active_block_types:
+        sampler.annotate_residue_type(rt)
+    sampler.annotate_packed_block_types(poses.packed_block_types)
+    n_rots_for_gbt, gbt_for_rotamer, chi_defining_atom, chi = (
+        sampler.sample_chi_for_poses(poses, task)
+    )
+
+    expected_n_gbts = sum(
+        len(blt.considered_block_types)
+        for one_pose_blts in task.blts
+        for blt in one_pose_blts
+    )
+    assert n_rots_for_gbt.shape[0] == expected_n_gbts
+    assert torch.sum(n_rots_for_gbt).item() == 0
+    assert gbt_for_rotamer.shape == (0,)
+    assert chi_defining_atom.shape == (0, 0)
+    assert chi.shape == (0, 0)
+
+
 def test_chi_sampler_build_lots_of_rotamers(
     ubq_pdb, default_database, default_restype_set, torch_device
 ):

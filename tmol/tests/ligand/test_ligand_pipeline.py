@@ -315,6 +315,38 @@ def test_prepare_ligands_missing_sidechain_rebuild_skips_ligand_dunbrack(
     assert not torch.any(torch.isinf(nonzero_coords))
 
 
+def test_prepare_ligands_ligand_only_missing_does_not_invoke_dunbrack(
+    cif_184l_with_i4b, torch_device
+):
+    """Ligand-only missing atoms should bypass Dunbrack rebuilding cleanly."""
+    import numpy
+    import torch
+
+    from tmol.database import ParameterDatabase
+    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+
+    bt = cif_184l_with_i4b.copy()
+    ligand_atoms = numpy.nonzero(bt.res_name == "I4B")[0]
+    if ligand_atoms.shape[0] == 0:
+        pytest.skip("Could not find I4B ligand atoms to remove")
+
+    keep_mask = numpy.ones(bt.array_length(), dtype=bool)
+    keep_mask[ligand_atoms[0]] = False
+    bt_ligand_missing = bt[keep_mask]
+
+    pose_stack = pose_stack_from_biotite(
+        bt_ligand_missing,
+        torch_device,
+        prepare_ligands=True,
+        param_db=ParameterDatabase.get_fresh_default(),
+    )
+
+    assert pose_stack.coords.shape[0] >= 1
+    nonzero_coords = pose_stack.coords[pose_stack.coords != 0]
+    assert not torch.any(torch.isnan(nonzero_coords))
+    assert not torch.any(torch.isinf(nonzero_coords))
+
+
 @pytest.mark.skip(
     reason="Rotamer/Dunbrack energy term does not yet support ligands; "
     "crashes with SIGFPE before pytest can catch the error",

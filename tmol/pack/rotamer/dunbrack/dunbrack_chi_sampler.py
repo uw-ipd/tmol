@@ -336,6 +336,18 @@ class DunbrackChiSampler(ChiSampler):
             dtype=bool,
         )
         n_gbt_total = is_gbt_dun_allowed.shape[0]
+
+        def _empty_samples():
+            return (
+                torch.zeros((n_gbt_total,), dtype=torch.int32, device=self.device),
+                torch.zeros((0,), dtype=torch.int32, device=self.device),
+                torch.zeros((0, 0), dtype=torch.int32, device=self.device),
+                torch.zeros((0, 0), dtype=torch.float32, device=self.device),
+            )
+
+        if dun_allowed_blocktypes.shape[0] == 0:
+            return _empty_samples()
+
         # equiv: numpy.nonzero(is_gbt_dun_allowed)
         dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[
             is_gbt_dun_allowed
@@ -393,6 +405,9 @@ class DunbrackChiSampler(ChiSampler):
         )
 
         is_dun_allowed_bt_bbt = dun_rot_inds_for_dun_allowed_bts != -1
+        if not torch.any(is_dun_allowed_bt_bbt):
+            return _empty_samples()
+
         dun_allowed_bt_that_are_bbt = torch.nonzero(is_dun_allowed_bt_bbt)[:, 0]
         bbt_to_gbt_torch = dun_allowed_bt_to_gbt_torch[dun_allowed_bt_that_are_bbt]
         rottable_set_for_bbt = dun_rot_inds_for_dun_allowed_bts[
