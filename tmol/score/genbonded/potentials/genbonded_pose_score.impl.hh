@@ -729,7 +729,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
 }
 
 // ===========================================================================
-// GenBondedRotamerScoreDispatch::forward  (stub)
+// GenBondedRotamerScoreDispatch::forward
 // ===========================================================================
 template <
     template <tmol::Device> class DeviceOps,
@@ -769,11 +769,356 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
         TPack<Int, 2, D>,
         TPack<Int, 1, D>,
         TPack<Int, 1, D>> {
-  AT_ERROR("GenBondedRotamerScoreDispatch::forward not implemented");
+  int const n_atoms = rot_coords.size(0);
+  int const n_rots = rot_coord_offset.size(0);
+  int const n_poses = first_rot_for_block.size(0);
+  int const max_n_blocks = first_rot_for_block.size(1);
+  int const max_n_conns = pose_stack_inter_block_connections.size(2);
+  int const n_block_types = gen_intra_subgraph_offsets.size(0);
+  int const n_total_intra = gen_intra_subgraphs.size(0);
+
+  LAUNCH_BOX_32;
+  CTA_REAL_REDUCE_T_TYPEDEF;
+
+  // Each rotamer × connection slot is one potential "interaction unit".
+  // conn == max_n_conns is the sentinel for intra-rotamer interactions.
+  int const max_n_interactions = n_rots * (max_n_conns + 1);
+
+  auto n_output_intxns_for_rot_conn_t =
+      TPack<Int, 1, D>::zeros({max_n_interactions});
+  auto n_output_intxns_for_rot_conn = n_output_intxns_for_rot_conn_t.view;
+  auto n_output_intxns_for_rot_conn_offset_t =
+      TPack<Int, 1, D>::zeros({max_n_interactions});
+  auto n_output_intxns_for_rot_conn_offset =
+      n_output_intxns_for_rot_conn_offset_t.view;
+
+  // ---------------------------------------------------------------------------
+  // Step 1: count output interactions per (rotamer, connection) pair.
+  //   Intra → always 1.
+  //   Inter → n_rots of the other block (lower block handles to avoid
+  //           double-counting).
+  // ---------------------------------------------------------------------------
+  auto count_intxns_for_rot_conn = ([=] TMOL_DEVICE_FUNC(int index) {
+    int const rot_ind = index / (max_n_conns + 1);
+    int const conn_ind = index % (max_n_conns + 1);
+
+    int const pose_ind = pose_ind_for_rot[rot_ind];
+    int const block_ind = block_ind_for_rot[rot_ind];
+    int const block_type_ind = block_type_ind_for_rot[rot_ind];
+    if (block_type_ind == -1) {
+      return;
+    }
+
+    bool const is_intra_conn = conn_ind == max_n_conns;
+
+    if (is_intra_conn) {
+      n_output_intxns_for_rot_conn[index] = 1;
+    } else {
+      int const other_block_ind =
+          pose_stack_inter_block_connections[pose_ind][block_ind][conn_ind][0];
+
+      if (other_block_ind == -1) {
+        return;
+      }
+      int const other_block_n_rots =
+          n_rots_for_block[pose_ind][other_block_ind];
+      if (block_ind < other_block_ind) {
+        n_output_intxns_for_rot_conn[index] = other_block_n_rots;
+      }
+    }
+  });
+
+  DeviceOps<D>::template forall<launch_t>(
+      max_n_interactions, count_intxns_for_rot_conn);
+
+  // ---------------------------------------------------------------------------
+  // Step 2: exclusive scan to get per-(rot,conn) offsets; LBS to map each
+  //         output interaction back to its (rot,conn) pair.
+  // ---------------------------------------------------------------------------
+  int n_output_intxns_total =
+      DeviceOps<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          n_output_intxns_for_rot_conn.data(),
+          n_output_intxns_for_rot_conn_offset.data(),
+          max_n_interactions,
+          mgpu::plus_t<Int>());
+  TPack<Int, 1, D> rotconn_for_output_intxn_t =
+      DeviceOps<D>::template load_balancing_search<launch_t>(
+          n_output_intxns_total,
+          n_output_intxns_for_rot_conn_offset.data(),
+          max_n_interactions);
+  auto rotconn_for_output_intxn = rotconn_for_output_intxn_t.view;
+
+  // ---------------------------------------------------------------------------
+  // Step 3: allocate outputs.
+  // One score type (gen_torsions, index 0).
+  // ---------------------------------------------------------------------------
+  int const n_V = output_block_pair_energies ? n_output_intxns_total : n_poses;
+  auto V_t = TPack<Real, 2, D>::zeros({1, n_V});
+  auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
+  auto dispatch_indices_t = TPack<Int, 2, D>::zeros({3, n_output_intxns_total});
+
+  auto V = V_t.view;
+  auto dV_dx = dV_dx_t.view;
+  auto dispatch_indices = dispatch_indices_t.view;
+
+  // ---------------------------------------------------------------------------
+  // Step 4: record (pose, rot1, rot2) dispatch indices for downstream use.
+  // ---------------------------------------------------------------------------
+  auto record_dispatch_indices_for_output_intxns =
+      ([=] TMOL_DEVICE_FUNC(int index) {
+        int const rotconn_ind = rotconn_for_output_intxn[index];
+        int const rot_ind1 = rotconn_ind / (max_n_conns + 1);
+        int const conn_ind1 = rotconn_ind % (max_n_conns + 1);
+        int const pose_ind = pose_ind_for_rot[rot_ind1];
+        dispatch_indices[0][index] = pose_ind;
+        dispatch_indices[1][index] = rot_ind1;
+
+        int rot_ind2;
+        if (conn_ind1 == max_n_conns) {
+          // intra-rotamer: rot2 == rot1
+          rot_ind2 = rot_ind1;
+        } else {
+          int const block_ind1 = block_ind_for_rot[rot_ind1];
+          int const rotconn_offset =
+              n_output_intxns_for_rot_conn_offset[rotconn_ind];
+          int const local_rot_ind2 = index - rotconn_offset;
+          int const block_ind2 =
+              pose_stack_inter_block_connections[pose_ind][block_ind1]
+                                                [conn_ind1][0];
+          rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + local_rot_ind2;
+        }
+        dispatch_indices[2][index] = rot_ind2;
+      });
+  DeviceOps<D>::template forall<launch_t>(
+      n_output_intxns_total, record_dispatch_indices_for_output_intxns);
+
+  // ---------------------------------------------------------------------------
+  // Step 5: one CTA per output interaction — evaluate torsion/improper terms.
+  // ---------------------------------------------------------------------------
+  auto eval_torsions_for_interaction = ([=] TMOL_DEVICE_FUNC(int cta) {
+    SHARED_MEMORY union shared_mem_union {
+      shared_mem_union() {}
+      int stub;
+      CTA_REAL_REDUCE_T_VARIABLE;
+    } shared;
+
+    int const rotconn_ind = rotconn_for_output_intxn[cta];
+    int const rot_ind1 = rotconn_ind / (max_n_conns + 1);
+    int const conn_ind1 = rotconn_ind % (max_n_conns + 1);
+    int const pose_ind = pose_ind_for_rot[rot_ind1];
+    int const block_type1 = block_type_ind_for_rot[rot_ind1];
+    int const rot_coord_offset1 = rot_coord_offset[rot_ind1];
+
+    Real score = 0.0;
+
+    auto score_torsion =
+        ([&] TMOL_DEVICE_FUNC(Vec<Int, 4> atoms, Vec<Real, 5> prm) {
+          auto eval = gbtorsion_V_dV(
+              rot_coords[atoms[0]],
+              rot_coords[atoms[1]],
+              rot_coords[atoms[2]],
+              rot_coords[atoms[3]],
+              prm[0],  // k1
+              prm[1],  // k2
+              prm[2],  // k3
+              prm[3],  // k4
+              prm[4]   // offset
+          );
+          accumulate_torsion_result<Real, Int, D>(
+              score, eval, atoms, compute_derivs, dV_dx[0], 1.0);
+        });
+
+    auto score_improper =
+        ([&] TMOL_DEVICE_FUNC(Vec<Int, 4> atoms, Vec<Real, 5> prm) {
+          auto eval = gbimproper_V_dV(
+              rot_coords[atoms[0]],
+              rot_coords[atoms[1]],
+              rot_coords[atoms[2]],
+              rot_coords[atoms[3]],
+              prm[0],  // k
+              prm[1]   // delta
+          );
+          accumulate_torsion_result<Real, Int, D>(
+              score, eval, atoms, compute_derivs, dV_dx[0], 1.0);
+        });
+
+    if (conn_ind1 == max_n_conns) {
+      // -----------------------------------------------------------------------
+      // INTRA-ROTAMER: iterate gen_intra_subgraphs for this block type.
+      // sg = Vec<Int,5> {tag, a0, a1, a2, a3}
+      //   tag == 0 → proper torsion
+      //   tag == 1 → improper torsion
+      // -----------------------------------------------------------------------
+      int const intra_start = gen_intra_subgraph_offsets[block_type1];
+      int const intra_end = (block_type1 + 1 == n_block_types)
+                                ? n_total_intra
+                                : gen_intra_subgraph_offsets[block_type1 + 1];
+      int const n_intra = intra_end - intra_start;
+
+      auto eval_intra = ([&] TMOL_DEVICE_FUNC(int tid) {
+        for (int i = tid; i < n_intra; i += nt) {
+          int const idx = intra_start + i;
+          Vec<Int, 5> sg = gen_intra_subgraphs[idx];
+          if (sg[0] == -1) continue;
+
+          Vec<Int, 4> local_sg;
+          local_sg[0] = sg[1];
+          local_sg[1] = sg[2];
+          local_sg[2] = sg[3];
+          local_sg[3] = sg[4];
+
+          Vec<Int, 4> atoms =
+              atom_local_to_global_indices(local_sg, rot_coord_offset1);
+          Vec<Real, 5> prm = gen_intra_params[idx];
+
+          if (sg[0] == 0) {
+            score_torsion(atoms, prm);
+          } else {
+            score_improper(atoms, prm);
+          }
+        }
+      });
+      DeviceOps<D>::template for_each_in_workgroup<nt>(eval_intra);
+
+    } else {
+      // -----------------------------------------------------------------------
+      // INTER-ROTAMER torsions.
+      //
+      // Each CTA handles a specific (rot1, rot2) pair. rot_ind2 is derived
+      // from the local offset within the LBS segment for this (rot, conn).
+      // -----------------------------------------------------------------------
+      int const block_ind1 = block_ind_for_rot[rot_ind1];
+      int const block_ind2 =
+          pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
+                                            [0];
+      int const conn_ind2 =
+          pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
+                                            [1];
+      int const local_rot_ind2 =
+          cta - n_output_intxns_for_rot_conn_offset[rotconn_ind];
+      int const rot_ind2 =
+          rot_offset_for_block[pose_ind][block_ind2] + local_rot_ind2;
+      int const block_type2 = block_type_ind_for_rot[rot_ind2];
+      int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
+
+      Int const bond_type_int =
+          gen_connection_bond_types[block_type1][conn_ind1];
+
+      auto eval_inter_block = ([&] TMOL_DEVICE_FUNC(int tid) {
+        int const n_pairs = MAX_PATHS_FROM_CONN * MAX_PATHS_FROM_CONN;
+
+        for (int pair = tid; pair < n_pairs; pair += nt) {
+          int const path_A_idx = pair / MAX_PATHS_FROM_CONN;
+          int const path_B_idx = pair % MAX_PATHS_FROM_CONN;
+
+          Vec<Int, 3> pathA =
+              atom_paths_from_conn[block_type1][conn_ind1][path_A_idx];
+          Vec<Int, 3> pathB =
+              atom_paths_from_conn[block_type2][conn_ind2][path_B_idx];
+
+          if (pathA[0] == -1 || pathB[0] == -1) continue;
+
+          Vec<Int, 3> pathA_rev;
+          pathA_rev[0] = pathA[2];
+          pathA_rev[1] = pathA[1];
+          pathA_rev[2] = pathA[0];
+
+          Vec<Int, 3> globalA =
+              atom_local_to_global_indices(pathA_rev, rot_coord_offset1);
+          Vec<Int, 3> globalB =
+              atom_local_to_global_indices(pathB, rot_coord_offset2);
+
+          int lenA = 0;
+          for (int pi = 0; pi < 3; pi++) {
+            if (globalA[pi] != -1) lenA++;
+          }
+          int lenB = 0;
+          for (int pi = 0; pi < 3; pi++) {
+            if (globalB[pi] != -1) lenB++;
+          }
+
+          if (lenA + lenB != 4) continue;
+
+          Vec<Int, 4> atoms;
+          atoms[0] = -1;
+          atoms[1] = -1;
+          atoms[2] = -1;
+          atoms[3] = -1;
+          for (int pi = 0; pi < lenA; pi++) {
+            atoms[pi] = globalA[3 - lenA + pi];
+          }
+          for (int pi = 0; pi < lenB; pi++) {
+            atoms[lenA + pi] = globalB[pi];
+          }
+
+          Vec<Int, 4> local_indices;
+          local_indices[0] = -1;
+          local_indices[1] = -1;
+          local_indices[2] = -1;
+          local_indices[3] = -1;
+          for (int pi = 0; pi < lenA; pi++) {
+            local_indices[pi] = pathA_rev[3 - lenA + pi];
+          }
+          for (int pi = 0; pi < lenB; pi++) {
+            local_indices[lenA + pi] = pathB[pi];
+          }
+
+          Vec<Int, GB_MAX_HIER_DEPTH> h[4];
+          for (int pos = 0; pos < 4; pos++) {
+            int loc = local_indices[pos];
+            int bt = (pos < lenA) ? block_type1 : block_type2;
+            if (loc >= 0) {
+              h[pos] = gen_atom_type_hierarchy[bt][loc];
+            } else {
+              h[pos] = Vec<Int, GB_MAX_HIER_DEPTH>::Constant(-1);
+            }
+          }
+
+          int val_idx = inter_block_torsion_lookup<Int, D>(
+              h[0],
+              h[1],
+              h[2],
+              h[3],
+              bond_type_int,
+              gen_inter_torsion_hash_keys);
+
+          if (val_idx >= 0) {
+            Vec<Real, 5> prm = gen_inter_torsion_hash_values[val_idx];
+            score_torsion(atoms, prm);
+          }
+        }
+      });
+      DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter_block);
+    }
+
+    // -------------------------------------------------------------------------
+    // Reduce per-thread scores and write to V.
+    // -------------------------------------------------------------------------
+    auto reduce_and_write = ([&] TMOL_DEVICE_FUNC(int tid) {
+      Real const cta_score = DeviceOps<D>::template reduce_in_workgroup<nt>(
+          score, shared, mgpu::plus_t<Real>());
+      if (tid == 0 && cta_score != 0.0) {
+        int const output_index = output_block_pair_energies ? cta : pose_ind;
+        accumulate<D, Real>::add(V[0][output_index], cta_score);
+      }
+    });
+    DeviceOps<D>::template for_each_in_workgroup<nt>(reduce_and_write);
+  });
+
+  DeviceOps<D>::template foreach_workgroup<launch_t>(
+      n_output_intxns_total, eval_torsions_for_interaction);
+
+  return {
+      V_t,
+      dV_dx_t,
+      dispatch_indices_t,
+      n_output_intxns_for_rot_conn_offset_t,
+      rotconn_for_output_intxn_t,
+  };
 }
 
 // ===========================================================================
-// GenBondedRotamerScoreDispatch::backward  (stub)
+// GenBondedRotamerScoreDispatch::backward
 // ===========================================================================
 template <
     template <tmol::Device> class DeviceOps,
@@ -809,7 +1154,216 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
     TView<Int, 1, D> n_output_intxns_for_rot_conn_offset,
     TView<Int, 1, D> rotconn_for_output_intxn,
     TView<Real, 2, D> dTdV) -> TPack<Vec<Real, 3>, 2, D> {
-  AT_ERROR("GenBondedRotamerScoreDispatch::backward not implemented");
+  int const n_atoms = rot_coords.size(0);
+  int const n_poses = first_rot_for_block.size(0);
+  int const max_n_blocks = first_rot_for_block.size(1);
+  int const max_n_conns = pose_stack_inter_block_connections.size(2);
+  int const n_block_types = gen_intra_subgraph_offsets.size(0);
+  int const n_total_intra = gen_intra_subgraphs.size(0);
+  int const n_output_intxns_total = dispatch_indices.size(1);
+
+  LAUNCH_BOX_32;
+  CTA_REAL_REDUCE_T_TYPEDEF;
+
+  auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
+  auto dV_dx = dV_dx_t.view;
+
+  // ---------------------------------------------------------------------------
+  // One CTA per output interaction — accumulate weighted gradients directly
+  // into dV_dx (no CTA reduction needed).
+  // ---------------------------------------------------------------------------
+  auto eval_torsions_for_interaction = ([=] TMOL_DEVICE_FUNC(int cta) {
+    int const rotconn_ind = rotconn_for_output_intxn[cta];
+    int const rot_ind1 = rotconn_ind / (max_n_conns + 1);
+    int const conn_ind1 = rotconn_ind % (max_n_conns + 1);
+    int const pose_ind = pose_ind_for_rot[rot_ind1];
+    int const block_type1 = block_type_ind_for_rot[rot_ind1];
+    int const rot_coord_offset1 = rot_coord_offset[rot_ind1];
+
+    // Weighted torsion gradient helper (block_weight = dTdV[0][cta]).
+    auto score_torsion_weighted =
+        ([=] TMOL_DEVICE_FUNC(Vec<Int, 4> atoms, Vec<Real, 5> prm) {
+          Real const block_weight = dTdV[0][cta];
+          auto eval = gbtorsion_V_dV(
+              rot_coords[atoms[0]],
+              rot_coords[atoms[1]],
+              rot_coords[atoms[2]],
+              rot_coords[atoms[3]],
+              prm[0],
+              prm[1],
+              prm[2],
+              prm[3],
+              prm[4]);
+          Real dummy = 0.0;
+          accumulate_torsion_result<Real, Int, D>(
+              dummy, eval, atoms, true, dV_dx[0], block_weight);
+        });
+
+    // Weighted improper gradient helper (prm[0]=k, prm[1]=delta).
+    auto score_improper_weighted =
+        ([=] TMOL_DEVICE_FUNC(Vec<Int, 4> atoms, Vec<Real, 5> prm) {
+          Real const block_weight = dTdV[0][cta];
+          auto eval = gbimproper_V_dV(
+              rot_coords[atoms[0]],
+              rot_coords[atoms[1]],
+              rot_coords[atoms[2]],
+              rot_coords[atoms[3]],
+              prm[0],
+              prm[1]);
+          Real dummy = 0.0;
+          accumulate_torsion_result<Real, Int, D>(
+              dummy, eval, atoms, true, dV_dx[0], block_weight);
+        });
+
+    if (conn_ind1 == max_n_conns) {
+      // -----------------------------------------------------------------------
+      // INTRA-ROTAMER backward.
+      // -----------------------------------------------------------------------
+      int const intra_start = gen_intra_subgraph_offsets[block_type1];
+      int const intra_end = (block_type1 + 1 == n_block_types)
+                                ? n_total_intra
+                                : gen_intra_subgraph_offsets[block_type1 + 1];
+      int const n_intra = intra_end - intra_start;
+
+      auto eval_intra = ([&] TMOL_DEVICE_FUNC(int tid) {
+        for (int i = tid; i < n_intra; i += nt) {
+          int const idx = intra_start + i;
+          Vec<Int, 5> sg = gen_intra_subgraphs[idx];
+          if (sg[0] == -1) continue;
+
+          Vec<Int, 4> local_sg;
+          local_sg[0] = sg[1];
+          local_sg[1] = sg[2];
+          local_sg[2] = sg[3];
+          local_sg[3] = sg[4];
+
+          Vec<Int, 4> atoms =
+              atom_local_to_global_indices(local_sg, rot_coord_offset1);
+          Vec<Real, 5> prm = gen_intra_params[idx];
+
+          if (sg[0] == 0) {
+            score_torsion_weighted(atoms, prm);
+          } else {
+            score_improper_weighted(atoms, prm);
+          }
+        }
+      });
+      DeviceOps<D>::template for_each_in_workgroup<nt>(eval_intra);
+
+    } else {
+      // -----------------------------------------------------------------------
+      // INTER-ROTAMER backward (mirrors forward inter-block logic exactly).
+      // -----------------------------------------------------------------------
+      int const block_ind1 = block_ind_for_rot[rot_ind1];
+      int const block_ind2 =
+          pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
+                                            [0];
+      int const conn_ind2 =
+          pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
+                                            [1];
+      int const local_rot_ind2 =
+          cta - n_output_intxns_for_rot_conn_offset[rotconn_ind];
+      int const rot_ind2 =
+          rot_offset_for_block[pose_ind][block_ind2] + local_rot_ind2;
+      int const block_type2 = block_type_ind_for_rot[rot_ind2];
+      int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
+
+      Int const bond_type_int =
+          gen_connection_bond_types[block_type1][conn_ind1];
+
+      auto eval_inter_block = ([&] TMOL_DEVICE_FUNC(int tid) {
+        int const n_pairs = MAX_PATHS_FROM_CONN * MAX_PATHS_FROM_CONN;
+
+        for (int pair = tid; pair < n_pairs; pair += nt) {
+          int const path_A_idx = pair / MAX_PATHS_FROM_CONN;
+          int const path_B_idx = pair % MAX_PATHS_FROM_CONN;
+
+          Vec<Int, 3> pathA =
+              atom_paths_from_conn[block_type1][conn_ind1][path_A_idx];
+          Vec<Int, 3> pathB =
+              atom_paths_from_conn[block_type2][conn_ind2][path_B_idx];
+
+          if (pathA[0] == -1 || pathB[0] == -1) continue;
+
+          Vec<Int, 3> pathA_rev;
+          pathA_rev[0] = pathA[2];
+          pathA_rev[1] = pathA[1];
+          pathA_rev[2] = pathA[0];
+
+          Vec<Int, 3> globalA =
+              atom_local_to_global_indices(pathA_rev, rot_coord_offset1);
+          Vec<Int, 3> globalB =
+              atom_local_to_global_indices(pathB, rot_coord_offset2);
+
+          int lenA = 0;
+          for (int pi = 0; pi < 3; pi++) {
+            if (globalA[pi] != -1) lenA++;
+          }
+          int lenB = 0;
+          for (int pi = 0; pi < 3; pi++) {
+            if (globalB[pi] != -1) lenB++;
+          }
+
+          if (lenA + lenB != 4) continue;
+
+          Vec<Int, 4> atoms;
+          atoms[0] = -1;
+          atoms[1] = -1;
+          atoms[2] = -1;
+          atoms[3] = -1;
+          for (int pi = 0; pi < lenA; pi++) {
+            atoms[pi] = globalA[3 - lenA + pi];
+          }
+          for (int pi = 0; pi < lenB; pi++) {
+            atoms[lenA + pi] = globalB[pi];
+          }
+
+          Vec<Int, 4> local_indices;
+          local_indices[0] = -1;
+          local_indices[1] = -1;
+          local_indices[2] = -1;
+          local_indices[3] = -1;
+          for (int pi = 0; pi < lenA; pi++) {
+            local_indices[pi] = pathA_rev[3 - lenA + pi];
+          }
+          for (int pi = 0; pi < lenB; pi++) {
+            local_indices[lenA + pi] = pathB[pi];
+          }
+
+          Vec<Int, GB_MAX_HIER_DEPTH> h[4];
+          for (int pos = 0; pos < 4; pos++) {
+            int loc = local_indices[pos];
+            int bt = (pos < lenA) ? block_type1 : block_type2;
+            if (loc >= 0) {
+              h[pos] = gen_atom_type_hierarchy[bt][loc];
+            } else {
+              h[pos] = Vec<Int, GB_MAX_HIER_DEPTH>::Constant(-1);
+            }
+          }
+
+          int val_idx = inter_block_torsion_lookup<Int, D>(
+              h[0],
+              h[1],
+              h[2],
+              h[3],
+              bond_type_int,
+              gen_inter_torsion_hash_keys);
+
+          if (val_idx >= 0) {
+            Vec<Real, 5> prm = gen_inter_torsion_hash_values[val_idx];
+            score_torsion_weighted(atoms, prm);
+          }
+        }
+      });
+      DeviceOps<D>::template for_each_in_workgroup<nt>(eval_inter_block);
+    }
+    // Gradients accumulated directly via atomics — no CTA reduction needed.
+  });
+
+  DeviceOps<D>::template foreach_workgroup<launch_t>(
+      n_output_intxns_total, eval_torsions_for_interaction);
+
+  return dV_dx_t;
 }
 
 #undef Real3

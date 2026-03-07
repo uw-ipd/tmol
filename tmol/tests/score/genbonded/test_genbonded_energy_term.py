@@ -13,6 +13,7 @@ from types import SimpleNamespace
 
 from tmol.database import ParameterDatabase
 from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+from tmol.score import beta2016_score_function
 from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
@@ -28,6 +29,11 @@ def _genbonded_only_sfxn(param_db: ParameterDatabase, device: torch.device):
     sfxn = ScoreFunction(param_db, device)
     sfxn.set_weight(ScoreType.gen_torsions, 1.0)
     return sfxn
+
+
+def _full_sfxn(param_db: ParameterDatabase, device: torch.device):
+    """Full beta2016 ScoreFunction (all standard terms + gen_torsions)."""
+    return beta2016_score_function(device, param_db)
 
 
 def _build_pose_stack(atom_array, device):
@@ -143,6 +149,57 @@ def test_hem_genbonded_smoke(cif_155c_with_hem, torch_device):
     assert scores.shape[0] == 1, "expected one score per score type"
     assert not torch.any(torch.isnan(scores)), "NaN in genbonded scores (hem)"
     assert not torch.any(torch.isinf(scores)), "Inf in genbonded scores (hem)"
+
+
+# ---------------------------------------------------------------------------
+# Tests: full beta2016 ScoreFunction (all standard terms + gen_torsions)
+# ---------------------------------------------------------------------------
+
+
+def test_i4b_all_terms_smoke(cif_184l_with_i4b, torch_device):
+    """I4B: all beta2016 terms (including gen_torsions) produce finite scores.
+
+    Exercises the interaction between cartbonded, ljlk, hbond, elec, rama,
+    dunbrack, ref, and gen_torsions on a structure that contains a small
+    drug-like ligand, ensuring the energy terms coexist without NaN/Inf.
+    """
+    pose_stack, param_db = _build_pose_stack(cif_184l_with_i4b, torch_device)
+
+    sfxn = _full_sfxn(param_db, torch_device)
+    scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
+    scores = scorer.unweighted_scores(pose_stack.coords)
+
+    n_score_types = len(sfxn.all_score_types())
+    assert (
+        scores.shape[0] == n_score_types
+    ), f"expected {n_score_types} score rows, got {scores.shape[0]}"
+    assert not torch.any(torch.isnan(scores)), "NaN in all-terms scores (i4b)"
+    assert not torch.any(torch.isinf(scores)), "Inf in all-terms scores (i4b)"
+
+
+def test_hem_all_terms_smoke(cif_155c_with_hem, torch_device):
+    """HEM: all beta2016 terms (including gen_torsions) produce finite scores.
+
+    Exercises the interaction between cartbonded, ljlk, hbond, elec, rama,
+    dunbrack, ref, and gen_torsions on a structure that contains the large
+    heme macrocycle, ensuring the energy terms coexist without NaN/Inf.
+
+    HEM contains Fe which is dropped during preparation (unsupported element).
+    The remaining heavy atoms still exercise all energy terms including the
+    genbonded torsion lookup.
+    """
+    pose_stack, param_db = _build_pose_stack(cif_155c_with_hem, torch_device)
+
+    sfxn = _full_sfxn(param_db, torch_device)
+    scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
+    scores = scorer.unweighted_scores(pose_stack.coords)
+
+    n_score_types = len(sfxn.all_score_types())
+    assert (
+        scores.shape[0] == n_score_types
+    ), f"expected {n_score_types} score rows, got {scores.shape[0]}"
+    assert not torch.any(torch.isnan(scores)), "NaN in all-terms scores (hem)"
+    assert not torch.any(torch.isinf(scores)), "Inf in all-terms scores (hem)"
 
 
 def test_genbonded_rotamer_noop_module(torch_device):
