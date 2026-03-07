@@ -1,33 +1,23 @@
-import torch
-import numpy
-
 import cattr
+import numpy
+import torch
 
 import tmol.pack.rotamer.dunbrack.compiled  # noqa F401
-
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d
-
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
+from tmol.io import pose_stack_from_pdb
+from tmol.pack.packer_task import PackerPalette, PackerTask
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
-
-from tmol.io import pose_stack_from_pdb
 from tmol.score.dunbrack.params import DunbrackParamResolver
-from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
-
-from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 from tmol.tests.data import no_termini_pose_stack_from_pdb
+from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
 def get_compiled():
-    compiled = load(
-        modulename(__name__),
-        cuda_if_available(
-            relpaths(__file__, ["compiled.pybind.cpp", "test.cpp", "test.cu"])
-        ),
-    )
-    return compiled
+    from tmol.tests.pack.rotamer.dunbrack import _ext
+
+    return _ext
 
 
 def test_annotate_residue_type(default_database):
@@ -59,9 +49,22 @@ def test_annotate_residue_type(default_database):
 
     assert isinstance(tyr_restype.dun_sampler_cache.chi_defining_atom, numpy.ndarray)
     assert tyr_restype.dun_sampler_cache.chi_defining_atom.shape == (3,)
-    tyr_restype.dun_sampler_cache.chi_defining_atom[0] == tyr_restype.atom_to_idx["CA"]
-    tyr_restype.dun_sampler_cache.chi_defining_atom[1] == tyr_restype.atom_to_idx["CB"]
-    tyr_restype.dun_sampler_cache.chi_defining_atom[2] == tyr_restype.atom_to_idx["CZ"]
+    # chi_defining_atom stores the 3rd atom of each chi dihedral:
+    # chi1: N-CA-CB-CG  →  CB
+    # chi2: CA-CB-CG-CD1  →  CG
+    # chi2.5: ...-CZ-OH  →  OH
+    assert (
+        tyr_restype.dun_sampler_cache.chi_defining_atom[0]
+        == tyr_restype.atom_to_idx["CB"]
+    )
+    assert (
+        tyr_restype.dun_sampler_cache.chi_defining_atom[1]
+        == tyr_restype.atom_to_idx["CG"]
+    )
+    assert (
+        tyr_restype.dun_sampler_cache.chi_defining_atom[2]
+        == tyr_restype.atom_to_idx["OH"]
+    )
 
 
 def test_annotate_packed_block_types(default_database, torch_device):
@@ -70,7 +73,7 @@ def test_annotate_packed_block_types(default_database, torch_device):
         default_database.scoring.dun, torch_device
     )
 
-    desired = set(["ALA", "CYS", "ASP", "GLU", "PHE", "HIS", "ARG", "SER", "TYR"])
+    desired = {"ALA", "CYS", "ASP", "GLU", "PHE", "HIS", "ARG", "SER", "TYR"}
 
     all_restypes = [
         cattr.structure(cattr.unstructure(res), RefinedResidueType)
@@ -301,7 +304,7 @@ def test_determine_n_base_rotamers_to_build_1(torch_device):
         n_rotamers_to_build_per_brt,
     )
 
-    assert 9 == n_rotamers_to_build_per_brt[0]
+    assert n_rotamers_to_build_per_brt[0] == 9
 
 
 def test_determine_n_base_rotamers_to_build_2(torch_device):
@@ -375,8 +378,8 @@ def test_determine_n_base_rotamers_to_build_2(torch_device):
         n_rotamers_to_build_per_brt,
     )
 
-    assert 9 == n_rotamers_to_build_per_brt[0]
-    assert 12 == n_rotamers_to_build_per_brt[1]
+    assert n_rotamers_to_build_per_brt[0] == 9
+    assert n_rotamers_to_build_per_brt[1] == 12
 
 
 def test_count_expanded_rotamers(default_database, torch_device):
@@ -430,7 +433,7 @@ def test_count_expanded_rotamers(default_database, torch_device):
         n_rotamers_to_build_per_brt,
         n_rotamers_to_build_per_brt_offsets,
     )
-    assert 200 == nrots
+    assert nrots == 200
     n_expansions_for_brt_gold = numpy.array([9, 54, 1, 9, 9, 18], dtype=numpy.int32)
     expansion_dim_prods_for_brt_gold = numpy.array(
         [
@@ -829,13 +832,17 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         all_considered_restypes.shape[0], dtype=numpy.int32
     )
 
+    n_rots_for_gbt_gold = numpy.zeros(
+        all_considered_restypes.shape[0], dtype=numpy.int32
+    )
+
     n_rots_for_gbt_gold[dun_allowed_bt_to_gbt[is_dun_allowed_bt_bbt.cpu().numpy()]] = (
         n_rots_for_bbt.cpu().numpy()
     )
 
     rt_for_rot_gold = numpy.zeros((n_rots + 1,), dtype=numpy.int32)
     offsets_for_gbt_np = offsets_for_gbt.cpu().numpy()
-    for i, rotamer in enumerate(offsets_for_gbt_np):
+    for _i, rotamer in enumerate(offsets_for_gbt_np):
         rt_for_rot_gold[rotamer] += 1
     rt_for_rot_gold = rt_for_rot_gold[:-1]  # lop off the "last" rotamer
     rt_for_rot_gold = numpy.cumsum(rt_for_rot_gold) - 1

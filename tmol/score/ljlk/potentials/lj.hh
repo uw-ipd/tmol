@@ -27,7 +27,7 @@ struct vdw {
     def astuple() { return tmol::score::common::make_tuple(V, dV_ddist); }
   };
 
-  static def V(Real dist, Real sigma, Real epsilon)->Real {
+  static def V(Real dist, Real sigma, Real epsilon) -> Real {
     Real sd = (sigma / dist);
     Real sd2 = sd * sd;
     Real sd6 = sd2 * sd2 * sd2;
@@ -35,7 +35,7 @@ struct vdw {
     return epsilon * (sd12 - 2 * sd6);
   }
 
-  static def V_dV(Real dist, Real sigma, Real epsilon)->dV_t {
+  static def V_dV(Real dist, Real sigma, Real epsilon) -> dV_t {
     Real sd = (sigma / dist);
     Real sd2 = sd * sd;
     Real sd6 = sd2 * sd2 * sd2;
@@ -67,8 +67,7 @@ struct lj_score {
       Real bonded_path_length,
       LJTypeParams<Real> i,
       LJTypeParams<Real> j,
-      LJGlobalParams<Real> global)
-      ->std::array<Real, 2> {
+      LJGlobalParams<Real> global) -> std::array<Real, 2> {
     Real cpoly_dmax = 6.0;
 
     Real weight;
@@ -116,8 +115,7 @@ struct lj_score {
       Real bonded_path_length,
       LJTypeParams<Real> i,
       LJTypeParams<Real> j,
-      LJGlobalParams<Real> global)
-      ->V_dV_t {
+      LJGlobalParams<Real> global) -> V_dV_t {
     Real sigma = lj_sigma<Real>(i, j, global);
     Real weight = connectivity_weight<Real, Real>(bonded_path_length);
     Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);

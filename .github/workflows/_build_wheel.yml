@@ -1,0 +1,168 @@
+name: ~Build wheel template
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        required: true
+        type: string
+        default: ubuntu-22.04
+      container-image:
+        required: true
+        type: string
+        description: "NGC PyTorch container (provides nvcc, torch, Python)"
+      torch-version:
+        required: true
+        type: string
+      cxx11_abi:
+        required: true
+        type: string
+      python-version:
+        required: false
+        type: string
+        default: "312"
+        description: "Python version tag (e.g. 310, 312)"
+      pip-torch-cuda-url:
+        required: false
+        type: string
+        default: ""
+        description: >
+          When non-empty, reinstall PyTorch from pip using this --index-url
+          (e.g. https://download.pytorch.org/whl/cu124).
+          Used for CXX11_ABI=FALSE builds where we need pip's torch (old ABI)
+          but still use the NGC container's nvcc for compilation.
+      upload-to-release:
+        required: false
+        type: boolean
+        default: false
+      release-version:
+        required: false
+        type: string
+
+jobs:
+  build-wheel:
+    runs-on: ${{ inputs.runs-on }}
+    # NOTE: no `container:` key — we free disk space first, then run Docker manually.
+    name: Build (cp${{ inputs.python-version }}-pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }})
+    env:
+      CONTAINER_IMAGE: ${{ inputs.container-image }}
+      BUILDER: builder-${{ github.run_id }}-${{ strategy.job-index }}
+    steps:
+      - name: Free disk space
+        run: |
+          echo "=== Before cleanup ==="
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/share/boost /opt/hostedtoolcache/CodeQL \
+            /usr/local/share/chromium /usr/local/share/powershell \
+            /usr/share/swift /usr/local/julia* 2>/dev/null || true
+          sudo docker image prune -af 2>/dev/null || true
+          echo "=== After cleanup ==="
+          df -h /
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.release-version }}
+          submodules: recursive
+
+      - name: Pull container and start builder
+        run: |
+          docker pull $CONTAINER_IMAGE
+          docker create --name $BUILDER \
+            -v $GITHUB_WORKSPACE:/workspace -w /workspace \
+            $CONTAINER_IMAGE sleep infinity
+          docker start $BUILDER
+
+      - name: Reinstall PyTorch from pip (ABI=FALSE)
+        if: inputs.pip-torch-cuda-url != ''
+        run: |
+          docker exec $BUILDER bash -x -e -o pipefail -c '
+            source /etc/bash.bashrc 2>/dev/null || true
+            echo "Replacing NGC PyTorch with pip PyTorch (CXX11_ABI=FALSE)"
+            pip config unset global.constraint || true
+            export PIP_CONSTRAINT=""
+            # Force-reinstall torch WITH its dependencies so NVIDIA library
+            # versions match what this torch version was built against.
+            pip install --break-system-packages --force-reinstall \
+              torch==${{ inputs.torch-version }}.* \
+              --index-url ${{ inputs.pip-torch-cuda-url }}
+            python3 -c "import torch; print(f'"'"'Reinstalled: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}'"'"')"
+          '
+
+      - name: Set version variables
+        run: |
+          PYTHON_VERSION=$(docker exec $BUILDER python3 -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
+          TORCH_VERSION=$(docker exec $BUILDER python3 -c "import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')")
+          CUDA_VERSION=$(docker exec $BUILDER python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])")
+
+          echo "MATRIX_PYTHON_VERSION=${PYTHON_VERSION}" >> $GITHUB_ENV
+          echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> $GITHUB_ENV
+          echo "WHEEL_CUDA_VERSION=${CUDA_VERSION%%[0-9]}" >> $GITHUB_ENV
+
+          docker exec $BUILDER nvcc --version
+          docker exec $BUILDER python3 -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
+
+      - name: Install build dependencies
+        run: |
+          docker exec $BUILDER pip install --break-system-packages \
+            'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
+
+      - name: Build wheel
+        run: |
+          docker exec \
+            -e MAX_JOBS=1 \
+            $BUILDER bash -x -e -o pipefail -c '
+            source /etc/bash.bashrc 2>/dev/null || true
+            # Determine CUDA architectures based on CUDA major version.
+            CUDA_MAJOR=$(python3 -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
+            if [ "$CUDA_MAJOR" -ge 13 ]; then
+              CUDA_ARCHS="80;86;89;90;100"
+            else
+              CUDA_ARCHS="80;86;89;90"
+            fi
+            # CMake reads ABI from find_package(Torch) — no manual override needed.
+            export CMAKE_PREFIX_PATH=$(python3 -c "import torch; print(torch.utils.cmake_prefix_path)")
+            pip wheel . --no-build-isolation --no-deps -w dist \
+              -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
+              -Ccmake.define.TMOL_NVCC_THREADS=1
+          '
+
+          # Rename wheel with CUDA/torch/ABI tags (inside Docker — files are root-owned)
+          tmpname=cu${WHEEL_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}cxx11abi${{ inputs.cxx11_abi }}
+          docker exec $BUILDER bash -c "
+            cd /workspace
+            wheel_name=\$(ls dist/*whl | xargs -n 1 basename | sed \"s/-/+${tmpname}-/2\")
+            ls dist/*whl | xargs -I {} mv {} dist/\${wheel_name}
+            echo \${wheel_name}
+          " | tail -1 > /tmp/wheel_name.txt
+          wheel_name=$(cat /tmp/wheel_name.txt)
+          echo "wheel_name=${wheel_name}" >> $GITHUB_ENV
+
+      - name: Log built wheels
+        run: ls -lh dist/
+
+      - name: Detect arch
+        id: arch
+        run: echo "arch=$(docker exec $BUILDER uname -m)" >> $GITHUB_OUTPUT
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-cp${{ env.MATRIX_PYTHON_VERSION }}-pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }}-${{ steps.arch.outputs.arch }}
+          path: dist/*.whl
+
+      - name: Upload to GitHub Release
+        if: inputs.upload-to-release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./dist/${{ env.wheel_name }}
+          asset_name: ${{ env.wheel_name }}
+          asset_content_type: application/*
+
+      - name: Cleanup container
+        if: always()
+        run: docker rm -f $BUILDER 2>/dev/null || true

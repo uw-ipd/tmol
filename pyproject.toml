@@ -1,30 +1,131 @@
 [project]
 name = "tmol"
-dynamic = ["version", "readme", "dependencies", "optional-dependencies"]
-requires-python = ">=3.9"
+description = "GPU-accelerated PyTorch reimplementation of the Rosetta energy function"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+authors = [
+    { name = "Institute for Protein Design", email = "contact@ipd.uw.edu" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+version = "0.1.12"
 
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.in"]}
-readme = {file = "README.md"}
-optional-dependencies = {dev = {file = ["requirements-dev.in"]}}
+dependencies = [
+    # Core ML framework
+    "torch>=2.5,<3",
+    "numpy>=1.24,<3",
+    "scipy>=1.11,<2",
+    # Data structures & serialization
+    "attrs>=21.0,<26",
+    "attrs_strict>=1.0,<2",
+    "cattrs>=22.0,<25",
+    "frozendict>=2.4,<3",
+    "pandas>=2.0,<3",
+    "pyarrow>=12,<23",
+    "pyyaml>=6.0,<7",
+    # Graphs & algorithms
+    "networkx>=3.0,<4",
+    # Utilities
+    "toolz>=0.12,<1",
+    "decorator>=5.1,<6",
+    "typing_extensions>=4.0,<5",
+    "typing_inspect>=0.9,<1",
+    "pint>=0.23,<1",
+    "psutil>=5.9,<8",
+    "requests>=2.28,<3",
+    # Sparse arrays (requires SPARSE_AUTO_DENSIFY=1 for sparse>0.3.1)
+    "sparse>=0.13,<1",
+    # numba/llvmlite
+    "numba>=0.56,<1",
+    "llvmlite>=0.39,<1",
+    # Testing (hypothesis is used at runtime for property-based data generation)
+    "hypothesis>=5.35,<7",
+    # AST manipulation (used by tmol.utility.args)
+    "astor>=0.8,<1",
+    # Interactive
+    "ipython>=8.0",
+]
 
-[tool.setuptools]
-packages = ["tmol"]
+[project.optional-dependencies]
+dev = [
+    # Linters & formatters
+    "black==24.1.1",
+    "flake8==7.3.0",
+    "pre-commit>=4.0,<5",
+    "clang-format==21.1.8",
+    # Testing
+    "pytest>=8.0,<9",
+    "pytest-cov>=4.1,<7",
+    "pytest-benchmark>=5.1,<6",
+    "pytest-forked>=1.6,<2",
+    "pytest-instafail>=0.5,<1",
+    "pytest-repeat>=0.9,<1",
+    "pytest-watch>=4.2,<5",
+    # Visualization
+    "seaborn>=0.13,<1",
+]
+cuda = [
+    # CUDA nvcc compiler for JIT compilation of custom kernels.
+    # Only the unsuffixed (cu13) package ships the full nvcc binary;
+    # nvidia-cuda-nvcc-cu12 only contains ptxas.
+    "nvidia-cuda-nvcc>=13,<14",
+    # CCCL headers (nv/target, cub/, thrust/) needed by nvcc
+    "nvidia-cuda-cccl>=13,<14",
+]
 
-[tool.setuptools.package-data]
-"*" = ["*.hh", "*.cpp", "*.cu", "*.cuh", "*.cc", ".hpp", "*.h", "*.hxx"]
-"tmol.database.default.chemical" = ["**/*.yaml"]
-"tmol.database.default.scoring" = ["**/*.yaml"]
-"tmol.tests.data.pdb" = ["**/*.pdb"]
-"tmol.tests.data.rosetta_baselines" = ["**/*.pickle"]
-"tmol.tests.data.constraints" = ["**/*.fa", "**/*.npz"]
+[project.urls]
+repository = "https://github.com/uw-ipd/tmol"
 
+# Build settings ---------------------------------------------------------------
 [build-system]
-requires = ["setuptools >= 65", "setuptools_scm[toml]>=6.2"]
-build-backend = 'setuptools.build_meta'
+requires = [
+    "scikit-build-core>=0.10",
+    "torch>=2.5",
+    "pybind11>=2.12",
+    "ninja",
+    "packaging",
+]
+build-backend = "scikit_build_core.build"
 
-[tool.setuptools_scm]
-search_parent_directories = true
-version_scheme = "no-guess-dev"
-local_scheme = "node-and-date"
-fallback_version = "0.0.0"
+[tool.scikit-build]
+minimum-version = "0.10"
+build-dir = "build/{wheel_tag}"
+cmake.build-type = "Release"
+cmake.version = ">=3.18"
+wheel.packages = ["tmol"]
+wheel.install-dir = "."
+sdist.cmake = false
+editable.mode = "inplace"
+
+[tool.scikit-build.cmake.define]
+CMAKE_CUDA_ARCHITECTURES = {env = "CMAKE_CUDA_ARCHITECTURES", default = "80;86;89;90"}
+TMOL_BUILD_TESTS = {env = "TMOL_BUILD_TESTS", default = "OFF"}
+
+# Test settings ----------------------------------------------------------------
+[tool.pytest.ini_options]
+addopts = "--benchmark-disable --benchmark-columns=ops,mean,iqr"
+filterwarnings = [
+    "ignore:(?s).*is not compatible with the compiler Pytorch.*:",
+    "ignore:(?s).*Benchmark fixture was not used.*:",
+    "ignore:(?s).*one of the inputs that requires gradient is not of double precision.*:",
+    "ignore:(?s).*Distutils was imported before Setuptools*:",
+    "ignore:(?s).*To copy construct from a tensor, it is recommended to use*:",
+    "ignore:(?s).*pkg_resources is deprecated*:",
+    "ignore:(?s).*Deprecated call to `pkg_resources.declare_namespace*:",
+]
+
+[tool.pytest-watch]
+ext = ".cpp,.hh,.h,.cu,.py,.yaml"

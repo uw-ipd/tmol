@@ -395,7 +395,7 @@ def construct_kin_module_data_for_pose(
         pbt.polymeric_conn_inds,
     )
 
-    (block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index) = get_kfo_indices_for_atoms(
+    block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index = get_kfo_indices_for_atoms(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         pbt.n_atoms,

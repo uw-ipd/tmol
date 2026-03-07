@@ -7,7 +7,6 @@ from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import CanonicalOrdering, HisSpecialCaseIndices
 from tmol.utility.auto_number import AutoNumber
 
-
 # Special case variant-type handling for HIS
 # The I/O code knows that spcase variant 0 for HIS is HIS-E,
 # the spcase variant 1 for HIS is HIS-D, and

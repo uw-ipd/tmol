@@ -1,26 +1,34 @@
 import numpy
-from tmol.utility.cpp_extension import load, relpaths, modulename
 
-_geom = load(modulename(__name__), relpaths(__file__, "geom.pybind.cpp"))
+from tmol.tests.score.common.geom._ext import (
+    distance_V,
+    distance_V_dV as _distance_V_dV,
+    interior_angle_V,
+    interior_angle_V_dV as _interior_angle_V_dV,
+    cos_interior_angle_V,
+    cos_interior_angle_V_dV as _cos_interior_angle_V_dV,
+    dihedral_angle_V,
+    dihedral_angle_V_dV as _dihedral_angle_V_dV,
+)
 
-distance_V = numpy.vectorize(_geom.distance_V, signature="(3),(3)->()")
-distance_V_dV = numpy.vectorize(_geom.distance_V_dV, signature="(3),(3)->(),(3),(3)")
+# Wrap pybind11 scalar functions with numpy.vectorize so they broadcast
+# over arrays of inputs and provide the gufunc signature needed by
+# VectorizedOp in the test autograd harness.
 
-interior_angle_V = numpy.vectorize(_geom.interior_angle_V, signature="(3),(3)->()")
+distance_V = numpy.vectorize(distance_V, signature="(3),(3)->()")
+distance_V_dV = numpy.vectorize(_distance_V_dV, signature="(3),(3)->(),(3),(3)")
+
+interior_angle_V = numpy.vectorize(interior_angle_V, signature="(3),(3)->()")
 interior_angle_V_dV = numpy.vectorize(
-    _geom.interior_angle_V_dV, signature="(3),(3)->(),(3),(3)"
+    _interior_angle_V_dV, signature="(3),(3)->(),(3),(3)"
 )
 
-cos_interior_angle_V = numpy.vectorize(
-    _geom.cos_interior_angle_V, signature="(3),(3)->()"
-)
+cos_interior_angle_V = numpy.vectorize(cos_interior_angle_V, signature="(3),(3)->()")
 cos_interior_angle_V_dV = numpy.vectorize(
-    _geom.cos_interior_angle_V_dV, signature="(3),(3)->(),(3),(3)"
+    _cos_interior_angle_V_dV, signature="(3),(3)->(),(3),(3)"
 )
 
-dihedral_angle_V = numpy.vectorize(
-    _geom.dihedral_angle_V, signature="(3),(3),(3),(3)->()"
-)
+dihedral_angle_V = numpy.vectorize(dihedral_angle_V, signature="(3),(3),(3),(3)->()")
 dihedral_angle_V_dV = numpy.vectorize(
-    _geom.dihedral_angle_V_dV, signature="(3),(3),(3),(3)->(),(3),(3),(3),(3)"
+    _dihedral_angle_V_dV, signature="(3),(3),(3),(3)->(),(3),(3),(3),(3)"
 )

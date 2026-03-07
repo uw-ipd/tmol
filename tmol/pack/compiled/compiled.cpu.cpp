@@ -251,7 +251,7 @@ auto AnnealerDispatch<D>::forward(
           energy2b,
           best_rotamer_assignments[pose][traj]);
     }  // end trajectory loop
-  }    // end pose loop
+  }  // end pose loop
 
   clock_t stop = clock();
   std::cout << "CPU simulated annealing in "

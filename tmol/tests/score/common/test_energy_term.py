@@ -1,19 +1,20 @@
-import numpy
-import torch
-import os
-import yaml
-import importlib
 import functools
+import importlib
+import os
+
+import numpy
 import pandas
+import torch
+import yaml
 
 from tmol.io import pose_stack_from_pdb
-from tmol.io.pdb_parsing import parse_pdb
 from tmol.io.canonical_ordering import (
+    canonical_form_from_atom_records,
     default_canonical_ordering,
     default_packed_block_types,
     select_atom_records_res_subset,
-    canonical_form_from_atom_records,
 )
+from tmol.io.pdb_parsing import parse_pdb
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.ref.ref_energy_term import RefEnergyTerm
@@ -83,12 +84,14 @@ def get_notallclose_msg(analytical, numerical, atol, rtol):
 def assert_allclose(baseline, measured, atol, rtol):
     try:
         numpy.testing.assert_allclose(baseline, measured, atol=atol, rtol=rtol)
-    except AssertionError:
-        raise AssertionError(get_notallclose_msg(measured, baseline, atol, rtol))
+    except AssertionError as err:
+        raise AssertionError(
+            get_notallclose_msg(measured, baseline, atol, rtol)
+        ) from err
 
 
 def print_table(table):
-    col_width = [max(len(str(x)) for x in col) for col in zip(*table)]
+    col_width = [max(len(str(x)) for x in col) for col in zip(*table, strict=False)]
     retstr = ""
     for line in table:
         retstr += (
@@ -193,14 +196,14 @@ class EnergyTermTestBase:
                 return numpy.array(
                     cls.recursive_reformat_from_dicts(yaml.safe_load(infile))
                 )
-        except FileNotFoundError:  # FileNotFoundError or whatever else
+        except FileNotFoundError as err:
             raise Exception(
                 "Baselines not found for "
                 + cls.__name__
                 + ":"
                 + testname
                 + ". Re-run with update_baselines=True"
-            )
+            ) from err
 
     @classmethod
     def get_whole_pose_scorer(cls, pose_stack, param_db, device):

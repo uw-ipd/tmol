@@ -8,7 +8,6 @@ import time
 from contextlib import contextmanager
 import pathlib
 
-
 # from tmol.pose.pose_stack import PoseStack
 from tmol.io import pose_stack_from_pdb
 from tmol.pose.pose_stack_builder import PoseStackBuilder

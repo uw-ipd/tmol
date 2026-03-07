@@ -1,6 +1,5 @@
 import numpy
 
-
 # Utility functions for constructing a hash table from a tuple of ints to a tuple of floats
 # The implementation of the hash function here must match the corresponding function in
 # hash_util.hh in this same directory.

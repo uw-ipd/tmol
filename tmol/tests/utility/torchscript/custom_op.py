@@ -1,6 +1,14 @@
+import os
+import glob
+
 import torch
-from tmol.utility.cpp_extension import load, relpaths, modulename
 
-load(modulename(__name__), relpaths(__file__, "custom_op.cpp"), is_python_module=False)
+# Load the pre-compiled TORCH_LIBRARY extension.
+# This is NOT a Python module (no PyInit_) — it registers ops via TORCH_LIBRARY.
+# Use load_library() instead of import.
+_ext_dir = os.path.dirname(__file__)
+_so_files = glob.glob(os.path.join(_ext_dir, "_custom_op*.so"))
+if _so_files:
+    torch.ops.load_library(_so_files[0])
 
-cpow = getattr(torch.ops, modulename(__name__)).cpow
+cpow = torch.ops._custom_op.cpow

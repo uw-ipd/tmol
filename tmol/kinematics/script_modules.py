@@ -15,7 +15,6 @@ from tmol.kinematics.scan_ordering import (
 
 from tmol.kinematics.compiled import forward_kin_op
 
-
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
 if "to" in torch.jit.ScriptModule.__dict__:

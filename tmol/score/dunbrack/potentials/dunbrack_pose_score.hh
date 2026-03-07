@@ -23,8 +23,7 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <tmol::Device>
-    class DeviceOps,
+    template <tmol::Device> class DeviceOps,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -144,8 +143,7 @@ struct DunbrackPoseScoreDispatch {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceOps,
+    template <tmol::Device> class DeviceOps,
     tmol::Device D,
     typename Real,
     typename Int>

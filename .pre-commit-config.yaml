@@ -1,26 +1,19 @@
 repos:
-  - repo: local
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v21.1.8
     hooks:
       - id: clang-format
-        name: clang-format
         args: ['-i']
-        description: 'Format files with ClangFormat.'
-        entry: clang-format
-        language: system
         files: \.(c|cc|cpp|h|hh|cu|cuh)$
         exclude: >
             (?x)^(
                 tmol/extern/.* |
                 dev/.* 
             )$
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
       - id: black
-        name: black
-        description: 'Black: The uncompromising Python code formatter'
-        entry: black
-        language: python
-        language_version: python3.11
-        require_serial: true
-        types: [python]
         exclude: >
             (?x)^(
                 tmol/extern/.* |

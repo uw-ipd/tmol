@@ -82,9 +82,7 @@ def pytest_benchmark_update_machine_info(config, machine_info):
     machine_info["cpu"]["logical"] = psutil.cpu_count(logical=True)
     machine_info["cpu"]["physical"] = psutil.cpu_count(logical=False)
 
-    machine_info["conda"] = {
-        "list": json.loads(subprocess.getoutput("conda list --json"))
-    }
+    machine_info["conda"] = {"list": []}
 
 
 def pytest_addoption(parser):

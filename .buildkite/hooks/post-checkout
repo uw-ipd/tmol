@@ -1,9 +1,0 @@
-#!/bin/bash
-
-set -e
-
-# Really, really cleaning again with -ff to cleanup
-# generated `gh-pages` submodule...
-# Echo with fewer leading + to keep logs tider
-echo +git clean -ffxdq
-git clean -ffxdq

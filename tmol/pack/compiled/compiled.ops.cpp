@@ -166,10 +166,8 @@ torch::Tensor validate_energies(
   return result.tensor;
 }
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_pack, m) {
   m.def("pack_anneal", &anneal);
   m.def("validate_energies", &validate_energies);
   m.def("build_interaction_graph", &build_interaction_graph);

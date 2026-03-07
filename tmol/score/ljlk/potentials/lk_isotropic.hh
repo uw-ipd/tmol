@@ -33,8 +33,7 @@ struct f_desolv {
       Real lj_radius_i,
       Real lk_dgfree_i,
       Real lk_lambda_i,
-      Real lk_volume_j)
-      ->Real {
+      Real lk_volume_j) -> Real {
     using std::exp;
     using std::pow;
     const Real pi = EIGEN_PI;
@@ -56,8 +55,7 @@ struct f_desolv {
       Real lj_radius_i,
       Real lk_dgfree_i,
       Real lk_lambda_i,
-      Real lk_volume_j)
-      ->V_dV_t {
+      Real lk_volume_j) -> V_dV_t {
     using std::exp;
     using std::pow;
     const Real pi = EIGEN_PI;
@@ -111,8 +109,7 @@ struct lk_isotropic_pair {
       Real lj_radius_i,
       Real lk_dgfree_i,
       Real lk_lambda_i,
-      Real lk_volume_j)
-      ->Real {
+      Real lk_volume_j) -> Real {
     Real d_min = lj_sigma_ij * .89;
 
     Real cpoly_close_dmin = d_min * d_min - 1.45;
@@ -171,8 +168,7 @@ struct lk_isotropic_pair {
       Real lj_radius_i,
       Real lk_dgfree_i,
       Real lk_lambda_i,
-      Real lk_volume_j)
-      ->V_dV_t {
+      Real lk_volume_j) -> V_dV_t {
     Real d_min = lj_sigma_ij * .89;
 
     Real cpoly_close_dmin = d_min * d_min - 1.45;
@@ -247,8 +243,7 @@ struct lk_isotropic_score {
       Real bonded_path_length,
       LKTypeParams<Real> i,
       LKTypeParams<Real> j,
-      LJGlobalParams<Real> global)
-      ->Real {
+      LJGlobalParams<Real> global) -> Real {
     Real lj_sigma_ij = lj_sigma<Real>(i, j, global);
 
     Real d_min = lj_sigma_ij * .89;
@@ -326,8 +321,7 @@ struct lk_isotropic_score {
       Real bonded_path_length,
       LKTypeParams<Real> i,
       LKTypeParams<Real> j,
-      LJGlobalParams<Real> global)
-      ->V_dV_t {
+      LJGlobalParams<Real> global) -> V_dV_t {
     Real sigma = lj_sigma<Real>(i, j, global);
 
     auto ij = lk_isotropic_pair<Real>::V_dV(

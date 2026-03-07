@@ -9,7 +9,6 @@ from tmol.io.canonical_ordering import (
 from tmol.io.details.disulfide_search import find_disulfides
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
-
 # ATOM    160  N   CYS L  23     -60.489 -22.492  -9.505  1.00 63.92           N
 # ATOM    161  CA  CYS L  23     -60.175 -22.416  -8.082  1.00 64.85           C
 # ATOM    162  C   CYS L  23     -58.707 -22.056  -7.882  1.00 66.35           C

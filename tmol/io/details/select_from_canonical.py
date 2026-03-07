@@ -1002,11 +1002,11 @@ def _annotate_packed_block_types_w_canonical_res_order(
         pbt_io_equiv_class_candidates,
     )
 
-    (bt_canonical_atom_is_absent, bt_non_term_patch_added_canonical_atom_is_present) = (
+    bt_canonical_atom_is_absent, bt_non_term_patch_added_canonical_atom_is_present = (
         _note_atoms_present_and_absent_from_variants(co, pbt)
     )
 
-    (bt_ind_to_canonical_ind, bt_canonical_atom_ind) = (
+    bt_ind_to_canonical_ind, bt_canonical_atom_ind = (
         _create_bt_to_canonical_atom_mapping(co, pbt)
     )
 
