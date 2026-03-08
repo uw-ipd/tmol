@@ -75,6 +75,11 @@ def pack_rotamers(
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
+    print(rotamer_assignments)
+    print(pose_stack.n_res_per_pose)
+    torch.set_printoptions(profile="full")
+    print(rotamer_set.n_rots_for_block)
+    torch.set_printoptions(profile="default")
     end_time5 = time.perf_counter()
     new_pose_stack = impose_top_rotamer_assignments(
         pose_stack, rotamer_set, rotamer_assignments

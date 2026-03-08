@@ -1,11 +1,16 @@
 import biotite.structure
 from biotite.structure.io.pdb import PDBFile
 from biotite.structure.io.pdbx import CIFFile, set_structure
+
 import pytest
+
+
+import pandas as pd
+import numpy
+
+import pathlib
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.io.pose_stack_from_biotite import (
     build_context_from_biotite,
     canonical_form_from_biotite,

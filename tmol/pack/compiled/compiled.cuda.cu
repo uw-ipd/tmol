@@ -917,6 +917,128 @@ struct Annealer {
   }
 };
 
+template <tmol::Device D, class IG>
+struct LocalizedPacker {
+  static auto run_localized_packer(IG ig, at::CUDAGeneratorImpl* gen)
+      -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
+    int const n_poses = ig.n_poses_cpu();
+    int const max_n_res = ig.max_n_res_cpu();  // nrotamers_for_res.size(0);
+    int const n_rotamers_total =
+        ig.n_rotamers_total_cpu();  // res_for_rot.size(0);
+    int const max_n_rotamers = ig.max_n_rotamers_per_pose_cpu();
+    int const n_traj = 32;
+
+    int const CTA_SIZE = 32;
+
+    int const n_iter = 100;
+
+    auto scores_final_t = TPack<float, 2, D>::zeros({n_poses, n_traj});
+    auto rotamer_assignments_t = TPack<int, 3, D>::full(
+        {n_poses, n_traj, max_n_res}, -1);  // flip nres and ntraj
+
+    // Increment the cuda generator
+    at::PhiloxCudaState philox_state;
+    {
+      std::lock_guard<std::mutex> lock(gen->mutex_);
+      philox_state = gen->philox_cuda_state(n_rotamers_total);  // TODO:
+    }
+
+    auto scores_final = scores_final_t.view;
+    auto rotamer_assignments = rotamer_assignments_t.view;
+
+    int n_pack_threads = n_iter * max_n_res * CTA_SIZE;
+
+    auto pack = ([=] MGPU_DEVICE(int i) {
+      auto seeds = at::cuda::philox::unpack(philox_state);
+      curandStatePhilox4_32_10_t state;
+      curand_init(std::get<0>(seeds), i, std::get<1>(seeds), &state);
+
+      int itr = i / (CTA_SIZE * max_n_res);
+      int cta = i / CTA_SIZE;
+      int thread = i % CTA_SIZE;
+      int packable_res_id = cta % max_n_res;  // TODO: filter out non-packables
+                                              // and assign them only once
+      // printf("TEST %i %i \n", max_n_res, packable_res_id);
+
+      cooperative_groups::thread_block_tile<32> g =
+          cooperative_groups::tiled_partition<32>(
+              cooperative_groups::this_thread_block());
+
+      int pose_id = 0;  // TODO
+
+      int const n_rots_for_res =
+          ig.n_rotamers_for_res()[pose_id][packable_res_id];
+      int const res_rotamer_offset =
+          ig.oneb_offsets()[pose_id][packable_res_id];
+
+      for (int traj_id = g.thread_rank(); traj_id < n_traj;
+           traj_id += CTA_SIZE) {
+        TensorAccessor<int, 1, D> current_rotamer_assignments =
+            rotamer_assignments[pose_id][traj_id];
+
+        // printf("SCORE i:%i rank:%i iter:%i res:%i, traj_id:%i\n", i,
+        // g.thread_rank(), itr, packable_res_id, traj_id);
+        float4 four_rands = curand_uniform4(&state);
+        int candidate_rot = int(four_rands.x * n_rots_for_res)
+                            % n_rots_for_res;  // TODO: + pose_rotamer_offset;
+        int candidate_rot_global = candidate_rot + res_rotamer_offset;
+        int current_rot = current_rotamer_assignments[packable_res_id];
+
+        if (current_rot == -1) {
+          current_rotamer_assignments[packable_res_id] = candidate_rot;
+          current_rot = candidate_rot;
+        }
+        if (n_rots_for_res == 1) {
+          return;
+        }
+
+        int current_rot_global = current_rot + res_rotamer_offset;
+
+        float old_e = ig.rotamer_energy_against_background(
+            pose_id,
+            packable_res_id,
+            n_rots_for_res,
+            current_rot,
+            current_rot_global,
+            current_rotamer_assignments,
+            true);
+
+        float new_e = 0;
+        int new_rot = 0;
+
+        for (int rot_ind = 0; rot_ind < n_rots_for_res; ++rot_ind) {
+          candidate_rot = rot_ind;
+          candidate_rot_global = candidate_rot + res_rotamer_offset;
+          float new_e = ig.rotamer_energy_against_background(
+              pose_id,
+              packable_res_id,
+              n_rots_for_res,
+              candidate_rot,
+              candidate_rot_global,
+              current_rotamer_assignments,
+              true);
+
+          if (new_e < old_e) {  // temp
+            current_rotamer_assignments[packable_res_id] = candidate_rot;
+            old_e = new_e;
+            new_rot = candidate_rot;
+          }
+        }
+        // printf("SCORE i:%i rank:%i iter:%i res:%i rotamer:%i score:%f\n", i,
+        // g.thread_rank(), itr, packable_res_id, new_rot, new_e);
+      }
+    });
+
+    mgpu::standard_context_t context;
+
+    mgpu::transform<32, 1>(pack, n_pack_threads, context);
+
+    printf("max_n_res:%i\n", max_n_res);
+
+    return {scores_final_t, rotamer_assignments_t};
+  }
+};
+
 template <tmol::Device D>
 auto AnnealerDispatch<D>::forward(
     int max_n_rotamers_per_pose,
@@ -954,6 +1076,11 @@ auto AnnealerDispatch<D>::forward(
   auto result =
       Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
           ig, gen);
+
+  // auto result =
+  // LocalizedPacker<D, InteractionGraph<D, int, float> >::run_localized_packer(
+  // ig, gen
+  //);
 
   return result;
 }
