@@ -964,6 +964,8 @@ struct LocalizedPacker {
           cooperative_groups::tiled_partition<32>(
               cooperative_groups::this_thread_block());
 
+      float rot_scores[64];
+
       int pose_id = 0;  // TODO
 
       int const n_rots_for_res =
@@ -1006,10 +1008,13 @@ struct LocalizedPacker {
         float new_e = 0;
         int new_rot = 0;
 
+        float rand = pow(four_rands.y, itr);
+        int rand_accept_pos = pow(four_rands.y, itr) * n_rots_for_res;
+
         for (int rot_ind = 0; rot_ind < n_rots_for_res; ++rot_ind) {
           candidate_rot = rot_ind;
           candidate_rot_global = candidate_rot + res_rotamer_offset;
-          float new_e = ig.rotamer_energy_against_background(
+          new_e = ig.rotamer_energy_against_background(
               pose_id,
               packable_res_id,
               n_rots_for_res,
@@ -1017,6 +1022,7 @@ struct LocalizedPacker {
               candidate_rot_global,
               current_rotamer_assignments,
               true);
+          rot_scores[rot_ind] = new_e;
 
           if (new_e < old_e) {  // temp
             current_rotamer_assignments[packable_res_id] = candidate_rot;
@@ -1024,8 +1030,29 @@ struct LocalizedPacker {
             new_rot = candidate_rot;
           }
         }
-        // printf("SCORE i:%i rank:%i iter:%i res:%i rotamer:%i score:%f\n", i,
-        // g.thread_rank(), itr, packable_res_id, new_rot, new_e);
+
+        // pick the nth best rot
+        float best = FLT_MAX;
+        int best_ind = 0;
+        for (int rank = 0; rank <= 0; ++rank) {  // rand_accept_pos; ++rank){
+          float worst = FLT_MIN;
+          int worst_ind = 0;
+          for (int rot_ind = 0; rot_ind < n_rots_for_res; ++rot_ind) {
+            if (rot_scores[rot_ind] < best && rot_scores[rot_ind] > worst) {
+              worst = rot_scores[rot_ind];
+              worst_ind = rot_ind;
+            }
+          }
+          best = worst;
+          best_ind = worst_ind;
+        }
+        printf("RAND: %f RANK: %i ROT: %i\n", rand, rand_accept_pos, best_ind);
+
+        // current_rotamer_assignments[packable_res_id] = best_ind;
+        // old_e = new_e;
+        // new_rot = candidate_rot;
+        //  printf("SCORE i:%i rank:%i iter:%i res:%i rotamer:%i score:%f\n", i,
+        //  g.thread_rank(), itr, packable_res_id, new_rot, new_e);
       }
     });
 
@@ -1073,14 +1100,12 @@ auto AnnealerDispatch<D>::forward(
   auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
       std::nullopt, at::cuda::detail::getDefaultCUDAGenerator());
 
-  auto result =
-      Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
-          ig, gen);
-
   // auto result =
-  // LocalizedPacker<D, InteractionGraph<D, int, float> >::run_localized_packer(
-  // ig, gen
-  //);
+  // Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
+  // ig, gen);
+
+  auto result = LocalizedPacker<D, InteractionGraph<D, int, float> >::
+      run_localized_packer(ig, gen);
 
   return result;
 }
