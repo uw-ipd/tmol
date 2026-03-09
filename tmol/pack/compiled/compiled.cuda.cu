@@ -926,11 +926,11 @@ struct LocalizedPacker {
     int const n_rotamers_total =
         ig.n_rotamers_total_cpu();  // res_for_rot.size(0);
     int const max_n_rotamers = ig.max_n_rotamers_per_pose_cpu();
-    int const n_traj = 32;
+    int const n_traj = 512;
 
     int const CTA_SIZE = 32;
 
-    int const n_iter = 100;
+    int const n_iter = 50;
 
     auto scores_final_t = TPack<float, 2, D>::zeros({n_poses, n_traj});
     auto rotamer_assignments_t = TPack<int, 3, D>::full(
@@ -973,6 +973,8 @@ struct LocalizedPacker {
       int const res_rotamer_offset =
           ig.oneb_offsets()[pose_id][packable_res_id];
 
+      // if (itr != 0) return;
+
       for (int traj_id = g.thread_rank(); traj_id < n_traj;
            traj_id += CTA_SIZE) {
         TensorAccessor<int, 1, D> current_rotamer_assignments =
@@ -989,6 +991,7 @@ struct LocalizedPacker {
         if (current_rot == -1) {
           current_rotamer_assignments[packable_res_id] = candidate_rot;
           current_rot = candidate_rot;
+          continue;  // break;
         }
         if (n_rots_for_res == 1) {
           return;
@@ -996,20 +999,23 @@ struct LocalizedPacker {
 
         int current_rot_global = current_rot + res_rotamer_offset;
 
-        float old_e = ig.rotamer_energy_against_background(
+        float old_e = FLT_MAX;
+
+        /*ig.rotamer_energy_against_background(
             pose_id,
             packable_res_id,
             n_rots_for_res,
             current_rot,
             current_rot_global,
             current_rotamer_assignments,
-            true);
+            true);*/
 
         float new_e = 0;
         int new_rot = 0;
 
         float rand = pow(four_rands.y, itr);
-        int rand_accept_pos = pow(four_rands.y, itr) * n_rots_for_res;
+        int rand_accept_pos = pow(four_rands.y, itr / 5) * n_rots_for_res;
+        if (itr + 10 > n_iter) rand_accept_pos = 0;
 
         for (int rot_ind = 0; rot_ind < n_rots_for_res; ++rot_ind) {
           candidate_rot = rot_ind;
@@ -1031,24 +1037,52 @@ struct LocalizedPacker {
           }
         }
 
-        // pick the nth best rot
-        float best = FLT_MAX;
-        int best_ind = 0;
-        for (int rank = 0; rank <= 0; ++rank) {  // rand_accept_pos; ++rank){
-          float worst = FLT_MIN;
-          int worst_ind = 0;
+        //// pick the nth best rot
+        // float best = FLT_MAX;
+        // int best_ind = 0;
+        ////for (int rank = 0; rank <= 0; ++rank) {  // rand_accept_pos;
+        ///++rank){
+        // float worst = FLT_MIN;
+        // int worst_ind = 0;
+        // for (int rot_ind = 0; rot_ind < n_rots_for_res; ++rot_ind) {
+        // if (rot_scores[rot_ind] < best && rot_scores[rot_ind] > worst) {
+        // worst = rot_scores[rot_ind];
+        // worst_ind = rot_ind;
+        //}
+        //}
+        // best = worst;
+        // best_ind = worst_ind;
+
+        // pick the nth best rot. this should be pretty efficient since its
+        // biased towards low values of n
+        float best_nth = FLT_MIN;
+        int best_nth_ind = 0;
+        for (int rank = 0; rank <= rand_accept_pos; ++rank) {
+          float best = FLT_MAX;
+          int best_ind = 0;
           for (int rot_ind = 0; rot_ind < n_rots_for_res; ++rot_ind) {
-            if (rot_scores[rot_ind] < best && rot_scores[rot_ind] > worst) {
-              worst = rot_scores[rot_ind];
-              worst_ind = rot_ind;
+            float rot_score = rot_scores[rot_ind];
+            // printf("CHECK %f > %f && %f < %f\n", rot_score, best_nth,
+            // rot_score, best);
+            if (rot_score > best_nth && rot_score < best) {
+              // printf("TRUE\n");
+              best = rot_score;
+              best_ind = rot_ind;
             }
           }
-          best = worst;
-          best_ind = worst_ind;
+          best_nth = best;
+          best_nth_ind = best_ind;
         }
-        printf("RAND: %f RANK: %i ROT: %i\n", rand, rand_accept_pos, best_ind);
 
-        // current_rotamer_assignments[packable_res_id] = best_ind;
+        // printf("random rank: %i\n", rand_accept_pos);
+        current_rotamer_assignments[packable_res_id] = best_nth_ind;
+
+        // printf("RESULT NEW_ROT:%i RANKED_ROT:%i\n",
+        // current_rotamer_assignments[packable_res_id], best_nth_ind);
+        // }
+        // printf("RAND: %f RANK: %i ROT: %i\n", rand, rand_accept_pos,
+        // best_ind);
+
         // old_e = new_e;
         // new_rot = candidate_rot;
         //  printf("SCORE i:%i rank:%i iter:%i res:%i rotamer:%i score:%f\n", i,
@@ -1059,6 +1093,26 @@ struct LocalizedPacker {
     mgpu::standard_context_t context;
 
     mgpu::transform<32, 1>(pack, n_pack_threads, context);
+
+    auto score_trajectories = ([=] MGPU_DEVICE(int thread_id) {
+      cooperative_groups::thread_block_tile<32> g =
+          cooperative_groups::tiled_partition<32>(
+              cooperative_groups::this_thread_block());
+      int const traj_id = thread_id / 32;
+      int const pose = 0;
+      // int const traj_id = thread_id;
+      printf("TRAJ:%i\n", traj_id);
+
+      // if(g.thread_rank() != 0) return;
+
+      float total_energy = ig.total_energy_for_assignment_parallel(
+          pose, g, rotamer_assignments[pose][traj_id]);
+
+      printf("TRAJ:%i SCORE:%f\n", traj_id, total_energy);
+      scores_final[pose][traj_id] = total_energy;
+    });
+
+    mgpu::transform<32, 1>(score_trajectories, n_traj * CTA_SIZE, context);
 
     printf("max_n_res:%i\n", max_n_res);
 
