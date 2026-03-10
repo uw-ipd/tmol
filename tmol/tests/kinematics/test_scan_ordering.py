@@ -1,21 +1,66 @@
+import torch
 import numpy
-from tmol.kinematics.old.builder import _KinematicBuilder
+import scipy.sparse as sparse
+import scipy.sparse.csgraph as csgraph
+
+from tmol.kinematics.datatypes import KinForest
 from tmol.kinematics.scan_ordering import get_scans
 
 
 def kinforest_from_roots_and_bonds(roots, bonds):
-    kfo_2_to, parents = _KinematicBuilder.bonds_to_forest(roots, bonds)
-    kinforest = (
-        _KinematicBuilder()
-        .append_connected_components(
-            to_roots=roots,
-            kfo_2_to=kfo_2_to,
-            to_parents_in_kfo=parents,
-            to_jump_nodes=numpy.array([], dtype=numpy.int32),
-        )
-        .kinforest
+    """Build a minimal KinForest for testing get_scans.
+
+    Constructs a spanning tree via MST + BFS from each root, assigns
+    KFO ordering, and returns a KinForest (with only the parent field
+    populated) together with a kfo_2_to_w_root mapping.
+    """
+    n_atoms = int(numpy.max(bonds)) + 1
+    roots_set = {int(r) for r in roots}
+
+    # Build sparse bond graph and find its MST
+    data = numpy.ones(len(bonds), dtype=numpy.float32)
+    adj = sparse.csr_matrix(
+        (data, (bonds[:, 0], bonds[:, 1])), shape=(n_atoms, n_atoms)
     )
-    kfo_2_to_w_root = numpy.zeros((kfo_2_to.shape[0] + 1,), dtype=numpy.int32)
+    mst = csgraph.minimum_spanning_tree(adj)
+
+    # BFS from each root to establish KFO ordering and predecessor map
+    kfo_2_to_list = []
+    preds_for_atom = {}  # TO index → predecessor TO index (absent for roots)
+    for root in roots:
+        bfto, preds = csgraph.breadth_first_order(
+            mst, int(root), directed=False, return_predecessors=True
+        )
+        for to_idx in bfto:
+            to_idx = int(to_idx)
+            kfo_2_to_list.append(to_idx)
+            if to_idx not in roots_set:
+                preds_for_atom[to_idx] = int(preds[to_idx])
+
+    kfo_2_to = numpy.array(kfo_2_to_list, dtype=numpy.int32)
+    to_2_kfo = numpy.empty(n_atoms, dtype=numpy.int32)
+    for k, to_idx in enumerate(kfo_2_to):
+        to_2_kfo[to_idx] = k
+
+    # Build parent array in 1-indexed KFO space (global root at position 0)
+    parent = numpy.zeros(n_atoms + 1, dtype=numpy.int32)
+    for k, to_idx in enumerate(kfo_2_to):
+        if to_idx in roots_set:
+            parent[k + 1] = 0  # tree root → global root
+        else:
+            parent[k + 1] = to_2_kfo[preds_for_atom[to_idx]] + 1
+
+    zeros = torch.zeros(n_atoms + 1, dtype=torch.int32)
+    kinforest = KinForest(
+        id=zeros,
+        doftype=zeros,
+        parent=torch.tensor(parent, dtype=torch.int32),
+        frame_x=zeros,
+        frame_y=zeros,
+        frame_z=zeros,
+    )
+
+    kfo_2_to_w_root = numpy.zeros(n_atoms + 1, dtype=numpy.int32)
     kfo_2_to_w_root[1:] = kfo_2_to + 1
 
     return kinforest, kfo_2_to_w_root

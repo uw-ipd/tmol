@@ -1,5 +1,4 @@
 import numpy
-import torch
 import attr
 import enum
 
@@ -11,6 +10,123 @@ class EdgeType(enum.IntEnum):
     polymer = 0
     jump = enum.auto()
     root_jump = enum.auto()
+
+
+def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c):
+    """Build fold forest edges for a single pose from polymer connectivity only.
+
+    Only backbone (up/down) connections are considered.  The resulting graph is
+    a disjoint union of simple paths (linear chains) and simple cycles (C→N
+    cyclisation).  Non-polymer connections (disulfides, etc.) are ignored.
+
+    poly_succ / poly_pred are built with a vectorised numpy gather:
+    for each residue r, r's *up*-conn slot points to the C-terminal neighbour s,
+    and s's *down*-conn slot points back to r.  (In tmol nomenclature "up" is
+    the C-terminal / higher-index direction, mirroring Rosetta's upper_connect.)
+
+    Chain walking is still a Python loop but is O(n_real) total iterations
+    across all chains (each residue is visited exactly once).
+
+    Cyclic polymers (C→N cyclisation) are broken at the bond entering the
+    lowest-index residue; that bond is simply dropped from the fold forest
+    (not emitted as a jump) so the result remains a valid tree.
+
+    Returns a list of [type, start, end, jump_idx] integer lists.
+    """
+    n_res = len(bti_p)
+    rows = numpy.arange(n_res)
+
+    real_mask = bti_p >= 0
+    real_res = numpy.where(real_mask)[0]
+
+    if len(real_res) == 0:
+        return []
+
+    # ------------------------------------------------------------------
+    # Vectorised poly_succ / poly_pred construction.
+    #
+    # For each residue r:
+    #   1. Look up r's up-conn slot (points toward C-terminal neighbour).
+    #   2. Fetch the target residue s and its connection slot cs via irc_p.
+    #   3. Accept the bond only if cs == down-conn slot of s (the N-terminal
+    #      side of s), confirming a proper polymer bond in the right direction.
+    # ------------------------------------------------------------------
+    bt_safe = numpy.where(real_mask, bti_p, 0)  # safe block-type indices
+
+    uc_r = up_c[bt_safe]  # up-conn slot per residue
+    uc_safe = numpy.maximum(uc_r, 0)
+
+    succ_raw = irc_p[rows, uc_safe, 0]  # candidate C-terminal neighbour
+    succ_cs = irc_p[rows, uc_safe, 1]  # connection slot on that neighbour
+
+    s_safe = numpy.maximum(succ_raw, 0)
+    dc_s = down_c[numpy.maximum(bti_p[s_safe], 0)]  # down-conn slot on s
+
+    valid = (
+        real_mask
+        & (uc_r >= 0)
+        & (succ_raw >= 0)
+        & real_mask[s_safe]
+        & (succ_cs == dc_s)
+    )
+
+    poly_succ_arr = numpy.full(n_res, -1, dtype=numpy.int64)
+    poly_pred_arr = numpy.full(n_res, -1, dtype=numpy.int64)
+
+    valid_r = numpy.where(valid)[0]
+    valid_s = succ_raw[valid]
+    poly_succ_arr[valid_r] = valid_s
+    poly_pred_arr[valid_s] = valid_r
+
+    # ------------------------------------------------------------------
+    # Walk linear chains from each N-terminus (real residue, no predecessor).
+    # O(n_real) total Python iterations across all chains.
+    # ------------------------------------------------------------------
+    chains = []  # (start, end)
+    visited = numpy.zeros(n_res, dtype=bool)
+
+    for r in numpy.where(real_mask & (poly_pred_arr < 0))[0]:
+        r = int(r)
+        cur = r
+        while poly_succ_arr[cur] >= 0:
+            visited[cur] = True
+            cur = int(poly_succ_arr[cur])
+        visited[cur] = True
+        chains.append((r, cur))
+
+    # ------------------------------------------------------------------
+    # Handle cyclic polymers (C→N cyclisation).
+    # Every unvisited real residue belongs to a simple cycle.
+    # Break each cycle at the bond entering its lowest-index residue;
+    # that bond is dropped (not emitted as a jump) to keep the tree acyclic.
+    # ------------------------------------------------------------------
+    for r in numpy.where(real_mask & ~visited)[0]:
+        r = int(r)
+        if visited[r]:
+            continue
+        cycle = []
+        cur = r
+        while not visited[cur]:
+            visited[cur] = True
+            cycle.append(cur)
+            cur = int(poly_succ_arr[cur])
+        n_term = min(cycle)
+        c_term = int(poly_pred_arr[n_term])
+        chains.append((n_term, c_term))
+
+    # ------------------------------------------------------------------
+    # Emit edges: one root-jump per chain, one polymer edge if len > 1.
+    # ------------------------------------------------------------------
+    result = []
+    jump_idx = 0
+
+    for start, end in sorted(chains, key=lambda c: c[0]):
+        result.append([int(EdgeType.root_jump), -1, start, jump_idx])
+        jump_idx += 1
+        if start != end:
+            result.append([int(EdgeType.polymer), start, end, -1])
+
+    return result
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -57,133 +173,38 @@ class FoldForest:
 
     @classmethod
     def reasonable_fold_forest(cls, pose_stack: PoseStack):
-        """Create a fold tree consisting of N->C edges for each chain
-        for each Pose in the input PoseStack and a root-jump to each
-        chain's N-terminus.
+        """Create a fold forest for each pose using only backbone (up/down)
+        polymer connectivity.
+
+        Each linear chain receives one root-jump and one polymer edge.
+        Cyclic polymers (C→N cyclisation) are broken at the bond entering
+        the lowest-index residue; that bond is dropped to keep the forest
+        a valid tree.  Non-polymer connections (disulfides, etc.) are ignored.
         """
-        # one edge from the root to each chain's first residue
-        # and one n->c polymer edge for each chain
-        pose_n_residues = torch.sum(pose_stack.block_type_ind != -1, dim=1)
+        irc = pose_stack.inter_residue_connections.cpu().numpy()
+        bti = pose_stack.block_type_ind.cpu().numpy()
+        pbt = pose_stack.packed_block_types
+        up_c = pbt.up_conn_inds.cpu().numpy()
+        down_c = pbt.down_conn_inds.cpu().numpy()
 
-        n_chains_per_pose = torch.max(pose_stack.chain_id64, dim=1)[0] + 1
-        max_n_chains = torch.max(n_chains_per_pose).cpu().item()
-        max_n_edges = 2 * max_n_chains
-        is_pci_chain_real = torch.arange(
-            max_n_chains, dtype=torch.int64, device=pose_stack.device
-        ).unsqueeze(0) < (n_chains_per_pose.unsqueeze(1))
-        real_chain_indices = torch.nonzero(is_pci_chain_real, as_tuple=False)
+        all_pose_edges = [
+            _build_pose_fold_forest(bti[p], irc[p], up_c, down_c)
+            for p in range(pose_stack.n_poses)
+        ]
 
-        edges = torch.full(
-            (pose_stack.n_poses, max_n_edges, 4),
-            -1,
-            dtype=torch.int64,
-            device=pose_stack.device,
-        )
-        n_edges = torch.zeros(
-            (pose_stack.n_poses,), dtype=int, device=pose_stack.device
-        )
+        max_n_edges = max((len(e) for e in all_pose_edges), default=1)
+        n_poses = pose_stack.n_poses
 
-        chain_boundaries = torch.zeros(
-            (pose_stack.n_poses, pose_stack.max_n_blocks),
-            dtype=torch.bool,
-            device=pose_stack.device,
-        )
-        chain_boundaries[:, :-1] = (
-            pose_stack.chain_id64[:, 1:] != pose_stack.chain_id64[:, :-1]
-        )
-        # last residue is end of a chain; but will not be marked as such if n_res == max_n_res
-        chain_boundaries[
-            torch.arange(
-                pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
-            ),
-            pose_n_residues - 1,
-        ] = True
+        edges = numpy.full((n_poses, max_n_edges, 4), -1, dtype=numpy.int64)
+        n_edges = numpy.zeros(n_poses, dtype=int)
 
-        # the index for each chain's last residue
-        chain_end_indices_ci = torch.nonzero(chain_boundaries, as_tuple=False)
+        for p, edges_p in enumerate(all_pose_edges):
+            n = len(edges_p)
+            if n > 0:
+                edges[p, :n] = edges_p
+            n_edges[p] = n
 
-        # now lets construct a pair of tensors of n_poses x max_n_chains
-        # with the beginning and ending residue indices for each chain
-        chain_end_indices_pci = torch.zeros(
-            (pose_stack.n_poses, max_n_chains),
-            dtype=torch.int64,
-            device=pose_stack.device,
-        )
-        chain_end_indices_pci[is_pci_chain_real] = chain_end_indices_ci[:, 1]
-        chain_begin_indices_pci = torch.zeros_like(chain_end_indices_pci)
-        real_pci_chains = torch.nonzero(is_pci_chain_real, as_tuple=False)
-
-        # chain_begin_indices_pci:
-        # the index of the first residue in each chain.
-        # This is just one greater than the last residue of the previous chain,
-        # except, we have to overwrite the index of the first chain in each
-        # pose to be zero.
-        chain_begin_indices_pci[real_pci_chains[1:, 0], real_pci_chains[1:, 1]] = (
-            chain_end_indices_ci[:-1, 1] + 1
-        )
-        chain_begin_indices_pci[:, 0] = 0
-
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 0] = (
-            EdgeType.polymer
-        )
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 1] = (
-            chain_begin_indices_pci[real_chain_indices[:, 0], real_chain_indices[:, 1]]
-        )
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 2] = (
-            chain_end_indices_pci[real_chain_indices[:, 0], real_chain_indices[:, 1]]
-        )
-
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 0] = (
-            EdgeType.root_jump
-        )
-        # edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1]+ 1, 0] == -1 already
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 2] = (
-            chain_begin_indices_pci[real_chain_indices[:, 0], real_chain_indices[:, 1]]
-        )
-        # jump number for root-jumps
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 3] = (
-            torch.arange(max_n_chains, dtype=torch.int64, device=pose_stack.device)
-            .unsqueeze(0)
-            .expand(pose_stack.n_poses, max_n_chains)[is_pci_chain_real]
-        )
-        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 3] = (
-            real_chain_indices[:, 1]
-        )
-        edges = edges.cpu().numpy()
-        n_edges = (2 * n_chains_per_pose).cpu().numpy()
-
-        return cls(
-            max_n_edges=max_n_edges,
-            n_edges=n_edges,
-            edges=edges,
-        )
-
-    @classmethod
-    # soon! @validate_args
-    def polymeric_forest(cls, n_res_per_tree: NDArray[numpy.int32][:]):
-        """Create an N->C fold tree for a collection of monomers in a PoseStack.
-
-        This will define a fold tree for each pose with a just one edge, and thus
-        will be a very bad fold tree except for the not-so-common case that all
-        of the Poses in the PoseStack are monomers.
-        """
-        n_trees = n_res_per_tree.shape[0]
-
-        edges = numpy.full((n_trees, 2, 4), -1, dtype=int)
-        edges[:, 0, 0] = EdgeType.root_jump
-        edges[:, 0, 1] = -1
-        edges[:, 0, 2] = 0
-        n_res_gt_1 = n_res_per_tree > 1
-        edges[n_res_gt_1, 1, 0] = EdgeType.polymer
-        edges[n_res_gt_1, 1, 1] = 0
-        edges[n_res_gt_1, 1, 2] = (n_res_per_tree[n_res_gt_1] - 1).astype(int)
-        n_edges = numpy.full(n_trees, 1, dtype=int)
-        n_edges[n_res_gt_1] = 2
-        return cls(
-            max_n_edges=2,
-            n_edges=n_edges,
-            edges=edges,
-        )
+        return cls(max_n_edges=max_n_edges, n_edges=n_edges, edges=edges)
 
     @classmethod
     def from_edges(cls, edges: NDArray[int][:, :, 4]):

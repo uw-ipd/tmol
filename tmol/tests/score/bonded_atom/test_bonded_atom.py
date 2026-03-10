@@ -2,10 +2,26 @@ import torch
 
 from tmol.io import pose_stack_from_pdb
 from tmol.score.bond_dependent_term import BondDependentTerm
+from tmol._load_ext import ensure_compiled_or_jit
 
 
 def test_bonded_atom_two_iterations(ubq_pdb, default_database, torch_device):
-    from tmol.tests.score.bonded_atom import _ext as compiled
+    if ensure_compiled_or_jit():
+        from tmol.utility.cpp_extension import (
+            load,
+            relpaths,
+            modulename,
+            cuda_if_available,
+        )
+
+        compiled = load(
+            modulename(__name__),
+            cuda_if_available(
+                relpaths(__file__, ["test_cpu.cpp", "test.pybind.cpp", "test_cuda.cu"])
+            ),
+        )
+    else:
+        from tmol.tests.score.bonded_atom import _ext as compiled
 
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=1)
     pbt = p1.packed_block_types
