@@ -988,8 +988,8 @@ struct LocalizedPacker {
     int const n_iter = 50;
 
     auto scores_final_t = TPack<float, 2, D>::zeros({n_poses, n_traj});
-    auto rotamer_assignments_t = TPack<int, 3, D>::full(
-        {n_poses, n_traj, max_n_res}, -1);  // flip nres and ntraj
+    auto rotamer_assignments_t = TPack<int, 4, D>::full(
+        {2, n_poses, n_traj, max_n_res}, -1);  // flip nres and ntraj
 
     // Increment the cuda generator
     at::PhiloxCudaState philox_state;
@@ -1072,7 +1072,9 @@ struct LocalizedPacker {
            traj_id += CTA_SIZE) {
         // Get the current rotamer assignments for this trajectory
         TensorAccessor<int, 1, D> current_rotamer_assignments =
-            rotamer_assignments[pose_id][traj_id];
+            rotamer_assignments[iter % 2][pose_id][traj_id];
+        TensorAccessor<int, 1, D> new_rotamer_assignments =
+            rotamer_assignments[(iter + 1) % 2][pose_id][traj_id];
 
         // Generate random numbers for rotamer selection
         float4 four_rands = curand_uniform4(&state);
@@ -1086,7 +1088,8 @@ struct LocalizedPacker {
         // If no rotamer is assigned yet, assign the candidate
         if (current_rot == -1) {
           current_rotamer_assignments[packable_res_id] = candidate_rot;
-          current_rot = candidate_rot;
+          new_rotamer_assignments[packable_res_id] = candidate_rot;
+          // continue;
           // continue;  // break;
         }
         // If only one rotamer is available, no need to change
@@ -1106,7 +1109,7 @@ struct LocalizedPacker {
               candidate_rot,
               candidate_rot_global,
               current_rotamer_assignments,
-              true);
+              (current_rot > -1));
           rot_scores[rot_ind] = energy;
         }
 
@@ -1140,7 +1143,7 @@ struct LocalizedPacker {
         }
 
         // Assign the selected rotamer
-        current_rotamer_assignments[packable_res_id] = best_nth_ind;
+        new_rotamer_assignments[packable_res_id] = best_nth_ind;
         // accumulate<D, int>::add(completed_iter[0], 1);
       }
       score::common::accumulate<D, int>::add(completed_iter[0], 1);
@@ -1160,6 +1163,10 @@ struct LocalizedPacker {
       // printf("iter inc %i\n", iter);
     }
 
+    auto final_rotamer_assignments_t = TPack<int, 3, D>::full(
+        {n_poses, n_traj, max_n_res}, -1);  // flip nres and ntraj
+    auto final_rotamer_assignments = final_rotamer_assignments_t.view;
+
     // Score each trajectory in total
     auto score_trajectories = ([=] MGPU_DEVICE(int thread_id) {
       cooperative_groups::thread_block_tile<32> g =
@@ -1168,8 +1175,16 @@ struct LocalizedPacker {
       int const traj_id = thread_id / 32;
       int const pose = 0;
 
+      int iter = (completed_iter[0] / (CTA_SIZE * max_n_res) - 1) % 2;
+      // Copy the values from rotamer_assignments[0] into
+      // final_rotamer_assignments. TODO: find whatever call does this
+      for (int res_id = g.thread_rank(); res_id < max_n_res; res_id += 32) {
+        final_rotamer_assignments[pose][traj_id][res_id] =
+            rotamer_assignments[iter][pose][traj_id][res_id];
+      }
+
       float total_energy = ig.total_energy_for_assignment_parallel(
-          pose, g, rotamer_assignments[pose][traj_id]);
+          pose, g, final_rotamer_assignments[pose][traj_id]);
 
       // printf("TRAJ:%i SCORE:%f\n", traj_id, total_energy);
       scores_final[pose][traj_id] = total_energy;
@@ -1179,7 +1194,7 @@ struct LocalizedPacker {
 
     printf("max_n_res:%i\n", max_n_res);
 
-    return {scores_final_t, rotamer_assignments_t};
+    return {scores_final_t, final_rotamer_assignments_t};
   }
 };
 
