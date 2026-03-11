@@ -48,3 +48,57 @@ def ensure_compiled_or_jit() -> bool:
             )
             return True
         raise
+
+
+def load_ops(module_name: str, file: str, sources, ops_name: str):
+    """JIT-compile and register torch ops if needed, then return the torch.ops namespace.
+
+    In JIT mode, compiles the given sources and registers them as torch ops.
+    In AOT mode, the ops are already registered by the precompiled library.
+    Either way, returns ``torch.ops.<ops_name>``.
+
+    Args:
+        module_name: Pass ``__name__`` from the calling module.
+        file: Pass ``__file__`` from the calling module.
+        sources: Source filenames relative to ``file``'s directory.
+        ops_name: The ``torch.ops`` namespace (e.g. ``"tmol_ljlk"``).
+    """
+    if ensure_compiled_or_jit():
+        from tmol.utility.cpp_extension import (
+            load,
+            relpaths,
+            modulename,
+            cuda_if_available,
+        )
+
+        load(
+            modulename(module_name),
+            cuda_if_available(relpaths(file, sources)),
+            is_python_module=False,
+        )
+    import torch
+
+    return getattr(torch.ops, ops_name)
+
+
+def load_module(module_name: str, file: str, sources, precompiled_path: str):
+    """JIT-compile or import a precompiled pybind11 module.
+
+    In JIT mode, compiles the given sources and returns the resulting module.
+    In AOT mode, imports and returns ``precompiled_path``.
+
+    Args:
+        module_name: Pass ``__name__`` from the calling module.
+        file: Pass ``__file__`` from the calling module.
+        sources: Source filename(s) relative to ``file``'s directory.
+        precompiled_path: Dotted import path to the precompiled ``_ext`` module
+            (e.g. ``"tmol.tests.score.common.geom._ext"``).
+    """
+    if ensure_compiled_or_jit():
+        from tmol.utility.cpp_extension import load, relpaths, modulename
+
+        return load(modulename(module_name), relpaths(file, sources))
+    else:
+        import importlib
+
+        return importlib.import_module(precompiled_path)

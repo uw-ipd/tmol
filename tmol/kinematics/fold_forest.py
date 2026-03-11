@@ -12,7 +12,7 @@ class EdgeType(enum.IntEnum):
     root_jump = enum.auto()
 
 
-def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c):
+def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c, chain_id_p):
     """Build fold forest edges for a single pose from polymer connectivity only.
 
     Only backbone (up/down) connections are considered.  The resulting graph is
@@ -100,7 +100,8 @@ def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c):
     # Break each cycle at the bond entering its lowest-index residue;
     # that bond is dropped (not emitted as a jump) to keep the tree acyclic.
     # ------------------------------------------------------------------
-    for r in numpy.where(real_mask & ~visited)[0]:
+    cyclized_res = numpy.where(real_mask & ~visited)[0]
+    for r in cyclized_res:
         r = int(r)
         if visited[r]:
             continue
@@ -115,13 +116,23 @@ def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c):
         chains.append((n_term, c_term))
 
     # ------------------------------------------------------------------
-    # Emit edges: one root-jump per chain, one polymer edge if len > 1.
+    # Emit edges: one root-jump (or intra-chain jump) per chain,
+    # one polymer edge if len > 1.
+    #
+    # If the residue immediately before this chain's N-terminus belongs to
+    # the same biological chain (same chain_id), the break is a chain gap
+    # within one chain and is represented as a jump from that predecessor.
+    # Otherwise the chain is rooted at the virtual root.
     # ------------------------------------------------------------------
     result = []
     jump_idx = 0
 
     for start, end in sorted(chains, key=lambda c: c[0]):
-        result.append([int(EdgeType.root_jump), -1, start, jump_idx])
+        prev = start - 1
+        if prev >= 0 and bti_p[prev] >= 0 and chain_id_p[prev] == chain_id_p[start]:
+            result.append([int(EdgeType.jump), prev, start, jump_idx])
+        else:
+            result.append([int(EdgeType.root_jump), -1, start, jump_idx])
         jump_idx += 1
         if start != end:
             result.append([int(EdgeType.polymer), start, end, -1])
@@ -176,19 +187,24 @@ class FoldForest:
         """Create a fold forest for each pose using only backbone (up/down)
         polymer connectivity.
 
-        Each linear chain receives one root-jump and one polymer edge.
+        Each biological chain (same chain_id) is rooted with a single
+        root-jump to its first residue.  Polymer gaps within that chain
+        (chain breaks) become ordinary jump edges connecting the last
+        residue before the gap to the first residue after it.  Gaps
+        between different biological chains produce separate root-jumps.
         Cyclic polymers (C→N cyclisation) are broken at the bond entering
         the lowest-index residue; that bond is dropped to keep the forest
         a valid tree.  Non-polymer connections (disulfides, etc.) are ignored.
         """
         irc = pose_stack.inter_residue_connections.cpu().numpy()
         bti = pose_stack.block_type_ind.cpu().numpy()
+        chain_id = pose_stack.chain_id.cpu().numpy()
         pbt = pose_stack.packed_block_types
         up_c = pbt.up_conn_inds.cpu().numpy()
         down_c = pbt.down_conn_inds.cpu().numpy()
 
         all_pose_edges = [
-            _build_pose_fold_forest(bti[p], irc[p], up_c, down_c)
+            _build_pose_fold_forest(bti[p], irc[p], up_c, down_c, chain_id[p])
             for p in range(pose_stack.n_poses)
         ]
 

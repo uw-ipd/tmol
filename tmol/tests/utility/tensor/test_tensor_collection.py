@@ -4,9 +4,14 @@ import torch
 
 @pytest.fixture(scope="session")
 def tensor_collection():
-    from tmol.tests.utility.tensor import _tensor_collection
+    from tmol._load_ext import load_module
 
-    return _tensor_collection
+    return load_module(
+        __name__,
+        __file__,
+        "tensor_collection.cpp",
+        "tmol.tests.utility.tensor._tensor_collection",
+    )
 
 
 def test_tensor_collection(tensor_collection):

@@ -5,9 +5,14 @@ import torch
 
 @pytest.fixture(scope="session")
 def in_place_heap():
-    from tmol.tests.utility.datastructures import _in_place_heap
+    from tmol._load_ext import load_module
 
-    return _in_place_heap
+    return load_module(
+        __name__,
+        __file__,
+        "in_place_heap.cpp",
+        "tmol.tests.utility.datastructures._in_place_heap",
+    )
 
 
 @pytest.fixture
