@@ -146,7 +146,6 @@ class LBFGS_Armijo(Optimizer):
 
         self._params = self.param_groups[0]["params"]
         self._numel_cache = None
-        self._rtol = rtol
         self._minstep = minstep
         self.verbose = verbose
 
