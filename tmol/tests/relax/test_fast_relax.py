@@ -15,7 +15,6 @@ from tmol.kinematics.move_map import MoveMap
 from tmol.kinematics.fold_forest import EdgeType, FoldForest
 
 from tmol.io import pose_stack_from_pdb
-from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
 
 
 def get_relax_sfxn(default_database, torch_device):
@@ -48,9 +47,8 @@ def get_relax_sfxn(default_database, torch_device):
 
 @pytest.mark.parametrize("n_poses", [1])
 def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_poses):
-
-    if torch_device == torch.device("cpu"):
-        return
+    # if torch_device == torch.device("cpu"):
+    #    return
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
@@ -77,7 +75,14 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 
     verbose = True
     new_pose_stack = fast_relax(
-        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose
+        pose_stack,
+        sfxn,
+        palette,
+        mm,
+        fold_forest,
+        task_operations=[task_op],
+        num_repeats=1,
+        verbose=verbose,
     )
 
     if torch_device == torch.device("cuda"):
@@ -88,8 +93,6 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 
     print(f"1ubq {n_poses} FastRelax Execution time: {elapsed_time:.6f} seconds")
 
-    write_pose_stack_pdb(new_pose_stack, f"tmol_relaxed_1ubq_{n_poses:04d}.pdb")
-
 
 @pytest.mark.parametrize("n_poses", [1])
 def test_fast_relax_pertuz(
@@ -97,7 +100,7 @@ def test_fast_relax_pertuz(
 ):
 
     if torch_device == torch.device("cpu"):
-        return
+        pytest.skip("CUDA only test")
 
     res_not_connected = torch.zeros(
         (1, 564 - 9 + 214 + 216 + 6, 2), dtype=torch.bool, device=torch_device
@@ -127,7 +130,6 @@ def test_fast_relax_pertuz(
         dtype=numpy.int32,
     )
     edges = numpy.tile(edges, (n_poses, 1, 1)).reshape(n_poses, -1, 4)
-    print("Edges", edges)
 
     fold_forest = FoldForest.from_edges(edges)
     mm = MoveMap.from_pose_stack(pose_stack)
@@ -154,7 +156,14 @@ def test_fast_relax_pertuz(
 
     verbose = True
     new_pose_stack = fast_relax(
-        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose
+        pose_stack,
+        sfxn,
+        palette,
+        mm,
+        fold_forest,
+        task_operations=[task_op],
+        num_repeats=1,
+        verbose=verbose,
     )
 
     if torch_device == torch.device("cuda"):
@@ -165,14 +174,12 @@ def test_fast_relax_pertuz(
 
     print(f"1s78 {n_poses} FastRelax Execution time: {elapsed_time:.6f} seconds")
 
-    write_pose_stack_pdb(new_pose_stack, f"tmol_relaxed_1s78_{n_poses:04d}.pdb")
-
 
 def test_fast_relax_for_different_shapes(
     ubq_pdb, erbb2_and_pertuzumab_pdb, default_database, dun_sampler, torch_device
 ):
     if torch_device == torch.device("cpu"):
-        return
+        pytest.skip("CUDA only test")
 
     res_not_connected = torch.zeros((1, 40, 2), dtype=torch.bool, device=torch_device)
     res_not_connected[0, 0, 0] = True
@@ -220,7 +227,14 @@ def test_fast_relax_for_different_shapes(
 
     verbose = True
     new_pose_stack = fast_relax(
-        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose
+        pose_stack,
+        sfxn,
+        palette,
+        mm,
+        fold_forest,
+        task_operations=[task_op],
+        num_repeats=1,
+        verbose=verbose,
     )
 
     if torch_device == torch.device("cuda"):
@@ -232,5 +246,3 @@ def test_fast_relax_for_different_shapes(
     print(
         f"Three differently-shaped PDBs relaxed; Execution time: {elapsed_time:.6f} seconds"
     )
-
-    write_pose_stack_pdb(new_pose_stack, "tmol_relaxed_different_shapes.pdb")

@@ -78,7 +78,14 @@ def _normalize_schedule(schedule):
 
 def _default_min_fn(pose_stack, sfxn, *, fold_forest, move_map, verbose):
     """Default minimization function: kinematic (torsion-space) LBFGS."""
-    return run_kin_min(pose_stack, sfxn, fold_forest, move_map, verbose=verbose)
+    return run_kin_min(
+        pose_stack,
+        sfxn,
+        fold_forest,
+        move_map,
+        verbose=verbose,
+        optimizer_kwargs={"verbose": verbose},
+    )
 
 
 def fast_relax(
@@ -179,8 +186,7 @@ def fast_relax(
     if abs(final_min_frac - 1.0) > 1e-6:
         warnings.warn(
             f"Final schedule step has fa_rep min fraction {final_min_frac:.4f},"
-            f" not 1.0. The fa_rep weight will not be fully restored after"
-            f" relaxation.",
+            f" not 1.0!",
             stacklevel=2,
         )
 
