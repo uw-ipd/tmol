@@ -425,18 +425,10 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
                 ggp_ind = bt.icoors_index[j_icoor.great_grand_parent]
                 if seen[ggp_ind]:
                     # infinite loop. This should never happen.
-                    print(
-                        bt.name,
-                        "ggp_ind",
-                        ggp_ind,
-                        bt.icoors[ggp_ind].name,
-                        "from",
-                        j,
-                        bt.atoms[j].name,
-                    )
                     raise RuntimeError(
                         "Infinite loop detected in icoor ancestor traversal for residue type "
-                        + bt.name
+                        f"{bt.name}; ggp_ind={ggp_ind} ({bt.icoors[ggp_ind].name}) from "
+                        f"atom_index={j} ({bt.atoms[j].name})"
                     )
                 else:
                     seen[ggp_ind] = True
