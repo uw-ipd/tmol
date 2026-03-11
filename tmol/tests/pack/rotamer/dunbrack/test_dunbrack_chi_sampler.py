@@ -15,28 +15,14 @@ from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
 def get_compiled():
-    from tmol._load_ext import ensure_compiled_or_jit
+    from tmol._load_ext import load_module
 
-    if ensure_compiled_or_jit():
-        from tmol.utility.cpp_extension import (
-            load,
-            relpaths,
-            modulename,
-            cuda_if_available,
-        )
-
-        _ext = load(
-            modulename(__name__),
-            cuda_if_available(
-                relpaths(
-                    __file__, ["compiled.pybind.cpp", "test_cpu.cpp", "test_cuda.cu"]
-                )
-            ),
-        )
-    else:
-        from tmol.tests.pack.rotamer.dunbrack import _ext
-
-    return _ext
+    return load_module(
+        __name__,
+        __file__,
+        ["compiled.pybind.cpp", "test_cpu.cpp", "test_cuda.cu"],
+        "tmol.tests.pack.rotamer.dunbrack._ext",
+    )
 
 
 def test_annotate_residue_type(default_database):

@@ -1,25 +1,16 @@
 import numpy
 import torch
-from tmol._load_ext import ensure_compiled_or_jit
 
 
 def test_complex_dispatch():
-    if ensure_compiled_or_jit():
-        from tmol.utility.cpp_extension import (
-            load,
-            relpaths,
-            modulename,
-            cuda_if_available,
-        )
+    from tmol._load_ext import load_module
 
-        compiled = load(
-            modulename(__name__),
-            cuda_if_available(
-                relpaths(__file__, ["test_cpu.cpp", "test.pybind.cpp", "test_cuda.cu"])
-            ),
-        )
-    else:
-        from tmol.tests.score.common.dispatch import _ext as compiled
+    compiled = load_module(
+        __name__,
+        __file__,
+        ["test_cpu.cpp", "test.pybind.cpp", "test_cuda.cu"],
+        "tmol.tests.score.common.dispatch._ext",
+    )
 
     vals = torch.arange(20, dtype=torch.int32)
     boundaries = torch.zeros(2, dtype=torch.int32)

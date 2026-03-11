@@ -6,16 +6,14 @@ from tmol.tests.torch import requires_cuda
 
 @pytest.fixture
 def extension():
-    from tmol._load_ext import ensure_compiled_or_jit
+    from tmol._load_ext import load_module
 
-    if ensure_compiled_or_jit():
-        from tmol.utility.cpp_extension import load, relpaths, modulename
-
-        _ext = load(modulename(f"{__name__}.cuda"), relpaths(__file__, "segscan.cu"))
-    else:
-        from tmol.tests.kinematics.segscan import _ext
-
-    return _ext
+    return load_module(
+        f"{__name__}.cuda",
+        __file__,
+        "segscan.cu",
+        "tmol.tests.kinematics.segscan._ext",
+    )
 
 
 @requires_cuda

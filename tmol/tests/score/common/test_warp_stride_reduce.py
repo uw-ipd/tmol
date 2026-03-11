@@ -4,31 +4,17 @@ import torch
 
 from tmol.tests.torch import requires_cuda
 
-from tmol._load_ext import ensure_compiled_or_jit
-
 
 @pytest.fixture
 def warp_stride_reduce():
-    if ensure_compiled_or_jit():
-        from tmol.utility.cpp_extension import (
-            load,
-            relpaths,
-            modulename,
-            cuda_if_available,
-        )
+    from tmol._load_ext import load_module
 
-        _warp_stride_reduce = load(
-            modulename(__name__),
-            cuda_if_available(
-                relpaths(
-                    __file__, ["warp_stride_reduce.cpp", "warp_stride_reduce.cuda.cu"]
-                )
-            ),
-        )
-    else:
-        from tmol.tests.score.common import _warp_stride_reduce
-
-    return _warp_stride_reduce
+    return load_module(
+        __name__,
+        __file__,
+        ["warp_stride_reduce.cpp", "warp_stride_reduce.cuda.cu"],
+        "tmol.tests.score.common._warp_stride_reduce",
+    )
 
 
 @requires_cuda

@@ -9,7 +9,6 @@ from numpy import array, cos, sin, linspace, pi, nan
 from scipy.stats import special_ortho_group
 
 from tmol.tests.autograd import gradcheck, VectorizedOp
-from tmol._load_ext import ensure_compiled_or_jit
 
 
 @pytest.fixture(scope="session")

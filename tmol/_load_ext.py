@@ -87,6 +87,9 @@ def load_module(module_name: str, file: str, sources, precompiled_path: str):
     In JIT mode, compiles the given sources and returns the resulting module.
     In AOT mode, imports and returns ``precompiled_path``.
 
+    ``cuda_if_available`` is applied automatically, so CUDA source files are
+    silently dropped when CUDA is unavailable.
+
     Args:
         module_name: Pass ``__name__`` from the calling module.
         file: Pass ``__file__`` from the calling module.
@@ -95,9 +98,14 @@ def load_module(module_name: str, file: str, sources, precompiled_path: str):
             (e.g. ``"tmol.tests.score.common.geom._ext"``).
     """
     if ensure_compiled_or_jit():
-        from tmol.utility.cpp_extension import load, relpaths, modulename
+        from tmol.utility.cpp_extension import (
+            load,
+            relpaths,
+            modulename,
+            cuda_if_available,
+        )
 
-        return load(modulename(module_name), relpaths(file, sources))
+        return load(modulename(module_name), cuda_if_available(relpaths(file, sources)))
     else:
         import importlib
 

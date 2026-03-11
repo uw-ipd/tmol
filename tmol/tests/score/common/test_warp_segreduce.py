@@ -4,29 +4,17 @@ import torch
 
 from tmol.tests.torch import requires_cuda
 
-from tmol._load_ext import ensure_compiled_or_jit
-
 
 @pytest.fixture
 def warp_segreduce():
-    if ensure_compiled_or_jit():
-        from tmol.utility.cpp_extension import (
-            load,
-            relpaths,
-            modulename,
-            cuda_if_available,
-        )
+    from tmol._load_ext import load_module
 
-        _warp_segreduce = load(
-            modulename(__name__),
-            cuda_if_available(
-                relpaths(__file__, ["warp_segreduce.cpp", "warp_segreduce.cuda.cu"])
-            ),
-        )
-    else:
-        from tmol.tests.score.common import _warp_segreduce
-
-    return _warp_segreduce
+    return load_module(
+        __name__,
+        __file__,
+        ["warp_segreduce.cpp", "warp_segreduce.cuda.cu"],
+        "tmol.tests.score.common._warp_segreduce",
+    )
 
 
 @requires_cuda
