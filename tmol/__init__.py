@@ -42,7 +42,12 @@ from tmol.io.write_pose_stack_pdb import (
 from tmol.kinematics.datatypes import KinematicModuleData
 from tmol.kinematics.fold_forest import EdgeType, FoldForest
 from tmol.kinematics.move_map import MoveMap
-from tmol.optimization.kin_min import build_kinforest_network, run_kin_min
+from tmol.optimization.minimizers import (
+    build_kinforest_network,
+    run_cart_min,
+    run_kin_min,
+    run_min,
+)
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.score import beta2016_score_function

@@ -10,7 +10,7 @@ from tmol.pack.pack_rotamers import pack_rotamers
 from tmol.pack.packer_task import PackerPalette, PackerTask
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.score.score_types import ScoreType
-from tmol.optimization.kin_min import run_kin_min
+from tmol.optimization.minimizers import run_kin_min
 
 
 def fast_relax(
