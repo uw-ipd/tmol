@@ -235,13 +235,14 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
         device=torch_device,
     )
 
-    pose_stack, chain_ind = pose_stack_from_canonical_form(
+    pose_stack, opt_vals = pose_stack_from_canonical_form(
         co,
         pbt,
         *canonical_form,
         find_additional_disulfides=True,
         return_chain_ind=True,
     )
+    chain_ind = opt_vals["chain_ind"]
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device

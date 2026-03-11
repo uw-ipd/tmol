@@ -59,16 +59,6 @@ def test_load_score_roundtrip_cif(pdb_code, torch_device, tmp_path):
     out_file.write(tmp_path / f"{pdb_code}_roundtrip.cif")
 
 
-def test_pose_stack_from_biotite_return_context(biotite_1ubq, torch_device):
-    pose_stack, context = pose_stack_from_biotite(
-        biotite_1ubq, torch_device=torch_device, return_context=True
-    )
-    assert pose_stack is not None
-    assert context.canonical_form is not None
-    assert context.canonical_ordering is not None
-    assert context.packed_block_types is not None
-
-
 def test_build_context_from_biotite_smoke(biotite_1ubq, torch_device):
     context = build_context_from_biotite(biotite_1ubq, torch_device=torch_device)
     assert context.canonical_form.coords.device == torch_device
