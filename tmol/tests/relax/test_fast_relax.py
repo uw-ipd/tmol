@@ -2,7 +2,7 @@ import torch
 import numpy
 import pytest
 
-from tmol.relax.fast_relax import fast_relax
+from tmol.relax.fast_relax import _default_cart_min_fn, fast_relax
 import time
 
 from tmol.pose.pose_stack_builder import PoseStackBuilder
@@ -11,7 +11,7 @@ from tmol.score.score_types import ScoreType
 
 from tmol.pack.packer_task import PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.kinematics.move_map import MoveMap
+from tmol.kinematics.move_map import CartesianMoveMap, MoveMap
 from tmol.kinematics.fold_forest import EdgeType, FoldForest
 
 from tmol.io import pose_stack_from_pdb
@@ -92,6 +92,58 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     elapsed_time = stop_time - start_time
 
     print(f"1ubq {n_poses} FastRelax Execution time: {elapsed_time:.6f} seconds")
+
+
+@pytest.mark.parametrize("n_poses", [1])
+def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_poses):
+    """Cartesian fast-relax on ubiquitin using CartesianSfxnNetwork.
+
+    Mirrors test_fast_relax_ubq but swaps the kinematic min_fn for the
+    Cartesian one via _default_cart_min_fn + CartesianMoveMap.
+    """
+    if torch_device == torch.device("cpu"):
+        pytest.skip("CUDA only test")
+
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+
+    pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
+    sfxn = get_relax_sfxn(default_database, torch_device)
+    restype_set = pose_stack.packed_block_types.restype_set
+
+    # CartesianMoveMap with coord_mask=None moves all atoms.
+    cart_mm = CartesianMoveMap()
+    palette = PackerPalette(restype_set)
+    fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
+
+    def task_op(task):
+        task.restrict_to_repacking()
+        task.set_include_current()
+
+        fixed_sampler = FixedAAChiSampler()
+        task.add_conformer_sampler(dun_sampler)
+        task.add_conformer_sampler(fixed_sampler)
+
+    start_time = time.perf_counter()
+
+    verbose = True
+    new_pose_stack = fast_relax(
+        pose_stack,
+        sfxn,
+        palette,
+        cart_mm,
+        fold_forest,
+        task_operations=[task_op],
+        min_fn=_default_cart_min_fn,
+        num_repeats=1,
+        verbose=verbose,
+    )
+
+    torch.cuda.synchronize()
+    stop_time = time.perf_counter()
+
+    elapsed_time = stop_time - start_time
+
+    print(f"1ubq {n_poses} CartRelax Execution time: {elapsed_time:.6f} seconds")
 
 
 @pytest.mark.parametrize("n_poses", [1])

@@ -4,6 +4,32 @@ import attrs
 from typing import Optional, Union
 from tmol.types.torch import Tensor
 
+
+@attrs.define
+class CartesianMoveMap:
+    """Move map for Cartesian-space minimization.
+
+    A lightweight wrapper around a coordinate mask that can be passed as the
+    ``move_map`` argument to :func:`~tmol.relax.fast_relax.fast_relax` when
+    using a Cartesian ``min_fn`` (e.g. one built around
+    :func:`~tmol.optimization.minimizers.run_cart_min`).
+
+    Unlike the full :class:`MoveMap`, which describes freedom in internal
+    (torsion/jump) DOF space, ``CartesianMoveMap`` works directly in atomic
+    Cartesian space.  The ``min_fn`` is responsible for extracting
+    ``coord_mask`` and passing it to
+    :class:`~tmol.optimization.sfxn_modules.CartesianSfxnNetwork`.
+
+    Args:
+        coord_mask: Boolean tensor of shape ``[n_poses, max_n_atoms]``
+            indicating which atoms are free to move.  ``None`` means all
+            atoms are free to move (the default behaviour of
+            :class:`~tmol.optimization.sfxn_modules.CartesianSfxnNetwork`).
+    """
+
+    coord_mask: Optional[torch.Tensor] = None
+
+
 from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.datatypes import (
     KinematicModuleData,

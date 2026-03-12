@@ -5,13 +5,15 @@ import warnings
 
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_function import ScoreFunction
-from tmol.kinematics.move_map import MoveMap
+from typing import Union
+
+from tmol.kinematics.move_map import CartesianMoveMap, MoveMap
 from tmol.kinematics.fold_forest import FoldForest
 from tmol.pack.pack_rotamers import pack_rotamers
 from tmol.pack.packer_task import PackerPalette, PackerTask
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.score.score_types import ScoreType
-from tmol.optimization.minimizers import run_kin_min
+from tmol.optimization.minimizers import run_cart_min, run_kin_min
 
 
 # Default schedule from Jack Maguire's tuned MonomerRelax2019.txt.
@@ -88,11 +90,33 @@ def _default_min_fn(pose_stack, sfxn, *, fold_forest, move_map, verbose):
     )
 
 
+def _default_cart_min_fn(pose_stack, sfxn, *, fold_forest, move_map, verbose):
+    """Default Cartesian minimization function for use as fast_relax min_fn.
+
+    Extracts ``coord_mask`` from ``move_map`` if it is a
+    :class:`~tmol.kinematics.move_map.CartesianMoveMap`; otherwise all atoms
+    are free to move.  ``fold_forest`` is accepted but ignored.
+
+    Example usage with :func:`fast_relax`::
+
+        fast_relax(pose_stack, sfxn, palette, CartesianMoveMap(), fold_forest,
+                   min_fn=_default_cart_min_fn, ...)
+    """
+    coord_mask = move_map.coord_mask if isinstance(move_map, CartesianMoveMap) else None
+    return run_cart_min(
+        pose_stack,
+        sfxn,
+        coord_mask=coord_mask,
+        verbose=verbose,
+        optimizer_kwargs={"verbose": verbose},
+    )
+
+
 def fast_relax(
     pose_stack: PoseStack,
     sfxn: ScoreFunction,
     packer_pallete: PackerPalette,
-    move_map: MoveMap,
+    move_map: Union[MoveMap, CartesianMoveMap],
     fold_forest: FoldForest,
     task_operations=None,
     num_repeats=5,
@@ -248,7 +272,7 @@ def relax_pack_min_step(
     pose_stack,
     sfxn,
     fold_forest,
-    move_map,
+    move_map: Union[MoveMap, CartesianMoveMap],
     packer_pallete,
     fa_rep_pack_weight,
     fa_rep_min_weight,

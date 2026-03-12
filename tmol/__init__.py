@@ -41,7 +41,7 @@ from tmol.io.write_pose_stack_pdb import (
 )
 from tmol.kinematics.datatypes import KinematicModuleData
 from tmol.kinematics.fold_forest import EdgeType, FoldForest
-from tmol.kinematics.move_map import MoveMap
+from tmol.kinematics.move_map import CartesianMoveMap, MoveMap
 from tmol.optimization.minimizers import (
     build_kinforest_network,
     run_cart_min,
