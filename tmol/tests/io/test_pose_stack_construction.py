@@ -263,9 +263,11 @@ def test_build_pose_stack_from_canonical_form_ubq_w_atom_mapping(torch_device, u
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    pose_stack, cf_map, ps_map = pose_stack_from_canonical_form(
+    pose_stack, opt_vals = pose_stack_from_canonical_form(
         co, pbt, *canonical_form, return_atom_mapping=True
     )
+    cf_map = opt_vals["can_atom_mapping"]
+    ps_map = opt_vals["ps_atom_mapping"]
     coords = canonical_form.coords
 
     cf_atom_coords = torch.full_like(coords, numpy.nan)

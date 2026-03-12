@@ -12,6 +12,8 @@ from tmol.score.dunbrack.params import DunbrackParamResolver
 
 from tmol.pack.rotamer.chi_sampler import ChiSampler  # noqa F401
 
+from tmol.database import ParameterDatabase
+
 # from tmol.pack.rotamer.dunbrack.compiled import _compiled  # noqa F401
 from tmol.pack.packer_task import PackerTask
 from tmol.chemical.restypes import RefinedResidueType
@@ -701,3 +703,19 @@ class DunbrackChiSampler(ChiSampler):
             chi_defining_atom_for_rotamer,
             chi_for_rotamers,
         )
+
+
+def create_dunbrack_sampler_from_database(
+    param_db: ParameterDatabase, device: torch.device
+) -> DunbrackChiSampler:
+    """Create a DunbrackChiSampler from the default database.
+
+    Args:
+        param_db: The parameter database containing Dunbrack parameters
+        device: The device to use for the sampler
+
+    Returns:
+        DunbrackChiSampler: Configured sampler for rotamer building
+    """
+    param_resolver = DunbrackParamResolver.from_database(param_db.scoring.dun, device)
+    return DunbrackChiSampler.from_database(param_resolver)

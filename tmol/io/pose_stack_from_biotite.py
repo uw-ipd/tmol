@@ -99,6 +99,8 @@ def pose_stack_from_biotite(
     from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
     from tmol.pack.build_missing_sidechains import (
         build_missing_sidechains_with_missing_atoms,
+    )
+    from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
         create_dunbrack_sampler_from_database,
     )
 

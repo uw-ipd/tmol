@@ -65,19 +65,3 @@ def build_missing_sidechains_with_missing_atoms(
 
     # Call pack_rotamers to build the missing sidechains
     return pack_rotamers(pose_stack, sfxn, task, verbose=True)
-
-
-def create_dunbrack_sampler_from_database(
-    param_db: ParameterDatabase, device: torch.device
-) -> DunbrackChiSampler:
-    """Create a DunbrackChiSampler from the default database.
-
-    Args:
-        param_db: The parameter database containing Dunbrack parameters
-        device: The device to use for the sampler
-
-    Returns:
-        DunbrackChiSampler: Configured sampler for rotamer building
-    """
-    param_resolver = DunbrackParamResolver.from_database(param_db.scoring.dun, device)
-    return DunbrackChiSampler.from_database(param_resolver)

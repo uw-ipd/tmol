@@ -6,10 +6,12 @@ import tmol.pack.rotamer.dunbrack.compiled  # noqa F401
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.io import pose_stack_from_pdb
 from tmol.pack.packer_task import PackerPalette, PackerTask
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.dunbrack.params import DunbrackParamResolver
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+    create_dunbrack_sampler_from_database,
+)
 from tmol.tests.data import no_termini_pose_stack_from_pdb
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
@@ -27,9 +29,6 @@ def get_compiled():
 
 def test_annotate_residue_type(default_database):
     torch_device = torch.device("cpu")
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
 
     tyr_restype = cattr.structure(
         cattr.unstructure(
@@ -38,7 +37,7 @@ def test_annotate_residue_type(default_database):
         RefinedResidueType,
     )
 
-    sampler = DunbrackChiSampler.from_database(param_resolver)
+    sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
     sampler.annotate_residue_type(tyr_restype)
 
     assert hasattr(tyr_restype, "dun_sampler_cache")
@@ -74,10 +73,6 @@ def test_annotate_residue_type(default_database):
 
 def test_annotate_packed_block_types(default_database, torch_device):
     # torch_device = torch.device("cpu")
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
-
     desired = {"ALA", "CYS", "ASP", "GLU", "PHE", "HIS", "ARG", "SER", "TYR"}
 
     all_restypes = [
@@ -89,7 +84,7 @@ def test_annotate_packed_block_types(default_database, torch_device):
         default_database.chemical, all_restypes
     )
 
-    sampler = DunbrackChiSampler.from_database(param_resolver)
+    sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
     for restype in all_restypes:
         sampler.annotate_residue_type(restype)
 
@@ -596,10 +591,7 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
 
 
 def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
-    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    dun_sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
 
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
@@ -870,10 +862,7 @@ def test_chi_sampler_smoke(ubq_pdb, default_database, default_restype_set):
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
-    sampler = DunbrackChiSampler.from_database(param_resolver)
+    sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
     task.add_conformer_sampler(sampler)
 
     for rt in poses.packed_block_types.active_block_types:
@@ -892,10 +881,7 @@ def test_chi_sampler_build_lots_of_rotamers(
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
-    sampler = DunbrackChiSampler.from_database(param_resolver)
+    sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
     task.add_conformer_sampler(sampler)
 
     for rt in poses.packed_block_types.active_block_types:
