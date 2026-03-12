@@ -29,7 +29,8 @@ def pose_stack_from_canonical_form(
     find_additional_disulfides: Optional[bool] = True,
     return_chain_ind: bool = False,
     return_atom_mapping: bool = False,
-):
+    hack_rosetta3_i_ip2_count_pair: bool = False,
+) -> PoseStack:
     """Create a PoseStack, resolving which block type is requested by the
     presence and absence of the provided atoms for each residue type.
     There are five required arguments and several optional arguments.
@@ -237,6 +238,7 @@ def pose_stack_from_canonical_form(
         res_type_variants,
         found_disulfides,
         res_not_connected,
+        hack_rosetta3_i_ip2_count_pair,
     )
 
     # 6
