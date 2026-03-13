@@ -26,7 +26,8 @@ import os
 import io
 import IPython.lib.pretty
 
-table_schema = yaml.safe_load("""
+table_schema = yaml.safe_load(
+    """                           
     HBondWeightType:
       - id
       - name
@@ -111,7 +112,8 @@ table_schema = yaml.safe_load("""
       - fmax
       - max0
       - comment
-""")
+"""
+)
 
 RawParams = attr.make_class("RawParams", list(table_schema.keys()))
 

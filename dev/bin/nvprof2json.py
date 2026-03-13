@@ -324,7 +324,9 @@ CUPTI_ACTIVITY_KIND_SOURCE_LOCATOR
 CUPTI_ACTIVITY_KIND_STREAM
 CUPTI_ACTIVITY_KIND_SYNCHRONIZATION
 CUPTI_ACTIVITY_KIND_UNIFIED_MEMORY_COUNTER
-""".strip().split("\n")
+""".strip().split(
+        "\n"
+    )
 
     for t in tables:
         eprint(t)
