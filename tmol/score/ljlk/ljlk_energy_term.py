@@ -116,7 +116,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         global_params = torch.stack(
             _t(
                 [
-                    self.global_params.lj_dlin_sigmal_factor,
+                    self.global_params.lj_dlin_sigma_factor,
                     self.global_params.lj_hbond_dis,
                     self.global_params.lj_hbond_OH_donor_dis,
                     self.global_params.lj_hbond_hdis,
