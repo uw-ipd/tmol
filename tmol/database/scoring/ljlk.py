@@ -15,7 +15,6 @@ class LJLKGlobalParameters:
     lj_hbond_OH_donor_dis: float
     lj_hbond_dis: float
     lj_hbond_hdis: float
-    lj_switch_dis2sigma: float
     lj_dlin_sigma_factor: float
     lk_min_dis2sigma: float
     lkb_water_dist: float
