@@ -104,7 +104,7 @@ def _annotate_mainchain_atom_indices(packed_block_types: PackedBlockTypes) -> No
     setattr(packed_block_types, "mainchain_atom_indices", mcatominds)
 
 
-def create_backbone_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
+def create_mainchain_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
     pbt = pose_stack.packed_block_types
     _annotate_mainchain_atom_indices(pbt)
     mc_at_inds = pbt.mainchain_atom_indices

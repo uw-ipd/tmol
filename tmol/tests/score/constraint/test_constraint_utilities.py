@@ -7,7 +7,7 @@ from tmol import (
     # default_packed_block_types,
     # pose_stack_from_canonical_form,
 )
-from tmol.score.constraint.utility import create_backbone_coordinate_constraints
+from tmol.score.constraint.utility import create_mainchain_coordinate_constraints
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
@@ -17,7 +17,7 @@ def test_create_mainchain_coordinate_constraints(
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pose_stack10 = PoseStackBuilder.from_poses([pose_stack1] * 10, torch_device)
 
-    pose_stack10 = create_backbone_coordinate_constraints(pose_stack10)
+    pose_stack10 = create_mainchain_coordinate_constraints(pose_stack10)
     assert pose_stack10.constraint_set is not None
 
     torch.testing.assert_close(
