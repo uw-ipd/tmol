@@ -155,6 +155,14 @@ def biotite_1ubq():
 
 
 @pytest.fixture()
+def biotite_1ubq_cif():
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1UBQ.cif")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
 def biotite_1r21():
     fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1R21.pdb")
     return biotite.structure.io.load_structure(

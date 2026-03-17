@@ -72,6 +72,10 @@ def test_pose_stack_from_biotite_1ubq_smoke(biotite_1ubq, torch_device):
     pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
 
 
+def test_pose_stack_from_biotite_1ubq_cif_smoke(biotite_1ubq_cif, torch_device):
+    pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+
+
 def test_pose_stack_from_and_to_biotite_1ubq_smoke(biotite_1ubq, torch_device):
     pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
     biotite_atom_array = biotite_from_pose_stack(pose_stack)
