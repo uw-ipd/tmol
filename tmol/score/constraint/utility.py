@@ -143,7 +143,7 @@ def create_mainchain_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
 
     # cnstr_atoms = torch.full((n_mc_ats, 1, 3), 0, dtype=torch.int32, device=pose_stack.device)
     cnstr_params = torch.full(
-        (n_mc_ats, 4), 0, dtype=torch.float32, device=pose_stack.device
+        (n_mc_ats, 5), 0, dtype=torch.float32, device=pose_stack.device
     )
 
     print("pose_ind_for_real_mc_at", pose_ind_for_real_mc_at.shape)
@@ -157,6 +157,8 @@ def create_mainchain_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
     cnstr_params[:, 1:4] = pose_stack.coords[
         pose_ind_for_real_mc_at, atom_ind_for_real_mc_at
     ]
+    # Set standard deviation to 0.5A to match R3 FastRelax
+    cnstr_params[:, 4] = 0.5
 
     if constraint_set is None:
         constraint_set = ConstraintSet.create_empty(
