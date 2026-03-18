@@ -72,8 +72,14 @@ def test_pose_stack_from_biotite_1ubq_smoke(biotite_1ubq, torch_device):
     pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
 
 
+def test_pose_stack_from_biotite_1ubq_err_smoke(biotite_1ubq_err, torch_device):
+    starts = biotite.structure.get_residue_starts(biotite_1ubq_err)
+    bt = biotite_1ubq_err[0][starts[-5] : starts[-1]]
+    pose_stack_from_biotite(bt, torch_device=torch_device)
+
+
 def test_pose_stack_from_biotite_1ubq_cif_smoke(biotite_1ubq_cif, torch_device):
-    pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+    pose_stack_from_biotite(biotite_1ubq_cif, torch_device=torch_device)
 
 
 def test_pose_stack_from_and_to_biotite_1ubq_smoke(biotite_1ubq, torch_device):
