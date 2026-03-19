@@ -1,5 +1,3 @@
-import subprocess
-
 from .database import (  # noqa: F401
     default_database,
     default_unpatched_chemical_database,
@@ -62,7 +60,6 @@ def pytest_collection_modifyitems(session, config, items):
 
 def pytest_benchmark_update_machine_info(config, machine_info):
     import torch
-    import json
     import cpuinfo
     import psutil
 

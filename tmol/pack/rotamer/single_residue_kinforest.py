@@ -82,7 +82,8 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     preds = rkd.preds.astype(numpy.int64)  # BFS predecessors in TO; -9999 for root
     dof_type_to = rkd.dof_type  # NodeType per atom in TO
 
-    # TO → KFO mapping (used for kinforest_idx output field)
+
+    # TO -> KFO mapping (used for kinforest_idx output field)
     to_2_kfo = invert_mapping(kfo_2_to, n_atoms).astype(numpy.int64)
 
     # KFO parent indices, 0-indexed (root points to itself)

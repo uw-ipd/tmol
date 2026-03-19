@@ -1,5 +1,4 @@
 import torch
-import numpy
 
 from tmol.io import pose_stack_from_pdb
 from tmol.pose.pose_stack_builder import PoseStackBuilder
