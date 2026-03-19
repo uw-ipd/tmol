@@ -8,9 +8,14 @@ from tmol.tests.torch import requires_cuda
 
 @pytest.fixture(scope="session")
 def tensor_accessor():
-    from tmol.tests.utility.tensor import _tensor_accessor
+    from tmol._load_ext import load_module
 
-    return _tensor_accessor
+    return load_module(
+        __name__,
+        __file__,
+        "tensor_accessor.cpp",
+        "tmol.tests.utility.tensor._tensor_accessor",
+    )
 
 
 @pytest.fixture

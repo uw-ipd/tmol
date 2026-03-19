@@ -10,18 +10,25 @@ from tmol.types.tensor import TensorGroup
 from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.score.chemical_database import AtomTypeParamResolver
 
-from tmol.tests.score.lk_ball.potentials._ext import (
-    build_acc_water_V,
-    build_acc_water_dV,
-    build_don_water_V,
-    build_don_water_dV,
-    lk_fraction_V,
-    lk_fraction_dV,
-    lk_bridge_fraction_V,
-    lk_bridge_fraction_dV,
-    lk_ball_score_V,
-    lk_ball_score_dV,
+from tmol._load_ext import load_module
+
+_compiled = load_module(
+    __name__,
+    __file__,
+    "compiled.pybind.cpp",
+    "tmol.tests.score.lk_ball.potentials._ext",
 )
+
+build_acc_water_V = _compiled.build_acc_water_V
+build_acc_water_dV = _compiled.build_acc_water_dV
+build_don_water_V = _compiled.build_don_water_V
+build_don_water_dV = _compiled.build_don_water_dV
+lk_fraction_V = _compiled.lk_fraction_V
+lk_fraction_dV = _compiled.lk_fraction_dV
+lk_bridge_fraction_V = _compiled.lk_bridge_fraction_V
+lk_bridge_fraction_dV = _compiled.lk_bridge_fraction_dV
+lk_ball_score_V = _compiled.lk_ball_score_V
+lk_ball_score_dV = _compiled.lk_ball_score_dV
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

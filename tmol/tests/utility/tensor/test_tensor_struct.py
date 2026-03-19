@@ -6,9 +6,14 @@ import torch
 
 @pytest.fixture(scope="session")
 def tensor_struct():
-    from tmol.tests.utility.tensor import _tensor_struct
+    from tmol._load_ext import load_module
 
-    return _tensor_struct
+    return load_module(
+        __name__,
+        __file__,
+        "tensor_struct.cpp",
+        "tmol.tests.utility.tensor._tensor_struct",
+    )
 
 
 def test_tensor_struct(tensor_struct):

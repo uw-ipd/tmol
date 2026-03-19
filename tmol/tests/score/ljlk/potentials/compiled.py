@@ -1,16 +1,23 @@
 import torch
 
-from tmol.tests.score.ljlk.potentials._ext import (
-    lj_score_V,
-    lj_score_V_dV,
-    lk_isotropic_score_V,
-    lk_isotropic_score_V_dV,
-    lj_sigma,
-    vdw_V,
-    vdw_V_dV,
-    f_desolv_V,
-    f_desolv_V_dV,
+from tmol._load_ext import load_module
+
+_compiled = load_module(
+    __name__,
+    __file__,
+    "compiled.pybind.cpp",
+    "tmol.tests.score.ljlk.potentials._ext",
 )
+
+lj_score_V = _compiled.lj_score_V
+lj_score_V_dV = _compiled.lj_score_V_dV
+lk_isotropic_score_V = _compiled.lk_isotropic_score_V
+lk_isotropic_score_V_dV = _compiled.lk_isotropic_score_V_dV
+lj_sigma = _compiled.lj_sigma
+vdw_V = _compiled.vdw_V
+vdw_V_dV = _compiled.vdw_V_dV
+f_desolv_V = _compiled.f_desolv_V
+f_desolv_V_dV = _compiled.f_desolv_V_dV
 
 
 class LJScore(torch.autograd.Function):

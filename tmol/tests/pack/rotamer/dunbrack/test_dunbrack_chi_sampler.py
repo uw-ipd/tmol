@@ -15,9 +15,14 @@ from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
 def get_compiled():
-    from tmol.tests.pack.rotamer.dunbrack import _ext
+    from tmol._load_ext import load_module
 
-    return _ext
+    return load_module(
+        __name__,
+        __file__,
+        ["compiled.pybind.cpp", "test_cpu.cpp", "test_cuda.cu"],
+        "tmol.tests.pack.rotamer.dunbrack._ext",
+    )
 
 
 def test_annotate_residue_type(default_database):

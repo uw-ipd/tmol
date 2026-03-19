@@ -1,23 +1,16 @@
-import torch
+from tmol._load_ext import load_ops
 
-from tmol._load_ext import ensure_compiled_or_jit
+_ops = load_ops(
+    __name__,
+    __file__,
+    [
+        "compiled_ops.cpp",
+        "compiled.cpu.cpp",
+        "compiled.cuda.cu",
+    ],
+    "tmol_kin",
+)
 
-if ensure_compiled_or_jit():
-    from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
-
-    load(
-        modulename(__name__),
-        cuda_if_available(
-            relpaths(
-                __file__, ["compiled_ops.cpp", "compiled.cpu.cpp", "compiled.cuda.cu"]
-            )
-        ),
-        is_python_module=False,
-    )
-
-    _ops = torch.ops.tmol_kin
-else:
-    _ops = torch.ops.tmol_kin
 forward_kin_op = _ops.forward_kin_op
 forward_only_op = _ops.forward_only_op
 get_kfo_indices_for_atoms = _ops.get_kfo_indices_for_atoms

@@ -3,7 +3,14 @@ import torch
 
 
 def test_complex_dispatch():
-    from tmol.tests.score.common.dispatch import _ext as compiled
+    from tmol._load_ext import load_module
+
+    compiled = load_module(
+        __name__,
+        __file__,
+        ["test_cpu.cpp", "test.pybind.cpp", "test_cuda.cu"],
+        "tmol.tests.score.common.dispatch._ext",
+    )
 
     vals = torch.arange(20, dtype=torch.int32)
     boundaries = torch.zeros(2, dtype=torch.int32)

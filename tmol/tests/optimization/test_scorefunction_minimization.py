@@ -62,9 +62,8 @@ def test_kin_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_dev
     sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
     sfxn.set_weight(ScoreType.fa_lk, 0.8)
 
-    n_res = pose_stack5.max_n_blocks
     kin_module = PoseStackKinematicsModule(
-        pose_stack5, FoldForest.polymeric_forest(numpy.full(5, n_res))
+        pose_stack5, FoldForest.reasonable_fold_forest(pose_stack5)
     )
 
     assert kin_module.kmd.forest.id.device == torch_device
@@ -192,9 +191,7 @@ def test_profile_minimizer(ubq_pdb, torch_device):
     pose_stackN = PoseStackBuilder.from_poses([pose_stack1] * N_poses, torch_device)
 
     sfxn = beta2016_score_function(torch_device)
-    ff = FoldForest.polymeric_forest(
-        numpy.full(N_poses, pose_stackN.max_n_blocks, dtype=numpy.int32)
-    )
+    ff = FoldForest.reasonable_fold_forest(pose_stackN)
     mm = MoveMap.from_pose_stack(pose_stackN)
     mm.move_all_jumps = True
     mm.move_all_named_torsions = True

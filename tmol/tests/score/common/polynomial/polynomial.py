@@ -1,9 +1,13 @@
 import numpy
 
-from tmol.tests.score.common.polynomial._ext import (
-    poly_v as _poly_v,
-    poly_v_d as _poly_v_d,
+from tmol._load_ext import load_module
+
+_polynomial = load_module(
+    __name__,
+    __file__,
+    "polynomial.pybind.cpp",
+    "tmol.tests.score.common.polynomial._ext",
 )
 
-poly_v = numpy.vectorize(_poly_v, signature="(),(n)->()")
-poly_v_d = numpy.vectorize(_poly_v_d, signature="(),(n)->(),()")
+poly_v = numpy.vectorize(_polynomial.poly_v, signature="(),(n)->()")
+poly_v_d = numpy.vectorize(_polynomial.poly_v_d, signature="(),(n)->(),()")

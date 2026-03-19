@@ -63,9 +63,7 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     mm.move_all_named_torsions = True
 
     palette = PackerPalette(restype_set)
-    fold_forest = FoldForest.polymeric_forest(
-        torch.sum(pose_stack.block_type_ind != -1, dim=1).detach().cpu().numpy()
-    )
+    fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
 
     def task_op(task):
         task.restrict_to_repacking()

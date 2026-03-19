@@ -1,23 +1,17 @@
 import torch
 
-from tmol._load_ext import ensure_compiled_or_jit
+from tmol._load_ext import load_ops
 
-if ensure_compiled_or_jit():
-    from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
-
-    load(
-        modulename(__name__),
-        cuda_if_available(
-            relpaths(
-                __file__, ["apsp_vestibule.ops.cpp", "apsp.cpu.cpp", "apsp.cuda.cu"]
-            )
-        ),
-        is_python_module=False,
-    )
-
-    _ops = torch.ops.tmol_apsp
-else:
-    _ops = torch.ops.tmol_apsp
+_ops = load_ops(
+    __name__,
+    __file__,
+    [
+        "apsp_vestibule.ops.cpp",
+        "apsp.cpu.cpp",
+        "apsp.cuda.cu",
+    ],
+    "tmol_apsp",
+)
 
 
 def stacked_apsp(weights, threshold=-1):

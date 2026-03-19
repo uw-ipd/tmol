@@ -1034,29 +1034,42 @@ def _gather_scan_path_data(scan_path_segment_data, i, j, bt_gen_seg_scan_path_se
                 )
 
 
-# TO DO: jit this!
-def _annotate_block_type_with_gen_scan_path_segs(bt):
-    if hasattr(bt, "gen_seg_scan_path_segs"):
+@attr.s(auto_attribs=True)
+class ResidueKinforestData:
+    """Per-block-type kinforest data rooted at the default jump connection
+    atom (e.g. CA for amino acids, O for water).
+
+    Produced by annotate_block_type_with_residue_kinforest_data and consumed
+    by construct_single_residue_kinforest to build the rotamer kinforest
+    without the deprecated _KinematicBuilder.
+    """
+
+    jump_atom: int  # root atom index in original (TO) atom order
+    preds: NDArray[numpy.int64][:]  # BFS predecessors in TO; -9999 for root
+    bfto_2_orig: NDArray[numpy.int64][:]  # BFS traversal order → TO (= KFO ordering)
+    dof_type: NDArray[numpy.int64][:]  # NodeType per atom in TO
+
+
+def annotate_block_type_with_residue_kinforest_data(bt):
+    """Annotate a block type with the single-residue kinforest spanning tree,
+    rooted at its default jump connection atom (CA for amino acids, O for water).
+
+    Caches:
+      bt.residue_kinforest_data  -- ResidueKinforestData (public, used by rotamer packing)
+      bt._bond_graph_mst         -- scipy MST (private, reused by
+                                    _annotate_block_type_with_gen_scan_path_segs)
+    """
+    if hasattr(bt, "residue_kinforest_data"):
         return
-    n_conn = len(bt.connections)
 
-    n_input_types = n_conn + 2  # n_conn + jump input + root "input"
-    n_output_types = n_conn + 2  # n_conn + jump output + no output at all
-
-    def _bonds_to_csgraph(
-        bonds: NDArray[int][:, 2], edge_weight: float
-    ) -> sparse.csr_matrix:
+    def _bonds_to_csgraph(bonds, edge_weight):
         weights_array = numpy.full((1,), edge_weight, dtype=numpy.float32)
         weights = numpy.broadcast_to(weights_array, bonds[:, 0].shape)
-
-        bonds_csr = sparse.csr_matrix(
+        return sparse.csr_matrix(
             (weights, (bonds[:, 0], bonds[:, 1])),
             shape=(bt.n_atoms, bt.n_atoms),
         )
-        return bonds_csr
 
-    # create a bond graph and then we will create the prioritized edges
-    # and all edges
     potential_bonds = _bonds_to_csgraph(bt.bond_indices, -1)
     tor_atoms = [
         (uaids[1][0], uaids[2][0])
@@ -1071,6 +1084,47 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
     prioritized_bonds = _bonds_to_csgraph(tor_atoms, -0.125)
     bond_graph = potential_bonds + prioritized_bonds
     bond_graph_spanning_tree = csgraph.minimum_spanning_tree(bond_graph.tocsr())
+
+    # Cache MST so _annotate_block_type_with_gen_scan_path_segs can reuse it
+    # without recomputing the (identical) spanning tree.
+    setattr(bt, "_bond_graph_mst", bond_graph_spanning_tree)
+
+    jump_atom = bt.default_jump_connection_atom_index
+    bfto_2_orig, preds = csgraph.breadth_first_order(
+        bond_graph_spanning_tree,
+        jump_atom,
+        directed=False,
+        return_predecessors=True,
+    )
+
+    dof_type = numpy.full((bt.n_atoms,), NodeType.bond, dtype=numpy.int64)
+    dof_type[jump_atom] = NodeType.jump
+
+    setattr(
+        bt,
+        "residue_kinforest_data",
+        ResidueKinforestData(
+            jump_atom=jump_atom,
+            preds=preds,
+            bfto_2_orig=bfto_2_orig,
+            dof_type=dof_type,
+        ),
+    )
+
+
+# TO DO: jit this!
+def _annotate_block_type_with_gen_scan_path_segs(bt):
+    if hasattr(bt, "gen_seg_scan_path_segs"):
+        return
+    n_conn = len(bt.connections)
+
+    n_input_types = n_conn + 2  # n_conn + jump input + root "input"
+    n_output_types = n_conn + 2  # n_conn + jump output + no output at all
+
+    # Compute (and cache) the MST and jump-rooted BFS once, reused below for
+    # the i >= n_conn input types and by construct_single_residue_kinforest.
+    annotate_block_type_with_residue_kinforest_data(bt)
+    bond_graph_spanning_tree = bt._bond_graph_mst
 
     # As we are iterating across atoms, we need to keep track of which atoms
     # are bridges to other resiudes, so write down the reverse mapping from
@@ -1106,12 +1160,18 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
             else bt.default_jump_connection_atom_index
         )
         input_conn_atom[i] = i_conn_atom
-        bfto_2_orig, preds = csgraph.breadth_first_order(
-            bond_graph_spanning_tree,
-            i_conn_atom,
-            directed=False,
-            return_predecessors=True,
-        )
+        if i < n_conn:
+            bfto_2_orig, preds = csgraph.breadth_first_order(
+                bond_graph_spanning_tree,
+                i_conn_atom,
+                directed=False,
+                return_predecessors=True,
+            )
+        else:
+            # Both i == n_conn and i == n_conn+1 are rooted at
+            # default_jump_connection_atom_index; reuse the cached BFS result.
+            bfto_2_orig = bt.residue_kinforest_data.bfto_2_orig
+            preds = bt.residue_kinforest_data.preds
         parents[i, :] = preds
         if i >= n_conn:
             dof_type[i, i_conn_atom] = NodeType.jump

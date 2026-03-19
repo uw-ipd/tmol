@@ -7,9 +7,14 @@ from tmol.tests.torch import requires_cuda
 
 @pytest.fixture
 def warp_stride_reduce():
-    from tmol.tests.score.common import _warp_stride_reduce
+    from tmol._load_ext import load_module
 
-    return _warp_stride_reduce
+    return load_module(
+        __name__,
+        __file__,
+        ["warp_stride_reduce.cpp", "warp_stride_reduce.cuda.cu"],
+        "tmol.tests.score.common._warp_stride_reduce",
+    )
 
 
 @requires_cuda

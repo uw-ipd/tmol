@@ -9,9 +9,16 @@ from tmol.tests.torch import requires_cuda
 
 @pytest.fixture
 def geom():
-    from tmol.tests.score.common.geom import _ext_cuda
+    from tmol._load_ext import load_module
 
-    return _ext_cuda
+    # The module_name "_ext_cuda" must match PYBIND11_MODULE(_ext_cuda, m) in
+    # geom.cu; modulename() is a no-op here (no dots to replace).
+    return load_module(
+        "_ext_cuda",
+        __file__,
+        "geom.cu",
+        "tmol.tests.score.common.geom._ext_cuda",
+    )
 
 
 @requires_cuda

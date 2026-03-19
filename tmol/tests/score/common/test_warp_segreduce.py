@@ -7,9 +7,14 @@ from tmol.tests.torch import requires_cuda
 
 @pytest.fixture
 def warp_segreduce():
-    from tmol.tests.score.common import _warp_segreduce
+    from tmol._load_ext import load_module
 
-    return _warp_segreduce
+    return load_module(
+        __name__,
+        __file__,
+        ["warp_segreduce.cpp", "warp_segreduce.cuda.cu"],
+        "tmol.tests.score.common._warp_segreduce",
+    )
 
 
 @requires_cuda
