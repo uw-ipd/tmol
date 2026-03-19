@@ -47,8 +47,6 @@ def armijo_linesearch(
         3) in the code
               * 'alpha' corresponds to 's' in the text
               * 'factor' corresponds roughly to 'beta' in the text (see point 1)
-
-        'factor' corresponds roughly to 'beta'
     """
     # evaluate phi(0) if not input
     if old_fval is None:
@@ -124,16 +122,18 @@ class LBFGS_Armijo(Optimizer):
         params,
         lr=1,
         max_iter=200,
-        rtol=1e-6,
-        atol=0,
+        rtol=None,  # None => dtype-based default
+        atol=None,  # None => dtype-based default
         gradtol=1e-4,
         history_size=128,
+        minstep=1e-12,
+        verbose=False,
     ):
         defaults = dict(
             lr=lr,
             max_iter=max_iter,
-            rtol=rtol,
             atol=atol,
+            rtol=rtol,
             gradtol=gradtol,
             history_size=history_size,
         )
@@ -146,6 +146,8 @@ class LBFGS_Armijo(Optimizer):
 
         self._params = self.param_groups[0]["params"]
         self._numel_cache = None
+        self._minstep = minstep
+        self.verbose = verbose
 
     # LBFGS (as implemented) treats parameter groups all equally
     # * the following wrapper functions package parameters as a single param
@@ -217,7 +219,22 @@ class LBFGS_Armijo(Optimizer):
         lr = group["lr"]
         max_iter = group["max_iter"]
         rtol = group["rtol"]
+
+        # dtype-based default
+        #   float32 : eps~1.2e-7
+        #   float64 : eps~2.2e-16
+        dtype_based_tol = float(torch.finfo(self._params[0].dtype).eps ** 0.5)
+        if rtol is None:
+            rtol = dtype_based_tol
+        if rtol < dtype_based_tol:
+            print(f"  WARNING: rtol ({rtol}) is too low for dtype! ({dtype_based_tol})")
+
         atol = group["atol"]
+        if atol is None:
+            atol = dtype_based_tol
+        if atol < dtype_based_tol:
+            print(f"  WARNING: atol ({atol}) is too low for dtype! ({dtype_based_tol})")
+
         gradtol = group["gradtol"]
         history_size = group["history_size"]
 
@@ -396,7 +413,7 @@ class LBFGS_Armijo(Optimizer):
                 factor=0.5,
                 sigma_decrease=0.1,
                 sigma_increase=0.8,
-                minstep=1e-12,
+                minstep=self._minstep,
             )
 
             # update - direct modification
@@ -411,17 +428,44 @@ class LBFGS_Armijo(Optimizer):
             current_evals += self.ls_func_evals
             state["func_evals"] += self.ls_func_evals
 
+            # if self.verbose:
+            #    print(
+            #        f"  iter {n_iter:4d}  E={loss:12.4f}"
+            #        f"  max_grad={float(max_grad):10.4f}"
+            #        f"  step={t:.4e}"
+            #        f"  ls_evals={self.ls_func_evals}"
+            #        f"  total_evals={current_evals}"
+            #    )
+
             # converge check 1: gradient
             if max_grad <= gradtol:
+                if self.verbose:
+                    print(f"  converged: max_grad {float(max_grad):.4e} <= {gradtol}")
                 break
 
             # converge check 2: abs tol
             if abs(loss - prev_loss) <= atol:
+                if self.verbose:
+                    print(
+                        f"  converged: |dE| {abs(loss - prev_loss):.4e} <= atol {atol}"
+                    )
                 break
 
             # converge check 3: rel tol
             if 2 * abs(loss - prev_loss) <= rtol * (abs(loss) + abs(prev_loss) + 1e-10):
+                if self.verbose:
+                    rdiff = (
+                        2 * abs(loss - prev_loss) / (abs(loss) + abs(prev_loss) + 1e-10)
+                    )
+                    print(f"  converged: rel_dE {rdiff:.4e} <= rtol {rtol}")
                 break
+
+        if self.verbose:
+            print(
+                f"  LBFGS_Armijo done: {n_iter} iters,"
+                f" {current_evals} func evals,"
+                f" E={loss:.4f}"
+            )
 
         state["d"] = d
         state["t"] = t

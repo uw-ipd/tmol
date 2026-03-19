@@ -18,6 +18,7 @@ class CartesianSfxnNetwork(torch.nn.Module):
         wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
         self.whole_pose_scoring_module = wpsm
 
+        self.pose_stack = pose_stack
         self.full_coords = pose_stack.coords
         if coord_mask is None:
             coord_mask = torch.full(
@@ -36,6 +37,11 @@ class CartesianSfxnNetwork(torch.nn.Module):
         self.full_coords = self.full_coords.detach()
         self.full_coords[self.coord_mask] = self.masked_coords
         return self.whole_pose_scoring_module(self.full_coords)
+
+    def pose_stack_from_dofs(self):
+        full_coords = self.full_coords.detach().clone()
+        full_coords[self.coord_mask] = self.masked_coords.detach()
+        return attrs.evolve(self.pose_stack, coords=full_coords)
 
 
 class KinForestSfxnNetwork(torch.nn.Module):

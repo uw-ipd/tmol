@@ -20,7 +20,7 @@ from tmol.kinematics.script_modules import PoseStackKinematicsModule
 
 from tmol.optimization.sfxn_modules import CartesianSfxnNetwork, KinForestSfxnNetwork
 from tmol.kinematics.move_map import MoveMap
-from tmol.optimization.kin_min import build_kinforest_network
+from tmol.optimization.minimizers import build_kinforest_network
 
 
 def test_cart_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):

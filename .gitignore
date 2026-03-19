@@ -125,4 +125,6 @@ venv.bak/
 # emacs backup files
 *~
 
+# macos
+._*
 # End of https://www.gitignore.io/api/python,jupyternotebook
