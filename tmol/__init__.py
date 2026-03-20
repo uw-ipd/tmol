@@ -1,3 +1,5 @@
+# flake8: noqa
+
 # Load pre-compiled C++/CUDA extensions (TORCH_LIBRARY ops).
 # This must happen early so that torch.ops.tmol_* namespaces are available
 # before any compiled module is imported.

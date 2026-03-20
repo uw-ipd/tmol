@@ -62,7 +62,7 @@ def _normalize_schedule(
         schedule: List of floats and/or dicts.
 
     Returns:
-    List of (pack_frac, min_frac, constraint) tuples.
+        List of (pack_frac, min_frac, constraint) tuples.
 
     Raises:
         ValueError: If an entry is neither a float/int nor a dict with the
@@ -175,7 +175,7 @@ def fast_relax(
             operation is created that restricts to repacking with Dunbrack
             rotamers and includes the current rotamer.
         constrain_mc_to_start: If True, add coordinate constraints to the starting
-            coordinates using the function create_backbone_coordinate_constraints
+            coordinates using the function create_mainchain_coordinate_constraints
             defined in score.constraint.utility. It will also turn on the
             constraint term in the score function, if not already on, with a
             weight of 1.0.
@@ -183,6 +183,7 @@ def fast_relax(
             that this flag adds, and so if you run fast_relax twice in a row and set this
             variable to True both times, then the second round will add a new set of
             coordinate constraints on top of the first set.
+
         num_repeats: Number of times to repeat the full schedule of pack-min
             steps (default: 5).
         schedule: The fa_rep ramp schedule — a list of per-step entries
