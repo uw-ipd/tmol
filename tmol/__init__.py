@@ -56,6 +56,7 @@ from tmol.score import beta2016_score_function
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
 from tmol.score.constraint.utility import create_mainchain_coordinate_constraints
+from tmol.relax.fast_relax import fast_relax
 
 
 try:

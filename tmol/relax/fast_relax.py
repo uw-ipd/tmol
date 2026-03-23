@@ -5,7 +5,7 @@ import warnings
 
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_function import ScoreFunction
-from typing import Union
+from typing import Optional, Union
 
 from tmol.kinematics.move_map import CartesianMoveMap, MoveMap
 from tmol.kinematics.fold_forest import FoldForest
@@ -153,10 +153,10 @@ def fast_relax(
     *,
     task_operations=None,
     num_repeats=5,
-    ramp_constraints=True,
+    ramp_constraints: Optional[bool] = None,  # default True
     schedule=None,
     min_fn=None,
-    verbose=False,
+    verbose: bool = False,
 ):
     """Run the FastRelax protocol: repeated rounds of rotamer packing and
     gradient minimization with a ramped fa_rep weight schedule.
@@ -184,6 +184,8 @@ def fast_relax(
             If False, use the starting constraint weight for the entirety
             of relax. The weight on the "constraint" term in the input sfxn
             will be restored to its starting value at the end of relax.
+            Default: True. A warning message is printed if you specify
+            ramp_constraints=True but the "constraint" weight is 0.
         num_repeats: Number of times to repeat the full schedule of pack-min
             steps (default: 5).
         schedule: The fa_rep / constraint ramp schedule — a list of per-step entries
@@ -250,6 +252,8 @@ def fast_relax(
         print(
             "Warning: ramp_constraints is True but sfxn's 'constraint' weight is 0; no constraints will be used."
         )
+    if ramp_constraints is None:
+        ramp_constraints = True
 
     steps = _normalize_schedule(schedule, use_constraints, ramp_constraints)
 
