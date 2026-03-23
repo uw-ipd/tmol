@@ -113,6 +113,7 @@ editable.mode = "inplace"
 [tool.scikit-build.cmake.define]
 CMAKE_CUDA_ARCHITECTURES = {env = "CMAKE_CUDA_ARCHITECTURES", default = "80;86;89;90"}
 TMOL_BUILD_TESTS = {env = "TMOL_BUILD_TESTS", default = "OFF"}
+TMOL_CPU_ONLY = {env = "TMOL_CPU_ONLY", default = "0"}
 
 # Test settings ----------------------------------------------------------------
 [tool.pytest.ini_options]
