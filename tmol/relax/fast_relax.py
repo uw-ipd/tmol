@@ -13,7 +13,6 @@ from tmol.pack.pack_rotamers import pack_rotamers
 from tmol.pack.packer_task import PackerPalette, PackerTask
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.score.score_types import ScoreType
-from tmol.score.constraint.utility import create_mainchain_coordinate_constraints
 from tmol.optimization.minimizers import run_cart_min, run_kin_min
 
 
@@ -24,17 +23,21 @@ from tmol.optimization.minimizers import run_cart_min, run_kin_min
 #
 # Entries may be:
 #   - A single float: used as both the pack and min fraction.
-#       e.g.  0.559  =>  pack at 0.559 * fa_rep_start, min at 0.559 * fa_rep_start
-#   - A dict with keys "fa_rep_pack_frac" and "fa_rep_min_frac": allows the
-#     packing and minimization stages to use different fa_rep fractions.
-#       e.g.  {"fa_rep_pack_frac": 0.040, "fa_rep_min_frac": 0.051}
+#     e.g.  0.559  =>  pack at 0.559 * fa_rep_start, min at 0.559 * fa_rep_start
+#   - A dict with keys "fa_rep_pack_frac", "fa_rep_min_frac", "cst_frac": allows the
+#     packing and minimization stages to use different fa_rep fractions and to
+#     specify a constraint weight.
+#     e.g.  {"fa_rep_pack_frac": 0.040, "fa_rep_min_frac": 0.051, "cst_frac": 0.5}
+#
+# The default behavior in Rosetta3 is to ramp constraints unless you explicitly
+# say that you should not, and that is preserved here.
 #
 # Both forms may be mixed freely within a single schedule list.
 DEFAULT_RELAX_SCHEDULE = [
-    {"fa_rep_pack_frac": 0.040, "fa_rep_min_frac": 0.051, "constraint": 1.0},
-    {"fa_rep_pack_frac": 0.265, "fa_rep_min_frac": 0.280, "constraint": 0.5},
-    {"fa_rep_pack_frac": 0.559, "fa_rep_min_frac": 0.581, "constraint": 0.0},
-    {"fa_rep_pack_frac": 1.000, "fa_rep_min_frac": 1.000, "constraint": 0.0},
+    {"fa_rep_pack_frac": 0.040, "fa_rep_min_frac": 0.051, "cst_frac": 1.0},
+    {"fa_rep_pack_frac": 0.265, "fa_rep_min_frac": 0.280, "cst_frac": 0.5},
+    {"fa_rep_pack_frac": 0.559, "fa_rep_min_frac": 0.581, "cst_frac": 0.0},
+    {"fa_rep_pack_frac": 1.000, "fa_rep_min_frac": 1.000, "cst_frac": 0.0},
 ]
 
 
@@ -51,9 +54,9 @@ def _normalize_schedule(
         Example: ``0.559`` becomes ``(0.559, 0.559, 0.0)``.
 
     Complex format (dict):
-        A dict with keys ``"fa_rep_pack_frac"``, ``"fa_rep_min_frac"``, and ``"constraint"``
-        specifying separate fractions for the packing and minimization stages.
-        Example: ``{"fa_rep_pack_frac": 0.040, "fa_rep_min_frac": 0.051, "constraint": 0.5}``
+        A dict with keys ``"fa_rep_pack_frac"``, ``"fa_rep_min_frac"``, and ``"cst_frac"``
+        specifying separate fa_rep fractions for the packing and minimization stages.
+        Example: ``{"fa_rep_pack_frac": 0.040, "fa_rep_min_frac": 0.051, "cst_frac": 0.5}``
         becomes ``(0.040, 0.051, 0.5)``.
 
     Both formats may be freely mixed within a single schedule list.
@@ -62,17 +65,17 @@ def _normalize_schedule(
         schedule: List of floats and/or dicts.
 
     Returns:
-        List of (pack_frac, min_frac, constraint) tuples.
+        List of (pack_frac, min_frac, cst_frac) tuples.
 
     Raises:
         ValueError: If an entry is neither a float/int nor a dict with the
             required keys.
     """
 
-    def constraint_weight(step_index):
-        """Determine the constraint weight for a particular step.
+    def constraint_fraction(step_index):
+        """Determine the constraint fraction for a particular step.
 
-        If ramping, ramp constraint weights down from 1.0 to 0.0 over
+        If ramping, ramp constraint frations down from 1.0 to 0.0 over
         the first half of the schedule, then keep at 0.0.
         """
         if not constrain:
@@ -88,21 +91,21 @@ def _normalize_schedule(
     normalized = []
     for i, entry in enumerate(schedule):
         if isinstance(entry, (int, float)):
-            constraint = constraint_weight(i)
+            constraint = constraint_fraction(i)
             normalized.append((float(entry), float(entry), constraint))
         elif isinstance(entry, dict):
             pack_frac = float(entry["fa_rep_pack_frac"])
             min_frac = float(entry["fa_rep_min_frac"])
             constraint = (
-                constraint_weight(i)
-                if "constraint" not in entry
-                else float(entry["constraint"])
+                constraint_fraction(i)
+                if "cst_frac" not in entry
+                else float(entry["cst_frac"])
             )
             normalized.append((pack_frac, min_frac, constraint))
         else:
             raise ValueError(
                 f"Schedule entry must be a number or a dict with keys"
-                f" 'fa_rep_pack_frac', 'fa_rep_min_frac', and optionally 'constraint', got {type(entry)}"
+                f" 'fa_rep_pack_frac', 'fa_rep_min_frac', and optionally 'cst_frac', got {type(entry)}"
             )
     return normalized
 
@@ -147,10 +150,10 @@ def fast_relax(
     packer_pallete: PackerPalette,
     move_map: Union[MoveMap, CartesianMoveMap],
     fold_forest: FoldForest,
+    *,
     task_operations=None,
     num_repeats=5,
-    constrain_mc_to_start=False,
-    ramp_constraints=False,
+    ramp_constraints=True,
     schedule=None,
     min_fn=None,
     verbose=False,
@@ -164,7 +167,9 @@ def fast_relax(
 
     Args:
         pose_stack: The input poses to relax.
-        sfxn: Score function used for packing and minimization.
+        sfxn: Score function used for packing and minimization. If you wish
+            to use constraints during relax, then the weight on the "constraint"
+            score type must already have a non-zero value.
         packer_pallete: Palette defining the residue types available to the
             packer.
         move_map: Specifies which DOFs are free to move during minimization.
@@ -174,33 +179,29 @@ def fast_relax(
             restrict to repacking or add chi samplers).  If None, a default
             operation is created that restricts to repacking with Dunbrack
             rotamers and includes the current rotamer.
-        constrain_mc_to_start: If True, add coordinate constraints to the starting
-            coordinates using the function create_mainchain_coordinate_constraints
-            defined in score.constraint.utility. It will also turn on the
-            constraint term in the score function, if not already on, with a
-            weight of 1.0.
-            NOTE: the PoseStack returned by fast_relax will still contain the constraints
-            that this flag adds, and so if you run fast_relax twice in a row and set this
-            variable to True both times, then the second round will add a new set of
-            coordinate constraints on top of the first set.
-
+        ramp_constraints: If True, decrease the constraing weight over the first
+            half of the weight-ramping schedule from its starting value to 0.
+            If False, use the starting constraint weight for the entirety
+            of relax. The weight on the "constraint" term in the input sfxn
+            will be restored to its starting value at the end of relax.
         num_repeats: Number of times to repeat the full schedule of pack-min
             steps (default: 5).
-        schedule: The fa_rep ramp schedule — a list of per-step entries
-            controlling the fa_rep weight used during packing and minimization.
-            Each entry is either:
+        schedule: The fa_rep / constraint ramp schedule — a list of per-step entries
+            controlling the fa_rep weight and constraints used during packing and
+            minimization. Each entry is either:
 
             - A **float**: used as the fa_rep fraction for both packing and
               minimization.  E.g. ``0.559`` means both stages run at
-              ``0.559 * fa_rep_start``.
+              ``0.559 * fa_rep_start`` (specifying nothing for the constraints).
             - A **dict** with keys ``"fa_rep_pack_frac"``,
-              ``"fa_rep_min_frac"`` and optionally ``"constraint"``:
+              ``"fa_rep_min_frac"`` and optionally ``"cst_frac"``:
               allows different fractions for the two
-              stages and an optional constraint weight.  E.g. ``{"fa_rep_pack_frac": 0.040, "fa_rep_min_frac":
-              0.051, "constraint": 0.5}``.
+              stages and an optional constraint fraction.  E.g. ``{"fa_rep_pack_frac": 0.040, "fa_rep_min_frac":
+              0.051, "cst_frac": 0.5}``.
 
             Both formats may be mixed within a single list.  All fractions are
-            multiplied by the starting ``fa_rep`` weight from ``sfxn``.
+            multiplied by the starting ``fa_rep`` weight / ``constraint`` weight
+            from ``sfxn``.
 
             If None, ``DEFAULT_RELAX_SCHEDULE`` is used (the 4-step ramp from
             MonomerRelax2019).
@@ -244,13 +245,11 @@ def fast_relax(
 
     # Logic for using / adding constraints
     constraint_weight_start = sfxn.get_weight(ScoreType.constraint)
-    use_constraints = (
-        constraint_weight_start != 0 or constrain_mc_to_start or ramp_constraints
-    )
-    if use_constraints and constraint_weight_start == 0:
-        constraint_weight_start = 1.0
-    if constrain_mc_to_start:
-        pose_stack = create_mainchain_coordinate_constraints(pose_stack)
+    use_constraints = constraint_weight_start != 0
+    if not use_constraints and ramp_constraints:
+        print(
+            "Warning: ramp_constraints is True but sfxn's 'constraint' weight is 0; no constraints will be used."
+        )
 
     steps = _normalize_schedule(schedule, use_constraints, ramp_constraints)
 
@@ -318,6 +317,9 @@ def fast_relax(
 
         best_ps, best_score = accept_best(sfxn, best_ps, best_score, ps, verbose)
         ps = best_ps.clone()
+    if use_constraints:
+        # Restore original constraint weight to the score function
+        sfxn.set_weight(ScoreType.constraint, constraint_weight_start)
     return ps
 
 
