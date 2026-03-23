@@ -24,6 +24,7 @@ from .data import (  # noqa: F401
     biotite_1ubq,
     biotite_1ubq_err,
     biotite_1ubq_cif,
+    biotite_1ubq_missing_sidechains,
     biotite_1r21,
     biotite_1bl8,
 )

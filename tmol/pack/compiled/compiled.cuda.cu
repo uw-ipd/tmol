@@ -974,6 +974,38 @@ struct TestTransform {
 //  the best rotamer as the iterations go on
 template <tmol::Device D, class IG>
 struct LocalizedPacker {
+  template <unsigned int n_threads>
+  MGPU_DEVICE static auto select_rotamer_from_warp(
+      cooperative_groups::thread_block_tile<n_threads> g,
+      float new_e,
+      float accept_prob,
+      float temperature,
+      bool this_thread_active,
+      bool this_thread_last_active) {
+    float const min_e =
+        reduce_shfl_and_broadcast(g, new_e, mgpu::minimum_t<float>());
+    float myexp = expf(-1 * (new_e - min_e) / temperature);
+    float const partition =
+        reduce_shfl_and_broadcast(g, myexp, mgpu::plus_t<float>());
+    float const myprob = this_thread_active ? myexp / partition : 0;
+    float scan_prob = inclusive_scan_shfl(g, myprob, mgpu::plus_t<float>());
+    if (this_thread_last_active) {
+      // due to numerical imprecision, it's entirely likely that the scan
+      // probability for the last active thread to be slightly more or
+      // slightly less than 1, and we want to ensure that there's a winner for
+      // each thread.
+      scan_prob = 1;
+    }
+    int accept_rank = (this_thread_active && accept_prob <= scan_prob);
+    accept_rank = inclusive_scan_shfl(g, accept_rank, mgpu::plus_t<int>());
+
+    bool accept = accept_rank == 1 && this_thread_active;
+    int const accept_thread = reduce_shfl_and_broadcast(
+        g, accept ? int(g.thread_rank()) : int(-1), mgpu::maximum_t<int>());
+
+    return accept_thread == g.thread_rank();
+  }
+
   static auto run_localized_packer(IG ig, at::CUDAGeneratorImpl* gen)
       -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
     int const n_poses = ig.n_poses_cpu();
@@ -981,11 +1013,11 @@ struct LocalizedPacker {
     int const n_rotamers_total =
         ig.n_rotamers_total_cpu();  // res_for_rot.size(0);
     int const max_n_rotamers = ig.max_n_rotamers_per_pose_cpu();
-    int const n_traj = 512;
+    int const n_traj = 2024;
 
     int const CTA_SIZE = 32;
 
-    int const n_iter = 50;
+    int const n_iter = 30;
 
     auto scores_final_t = TPack<float, 2, D>::zeros({n_poses, n_traj});
     auto rotamer_assignments_t = TPack<int, 4, D>::full(
@@ -1007,6 +1039,11 @@ struct LocalizedPacker {
     int n_pack_threads = max_n_res * CTA_SIZE;  // n_iter * max_n_res *
                                                 // CTA_SIZE;
 
+    float temperature = 30;  // 30;
+    // float const high_temp_initial = 30;
+    // float const low_temp_initial = 0.3;
+    float final_temp = 0.1;
+
     auto pack = ([=] MGPU_DEVICE(int i) {
       // Unpack the philox state to get seeds for random number generation
       auto seeds = at::cuda::philox::unpack(philox_state);
@@ -1022,10 +1059,15 @@ struct LocalizedPacker {
       int thread = i % CTA_SIZE;
 
       // int iter = i / (CTA_SIZE * max_n_res);
-      int sub_iter = i % (CTA_SIZE * max_n_res);
-      int res = sub_iter / CTA_SIZE;
+      // int sub_iter = i % (CTA_SIZE * max_n_res);
+      // int res = sub_iter / CTA_SIZE;
+      int res = i / CTA_SIZE;
 
       int cta = i / CTA_SIZE;
+
+      if (res > 5) {
+        // printf("SUCCESS!: %i\n", res);
+      }
 
       // int progress = completed_iter / (CTA_SIZE * max_n_res);
       // while(iter > progress) {
@@ -1053,9 +1095,6 @@ struct LocalizedPacker {
           cooperative_groups::tiled_partition<32>(
               cooperative_groups::this_thread_block());
 
-      // temp array to store rotater candidate scores
-      float rot_scores[64];
-
       int pose_id = 0;  // TODO
 
       int const n_rots_for_res =
@@ -1068,8 +1107,7 @@ struct LocalizedPacker {
       // Iterate over trajectories assigned to this thread. Each cooperative
       // group has 32 threads, so each thread will calculate the energy for the
       // thread_rank+32*n trajectories for the residue for this thread
-      for (int traj_id = g.thread_rank(); traj_id < n_traj;
-           traj_id += CTA_SIZE) {
+      for (int traj_id = 0; traj_id < n_traj; ++traj_id) {
         // Get the current rotamer assignments for this trajectory
         TensorAccessor<int, 1, D> current_rotamer_assignments =
             rotamer_assignments[iter % 2][pose_id][traj_id];
@@ -1078,15 +1116,21 @@ struct LocalizedPacker {
 
         // Generate random numbers for rotamer selection
         float4 four_rands = curand_uniform4(&state);
+        int start_rot = 0;
+        if (g.thread_rank() == 0) {
+          start_rot = int(four_rands.x * n_rots_for_res);
+        }
+        start_rot = g.shfl(start_rot, 0);
+
         // Select a candidate rotamer based on random number
-        int candidate_rot = int(four_rands.x * n_rots_for_res) % n_rots_for_res;
+        int candidate_rot = (start_rot + g.thread_rank()) % n_rots_for_res;
         // Convert to global rotamer index
         int candidate_rot_global = candidate_rot + res_rotamer_offset;
         // Get the current rotamer for this residue
         int current_rot = current_rotamer_assignments[packable_res_id];
 
         // If no rotamer is assigned yet, assign the candidate
-        if (current_rot == -1) {
+        if (current_rot == -1 && g.thread_rank() == 0) {
           current_rotamer_assignments[packable_res_id] = candidate_rot;
           new_rotamer_assignments[packable_res_id] = candidate_rot;
           // continue;
@@ -1098,59 +1142,46 @@ struct LocalizedPacker {
         }
 
         // Evaluate energy for all possible rotamers
-        for (int rot_ind = 0; rot_ind < n_rots_for_res; ++rot_ind) {
-          candidate_rot = rot_ind;
-          candidate_rot_global = candidate_rot + res_rotamer_offset;
-          // Calculate energy for this rotamer against the background
-          float energy = ig.rotamer_energy_against_background(
-              pose_id,
-              packable_res_id,
-              n_rots_for_res,
-              candidate_rot,
-              candidate_rot_global,
-              current_rotamer_assignments,
-              (current_rot > -1));
-          rot_scores[rot_ind] = energy;
+        // int const rot_offset = 0;
+        // candidate_rot = rot_offset + g.thread_rank();
+        // candidate_rot_global = candidate_rot + res_rotamer_offset;
+
+        // If there are fewer rotamers on this residue than there are threads
+        // active in the warp, do not wrap and consider a rotamer more than once
+        // TODO
+        bool const this_thread_active = n_rots_for_res > g.thread_rank();
+        bool const this_thread_last_active =
+            n_rots_for_res == g.thread_rank();  // || g.thread_rank() == 32 - 1;
+
+        // Calculate energy for this rotamer against the background
+        float energy = ig.rotamer_energy_against_background(
+            pose_id,
+            packable_res_id,
+            n_rots_for_res,
+            candidate_rot,
+            candidate_rot_global,
+            current_rotamer_assignments,
+            this_thread_active);
+
+        // float temp = temperature * pow(0.90, iter) + final_temp;
+        float temp = temperature * pow(0.35, iter) + final_temp;
+        bool accept = select_rotamer_from_warp(
+            g,
+            energy,
+            four_rands.y,
+            temp,
+            this_thread_active,
+            this_thread_last_active);
+
+        // If our thread was the winner, assign our rotamer
+        if (accept) {
+          // printf("WINNER temp:%f res:%i thread:%i rot:%i\n", temperature,
+          // packable_res_id, g.thread_rank(), candidate_rot);
+          new_rotamer_assignments[packable_res_id] = candidate_rot;
         }
-
-        // Calculate the rank of the rotamer that we want to take
-        // This rank becomes increasingly biased towards 0 as the
-        // iterations continue
-        float rand = pow(four_rands.y, iter);
-        int rand_accept_pos = pow(four_rands.y, iter / 5) * n_rots_for_res;
-        // for the last 10 iterations, always accept the best rotamer
-        if (iter + 10 > n_iter) rand_accept_pos = 0;
-
-        // Select rotamer by the rank calculated above. This should
-        // be relatively efficient since we are mostly selecting low ranks
-        // (and so should be roughly O(n) for the number of rotamers)
-        float best_nth = FLT_MIN;
-        int best_nth_ind = 0;
-        for (int rank = 0; rank <= rand_accept_pos; ++rank) {
-          float best = FLT_MAX;
-          int best_ind = 0;
-          for (int rot_ind = 0; rot_ind < n_rots_for_res; ++rot_ind) {
-            float rot_score = rot_scores[rot_ind];
-
-            // Find the next best rotamer
-            if (rot_score > best_nth && rot_score < best) {
-              best = rot_score;
-              best_ind = rot_ind;
-            }
-          }
-          best_nth = best;
-          best_nth_ind = best_ind;
-        }
-
-        // Assign the selected rotamer
-        new_rotamer_assignments[packable_res_id] = best_nth_ind;
-        // accumulate<D, int>::add(completed_iter[0], 1);
       }
       score::common::accumulate<D, int>::add(completed_iter[0], 1);
-      // atomicAdd(const_cast<int*>(&completed_iter), 1);
-      // printf("ITER:%i\n", completed_iter[0]);
-      // printf("ITER:%i %i\n", iter, completed_iter[0] / (CTA_SIZE *
-      // max_n_res));
+      // if(completed_iter[0] % (n_pack_threads) == 0) // TODO: HACK
     });
 
     mgpu::standard_context_t context;
@@ -1159,8 +1190,9 @@ struct LocalizedPacker {
       mgpu::transform<32, 1>(pack, n_pack_threads, context);
       //__syncthreads()
       cudaDeviceSynchronize();
+      temperature = 0.35 * (temperature - final_temp) + final_temp;
       // iter = i;
-      // printf("iter inc %i\n", iter);
+      printf("iter:%i temp:%f\n", i, temperature);
     }
 
     auto final_rotamer_assignments_t = TPack<int, 3, D>::full(

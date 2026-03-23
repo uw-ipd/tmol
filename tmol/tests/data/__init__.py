@@ -171,6 +171,17 @@ def biotite_1ubq_cif():
 
 
 @pytest.fixture()
+def biotite_1ubq_missing_sidechains():
+    fname = os.path.join(
+        __file__.rpartition("/")[0], "pdb", "1ubq_no_sidechains_filtered.pdb"
+    )
+    # fname = "/home/jflat06/rosetta/tmol/tmol/tests/data/pdb/4tlm__1__1.A_1.B__1.I.cif"
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
 def biotite_1r21():
     fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1R21.pdb")
     return biotite.structure.io.load_structure(

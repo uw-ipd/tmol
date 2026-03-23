@@ -78,6 +78,8 @@ def pack_rotamers(
 
     print(scores)
     print(torch.argmin(scores, 1))
+    print(scores[0, torch.argmin(scores, 1)])
+    print(scores[scores < 21575])
     rotamer_assignments[0][0] = rotamer_assignments[0][torch.argmin(scores, 1)]
     print(rotamer_assignments)
     print(pose_stack.n_res_per_pose)
