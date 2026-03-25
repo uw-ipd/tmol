@@ -17,6 +17,11 @@ on:
       cxx11_abi:
         required: true
         type: string
+      label:
+        required: false
+        type: string
+        default: ""
+        description: "Optional label shown in the job name (e.g. 'Colab')"
       python-version:
         required: false
         type: string
@@ -44,7 +49,7 @@ jobs:
   build-wheel:
     runs-on: ${{ inputs.runs-on }}
     # NOTE: no `container:` key — we free disk space first, then run Docker manually.
-    name: Build (cp${{ inputs.python-version }}-pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }})
+    name: "${{ inputs.label || format('cp{0} pt{1} cxx11abi{2}', inputs.python-version, inputs.torch-version, inputs.cxx11_abi) }}"
     env:
       CONTAINER_IMAGE: ${{ inputs.container-image }}
       BUILDER: builder-${{ github.run_id }}-${{ strategy.job-index }}
