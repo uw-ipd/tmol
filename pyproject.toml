@@ -57,6 +57,8 @@ dependencies = [
     "astor>=0.8,<1",
     # Interactive
     "ipython>=8.0",
+    # Biotite
+    "biotite>=1.2.0",
 ]
 
 [project.optional-dependencies]

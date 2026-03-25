@@ -221,15 +221,15 @@ def fast_relax(
         # 3. includes the current rotamer
 
         torch_device = pose_stack.device
-        from tmol.score.dunbrack.params import DunbrackParamResolver
-        from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
+        from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+            create_dunbrack_sampler_from_database,
+        )
         import tmol.database
 
         default_database = tmol.database.ParameterDatabase.get_default()
-        param_resolver = DunbrackParamResolver.from_database(
-            default_database.scoring.dun, torch_device
+        dun_sampler = create_dunbrack_sampler_from_database(
+            default_database, torch_device
         )
-        dun_sampler = DunbrackChiSampler.from_database(param_resolver)
 
         def default_op(task):
             task.restrict_to_repacking()

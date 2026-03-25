@@ -357,12 +357,13 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
     assert not torch.any(torch.isnan(cf_orig_coords[cf_orig_at_is_pres.to(torch.bool)]))
 
     pbt = default_packed_block_types(torch_device)
-    pose_stack, chain_id_from_constr = pose_stack_from_canonical_form(
+    pose_stack, opt_vals = pose_stack_from_canonical_form(
         co,
         pbt,
         *canonical_form,
         return_chain_ind=True,
     )
+    chain_id_from_constr = opt_vals["chain_ind"]
 
     restored_canonical_form = canonical_form_from_pose_stack(
         co, pose_stack, chain_id_from_constr

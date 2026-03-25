@@ -235,13 +235,14 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
         device=torch_device,
     )
 
-    pose_stack, chain_ind = pose_stack_from_canonical_form(
+    pose_stack, opt_vals = pose_stack_from_canonical_form(
         co,
         pbt,
         *canonical_form,
         find_additional_disulfides=True,
         return_chain_ind=True,
     )
+    chain_ind = opt_vals["chain_ind"]
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device
@@ -262,9 +263,11 @@ def test_build_pose_stack_from_canonical_form_ubq_w_atom_mapping(torch_device, u
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    pose_stack, cf_map, ps_map = pose_stack_from_canonical_form(
+    pose_stack, opt_vals = pose_stack_from_canonical_form(
         co, pbt, *canonical_form, return_atom_mapping=True
     )
+    cf_map = opt_vals["can_atom_mapping"]
+    ps_map = opt_vals["ps_atom_mapping"]
     coords = canonical_form.coords
 
     cf_atom_coords = torch.full_like(coords, numpy.nan)

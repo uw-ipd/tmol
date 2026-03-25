@@ -19,6 +19,7 @@ def build_missing_leaf_atoms(
     block_coords: Tensor[torch.float32][:, :, :, 3],
     block_atom_missing: Tensor[torch.bool][:, :, :],
     inter_residue_connections: Tensor[torch.int32][:, :, :, 2],
+    fail_on_missing_nonleaf_atoms: bool = True,
 ):
     """Convert the block layout into the condensed layout used by PoseStack and
     build any missing "leaf" atoms at the same time. This is a fully differentiable
@@ -36,6 +37,7 @@ def build_missing_leaf_atoms(
         block_coord_offset,
         block_types,
         inter_residue_connections,
+        block_has_missing_atoms,
     ) = _setup_for_leaf_atom_coord_building(
         packed_block_types,
         block_types64,
@@ -43,6 +45,7 @@ def build_missing_leaf_atoms(
         block_coords,
         block_atom_missing,
         inter_residue_connections,
+        fail_on_missing_nonleaf_atoms,
     )
 
     new_pose_coords = _actually_build_leaf_coords(
@@ -57,7 +60,13 @@ def build_missing_leaf_atoms(
         inter_residue_connections,
     )
 
-    return new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real
+    return (
+        new_pose_coords,
+        block_coord_offset,
+        real_block_atoms,
+        pose_at_is_real,
+        block_has_missing_atoms,
+    )
 
 
 def _setup_for_leaf_atom_coord_building(
@@ -67,6 +76,7 @@ def _setup_for_leaf_atom_coord_building(
     block_coords: Tensor[torch.float32][:, :, :, 3],
     block_atom_missing: Tensor[torch.bool][:, :, :],
     inter_residue_connections: Tensor[torch.int32][:, :, :, 2],
+    fail_on_missing_nonleaf_atoms: bool,
 ):
     # ok,
     # we're going to call gen_pose_leaf_atoms,
@@ -108,7 +118,7 @@ def _setup_for_leaf_atom_coord_building(
     non_leaf_atom_is_missing = torch.logical_and(
         block_atom_missing, torch.logical_not(block_at_is_leaf)
     )
-    if torch.any(non_leaf_atom_is_missing):
+    if fail_on_missing_nonleaf_atoms and torch.any(non_leaf_atom_is_missing):
         err_msg = []
         leaf_atom_missing_inds = torch.nonzero(non_leaf_atom_is_missing)
         for i in range(leaf_atom_missing_inds.shape[0]):
@@ -146,6 +156,9 @@ def _setup_for_leaf_atom_coord_building(
         real_block_atoms
     ]
 
+    # Create block_has_missing_atoms tensor: True for blocks that have any missing non-leaf atoms
+    block_has_missing_atoms = torch.any(non_leaf_atom_is_missing, dim=2)
+
     return (
         real_block_atoms,
         pose_at_is_real,
@@ -154,6 +167,7 @@ def _setup_for_leaf_atom_coord_building(
         block_coord_offset,
         block_types64.to(torch.int32),
         inter_residue_connections,
+        block_has_missing_atoms,
     )
 
 
@@ -411,18 +425,10 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
                 ggp_ind = bt.icoors_index[j_icoor.great_grand_parent]
                 if seen[ggp_ind]:
                     # infinite loop. This should never happen.
-                    print(
-                        bt.name,
-                        "ggp_ind",
-                        ggp_ind,
-                        bt.icoors[ggp_ind].name,
-                        "from",
-                        j,
-                        bt.atoms[j].name,
-                    )
                     raise RuntimeError(
                         "Infinite loop detected in icoor ancestor traversal for residue type "
-                        + bt.name
+                        f"{bt.name}; ggp_ind={ggp_ind} ({bt.icoors[ggp_ind].name}) from "
+                        f"atom_index={j} ({bt.atoms[j].name})"
                     )
                 else:
                     seen[ggp_ind] = True

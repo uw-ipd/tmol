@@ -120,15 +120,19 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     missing_atoms[block_at_to_rebuild] = True
 
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
-    new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
-        build_missing_leaf_atoms(
-            pbt,
-            block_types64,
-            real_atoms,
-            block_coords,
-            missing_atoms,
-            inter_residue_connections,
-        )
+    (
+        new_pose_coords,
+        block_coord_offset,
+        real_block_atoms,
+        pose_at_is_real,
+        block_has_missing_atoms,
+    ) = build_missing_leaf_atoms(
+        pbt,
+        block_types64,
+        real_atoms,
+        block_coords,
+        missing_atoms,
+        inter_residue_connections,
     )
 
     assert real_block_atoms.shape[0] == n_poses
@@ -369,15 +373,19 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
             missing_atoms[block_at_to_rebuild] = True
 
             inter_residue_connections = inter_residue_connections64.to(torch.int32)
-            new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
-                build_missing_leaf_atoms(
-                    pbt,
-                    block_types64,
-                    real_atoms,
-                    block_coords,
-                    missing_atoms,
-                    inter_residue_connections,
-                )
+            (
+                new_pose_coords,
+                block_coord_offset,
+                real_block_atoms,
+                pose_at_is_real,
+                block_has_missing_atoms,
+            ) = build_missing_leaf_atoms(
+                pbt,
+                block_types64,
+                real_atoms,
+                block_coords,
+                missing_atoms,
+                inter_residue_connections,
             )
 
             return torch.sum(self.coord_weights * new_pose_coords[:, :, :])
@@ -474,15 +482,19 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
 
     def coord_score(block_coords):
-        new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
-            build_missing_leaf_atoms(
-                pbt,
-                block_types64,
-                real_atoms,
-                block_coords,
-                missing_atoms,
-                inter_residue_connections,
-            )
+        (
+            new_pose_coords,
+            block_coord_offset,
+            real_block_atoms,
+            pose_at_is_real,
+            block_has_missing_atoms,
+        ) = build_missing_leaf_atoms(
+            pbt,
+            block_types64,
+            real_atoms,
+            block_coords,
+            missing_atoms,
+            inter_residue_connections,
         )
         return torch.sum(new_pose_coords[:])
 
@@ -571,30 +583,38 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     missing_atoms[block_at_to_rebuild] = True
 
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
-    new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
-        build_missing_leaf_atoms(
-            pbt,
-            block_types64,
-            real_atoms,
-            block_coords,
-            missing_atoms,
-            inter_residue_connections,
-        )
+    (
+        new_pose_coords,
+        block_coord_offset,
+        real_block_atoms,
+        pose_at_is_real,
+        block_has_missing_atoms,
+    ) = build_missing_leaf_atoms(
+        pbt,
+        block_types64,
+        real_atoms,
+        block_coords,
+        missing_atoms,
+        inter_residue_connections,
     )
 
     coord_weights = coord_weights_for_device(torch_device).unsqueeze(0)
 
     def coord_score(bc):
         # nonlocal new_pose_coords
-        new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
-            build_missing_leaf_atoms(
-                pbt,
-                block_types64,
-                real_atoms,
-                bc,
-                missing_atoms,
-                inter_residue_connections,
-            )
+        (
+            new_pose_coords,
+            block_coord_offset,
+            real_block_atoms,
+            pose_at_is_real,
+            block_has_missing_atoms,
+        ) = build_missing_leaf_atoms(
+            pbt,
+            block_types64,
+            real_atoms,
+            bc,
+            missing_atoms,
+            inter_residue_connections,
         )
 
         return torch.sum(coord_weights * new_pose_coords)
