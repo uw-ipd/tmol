@@ -52,25 +52,11 @@ jobs:
             arch: x86_64
             cu: cu13.1
 
-          # ── x86_64 ABI=FALSE (cp312) ──
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.8"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.9
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.9"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.9
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
+          # ── Colab build: Python 3.12, PyTorch 2.10, CUDA 12.8, ABI=TRUE ──
+          - container-image: nvcr.io/nvidia/pytorch:25.02-py3
             torch-version: "2.10"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
+            cxx11_abi: "TRUE"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
             runs-on: ubuntu-22.04
             arch: x86_64
             cu: cu12.9
@@ -118,29 +104,6 @@ jobs:
           - container-image: nvcr.io/nvidia/pytorch:24.10-py3
             torch-version: "2.10"
             cxx11_abi: "TRUE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.6
-
-          # ── x86_64 ABI=FALSE (cp310) ──
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.8"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.6
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.9"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.6
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.10"
-            cxx11_abi: "FALSE"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
             runs-on: ubuntu-22.04
             arch: x86_64

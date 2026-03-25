@@ -28,13 +28,10 @@ on:
         default: ""
         description: >
           When non-empty, reinstall PyTorch from pip using this --index-url
-          (e.g. https://download.pytorch.org/whl/cu124).
-          Used for CXX11_ABI=FALSE builds where we need pip's torch (old ABI)
-          but still use the NGC container's nvcc for compilation.
-      cu:
-        required: true
-        type: string
-        description: "What version of cuda, if any"
+          (e.g. https://download.pytorch.org/whl/cu126).
+          Used when the NGC container's bundled PyTorch version differs from
+          the target version, or when a different CUDA variant is needed.
+          The installed torch determines the actual ABI (cu126/cu128 = TRUE).
       upload-to-release:
         required: false
         type: boolean
@@ -78,12 +75,12 @@ jobs:
             $CONTAINER_IMAGE sleep infinity
           docker start $BUILDER
 
-      - name: Reinstall PyTorch from pip (ABI=FALSE)
+      - name: Reinstall PyTorch from pip
         if: inputs.pip-torch-cuda-url != ''
         run: |
           docker exec $BUILDER bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
-            echo "Replacing NGC PyTorch with pip PyTorch (CXX11_ABI=FALSE)"
+            echo "Replacing NGC PyTorch with pip PyTorch"
             pip config unset global.constraint || true
             export PIP_CONSTRAINT=""
             # Force-reinstall torch WITH its dependencies so NVIDIA library
@@ -153,7 +150,7 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-cp${{ env.MATRIX_PYTHON_VERSION }}-pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }}-${{ steps.arch.outputs.arch }}-${{ inputs.cu }}
+          name: wheel-cp${{ env.MATRIX_PYTHON_VERSION }}-pt${{ inputs.torch-version }}-cu${{ env.WHEEL_CUDA_VERSION }}-cxx11abi${{ inputs.cxx11_abi }}-${{ steps.arch.outputs.arch }}
           path: dist/*.whl
 
       - name: Upload to GitHub Release
