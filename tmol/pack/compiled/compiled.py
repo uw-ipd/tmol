@@ -12,5 +12,6 @@ _ops = load_ops(
 )
 
 pack_anneal = _ops.pack_anneal
+localized_pack = _ops.localized_pack
 validate_energies = _ops.validate_energies
 build_interaction_graph = _ops.build_interaction_graph

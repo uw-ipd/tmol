@@ -47,8 +47,8 @@ auto AnnealerDispatch<D>::forward(
         chunk_offset_offsets,            // n-poses x max-n-res x max-n-res
     TView<int64_t, 1, D> chunk_offsets,  // n-chunks-on-interacting-res
     TView<float, 1, D> energy1b,
-    TView<float, 1, D> energy2b)
-    -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
+    TView<float, 1, D> energy2b,
+    bool localized_pack) -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
   clock_t start = clock();
 
   // No Frills Simulated Annealing!

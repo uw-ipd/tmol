@@ -966,12 +966,6 @@ struct TestTransform {
   }
 };
 
-// For n_iter,
-//  Have each CTA focus on a residue
-//  The threads within the CTA will each focus on different trajectories
-//  For each trajectory, the thread will score its residue's rotamer's
-//  direct energies and pick a random rotamer, weighted increasingly towards
-//  the best rotamer as the iterations go on
 template <tmol::Device D, class IG>
 struct LocalizedPacker {
   template <unsigned int n_threads>
@@ -1009,19 +1003,19 @@ struct LocalizedPacker {
   static auto run_localized_packer(IG ig, at::CUDAGeneratorImpl* gen)
       -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
     int const n_poses = ig.n_poses_cpu();
-    int const max_n_res = ig.max_n_res_cpu();  // nrotamers_for_res.size(0);
-    int const n_rotamers_total =
-        ig.n_rotamers_total_cpu();  // res_for_rot.size(0);
+    int const max_n_res = ig.max_n_res_cpu();
+    int const n_rotamers_total = ig.n_rotamers_total_cpu();
     int const max_n_rotamers = ig.max_n_rotamers_per_pose_cpu();
-    int const n_traj = 2024;
+    int const n_traj = 2048;
 
     int const CTA_SIZE = 32;
 
-    int const n_iter = 30;
+    int const n_iter = 20;
 
     auto scores_final_t = TPack<float, 2, D>::zeros({n_poses, n_traj});
     auto rotamer_assignments_t = TPack<int, 4, D>::full(
-        {2, n_poses, n_traj, max_n_res}, -1);  // flip nres and ntraj
+        {2, n_poses, n_traj, max_n_res},
+        0);  // flip nres and ntraj would potentially give better cache perf
 
     // Increment the cuda generator
     at::PhiloxCudaState philox_state;
@@ -1036,13 +1030,10 @@ struct LocalizedPacker {
     auto scores_final = scores_final_t.view;
     auto rotamer_assignments = rotamer_assignments_t.view;
 
-    int n_pack_threads = max_n_res * CTA_SIZE;  // n_iter * max_n_res *
-                                                // CTA_SIZE;
+    int n_pack_threads = max_n_res * CTA_SIZE;
 
     float temperature = 30;  // 30;
-    // float const high_temp_initial = 30;
-    // float const low_temp_initial = 0.3;
-    float final_temp = 0.1;
+    float final_temp = 0.3;
 
     auto pack = ([=] MGPU_DEVICE(int i) {
       // Unpack the philox state to get seeds for random number generation
@@ -1051,45 +1042,11 @@ struct LocalizedPacker {
       // Initialize the random number generator state
       curand_init(std::get<0>(seeds), i, std::get<1>(seeds), &state);
 
-      // Calculate iteration, CTA (Cooperative Thread Array), and thread indices
-      // int iter = i / (CTA_SIZE * max_n_res);
-      int iter = completed_iter[0] / (CTA_SIZE * max_n_res);
-      // printf("iter:%i\n", iter);
-      // int cta = i / CTA_SIZE;
+      int iter = completed_iter[0] / (n_pack_threads);
       int thread = i % CTA_SIZE;
-
-      // int iter = i / (CTA_SIZE * max_n_res);
-      // int sub_iter = i % (CTA_SIZE * max_n_res);
-      // int res = sub_iter / CTA_SIZE;
       int res = i / CTA_SIZE;
 
-      int cta = i / CTA_SIZE;
-
-      if (res > 5) {
-        // printf("SUCCESS!: %i\n", res);
-      }
-
-      // int progress = completed_iter / (CTA_SIZE * max_n_res);
-      // while(iter > progress) {
-      // progress = completed_iter / (CTA_SIZE * max_n_res);
-      ////printf("PROGRESS %i/%i\n", progress, iter);
-      ////__syncthreads();
-      ////__syncthreads_
-      //}
-
-      // if(iter == 1 || iter == 8) {
-      // printf("CHECK:%i %i\n", iter, completed_iter[0] / (CTA_SIZE *
-      // max_n_res));
-
-      //}
-
-      // printf("CHECK:%i %i\n", iter, completed_iter[0] / (CTA_SIZE *
-      // max_n_res)); while(iter != completed_iter[0] / (CTA_SIZE *
-      // max_n_res)){} printf("CHECK:%i %i\n", iter != completed_iter[0])
-      //  Determine which residue this thread will work on
-      int packable_res_id =
-          res;  // cta % max_n_res;  // TODO: filter out non-packables
-                //  and assign them only once
+      int packable_res_id = res;
 
       cooperative_groups::thread_block_tile<32> g =
           cooperative_groups::tiled_partition<32>(
@@ -1101,8 +1058,6 @@ struct LocalizedPacker {
           ig.n_rotamers_for_res()[pose_id][packable_res_id];
       int const res_rotamer_offset =
           ig.oneb_offsets()[pose_id][packable_res_id];
-
-      // if (iter != 0) return;
 
       // Iterate over trajectories assigned to this thread. Each cooperative
       // group has 32 threads, so each thread will calculate the energy for the
@@ -1126,32 +1081,17 @@ struct LocalizedPacker {
         int candidate_rot = (start_rot + g.thread_rank()) % n_rots_for_res;
         // Convert to global rotamer index
         int candidate_rot_global = candidate_rot + res_rotamer_offset;
-        // Get the current rotamer for this residue
-        int current_rot = current_rotamer_assignments[packable_res_id];
-
-        // If no rotamer is assigned yet, assign the candidate
-        if (current_rot == -1 && g.thread_rank() == 0) {
-          current_rotamer_assignments[packable_res_id] = candidate_rot;
-          new_rotamer_assignments[packable_res_id] = candidate_rot;
-          // continue;
-          // continue;  // break;
-        }
         // If only one rotamer is available, no need to change
         if (n_rots_for_res == 1) {
           continue;
         }
-
-        // Evaluate energy for all possible rotamers
-        // int const rot_offset = 0;
-        // candidate_rot = rot_offset + g.thread_rank();
-        // candidate_rot_global = candidate_rot + res_rotamer_offset;
 
         // If there are fewer rotamers on this residue than there are threads
         // active in the warp, do not wrap and consider a rotamer more than once
         // TODO
         bool const this_thread_active = n_rots_for_res > g.thread_rank();
         bool const this_thread_last_active =
-            n_rots_for_res == g.thread_rank();  // || g.thread_rank() == 32 - 1;
+            n_rots_for_res == g.thread_rank() || g.thread_rank() == 32 - 1;
 
         // Calculate energy for this rotamer against the background
         float energy = ig.rotamer_energy_against_background(
@@ -1165,6 +1105,12 @@ struct LocalizedPacker {
 
         // float temp = temperature * pow(0.90, iter) + final_temp;
         float temp = temperature * pow(0.35, iter) + final_temp;
+        if (iter * 1.4 > n_iter) {
+          temp = 0.1;
+        }
+        if (iter * 1.2 > n_iter) {
+          temp = 1e-20;
+        }
         bool accept = select_rotamer_from_warp(
             g,
             energy,
@@ -1175,16 +1121,39 @@ struct LocalizedPacker {
 
         // If our thread was the winner, assign our rotamer
         if (accept) {
-          // printf("WINNER temp:%f res:%i thread:%i rot:%i\n", temperature,
-          // packable_res_id, g.thread_rank(), candidate_rot);
           new_rotamer_assignments[packable_res_id] = candidate_rot;
         }
       }
       score::common::accumulate<D, int>::add(completed_iter[0], 1);
-      // if(completed_iter[0] % (n_pack_threads) == 0) // TODO: HACK
     });
 
     mgpu::standard_context_t context;
+
+    auto assign_initial_rotamers = ([=] MGPU_DEVICE(int thread_id) {
+      // Unpack the philox state to get seeds for random number generation
+      auto seeds = at::cuda::philox::unpack(philox_state);
+      curandStatePhilox4_32_10_t state;
+      // Initialize the random number generator state
+      curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
+
+      cooperative_groups::thread_block_tile<32> g =
+          cooperative_groups::tiled_partition<32>(
+              cooperative_groups::this_thread_block());
+
+      int const res_id = thread_id / CTA_SIZE;
+      int const pose = 0;
+
+      int const n_rots_for_res = ig.n_rotamers_for_res()[pose][res_id];
+      // Copy the values from rotamer_assignments[0] into
+      // final_rotamer_assignments. TODO: find whatever call does this
+      for (int traj_id = g.thread_rank(); traj_id < n_traj; traj_id += 32) {
+        int chosen =
+            int(curand_uniform(&state) * n_rots_for_res) % n_rots_for_res;
+        rotamer_assignments[0][pose][traj_id][res_id] = chosen;
+        rotamer_assignments[1][pose][traj_id][res_id] = chosen;
+      }
+    });
+    mgpu::transform<32, 1>(assign_initial_rotamers, n_pack_threads, context);
 
     for (int i = 0; i < n_iter; ++i) {
       mgpu::transform<32, 1>(pack, n_pack_threads, context);
@@ -1243,8 +1212,8 @@ auto AnnealerDispatch<D>::forward(
     TView<int64_t, 3, D> chunk_offset_offsets,
     TView<int64_t, 1, D> chunk_offsets,
     TView<float, 1, D> energy1b,
-    TView<float, 1, D> energy2b)
-    -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
+    TView<float, 1, D> energy2b,
+    bool localized_pack) -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
   clock_t start = clock();
 
   InteractionGraph<D, int, float> ig(
@@ -1264,12 +1233,18 @@ auto AnnealerDispatch<D>::forward(
   auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
       std::nullopt, at::cuda::detail::getDefaultCUDAGenerator());
 
+  auto result = (localized_pack)
+                    ? LocalizedPacker<D, InteractionGraph<D, int, float> >::
+                          run_localized_packer(ig, gen)
+                    : Annealer<D, InteractionGraph<D, int, float> >::
+                          run_simulated_annealing(ig, gen);
+
   // auto result =
   // Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
   // ig, gen);
 
-  auto result = LocalizedPacker<D, InteractionGraph<D, int, float> >::
-      run_localized_packer(ig, gen);
+  // auto result = LocalizedPacker<D, InteractionGraph<D, int, float> >::
+  // run_localized_packer(ig, gen);
 
   // auto result = TestTransform<D, InteractionGraph<D, int, float> >::
   // run_test_transform(ig, gen);
