@@ -155,6 +155,14 @@ def biotite_1ubq():
 
 
 @pytest.fixture()
+def biotite_1ubq_missing_sidechains():
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1ubq_no_sidechains.pdb")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
 def biotite_1ubq_err():
     fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1ubq_err.pdb")
     return biotite.structure.io.load_structure(

@@ -106,7 +106,51 @@ std::vector<Tensor> anneal(
                                       TCAST(chunk_offset_offsets),
                                       TCAST(chunk_offsets),
                                       TCAST(energy1b),
-                                      TCAST(energy2b));
+                                      TCAST(energy2b),
+                                      false);
+                                  scores = std::get<0>(result).tensor;
+                                  rotamer_assignments =
+                                      std::get<1>(result).tensor;
+                                }));
+
+  std::vector<torch::Tensor> result({scores, rotamer_assignments});
+  return result;
+}
+
+std::vector<Tensor> localized_pack(
+    int64_t max_n_rotamers_per_pose,
+    Tensor pose_n_res,
+    Tensor pose_n_rotamers,
+    Tensor pose_rotamer_offset,
+    Tensor n_rotamers_for_res,
+    Tensor oneb_offsets,
+    Tensor res_for_rot,
+    int64_t chunk_size,
+    Tensor chunk_offset_offsets,
+    Tensor chunk_offsets,
+    Tensor energy1b,
+    Tensor energy2b) {
+  nvtx_range_push("localized_pack");
+  at::Tensor scores;
+  at::Tensor rotamer_assignments;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(energy1b.options(), "localized_pack", ([&] {
+                                  constexpr tmol::Device Dev = device_t;
+
+                                  auto result = AnnealerDispatch<Dev>::forward(
+                                      max_n_rotamers_per_pose,
+                                      TCAST(pose_n_res),
+                                      TCAST(pose_n_rotamers),
+                                      TCAST(pose_rotamer_offset),
+                                      TCAST(n_rotamers_for_res),
+                                      TCAST(oneb_offsets),
+                                      TCAST(res_for_rot),
+                                      chunk_size,
+                                      TCAST(chunk_offset_offsets),
+                                      TCAST(chunk_offsets),
+                                      TCAST(energy1b),
+                                      TCAST(energy2b),
+                                      true);
                                   scores = std::get<0>(result).tensor;
                                   rotamer_assignments =
                                       std::get<1>(result).tensor;
@@ -169,6 +213,7 @@ torch::Tensor validate_energies(
 // See https://stackoverflow.com/a/3221914
 TORCH_LIBRARY(tmol_pack, m) {
   m.def("pack_anneal", &anneal);
+  m.def("localized_pack", &localized_pack);
   m.def("validate_energies", &validate_energies);
   m.def("build_interaction_graph", &build_interaction_graph);
 }

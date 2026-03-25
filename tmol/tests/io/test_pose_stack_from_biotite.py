@@ -72,6 +72,19 @@ def test_pose_stack_from_biotite_1ubq_smoke(biotite_1ubq, torch_device):
     pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
 
 
+def test_pose_stack_from_biotite_1ubq_missing_sidechains_smoke(
+    biotite_1ubq_missing_sidechains, torch_device
+):
+    from tmol import beta2016_score_function
+
+    pose_stack = pose_stack_from_biotite(
+        biotite_1ubq_missing_sidechains, torch_device=torch_device
+    )
+    sfxn = beta2016_score_function(torch_device)
+    scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
+    print(scorer((pose_stack.coords)))
+
+
 def test_pose_stack_from_biotite_1ubq_err_smoke(biotite_1ubq_err, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1ubq_err)
     bt = biotite_1ubq_err[0][starts[-5] : starts[-1]]

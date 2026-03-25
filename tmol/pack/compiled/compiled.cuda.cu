@@ -7,6 +7,7 @@
 #include <THC/THCTensorRandom.h>*/
 
 #include <tmol/score/common/device_operations.cuda.impl.cuh>
+#include <tmol/score/common/accumulate.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
@@ -917,6 +918,287 @@ struct Annealer {
   }
 };
 
+template <tmol::Device D, class IG>
+struct TestTransform {
+  static auto run_test_transform(IG ig, at::CUDAGeneratorImpl* gen)
+      -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
+    int const n_poses = ig.n_poses_cpu();
+    int const max_n_res =
+        10;  // ig.max_n_res_cpu();  // nrotamers_for_res.size(0);
+    int const n_traj = 5;
+    int const n_iter = 5;
+
+    auto scores_final_t = TPack<float, 2, D>::zeros({n_poses, n_traj});
+    auto rotamer_assignments_t = TPack<int, 3, D>::full(
+        {n_poses, n_traj, max_n_res}, -1);  // flip nres and ntraj
+
+    int const CTA_SIZE = 32;
+
+    auto completed_iter_t = TPack<int, 1, D>::zeros({1});
+    auto completed_iter = completed_iter_t.view;
+
+    auto scores_final = scores_final_t.view;
+    auto rotamer_assignments = rotamer_assignments_t.view;
+
+    int n_pack_threads = CTA_SIZE * max_n_res * n_iter;
+    auto pack = ([=] MGPU_DEVICE(int i) {
+      int iter = i / (CTA_SIZE * max_n_res);
+      int sub_iter = i % (CTA_SIZE * max_n_res);
+      int res = sub_iter / CTA_SIZE;
+
+      int cta = i / CTA_SIZE;
+
+      int progress = completed_iter[0] / (CTA_SIZE * max_n_res);
+      while (iter > progress) {
+        progress = completed_iter[0] / (CTA_SIZE * max_n_res);
+        __syncthreads();
+      }
+      printf(
+          "THREAD:%i ITER:%i RES:%i (%i)\n", i, iter, res, completed_iter[0]);
+      score::common::accumulate<D, int>::add(completed_iter[0], 1);
+    });
+
+    mgpu::standard_context_t context;
+
+    mgpu::transform<32, 1>(pack, n_pack_threads, context);
+
+    return {scores_final_t, rotamer_assignments_t};
+  }
+};
+
+template <tmol::Device D, class IG>
+struct LocalizedPacker {
+  template <unsigned int n_threads>
+  MGPU_DEVICE static auto select_rotamer_from_warp(
+      cooperative_groups::thread_block_tile<n_threads> g,
+      float new_e,
+      float accept_prob,
+      float temperature,
+      bool this_thread_active,
+      bool this_thread_last_active) {
+    float const min_e =
+        reduce_shfl_and_broadcast(g, new_e, mgpu::minimum_t<float>());
+    float myexp = expf(-1 * (new_e - min_e) / temperature);
+    float const partition =
+        reduce_shfl_and_broadcast(g, myexp, mgpu::plus_t<float>());
+    float const myprob = this_thread_active ? myexp / partition : 0;
+    float scan_prob = inclusive_scan_shfl(g, myprob, mgpu::plus_t<float>());
+    if (this_thread_last_active) {
+      // due to numerical imprecision, it's entirely likely that the scan
+      // probability for the last active thread to be slightly more or
+      // slightly less than 1, and we want to ensure that there's a winner for
+      // each thread.
+      scan_prob = 1;
+    }
+    int accept_rank = (this_thread_active && accept_prob <= scan_prob);
+    accept_rank = inclusive_scan_shfl(g, accept_rank, mgpu::plus_t<int>());
+
+    bool accept = accept_rank == 1 && this_thread_active;
+    int const accept_thread = reduce_shfl_and_broadcast(
+        g, accept ? int(g.thread_rank()) : int(-1), mgpu::maximum_t<int>());
+
+    return accept_thread == g.thread_rank();
+  }
+
+  static auto run_localized_packer(IG ig, at::CUDAGeneratorImpl* gen)
+      -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
+    int const n_poses = ig.n_poses_cpu();
+    int const max_n_res = ig.max_n_res_cpu();
+    int const n_rotamers_total = ig.n_rotamers_total_cpu();
+    int const max_n_rotamers = ig.max_n_rotamers_per_pose_cpu();
+    int const n_traj = 2048;
+
+    int const CTA_SIZE = 32;
+
+    int const n_iter = 30;
+
+    auto scores_final_t = TPack<float, 2, D>::zeros({n_poses, n_traj});
+    auto rotamer_assignments_t = TPack<int, 4, D>::full(
+        {2, n_poses, n_traj, max_n_res},
+        0);  // flip nres and ntraj would potentially give better cache perf
+
+    // Increment the cuda generator
+    at::PhiloxCudaState philox_state;
+    {
+      std::lock_guard<std::mutex> lock(gen->mutex_);
+      philox_state = gen->philox_cuda_state(n_rotamers_total);  // TODO:
+    }
+
+    auto completed_iter_t = TPack<int, 1, D>::zeros({1});
+    auto completed_iter = completed_iter_t.view;
+
+    auto scores_final = scores_final_t.view;
+    auto rotamer_assignments = rotamer_assignments_t.view;
+
+    int n_pack_threads = max_n_res * CTA_SIZE;
+
+    float temperature = 30;  // 30;
+    float final_temp = 0.3;
+
+    auto pack = ([=] MGPU_DEVICE(int i) {
+      // Unpack the philox state to get seeds for random number generation
+      auto seeds = at::cuda::philox::unpack(philox_state);
+      curandStatePhilox4_32_10_t state;
+      // Initialize the random number generator state
+      curand_init(std::get<0>(seeds), i, std::get<1>(seeds), &state);
+
+      int iter = completed_iter[0] / (n_pack_threads);
+      int thread = i % CTA_SIZE;
+      int res = i / CTA_SIZE;
+
+      int packable_res_id = res;
+
+      cooperative_groups::thread_block_tile<32> g =
+          cooperative_groups::tiled_partition<32>(
+              cooperative_groups::this_thread_block());
+
+      int pose_id = 0;  // TODO
+
+      int const n_rots_for_res =
+          ig.n_rotamers_for_res()[pose_id][packable_res_id];
+      int const res_rotamer_offset =
+          ig.oneb_offsets()[pose_id][packable_res_id];
+
+      // Iterate over trajectories assigned to this thread. Each cooperative
+      // group has 32 threads, so each thread will calculate the energy for the
+      // thread_rank+32*n trajectories for the residue for this thread
+      for (int traj_id = 0; traj_id < n_traj; ++traj_id) {
+        // Get the current rotamer assignments for this trajectory
+        TensorAccessor<int, 1, D> current_rotamer_assignments =
+            rotamer_assignments[iter % 2][pose_id][traj_id];
+        TensorAccessor<int, 1, D> new_rotamer_assignments =
+            rotamer_assignments[(iter + 1) % 2][pose_id][traj_id];
+
+        // Generate random numbers for rotamer selection
+        float4 four_rands = curand_uniform4(&state);
+        int start_rot = 0;
+        if (g.thread_rank() == 0) {
+          start_rot = int(four_rands.x * n_rots_for_res);
+        }
+        start_rot = g.shfl(start_rot, 0);
+
+        // Select a candidate rotamer based on random number
+        int candidate_rot = (start_rot + g.thread_rank()) % n_rots_for_res;
+        // Convert to global rotamer index
+        int candidate_rot_global = candidate_rot + res_rotamer_offset;
+        // If only one rotamer is available, no need to change
+        if (n_rots_for_res == 1) {
+          continue;
+        }
+
+        // If there are fewer rotamers on this residue than there are threads
+        // active in the warp, do not wrap and consider a rotamer more than once
+        // TODO
+        bool const this_thread_active = n_rots_for_res > g.thread_rank();
+        bool const this_thread_last_active =
+            n_rots_for_res == g.thread_rank() || g.thread_rank() == 32 - 1;
+
+        // Calculate energy for this rotamer against the background
+        float energy = ig.rotamer_energy_against_background(
+            pose_id,
+            packable_res_id,
+            n_rots_for_res,
+            candidate_rot,
+            candidate_rot_global,
+            current_rotamer_assignments,
+            this_thread_active);
+
+        // float temp = temperature * pow(0.90, iter) + final_temp;
+        float temp = temperature * pow(0.35, iter) + final_temp;
+        if (iter * 1.4 > n_iter) {
+          temp = 0.1;
+        }
+        if (iter * 1.2 > n_iter) {
+          temp = 1e-20;
+        }
+        bool accept = select_rotamer_from_warp(
+            g,
+            energy,
+            four_rands.y,
+            temp,
+            this_thread_active,
+            this_thread_last_active);
+
+        // If our thread was the winner, assign our rotamer
+        if (accept) {
+          new_rotamer_assignments[packable_res_id] = candidate_rot;
+        }
+      }
+      score::common::accumulate<D, int>::add(completed_iter[0], 1);
+    });
+
+    mgpu::standard_context_t context;
+
+    auto assign_initial_rotamers = ([=] MGPU_DEVICE(int thread_id) {
+      // Unpack the philox state to get seeds for random number generation
+      auto seeds = at::cuda::philox::unpack(philox_state);
+      curandStatePhilox4_32_10_t state;
+      // Initialize the random number generator state
+      curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
+
+      cooperative_groups::thread_block_tile<32> g =
+          cooperative_groups::tiled_partition<32>(
+              cooperative_groups::this_thread_block());
+
+      int const res_id = thread_id / CTA_SIZE;
+      int const pose = 0;
+
+      int const n_rots_for_res = ig.n_rotamers_for_res()[pose][res_id];
+      // Copy the values from rotamer_assignments[0] into
+      // final_rotamer_assignments. TODO: find whatever call does this
+      for (int traj_id = g.thread_rank(); traj_id < n_traj; traj_id += 32) {
+        int chosen =
+            int(curand_uniform(&state) * n_rots_for_res) % n_rots_for_res;
+        rotamer_assignments[0][pose][traj_id][res_id] = chosen;
+        rotamer_assignments[1][pose][traj_id][res_id] = chosen;
+      }
+    });
+    mgpu::transform<32, 1>(assign_initial_rotamers, n_pack_threads, context);
+
+    for (int i = 0; i < n_iter; ++i) {
+      mgpu::transform<32, 1>(pack, n_pack_threads, context);
+      //__syncthreads()
+      cudaDeviceSynchronize();
+      temperature = 0.35 * (temperature - final_temp) + final_temp;
+      // iter = i;
+      printf("iter:%i temp:%f\n", i, temperature);
+    }
+
+    auto final_rotamer_assignments_t = TPack<int, 3, D>::full(
+        {n_poses, n_traj, max_n_res}, -1);  // flip nres and ntraj
+    auto final_rotamer_assignments = final_rotamer_assignments_t.view;
+
+    // Score each trajectory in total
+    auto score_trajectories = ([=] MGPU_DEVICE(int thread_id) {
+      cooperative_groups::thread_block_tile<32> g =
+          cooperative_groups::tiled_partition<32>(
+              cooperative_groups::this_thread_block());
+      int const traj_id = thread_id / 32;
+      int const pose = 0;
+
+      int iter = (completed_iter[0] / (CTA_SIZE * max_n_res) - 1) % 2;
+      // Copy the values from rotamer_assignments[0] into
+      // final_rotamer_assignments. TODO: find whatever call does this
+      for (int res_id = g.thread_rank(); res_id < max_n_res; res_id += 32) {
+        final_rotamer_assignments[pose][traj_id][res_id] =
+            rotamer_assignments[iter][pose][traj_id][res_id];
+      }
+
+      float total_energy = ig.total_energy_for_assignment_parallel(
+          pose, g, final_rotamer_assignments[pose][traj_id]);
+
+      // printf("TRAJ:%i SCORE:%f\n", traj_id, total_energy);
+      scores_final[pose][traj_id] = total_energy;
+    });
+
+    mgpu::transform<32, 1>(score_trajectories, n_traj * CTA_SIZE, context);
+
+    printf("max_n_res:%i\n", max_n_res);
+
+    return {scores_final_t, final_rotamer_assignments_t};
+  }
+};
+
 template <tmol::Device D>
 auto AnnealerDispatch<D>::forward(
     int max_n_rotamers_per_pose,
@@ -930,8 +1212,8 @@ auto AnnealerDispatch<D>::forward(
     TView<int64_t, 3, D> chunk_offset_offsets,
     TView<int64_t, 1, D> chunk_offsets,
     TView<float, 1, D> energy1b,
-    TView<float, 1, D> energy2b)
-    -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
+    TView<float, 1, D> energy2b,
+    bool localized_pack) -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
   clock_t start = clock();
 
   InteractionGraph<D, int, float> ig(
@@ -951,9 +1233,21 @@ auto AnnealerDispatch<D>::forward(
   auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
       std::nullopt, at::cuda::detail::getDefaultCUDAGenerator());
 
-  auto result =
-      Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
-          ig, gen);
+  auto result = (localized_pack)
+                    ? LocalizedPacker<D, InteractionGraph<D, int, float> >::
+                          run_localized_packer(ig, gen)
+                    : Annealer<D, InteractionGraph<D, int, float> >::
+                          run_simulated_annealing(ig, gen);
+
+  // auto result =
+  // Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
+  // ig, gen);
+
+  // auto result = LocalizedPacker<D, InteractionGraph<D, int, float> >::
+  // run_localized_packer(ig, gen);
+
+  // auto result = TestTransform<D, InteractionGraph<D, int, float> >::
+  // run_test_transform(ig, gen);
 
   return result;
 }
