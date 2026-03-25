@@ -2,13 +2,14 @@
 # Wheels saved as artifacts only (no upload).
 # For publishing, use publish.yml (manual workflow_dispatch).
 #
-# Matrix: PyTorch 2.8, 2.9, 2.10
-#   x86_64: ABI=TRUE + ABI=FALSE
-#   ARM64:  ABI=TRUE only (pip doesn't publish ARM CUDA wheels)
+# Matrix: PyTorch 2.8, 2.9, 2.10 x ABI=TRUE
+#   x86_64: cp312 (NGC native), cp312 Colab (cu128), cp310 (pip torch cu126)
+#   ARM64:  cp312 (NGC native)
 #
 # Each NGC container pins a CUDA toolkit (nvcc) version used for compilation.
-# For ABI=FALSE, pip torch is reinstalled on top of the NGC container
-# to get old-ABI libtorch while keeping nvcc for compilation.
+# When pip-torch-cuda-url is set, PyTorch is reinstalled from pip on top of
+# the NGC container, keeping the container's nvcc for compilation.
+# Since PyTorch 2.6+, cu126/cu128 pip wheels are all CXX11_ABI=TRUE.
 
 name: Build wheels (CI)
 
@@ -50,24 +51,12 @@ jobs:
             arch: x86_64
 
           # ═══════════════════════════════════════════════════════════════
-          # x86_64 — ABI=FALSE (pip torch, old ABI)
+          # x86_64 — Colab build (NGC 25.02 = CUDA 12.8, pip torch cu128)
           # ═══════════════════════════════════════════════════════════════
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.8"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.9"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
+          - container-image: nvcr.io/nvidia/pytorch:25.02-py3
             torch-version: "2.10"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
+            cxx11_abi: "TRUE"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
             runs-on: ubuntu-22.04
             arch: x86_64
 
@@ -113,29 +102,6 @@ jobs:
           - container-image: nvcr.io/nvidia/pytorch:24.10-py3
             torch-version: "2.10"
             cxx11_abi: "TRUE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            python-version: "310"
-
-          # ── x86_64 ABI=FALSE (cp310) ──
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.8"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            python-version: "310"
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.9"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            python-version: "310"
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.10"
-            cxx11_abi: "FALSE"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
             runs-on: ubuntu-22.04
             arch: x86_64
