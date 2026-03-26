@@ -31,6 +31,10 @@ on:
           (e.g. https://download.pytorch.org/whl/cu124).
           Used for CXX11_ABI=FALSE builds where we need pip's torch (old ABI)
           but still use the NGC container's nvcc for compilation.
+      cu:
+        required: true
+        type: string
+        description: "What version of cuda, if any"
       upload-to-release:
         required: false
         type: boolean
@@ -149,7 +153,7 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-cp${{ env.MATRIX_PYTHON_VERSION }}-pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }}-${{ steps.arch.outputs.arch }}
+          name: wheel-cp${{ env.MATRIX_PYTHON_VERSION }}-pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }}-${{ steps.arch.outputs.arch }}-${{ inputs.cu }}
           path: dist/*.whl
 
       - name: Upload to GitHub Release
