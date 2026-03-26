@@ -79,7 +79,7 @@ jobs:
 
           echo "MATRIX_PYTHON_VERSION=${PYTHON_VERSION}" >> $GITHUB_ENV
           echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> $GITHUB_ENV
-          echo "WHEEL_CUDA_VERSION=${CUDA_VERSION%%[0-9]}" >> $GITHUB_ENV
+          echo "WHEEL_CUDA_VERSION=${CUDA_VERSION}" >> $GITHUB_ENV
 
           docker exec $BUILDER nvcc --version
           docker exec $BUILDER python3 -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
