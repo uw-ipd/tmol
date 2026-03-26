@@ -191,9 +191,9 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
 ## Releasing
 
 1. Bump version in `pyproject.toml`
-2. Commit and push
-3. Go to **Actions > Publish to TestPyPI > Run workflow** in the GitHub UI
-4. The workflow builds all wheels, uploads sdist to TestPyPI, and creates a GitHub Release with wheels attached
+2. Commit and push to `master` (or a `kdidi/**` branch)
+3. The `publish.yml` workflow triggers automatically, building all wheels (GPU + CPU) and sdist
+4. Sdist is uploaded to TestPyPI; wheels are attached to a GitHub Release
 5. Users install via: `pip install tmol --find-links https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/`
 
 ## Code Style
