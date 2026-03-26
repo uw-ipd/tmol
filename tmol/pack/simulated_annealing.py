@@ -1,13 +1,13 @@
 from tmol.pack.datatypes import PackerEnergyTables
 
 # Import compiled components to load torch_ops
-from tmol.pack.compiled.compiled import pack_anneal
+from tmol.pack.compiled.compiled import pack_anneal, localized_pack
 
 
 def run_simulated_annealing(
     energy_tables: PackerEnergyTables,
 ):
-    return pack_anneal(
+    return localized_pack(
         energy_tables.max_n_rotamers_per_pose,
         energy_tables.pose_n_res,
         energy_tables.pose_n_rotamers,

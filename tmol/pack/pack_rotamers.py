@@ -73,6 +73,13 @@ def pack_rotamers(
     end_time4 = time.perf_counter()
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+
+    print(scores)
+    print(torch.argmin(scores, 1))
+    print(scores[0, torch.argmin(scores, 1)])
+    print(scores[scores < 11635])
+    rotamer_assignments[0][0] = rotamer_assignments[0][torch.argmin(scores, 1)]
+
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time5 = time.perf_counter()

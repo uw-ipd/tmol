@@ -22,6 +22,7 @@ from .data import (  # noqa: F401
     rosettafold2_ubq_pred,
     rosettafold2_sumo_pred,
     biotite_1ubq,
+    biotite_1ubq_missing_sidechains,
     biotite_1ubq_err,
     biotite_1ubq_cif,
     biotite_1r21,
