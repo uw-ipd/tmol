@@ -173,6 +173,7 @@ jobs:
       torch-version: ${{ matrix.torch-version }}
       cxx11_abi: ${{ matrix.cxx11_abi }}
       pip-torch-cuda-url: ${{ matrix.pip-torch-cuda-url || '' }}
+      cu: ${{ matrix.cu }}
 
   # ── Job 2: Build sdist ──────────────────────────────────────────────
   build_sdist:
