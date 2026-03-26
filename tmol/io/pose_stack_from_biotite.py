@@ -251,7 +251,7 @@ def _extract_residue_metadata(
     torch_device: torch.device,
 ):
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
-    biotite_chain_id_for_res = biotite.structure.chains.get_all_chain_positions(
+    biotite_chain_id_for_res = biotite.structure.get_chain_positions(
         biotite_structure
     )[biotite_residue_starts]
 

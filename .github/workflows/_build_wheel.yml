@@ -14,42 +14,23 @@ on:
       torch-version:
         required: true
         type: string
-      cxx11_abi:
+      label:
         required: true
         type: string
-      label:
-        required: false
-        type: string
-        default: ""
-        description: "Optional label shown in the job name (e.g. 'Colab')"
-      python-version:
-        required: false
-        type: string
-        default: "312"
-        description: "Python version tag (e.g. 310, 312)"
+        description: "Human-readable label for the job name"
       pip-torch-cuda-url:
         required: false
         type: string
         default: ""
         description: >
-          When non-empty, reinstall PyTorch from pip using this --index-url
-          (e.g. https://download.pytorch.org/whl/cu126).
-          Used when the NGC container's bundled PyTorch version differs from
-          the target version, or when a different CUDA variant is needed.
-          The installed torch determines the actual ABI (cu126/cu128 = TRUE).
-      upload-to-release:
-        required: false
-        type: boolean
-        default: false
-      release-version:
-        required: false
-        type: string
+          When non-empty, reinstall PyTorch from pip using this --index-url.
+          Used when the target torch version or CUDA variant differs from
+          what the NGC container ships (e.g. Colab cu128 build).
 
 jobs:
   build-wheel:
     runs-on: ${{ inputs.runs-on }}
-    # NOTE: no `container:` key — we free disk space first, then run Docker manually.
-    name: "${{ inputs.label || format('cp{0} pt{1} cxx11abi{2}', inputs.python-version, inputs.torch-version, inputs.cxx11_abi) }}"
+    name: "${{ inputs.label }}"
     env:
       CONTAINER_IMAGE: ${{ inputs.container-image }}
       BUILDER: builder-${{ github.run_id }}-${{ strategy.job-index }}
@@ -69,7 +50,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.release-version }}
           submodules: recursive
 
       - name: Pull container and start builder
@@ -85,15 +65,10 @@ jobs:
         run: |
           docker exec $BUILDER bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
-            echo "Replacing NGC PyTorch with pip PyTorch"
-            pip config unset global.constraint || true
-            export PIP_CONSTRAINT=""
-            # Force-reinstall torch WITH its dependencies so NVIDIA library
-            # versions match what this torch version was built against.
             pip install --break-system-packages --force-reinstall \
               torch==${{ inputs.torch-version }}.* \
               --index-url ${{ inputs.pip-torch-cuda-url }}
-            python3 -c "import torch; print(f'"'"'Reinstalled: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}'"'"')"
+            python3 -c "import torch; print(f'"'"'Installed: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}'"'"')"
           '
 
       - name: Set version variables
@@ -120,22 +95,19 @@ jobs:
             -e MAX_JOBS=1 \
             $BUILDER bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
-            # Determine CUDA architectures based on CUDA major version.
             CUDA_MAJOR=$(python3 -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
             if [ "$CUDA_MAJOR" -ge 13 ]; then
               CUDA_ARCHS="80;86;89;90;100"
             else
               CUDA_ARCHS="80;86;89;90"
             fi
-            # CMake reads ABI from find_package(Torch) — no manual override needed.
             export CMAKE_PREFIX_PATH=$(python3 -c "import torch; print(torch.utils.cmake_prefix_path)")
             pip wheel . --no-build-isolation --no-deps -w dist \
               -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
               -Ccmake.define.TMOL_NVCC_THREADS=1
           '
 
-          # Rename wheel with CUDA/torch/ABI tags (inside Docker — files are root-owned)
-          tmpname=cu${WHEEL_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}cxx11abi${{ inputs.cxx11_abi }}
+          tmpname=cu${WHEEL_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}
           docker exec $BUILDER bash -c "
             cd /workspace
             wheel_name=\$(ls dist/*whl | xargs -n 1 basename | sed \"s/-/+${tmpname}-/2\")
@@ -155,19 +127,8 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-cp${{ env.MATRIX_PYTHON_VERSION }}-pt${{ inputs.torch-version }}-cu${{ env.WHEEL_CUDA_VERSION }}-cxx11abi${{ inputs.cxx11_abi }}-${{ steps.arch.outputs.arch }}
+          name: wheel-cp${{ env.MATRIX_PYTHON_VERSION }}-pt${{ inputs.torch-version }}-cu${{ env.WHEEL_CUDA_VERSION }}-${{ steps.arch.outputs.arch }}
           path: dist/*.whl
-
-      - name: Upload to GitHub Release
-        if: inputs.upload-to-release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./dist/${{ env.wheel_name }}
-          asset_name: ${{ env.wheel_name }}
-          asset_content_type: application/*
 
       - name: Cleanup container
         if: always()
