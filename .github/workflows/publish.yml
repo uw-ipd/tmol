@@ -14,8 +14,6 @@
 name: Publish to TestPyPI
 
 on:
-  release:
-    types: [published]
   push:
     branches: [master, "kdidi/**"]
   workflow_dispatch:
@@ -70,7 +68,6 @@ jobs:
       torch-version: ${{ matrix.torch-version }}
       label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.pip-torch-cuda-url || '' }}
-      cu: ${{ matrix.cu }}
 
   # ── CPU-only wheel ─────────────────────────────────────────────────
   build_cpu_wheel:
