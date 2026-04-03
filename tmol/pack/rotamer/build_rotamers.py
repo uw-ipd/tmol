@@ -33,6 +33,36 @@ from tmol.pack.rotamer.mainchain_fingerprint import (
 )
 
 
+def _build_chi4_atom_table(pbt):
+    """Return (n_types, max_n_chi, 4) int32 array of RTO atom indices for each chi.
+
+    Entries are -1 where the residue type has fewer than max_n_chi chi angles.
+    Built once and cached on pbt as _chi4_atom_table.
+    """
+    if hasattr(pbt, "_chi4_atom_table"):
+        return pbt._chi4_atom_table
+
+    n_types = pbt.n_types
+    max_n_chi = (
+        max(
+            sum(1 for k in rt.torsion_to_uaids if k.startswith("chi"))
+            for rt in pbt.active_block_types
+        )
+        or 1
+    )
+
+    table = numpy.full((n_types, max_n_chi, 4), -1, dtype=numpy.int32)
+    for ti, rt in enumerate(pbt.active_block_types):
+        chi_names = sorted(k for k in rt.torsion_to_uaids if k.startswith("chi"))
+        for ci, chi_name in enumerate(chi_names):
+            uaids = rt.torsion_to_uaids[chi_name]
+            table[ti, ci] = [int(u[0]) for u in uaids]
+
+    # cache to avoid rebuilding on subsequent calls
+    object.__setattr__(pbt, "_chi4_atom_table", table)
+    return table
+
+
 def correct_phi_c_for_jump_parents(
     pbt,
     conformer_samples,
@@ -53,8 +83,6 @@ def correct_phi_c_for_jump_parents(
       3. Adds (intended - measured) to conf_dofs_kto[atom_kto, 3] so the
          final forward pass produces the correct geometry.
     """
-    import math
-
     # trial forward pass to get coords in RTO
     n_rots = block_type_ind_for_conformer_torch.shape[0]
     n_at_total = (
@@ -62,18 +90,16 @@ def correct_phi_c_for_jump_parents(
         + pbt.n_atoms[block_type_ind_for_conformer_torch[-1]].item()
     )
     trial_coords_rto = calculate_rotamer_coords(
-        pbt,
-        n_rots,
-        n_at_total,
-        conformer_kinforest,
-        nodes,
-        scans,
-        gens,
-        conf_dofs_kto,
+        pbt, n_rots, n_at_total, conformer_kinforest, nodes, scans, gens, conf_dofs_kto
     )
 
-    doftype_cpu = conformer_kinforest.doftype.cpu()
-    parent_cpu = conformer_kinforest.parent.cpu()
+    doftype_cpu = conformer_kinforest.doftype.cpu().numpy()
+    parent_cpu = conformer_kinforest.parent.cpu().numpy()
+    kfidx = pbt.rotamer_kinforest.kinforest_idx  # (n_types, max_n_atoms) numpy int32
+    bt_ind_np = block_type_ind_for_conformer_torch.cpu().numpy()
+    at_off_np = n_atoms_offset_for_conformer_torch.cpu().numpy()
+    chi4_table = _build_chi4_atom_table(pbt)  # (n_types, max_n_chi, 4)
+    coords_np = trial_coords_rto.cpu().double().numpy()
 
     for i, sample_data in enumerate(conformer_samples):
         sample_dict = sample_data[2]
@@ -85,51 +111,63 @@ def correct_phi_c_for_jump_parents(
         ].cpu()  # (n_samp_rots, max_n_chi)
         if chi_intended.shape[0] == 0:
             continue
-        conf_inds = new_ind_for_sampler_rotamer[i].cpu()
 
-        for samp_rot in range(chi_intended.shape[0]):
-            g_rot = int(conf_inds[samp_rot].item())
-            bt_idx = int(block_type_ind_for_conformer_torch[g_rot].item())
-            at_off = int(n_atoms_offset_for_conformer_torch[g_rot].item())
-            n_at = int(pbt.n_atoms[bt_idx].item())
-            restype = pbt.active_block_types[bt_idx]
+        _, max_n_chi = chi_atoms_rto.shape
+        conf_inds = new_ind_for_sampler_rotamer[i].cpu().numpy()  # (n_samp,)
 
-            chi_names = sorted(
-                k for k in restype.torsion_to_uaids.keys() if k.startswith("chi")
-            )
+        # global rot index and per-rot metadata for every (samp_rot, chi) pair
+        g_rot = conf_inds  # (n_samp,)
+        bt_idx = bt_ind_np[g_rot]  # (n_samp,)
+        at_off = at_off_np[g_rot]  # (n_samp,)
 
-            for ci, chi_name in enumerate(chi_names):
-                chi_def_atom_rto = int(chi_atoms_rto[samp_rot, ci].item())
-                if chi_def_atom_rto < 0:
-                    continue
+        # chi-defining atom (RTO) for every (samp_rot, chi): (n_samp, max_n_chi)
+        cda_rto = chi_atoms_rto.numpy()
 
-                # KTO index of the chi-defining atom (same offset logic as assign_chi_dofs_from_samples)
-                chi_def_atom_kto = (
-                    int(pbt.rotamer_kinforest.kinforest_idx[bt_idx, chi_def_atom_rto])
-                    + at_off
-                    + 1
-                )  # +1 for virtual root
+        # KTO index of the chi-defining atom: (n_samp, max_n_chi)
+        # kinforest_idx[bt, atom_rto] + at_off + 1 (virtual root offset)
+        cda_kto = (
+            kfidx[
+                bt_idx[:, None], numpy.clip(cda_rto, 0, None)
+            ]  # clip -1 before indexing
+            + at_off[:, None]
+            + 1
+        )
+        cda_kto[cda_rto < 0] = 0  # will be masked out below
 
-                parent_kto = int(parent_cpu[chi_def_atom_kto].item())
-                if doftype_cpu[parent_kto].item() != NodeType.jump:
-                    continue
+        # parent doftype for each chi-defining atom: (n_samp, max_n_chi)
+        parent_kto = parent_cpu[cda_kto]
+        is_jump_parent = doftype_cpu[parent_kto] == NodeType.jump  # (n_samp, max_n_chi)
+        valid = (cda_rto >= 0) & is_jump_parent  # (n_samp, max_n_chi)
 
-                # measure actual dihedral from trial coords
-                uaids = restype.torsion_to_uaids[chi_name]
-                atom_inds = [int(u[0]) for u in uaids]
-                if any(ai < 0 or ai >= n_at for ai in atom_inds):
-                    continue
-                abs_inds = [at_off + ai for ai in atom_inds]
-                xyzs = trial_coords_rto[abs_inds].double()
-                meas_rad = coord_dihedrals(xyzs[0:1], xyzs[1:2], xyzs[2:3], xyzs[3:4])
-                intended_rad = float(chi_intended[samp_rot, ci].item())
-                measured_rad = float(meas_rad[0].item())
+        if not valid.any():
+            continue
 
-                # wrap delta into [-pi, pi]
-                delta = intended_rad - measured_rad
-                delta = (delta + math.pi) % (2 * math.pi) - math.pi
+        # 4-atom RTO indices for every (samp_rot, chi): (n_samp, max_n_chi, 4)
+        four_atoms_rto = chi4_table[bt_idx[:, None], numpy.arange(max_n_chi)[None, :]]
 
-                conf_dofs_kto[chi_def_atom_kto, 3] += delta
+        # absolute RTO indices into trial_coords_rto: (n_samp, max_n_chi, 4)
+        four_atoms_abs = four_atoms_rto + at_off[:, None, None]
+        four_atoms_abs[four_atoms_rto < 0] = 0  # clip invalid entries
+
+        # flatten to the valid (samp_rot, chi) pairs
+        valid_flat = valid.reshape(-1)
+        four_abs_flat = four_atoms_abs.reshape(-1, 4)[valid_flat]  # (n_valid, 4)
+        intended_flat = chi_intended.numpy().reshape(-1)[valid_flat]  # (n_valid,)
+        cda_kto_flat = cda_kto.reshape(-1)[valid_flat]  # (n_valid,)
+
+        # gather coordinates: (n_valid, 4, 3)
+        xyzs = torch.tensor(
+            coords_np[four_abs_flat], dtype=torch.float64, device=torch.device("cpu")
+        )
+
+        meas_rad = coord_dihedrals(xyzs[:, 0], xyzs[:, 1], xyzs[:, 2], xyzs[:, 3])
+
+        delta = torch.tensor(intended_flat, dtype=torch.float64) - meas_rad
+        delta = (delta + numpy.pi) % (2 * numpy.pi) - numpy.pi
+
+        conf_dofs_kto[torch.tensor(cda_kto_flat, dtype=torch.int64), 3] += delta.to(
+            conf_dofs_kto.dtype
+        ).to(conf_dofs_kto.device)
 
 
 def exc_cumsum_from_inc_cumsum(cumsum):
