@@ -13,7 +13,7 @@ from tmol.types.functional import validate_args
 
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 from tmol.database.chemical import ChemicalDatabase
-from tmol.kinematics.datatypes import KinForest
+from tmol.kinematics.datatypes import KinForest, NodeType
 from tmol.kinematics.compiled.compiled_ops import forward_only_op
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -21,6 +21,7 @@ from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
+from tmol.numeric.dihedrals import coord_dihedrals
 
 from tmol.pack.rotamer.single_residue_kinforest import (
     construct_single_residue_kinforest,
@@ -30,6 +31,105 @@ from tmol.pack.rotamer.mainchain_fingerprint import (
     annotate_residue_type_with_sampler_fingerprints,
     find_unique_fingerprints,
 )
+
+
+def correct_phi_c_for_jump_parents(
+    pbt,
+    conformer_samples,
+    new_ind_for_sampler_rotamer,
+    block_type_ind_for_conformer_torch,
+    n_atoms_offset_for_conformer_torch,
+    conformer_kinforest,
+    nodes,
+    scans,
+    gens,
+    conf_dofs_kto,
+):
+    """For chi-defining atoms whose kinforest parent is a jump atom, the phi_c
+    written by assign_chi_dofs_from_samples does not directly map to the
+    chi dihedral angle measured from coordinates.  This function:
+      1. Does a trial forward pass with the current DOFs.
+      2. For each such atom, measures the actual dihedral from the trial coords.
+      3. Adds (intended - measured) to conf_dofs_kto[atom_kto, 3] so the
+         final forward pass produces the correct geometry.
+    """
+    import math
+
+    # trial forward pass to get coords in RTO
+    n_rots = block_type_ind_for_conformer_torch.shape[0]
+    n_at_total = (
+        n_atoms_offset_for_conformer_torch[-1].item()
+        + pbt.n_atoms[block_type_ind_for_conformer_torch[-1]].item()
+    )
+    trial_coords_rto = calculate_rotamer_coords(
+        pbt,
+        n_rots,
+        n_at_total,
+        conformer_kinforest,
+        nodes,
+        scans,
+        gens,
+        conf_dofs_kto,
+    )
+
+    doftype_cpu = conformer_kinforest.doftype.cpu()
+    parent_cpu = conformer_kinforest.parent.cpu()
+
+    for i, sample_data in enumerate(conformer_samples):
+        sample_dict = sample_data[2]
+        if "chi_for_rotamers" not in sample_dict:
+            continue
+        chi_intended = sample_dict["chi_for_rotamers"].cpu()  # (n_samp_rots, max_n_chi)
+        chi_atoms_rto = sample_dict[
+            "chi_defining_atom_for_rotamer"
+        ].cpu()  # (n_samp_rots, max_n_chi)
+        if chi_intended.shape[0] == 0:
+            continue
+        conf_inds = new_ind_for_sampler_rotamer[i].cpu()
+
+        for samp_rot in range(chi_intended.shape[0]):
+            g_rot = int(conf_inds[samp_rot].item())
+            bt_idx = int(block_type_ind_for_conformer_torch[g_rot].item())
+            at_off = int(n_atoms_offset_for_conformer_torch[g_rot].item())
+            n_at = int(pbt.n_atoms[bt_idx].item())
+            restype = pbt.active_block_types[bt_idx]
+
+            chi_names = sorted(
+                k for k in restype.torsion_to_uaids.keys() if k.startswith("chi")
+            )
+
+            for ci, chi_name in enumerate(chi_names):
+                chi_def_atom_rto = int(chi_atoms_rto[samp_rot, ci].item())
+                if chi_def_atom_rto < 0:
+                    continue
+
+                # KTO index of the chi-defining atom (same offset logic as assign_chi_dofs_from_samples)
+                chi_def_atom_kto = (
+                    int(pbt.rotamer_kinforest.kinforest_idx[bt_idx, chi_def_atom_rto])
+                    + at_off
+                    + 1
+                )  # +1 for virtual root
+
+                parent_kto = int(parent_cpu[chi_def_atom_kto].item())
+                if doftype_cpu[parent_kto].item() != NodeType.jump:
+                    continue
+
+                # measure actual dihedral from trial coords
+                uaids = restype.torsion_to_uaids[chi_name]
+                atom_inds = [int(u[0]) for u in uaids]
+                if any(ai < 0 or ai >= n_at for ai in atom_inds):
+                    continue
+                abs_inds = [at_off + ai for ai in atom_inds]
+                xyzs = trial_coords_rto[abs_inds].double()
+                meas_rad = coord_dihedrals(xyzs[0:1], xyzs[1:2], xyzs[2:3], xyzs[3:4])
+                intended_rad = float(chi_intended[samp_rot, ci].item())
+                measured_rad = float(meas_rad[0].item())
+
+                # wrap delta into [-pi, pi]
+                delta = intended_rad - measured_rad
+                delta = (delta + math.pi) % (2 * math.pi) - math.pi
+
+                conf_dofs_kto[chi_def_atom_kto, 3] += delta
 
 
 def exc_cumsum_from_inc_cumsum(cumsum):
@@ -844,6 +944,19 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
             conf_dofs_kto,
         )
 
+    correct_phi_c_for_jump_parents(
+        pbt,
+        conformer_samples,
+        new_ind_for_sampler_rotamer,
+        block_type_ind_for_conformer_torch,
+        n_atoms_offset_for_conformer_torch,
+        conformer_kinforest,
+        nodes,
+        scans,
+        gens,
+        conf_dofs_kto,
+    )
+
     rotamer_coords = calculate_rotamer_coords(
         pbt,
         n_conformers,
@@ -854,6 +967,7 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
         gens,
         conf_dofs_kto,
     )
+
     (
         n_rots_for_pose,
         rot_offset_for_pose,
