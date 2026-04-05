@@ -172,21 +172,24 @@ def make_benchmark_timer(
 
 @contextmanager
 def mark_and_time(name: str):
-    torch.cuda.synchronize()
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
     start = time.perf_counter()
     with torch.profiler.record_function(name):
         try:
             yield
         finally:
-            torch.cuda.synchronize()
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
             elapsed = time.perf_counter() - start
             print(f"{name}: {1000 * elapsed:0.2f}ms")
 
 
 def test_profile_minimizer(ubq_pdb, torch_device):
     N_poses = 100
-    if torch_device == torch.device("cpu"):
-        return
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA profiler activity required")
+
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pose_stackN = PoseStackBuilder.from_poses([pose_stack1] * N_poses, torch_device)
 
@@ -234,14 +237,14 @@ def test_profile_minimizer(ubq_pdb, torch_device):
 
 def test_profile_minimizer2(erbb2_and_pertuzumab_pdb, torch_device):
     N_poses = 3
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA profiler activity required")
     # we are missing residues 102-110 in the PDB
     res_not_connected = torch.zeros(
         (1, 564 - 9 + 214 + 216 + 6, 2), dtype=torch.bool, device=torch_device
     )
     res_not_connected[0, 100, 1] = True
     res_not_connected[0, 101, 0] = True
-    if torch_device == torch.device("cpu"):
-        return
     pose_stack1 = pose_stack_from_pdb(
         erbb2_and_pertuzumab_pdb, torch_device, res_not_connected=res_not_connected
     )

@@ -48,11 +48,23 @@ def resolve_his_tautomerization(
     his_pose_ind, his_res_ind = torch.nonzero(
         res_types == his_inds.his_co_aa_ind, as_tuple=True
     )
+    orig_device = coords.device
+    # The compiled kernel modifies res_type_variants and his_remapping_dst_index
+    # in-place.  For MPS, TCAST would create CPU copies so those modifications
+    # would be lost.  Run everything on CPU and move results back.
+    if orig_device.type == "mps":
+        coords = coords.cpu()
+        res_types = res_types.cpu()
+        res_type_variants = res_type_variants.cpu()
+        his_pose_ind = his_pose_ind.cpu()
+        his_res_ind = his_res_ind.cpu()
+        atom_is_present = atom_is_present.cpu()
+
     his_remapping_dst_index = torch.tile(
         torch.arange(
             canonical_ordering.max_n_canonical_atoms,
             dtype=torch.int64,
-            device=res_types.device,
+            device=coords.device,
         ),
         (res_types.shape[0], res_types.shape[1], 1),
     ).reshape(
@@ -77,10 +89,10 @@ def resolve_his_tautomerization(
     )
 
     return (
-        his_taut.to(dtype=torch.int32, device=coords.device),
-        res_type_variants,
-        resolved_coords,
-        resolved_atom_is_present,
+        his_taut.to(dtype=torch.int32, device=orig_device),
+        res_type_variants.to(orig_device),
+        resolved_coords.to(orig_device),
+        resolved_atom_is_present.to(orig_device),
     )
 
 

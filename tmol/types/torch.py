@@ -74,7 +74,10 @@ class Tensor(_TensorType):
             value = torch.Tensor(value)
 
         if not value.dtype == cls.dtype:
-            value = value.to(cls.dtype)
+            target_dtype = cls.dtype
+            if value.device.type == "mps" and target_dtype == torch.double:
+                target_dtype = torch.float32
+            value = value.to(target_dtype)
 
         if value.shape == () and [d.size for d in cls.shape.dims] == [1]:
             value = value.reshape(1)

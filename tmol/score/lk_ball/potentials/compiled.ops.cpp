@@ -21,6 +21,11 @@ using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 using torch::autograd::tensor_list;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
  public:
   static Tensor forward(
@@ -66,6 +71,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
       Tensor ring_water_tors) {
     at::Tensor waters;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -117,6 +123,8 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
 
           waters = result.tensor;
         }));
+
+    waters = mps_to_dev(waters, orig_device);
 
     auto max_n_rots_per_pose_tp =
         TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
@@ -211,6 +219,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
 
     at::Tensor dT_d_pose_coords;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     auto dE_dWxyz = grad_outputs[0];
@@ -259,6 +268,8 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
                       TCAST(ring_water_tors));
           dT_d_pose_coords = result.tensor;
         }));
+
+    dT_d_pose_coords = mps_to_dev(dT_d_pose_coords, orig_device);
 
     return {dT_d_pose_coords, torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
@@ -394,6 +405,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
     at::Tensor score;
     at::Tensor block_neighbors;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -441,6 +453,9 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
           score = std::get<0>(result).tensor;
           block_neighbors = std::get<1>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    block_neighbors = mps_to_dev(block_neighbors, orig_device);
 
     if (!output_block_pair_energies) {
       score = score.squeeze(-1).squeeze(-1);
@@ -525,6 +540,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
     auto block_neighbors = saved[i++];
 
     at::Tensor dV_d_pose_coords, dV_d_water_coords;
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     auto dTdV = grad_outputs[0];
@@ -582,6 +598,9 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
           dV_d_water_coords = std::get<1>(result).tensor;
         }));
 
+    dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
+    dV_d_water_coords = mps_to_dev(dV_d_water_coords, orig_device);
+
     return {
         dV_d_pose_coords, torch::Tensor(),   torch::Tensor(), torch::Tensor(),
         torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
@@ -635,6 +654,7 @@ class LKBallRotamerScoreOp
     at::Tensor score;
     at::Tensor dispatch_indices;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -682,6 +702,9 @@ class LKBallRotamerScoreOp
           score = std::get<0>(result).tensor;
           dispatch_indices = std::get<1>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    dispatch_indices = mps_to_dev(dispatch_indices, orig_device);
 
     auto max_n_rots_per_pose_tp =
         TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
@@ -761,6 +784,7 @@ class LKBallRotamerScoreOp
     auto dispatch_indices = saved[i++];
 
     at::Tensor dV_d_pose_coords, dV_d_water_coords;
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     auto dTdV = grad_outputs[0];
@@ -814,6 +838,9 @@ class LKBallRotamerScoreOp
           dV_d_pose_coords = std::get<0>(result).tensor;
           dV_d_water_coords = std::get<1>(result).tensor;
         }));
+
+    dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
+    dV_d_water_coords = mps_to_dev(dV_d_water_coords, orig_device);
 
     return {
         dV_d_pose_coords, torch::Tensor(),   torch::Tensor(), torch::Tensor(),

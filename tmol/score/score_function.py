@@ -303,10 +303,17 @@ class RotamerScoringModule:
         weights_offset = 0
         for term in self.term_modules:
             sparse_values = term(coords)
+            # MPS does not support dense*sparse broadcasting; fall back to CPU.
+            # Leave result on CPU: downstream build_interaction_graph handles
+            # mixed MPS/CPU tensors via TCAST, and MPS coalesce is unsupported.
+            if sparse_values.device.type == "mps":
+                sparse_values = sparse_values.to("cpu")
             n_weights_for_term = sparse_values.shape[0]
+            weights_slice = self.weights[weights_offset : (n_weights_for_term + weights_offset)]
+            if weights_slice.device.type == "mps":
+                weights_slice = weights_slice.to("cpu")
             weighted = torch.sum(
-                self.weights[weights_offset : (n_weights_for_term + weights_offset)]
-                * sparse_values,
+                weights_slice * sparse_values,
                 dim=0,
             )
             weights_offset += n_weights_for_term

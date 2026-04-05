@@ -38,6 +38,9 @@ class KinematicModule(torch.jit.ScriptModule):
     def __init__(self, kinforest: KinForest, device: torch.device):
         super().__init__()
 
+        # Kinematics needs float64, which MPS does not support; use CPU for MPS
+        kin_device = torch.device("cpu") if device.type == "mps" else device
+
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
 
@@ -57,15 +60,15 @@ class KinematicModule(torch.jit.ScriptModule):
                     ]
                 ),
                 dim=1,
-            ).to(device)
+            ).to(kin_device)
         )
 
         ordering = KinForestScanOrdering.for_kinforest(kinforest)
-        self.nodes_f = _p(ordering.forward_scan_paths.nodes.to(device))
-        self.scans_f = _p(ordering.forward_scan_paths.scans.to(device))
+        self.nodes_f = _p(ordering.forward_scan_paths.nodes.to(kin_device))
+        self.scans_f = _p(ordering.forward_scan_paths.scans.to(kin_device))
         self.gens_f = _p(ordering.forward_scan_paths.gens)  # on cpu
-        self.nodes_b = _p(ordering.backward_scan_paths.nodes.to(device))
-        self.scans_b = _p(ordering.backward_scan_paths.scans.to(device))
+        self.nodes_b = _p(ordering.backward_scan_paths.nodes.to(kin_device))
+        self.scans_b = _p(ordering.backward_scan_paths.scans.to(kin_device))
         self.gens_b = _p(ordering.backward_scan_paths.gens)  # on cpu
 
     @torch.jit.script_method
@@ -103,6 +106,8 @@ class PoseStackKinematicsModule(torch.jit.ScriptModule):
         pbt = pose_stack.packed_block_types
         ff = fold_forest
         device = pose_stack.device
+        # Kinematics needs float64, which MPS does not support; use CPU for MPS
+        kin_device = torch.device("cpu") if device.type == "mps" else device
 
         # Setup: initial annotations of block types and packed block types
         # with the per-block-scan-path segments.
@@ -138,14 +143,14 @@ class PoseStackKinematicsModule(torch.jit.ScriptModule):
                     ]
                 ),
                 dim=1,
-            ).to(device)
+            ).to(kin_device)
         )
 
-        self.nodes_f = _p(kmd.scan_data_fw.nodes.to(device))
-        self.scans_f = _p(kmd.scan_data_fw.scans.to(device))
+        self.nodes_f = _p(kmd.scan_data_fw.nodes.to(kin_device))
+        self.scans_f = _p(kmd.scan_data_fw.scans.to(kin_device))
         self.gens_f = _p(kmd.scan_data_fw.gens)  # on cpu
-        self.nodes_b = _p(kmd.scan_data_bw.nodes.to(device))
-        self.scans_b = _p(kmd.scan_data_bw.scans.to(device))
+        self.nodes_b = _p(kmd.scan_data_bw.nodes.to(kin_device))
+        self.scans_b = _p(kmd.scan_data_bw.scans.to(kin_device))
         self.gens_b = _p(kmd.scan_data_bw.gens)  # on cpu
 
     @torch.jit.script_method

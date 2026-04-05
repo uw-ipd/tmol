@@ -130,10 +130,16 @@ struct TPack {
       -> TPack<T, N, D, P> {
     typedef typename enable_tensor_view<T>::PrimitiveType BaseT;
 
+    // For MPS: DeviceOperations<MPS> uses CPU loops that access data_ptr().
+    // Allocate on CPU so the memory is directly readable/writable by the CPU.
+    // The op boundary (ops.cpp) moves the result tensor back to the MPS device.
     at::TensorOptions target_type =
         at::TensorOptions()
             .dtype(enable_tensor_view<T>::scalar_type())
-            .device((D == Device::CPU) ? torch::kCPU : torch::kCUDA);
+            .device(
+                (D == Device::CPU || D == Device::MPS)
+                    ? torch::kCPU
+                    : torch::kCUDA);
 
     constexpr int nconsumed_dims = enable_tensor_view<T>::nconsumed_dims;
     auto consumed_dims = enable_tensor_view<T>::consumed_dims;

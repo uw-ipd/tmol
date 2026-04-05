@@ -24,20 +24,6 @@ struct accumulate<
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   static def add(T& target, const T& val) -> T {
-    //  // Try the atomic-add solution from stack overflow:
-    //  //
-    //  https://stackoverflow.com/questions/48746540/are-there-any-more-efficient-ways-for-atomically-adding-two-floats
-    //  int *ip_x= reinterpret_cast<int*>( &target ); //1
-    //  int expected= __atomic_load_n( ip_x, __ATOMIC_SEQ_CST ); //2
-    //  int desired;
-    //  do  {
-    //    float sum= *reinterpret_cast<T*>( &expected ) + val; //3
-    //    desired=   *reinterpret_cast<int*>( &sum );
-    //  } while( ! __atomic_compare_exchange_n( ip_x, &expected, desired, //4
-    //                                          /* weak = */ true,
-    //                                          __ATOMIC_SEQ_CST,
-    //                                          __ATOMIC_SEQ_CST ) );
-    //
     T old_target = target;
     target += val;
     return old_target;
@@ -51,6 +37,32 @@ struct accumulate<
 
   // All threads must write to the same ind1; threads may write to different
   // ind0s. The CPU version is safe as long as there's only one thread.
+  template <class A>
+  static def add_two_dim_one_dst(A& target, int ind0, int ind1, const T& val)
+      -> void {
+    target[ind0][ind1] += val;
+  }
+};
+
+// MPS: Apple Silicon has unified memory so the data pointer returned by an MPS
+// tensor is accessible from the CPU.  DeviceOperations<MPS> executes lambdas
+// on the CPU (single-threaded for now), so plain non-atomic adds are safe.
+template <typename T>
+struct accumulate<
+    tmol::Device::MPS,
+    T,
+    typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+  static def add(T& target, const T& val) -> T {
+    T old_target = target;
+    target += val;
+    return old_target;
+  }
+
+  template <class A>
+  static def add_one_dst(A& target, int ind, const T& val) -> void {
+    target[ind] += val;
+  }
+
   template <class A>
   static def add_two_dim_one_dst(A& target, int ind0, int ind1, const T& val)
       -> void {
@@ -89,7 +101,7 @@ struct accumulate<
 };
 
 #ifndef __CUDACC__
-// Compile this reduction class only for CPU
+// Compile this reduction class only for CPU / MPS (not NVCC)
 
 template <tmol::Device D, typename T, class Enable = void>
 struct reduce {};
@@ -112,6 +124,25 @@ struct reduce<
   }
 };
 
+// MPS uses unified memory — same single-threaded reduce semantics as CPU.
+template <typename T>
+struct reduce<
+    tmol::Device::MPS,
+    T,
+    typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+  template <class G, class OP>
+  static def reduce_to_head(G&, const T& val, OP) -> T {
+    T retval = val;
+    return retval;
+  }
+
+  template <class G, class OP>
+  static def reduce_to_all(G&, const T& val, OP) -> T {
+    T retval = val;
+    return retval;
+  }
+};
+
 template <tmol::Device D, int N, typename T>
 struct reduce<
     D,
@@ -119,13 +150,13 @@ struct reduce<
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   typedef Eigen::Matrix<T, N, 1> V;
   template <class G, class OP>
-  static def reduce_to_head(G&, const V& val, OP) -> T {
+  static def reduce_to_head(G&, const V& val, OP) -> V {
     V retval = val;
     return retval;
   }
 
   template <class G, class OP>
-  static def reduce_to_all(G&, const V& val, OP) -> T {
+  static def reduce_to_all(G&, const V& val, OP) -> V {
     V retval = val;
     return retval;
   }

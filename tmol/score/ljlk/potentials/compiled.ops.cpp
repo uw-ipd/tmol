@@ -22,6 +22,11 @@ using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 using torch::autograd::tensor_list;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 template <template <tmol::Device> class DispatchMethod>
 class LJLKPoseScoreOp
     : public torch::autograd::Function<LJLKPoseScoreOp<DispatchMethod>> {
@@ -59,6 +64,7 @@ class LJLKPoseScoreOp
       bool output_block_pair_energies) {
     at::Tensor score, dscore_dcoords, block_neighbors;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -104,8 +110,11 @@ class LJLKPoseScoreOp
           block_neighbors = std::get<2>(result).tensor;
         }));
 
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+    block_neighbors = mps_to_dev(block_neighbors, orig_device);
+
     if (output_block_pair_energies) {
-      // save inputs for deriv call in backwards
       auto max_n_rots_per_pose_tp =
           TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
       ctx->save_for_backward(
@@ -138,7 +147,7 @@ class LJLKPoseScoreOp
            global_params,
            block_neighbors});
     } else {
-      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
+      score = score.squeeze(-1).squeeze(-1);
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
     return {score, block_neighbors};
@@ -196,6 +205,7 @@ class LJLKPoseScoreOp
       auto global_params = saved[i++];
       auto block_neighbors = saved[i++];
 
+      c10::Device orig_device = rot_coords.device();
       using Int = int32_t;
 
       auto dTdV = grad_outputs[0];
@@ -244,6 +254,8 @@ class LJLKPoseScoreOp
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {dV_d_pose_coords, torch::Tensor(),
@@ -301,6 +313,7 @@ class LJLKRotamerScoreOp
       bool output_block_pair_energies) {
     at::Tensor score, dscore_dcoords, dispatch_indices;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -346,8 +359,11 @@ class LJLKRotamerScoreOp
           dispatch_indices = std::get<2>(result).tensor;
         }));
 
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+    dispatch_indices = mps_to_dev(dispatch_indices, orig_device);
+
     if (output_block_pair_energies) {
-      // save inputs for deriv call in backwards
       auto max_n_rots_per_pose_tp =
           TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
       ctx->save_for_backward(
@@ -437,6 +453,7 @@ class LJLKRotamerScoreOp
       auto global_params = saved[i++];
       auto dispatch_indices = saved[i++];
 
+      c10::Device orig_device = rot_coords.device();
       using Int = int32_t;
 
       auto dTdV = grad_outputs[0];
@@ -485,6 +502,8 @@ class LJLKRotamerScoreOp
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {dV_d_pose_coords, torch::Tensor(),

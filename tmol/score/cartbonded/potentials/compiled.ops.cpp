@@ -25,6 +25,11 @@ using torch::autograd::tensor_list;
 
 using namespace tmol::score::common;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 template <template <tmol::Device> class DispatchMethod>
 class CartBondedPoseScoreOp
     : public torch::autograd::Function<CartBondedPoseScoreOp<DispatchMethod>> {
@@ -62,6 +67,7 @@ class CartBondedPoseScoreOp
     at::Tensor score;
     at::Tensor dscore_dcoords;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -105,6 +111,9 @@ class CartBondedPoseScoreOp
           dscore_dcoords = std::get<1>(result).tensor;
         }));
 
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+
     if (output_block_pair_energies) {
       auto max_n_rots_per_pose_tp =
           TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
@@ -138,8 +147,6 @@ class CartBondedPoseScoreOp
       score = score.squeeze(-1).squeeze(-1);
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
-    // To keep the convention, we will return two tensors, with the expectation
-    // that no one will be using this second tensor.f
     return {score, dscore_dcoords};
   }
 
@@ -148,10 +155,7 @@ class CartBondedPoseScoreOp
 
     at::Tensor dV_d_pose_coords;
 
-    // use the number of stashed variables to determine if we are in
-    //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
-      // TO DO: make this a function so it's not duplicated everywhere
       // single-score mode
       auto saved_grads = ctx->get_saved_variables();
       auto saved_grad = saved_grads[0];
@@ -174,7 +178,6 @@ class CartBondedPoseScoreOp
       // block-pair mode
       int i = 0;
 
-      // common params
       auto rot_coords = saved[i++];
       auto rot_coord_offset = saved[i++];
       auto pose_ind_for_atom = saved[i++];
@@ -201,6 +204,7 @@ class CartBondedPoseScoreOp
       auto cart_subgraph_type_counts = saved[i++];
       auto cart_subgraph_type_offsets = saved[i++];
 
+      c10::Device orig_device = rot_coords.device();
       using Int = int32_t;
 
       auto dTdV = grad_outputs[0];
@@ -213,7 +217,6 @@ class CartBondedPoseScoreOp
             auto result =
                 CartBondedPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
                     backward(
-                        // common params
                         TCAST(rot_coords),
                         TCAST(rot_coord_offset),
                         TCAST(pose_ind_for_atom),
@@ -243,10 +246,11 @@ class CartBondedPoseScoreOp
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {
-        // Common params
         dV_d_pose_coords,
         torch::Tensor(),
         torch::Tensor(),
@@ -320,6 +324,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
     at::Tensor n_output_intxns_for_rot_conn_offset;
     at::Tensor rotconn_for_output_intxn;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -365,6 +370,13 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
           n_output_intxns_for_rot_conn_offset = std::get<3>(result).tensor;
           rotconn_for_output_intxn = std::get<4>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+    dispatch_indices = mps_to_dev(dispatch_indices, orig_device);
+    n_output_intxns_for_rot_conn_offset =
+        mps_to_dev(n_output_intxns_for_rot_conn_offset, orig_device);
+    rotconn_for_output_intxn = mps_to_dev(rotconn_for_output_intxn, orig_device);
 
     if (output_block_pair_energies) {
       auto max_n_rots_per_pose_tp =
@@ -467,6 +479,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
       auto n_output_intxns_for_rot_conn_offset = saved[i++];
       auto rotconn_for_output_intxn = saved[i++];
 
+      c10::Device orig_device = rot_coords.device();
       using Int = int32_t;
 
       auto dTdV = grad_outputs[0];
@@ -513,10 +526,11 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {
-        // Common params
         dV_d_pose_coords,
         torch::Tensor(),
         torch::Tensor(),
@@ -533,7 +547,6 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
         torch::Tensor(),
         torch::Tensor(),
 
-        // Cart-bonded specific parameters
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),

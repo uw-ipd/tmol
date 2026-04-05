@@ -52,13 +52,17 @@ class TmolExtensionIncompatibleError(Exception):
 
 
 def _find_extension_library() -> str | None:
-    """Locate the _C shared library in tmol's package directory."""
-    try:
-        spec = importlib.util.find_spec("tmol._C")
-        if spec is not None and spec.origin is not None:
-            return spec.origin
-    except (ModuleNotFoundError, ValueError):
-        pass
+    """Locate the _C shared library path without loading it."""
+    import glob
+    import os
+
+    # Search by filename pattern — avoids triggering importlib to load the .so
+    # (which would register TORCH_LIBRARY ops and cause a double-registration
+    # crash if load_library is later called for the same file).
+    package_dir = os.path.dirname(__file__)
+    matches = glob.glob(os.path.join(package_dir, "_C.*.so"))
+    if matches:
+        return matches[0]
     return None
 
 
@@ -71,6 +75,16 @@ def _ensure_loaded() -> None:
     """
     global _loaded
     if _loaded:
+        return
+
+    # Check whether the .so is already in the process (loaded by Python's own
+    # import machinery, e.g. via an editable-install .pth that puts the package
+    # directory on sys.path and a subsequent `import tmol._C`).
+    # In that case all TORCH_LIBRARY ops are already registered; calling
+    # load_library again causes a "Key already registered" C++ abort.
+    if "tmol._C" in __import__("sys").modules:
+        _loaded = True
+        logger.debug("tmol._C already in sys.modules; skipping load_library")
         return
 
     lib_path = _find_extension_library()

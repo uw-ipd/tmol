@@ -40,15 +40,17 @@ def kincoords_and_dofs_for_pose_stack_system(
     pose_stack: PoseStack, kinematics_module: PoseStackKinematicsModule, torch_device
 ):
     kinforest = kinematics_module.kmd.forest
+    # Kinematics needs float64; MPS doesn't support float64 → use CPU
+    kin_device = torch.device("cpu") if torch_device.type == "mps" else torch_device
 
     kincoords = torch.zeros(
         (kinematics_module.kmd.forest.id.shape[0], 3),
         dtype=torch.float64,
-        device=torch_device,
+        device=kin_device,
     )
     kincoords[1:] = pose_stack.coords.view(-1, 3)[
         kinematics_module.kmd.forest.id[1:]
-    ].to(torch.float64)
+    ].to(kin_device).to(torch.float64)
 
     dofs = inverseKin(kinforest, kincoords, requires_grad=True)
     return kincoords, dofs
@@ -70,7 +72,9 @@ def coord_weights(torch_device):
     # energy from coordinates in this unit test, we have to come up with
     # something else that will do: thus, we will weight the coordinates
     # arbitrarily
-    return coord_weights_for_device(torch_device)
+    # Kinematics uses float64 on CPU even for MPS, so coord_weights must match
+    kin_device = torch.device("cpu") if torch_device.type == "mps" else torch_device
+    return coord_weights_for_device(kin_device)
 
 
 @pytest.fixture
