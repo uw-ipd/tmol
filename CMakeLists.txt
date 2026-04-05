@@ -121,8 +121,12 @@ endif()
 # that find_package(Torch) resolves to the conda/pip installation rather than
 # any system or Homebrew libtorch that may appear in CMake's default search
 # paths (e.g. /opt/homebrew/lib on macOS).
+# KMP_DUPLICATE_LIB_OK=TRUE is required on macOS when multiple copies of the
+# OpenMP runtime are loaded (e.g. conda torch + Homebrew clang-rt), otherwise
+# Python aborts with "OMP Error #15" before printing any output.
 execute_process(
-  COMMAND ${Python_EXECUTABLE} -c "import torch; print(torch.utils.cmake_prefix_path)"
+  COMMAND ${CMAKE_COMMAND} -E env KMP_DUPLICATE_LIB_OK=TRUE
+          ${Python_EXECUTABLE} -c "import torch; print(torch.utils.cmake_prefix_path)"
   OUTPUT_VARIABLE _TORCH_CMAKE_PREFIX
   OUTPUT_STRIP_TRAILING_WHITESPACE
   RESULT_VARIABLE _TORCH_CMAKE_RESULT
@@ -133,6 +137,19 @@ if(_TORCH_CMAKE_RESULT EQUAL 0 AND _TORCH_CMAKE_PREFIX)
 else()
   message(WARNING "tmol: Could not determine torch cmake prefix path from Python — "
                   "find_package(Torch) may pick up Homebrew or system libtorch")
+endif()
+
+# Similarly discover pybind11's cmake dir from the active Python environment.
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E env KMP_DUPLICATE_LIB_OK=TRUE
+          ${Python_EXECUTABLE} -c "import pybind11; print(pybind11.get_cmake_dir())"
+  OUTPUT_VARIABLE _PYBIND11_CMAKE_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE _PYBIND11_CMAKE_RESULT
+)
+if(_PYBIND11_CMAKE_RESULT EQUAL 0 AND _PYBIND11_CMAKE_DIR)
+  list(PREPEND CMAKE_PREFIX_PATH "${_PYBIND11_CMAKE_DIR}")
+  message(STATUS "tmol: Prepending pybind11 cmake dir: ${_PYBIND11_CMAKE_DIR}")
 endif()
 
 find_package(Torch REQUIRED)
