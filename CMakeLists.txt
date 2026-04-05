@@ -207,7 +207,8 @@ endif()
 
 # Get torch version for compile-time macros
 execute_process(
-  COMMAND ${Python_EXECUTABLE} -c "import torch; v=torch.__version__.split('.'); print(f'{v[0]};{v[1]}')"
+  COMMAND ${CMAKE_COMMAND} -E env KMP_DUPLICATE_LIB_OK=TRUE
+          ${Python_EXECUTABLE} -c "import torch; v=torch.__version__.split('.'); print(f'{v[0]};{v[1]}')"
   OUTPUT_VARIABLE _TORCH_VERSION
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
