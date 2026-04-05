@@ -1,8 +1,0 @@
-{
-  "source_dir": "/Users/florian/Documents/Science-IA/tmol",
-  "build_dir": "/Users/florian/Documents/Science-IA/tmol",
-  "cmake_path": "/opt/homebrew/bin/cmake",
-  "skbuild_path": "/private/var/folders/3h/fhxxmry1579fwg3w5ft0742c0000gn/T/pip-build-env-eaekktr8/overlay/lib/python3.13/site-packages/scikit_build_core",
-  "skbuild_version": "0.12.2",
-  "python_executable": "/Users/florian/miniconda3/envs/fitting/bin/python3.13"
-}

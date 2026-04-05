@@ -1,5 +1,21 @@
 .torch_extensions
 
+# scikit-build-core / CMake in-source build artifacts
+.cmake/api/v1/reply/
+.ninja_deps
+.ninja_log
+.skbuild-info.json
+CMakeCache.txt
+CMakeFiles/
+CMakeInit.txt
+Makefile
+build.ninja
+cmake_install.cmake
+metal_air/
+
+# Output PDB files from pack_rotamers runs
+pack_rotamers_*.pdb
+
 # Conda environment
 .conda
 # Rendered environment definitions
