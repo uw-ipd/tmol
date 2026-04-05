@@ -117,6 +117,24 @@ if(TMOL_BUILD_CUDA)
   message(STATUS "tmol: Setting TORCH_CUDA_ARCH_LIST=${_TORCH_ARCH_STR} for find_package(Torch)")
 endif()
 
+# Prepend the active Python's torch cmake directory to CMAKE_PREFIX_PATH so
+# that find_package(Torch) resolves to the conda/pip installation rather than
+# any system or Homebrew libtorch that may appear in CMake's default search
+# paths (e.g. /opt/homebrew/lib on macOS).
+execute_process(
+  COMMAND ${Python_EXECUTABLE} -c "import torch; print(torch.utils.cmake_prefix_path)"
+  OUTPUT_VARIABLE _TORCH_CMAKE_PREFIX
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE _TORCH_CMAKE_RESULT
+)
+if(_TORCH_CMAKE_RESULT EQUAL 0 AND _TORCH_CMAKE_PREFIX)
+  list(PREPEND CMAKE_PREFIX_PATH "${_TORCH_CMAKE_PREFIX}")
+  message(STATUS "tmol: Prepending torch cmake prefix: ${_TORCH_CMAKE_PREFIX}")
+else()
+  message(WARNING "tmol: Could not determine torch cmake prefix path from Python — "
+                  "find_package(Torch) may pick up Homebrew or system libtorch")
+endif()
+
 find_package(Torch REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
