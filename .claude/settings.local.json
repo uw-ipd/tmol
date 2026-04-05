@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(/Users/florian/miniconda3/envs/tmol/bin/python3.13 -m pytest tmol/tests/pack/test_pack_rotamers.py -k \"mps and not gradcheck\" -v)"
+      "Bash(/Users/florian/miniconda3/envs/tmol/bin/python3.13 -m pytest tmol/tests/pack/test_pack_rotamers.py -k \"mps and not gradcheck\" -v)",
+      "Bash(python -m pytest tmol/tests/test_mps.py --no-header)",
+      "Bash(echo \"---EXIT: $?\")",
+      "Bash(conda activate:*)",
+      "Bash(python -m pytest tmol/tests/ -k mps --no-header -q --ignore=tmol/tests/score/common/test_uaid_util.py)",
+      "Bash(/Users/florian/miniconda3/envs/tmol/bin/python -m pytest tmol/tests/ -k mps --no-header -q --ignore=tmol/tests/score/common/test_uaid_util.py)",
+      "Bash(/Users/florian/miniconda3/envs/tmol/bin/python -c ':*)"
     ]
   }
 }
