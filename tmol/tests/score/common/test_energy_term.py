@@ -287,6 +287,10 @@ class EnergyTermTestBase:
         rtol=1e-3,  # torch default
         nondet_tol=0.0,  # torch default
     ):
+        import pytest
+
+        if torch_device.type == "mps":
+            pytest.skip("gradcheck requires float64, which MPS does not support")
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
 
         if edit_pose_stack_fn is not None:
@@ -428,6 +432,10 @@ class EnergyTermTestBase:
         rtol=1e-3,  # torch default
         nondet_tol=0.0,  # torch default
     ):
+        import pytest
+
+        if torch_device.type == "mps":
+            pytest.skip("gradcheck requires float64, which MPS does not support")
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
 
         if edit_pose_stack_fn is not None:

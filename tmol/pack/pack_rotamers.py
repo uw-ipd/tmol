@@ -73,6 +73,11 @@ def pack_rotamers(
     end_time4 = time.perf_counter()
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+    # Ensure annealing outputs are on the pose stack device (may differ when
+    # interaction graph ran on CPU for MPS, leaving outputs on CPU).
+    target_device = pose_stack.device
+    scores = scores.to(target_device)
+    rotamer_assignments = rotamer_assignments.to(target_device)
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time5 = time.perf_counter()

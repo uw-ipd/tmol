@@ -23,6 +23,11 @@ using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 using torch::autograd::tensor_list;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 template <template <tmol::Device> class DispatchMethod>
 class DisulfidePoseScoreOp
     : public torch::autograd::Function<DisulfidePoseScoreOp<DispatchMethod>> {
@@ -58,6 +63,7 @@ class DisulfidePoseScoreOp
     at::Tensor score;
     at::Tensor dscore_dcoords;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -94,6 +100,9 @@ class DisulfidePoseScoreOp
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
 
     if (output_block_pair_energies) {
       // save inputs for deriv call in backwards
@@ -182,6 +191,7 @@ class DisulfidePoseScoreOp
 
       using Int = int32_t;
 
+      c10::Device orig_device = rot_coords.device();
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
@@ -219,6 +229,8 @@ class DisulfidePoseScoreOp
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {
@@ -287,6 +299,7 @@ class DisulfideRotamerScoreOp : public torch::autograd::Function<
     at::Tensor dispatch_indices;
     at::Tensor conns_for_dispatch_indices;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -325,6 +338,11 @@ class DisulfideRotamerScoreOp : public torch::autograd::Function<
           dispatch_indices = std::get<2>(result).tensor;
           conns_for_dispatch_indices = std::get<3>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+    dispatch_indices = mps_to_dev(dispatch_indices, orig_device);
+    conns_for_dispatch_indices = mps_to_dev(conns_for_dispatch_indices, orig_device);
 
     if (output_block_pair_energies) {
       // save inputs for deriv call in backwards
@@ -414,6 +432,7 @@ class DisulfideRotamerScoreOp : public torch::autograd::Function<
 
       using Int = int32_t;
 
+      c10::Device orig_device = rot_coords.device();
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
@@ -453,6 +472,8 @@ class DisulfideRotamerScoreOp : public torch::autograd::Function<
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {

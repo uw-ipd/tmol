@@ -1,0 +1,752 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "tmol/_C.cpython-313-darwin.so"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"install",
+			"target_link_libraries",
+			"tmol_set_cpp_flags",
+			"tmol_set_mps_flags",
+			"set_target_properties",
+			"include",
+			"find_package",
+			"target_compile_options",
+			"target_compile_definitions",
+			"target_include_directories",
+			"target_sources"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt",
+			"/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cmake/Caffe2/Caffe2Targets.cmake",
+			"/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake",
+			"/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cmake/Torch/TorchConfig.cmake"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 326,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 460,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 447,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 242,
+				"parent" : 3
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 452,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 284,
+				"parent" : 5
+			},
+			{
+				"command" : 7,
+				"file" : 0,
+				"line" : 120,
+				"parent" : 0
+			},
+			{
+				"file" : 3,
+				"parent" : 7
+			},
+			{
+				"command" : 7,
+				"file" : 3,
+				"line" : 62,
+				"parent" : 8
+			},
+			{
+				"file" : 2,
+				"parent" : 9
+			},
+			{
+				"command" : 6,
+				"file" : 2,
+				"line" : 121,
+				"parent" : 10
+			},
+			{
+				"file" : 1,
+				"parent" : 11
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 81,
+				"parent" : 12
+			},
+			{
+				"command" : 8,
+				"file" : 0,
+				"line" : 238,
+				"parent" : 3
+			},
+			{
+				"command" : 8,
+				"file" : 0,
+				"line" : 273,
+				"parent" : 5
+			},
+			{
+				"command" : 9,
+				"file" : 0,
+				"line" : 454,
+				"parent" : 0
+			},
+			{
+				"command" : 10,
+				"file" : 0,
+				"line" : 241,
+				"parent" : 3
+			},
+			{
+				"command" : 11,
+				"file" : 0,
+				"line" : 397,
+				"parent" : 0
+			}
+		]
+	},
+	"codemodelVersion" : 
+	{
+		"major" : 2,
+		"minor" : 10
+	},
+	"compileDependencies" : 
+	[
+		{
+			"backtrace" : 4,
+			"id" : "torch::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 4,
+			"id" : "torch_library::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "torch::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "torch_library::@6890427a1f51a3e7e1df"
+		}
+	],
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-std=gnu++17 -arch arm64 -fPIC"
+				},
+				{
+					"backtrace" : 14,
+					"fragment" : "-O3"
+				},
+				{
+					"backtrace" : 14,
+					"fragment" : "-w"
+				},
+				{
+					"backtrace" : 14,
+					"fragment" : "-DWITH_NVTX"
+				},
+				{
+					"backtrace" : 15,
+					"fragment" : "-DWITH_MPS"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 4,
+					"define" : "USE_C10D_GLOO"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "USE_DISTRIBUTED"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "USE_RPC"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "USE_TENSORPIPE"
+				},
+				{
+					"backtrace" : 16,
+					"define" : "WITH_MPS"
+				},
+				{
+					"define" : "_C_EXPORTS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 17,
+					"path" : "/Users/florian/Documents/Science-IA/tmol"
+				},
+				{
+					"backtrace" : 17,
+					"path" : "/Users/florian/Documents/Science-IA/tmol/tmol/extern"
+				},
+				{
+					"backtrace" : 17,
+					"path" : "/Users/florian/miniconda3/envs/tmol/include/python3.13"
+				},
+				{
+					"backtrace" : 17,
+					"isSystem" : true,
+					"path" : "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/include"
+				},
+				{
+					"backtrace" : 17,
+					"isSystem" : true,
+					"path" : "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/include/torch/csrc/api/include"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "17"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				36,
+				37,
+				38,
+				39,
+				40,
+				41,
+				42,
+				43,
+				44,
+				45,
+				46
+			]
+		}
+	],
+	"id" : "_C::@6890427a1f51a3e7e1df",
+	"install" : 
+	{
+		"destinations" : 
+		[
+			{
+				"backtrace" : 2,
+				"path" : "tmol"
+			}
+		],
+		"prefix" : 
+		{
+			"path" : "/usr/local"
+		}
+	},
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-bundle -Wl,-headerpad_max_install_names",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "-Wl,-rpath,/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/libc10.dylib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/libc10.dylib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 6,
+				"fragment" : "-framework Metal",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 6,
+				"fragment" : "-framework Foundation",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/libtorch.dylib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 13,
+				"fragment" : "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/libtorch_cpu.dylib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 13,
+				"fragment" : "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/libc10.dylib",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"linkLibraries" : 
+	[
+		{
+			"backtrace" : 4,
+			"id" : "torch::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 4,
+			"id" : "torch_library::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 4,
+			"fragment" : "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/libc10.dylib"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "torch::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "torch_library::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 6,
+			"fragment" : "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/libc10.dylib"
+		},
+		{
+			"backtrace" : 6,
+			"fragment" : "-framework Metal"
+		},
+		{
+			"backtrace" : 6,
+			"fragment" : "-framework Foundation"
+		}
+	],
+	"name" : "_C",
+	"nameOnDisk" : "_C.cpython-313-darwin.so",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				36,
+				37,
+				38,
+				39,
+				40,
+				41,
+				42,
+				43,
+				44,
+				45,
+				46
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/io/details/compiled/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/io/details/compiled/gen_pose_leaf_atoms.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/io/details/compiled/resolve_his_taut.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/kinematics/compiled/compiled_ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/kinematics/compiled/compiled.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/pack/compiled/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/pack/compiled/compiled.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/pack/rotamer/dunbrack/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/pack/rotamer/dunbrack/compiled.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/pose/compiled/apsp_vestibule.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/pose/compiled/apsp.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/backbone_torsion/potentials/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/backbone_torsion/potentials/backbone_torsion_pose_score.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/cartbonded/potentials/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/cartbonded/potentials/cartbonded_pose_score.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/constraint/potentials/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/constraint/potentials/constraint_score.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/disulfide/potentials/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/disulfide/potentials/disulfide_pose_score.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/dunbrack/potentials/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/dunbrack/potentials/dunbrack_pose_score.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/elec/potentials/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/elec/potentials/elec_pose_score.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/hbond/potentials/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/hbond/potentials/hbond_pose_score.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/ljlk/potentials/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/ljlk/potentials/ljlk_pose_score.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/lk_ball/potentials/compiled.ops.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/lk_ball/potentials/lk_ball_pose_score.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/lk_ball/potentials/gen_pose_waters.cpu.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/common/metal_context.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/io/details/compiled/gen_pose_leaf_atoms.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/io/details/compiled/resolve_his_taut.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/kinematics/compiled/compiled.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/pack/compiled/compiled.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/pack/rotamer/dunbrack/compiled.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/pose/compiled/apsp.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/backbone_torsion/potentials/backbone_torsion_pose_score.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/cartbonded/potentials/cartbonded_pose_score.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/constraint/potentials/constraint_score.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/disulfide/potentials/disulfide_pose_score.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/dunbrack/potentials/dunbrack_pose_score.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/elec/potentials/elec_pose_score.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/hbond/potentials/hbond_pose_score.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/ljlk/potentials/ljlk_pose_score.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/lk_ball/potentials/lk_ball_pose_score.mps.mm",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 18,
+			"compileGroupIndex" : 0,
+			"path" : "tmol/score/lk_ball/potentials/gen_pose_waters.mps.mm",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "MODULE_LIBRARY"
+}

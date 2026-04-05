@@ -57,7 +57,7 @@ inline void handler(int sig, char* file, int line) {
 
 namespace tmol {
 
-enum class Device { CPU, CUDA };
+enum class Device { CPU, CUDA, MPS };
 
 enum class PtrTag { Restricted, Unrestricted };
 

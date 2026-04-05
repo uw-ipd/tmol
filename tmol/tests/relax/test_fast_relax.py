@@ -101,7 +101,7 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     Mirrors test_fast_relax_ubq but swaps the kinematic min_fn for the
     Cartesian one via _default_cart_min_fn + CartesianMoveMap.
     """
-    if torch_device == torch.device("cpu"):
+    if torch_device.type != "cuda":
         pytest.skip("CUDA only test")
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
@@ -151,7 +151,7 @@ def test_fast_relax_pertuz(
     default_database, erbb2_and_pertuzumab_pdb, dun_sampler, torch_device, n_poses
 ):
 
-    if torch_device == torch.device("cpu"):
+    if torch_device.type != "cuda":
         pytest.skip("CUDA only test")
 
     res_not_connected = torch.zeros(
@@ -230,7 +230,7 @@ def test_fast_relax_pertuz(
 def test_fast_relax_for_different_shapes(
     ubq_pdb, erbb2_and_pertuzumab_pdb, default_database, dun_sampler, torch_device
 ):
-    if torch_device == torch.device("cpu"):
+    if torch_device.type != "cuda":
         pytest.skip("CUDA only test")
 
     res_not_connected = torch.zeros((1, 40, 2), dtype=torch.bool, device=torch_device)

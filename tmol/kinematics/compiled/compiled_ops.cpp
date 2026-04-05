@@ -19,6 +19,11 @@ using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 using torch::autograd::tensor_list;
 
+// MPS round-trip helper: TPack allocates on CPU for MPS inputs; move back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 class KinematicOp : public torch::autograd::Function<KinematicOp> {
  public:
   static Tensor forward(
@@ -34,6 +39,7 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
     at::Tensor coords;
     at::Tensor HTs;
 
+    c10::Device orig_device = dofs.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(dofs.options(), "forward_kin_op", ([&] {
@@ -52,6 +58,8 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
                                     HTs = std::get<1>(result).tensor;
                                   }));
 
+    coords = mps_to_dev(coords, orig_device);
+    HTs = mps_to_dev(HTs, orig_device);
     ctx->save_for_backward({HTs, dofs, nodes_b, scans_b, gens_b, kintree});
 
     return coords;
@@ -68,6 +76,7 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
     auto kintree = saved[i++];
 
     at::Tensor dV_ddof;
+    c10::Device orig_device = dofs.device();
     using Int = int32_t;
     auto dVdx = grad_outputs[0];
     TMOL_DISPATCH_FLOATING_DEVICE(HTs.options(), "kin_deriv_op", ([&] {
@@ -86,6 +95,8 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
 
                                     dV_ddof = result.tensor;
                                   }));
+
+    dV_ddof = mps_to_dev(dV_ddof, orig_device);
 
     return {
         dV_ddof,
@@ -122,6 +133,7 @@ Tensor forward_only_op(
     Tensor kintree) {
   at::Tensor coords;
 
+  c10::Device orig_device = dofs.device();
   using Int = int32_t;
 
   TMOL_DISPATCH_FLOATING_DEVICE(dofs.options(), "forward_kin_only_op", ([&] {
@@ -139,7 +151,7 @@ Tensor forward_only_op(
                                   coords = std::get<0>(result).tensor;
                                 }));
 
-  return coords;
+  return mps_to_dev(coords, orig_device);
 };
 
 auto get_kfo_indices_for_atoms(
@@ -150,12 +162,12 @@ auto get_kfo_indices_for_atoms(
   at::Tensor block_kfo_offset_tp;
   at::Tensor kfo_2_orig_mapping_tp;
   at::Tensor atom_kfo_index;
+  c10::Device dev = pose_stack_block_coord_offset.device();
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_coord_offset.options(),
       "get_kfo_indices_for_atoms",
       ([&] {
-        using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
-                              // for signed 64-bit integers in CUDA
+        using Int = int32_t;
         constexpr tmol::Device Dev = device_t;
 
         auto result =
@@ -169,7 +181,10 @@ auto get_kfo_indices_for_atoms(
         kfo_2_orig_mapping_tp = std::get<1>(result).tensor;
         atom_kfo_index = std::get<2>(result).tensor;
       }));
-  return {block_kfo_offset_tp, kfo_2_orig_mapping_tp, atom_kfo_index};
+  return {
+      mps_to_dev(block_kfo_offset_tp, dev),
+      mps_to_dev(kfo_2_orig_mapping_tp, dev),
+      mps_to_dev(atom_kfo_index, dev)};
 }
 
 auto get_kfo_atom_parents(
@@ -185,10 +200,10 @@ auto get_kfo_atom_parents(
     Tensor block_type_conn_atom) -> tensor_list {
   at::Tensor kfo_parent_atoms;
   at::Tensor kfo_grandparent_atoms;
+  c10::Device dev = pose_stack_block_type.device();
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.options(), "get_kfo_atom_parents", ([&] {
-        using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
-                              // for signed 64-bit integers in CUDA
+        using Int = int32_t;
         constexpr tmol::Device Dev = device_t;
 
         auto result =
@@ -197,7 +212,6 @@ auto get_kfo_atom_parents(
                     TCAST(pose_stack_block_type),
                     TCAST(pose_stack_inter_residue_connections),
                     TCAST(pose_stack_ff_parent),
-                    // TCAST(pose_stack_ff_conn_to_parent),
                     TCAST(pose_stack_block_in_and_first_out),
                     TCAST(block_type_parents),
                     TCAST(kfo_2_orig_mapping),
@@ -209,7 +223,7 @@ auto get_kfo_atom_parents(
         kfo_parent_atoms = std::get<0>(result).tensor;
         kfo_grandparent_atoms = std::get<1>(result).tensor;
       }));
-  return {kfo_parent_atoms, kfo_grandparent_atoms};
+  return {mps_to_dev(kfo_parent_atoms, dev), mps_to_dev(kfo_grandparent_atoms, dev)};
 }
 
 auto get_children(
@@ -224,10 +238,10 @@ auto get_children(
   at::Tensor child_list;
   at::Tensor is_atom_jump;
 
+  c10::Device dev = pose_stack_block_type.device();
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.options(), "get_children", ([&] {
-        using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
-                              // for signed 64-bit integers in CUDA
+        using Int = int32_t;
         constexpr tmol::Device Dev = device_t;
 
         auto result =
@@ -244,7 +258,11 @@ auto get_children(
         child_list = std::get<2>(result).tensor;
         is_atom_jump = std::get<3>(result).tensor;
       }));
-  return {n_children, child_list_span, child_list, is_atom_jump};
+  return {
+      mps_to_dev(n_children, dev),
+      mps_to_dev(child_list_span, dev),
+      mps_to_dev(child_list, dev),
+      mps_to_dev(is_atom_jump, dev)};
 }
 
 auto get_id_and_frame_xyz(
@@ -262,10 +280,10 @@ auto get_id_and_frame_xyz(
   at::Tensor frame_z;
   at::Tensor keep_dof_fixed;
 
+  c10::Device dev = parents.device();
   TMOL_DISPATCH_INDEX_DEVICE(
       parents.options(), "get_id_and_frame_xyz", ([&] {
-        using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
-                              // for signed 64-bit integers in CUDA
+        using Int = int32_t;
         constexpr tmol::Device Dev = device_t;
 
         auto result =
@@ -285,7 +303,12 @@ auto get_id_and_frame_xyz(
         frame_z = std::get<3>(result).tensor;
         keep_dof_fixed = std::get<4>(result).tensor;
       }));
-  return {id, frame_x, frame_y, frame_z, keep_dof_fixed};
+  return {
+      mps_to_dev(id, dev),
+      mps_to_dev(frame_x, dev),
+      mps_to_dev(frame_y, dev),
+      mps_to_dev(frame_z, dev),
+      mps_to_dev(keep_dof_fixed, dev)};
 }
 
 auto calculate_ff_edge_delays(
@@ -307,10 +330,10 @@ auto calculate_ff_edge_delays(
   Tensor first_child_of_ff_edge;
   Tensor delay_for_edge;
   Tensor toposort_index_for_edge;
+  c10::Device dev = pose_stack_block_type.device();
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.options(), "calculate_ff_edge_delays", ([&] {
-        using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
-                              // for signed 64-bit integers in CUDA
+        using Int = int32_t;
         constexpr tmol::Device Dev = device_t;
 
         auto result =
@@ -333,15 +356,15 @@ auto calculate_ff_edge_delays(
         toposort_index_for_edge = std::get<8>(result).tensor;
       }));
   return {
-      dfs_order_of_ff_edges,
-      n_ff_edges,
-      ff_edge_parent,
-      first_ff_edge_for_block_cpu,
-      pose_stack_ff_parent,
-      max_gen_depth_of_ff_edge,
-      first_child_of_ff_edge,
-      delay_for_edge,
-      toposort_index_for_edge};
+      mps_to_dev(dfs_order_of_ff_edges, dev),
+      mps_to_dev(n_ff_edges, dev),
+      mps_to_dev(ff_edge_parent, dev),
+      mps_to_dev(first_ff_edge_for_block_cpu, dev),
+      mps_to_dev(pose_stack_ff_parent, dev),
+      mps_to_dev(max_gen_depth_of_ff_edge, dev),
+      mps_to_dev(first_child_of_ff_edge, dev),
+      mps_to_dev(delay_for_edge, dev),
+      mps_to_dev(toposort_index_for_edge, dev)};
 }
 
 auto get_jump_atom_indices(
@@ -351,10 +374,10 @@ auto get_jump_atom_indices(
     ) -> tensor_list {
   Tensor pose_stack_atom_for_jump;
   Tensor pose_stack_atom_for_root_jump;
+  c10::Device dev = pose_stack_block_type.device();
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.options(), "calculate_ff_edge_delays", ([&] {
-        using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
-                              // for signed 64-bit integers in CUDA
+        using Int = int32_t;
         constexpr tmol::Device Dev = device_t;
 
         auto result =
@@ -366,7 +389,9 @@ auto get_jump_atom_indices(
         pose_stack_atom_for_jump = std::get<0>(result).tensor;
         pose_stack_atom_for_root_jump = std::get<1>(result).tensor;
       }));
-  return {pose_stack_atom_for_jump, pose_stack_atom_for_root_jump};
+  return {
+      mps_to_dev(pose_stack_atom_for_jump, dev),
+      mps_to_dev(pose_stack_atom_for_root_jump, dev)};
 }
 
 auto get_block_parent_connectivity_from_toposort(
@@ -383,32 +408,30 @@ auto get_block_parent_connectivity_from_toposort(
     Tensor block_type_n_conn,         // T
     Tensor block_type_polymeric_conn_index) -> Tensor {
   Tensor pose_stack_block_in_and_first_out;
+  c10::Device dev = pose_stack_block_type.device();
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.options(), "calculate_ff_edge_delays", ([&] {
-        using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
-                              // for signed 64-bit integers in CUDA
+        using Int = int32_t;
         constexpr tmol::Device Dev = device_t;
 
         auto result =
             KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
                 get_block_parent_connectivity_from_toposort(
-                    TCAST(pose_stack_block_type),  // P x L
-                    TCAST(
-                        pose_stack_inter_residue_connections),  // P x L x C x 2
+                    TCAST(pose_stack_block_type),
+                    TCAST(pose_stack_inter_residue_connections),
                     TCAST(pose_stack_ff_parent),
                     TCAST(dfs_order_of_ff_edges),
-                    TCAST(n_ff_edges),               // P
-                    TCAST(ff_edges),                 // P x E x 4
-                    TCAST(first_ff_edge_for_block),  // P x L
-                    // TCAST(max_n_gens_for_ff_edge), // P x E
-                    TCAST(first_child_of_ff_edge),    // P x E
-                    TCAST(delay_for_edge),            // P x E
-                    TCAST(topo_sort_index_for_edge),  // (P*E)
-                    TCAST(block_type_n_conn),         // T
+                    TCAST(n_ff_edges),
+                    TCAST(ff_edges),
+                    TCAST(first_ff_edge_for_block),
+                    TCAST(first_child_of_ff_edge),
+                    TCAST(delay_for_edge),
+                    TCAST(topo_sort_index_for_edge),
+                    TCAST(block_type_n_conn),
                     TCAST(block_type_polymeric_conn_index));
         pose_stack_block_in_and_first_out = result.tensor;
       }));
-  return pose_stack_block_in_and_first_out;
+  return mps_to_dev(pose_stack_block_in_and_first_out, dev);
 }
 
 auto get_scans2(
@@ -446,10 +469,10 @@ auto get_scans2(
   Tensor nodes_bw;
   Tensor scans_bw;
   Tensor gens_bw;
+  c10::Device dev = pose_stack_block_type.device();
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.options(), "calculate_ff_edge_delays", ([&] {
-        using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
-                              // for signed 64-bit integers in CUDA
+        using Int = int32_t;
         constexpr tmol::Device Dev = device_t;
 
         auto result =
@@ -487,7 +510,13 @@ auto get_scans2(
         scans_bw = std::get<4>(result).tensor;
         gens_bw = std::get<5>(result).tensor;
       }));
-  return {nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw};
+  return {
+      mps_to_dev(nodes_fw, dev),
+      mps_to_dev(scans_fw, dev),
+      mps_to_dev(gens_fw, dev),
+      mps_to_dev(nodes_bw, dev),
+      mps_to_dev(scans_bw, dev),
+      mps_to_dev(gens_bw, dev)};
 }
 
 auto minimizer_map_from_movemap(
@@ -535,6 +564,7 @@ auto minimizer_map_from_movemap(
     Tensor move_atom_dof_mask) -> Tensor {
   // Minimizer map: a boolean vector of the DOFs that are free
   Tensor minimizer_map;
+  c10::Device dev = pose_stack_block_type.device();
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.options(), "minimizer_map_from_movemap", ([&] {
         using Int = int32_t;
@@ -587,7 +617,7 @@ auto minimizer_map_from_movemap(
                     TCAST(move_atom_dof_mask));
         minimizer_map = result.tensor;
       }));
-  return minimizer_map;
+  return mps_to_dev(minimizer_map, dev);
 }
 
 // See https://stackoverflow.com/a/3221914

@@ -21,6 +21,11 @@ namespace compiled {
 
 using torch::Tensor;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 std::vector<Tensor> build_interaction_graph(
     int64_t const chunk_size,
     Tensor n_rots_for_pose,
@@ -38,6 +43,7 @@ std::vector<Tensor> build_interaction_graph(
   at::Tensor chunk_pair_offset;
   at::Tensor energy2b;
 
+  c10::Device orig_device = sparse_energies.device();
   using Int = int64_t;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
@@ -66,6 +72,11 @@ std::vector<Tensor> build_interaction_graph(
         energy2b = std::get<3>(result).tensor;
       }));
 
+  energy1b = mps_to_dev(energy1b, orig_device);
+  chunk_pair_offset_for_block_pair = mps_to_dev(chunk_pair_offset_for_block_pair, orig_device);
+  chunk_pair_offset = mps_to_dev(chunk_pair_offset, orig_device);
+  energy2b = mps_to_dev(energy2b, orig_device);
+
   std::vector<torch::Tensor> result(
       {energy1b,
        chunk_pair_offset_for_block_pair,
@@ -91,6 +102,7 @@ std::vector<Tensor> anneal(
   at::Tensor scores;
   at::Tensor rotamer_assignments;
 
+  c10::Device orig_device = energy1b.device();
   TMOL_DISPATCH_FLOATING_DEVICE(energy1b.options(), "pack_anneal", ([&] {
                                   constexpr tmol::Device Dev = device_t;
 
@@ -111,6 +123,9 @@ std::vector<Tensor> anneal(
                                   rotamer_assignments =
                                       std::get<1>(result).tensor;
                                 }));
+
+  scores = mps_to_dev(scores, orig_device);
+  rotamer_assignments = mps_to_dev(rotamer_assignments, orig_device);
 
   std::vector<torch::Tensor> result({scores, rotamer_assignments});
   return result;

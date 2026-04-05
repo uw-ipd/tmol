@@ -7,7 +7,10 @@ from tmol.pack.compiled.compiled import pack_anneal
 def run_simulated_annealing(
     energy_tables: PackerEnergyTables,
 ):
-    return pack_anneal(
+    # The target device is inferred from the pose-level tables (which may be
+    # on MPS) even when the energy tables themselves ended up on CPU.
+    target_device = energy_tables.pose_n_res.device
+    scores, rotamer_assignments = pack_anneal(
         energy_tables.max_n_rotamers_per_pose,
         energy_tables.pose_n_res,
         energy_tables.pose_n_rotamers,
@@ -21,3 +24,4 @@ def run_simulated_annealing(
         energy_tables.energy1b,
         energy_tables.energy2b,
     )
+    return scores.to(target_device), rotamer_assignments.to(target_device)

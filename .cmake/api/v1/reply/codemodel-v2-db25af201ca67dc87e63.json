@@ -1,0 +1,295 @@
+{
+	"configurations" : 
+	[
+		{
+			"abstractTargets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "Python::Interpreter::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Python__Interpreter-2c74ea15a790357f6ea2.json",
+					"name" : "Python::Interpreter",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Python::InterpreterMultiConfig::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Python__InterpreterMultiConfig-281c52ad582852dd8442.json",
+					"name" : "Python::InterpreterMultiConfig",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Python::Module::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Python__Module-e1a730410e700755c69d.json",
+					"name" : "Python::Module",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "c10::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-c10-ee23e4a244a624fe0141.json",
+					"name" : "c10",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dummy::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dummy-c5a1e0e4bf7a4e1611be.json",
+					"name" : "dummy",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "headeronly::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-headeronly-2f0578a4487294173579.json",
+					"name" : "headeronly",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pybind11::embed::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pybind11__embed-4cd02be104f3bb0c1379.json",
+					"name" : "pybind11::embed",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pybind11::headers::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pybind11__headers-27ed6e61158f5664528d.json",
+					"name" : "pybind11::headers",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pybind11::lto::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pybind11__lto-71e8393622cdac70402c.json",
+					"name" : "pybind11::lto",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pybind11::module::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pybind11__module-8179fef620a0748a18e4.json",
+					"name" : "pybind11::module",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pybind11::opt_size::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pybind11__opt_size-1c745f271fdb6e3dfc97.json",
+					"name" : "pybind11::opt_size",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pybind11::pybind11::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pybind11__pybind11-d0b6d3300ef319d1eee1.json",
+					"name" : "pybind11::pybind11",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pybind11::pybind11_headers::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pybind11__pybind11_headers-3d58eceae83a3a1629b2.json",
+					"name" : "pybind11::pybind11_headers",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pybind11::python_headers::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pybind11__python_headers-4b1a2ae2ac47ade11c87.json",
+					"name" : "pybind11::python_headers",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pybind11::python_link_helper::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pybind11__python_link_helper-4435565ae527d7087c8b.json",
+					"name" : "pybind11::python_link_helper",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pybind11::thin_lto::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pybind11__thin_lto-b54aa69cebe5956f3caf.json",
+					"name" : "pybind11::thin_lto",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pybind11::windows_extras::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pybind11__windows_extras-ebe5c8cee23be84e4e5c.json",
+					"name" : "pybind11::windows_extras",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "torch::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-torch-bdc096e72832a143c1d2.json",
+					"name" : "torch",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "torch_cpu::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-torch_cpu-f0d22ddd03e338ac5b16.json",
+					"name" : "torch_cpu",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "torch_cpu_library::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-torch_cpu_library-c861ef7acfa7ee69e5dc.json",
+					"name" : "torch_cpu_library",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "torch_library::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-torch_library-5be1a09b527c89852dd0.json",
+					"name" : "torch_library",
+					"projectIndex" : 0
+				}
+			],
+			"directories" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20
+					],
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-3dd5a1f6dcd55a8ca49a.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.18"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "tmol",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "_C::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-_C-2946fee6e1ad745204ed.json",
+					"name" : "_C",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "bspline_compiled::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-bspline_compiled-35d8e42aa9e00e208fe0.json",
+					"name" : "bspline_compiled",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "compiled_inverse_kin::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-compiled_inverse_kin-11dd4aeb28b88537b723.json",
+					"name" : "compiled_inverse_kin",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "cubic_hermite::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-cubic_hermite-5b8ac329d35b38b5a42a.json",
+					"name" : "cubic_hermite",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "tmol_metallib::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-tmol_metallib-8df1e745a142a4cd680a.json",
+					"name" : "tmol_metallib",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/Users/florian/Documents/Science-IA/tmol",
+		"source" : "/Users/florian/Documents/Science-IA/tmol"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 10
+	}
+}

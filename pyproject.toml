@@ -18,6 +18,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
@@ -87,9 +88,15 @@ cuda = [
     # CCCL headers (nv/target, cub/, thrust/) needed by nvcc
     "nvidia-cuda-cccl>=13,<14",
 ]
+# MPS (Apple Metal) backend — macOS + Apple Silicon only.
+# No pip dependencies: Metal SDK ships with macOS 13+ / Xcode 14+.
+# Requires: macOS >= 13.0, Apple Silicon or AMD GPU with Metal 3 support,
+#           PyTorch >= 2.0 (MPS backend), Xcode Command Line Tools.
+mps = []
 
 [project.urls]
-repository = "https://github.com/uw-ipd/tmol"
+repository = "https://github.com/fnachon/tmol"
+"Upstream (CUDA/Linux)" = "https://github.com/uw-ipd/tmol"
 
 # Build settings ---------------------------------------------------------------
 [build-system]

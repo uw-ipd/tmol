@@ -6,8 +6,10 @@ import torch
 import torch.cuda
 
 cuda_available = torch.cuda.is_available()
+mps_available = torch.backends.mps.is_available()
 
 requires_cuda = pytest.mark.skipif(not cuda_available, reason="Requires cuda.")
+requires_mps = pytest.mark.skipif(not mps_available, reason="Requires MPS (Apple Silicon).")
 
 
 def zero_padded_counts(counts):
@@ -18,16 +20,28 @@ def zero_padded_counts(counts):
     return [str(x).zfill(width) for x in counts]
 
 
-@pytest.fixture(params=["cpu", pytest.param("cuda", marks=requires_cuda)])
+def _device_params():
+    """Build the parameter list for the torch_device fixture."""
+    params = ["cpu"]
+    if cuda_available:
+        params.append(pytest.param("cuda", marks=requires_cuda))
+    if mps_available:
+        params.append(pytest.param("mps", marks=requires_mps))
+    return params
+
+
+@pytest.fixture(params=_device_params())
 def torch_device(request):
-    """Paramterized test fixure covering cpu & cuda torch devices."""
+    """Parametrized test fixture covering cpu, cuda, and mps torch devices."""
 
     if request.param == "cpu":
         device = torch.device("cpu")
     elif request.param == "cuda":
         device = torch.device("cuda", torch.cuda.current_device())
+    elif request.param == "mps":
+        device = torch.device("mps", 0)
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"Unknown device param: {request.param}")
 
     # Perform a "warmup" computation on the device, ensuring that it is
     # initialized and available.
@@ -46,6 +60,23 @@ def cuda_not_implemented(f):
                 torch.device("cuda"),
                 marks=[
                     requires_cuda,
+                    pytest.mark.xfail(strict=True, raises=NotImplementedError),
+                ],
+            ),
+        ],
+    )(f)
+
+
+def mps_not_implemented(f):
+    """Parametrize 'torch_device' as an xfail for MPS via NotImplementedError."""
+    return pytest.mark.parametrize(
+        "torch_device",
+        [
+            (torch.device("cpu")),
+            pytest.param(
+                torch.device("mps", 0),
+                marks=[
+                    requires_mps,
                     pytest.mark.xfail(strict=True, raises=NotImplementedError),
                 ],
             ),

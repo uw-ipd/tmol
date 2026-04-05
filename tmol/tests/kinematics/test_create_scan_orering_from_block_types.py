@@ -170,6 +170,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
     )
+    result = tuple(t.cpu() for t in result)
     (
         dfs_order_of_ff_edges,
         n_ff_edges,
@@ -240,6 +241,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
     )
+    result = tuple(t.cpu() for t in result)
     (
         dfs_order_of_ff_edges,
         n_ff_edges,
@@ -308,7 +310,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
     )
-    ff_2ubq_6res_K = torch.tensor(ff_2ubq_6res_K)
+    result = tuple(t.cpu() for t in result)
 
     (
         dfs_order_of_ff_edges,

@@ -134,6 +134,9 @@ def _augment_kwargs(name, sources, **kwargs):
         kwargs["extra_cflags"] += ["-DWITH_CUDA"]
         kwargs["extra_cuda_cflags"] += ["-DWITH_CUDA"]
 
+    if torch.backends.mps.is_available():
+        kwargs["extra_cflags"] += ["-DWITH_MPS"]
+
     if os.environ.get("TMOL_TORCH_EXTENSIONS_VERBOSE"):
         kwargs["verbose"] = True
 
@@ -146,6 +149,14 @@ def cuda_if_available(sources):
         return sources
     else:
         return [s for s in sources if not _is_cuda_file(s)]
+
+
+def mps_if_available(sources):
+    """Filter .mm (Objective-C++) sources if MPS is not available."""
+    if torch.backends.mps.is_available():
+        return sources
+    else:
+        return [s for s in sources if not s.endswith(".mm")]
 
 
 @wraps(torch.utils.cpp_extension.load)

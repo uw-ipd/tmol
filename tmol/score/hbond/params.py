@@ -29,8 +29,14 @@ class HBondPolyParams(TensorGroup, ConvertAttrs):
         self.coeffs[idx] = value.coeffs[idx]
 
     def to(self, device: torch.device):
+        def _move(t):
+            # MPS does not support float64; keep float64 tensors on CPU so the
+            # C++ kernel (which uses HBondPolynomials<double>) can access them.
+            if isinstance(device, torch.device) and device.type == "mps" and t.dtype == torch.double:
+                return t
+            return t.to(device)
         return type(self)(
-            **toolz.valmap(lambda t: t.to(device), attr.asdict(self, recurse=False))
+            **toolz.valmap(_move, attr.asdict(self, recurse=False))
         )
 
     @classmethod
@@ -53,8 +59,12 @@ class HBondPairParams(TensorGroup, ValidateAttrs):
     cosAHD: HBondPolyParams
 
     def to(self, device: torch.device):
+        def _move(t):
+            if isinstance(t, torch.Tensor) and isinstance(device, torch.device) and device.type == "mps" and t.dtype == torch.double:
+                return t.to(dtype=torch.float32, device=device)
+            return t.to(device)
         return type(self)(
-            **toolz.valmap(lambda t: t.to(device), attr.asdict(self, recurse=False))
+            **toolz.valmap(_move, attr.asdict(self, recurse=False))
         )
 
     @classmethod
@@ -252,9 +262,12 @@ class CompactedHBondDatabase(ValidateAttrs):
         # Eigen allocates space for 12 Reals for an 11x1 matrix
         # so we need to pad out with 0s in between the coefficients
         # and the ranges.
+        # pair_poly_table must be float64 for HBondPolynomials<double> kernel;
+        # keep pad and the table on CPU when device is MPS (MPS can't hold float64).
+        poly_device = torch.device("cpu") if isinstance(device, torch.device) and device.type == "mps" else device
         pad = torch.zeros(
             [pp.AHdist.coeffs.shape[0], pp.AHdist.coeffs.shape[1], 1],
-            device=device,
+            device=poly_device,
             dtype=torch.float64,
         )
 

@@ -20,6 +20,8 @@ inline bool operator==(const tmol::Device& lhs, const at::Device::Type& rhs) {
     return rhs == at::Device::Type::CPU;
   } else if (lhs == tmol::Device::CUDA) {
     return rhs == at::Device::Type::CUDA;
+  } else if (lhs == tmol::Device::MPS) {
+    return rhs == at::Device::Type::MPS;
   } else {
     AT_ERROR("Unknown tmol::Device type.");
   }
@@ -151,8 +153,12 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
     target_stride *= input_t.size(d);
   }
 
+  // For MPS: kernels run on CPU via DeviceOperations<MPS> CPU loops.
+  // TCast/TPack give us CPU-backed tensors even when device_t == MPS.
+  // Allow CPU tensors when D == Device::MPS so the CPU data_ptr() is valid.
   TORCH_CHECK(
-      input_t.device().type() == D,
+      input_t.device().type() == D
+          || (D == Device::MPS && input_t.device().is_cpu()),
       "view_tensor of incorrect device type.",
       " device: ",
       input_t.device().type());

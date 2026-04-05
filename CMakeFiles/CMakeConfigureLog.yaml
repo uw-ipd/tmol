@@ -1,0 +1,3095 @@
+
+---
+events:
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineSystem.cmake:12 (find_program)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_UNAME"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "uname"
+    candidate_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/"
+      - "/Users/florian/miniconda3/envs/tmol/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    searched_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/uname"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/uname"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/uname"
+      - "/Users/florian/miniconda3/envs/tmol/bin/uname"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/uname"
+      - "/Users/florian/miniconda3/envs/tmol/uname"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/uname"
+      - "/Users/florian/Library/orca_6_1_0/uname"
+      - "/Users/florian/miniconda3/bin/uname"
+      - "/opt/homebrew/opt/curl/bin/uname"
+      - "/opt/homebrew/bin/uname"
+      - "/opt/homebrew/sbin/uname"
+      - "/opt/gromacs/bin/uname"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/uname"
+      - "/Applications/XDS-M1/uname"
+      - "/Applications/ccp4-9/etc/uname"
+      - "/Applications/ccp4-9/bin/uname"
+      - "/bin/uname"
+      - "/sbin/uname"
+    found: "/usr/bin/uname"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineSystem.cmake:212 (message)"
+      - "CMakeLists.txt:37 (project)"
+    message: |
+      The system is: Darwin - 25.4.0 - arm64
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeNinjaFindMake.cmake:5 (find_program)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_MAKE_PROGRAM"
+    description: "Program used to build from build.ninja files."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ninja-build"
+      - "ninja"
+      - "samu"
+    candidate_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/"
+      - "/Users/florian/miniconda3/envs/tmol/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    searched_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/ninja-build"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/ninja"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/samu"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/ninja-build"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/ninja"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/samu"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/ninja-build"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/ninja"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/samu"
+      - "/Users/florian/miniconda3/envs/tmol/bin/ninja-build"
+      - "/Users/florian/miniconda3/envs/tmol/bin/ninja"
+      - "/Users/florian/miniconda3/envs/tmol/bin/samu"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/ninja-build"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/ninja"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/samu"
+      - "/Users/florian/miniconda3/envs/tmol/ninja-build"
+      - "/Users/florian/miniconda3/envs/tmol/ninja"
+      - "/Users/florian/miniconda3/envs/tmol/samu"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/ninja-build"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/ninja"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/samu"
+      - "/Users/florian/Library/orca_6_1_0/ninja-build"
+      - "/Users/florian/Library/orca_6_1_0/ninja"
+      - "/Users/florian/Library/orca_6_1_0/samu"
+      - "/Users/florian/miniconda3/bin/ninja-build"
+      - "/Users/florian/miniconda3/bin/ninja"
+      - "/Users/florian/miniconda3/bin/samu"
+      - "/opt/homebrew/opt/curl/bin/ninja-build"
+      - "/opt/homebrew/opt/curl/bin/ninja"
+      - "/opt/homebrew/opt/curl/bin/samu"
+      - "/opt/homebrew/bin/ninja-build"
+    found: "/opt/homebrew/bin/ninja"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompiler.cmake:73 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:69 (_cmake_find_compiler)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_CXX_COMPILER"
+    description: "CXX compiler"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "c++"
+      - "g++"
+      - "cl"
+      - "bcc"
+      - "icpx"
+      - "icx"
+      - "clang++"
+    candidate_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/"
+      - "/Users/florian/miniconda3/envs/tmol/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    searched_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/c++"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/c++"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/c++"
+      - "/Users/florian/miniconda3/envs/tmol/bin/c++"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/c++"
+      - "/Users/florian/miniconda3/envs/tmol/c++"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/c++"
+      - "/Users/florian/Library/orca_6_1_0/c++"
+      - "/Users/florian/miniconda3/bin/c++"
+      - "/opt/homebrew/opt/curl/bin/c++"
+      - "/opt/homebrew/bin/c++"
+      - "/opt/homebrew/sbin/c++"
+      - "/opt/gromacs/bin/c++"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/c++"
+      - "/Applications/XDS-M1/c++"
+      - "/Applications/ccp4-9/etc/c++"
+      - "/Applications/ccp4-9/bin/c++"
+      - "/bin/c++"
+      - "/sbin/c++"
+    found: "/usr/bin/c++"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerId.cmake:468 (find_file)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerId.cmake:506 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "file"
+    variable: "src_in"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "CMakeCXXCompilerId.cpp.in"
+    candidate_directories:
+      - "/opt/homebrew/share/cmake/Modules/"
+    found: "/opt/homebrew/share/cmake/Modules/CMakeCXXCompilerId.cpp.in"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:37 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/bin/c++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+      
+      The CXX compiler identification is AppleClang, found in:
+        /Users/florian/Documents/Science-IA/tmol/CMakeFiles/4.3.1/CompilerIdCXX/a.out
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerId.cmake:296 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:37 (project)"
+    message: |
+      Detecting CXX compiler apple sysroot: "/usr/bin/c++" "-E" "apple-sdk.cpp"
+        # 1 "apple-sdk.cpp"
+        # 1 "<built-in>" 1
+        # 1 "<built-in>" 3
+        # 531 "<built-in>" 3
+        # 1 "<command line>" 1
+        # 1 "<built-in>" 2
+        # 1 "apple-sdk.cpp" 2
+        # 1 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityMacros.h" 1 3 4
+        # 89 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityMacros.h" 3 4
+        # 1 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityVersions.h" 1 3 4
+        # 90 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityMacros.h" 2 3 4
+        # 1 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/TargetConditionals.h" 1 3 4
+        # 91 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityMacros.h" 2 3 4
+        # 207 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityMacros.h" 3 4
+        # 1 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/Availability.h" 1 3 4
+        # 196 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/Availability.h" 3 4
+        # 1 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityVersions.h" 1 3 4
+        # 197 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/Availability.h" 2 3 4
+        # 1 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityInternal.h" 1 3 4
+        # 33 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityInternal.h" 3 4
+        # 1 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityVersions.h" 1 3 4
+        # 34 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityInternal.h" 2 3 4
+        # 198 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/Availability.h" 2 3 4
+        # 1 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h" 1 3 4
+        # 34 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h" 3 4
+        # 1 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityInternal.h" 1 3 4
+        # 35 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h" 2 3 4
+        # 199 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/Availability.h" 2 3 4
+        # 208 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityMacros.h" 2 3 4
+        # 2 "apple-sdk.cpp" 2
+        
+        
+      Found apple sysroot: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_AR"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ar"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    found: "/usr/bin/ar"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_RANLIB"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ranlib"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    found: "/usr/bin/ranlib"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_STRIP"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "strip"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    found: "/usr/bin/strip"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_LINKER"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ld"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    found: "/usr/bin/ld"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_NM"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "nm"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    found: "/usr/bin/nm"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_OBJDUMP"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "objdump"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    found: "/usr/bin/objdump"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_OBJCOPY"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "objcopy"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    searched_directories:
+      - "/usr/bin/objcopy"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/objcopy"
+      - "/Users/florian/Library/orca_6_1_0/objcopy"
+      - "/Users/florian/miniconda3/bin/objcopy"
+      - "/opt/homebrew/opt/curl/bin/objcopy"
+      - "/opt/homebrew/bin/objcopy"
+      - "/opt/homebrew/sbin/objcopy"
+      - "/opt/gromacs/bin/objcopy"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/objcopy"
+      - "/Applications/XDS-M1/objcopy"
+      - "/Applications/ccp4-9/etc/objcopy"
+      - "/Applications/ccp4-9/bin/objcopy"
+      - "/bin/objcopy"
+      - "/sbin/objcopy"
+      - "/usr/sbin/objcopy"
+      - "/usr/X11R6/bin/objcopy"
+      - "/opt/bin/objcopy"
+      - "/usr/local/bin/objcopy"
+      - "/usr/local/sbin/objcopy"
+      - "/opt/vina/objcopy"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/objcopy"
+      - "/Users/florian/.cache/lm-studio/bin/objcopy"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_READELF"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "readelf"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    searched_directories:
+      - "/usr/bin/readelf"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/readelf"
+      - "/Users/florian/Library/orca_6_1_0/readelf"
+      - "/Users/florian/miniconda3/bin/readelf"
+      - "/opt/homebrew/opt/curl/bin/readelf"
+      - "/opt/homebrew/bin/readelf"
+      - "/opt/homebrew/sbin/readelf"
+      - "/opt/gromacs/bin/readelf"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/readelf"
+      - "/Applications/XDS-M1/readelf"
+      - "/Applications/ccp4-9/etc/readelf"
+      - "/Applications/ccp4-9/bin/readelf"
+      - "/bin/readelf"
+      - "/sbin/readelf"
+      - "/usr/sbin/readelf"
+      - "/usr/X11R6/bin/readelf"
+      - "/opt/bin/readelf"
+      - "/usr/local/bin/readelf"
+      - "/usr/local/sbin/readelf"
+      - "/opt/vina/readelf"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/readelf"
+      - "/Users/florian/.cache/lm-studio/bin/readelf"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_DLLTOOL"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "dlltool"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    searched_directories:
+      - "/usr/bin/dlltool"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/dlltool"
+      - "/Users/florian/Library/orca_6_1_0/dlltool"
+      - "/Users/florian/miniconda3/bin/dlltool"
+      - "/opt/homebrew/opt/curl/bin/dlltool"
+      - "/opt/homebrew/bin/dlltool"
+      - "/opt/homebrew/sbin/dlltool"
+      - "/opt/gromacs/bin/dlltool"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/dlltool"
+      - "/Applications/XDS-M1/dlltool"
+      - "/Applications/ccp4-9/etc/dlltool"
+      - "/Applications/ccp4-9/bin/dlltool"
+      - "/bin/dlltool"
+      - "/sbin/dlltool"
+      - "/usr/sbin/dlltool"
+      - "/usr/X11R6/bin/dlltool"
+      - "/opt/bin/dlltool"
+      - "/usr/local/bin/dlltool"
+      - "/usr/local/sbin/dlltool"
+      - "/opt/vina/dlltool"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/dlltool"
+      - "/Users/florian/.cache/lm-studio/bin/dlltool"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_ADDR2LINE"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "addr2line"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    searched_directories:
+      - "/usr/bin/addr2line"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/addr2line"
+      - "/Users/florian/Library/orca_6_1_0/addr2line"
+      - "/Users/florian/miniconda3/bin/addr2line"
+      - "/opt/homebrew/opt/curl/bin/addr2line"
+      - "/opt/homebrew/bin/addr2line"
+      - "/opt/homebrew/sbin/addr2line"
+      - "/opt/gromacs/bin/addr2line"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/addr2line"
+      - "/Applications/XDS-M1/addr2line"
+      - "/Applications/ccp4-9/etc/addr2line"
+      - "/Applications/ccp4-9/bin/addr2line"
+      - "/bin/addr2line"
+      - "/sbin/addr2line"
+      - "/usr/sbin/addr2line"
+      - "/usr/X11R6/bin/addr2line"
+      - "/opt/bin/addr2line"
+      - "/usr/local/bin/addr2line"
+      - "/usr/local/sbin/addr2line"
+      - "/opt/vina/addr2line"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/addr2line"
+      - "/Users/florian/.cache/lm-studio/bin/addr2line"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_TAPI"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "tapi"
+    candidate_directories:
+      - "/usr/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    searched_directories:
+      - "/usr/bin/tapi"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/tapi"
+      - "/Users/florian/Library/orca_6_1_0/tapi"
+      - "/Users/florian/miniconda3/bin/tapi"
+      - "/opt/homebrew/opt/curl/bin/tapi"
+      - "/opt/homebrew/bin/tapi"
+      - "/opt/homebrew/sbin/tapi"
+      - "/opt/gromacs/bin/tapi"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/tapi"
+      - "/Applications/XDS-M1/tapi"
+      - "/Applications/ccp4-9/etc/tapi"
+      - "/Applications/ccp4-9/bin/tapi"
+      - "/bin/tapi"
+      - "/sbin/tapi"
+      - "/usr/sbin/tapi"
+      - "/usr/X11R6/bin/tapi"
+      - "/opt/bin/tapi"
+      - "/usr/local/bin/tapi"
+      - "/usr/local/sbin/tapi"
+      - "/opt/vina/tapi"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/tapi"
+      - "/Users/florian/.cache/lm-studio/bin/tapi"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/Platform/Darwin.cmake:66 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeSystemSpecificInformation.cmake:32 (include)"
+      - "CMakeLists.txt:37 (project)"
+    mode: "program"
+    variable: "CMAKE_INSTALL_NAME_TOOL"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "install_name_tool"
+    candidate_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/"
+      - "/Users/florian/miniconda3/envs/tmol/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+    searched_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/install_name_tool"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/install_name_tool"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/install_name_tool"
+      - "/Users/florian/miniconda3/envs/tmol/bin/install_name_tool"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/install_name_tool"
+      - "/Users/florian/miniconda3/envs/tmol/install_name_tool"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/install_name_tool"
+      - "/Users/florian/Library/orca_6_1_0/install_name_tool"
+      - "/Users/florian/miniconda3/bin/install_name_tool"
+      - "/opt/homebrew/opt/curl/bin/install_name_tool"
+      - "/opt/homebrew/bin/install_name_tool"
+      - "/opt/homebrew/sbin/install_name_tool"
+      - "/opt/gromacs/bin/install_name_tool"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/install_name_tool"
+      - "/Applications/XDS-M1/install_name_tool"
+      - "/Applications/ccp4-9/etc/install_name_tool"
+      - "/Applications/ccp4-9/bin/install_name_tool"
+      - "/bin/install_name_tool"
+      - "/sbin/install_name_tool"
+    found: "/usr/bin/install_name_tool"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_INSTALL_PREFIX: "/usr/local"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:37 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TVPazY"
+      binary: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TVPazY"
+    cmakeVariables:
+      CMAKE_CUDA_ARCHITECTURES: "80;86;89;90"
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_CXX_STDLIB_MODULES_JSON: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: ""
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TVPazY'
+        
+        Run Build Command(s): /opt/homebrew/bin/ninja -v cmTC_51608
+        [1/2] /usr/bin/c++   -arch arm64   -v -Wl,-v -MD -MT CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -c /opt/homebrew/share/cmake/Modules/CMakeCXXCompilerABI.cpp
+        Apple clang version 21.0.0 (clang-2100.0.123.102)
+        Target: arm64-apple-darwin25.4.0
+        Thread model: posix
+        InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin
+        clang++: warning: -Wl,-v: 'linker' input unused [-Wunused-command-line-argument]
+        ignoring nonexistent directory "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"
+         "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang" -cc1 -triple arm64-apple-macosx26.0.0 -Wundef-prefix=TARGET_OS_ -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -Werror=implicit-function-declaration -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-strict-return -ffp-contract=on -fno-rounding-math -funwind-tables=1 -fobjc-msgsend-selector-stubs -fno-sized-deallocation -target-sdk-version=26.4 -fvisibility-inlines-hidden-static-local-var -fno-modulemap-allow-subdirectory-search -fdefine-target-os-macros -fno-assume-unique-vtables -fno-modulemap-allow-subdirectory-search -enable-tlsdesc -target-cpu apple-m1 -target-feature +v8.5a -target-feature +aes -target-feature +altnzcv -target-feature +ccdp -target-feature +ccpp -target-feature +complxnum -target-feature +crc -target-feature +dotprod -target-feature +flagm -target-feature +fp-armv8 -target-feature +fp16fml -target-feature +fptoint -target-feature +fullfp16 -target-feature +jsconv -target-feature +lse -target-feature +neon -target-feature +pauth -target-feature +perfmon -target-feature +predres -target-feature +ras -target-feature +rcpc -target-feature +rdm -target-feature +sb -target-feature +sha2 -target-feature +sha3 -target-feature +specrestrict -target-feature +ssbs -target-abi darwinpcs -debugger-tuning=lldb -fdebug-compilation-dir=/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TVPazY -target-linker-version 1266.8 -v -fcoverage-compilation-dir=/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TVPazY -resource-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21 -dependency-file CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o.d -skip-unused-modulemap-deps -MT CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/usr/local/include -internal-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1 -internal-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/local/include -internal-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/SubFrameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks -Wno-elaborated-enum-base -fdeprecated-macro -ferror-limit 19 -stack-protector 1 -fstack-check -mdarwin-stkchk-strong-link -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fcxx-exceptions -fexceptions -fmax-type-align=16 -fcommon -clang-vendor-feature=+disableNonDependentMemberExprInCurrentInstantiation -fno-odr-hash-protocols -clang-vendor-feature=+enableAggressiveVLAFolding -clang-vendor-feature=+revert09abecef7bbf -clang-vendor-feature=+thisNoAlignAttr -clang-vendor-feature=+thisNoNullAttr -clang-vendor-feature=+disableAtImportPrivateFrameworkInImplementationError -Wno-error=allocator-wrappers -fdwarf2-cfi-asm -o CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -x c++ /opt/homebrew/share/cmake/Modules/CMakeCXXCompilerABI.cpp
+        clang -cc1 version 21.0.0 (clang-2100.0.123.102) default target arm64-apple-darwin25.4.0
+        ignoring nonexistent directory "/usr/local/include"
+        ignoring nonexistent directory "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/local/include"
+        ignoring nonexistent directory "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1
+         /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include
+         /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
+         /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include
+         /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks (framework directory)
+         /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/SubFrameworks (framework directory)
+        End of search list.
+        [2/2] : && /usr/bin/c++ -arch arm64 -v -Wl,-v CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_51608   && :
+        Apple clang version 21.0.0 (clang-2100.0.123.102)
+        Target: arm64-apple-darwin25.4.0
+        Thread model: posix
+        InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin
+         "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld" -demangle -lto_library /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libLTO.dylib -dynamic -arch arm64 -platform_version macos 26.0.0 26.4 -syslibroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mllvm -enable-linkonceodr-outlining -o cmTC_51608 -L/usr/local/lib -v CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -lc++ -lSystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a
+        @(#)PROGRAM:ld PROJECT:ld-1266.8
+        BUILD 16:03:08 Mar  6 2026
+        configured to support archs: armv6 armv7 armv7s arm64 arm64e arm64_32 i386 x86_64 x86_64h armv6m armv7k armv7m armv7em armv8m.main armv8.1m.main
+        will use ld-classic for: armv6 armv7 armv7s i386 armv6m armv7k armv7m armv7em
+        LTO support using: LLVM version 21.0.0 (static support for 30, runtime is 30)
+        TAPI support using: Apple TAPI version 21.0.0 (tapi-2100.0.2.6)
+        Library search paths:
+        	/usr/local/lib
+        	/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib
+        	/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/swift
+        Framework search paths:
+        	/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:122 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:37 (project)"
+    message: |
+      Effective list of requested architectures (possibly empty)  : ""
+      Effective list of architectures found in the ABI info binary: "arm64"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:217 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:37 (project)"
+    message: |
+      Parsed CXX implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1]
+          add: [/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include]
+          add: [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include]
+          add: [/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include]
+        end of search list found
+        collapse include dir [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1] ==> [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1]
+        collapse include dir [/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include] ==> [/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include]
+        collapse include dir [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include] ==> [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include]
+        collapse include dir [/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include] ==> [/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include]
+        implicit include dirs: [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1;/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include;/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include;/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:253 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:37 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|"|[0-9]+>[ 	-]*Build:[ 	0-9]+ ms[ 	]*)?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)))("|,| |$)]
+        ignore line: [Change Dir: '/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TVPazY']
+        ignore line: []
+        ignore line: [Run Build Command(s): /opt/homebrew/bin/ninja -v cmTC_51608]
+        ignore line: [[1/2] /usr/bin/c++   -arch arm64   -v -Wl -v -MD -MT CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -c /opt/homebrew/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [Apple clang version 21.0.0 (clang-2100.0.123.102)]
+        ignore line: [Target: arm64-apple-darwin25.4.0]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin]
+        ignore line: [clang++: warning: -Wl -v: 'linker' input unused [-Wunused-command-line-argument]]
+        ignore line: [ignoring nonexistent directory "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"]
+        ignore line: [ "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang" -cc1 -triple arm64-apple-macosx26.0.0 -Wundef-prefix=TARGET_OS_ -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -Werror=implicit-function-declaration -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-strict-return -ffp-contract=on -fno-rounding-math -funwind-tables=1 -fobjc-msgsend-selector-stubs -fno-sized-deallocation -target-sdk-version=26.4 -fvisibility-inlines-hidden-static-local-var -fno-modulemap-allow-subdirectory-search -fdefine-target-os-macros -fno-assume-unique-vtables -fno-modulemap-allow-subdirectory-search -enable-tlsdesc -target-cpu apple-m1 -target-feature +v8.5a -target-feature +aes -target-feature +altnzcv -target-feature +ccdp -target-feature +ccpp -target-feature +complxnum -target-feature +crc -target-feature +dotprod -target-feature +flagm -target-feature +fp-armv8 -target-feature +fp16fml -target-feature +fptoint -target-feature +fullfp16 -target-feature +jsconv -target-feature +lse -target-feature +neon -target-feature +pauth -target-feature +perfmon -target-feature +predres -target-feature +ras -target-feature +rcpc -target-feature +rdm -target-feature +sb -target-feature +sha2 -target-feature +sha3 -target-feature +specrestrict -target-feature +ssbs -target-abi darwinpcs -debugger-tuning=lldb -fdebug-compilation-dir=/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TVPazY -target-linker-version 1266.8 -v -fcoverage-compilation-dir=/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TVPazY -resource-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21 -dependency-file CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o.d -skip-unused-modulemap-deps -MT CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/usr/local/include -internal-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1 -internal-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/local/include -internal-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/SubFrameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks -Wno-elaborated-enum-base -fdeprecated-macro -ferror-limit 19 -stack-protector 1 -fstack-check -mdarwin-stkchk-strong-link -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fcxx-exceptions -fexceptions -fmax-type-align=16 -fcommon -clang-vendor-feature=+disableNonDependentMemberExprInCurrentInstantiation -fno-odr-hash-protocols -clang-vendor-feature=+enableAggressiveVLAFolding -clang-vendor-feature=+revert09abecef7bbf -clang-vendor-feature=+thisNoAlignAttr -clang-vendor-feature=+thisNoNullAttr -clang-vendor-feature=+disableAtImportPrivateFrameworkInImplementationError -Wno-error=allocator-wrappers -fdwarf2-cfi-asm -o CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -x c++ /opt/homebrew/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [clang -cc1 version 21.0.0 (clang-2100.0.123.102) default target arm64-apple-darwin25.4.0]
+        ignore line: [ignoring nonexistent directory "/usr/local/include"]
+        ignore line: [ignoring nonexistent directory "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/local/include"]
+        ignore line: [ignoring nonexistent directory "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1]
+        ignore line: [ /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include]
+        ignore line: [ /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include]
+        ignore line: [ /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include]
+        ignore line: [ /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks (framework directory)]
+        ignore line: [ /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/SubFrameworks (framework directory)]
+        ignore line: [End of search list.]
+        ignore line: [[2/2] : && /usr/bin/c++ -arch arm64 -v -Wl -v CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_51608   && :]
+        ignore line: [Apple clang version 21.0.0 (clang-2100.0.123.102)]
+        ignore line: [Target: arm64-apple-darwin25.4.0]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin]
+        link line: [ "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld" -demangle -lto_library /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libLTO.dylib -dynamic -arch arm64 -platform_version macos 26.0.0 26.4 -syslibroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mllvm -enable-linkonceodr-outlining -o cmTC_51608 -L/usr/local/lib -v CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o -lc++ -lSystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+          arg [/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld] ==> ignore
+          arg [-demangle] ==> ignore
+          arg [-lto_library] ==> ignore, skip following value
+          arg [/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libLTO.dylib] ==> skip value of -lto_library
+          arg [-dynamic] ==> ignore
+          arg [-arch] ==> ignore
+          arg [arm64] ==> ignore
+          arg [-platform_version] ==> ignore
+          arg [macos] ==> ignore
+          arg [26.0.0] ==> ignore
+          arg [26.4] ==> ignore
+          arg [-syslibroot] ==> ignore
+          arg [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk] ==> ignore
+          arg [-mllvm] ==> ignore
+          arg [-enable-linkonceodr-outlining] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_51608] ==> ignore
+          arg [-L/usr/local/lib] ==> dir [/usr/local/lib]
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_51608.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+          arg [-lc++] ==> lib [c++]
+          arg [-lSystem] ==> lib [System]
+          arg [/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a] ==> lib [/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+        linker tool for 'CXX': /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld
+        Library search paths: [;/usr/local/lib;/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib;/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/swift]
+        Framework search paths: [;/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks]
+        remove lib [System]
+        remove lib [/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+        collapse library dir [/usr/local/lib] ==> [/usr/local/lib]
+        collapse library dir [/usr/local/lib] ==> [/usr/local/lib]
+        collapse library dir [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib] ==> [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib]
+        collapse library dir [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/swift] ==> [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/swift]
+        collapse framework dir [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks] ==> [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks]
+        implicit libs: [c++]
+        implicit objs: []
+        implicit dirs: [/usr/local/lib;/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib;/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/swift]
+        implicit fwks: [/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/Internal/CMakeDetermineLinkerId.cmake:38 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:299 (cmake_determine_linker_id)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:37 (project)"
+    message: |
+      Running the CXX compiler's linker: "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld" "-v"
+      @(#)PROGRAM:ld PROJECT:ld-1266.8
+      BUILD 16:03:08 Mar  6 2026
+      configured to support archs: armv6 armv7 armv7s arm64 arm64e arm64_32 i386 x86_64 x86_64h armv6m armv7k armv7m armv7em armv8m.main armv8.1m.main
+      will use ld-classic for: armv6 armv7 armv7s i386 armv6m armv7k armv7m armv7em
+      LTO support using: LLVM version 21.0.0 (static support for 30, runtime is 30)
+      TAPI support using: Apple TAPI version 21.0.0 (tapi-2100.0.2.6)
+  -
+    kind: "find-v1"
+    backtrace:
+      - "CMakeLists.txt:50 (find_program)"
+    mode: "program"
+    variable: "XCRUN_EXECUTABLE"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "xcrun"
+    candidate_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/"
+      - "/Users/florian/miniconda3/envs/tmol/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/sbin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/"
+      - "/opt/bin/"
+      - "/opt/sbin/"
+      - "/opt/"
+      - "/sw/bin/"
+      - "/sw/sbin/"
+      - "/sw/"
+      - "/opt/local/bin/"
+      - "/opt/local/sbin/"
+      - "/opt/local/"
+      - "/Users/florian/Applications/"
+      - "/Applications/"
+      - "/Applications/Xcode.app/Contents/Applications/"
+      - "/Applications/Xcode.app/Contents/Developer/Applications/"
+    searched_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/xcrun"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/xcrun"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/xcrun"
+      - "/Users/florian/miniconda3/envs/tmol/bin/xcrun"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/xcrun"
+      - "/Users/florian/miniconda3/envs/tmol/xcrun"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/xcrun"
+      - "/Users/florian/Library/orca_6_1_0/xcrun"
+      - "/Users/florian/miniconda3/bin/xcrun"
+      - "/opt/homebrew/opt/curl/bin/xcrun"
+      - "/opt/homebrew/bin/xcrun"
+      - "/opt/homebrew/sbin/xcrun"
+      - "/opt/gromacs/bin/xcrun"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/xcrun"
+      - "/Applications/XDS-M1/xcrun"
+      - "/Applications/ccp4-9/etc/xcrun"
+      - "/Applications/ccp4-9/bin/xcrun"
+      - "/bin/xcrun"
+      - "/sbin/xcrun"
+    found: "/usr/bin/xcrun"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_INSTALL_PREFIX: "/usr/local"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+      CMAKE_SYSTEM_APPBUNDLE_PATH:
+        - "/Users/florian/Applications"
+        - "/Applications"
+        - "/Applications/Xcode.app/Contents/Applications"
+        - "/Applications/Xcode.app/Contents/Developer/Applications"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/FindPython/Support.cmake:3846 (find_path)"
+      - "/opt/homebrew/share/cmake/Modules/FindPython.cmake:721 (include)"
+      - "CMakeLists.txt:73 (find_package)"
+    mode: "path"
+    variable: "_Python_INCLUDE_DIR"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: false
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "Python.h"
+    candidate_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/include/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/"
+      - "/Users/florian/miniconda3/envs/tmol/include/"
+      - "/Users/florian/miniconda3/envs/tmol/"
+      - "/Users/florian/miniconda3/envs/tmol/include/python3.13/"
+    searched_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/include/Python.h"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/Python.h"
+      - "/Users/florian/miniconda3/envs/tmol/include/Python.h"
+      - "/Users/florian/miniconda3/envs/tmol/Python.h"
+    found: "/Users/florian/miniconda3/envs/tmol/include/python3.13/"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_INSTALL_PREFIX: "/usr/local"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_INCLUDE_PATH:
+        - "/usr/include/X11"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+      CMAKE_SYSTEM_FRAMEWORK_PATH:
+        - "~/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Network/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Library/Frameworks"
+        - "/Library/Frameworks"
+        - "/Network/Library/Frameworks"
+        - "/System/Library/Frameworks"
+  -
+    kind: "find_package-v1"
+    backtrace:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cmake/Torch/TorchConfig.cmake:62 (find_package)"
+      - "CMakeLists.txt:120 (find_package)"
+    name: "Caffe2"
+    configs:
+      -
+        filename: "Caffe2.cps"
+        kind: "cps"
+      -
+        filename: "caffe2.cps"
+        kind: "cps"
+      -
+        filename: "Caffe2Config.cmake"
+        kind: "cmake"
+      -
+        filename: "caffe2-config.cmake"
+        kind: "cmake"
+    version_request:
+      exact: false
+    settings:
+      required: "required_explicit"
+      quiet: false
+      global: false
+      policy_scope: true
+      bypass_provider: false
+      names:
+        - "Caffe2"
+      search_paths:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cmake/Torch/../Caffe2"
+      path_suffixes:
+        - ""
+      paths:
+        CMAKE_FIND_USE_CMAKE_PATH: true
+        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+        CMAKE_FIND_USE_INSTALL_PREFIX: true
+        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
+        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
+        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
+        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
+    candidates:
+      -
+        path: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/pkgRedirects/Caffe2Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/pkgRedirects/caffe2-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/pkgRedirects/lib64/cps/Caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/pkgRedirects/lib64/cps/caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/pkgRedirects/lib/cps/Caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/pkgRedirects/lib/cps/caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/pkgRedirects/share/cps/Caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/pkgRedirects/share/cps/caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/Caffe2Config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/caffe2-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib64/cps/Caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib64/cps/caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/cps/Caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/cps/caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cps/Caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+      -
+        path: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cps/caffe2.cps"
+        mode: "cps"
+        reason: "no_exist"
+    found:
+      path: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake"
+      mode: "config"
+      version: ""
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_INSTALL_PREFIX: "/usr/local"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+      CMAKE_SYSTEM_FRAMEWORK_PATH:
+        - "~/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Network/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Library/Frameworks"
+        - "/Library/Frameworks"
+        - "/Network/Library/Frameworks"
+        - "/System/Library/Frameworks"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cmake/Torch/TorchConfig.cmake:18 (find_library)"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cmake/Torch/TorchConfig.cmake:64 (append_torchlib_if_found)"
+      - "CMakeLists.txt:120 (find_package)"
+    mode: "library"
+    variable: "c10_LIBRARY"
+    description: "Path to a library."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "c10"
+    candidate_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/"
+      - "/Users/florian/miniconda3/envs/tmol/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/"
+      - "/usr/local/lib/"
+      - "/usr/local/"
+      - "/usr/lib/"
+      - "/usr/"
+      - "/usr/X11R6/lib/"
+      - "/usr/X11R6/"
+      - "/opt/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/"
+      - "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/"
+      - "/Library/Frameworks/"
+      - "/System/Library/Frameworks/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/"
+    found: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/libc10.dylib"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_INSTALL_PREFIX: "/usr/local"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_LIBRARY_PATH:
+        - "/usr/lib/X11"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+      CMAKE_SYSTEM_FRAMEWORK_PATH:
+        - "~/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Network/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Library/Frameworks"
+        - "/Library/Frameworks"
+        - "/Network/Library/Frameworks"
+        - "/System/Library/Frameworks"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cmake/Torch/TorchConfig.cmake:18 (find_library)"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cmake/Torch/TorchConfig.cmake:119 (append_torchlib_if_found)"
+      - "CMakeLists.txt:120 (find_package)"
+    mode: "library"
+    variable: "kineto_LIBRARY"
+    description: "Path to a library."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "kineto"
+    candidate_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/"
+      - "/Users/florian/miniconda3/envs/tmol/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/"
+      - "/usr/local/lib/"
+      - "/usr/local/"
+      - "/usr/lib/"
+      - "/usr/"
+      - "/usr/X11R6/lib/"
+      - "/usr/X11R6/"
+      - "/opt/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/"
+      - "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/"
+      - "/Library/Frameworks/"
+      - "/System/Library/Frameworks/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/"
+    searched_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/"
+      - "/Users/florian/miniconda3/envs/tmol/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/"
+      - "/usr/local/lib/"
+      - "/usr/local/"
+      - "/usr/lib/"
+      - "/usr/"
+      - "/usr/X11R6/lib/"
+      - "/usr/X11R6/"
+      - "/opt/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/"
+      - "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/"
+      - "/Library/Frameworks/"
+      - "/System/Library/Frameworks/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_INSTALL_PREFIX: "/usr/local"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_LIBRARY_PATH:
+        - "/usr/lib/X11"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+      CMAKE_SYSTEM_FRAMEWORK_PATH:
+        - "~/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Network/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Library/Frameworks"
+        - "/Library/Frameworks"
+        - "/Network/Library/Frameworks"
+        - "/System/Library/Frameworks"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/share/cmake/Torch/TorchConfig.cmake:144 (find_library)"
+      - "CMakeLists.txt:120 (find_package)"
+    mode: "library"
+    variable: "TORCH_LIBRARY"
+    description: "Path to a library."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "torch"
+    candidate_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/"
+      - "/Users/florian/miniconda3/envs/tmol/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/"
+      - "/sbin/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/"
+      - "/usr/local/lib/"
+      - "/usr/local/"
+      - "/usr/lib/"
+      - "/usr/"
+      - "/usr/X11R6/lib/"
+      - "/usr/X11R6/"
+      - "/opt/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/"
+      - "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/"
+      - "/Library/Frameworks/"
+      - "/System/Library/Frameworks/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/"
+    found: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/libtorch.dylib"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_INSTALL_PREFIX: "/usr/local"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_LIBRARY_PATH:
+        - "/usr/lib/X11"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+      CMAKE_SYSTEM_FRAMEWORK_PATH:
+        - "~/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Network/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Library/Frameworks"
+        - "/Library/Frameworks"
+        - "/Network/Library/Frameworks"
+        - "/System/Library/Frameworks"
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/opt/homebrew/share/cmake/Modules/CheckCXXCompilerFlag.cmake:103 (cmake_check_compiler_flag)"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/pybind11/share/cmake/pybind11/pybind11Common.cmake:332 (check_cxx_compiler_flag)"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/pybind11/share/cmake/pybind11/pybind11Common.cmake:372 (_pybind11_return_if_cxx_and_linker_flags_work)"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/pybind11/share/cmake/pybind11/pybind11Common.cmake:438 (_pybind11_generate_lto)"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/pybind11/share/cmake/pybind11/pybind11Config.cmake:257 (include)"
+      - "CMakeLists.txt:121 (find_package)"
+    checks:
+      - "Performing Test HAS_FLTO_THIN"
+    directories:
+      source: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TIR5KS"
+      binary: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TIR5KS"
+    cmakeVariables:
+      CMAKE_CUDA_ARCHITECTURES: "80;86;89;90"
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_CXX_STDLIB_MODULES_JSON: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: ""
+    buildResult:
+      variable: "HAS_FLTO_THIN"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TIR5KS'
+        
+        Run Build Command(s): /opt/homebrew/bin/ninja -v cmTC_ab9f8
+        [1/2] /usr/bin/c++ -DHAS_FLTO_THIN  -arch arm64   -flto -MD -MT CMakeFiles/cmTC_ab9f8.dir/src.cxx.o -MF CMakeFiles/cmTC_ab9f8.dir/src.cxx.o.d -o CMakeFiles/cmTC_ab9f8.dir/src.cxx.o -c /Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-TIR5KS/src.cxx
+        [2/2] : && /usr/bin/c++ -arch arm64  CMakeFiles/cmTC_ab9f8.dir/src.cxx.o -o cmTC_ab9f8  -flto && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/opt/homebrew/share/cmake/Modules/CheckCXXCompilerFlag.cmake:103 (cmake_check_compiler_flag)"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/pybind11/share/cmake/pybind11/pybind11Common.cmake:332 (check_cxx_compiler_flag)"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/pybind11/share/cmake/pybind11/pybind11Common.cmake:382 (_pybind11_return_if_cxx_and_linker_flags_work)"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/pybind11/share/cmake/pybind11/pybind11Common.cmake:438 (_pybind11_generate_lto)"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/pybind11/share/cmake/pybind11/pybind11Config.cmake:257 (include)"
+      - "CMakeLists.txt:121 (find_package)"
+    checks:
+      - "Performing Test HAS_FLTO"
+    directories:
+      source: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-sF164S"
+      binary: "/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-sF164S"
+    cmakeVariables:
+      CMAKE_CUDA_ARCHITECTURES: "80;86;89;90"
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_CXX_STDLIB_MODULES_JSON: ""
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: ""
+    buildResult:
+      variable: "HAS_FLTO"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-sF164S'
+        
+        Run Build Command(s): /opt/homebrew/bin/ninja -v cmTC_6e759
+        [1/2] /usr/bin/c++ -DHAS_FLTO  -arch arm64   -flto -MD -MT CMakeFiles/cmTC_6e759.dir/src.cxx.o -MF CMakeFiles/cmTC_6e759.dir/src.cxx.o.d -o CMakeFiles/cmTC_6e759.dir/src.cxx.o -c /Users/florian/Documents/Science-IA/tmol/CMakeFiles/CMakeScratch/TryCompile-sF164S/src.cxx
+        [2/2] : && /usr/bin/c++ -arch arm64  CMakeFiles/cmTC_6e759.dir/src.cxx.o -o cmTC_6e759  -flto && :
+        
+      exitCode: 0
+  -
+    kind: "find-v1"
+    backtrace:
+      - "CMakeLists.txt:125 (find_library)"
+    mode: "library"
+    variable: "TORCH_PYTHON_LIBRARY"
+    description: "Path to a library."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "torch_python"
+    candidate_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/"
+    found: "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/lib/libtorch_python.dylib"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_INSTALL_PREFIX: "/usr/local"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_LIBRARY_PATH:
+        - "/usr/lib/X11"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+      CMAKE_SYSTEM_FRAMEWORK_PATH:
+        - "~/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Network/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Library/Frameworks"
+        - "/Library/Frameworks"
+        - "/Network/Library/Frameworks"
+        - "/System/Library/Frameworks"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/FindCUDAToolkit.cmake:683 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/FindCUDAToolkit.cmake:978 (_CUDAToolkit_find_root_dir)"
+      - "CMakeLists.txt:208 (find_package)"
+    mode: "program"
+    variable: "CUDAToolkit_NVCC_EXECUTABLE"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "nvcc"
+      - "nvcc.exe"
+    candidate_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/"
+      - "/Users/florian/miniconda3/envs/tmol/bin/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/"
+      - "/Users/florian/miniconda3/envs/tmol/bin/"
+      - "/Users/florian/miniconda3/envs/tmol/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/bin/"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/"
+      - "/Users/florian/Library/orca_6_1_0/bin/"
+      - "/Users/florian/Library/orca_6_1_0/"
+      - "/Users/florian/miniconda3/bin/bin/"
+      - "/Users/florian/miniconda3/bin/"
+      - "/opt/homebrew/opt/curl/bin/bin/"
+      - "/opt/homebrew/opt/curl/bin/"
+      - "/opt/homebrew/bin/bin/"
+      - "/opt/homebrew/bin/"
+      - "/opt/homebrew/sbin/bin/"
+      - "/opt/homebrew/sbin/"
+      - "/opt/gromacs/bin/bin/"
+      - "/opt/gromacs/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/bin/"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/"
+      - "/Applications/XDS-M1/bin/"
+      - "/Applications/XDS-M1/"
+      - "/Applications/ccp4-9/etc/bin/"
+      - "/Applications/ccp4-9/etc/"
+      - "/Applications/ccp4-9/bin/bin/"
+      - "/Applications/ccp4-9/bin/"
+      - "/bin/bin/"
+      - "/bin/"
+      - "/sbin/bin/"
+      - "/sbin/"
+      - "/usr/bin/bin/"
+      - "/usr/bin/"
+      - "/usr/sbin/bin/"
+      - "/usr/sbin/"
+      - "/usr/X11R6/bin/bin/"
+      - "/usr/X11R6/bin/"
+      - "/opt/bin/bin/"
+      - "/opt/bin/"
+      - "/usr/local/bin/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/bin/"
+      - "/usr/local/sbin/"
+      - "/opt/vina/bin/"
+      - "/opt/vina/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/bin/"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/"
+      - "/Users/florian/.cache/lm-studio/bin/bin/"
+      - "/Users/florian/.cache/lm-studio/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/bin/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/sbin/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/sbin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/"
+      - "/usr/local/bin/bin/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/bin/"
+      - "/usr/local/"
+      - "/usr/bin/bin/"
+      - "/usr/bin/"
+      - "/usr/sbin/bin/"
+      - "/usr/sbin/"
+      - "/usr/bin/"
+      - "/usr/"
+      - "/bin/bin/"
+      - "/bin/"
+      - "/sbin/bin/"
+      - "/sbin/"
+      - "/usr/X11R6/bin/bin/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/bin/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/"
+      - "/opt/bin/bin/"
+      - "/opt/bin/"
+      - "/opt/sbin/bin/"
+      - "/opt/sbin/"
+      - "/opt/bin/"
+      - "/opt/"
+      - "/sw/bin/bin/"
+      - "/sw/bin/"
+      - "/sw/sbin/bin/"
+      - "/sw/sbin/"
+      - "/sw/bin/"
+      - "/sw/"
+      - "/opt/local/bin/bin/"
+      - "/opt/local/bin/"
+      - "/opt/local/sbin/bin/"
+      - "/opt/local/sbin/"
+      - "/opt/local/bin/"
+      - "/opt/local/"
+      - "/Users/florian/Applications/bin/"
+      - "/Users/florian/Applications/"
+      - "/Applications/bin/"
+      - "/Applications/"
+      - "/Applications/Xcode.app/Contents/Applications/bin/"
+      - "/Applications/Xcode.app/Contents/Applications/"
+      - "/Applications/Xcode.app/Contents/Developer/Applications/bin/"
+      - "/Applications/Xcode.app/Contents/Developer/Applications/"
+    searched_directories:
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/bin/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/bin/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/bin/bin/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/bin/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/bin/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/bin/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/nvcc"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/bin/nvcc"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/nvcc"
+      - "/Users/florian/Library/orca_6_1_0/bin/nvcc"
+      - "/Users/florian/Library/orca_6_1_0/nvcc"
+      - "/Users/florian/miniconda3/bin/bin/nvcc"
+      - "/Users/florian/miniconda3/bin/nvcc"
+      - "/opt/homebrew/opt/curl/bin/bin/nvcc"
+      - "/opt/homebrew/opt/curl/bin/nvcc"
+      - "/opt/homebrew/bin/bin/nvcc"
+      - "/opt/homebrew/bin/nvcc"
+      - "/opt/homebrew/sbin/bin/nvcc"
+      - "/opt/homebrew/sbin/nvcc"
+      - "/opt/gromacs/bin/bin/nvcc"
+      - "/opt/gromacs/bin/nvcc"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/bin/nvcc"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/nvcc"
+      - "/Applications/XDS-M1/bin/nvcc"
+      - "/Applications/XDS-M1/nvcc"
+      - "/Applications/ccp4-9/etc/bin/nvcc"
+      - "/Applications/ccp4-9/etc/nvcc"
+      - "/Applications/ccp4-9/bin/bin/nvcc"
+      - "/Applications/ccp4-9/bin/nvcc"
+      - "/bin/bin/nvcc"
+      - "/bin/nvcc"
+      - "/sbin/bin/nvcc"
+      - "/sbin/nvcc"
+      - "/usr/bin/bin/nvcc"
+      - "/usr/bin/nvcc"
+      - "/usr/sbin/bin/nvcc"
+      - "/usr/sbin/nvcc"
+      - "/usr/X11R6/bin/bin/nvcc"
+      - "/usr/X11R6/bin/nvcc"
+      - "/opt/bin/bin/nvcc"
+      - "/opt/bin/nvcc"
+      - "/usr/local/bin/bin/nvcc"
+      - "/usr/local/bin/nvcc"
+      - "/usr/local/sbin/bin/nvcc"
+      - "/usr/local/sbin/nvcc"
+      - "/opt/vina/bin/nvcc"
+      - "/opt/vina/nvcc"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/bin/nvcc"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/nvcc"
+      - "/Users/florian/.cache/lm-studio/bin/bin/nvcc"
+      - "/Users/florian/.cache/lm-studio/bin/nvcc"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/bin/bin/nvcc"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/bin/nvcc"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/sbin/bin/nvcc"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/sbin/nvcc"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/bin/nvcc"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/nvcc"
+      - "/usr/local/bin/bin/nvcc"
+      - "/usr/local/bin/nvcc"
+      - "/usr/local/sbin/bin/nvcc"
+      - "/usr/local/sbin/nvcc"
+      - "/usr/local/bin/nvcc"
+      - "/usr/local/nvcc"
+      - "/usr/bin/bin/nvcc"
+      - "/usr/bin/nvcc"
+      - "/usr/sbin/bin/nvcc"
+      - "/usr/sbin/nvcc"
+      - "/usr/bin/nvcc"
+      - "/usr/nvcc"
+      - "/bin/bin/nvcc"
+      - "/bin/nvcc"
+      - "/sbin/bin/nvcc"
+      - "/sbin/nvcc"
+      - "/usr/X11R6/bin/bin/nvcc"
+      - "/usr/X11R6/bin/nvcc"
+      - "/usr/X11R6/sbin/bin/nvcc"
+      - "/usr/X11R6/sbin/nvcc"
+      - "/usr/X11R6/bin/nvcc"
+      - "/usr/X11R6/nvcc"
+      - "/usr/pkg/bin/bin/nvcc"
+      - "/usr/pkg/bin/nvcc"
+      - "/usr/pkg/sbin/bin/nvcc"
+      - "/usr/pkg/sbin/nvcc"
+      - "/usr/pkg/bin/nvcc"
+      - "/usr/pkg/nvcc"
+      - "/opt/bin/bin/nvcc"
+      - "/opt/bin/nvcc"
+      - "/opt/sbin/bin/nvcc"
+      - "/opt/sbin/nvcc"
+      - "/opt/bin/nvcc"
+      - "/opt/nvcc"
+      - "/sw/bin/bin/nvcc"
+      - "/sw/bin/nvcc"
+      - "/sw/sbin/bin/nvcc"
+      - "/sw/sbin/nvcc"
+      - "/sw/bin/nvcc"
+      - "/sw/nvcc"
+      - "/opt/local/bin/bin/nvcc"
+      - "/opt/local/bin/nvcc"
+      - "/opt/local/sbin/bin/nvcc"
+      - "/opt/local/sbin/nvcc"
+      - "/opt/local/bin/nvcc"
+      - "/opt/local/nvcc"
+      - "/Users/florian/Applications/bin/nvcc"
+      - "/Users/florian/Applications/nvcc"
+      - "/Applications/bin/nvcc"
+      - "/Applications/nvcc"
+      - "/Applications/Xcode.app/Contents/Applications/bin/nvcc"
+      - "/Applications/Xcode.app/Contents/Applications/nvcc"
+      - "/Applications/Xcode.app/Contents/Developer/Applications/bin/nvcc"
+      - "/Applications/Xcode.app/Contents/Developer/Applications/nvcc"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/bin/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/bin/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/sbin/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/bin/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/tmol/bin/bin/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/tmol/bin/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/bin/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/tmol/sbin/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/tmol/bin/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/tmol/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/bin/nvcc.exe"
+      - "/Users/florian/miniconda3/envs/Fitting/bin/nvcc.exe"
+      - "/Users/florian/Library/orca_6_1_0/bin/nvcc.exe"
+      - "/Users/florian/Library/orca_6_1_0/nvcc.exe"
+      - "/Users/florian/miniconda3/bin/bin/nvcc.exe"
+      - "/Users/florian/miniconda3/bin/nvcc.exe"
+      - "/opt/homebrew/opt/curl/bin/bin/nvcc.exe"
+      - "/opt/homebrew/opt/curl/bin/nvcc.exe"
+      - "/opt/homebrew/bin/bin/nvcc.exe"
+      - "/opt/homebrew/bin/nvcc.exe"
+      - "/opt/homebrew/sbin/bin/nvcc.exe"
+      - "/opt/homebrew/sbin/nvcc.exe"
+      - "/opt/gromacs/bin/bin/nvcc.exe"
+      - "/opt/gromacs/bin/nvcc.exe"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/bin/nvcc.exe"
+      - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin/nvcc.exe"
+      - "/Applications/XDS-M1/bin/nvcc.exe"
+      - "/Applications/XDS-M1/nvcc.exe"
+      - "/Applications/ccp4-9/etc/bin/nvcc.exe"
+      - "/Applications/ccp4-9/etc/nvcc.exe"
+      - "/Applications/ccp4-9/bin/bin/nvcc.exe"
+      - "/Applications/ccp4-9/bin/nvcc.exe"
+      - "/bin/bin/nvcc.exe"
+      - "/bin/nvcc.exe"
+      - "/sbin/bin/nvcc.exe"
+      - "/sbin/nvcc.exe"
+      - "/usr/bin/bin/nvcc.exe"
+      - "/usr/bin/nvcc.exe"
+      - "/usr/sbin/bin/nvcc.exe"
+      - "/usr/sbin/nvcc.exe"
+      - "/usr/X11R6/bin/bin/nvcc.exe"
+      - "/usr/X11R6/bin/nvcc.exe"
+      - "/opt/bin/bin/nvcc.exe"
+      - "/opt/bin/nvcc.exe"
+      - "/usr/local/bin/bin/nvcc.exe"
+      - "/usr/local/bin/nvcc.exe"
+      - "/usr/local/sbin/bin/nvcc.exe"
+      - "/usr/local/sbin/nvcc.exe"
+      - "/opt/vina/bin/nvcc.exe"
+      - "/opt/vina/nvcc.exe"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/bin/nvcc.exe"
+      - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24/nvcc.exe"
+      - "/Users/florian/.cache/lm-studio/bin/bin/nvcc.exe"
+      - "/Users/florian/.cache/lm-studio/bin/nvcc.exe"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/bin/bin/nvcc.exe"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/bin/nvcc.exe"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/sbin/bin/nvcc.exe"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/sbin/nvcc.exe"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/bin/nvcc.exe"
+      - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/nvcc.exe"
+      - "/usr/local/bin/bin/nvcc.exe"
+      - "/usr/local/bin/nvcc.exe"
+      - "/usr/local/sbin/bin/nvcc.exe"
+      - "/usr/local/sbin/nvcc.exe"
+      - "/usr/local/bin/nvcc.exe"
+      - "/usr/local/nvcc.exe"
+      - "/usr/bin/bin/nvcc.exe"
+      - "/usr/bin/nvcc.exe"
+      - "/usr/sbin/bin/nvcc.exe"
+      - "/usr/sbin/nvcc.exe"
+      - "/usr/bin/nvcc.exe"
+      - "/usr/nvcc.exe"
+      - "/bin/bin/nvcc.exe"
+      - "/bin/nvcc.exe"
+      - "/sbin/bin/nvcc.exe"
+      - "/sbin/nvcc.exe"
+      - "/usr/X11R6/bin/bin/nvcc.exe"
+      - "/usr/X11R6/bin/nvcc.exe"
+      - "/usr/X11R6/sbin/bin/nvcc.exe"
+      - "/usr/X11R6/sbin/nvcc.exe"
+      - "/usr/X11R6/bin/nvcc.exe"
+      - "/usr/X11R6/nvcc.exe"
+      - "/usr/pkg/bin/bin/nvcc.exe"
+      - "/usr/pkg/bin/nvcc.exe"
+      - "/usr/pkg/sbin/bin/nvcc.exe"
+      - "/usr/pkg/sbin/nvcc.exe"
+      - "/usr/pkg/bin/nvcc.exe"
+      - "/usr/pkg/nvcc.exe"
+      - "/opt/bin/bin/nvcc.exe"
+      - "/opt/bin/nvcc.exe"
+      - "/opt/sbin/bin/nvcc.exe"
+      - "/opt/sbin/nvcc.exe"
+      - "/opt/bin/nvcc.exe"
+      - "/opt/nvcc.exe"
+      - "/sw/bin/bin/nvcc.exe"
+      - "/sw/bin/nvcc.exe"
+      - "/sw/sbin/bin/nvcc.exe"
+      - "/sw/sbin/nvcc.exe"
+      - "/sw/bin/nvcc.exe"
+      - "/sw/nvcc.exe"
+      - "/opt/local/bin/bin/nvcc.exe"
+      - "/opt/local/bin/nvcc.exe"
+      - "/opt/local/sbin/bin/nvcc.exe"
+      - "/opt/local/sbin/nvcc.exe"
+      - "/opt/local/bin/nvcc.exe"
+      - "/opt/local/nvcc.exe"
+      - "/Users/florian/Applications/bin/nvcc.exe"
+      - "/Users/florian/Applications/nvcc.exe"
+      - "/Applications/bin/nvcc.exe"
+      - "/Applications/nvcc.exe"
+      - "/Applications/Xcode.app/Contents/Applications/bin/nvcc.exe"
+      - "/Applications/Xcode.app/Contents/Applications/nvcc.exe"
+      - "/Applications/Xcode.app/Contents/Developer/Applications/bin/nvcc.exe"
+      - "/Applications/Xcode.app/Contents/Developer/Applications/nvcc.exe"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_INSTALL_PREFIX: "/usr/local"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+      CMAKE_SYSTEM_APPBUNDLE_PATH:
+        - "/Users/florian/Applications"
+        - "/Applications"
+        - "/Applications/Xcode.app/Contents/Applications"
+        - "/Applications/Xcode.app/Contents/Developer/Applications"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/FindCUDAToolkit.cmake:691 (find_file)"
+      - "/opt/homebrew/share/cmake/Modules/FindCUDAToolkit.cmake:978 (_CUDAToolkit_find_root_dir)"
+      - "CMakeLists.txt:208 (find_package)"
+    mode: "file"
+    variable: "CUDAToolkit_SENTINEL_FILE"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "version.txt"
+      - "version.json"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/florian/miniconda3/envs/tmol/lib/python3.13/site-packages/torch"
+        - "/Users/florian/miniconda3/envs/tmol"
+      ENV{PATH}:
+        - "/Users/florian/miniconda3/envs/Fitting/bin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/Users/florian/miniconda3/bin"
+        - "/opt/homebrew/opt/curl/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/gromacs/bin"
+        - "/Users/florian/Applications/phenix-2.0-5936/phenix_bin"
+        - "/Applications/XDS-M1"
+        - "/Applications/ccp4-9/etc"
+        - "/Applications/ccp4-9/bin"
+        - "/bin"
+        - "/sbin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/usr/X11R6/bin"
+        - "/opt/bin"
+        - "/usr/local/bin"
+        - "/usr/local/sbin"
+        - "/Users/florian/Library/orca_6_1_0"
+        - "/opt/vina"
+        - "/opt/homebrew/lib/python3.9/site-packages/AutoDockTools/Utilities24"
+        - "/Users/florian/.cache/lm-studio/bin"
+      CMAKE_INSTALL_PREFIX: "/usr/local"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_INCLUDE_PATH:
+        - "/usr/include/X11"
+      CMAKE_IGNORE_PREFIX_PATH:
+        - "/opt/homebrew"
+      CMAKE_SYSTEM_FRAMEWORK_PATH:
+        - "~/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Network/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks"
+        - "/Applications/Xcode.app/Contents/Developer/Library/Frameworks"
+        - "/Library/Frameworks"
+        - "/Network/Library/Frameworks"
+        - "/System/Library/Frameworks"
+...

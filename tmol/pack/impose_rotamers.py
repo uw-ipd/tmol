@@ -32,6 +32,9 @@ def impose_top_rotamer_assignments(
 
     pbt = orig_pose_stack.packed_block_types
     device = orig_pose_stack.device
+    # Ensure assignment is on the same device as the pose stack
+    # (may differ when interaction graph ran on CPU for MPS).
+    assignment = assignment.to(device)
     n_poses = orig_pose_stack.n_poses
     max_n_blocks = orig_pose_stack.max_n_blocks
     max_n_atoms_per_block = orig_pose_stack.max_n_atoms

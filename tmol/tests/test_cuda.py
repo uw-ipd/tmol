@@ -28,6 +28,9 @@ def test_torch_cuda_smoke():
 def test_float_perf(benchmark, torch_device, dtype):
     import torch
 
+    if torch_device.type == "mps" and dtype == torch.double:
+        pytest.skip("MPS does not support float64")
+
     test_size = 1500
     test_coords = torch.rand((test_size, 3), device=torch_device, dtype=dtype)
 

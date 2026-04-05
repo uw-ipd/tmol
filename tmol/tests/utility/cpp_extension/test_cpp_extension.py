@@ -41,6 +41,9 @@ def test_hybrid(torch_device):
     Hybrid extension loads with "cpp_extension.load" interface, compiles sum
     function operating over CPU and CUDA tensors.
     """
+    if torch_device.type == "mps":
+        pytest.skip("hybrid extension only supports CPU/CUDA, not MPS")
+
     extension = load(
         modulename(f"{__name__}.hybrid"),
         cuda_if_available(
