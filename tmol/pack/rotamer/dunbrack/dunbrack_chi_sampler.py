@@ -481,19 +481,28 @@ class DunbrackChiSampler(ChiSampler):
             (n_bbts, max_n_chi), dtype=torch.int32, device=self.device
         )
 
-        # TEMP! Treat everything as exposed (0)
+        # Treat all residues as buried (index 1). Burial classification is not
+        # yet implemented; buried is the conservative choice (more rotamers).
         sc = pbt.dun_sampler_cache
-        ndecfbbt = sc.non_dunbrack_sample_counts[block_type_ind_for_bbt, 0]
+        ndecfbbt = sc.non_dunbrack_sample_counts[block_type_ind_for_bbt, 1]
         non_dunbrack_expansion_counts_for_bbt = ndecfbbt
 
-        # TEMP! Treat everything as exposed (0)
+        # treat all residues as buried (index 1)
         non_dunbrack_expansion_for_bbt = sc.non_dunbrack_samples[
-            block_type_ind_for_bbt, 0
+            block_type_ind_for_bbt, 1
         ]
 
-        # treat all residues as if they are exposed
-        prob_cumsum_limit_for_bbt = torch.full(
-            (n_bbts,), 0.95, dtype=torch.float32, device=self.device
+        # Rosetta defaults (buried): rotameric=0.98, semi-rotameric=0.95.
+        # Table sets are ordered rotameric-first; semi-rotameric sets start at
+        # index n_rotameric_sets.
+        n_rotameric_sets = int(
+            self.dun_param_resolver.rotameric_table_indices["dun_table_name"].max() + 1
+        )
+        is_semi = rottable_set_for_bbt[:, 1].to(torch.int64) >= n_rotameric_sets
+        prob_cumsum_limit_for_bbt = torch.where(
+            is_semi,
+            torch.full((n_bbts,), 0.95, dtype=torch.float32, device=self.device),
+            torch.full((n_bbts,), 0.98, dtype=torch.float32, device=self.device),
         )
 
         # the sampled chi returned are a tuple containing info for BBTs:
@@ -527,66 +536,74 @@ class DunbrackChiSampler(ChiSampler):
         self, pose_stack: PoseStack, bb_dihedral_ind: int
     ):
         assert hasattr(pose_stack.packed_block_types, "dun_sampler_cache")
-        n_pose_stack = pose_stack.block_type_ind.shape[0]
-        max_n_blocks = pose_stack.block_type_ind.shape[1]
-        max_n_atoms = pose_stack.coords.shape[2]
-
+        # coords: (n_poses, max_n_atoms_per_pose, 3)
+        # flat atom index = pose * max_n_atoms_per_pose + block_coord_offset[pose,block] + local
+        max_n_atoms_per_pose = pose_stack.coords.shape[1]
         pbts = pose_stack.packed_block_types
+        bco = pose_stack.block_coord_offset  # (n_poses, max_n_blocks)
 
-        real = torch.nonzero(pose_stack.block_type_ind >= 0)
+        real = torch.nonzero(pose_stack.block_type_ind >= 0)  # (n_real, 2)
+        real_pose, real_block = real[:, 0], real[:, 1]
 
-        uaids = torch.full(
-            (n_pose_stack, max_n_blocks, 4, 3),
-            -1,
-            dtype=torch.int64,
-            device=self.device,
-        )
-
-        uaids[real[:, 0], real[:, 1], :, :] = pbts.dun_sampler_cache.bbdihe_uaids[
-            pose_stack.block_type_ind[real[:, 0], real[:, 1]].to(torch.int64),
+        # uaids: (n_real, 4, 3)  [..., 0]=local_atom, [..., 1]=conn_id, [..., 2]=atom_param
+        # local_atom == -1 and conn_id >= 0 means inter-residue atom
+        uaids = pbts.dun_sampler_cache.bbdihe_uaids[
+            pose_stack.block_type_ind[real_pose, real_block].to(torch.int64),
             bb_dihedral_ind,
-            :,
-            :,
         ].to(torch.int64)
 
-        # what we will return
-        dihe_atom_inds = torch.full(
-            (n_pose_stack, max_n_blocks, 4), -1, dtype=torch.int32, device=self.device
+        atom_inds = torch.full(
+            (real.shape[0], 4), -1, dtype=torch.int32, device=self.device
         )
 
-        # copy over all atom ids from the uaids as if they were resolved; the
-        # atoms that are unresolved will be overwritten later
-        dihe_atom_inds[:] = uaids[:, :, :, 0]
+        # Intra-residue atoms
+        intra_mask = (uaids[:, :, 1] < 0) & (uaids[:, :, 0] >= 0)
+        flat_base = (
+            real_pose.to(torch.int32) * max_n_atoms_per_pose
+            + bco[real_pose, real_block]
+        )
+        atom_inds[intra_mask] = (uaids[:, :, 0].to(torch.int32) + flat_base[:, None])[
+            intra_mask
+        ]
 
-        inter_res = torch.nonzero(uaids[:, :, :, 1] >= 0)
+        # Inter-residue atoms: follow the connection to the destination block
+        ii = torch.nonzero(uaids[:, :, 1] >= 0)  # (n_inter, 2)
+        ri, ai = ii[:, 0], ii[:, 1]
+        src_pose, src_block = real_pose[ri], real_block[ri]
+        conn_id, atom_param = uaids[ri, ai, 1], uaids[ri, ai, 2]
 
-        dest_res = pose_stack.inter_residue_connections[
-            inter_res[:, 0],
-            inter_res[:, 1],
-            uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 1],
-            0,
+        dest_block = pose_stack.inter_residue_connections[
+            src_pose, src_block, conn_id, 0
         ]
         dest_conn = pose_stack.inter_residue_connections[
-            inter_res[:, 0],
-            inter_res[:, 1],
-            uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 1],
-            1,
+            src_pose, src_block, conn_id, 1
         ].to(torch.int64)
+        valid = dest_block >= 0
 
-        # now which atom on the downstream residue is the one that
-        # the source residue is pointing at
-        dihe_atom_inds[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2]] = (
-            (inter_res[:, 0] * max_n_atoms * max_n_blocks).to(torch.int32)
-            + dest_res * max_n_atoms
-            + pbts.atom_downstream_of_conn[
-                pose_stack.block_type_ind[inter_res[:, 0], inter_res[:, 1]].to(
-                    torch.int64
-                ),
-                dest_conn,
-                uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 2],
-            ]
+        # Use the DESTINATION block's type for atom_downstream_of_conn
+        dest_bt = torch.where(
+            valid,
+            pose_stack.block_type_ind[src_pose, dest_block.clamp(min=0)].to(
+                torch.int64
+            ),
+            torch.zeros_like(dest_block, dtype=torch.int64),
+        )
+        dest_local_atom = pbts.atom_downstream_of_conn[dest_bt, dest_conn, atom_param]
+        atom_inds[ri, ai] = torch.where(
+            valid,
+            src_pose.to(torch.int32) * max_n_atoms_per_pose
+            + bco[src_pose, dest_block.clamp(min=0)]
+            + dest_local_atom.to(torch.int32),
+            torch.full_like(dest_local_atom, -1, dtype=torch.int32),
         )
 
+        dihe_atom_inds = torch.full(
+            pose_stack.block_type_ind.shape + (4,),
+            -1,
+            dtype=torch.int32,
+            device=self.device,
+        )
+        dihe_atom_inds[real_pose, real_block] = atom_inds
         return dihe_atom_inds
 
     def launch_rotamer_building(

@@ -165,28 +165,28 @@ auto AnnealerDispatch<D>::forward(
           // neighbors of ran_rot_res
           for (int k = 0; k < n_res; ++k) {
             if (k == ran_res) continue;
-            int64_t const k_ran_chunk_offset_offset =
-                chunk_offset_offsets[pose][k][ran_res];
-            if (k_ran_chunk_offset_offset == -1) {
-              // then neither prev_rot nor ran_rot interact with the rotamer at
-              // k
-              continue;
-            }
             int const local_k_rot = current_rotamer_assignments[pose][traj][k];
             int const k_n_rots = n_rotamers_for_res[pose][k];
-            int const kres_n_chunks = (k_n_rots - 1) / chunk_size + 1;
             int const krot_chunk = local_k_rot / chunk_size;
             int const krot_in_chunk = local_k_rot - krot_chunk * chunk_size;
+            int const krot_chunk_size =
+                std::min(chunk_size, k_n_rots - chunk_size * krot_chunk);
+
+            double k_new_e = 0;
+            double k_prev_e = 0;
+
+            // chunk_offset_offsets stores both orderings (k,ran_res) and
+            // (ran_res,k), so always index as [k][ran_res] with k as the
+            // outer/row dimension.
+            int64_t const k_ran_chunk_offset_offset =
+                chunk_offset_offsets[pose][k][ran_res];
+            if (k_ran_chunk_offset_offset == -1) continue;
             int64_t const krot_ranrot_chunk_offset = chunk_offsets
                 [k_ran_chunk_offset_offset + krot_chunk * ran_res_n_chunks
                  + ran_rot_chunk];
             int64_t const krot_prevrot_chunk_offset = chunk_offsets
                 [k_ran_chunk_offset_offset + krot_chunk * ran_res_n_chunks
                  + prev_rot_chunk];
-
-            double k_new_e = 0;
-            double k_prev_e = 0;
-
             if (krot_ranrot_chunk_offset >= 0) {
               k_new_e = energy2b
                   [krot_ranrot_chunk_offset + krot_in_chunk * ran_rot_chunk_size
@@ -197,6 +197,7 @@ auto AnnealerDispatch<D>::forward(
                   [krot_prevrot_chunk_offset
                    + krot_in_chunk * prev_rot_chunk_size + prev_rot_in_chunk];
             }
+
             deltaE += k_new_e - k_prev_e;
             new_e += k_new_e;
             prev_e += k_prev_e;

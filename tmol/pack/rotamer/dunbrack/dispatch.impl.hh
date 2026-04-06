@@ -192,15 +192,15 @@ struct DunbrackChiSampler {
         Int at2 = dihedral_atom_inds[i][2];
         Int at3 = dihedral_atom_inds[i][3];
         Real dihe = 0;
-        if (at0 > 0 && at1 > 0 && at2 > 0 && at3 > 0) {
+        if (at0 >= 0 && at1 >= 0 && at2 >= 0 && at3 >= 0) {
           dihe = score::common::dihedral_angle<Real>::V(
               coords[at0], coords[at1], coords[at2], coords[at3]);
         } else if (dihe_ind == 0) {
-          // neutral phi
-          dihe = -60;  // As suggested by Roland Dunbrack
+          // neutral phi in radians, as suggested by Roland Dunbrack
+          dihe = -M_PI / 3.0;
         } else if (dihe_ind == 1) {
-          // neutral psi
-          dihe = 60;  // As suggested by Roland Dunbrack
+          // neutral psi in radians, as suggested by Roland Dunbrack
+          dihe = M_PI / 3.0;
         }
         backbone_dihedrals[i] = dihe;
       }
@@ -326,7 +326,6 @@ struct DunbrackChiSampler {
 
         expansion_dim_prods_for_brt,
         chi_for_rotamers);
-    // std::cout << "9" << std::endl;
 
     return {
         n_rotamers_to_build_per_brt_tp,
@@ -513,7 +512,11 @@ struct DunbrackChiSampler {
     auto count_rots_to_build_per_brt = [=] EIGEN_DEVICE_FUNC(int brt) {
       Int const offset = possible_rotamer_offset_for_brt[brt];
       Int const npossible = n_possible_rotamers_per_brt[brt];
-      Int const brt_count = count_rotamers_to_build[offset + npossible - 1];
+      Int const last = offset + npossible - 1;
+      // count_rotamers_to_build is an exclusive scan, so the value at 'last'
+      // does not include the last element itself; add it explicitly.
+      Int const brt_count =
+          count_rotamers_to_build[last] + build_possible_rotamer[last];
       n_rotamers_to_build_per_brt[brt] = brt_count;
     };
 
