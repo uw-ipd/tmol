@@ -473,17 +473,24 @@ class DunbrackChiSampler(ChiSampler):
         # chi_expansions_for_buildable_restype tensor
 
         sampling_db = self.dun_param_resolver.sampling_db
-        n_chi_for_bbt = sampling_db.nchi_for_table_set[
-            rottable_set_for_bbt[:, 1].to(torch.int64)
-        ]
-
-        non_dunbrack_expansion_counts_for_bbt = torch.zeros(
-            (n_bbts, max_n_chi), dtype=torch.int32, device=self.device
-        )
 
         # Treat all residues as buried (index 1). Burial classification is not
         # yet implemented; buried is the conservative choice (more rotamers).
         sc = pbt.dun_sampler_cache
+
+        # Use total chi count per residue type (Dunbrack chis + proton chis)
+        # rather than only the Dunbrack library's nchi. The C++ kernel loops
+        # over indices [n_dun_chi .. n_chi) to sample non-Dunbrack (proton)
+        # chis; if n_chi == n_dun_chi that loop never runs.
+        n_chi_for_bbt = (
+            (sc.chi_defining_atom[block_type_ind_for_bbt] >= 0)
+            .sum(dim=1)
+            .to(torch.int32)
+        )
+
+        non_dunbrack_expansion_counts_for_bbt = torch.zeros(
+            (n_bbts, max_n_chi), dtype=torch.int32, device=self.device
+        )
         ndecfbbt = sc.non_dunbrack_sample_counts[block_type_ind_for_bbt, 1]
         non_dunbrack_expansion_counts_for_bbt = ndecfbbt
 
