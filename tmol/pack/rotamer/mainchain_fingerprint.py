@@ -83,6 +83,7 @@ class AtomFingerprint:
     mc_bond_dist: int
     chirality: int
     element: int
+    duplicate_index: int = 0
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -141,6 +142,7 @@ def create_non_sidechain_fingerprint(
     # chiralities = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
     non_sc_atom_fingerprints = []
     at_for_fingerprint = {}
+    fp_seen_count = {}
 
     for nsc_at in non_sc_atoms:
         # find the index of the mc atom this branches from using the kinforest
@@ -220,11 +222,20 @@ def create_non_sidechain_fingerprint(
         atomic_number = next(
             el.atomic_number for el in chem_db.element_types if el.name == elem_name
         )
+        base_fp = AtomFingerprint(
+            mc_ind=mc_anc,
+            mc_bond_dist=bonds_from_mc,
+            chirality=chirality,
+            element=atomic_number,
+        )
+        dup_idx = fp_seen_count.get(base_fp, 0)
+        fp_seen_count[base_fp] = dup_idx + 1
         at_fingerprint = AtomFingerprint(
             mc_ind=mc_anc,
             mc_bond_dist=bonds_from_mc,
             chirality=chirality,
             element=atomic_number,
+            duplicate_index=dup_idx,
         )
 
         non_sc_atom_fingerprints.append(at_fingerprint)
