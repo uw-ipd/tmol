@@ -14,6 +14,7 @@ from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.io.pose_stack_deconstruction import canonical_form_from_pose_stack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 
 from tmol import beta2016_score_function
 
@@ -328,7 +329,7 @@ def _populate_optional_atom_metadata(
         b_factor = numpy.asarray(biotite_structure.b_factor)
         biotite_b_factors = numpy.full(
             (n_poses, n_residues, max_n_canonical_atoms),
-            0,
+            DEFAULT_ATOM_B_FACTOR,
             dtype=numpy.float32,
         )
         if n_poses == 1 or b_factor.ndim == 1:
@@ -345,7 +346,7 @@ def _populate_optional_atom_metadata(
         occupancy = numpy.asarray(biotite_structure.occupancy)
         biotite_occupancy = numpy.full(
             (n_poses, n_residues, max_n_canonical_atoms),
-            0,
+            DEFAULT_ATOM_OCCUPANCY,
             dtype=numpy.float32,
         )
         if n_poses == 1 or occupancy.ndim == 1:

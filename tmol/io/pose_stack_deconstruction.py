@@ -40,38 +40,6 @@ def canonical_form_from_pose_stack(
         real_bt_inds64
     ]
 
-    expanded_coords, real_expanded_pose_ats = pose_stack.expand_coords()
-    if (
-        pose_stack.pdb_info.atom_occupancy is not None
-        or pose_stack.pdb_info.atom_b_factor is not None
-    ):
-        real_expanded_pose_ats = real_expanded_pose_ats.cpu().numpy()
-        real_atoms = pose_stack.real_atoms.cpu().numpy()
-
-    if pose_stack.pdb_info.atom_b_factor is not None:
-        expanded_b_factor = numpy.full(
-            (n_poses, max_n_res, max_n_atoms_per_res),
-            DEFAULT_ATOM_B_FACTOR,
-            dtype=numpy.float32,
-        )
-        expanded_b_factor[real_expanded_pose_ats] = pose_stack.pdb_info.atom_b_factor[
-            real_atoms
-        ]
-    else:
-        expanded_b_factor = None
-
-    if pose_stack.pdb_info.atom_occupancy is not None:
-        expanded_occupancy = numpy.full(
-            (n_poses, max_n_res, max_n_atoms_per_res),
-            DEFAULT_ATOM_OCCUPANCY,
-            dtype=numpy.float32,
-        )
-        expanded_occupancy[real_expanded_pose_ats] = pose_stack.pdb_info.atom_occupancy[
-            real_atoms
-        ]
-    else:
-        expanded_occupancy = None
-
     block_atom_is_real = torch.zeros(
         (n_poses, max_n_res, max_n_atoms_per_res), dtype=torch.bool, device=device
     )
@@ -87,6 +55,51 @@ def canonical_form_from_pose_stack(
     real_canonical_atom_inds_for_bt = canonical_atom_inds_for_bt[
         is_real_canonical_atom_ind_for_bt
     ]
+
+    expanded_coords, real_expanded_pose_ats = pose_stack.expand_coords()
+    if (
+        pose_stack.pdb_info.atom_occupancy is not None
+        or pose_stack.pdb_info.atom_b_factor is not None
+    ):
+        real_expanded_pose_ats = real_expanded_pose_ats.cpu().numpy()
+        real_atoms = pose_stack.real_atoms.cpu().numpy()
+
+        block_atom_is_real_np = block_atom_is_real.cpu().numpy()
+
+        nz_pose_ind_for_real_atom_np = nz_pose_ind_for_real_atom.cpu().numpy()
+        nz_res_ind_for_real_atom_np = nz_res_ind_for_real_atom.cpu().numpy()
+        real_canonical_atom_inds_for_bt_np = (
+            real_canonical_atom_inds_for_bt.cpu().numpy()
+        )
+
+    if pose_stack.pdb_info.atom_b_factor is not None:
+        expanded_b_factor = numpy.full(
+            (n_poses, max_n_res, max_n_canonical_atoms),
+            DEFAULT_ATOM_B_FACTOR,
+            dtype=numpy.float32,
+        )
+        expanded_b_factor[
+            nz_pose_ind_for_real_atom_np,
+            nz_res_ind_for_real_atom_np,
+            real_canonical_atom_inds_for_bt_np,
+        ] = pose_stack.pdb_info.atom_b_factor[real_atoms]
+    else:
+        expanded_b_factor = None
+
+    if pose_stack.pdb_info.atom_occupancy is not None:
+        expanded_occupancy = numpy.full(
+            (n_poses, max_n_res, max_n_canonical_atoms),
+            DEFAULT_ATOM_OCCUPANCY,
+            dtype=numpy.float32,
+        )
+        expanded_occupancy[
+            nz_pose_ind_for_real_atom_np,
+            nz_res_ind_for_real_atom_np,
+            real_canonical_atom_inds_for_bt_np,
+        ] = pose_stack.pdb_info.atom_occupancy[real_atoms]
+    else:
+        expanded_occupancy = None
+
     cf_coords = torch.full(
         (n_poses, max_n_res, max_n_canonical_atoms, 3),
         torch.nan,

@@ -45,6 +45,7 @@ def build_missing_sidechains_with_missing_atoms(
     # Create a PackerPalette and PackerTask
     palette = PackerPalette(restype_set)
     task = PackerTask(pose_stack, palette)
+    task.set_include_current()
     task.restrict_to_repacking()  # no design
 
     # Iterate through the block level tasks and either disable packing if the sidechain already
