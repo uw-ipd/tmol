@@ -79,6 +79,24 @@ struct ComplexDispatch {
     }
   }
 
+  template <typename T, typename B, typename Func>
+  static void inclusive_segmented_scan(
+      TView<T, 1, D> vals,
+      TView<B, 1, D> seg_start,
+      TView<T, 1, D> out,
+      Func op) {
+    assert(vals.size(0) == out.size(0));
+    int seg_count = 0;
+    for (int ii = 0; ii < vals.size(0); ++ii) {
+      if (seg_count < seg_start.size(0) && ii == seg_start[seg_count]) {
+        ++seg_count;
+        out[ii] = op(T(0), vals[ii]);
+      } else {
+        out[ii] = op(out[ii - 1], vals[ii]);
+      }
+    }
+  }
+
   static void synchronize() {}
 };
 }  // namespace common

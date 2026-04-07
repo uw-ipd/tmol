@@ -21,6 +21,7 @@ from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
+from tmol.numeric.dihedrals import coord_dihedrals
 
 from tmol.pack.rotamer.single_residue_kinforest import (
     construct_single_residue_kinforest,
@@ -30,6 +31,83 @@ from tmol.pack.rotamer.mainchain_fingerprint import (
     annotate_residue_type_with_sampler_fingerprints,
     find_unique_fingerprints,
 )
+
+
+def _build_chi4_atom_table(pbt):
+    """Return (n_types, max_n_chi, 4) int32 array of RTO atom indices for each chi.
+
+    Entries are -1 where the residue type has fewer than max_n_chi chi angles.
+    Built once and cached on pbt as _chi4_atom_table.
+    """
+    if hasattr(pbt, "_chi4_atom_table"):
+        return pbt._chi4_atom_table
+
+    n_types = pbt.n_types
+    max_n_chi = (
+        max(
+            sum(1 for k in rt.torsion_to_uaids if k.startswith("chi"))
+            for rt in pbt.active_block_types
+        )
+        or 1
+    )
+
+    table = numpy.full((n_types, max_n_chi, 4), -1, dtype=numpy.int32)
+    for ti, rt in enumerate(pbt.active_block_types):
+        chi_names = sorted(k for k in rt.torsion_to_uaids if k.startswith("chi"))
+        for ci, chi_name in enumerate(chi_names):
+            uaids = rt.torsion_to_uaids[chi_name]
+            table[ti, ci] = [int(u[0]) for u in uaids]
+
+    # cache to avoid rebuilding on subsequent calls
+    object.__setattr__(pbt, "_chi4_atom_table", table)
+    return table
+
+
+def _build_chi_phi_c_corrections(pbt):
+    """Precompute phi_c correction per (block_type, chi_index), cached on pbt.
+
+    For each chi angle the relationship between what is written to phi_c and
+    what forward-kin produces as the actual dihedral is:
+
+        chi_measured = phi_c + offset
+
+    where offset = chi_ideal - phi_c_ideal is constant for a given residue
+    type and chi index.  This holds for both jump-parent atoms (chi1, where
+    the jump frame introduces an offset) and bond-parent atoms (chi2+, where
+    a non-zero torsion ICOOR introduces the offset).
+
+    Returns (n_types, max_n_chi) float32 array; 0.0 where not applicable.
+    """
+    if hasattr(pbt, "_chi_phi_c_corrections"):
+        return pbt._chi_phi_c_corrections
+
+    chi4_table = _build_chi4_atom_table(pbt)  # (n_types, max_n_chi, 4)
+    kfidx = pbt.rotamer_kinforest.kinforest_idx  # (n_types, max_n_atoms)
+    dofs_ideal = pbt.rotamer_kinforest.dofs_ideal  # (n_types, max_n_atoms, 9)
+
+    n_types, max_n_chi = chi4_table.shape[:2]
+    corrections = numpy.zeros((n_types, max_n_chi), dtype=numpy.float32)
+
+    for ti, rt in enumerate(pbt.active_block_types):
+        # ideal coords in restype atom order
+        ideal_coords = torch.tensor(
+            rt.ideal_coords[rt.at_to_icoor_ind], dtype=torch.float64
+        )
+        chi_names = sorted(k for k in rt.torsion_to_uaids if k.startswith("chi"))
+        for ci in range(len(chi_names)):
+            four_rto = chi4_table[ti, ci]
+            if any(a < 0 for a in four_rto):
+                continue
+            xyzs = ideal_coords[four_rto]
+            chi_ideal = float(
+                coord_dihedrals(xyzs[0:1], xyzs[1:2], xyzs[2:3], xyzs[3:4])[0]
+            )
+            cda_kfo = int(kfidx[ti, four_rto[2]])
+            phi_c_ideal = float(dofs_ideal[ti, cda_kfo, 3])
+            corrections[ti, ci] = chi_ideal - phi_c_ideal
+
+    object.__setattr__(pbt, "_chi_phi_c_corrections", corrections)
+    return corrections
 
 
 def exc_cumsum_from_inc_cumsum(cumsum):
@@ -854,6 +932,7 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
         gens,
         conf_dofs_kto,
     )
+
     (
         n_rots_for_pose,
         rot_offset_for_pose,

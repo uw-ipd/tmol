@@ -82,7 +82,6 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     preds = rkd.preds.astype(numpy.int64)  # BFS predecessors in TO; -9999 for root
     dof_type_to = rkd.dof_type  # NodeType per atom in TO
 
-
     # TO -> KFO mapping (used for kinforest_idx output field)
     to_2_kfo = invert_mapping(kfo_2_to, n_atoms).astype(numpy.int64)
 
@@ -100,16 +99,31 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     frame_z = kfo_parents[kfo_parents]
 
     # --- Fix jump root (KFO index 0) and its direct children ---
-    # In BFS order, root is at KFO 0 and its first child is at KFO 1 (= c1).
-    # c2 = first child of c1 if c1 has any children, else second child of root.
-    c1 = 1  # first BFS child of root (all children are non-jump)
-    c1_children = numpy.where(kfo_parents == c1)[0]
-    if len(c1_children) > 0:
-        c2 = int(c1_children[0])
+    # c1, c2 are the two frame atoms for root:
+    #   if root has >= 2 children: c1, c2 = first two children of root
+    #   if root has only 1 child:  c1 = that child, c2 = first child of c1
+    # Backbone (mainchain) atoms are preferred over sidechain atoms since
+    # their positions are fixed and don't change across rotamers.
+    root_children = numpy.where((kfo_parents == 0) & (numpy.arange(n_atoms) > 0))[0]
+
+    # fd we might need to rethink this for ligand packing
+    # fd if we _don't_ do this CB is chosen as ref frame which means CB position is not idealized
+    mc_atoms = set()
+    if hasattr(restype, "properties") and hasattr(restype.properties, "polymer"):
+        mc_atoms = set(restype.properties.polymer.mainchain_atoms)
+
+    def is_backbone(kfo_idx):
+        return restype.atoms[kfo_2_to[kfo_idx]].name in mc_atoms
+
+    root_children = sorted(root_children, key=lambda i: (not is_backbone(i), i))
+
+    c1 = int(root_children[0])
+    if len(root_children) >= 2:
+        c2 = int(root_children[1])
     else:
-        # c1 has no children; use the second child of root
-        root_children = numpy.where((kfo_parents == 0) & (numpy.arange(n_atoms) > 0))[0]
-        c2 = int(root_children[1])  # root_children[0] is c1=1
+        c1_children = numpy.where(kfo_parents == c1)[0]
+        c1_children = sorted(c1_children, key=lambda i: (not is_backbone(i), i))
+        c2 = int(c1_children[0])
 
     # Root (KFO 0): frame_x=c1, frame_y=self(=0), frame_z=c2
     frame_x[0] = c1

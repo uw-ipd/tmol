@@ -388,6 +388,29 @@ def assign_chi_dofs_from_samples(
         n_dof_atoms_offset_for_rot[global_rot_ind_for_real_atom].to(torch.int64) + 1
     )
 
-    # overwrite the "downstream torsion" for the atoms that control
-    # each chi
-    rot_dofs_kto[rot_chi_atoms_kto, 3] = chi.view(-1)[real_atoms]
+    # chi index (0, 1, 2, ...) for each real (rot, chi) entry
+    chi_idx_for_real_atom = (
+        (
+            torch.arange(
+                max_n_chi_atoms * n_rots_for_sampler,
+                dtype=torch.int64,
+                device=pbt.device,
+            )
+            % max_n_chi_atoms
+        )[real_atoms]
+        .cpu()
+        .numpy()
+    )
+
+    # precomputed correction: phi_c = chi_intended - correction => chi_measured = chi_intended
+    from tmol.pack.rotamer.build_rotamers import _build_chi_phi_c_corrections
+
+    corrections_np = _build_chi_phi_c_corrections(pbt)[
+        block_type_ind_for_rot_atom, chi_idx_for_real_atom
+    ]
+    corrections = torch.tensor(
+        corrections_np, dtype=rot_dofs_kto.dtype, device=pbt.device
+    )
+
+    # overwrite the "downstream torsion" for the atoms that control each chi
+    rot_dofs_kto[rot_chi_atoms_kto, 3] = chi.view(-1)[real_atoms] - corrections

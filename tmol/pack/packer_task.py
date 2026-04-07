@@ -112,6 +112,11 @@ class PackerPalette:
         return [IncludeCurrentSampler()]
 
 
+# TO DO: BLT should hold "considered block types" as a boolean vector
+# rather than a list of block types; then we can go back to the original
+# PBT-assigned BLT indices trivially, and moreover, we can precompute
+# the logic of what "restrict to repacking" means for each BLT rather
+# than deciding over and over again based on string matching.
 class BlockLevelTask:
     def __init__(
         self, seqpos: int, block_type: RefinedResidueType, palette: PackerPalette
@@ -132,7 +137,7 @@ class BlockLevelTask:
     def restrict_to_repacking(self):
         orig = self.original_block_type
         for i, bt in enumerate(self.considered_block_types):
-            if bt.name3 != orig.name3:
+            if bt.name3 != orig.name3:  # OOF
                 self.block_type_allowed[i] = False
 
     def disable_packing(self):
