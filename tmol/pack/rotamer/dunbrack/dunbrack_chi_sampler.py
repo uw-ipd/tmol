@@ -313,7 +313,9 @@ class DunbrackChiSampler(ChiSampler):
         #    contain this DunbrackChiSampler in their set of conformer samplers (dun-allowed)
         # 3. the buildable-block-types: the allowed block types at all positions that
         #    contain this DunbrackChiSampler in their set of conformer samplers that
-        #    the DunbrackChiSampler will sample rotamers for (bbt)
+        #    the DunbrackChiSampler will sample rotamers for (bbt) (i.e. that the
+        #    Dunbrack library has rotamer information about. ALA and GLY might both
+        #    show up as dun-allowed, but the library will not build rotamers for them.)
 
         # the subset of blocktypes which are allowed at the positions and
         # for which the block-level tasks include this DunbrackChiSampler
@@ -367,21 +369,32 @@ class DunbrackChiSampler(ChiSampler):
             device=self.device,
         )
 
-        dun_rot_inds_for_dun_allowed_bts = self.dun_param_resolver._indices_from_names(
-            self.dun_param_resolver.all_table_indices,
-            dun_allowed_bt_base_names[None, :],
-            # ??? torch.device("cpu"),
-            self.device,
-        ).squeeze(dim=0)
+        # the dunbrack-assigned table index for each dun-allowed block type;
+        # -1 if the block type is not built by any dunbrack table;
+        # TO DO: if the BLT holds a boolean vector for considered block types,
+        # then we just know what the dun-rot-inds are for each PBT-assigned
+        # block type index.
+        rottable_set_for_dun_allowed_bts_cpu = (
+            self.dun_param_resolver._indices_from_names(
+                self.dun_param_resolver.all_table_indices,
+                dun_allowed_bt_base_names[None, :],
+                device=torch.device("cpu"),
+            ).squeeze(dim=0)
+        )
+
+        rottable_set_for_dun_allowed_bts = rottable_set_for_dun_allowed_bts_cpu.to(
+            self.device
+        )
 
         # the pbt-assigned block-type indices for each buildable block type
         # the subset of dun_rot_inds_for_dun_allowed_bts with a non-sentinel
         # value represents the buildable block types
+        # TO DO: PackerTask should hold a pointer to the PBT it is built from
+        # and then what should live in a BlockLevelTask is a set of indices rather
+        # than a list of
         block_type_ind_for_bbt = torch.tensor(
             pbt.restype_index.get_indexer(
-                dun_allowed_bt_names[
-                    dun_rot_inds_for_dun_allowed_bts.cpu().numpy() != -1
-                ]
+                dun_allowed_bt_names[rottable_set_for_dun_allowed_bts_cpu.numpy() != -1]
             ),
             dtype=torch.int64,
             device=self.device,
@@ -394,10 +407,12 @@ class DunbrackChiSampler(ChiSampler):
             -1, 4
         )
 
-        is_dun_allowed_bt_bbt = dun_rot_inds_for_dun_allowed_bts != -1
+        # what is the subset of dun-allowed block types that are buildable by the Dunbrack library?
+        is_dun_allowed_bt_bbt = rottable_set_for_dun_allowed_bts != -1
+
         dun_allowed_bt_that_are_bbt = torch.nonzero(is_dun_allowed_bt_bbt)[:, 0]
         bbt_to_gbt_torch = dun_allowed_bt_to_gbt_torch[dun_allowed_bt_that_are_bbt]
-        rottable_set_for_bbt = dun_rot_inds_for_dun_allowed_bts[
+        rottable_set_for_bbt = rottable_set_for_dun_allowed_bts[
             dun_allowed_bt_that_are_bbt
         ]
 
@@ -409,13 +424,23 @@ class DunbrackChiSampler(ChiSampler):
         # that we will build rotamers for: BRT = "buildable residue type"
         block_for_bbt = dun_allowed_bt_block[dun_allowed_bt_that_are_bbt]
 
-        uniq_block_for_bbt, uniq_inds = torch.unique(block_for_bbt, return_inverse=True)
-        uniq_block_for_bbt = uniq_block_for_bbt.to(torch.int64)
+        global_block_ind_for_bubl, bubl_for_bbt = torch.unique(
+            block_for_bbt, return_inverse=True
+        )
+        global_block_ind_for_bubl = global_block_ind_for_bubl.to(torch.int64)
 
-        rottable_set_for_bbt = (
+        # There are two things we need to know about each BBT:
+        # 1. what BUildable-BLock index did it come from? (not all blocks are buildable,
+        #    and we only care about the subset that are. When we call "unique" above,
+        #    that reduces our focus to the subset of all blocks to the ones that are
+        #    buildable; later, when we measure phi/psi, we will only measure phi/psi
+        #    for the subset that are buildable.)
+        # 2. what rottable set does the Dunbrack library assign to it?
+        # We will put them together into a single tensor.
+        bubl_and_rottable_set_for_bbt = (
             torch.cat(
                 (
-                    uniq_inds.reshape(-1, 1),
+                    bubl_for_bbt.reshape(-1, 1),
                     rottable_set_for_bbt.reshape(-1, 1),
                 ),
                 dim=1,
@@ -426,7 +451,7 @@ class DunbrackChiSampler(ChiSampler):
 
         # phi_psi_res_inds = numpy.arange(n_sys * max_n_blocks, dtype=numpy.int32)
 
-        n_sampling_blocks = uniq_block_for_bbt.shape[0]
+        n_sampling_blocks = global_block_ind_for_bubl.shape[0]
 
         # map the residue-numbered list of dihedral angles to their positions in
         # the set of residues that the Dunbrack library will provide chi samples for
@@ -436,12 +461,12 @@ class DunbrackChiSampler(ChiSampler):
         dihedral_atom_inds[
             2 * torch.arange(n_sampling_blocks, dtype=torch.int64, device=self.device),
             :,
-        ] = inds_of_phi[uniq_block_for_bbt, :]
+        ] = inds_of_phi[global_block_ind_for_bubl, :]
         dihedral_atom_inds[
             2 * torch.arange(n_sampling_blocks, dtype=torch.int64, device=self.device)
             + 1,
             :,
-        ] = inds_of_psi[uniq_block_for_bbt, :]
+        ] = inds_of_psi[global_block_ind_for_bubl, :]
 
         n_dihe_for_block = torch.full(
             (n_sampling_blocks,), 2, dtype=torch.int32, device=self.device
@@ -515,7 +540,7 @@ class DunbrackChiSampler(ChiSampler):
             n_dihe_for_block,
             dihedral_offset_for_block,
             dihedral_atom_inds,
-            rottable_set_for_bbt,
+            bubl_and_rottable_set_for_bbt,
             chi_expansion_for_bbt,
             non_dunbrack_expansion_for_bbt,
             non_dunbrack_expansion_counts_for_bbt,
@@ -598,6 +623,14 @@ class DunbrackChiSampler(ChiSampler):
             + dest_local_atom.to(torch.int32),
             torch.full_like(dest_local_atom, -1, dtype=torch.int32),
         )
+        dihe_atom_inds[intra_res[:, 0], intra_res[:, 1], intra_res[:, 2]] = (
+            (intra_res[:, 0] * max_n_atoms).to(torch.int32)
+            + pose_stack.block_coord_offset[intra_res[:, 0], intra_res[:, 1]]
+            + uaids[intra_res[:, 0], intra_res[:, 1], intra_res[:, 2], 0].to(
+                torch.int32
+            )
+        )
+        print("dihe_atom_inds", dihe_atom_inds)
 
         dihe_atom_inds = torch.full(
             pose_stack.block_type_ind.shape + (4,),
@@ -614,7 +647,7 @@ class DunbrackChiSampler(ChiSampler):
         ndihe_for_res,
         dihedral_offset_for_res,
         dihedral_atom_inds,
-        rottable_set_for_buildable_restype,
+        bubl_and_rottable_set_for_buildable_restype,
         chi_expansion_for_buildable_restype,
         non_dunbrack_expansion_for_buildable_restype,
         non_dunbrack_expansion_counts_for_buildable_restype,
@@ -654,7 +687,7 @@ class DunbrackChiSampler(ChiSampler):
             ndihe_for_res,
             dihedral_offset_for_res,
             dihedral_atom_inds,
-            rottable_set_for_buildable_restype,
+            bubl_and_rottable_set_for_buildable_restype,
             chi_expansion_for_buildable_restype,
             non_dunbrack_expansion_for_buildable_restype,
             non_dunbrack_expansion_counts_for_buildable_restype,

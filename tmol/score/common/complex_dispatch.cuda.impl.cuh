@@ -128,6 +128,55 @@ struct ComplexDispatch {
         context);
   }
 
+  template <typename T, typename B, typename Func>
+  static void inclusive_segmented_scan(
+      TView<T, 1, D> vals,
+      TView<B, 1, D> seg_start,
+      TView<T, 1, D> out,
+      Func op) {
+    assert(vals.size(0) == out.size(0));
+    mgpu::standard_context_t context;
+
+    typedef typename mgpu::launch_params_t<128, 2> launch_t;
+    constexpr int nt = launch_t::nt, vt = launch_t::vt;
+
+    int const n_segments = seg_start.size(0);
+    int scanBuffer = n_segments + vals.size(0);
+    float scanleft = std::ceil(((float)scanBuffer) / (nt * vt));
+    int lbsBuffer = (int)scanleft + 1;
+    int carryoutBuffer = (int)scanleft;
+    while (scanleft > 1) {
+      scanleft = std::ceil(scanleft / nt);
+      carryoutBuffer += (int)scanleft;
+    }
+
+    auto scanCarryout_tpack = TPack<T, 1, D>::empty({carryoutBuffer});
+    auto scanCodes_tpack = TPack<int, 1, D>::empty({carryoutBuffer});
+    auto LBS_tpack = TPack<int, 1, D>::empty({lbsBuffer});
+    auto scan_tpack = TPack<T, 1, D>::empty({scanBuffer});
+
+    auto scanCarryout = scanCarryout_tpack.view;
+    auto scanCodes = scanCodes_tpack.view;
+    auto LBS = LBS_tpack.view;
+    auto scan = scan_tpack.view;
+
+    auto straight_indexing = [=] MGPU_DEVICE(int index, int seg, int rank) {
+      return vals[index];
+    };
+    tmol::kinematics::kernel_segscan<launch_t, mgpu::scan_type_inc>(
+        straight_indexing,
+        vals.size(0),
+        seg_start.data(),
+        n_segments,
+        out.data(),
+        scanCarryout.data(),
+        scanCodes.data(),
+        LBS.data(),
+        op,
+        T(0),
+        context);
+  }
+
   static void synchronize() { cudaDeviceSynchronize(); }
 };
 

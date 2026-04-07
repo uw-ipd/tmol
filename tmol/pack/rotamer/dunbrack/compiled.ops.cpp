@@ -52,7 +52,8 @@ std::vector<Tensor> dun_sample_chi(
     Tensor dihedral_offset_for_res,  // nres x 1
     Tensor dihedral_atom_inds,       // ndihe x 4
 
-    Tensor rottable_set_for_buildable_restype,  // n-buildable-restypes x 2
+    Tensor bubl_and_rottable_set_for_buildable_restype,  // n-buildable-restypes
+                                                         // x 2
     Tensor chi_expansion_for_buildable_restype,
     Tensor non_dunbrack_expansion_for_buildable_restype,
     Tensor non_dunbrack_expansion_counts_for_buildable_restype,
@@ -108,7 +109,7 @@ std::vector<Tensor> dun_sample_chi(
               TCAST(dihedral_offset_for_res),
               TCAST(dihedral_atom_inds),
 
-              TCAST(rottable_set_for_buildable_restype),
+              TCAST(bubl_and_rottable_set_for_buildable_restype),
               TCAST(chi_expansion_for_buildable_restype),
               TCAST(non_dunbrack_expansion_for_buildable_restype),
               TCAST(non_dunbrack_expansion_counts_for_buildable_restype),

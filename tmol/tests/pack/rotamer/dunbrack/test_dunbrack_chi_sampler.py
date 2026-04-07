@@ -703,8 +703,10 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     # that we will build rotamers for: BRT = "buildable residue type"
     block_for_bbt = dun_allowed_bt_block[dun_allowed_bt_that_are_bbt]
 
-    uniq_block_for_bbt, uniq_inds = torch.unique(block_for_bbt, return_inverse=True)
-    uniq_block_for_bbt = uniq_block_for_bbt.to(torch.int64)
+    global_block_ind_for_bubl, uniq_inds = torch.unique(
+        block_for_bbt, return_inverse=True
+    )
+    global_block_ind_for_bubl = global_block_ind_for_bubl.to(torch.int64)
 
     rottable_set_for_bbt = torch.tensor(
         torch.cat(
@@ -720,7 +722,7 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
 
     # phi_psi_res_inds = numpy.arange(n_sys * max_n_blocks, dtype=numpy.int32)
 
-    n_sampling_blocks = uniq_block_for_bbt.shape[0]
+    n_sampling_blocks = global_block_ind_for_bubl.shape[0]
 
     # map the residue-numbered list of dihedral angles to their positions in
     # the set of residues that the Dunbrack library will provide chi samples for
@@ -731,13 +733,13 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         2
         * torch.arange(n_sampling_blocks, dtype=torch.int64, device=dun_sampler.device),
         :,
-    ] = inds_of_phi[uniq_block_for_bbt, :]
+    ] = inds_of_phi[global_block_ind_for_bubl, :]
     dihedral_atom_inds[
         2
         * torch.arange(n_sampling_blocks, dtype=torch.int64, device=dun_sampler.device)
         + 1,
         :,
-    ] = inds_of_psi[uniq_block_for_bbt, :]
+    ] = inds_of_psi[global_block_ind_for_bubl, :]
 
     n_dihe_for_block = torch.full(
         (n_sampling_blocks,), 2, dtype=torch.int32, device=dun_sampler.device
