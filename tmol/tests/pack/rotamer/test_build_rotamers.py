@@ -1044,54 +1044,12 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
 
 def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
 
-    # lets look briefly at DunbrackParamResolver's
-    dun_db = default_database.scoring.dun
-    print([x.table_name for x in dun_db.rotameric_libraries])
-    val_dun_db = next(x for x in dun_db.rotameric_libraries if x.table_name == "val")
-    print(
-        "val_dun_db.rotameric_data.backbone_dihedral_start",
-        val_dun_db.rotameric_data.backbone_dihedral_start,
-    )
-    print(
-        "val_dun_db.rotameric_data.backbone_dihedral_step",
-        val_dun_db.rotameric_data.backbone_dihedral_step,
-    )
-    print(
-        "val_dun_db.rotameric_data.prob_sorted_rot_inds",
-        val_dun_db.rotameric_data.prob_sorted_rot_inds.shape,
-    )
-    val_alpha_sorted_rot_inds = val_dun_db.rotameric_data.prob_sorted_rot_inds[
-        11:15, 11:15, :
-    ]
-    val_alpha_rotamer_probabilities = val_dun_db.rotameric_data.rotamer_probabilities[
-        :, 11:15, 11:15
-    ]
-    print("val_alpha_sorted_rot_inds", val_alpha_sorted_rot_inds)
-    print("val_alpha_rotamer_probabilities", val_alpha_rotamer_probabilities)
-
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
-    sampling_db = param_resolver.sampling_db
-    # now let's see how the sorted rotamer indices are stored for val
-    tableset_offset = sampling_db.n_rotamers_for_tableset_offsets[9]
-    print("val tableset_offset", tableset_offset)
-    print(
-        "sorted rotamer 2 rotamer",
-        sampling_db.sorted_rotamer_2_rotamer[
-            12:16, 12:16, tableset_offset : tableset_offset + 3
-        ],
-    )
-
     poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=75)
     restype_set = poses.packed_block_types.restype_set
 
     palette = PackerPalette(restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
-    for i in range(75):
-        if i != 25:
-            task.blts[0][i].disable_packing()
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
@@ -1100,29 +1058,12 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
     pbt = poses.packed_block_types
 
-    # ("record_name", str, 6),
-    # ("modeli", int),
-    # ("chaini", int),
-    # ("resi", int),
-    # ("atomi", int),
-    # ("model", str, 64),
-    # ("chain", str, 1),
-    # ("resn", str, 3),
-    # ("atomn", str, 4),
-    # ("x", float),
-    # ("y", float),
-    # ("z", float),
-    # ("location", str, 1),
-    # ("insert", str, 1),
-    # ("occupancy", float),
-    # ("b", float),
-
     # we are going to create a list of atom records for each rotamer
     # and write them out as a multi-model pdb
     n_atoms_total = rotamer_set.coords.shape[0]
     atom_records = numpy.empty((n_atoms_total,), dtype=atom_record_dtype)
     n_rots = rotamer_set.block_type_ind_for_rot.shape[0]
-    print("n_rots", n_rots)
+
     for i in range(n_rots):
         i_offset = rotamer_set.coord_offset_for_rot[i]
         block_type_ind = rotamer_set.block_type_ind_for_rot[i]
@@ -1148,6 +1089,7 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
             atom_records[i_offset + j]["insert"] = ""  # insert code
             atom_records[i_offset + j]["occupancy"] = 1.0  # occupancy
             atom_records[i_offset + j]["b"] = 0.0  # B-factor
+
     with open("test_build_rotamers.pdb", "w") as fid:
         fid.writelines(to_pdb_lines(atom_records))
 

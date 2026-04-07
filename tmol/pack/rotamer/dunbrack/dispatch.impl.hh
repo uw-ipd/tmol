@@ -203,15 +203,6 @@ struct DunbrackChiSampler {
           // degrees
           dihe = M_PI / 3.0;
         }
-        printf(
-            "dihedral %d for bubl %d is %f from atoms %d, %d, %d, %d\n",
-            dihe_ind,
-            bubl,
-            dihe,
-            at0,
-            at1,
-            at2,
-            at3);
         backbone_dihedrals[i] = dihe;
       }
     };
@@ -247,11 +238,6 @@ struct DunbrackChiSampler {
         possible_rotamer_offset_for_brt,
         backbone_dihedrals,
         rotamer_probability);
-
-    for (int i = 0; i < rotamer_probability.size(0); ++i) {
-      printf("rotamer_probability %f\n", rotamer_probability[i]);
-    }
-    // std::cout << "5" << std::endl;
 
     // And now the count of rotamers to build per restype:
     auto n_rotamers_to_build_per_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
@@ -340,14 +326,6 @@ struct DunbrackChiSampler {
 
         expansion_dim_prods_for_brt,
         chi_for_rotamers);
-    // std::cout << "9" << std::endl;
-    for (int i = 0; i < chi_for_rotamers.size(0); ++i) {
-      printf("chi for rotamer %d: ", i);
-      for (int j = 0; j < chi_for_rotamers.size(1); ++j) {
-        printf("%f ", chi_for_rotamers[i][j]);
-      }
-      printf("\n");
-    }
 
     return {
         n_rotamers_to_build_per_brt_tp,
@@ -504,10 +482,6 @@ struct DunbrackChiSampler {
         rotamer_probability_cumsum,
         mgpu::plus_t<Real>());
 
-    for (int i = 0; i < rotamer_probability_cumsum.size(0); ++i) {
-      printf("rotamer_probability_cumsum %f\n", rotamer_probability_cumsum[i]);
-    }
-
     // And with the cumulative sum, we can now decide which rotamers we will
     // build
     auto build_possible_rotamer_tp =
@@ -522,9 +496,6 @@ struct DunbrackChiSampler {
         };
 
     Dispatch<D>::forall(n_possible_rotamers, decide_on_possible_rotamer);
-    for (int i = 0; i < build_possible_rotamer.size(0); ++i) {
-      printf("build_possible_rotamer %d\n", build_possible_rotamer[i]);
-    }
 
     // Let's count the number of possible rotamers we're keeping per restype
     auto count_rotamers_to_build_tp =
@@ -538,10 +509,6 @@ struct DunbrackChiSampler {
         count_rotamers_to_build,
         mgpu::plus_t<Int>());
 
-    for (int i = 0; i < count_rotamers_to_build.size(0); ++i) {
-      printf("count_rotamers_to_build %d\n", count_rotamers_to_build[i]);
-    }
-
     auto count_rots_to_build_per_brt = [=] EIGEN_DEVICE_FUNC(int brt) {
       Int const offset = possible_rotamer_offset_for_brt[brt];
       Int const npossible = n_possible_rotamers_per_brt[brt];
@@ -551,10 +518,6 @@ struct DunbrackChiSampler {
     };
 
     Dispatch<D>::forall(n_brt, count_rots_to_build_per_brt);
-    for (int i = 0; i < n_brt; ++i) {
-      printf(
-          "n_rotamers_to_build_per_brt %d\n", n_rotamers_to_build_per_brt[i]);
-    }
   }
 
   static Int count_expanded_rotamers(
@@ -701,11 +664,6 @@ struct DunbrackChiSampler {
         bbstep[ii] = rotameric_bb_step[table_set][ii];
         bbdihe[ii] = wrap_iidihe / bbstep[ii];
         bin_index[ii] = int(bbdihe[ii]);
-        printf(
-            "bbdihe %f, bin_index %d for ii %d \n",
-            bbdihe[ii],
-            bin_index[ii],
-            ii);
       }
 
       // Look up the index of the rotamer: we know where the rotamer is in
@@ -723,19 +681,6 @@ struct DunbrackChiSampler {
 
       // OK: we have the phi & psi values, and we have the rotamer index
       // Now we can start calculating the chi.
-      printf("bin index[0] %d, bin index[1] %d \n", bin_index[0], bin_index[1]);
-      printf(
-          "table set %d, base rotamer %d, expanded rotamer %d for rotamer %d "
-          "\n",
-          table_set,
-          base_rotno,
-          expanded_rotamer_for_brt,
-          rotamer);
-      printf(
-          "sorted rotamer %d is rotamer %d \n",
-          base_rotno,
-          sorted_rotamer_2_rotamer[bin_index[0]][bin_index[1]]
-                                  [tableset_offset + base_rotno]);
 
       // How do we do that?
       // For each chi,
@@ -768,12 +713,6 @@ struct DunbrackChiSampler {
               tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
                   rotmean_slice, bbdihe);
           ii_chi = score::common::get<0>(mean_and_derivs);
-          printf(
-              "base chi %d for rotamer %d, with offset %d is %f \n",
-              ii,
-              rotamer,
-              rot_table_start,
-              ii_chi * 180 / M_PI);
           if (chi_expansion_for_buildable_restype[brt][ii]) {
             // OK! we expand this chi; so retrieve the standard deviation
             TensorAccessor<Real, 2, D> rotsdev_slice(

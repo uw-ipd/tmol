@@ -631,14 +631,6 @@ class DunbrackChiSampler(ChiSampler):
             + dest_local_atom.to(torch.int32),
             torch.full_like(dest_local_atom, -1, dtype=torch.int32),
         )
-        # dihe_atom_inds[intra_res[:, 0], intra_res[:, 1], intra_res[:, 2]] = (
-        #     (intra_res[:, 0] * max_n_atoms).to(torch.int32)
-        #     + pose_stack.block_coord_offset[intra_res[:, 0], intra_res[:, 1]]
-        #     + uaids[intra_res[:, 0], intra_res[:, 1], intra_res[:, 2], 0].to(
-        #         torch.int32
-        #     )
-        # )
-        # print("dihe_atom_inds", dihe_atom_inds)
 
         dihe_atom_inds = torch.full(
             pose_stack.block_type_ind.shape + (4,),
