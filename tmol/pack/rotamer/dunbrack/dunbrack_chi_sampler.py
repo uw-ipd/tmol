@@ -453,9 +453,6 @@ class DunbrackChiSampler(ChiSampler):
         n_bbts = dun_allowed_bt_that_are_bbt.shape[0]
 
         max_n_chi = pose_stack.packed_block_types.dun_sampler_cache.max_n_chi
-        chi_expansion_for_bbt = torch.full(
-            (n_bbts, max_n_chi), 0, dtype=torch.int32, device=self.device
-        )
         chi_expansion_for_gbt = torch.cat(
             [
                 torch.tensor(blt.chi_expansion)
@@ -488,15 +485,13 @@ class DunbrackChiSampler(ChiSampler):
             .to(torch.int32)
         )
 
-        non_dunbrack_expansion_counts_for_bbt = torch.zeros(
-            (n_bbts, max_n_chi), dtype=torch.int32, device=self.device
-        )
-        ndecfbbt = sc.non_dunbrack_sample_counts[block_type_ind_for_bbt, 1]
-        non_dunbrack_expansion_counts_for_bbt = ndecfbbt
+        non_dunbrack_expansion_counts_for_bbt = sc.non_dunbrack_sample_counts[
+            block_type_ind_for_bbt, :, 1  # dim2: burial state (0=exposed, 1=buried)
+        ]
 
         # treat all residues as buried (index 1)
         non_dunbrack_expansion_for_bbt = sc.non_dunbrack_samples[
-            block_type_ind_for_bbt, 1
+            block_type_ind_for_bbt, :, 1  # dim2: burial state (0=exposed, 1=buried)
         ]
 
         # Rosetta defaults (buried): rotameric=0.98, semi-rotameric=0.95.
