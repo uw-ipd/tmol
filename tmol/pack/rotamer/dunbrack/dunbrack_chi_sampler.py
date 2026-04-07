@@ -164,24 +164,30 @@ class DunbrackChiSampler(ChiSampler):
             non_dunbrack_samples = numpy.zeros(
                 (n_chi_total, 2, max_chi_samples), dtype=numpy.float32
             )
+            deg_to_rad = numpy.pi / 180
             for rt_chi in restype.chi_samples:
                 chi_name = rt_chi.chi_dihedral
                 chi_ind = int(chi_name[3:]) - 1
                 n_expansions = 1 + 2 * len(rt_chi.expansions)
                 n_samples = len(rt_chi.samples)
-                non_dunbrack_samples[chi_ind, 0, :n_samples] = rt_chi.samples
+                non_dunbrack_samples[chi_ind, 0, :n_samples] = deg_to_rad * numpy.array(
+                    rt_chi.samples
+                )
                 for i in range(n_samples):
                     for j in range(n_expansions):
                         if j == 0:
                             non_dunbrack_samples[chi_ind, 1, n_expansions * i + j] = (
-                                rt_chi.samples[i]
+                                deg_to_rad * rt_chi.samples[i]
                             )
                         else:
                             expansion = (j - 1) // 2
                             factor = -1 if (j - 1) % 2 == 0 else 1
                             non_dunbrack_samples[chi_ind, 1, n_expansions * i + j] = (
-                                rt_chi.samples[i]
-                                + factor * rt_chi.expansions[expansion]
+                                deg_to_rad
+                                * (
+                                    rt_chi.samples[i]
+                                    + factor * rt_chi.expansions[expansion]
+                                )
                             )
 
         else:
@@ -525,7 +531,9 @@ class DunbrackChiSampler(ChiSampler):
         n_rotameric_sets = int(
             self.dun_param_resolver.rotameric_table_indices["dun_table_name"].max() + 1
         )
-        is_semi = rottable_set_for_bbt[:, 1].to(torch.int64) >= n_rotameric_sets
+        is_semi = (
+            bubl_and_rottable_set_for_bbt[:, 1].to(torch.int64) >= n_rotameric_sets
+        )
         prob_cumsum_limit_for_bbt = torch.where(
             is_semi,
             torch.full((n_bbts,), 0.95, dtype=torch.float32, device=self.device),
@@ -623,14 +631,14 @@ class DunbrackChiSampler(ChiSampler):
             + dest_local_atom.to(torch.int32),
             torch.full_like(dest_local_atom, -1, dtype=torch.int32),
         )
-        dihe_atom_inds[intra_res[:, 0], intra_res[:, 1], intra_res[:, 2]] = (
-            (intra_res[:, 0] * max_n_atoms).to(torch.int32)
-            + pose_stack.block_coord_offset[intra_res[:, 0], intra_res[:, 1]]
-            + uaids[intra_res[:, 0], intra_res[:, 1], intra_res[:, 2], 0].to(
-                torch.int32
-            )
-        )
-        print("dihe_atom_inds", dihe_atom_inds)
+        # dihe_atom_inds[intra_res[:, 0], intra_res[:, 1], intra_res[:, 2]] = (
+        #     (intra_res[:, 0] * max_n_atoms).to(torch.int32)
+        #     + pose_stack.block_coord_offset[intra_res[:, 0], intra_res[:, 1]]
+        #     + uaids[intra_res[:, 0], intra_res[:, 1], intra_res[:, 2], 0].to(
+        #         torch.int32
+        #     )
+        # )
+        # print("dihe_atom_inds", dihe_atom_inds)
 
         dihe_atom_inds = torch.full(
             pose_stack.block_type_ind.shape + (4,),

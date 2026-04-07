@@ -195,11 +195,13 @@ struct DunbrackChiSampler {
           dihe = score::common::dihedral_angle<Real>::V(
               coords[at0], coords[at1], coords[at2], coords[at3]);
         } else if (dihe_ind == 0) {
-          // neutral phi
-          dihe = -60 * M_PI / 180.0;  // As suggested by Roland Dunbrack
+          // neutral phi in radians, as suggested by Roland Dunbrack, -60
+          // degrees
+          dihe = -M_PI / 3.0;
         } else if (dihe_ind == 1) {
-          // neutral psi
-          dihe = 60 * M_PI / 180.0;  // As suggested by Roland Dunbrack
+          // neutral psi in radians, as suggested by Roland Dunbrack, +60
+          // degrees
+          dihe = M_PI / 3.0;
         }
         printf(
             "dihedral %d for bubl %d is %f from atoms %d, %d, %d, %d\n",
@@ -529,7 +531,7 @@ struct DunbrackChiSampler {
         TPack<Int, 1, D>::zeros(n_possible_rotamers);
     auto count_rotamers_to_build = count_rotamers_to_build_tp.view;
 
-    // exclusive segmented scan on the build_possible_rotamer array
+    // *in*clusive segmented scan on the build_possible_rotamer array
     Dispatch<D>::inclusive_segmented_scan(
         build_possible_rotamer,
         possible_rotamer_offset_for_brt,
@@ -544,10 +546,7 @@ struct DunbrackChiSampler {
       Int const offset = possible_rotamer_offset_for_brt[brt];
       Int const npossible = n_possible_rotamers_per_brt[brt];
       Int const last = offset + npossible - 1;
-      // count_rotamers_to_build is an exclusive scan, so the value at 'last'
-      // does not include the last element itself; add it explicitly.
-      Int const brt_count =
-          count_rotamers_to_build[last] + build_possible_rotamer[last];
+      Int const brt_count = count_rotamers_to_build[last];
       n_rotamers_to_build_per_brt[brt] = brt_count;
     };
 
