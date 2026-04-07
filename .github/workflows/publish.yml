@@ -1,11 +1,11 @@
-# Publish sdist to TestPyPI + wheels to GitHub Release.
+# Build wheels + sdist, upload sdist to TestPyPI, upload wheels to GitHub Release.
 #
-# Runs on push to kdidi/jit_and_precompiled or manual trigger.
+# Runs on push to master/kdidi/** or manual trigger.
 # Safe to run on every push: TestPyPI rejects duplicate versions,
 # so the upload step is a no-op if the version already exists.
 #
 # PyPI/TestPyPI rejects wheel filenames with "+" local version segments
-# (e.g. +cu12torch2.5), so wheels are distributed via GitHub Releases
+# (e.g. +cu128torch2.10), so wheels are distributed via GitHub Releases
 # and installed with: pip install tmol --find-links <release-url>
 #
 # Three separate jobs so you can RE-RUN just the upload if it fails
@@ -14,170 +14,102 @@
 name: Publish to TestPyPI
 
 on:
-  release:
-    types: [published]
   push:
-    branches: [master, "aleaverfay/notebooks1"]
+    branches: [master, "kdidi/**"]
   workflow_dispatch:
 
 jobs:
-  # ── Job 1: Build wheels ─────────────────────────────────────────────
+  # ── GPU wheels ───────────────────────────────────────────────────────
   build_wheels:
-    name: Build Wheel (${{ matrix.torch-version }}, abi=${{ matrix.cxx11_abi }}, ${{ matrix.arch }}, ${{ matrix.cu}} )
+    name: "${{ matrix.label }}"
     strategy:
       fail-fast: false
       matrix:
         include:
-          # ═══════════════════════════════════════════════════════════════
-          # Python 3.12 (cp312) — NGC 25.06+ containers
-          # ═══════════════════════════════════════════════════════════════
-
-          # ── x86_64 ABI=TRUE (cp312) ──
+          # ── x86_64 cp312 (NGC native) ──
           - container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.8"
-            cxx11_abi: "TRUE"
             runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.9
+            label: "cp312 pt2.8 x86_64 NGC"
           - container-image: nvcr.io/nvidia/pytorch:25.10-py3
             torch-version: "2.9"
-            cxx11_abi: "TRUE"
             runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu13.0
+            label: "cp312 pt2.9 x86_64 NGC"
           - container-image: nvcr.io/nvidia/pytorch:26.01-py3
             torch-version: "2.10"
-            cxx11_abi: "TRUE"
             runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu13.1
+            label: "cp312 pt2.10 x86_64 NGC"
 
-          # ── x86_64 ABI=FALSE (cp312) ──
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.8"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.9
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.9"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.9
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.10"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.9
-
-          # ── ARM64 ABI=TRUE (cp312) ──
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.8"
-            cxx11_abi: "TRUE"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-            cu: cu12.9
-          - container-image: nvcr.io/nvidia/pytorch:25.10-py3
-            torch-version: "2.9"
-            cxx11_abi: "TRUE"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-            cu: cu13.0
-          - container-image: nvcr.io/nvidia/pytorch:26.01-py3
-            torch-version: "2.10"
-            cxx11_abi: "TRUE"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-            cu: cu13.1
-
-          # ═══════════════════════════════════════════════════════════════
-          # Python 3.10 (cp310) — NGC 24.10 container (Python 3.10, CUDA 12.6)
-          # Reinstalls target PyTorch via pip into the container.
-          # ═══════════════════════════════════════════════════════════════
-
-          # ── x86_64 ABI=TRUE (cp310) ──
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.8"
-            cxx11_abi: "TRUE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.6
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.9"
-            cxx11_abi: "TRUE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.6
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.10"
-            cxx11_abi: "TRUE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.6
-
-          # ── x86_64 ABI=FALSE (cp310) ──
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.8"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.6
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.9"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.6
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.10"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.6
-
-          # ARM64 cp310: removed — pip doesn't publish ARM CUDA wheels,
-          # so we can't pip-install torch into the 24.10 container for ARM.
-          # ARM cp312 builds use NGC containers directly (no pip reinstall).
-
-          # ═══════════════════════════════════════════════════════════════
-          # Special Google Colab build:
-          #   Python 3.12 (cp312)
-          #   Pytorch 3.10
-          #   CUDA 12.8
-          #   ABI=True
-          #   x86_64
-          # ═══════════════════════════════════════════════════════════════
-
-          # ── x86_64 ABI=TRUE (cp312) ──
+          # ── x86_64 Colab (NGC 25.02 = CUDA 12.8, pip torch 2.10 cu128) ──
           - container-image: nvcr.io/nvidia/pytorch:25.02-py3
             torch-version: "2.10"
-            cxx11_abi: "TRUE"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
             runs-on: ubuntu-22.04
-            arch: x86_64
-            cu: cu12.8
+            label: "cp312 pt2.10 x86_64 Colab cu128"
+
+          # ── ARM64 cp312 (NGC native) ──
+          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
+            torch-version: "2.8"
+            runs-on: ubuntu-24.04-arm
+            label: "cp312 pt2.8 aarch64 NGC"
+          - container-image: nvcr.io/nvidia/pytorch:25.10-py3
+            torch-version: "2.9"
+            runs-on: ubuntu-24.04-arm
+            label: "cp312 pt2.9 aarch64 NGC"
+          - container-image: nvcr.io/nvidia/pytorch:26.01-py3
+            torch-version: "2.10"
+            runs-on: ubuntu-24.04-arm
+            label: "cp312 pt2.10 aarch64 NGC"
 
     uses: ./.github/workflows/_build_wheel.yml
     with:
       runs-on: ${{ matrix.runs-on }}
       container-image: ${{ matrix.container-image }}
       torch-version: ${{ matrix.torch-version }}
-      cxx11_abi: ${{ matrix.cxx11_abi }}
+      label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.pip-torch-cuda-url || '' }}
-      cu: ${{ matrix.cu }}
 
-  # ── Job 2: Build sdist ──────────────────────────────────────────────
+  # ── CPU-only wheel ─────────────────────────────────────────────────
+  build_cpu_wheel:
+    name: "cp312 CPU-only"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
+
+      - name: Build wheel
+        run: |
+          pip wheel . --no-build-isolation --no-deps -w dist \
+            -Ccmake.define.TMOL_ENABLE_CUDA=OFF
+
+      - name: Rename wheel with CPU tag
+        run: |
+          cd dist
+          for whl in *.whl; do
+            new_name=$(echo "$whl" | sed 's/-/+cpu-/2')
+            mv "$whl" "$new_name"
+          done
+
+      - name: Log built wheels
+        run: ls -lh dist/
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-cp312-cpu-x86_64
+          path: dist/*.whl
+
+  # ── sdist ──────────────────────────────────────────────────────────
   build_sdist:
     name: Build sdist
     runs-on: ubuntu-latest
@@ -205,15 +137,15 @@ jobs:
           name: sdist
           path: dist/*.tar.gz
 
-  # ── Job 3: Upload ──────────────────────────────────────────────────
+  # ── Upload ─────────────────────────────────────────────────────────
   #
-  # sdist → TestPyPI  (no local version segment, PyPI accepts it)
-  # wheels → GitHub Release  (local version +cu... is fine here)
+  # sdist -> TestPyPI  (no local version segment, PyPI accepts it)
+  # wheels -> GitHub Release  (local version +cu... is fine here)
   #
   # If this job fails you can RE-RUN just this job from the Actions UI.
   upload:
     name: Upload sdist to TestPyPI + wheels to GitHub Release
-    needs: [build_wheels, build_sdist]
+    needs: [build_wheels, build_cpu_wheel, build_sdist]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-python@v5
@@ -223,7 +155,6 @@ jobs:
       - name: Install twine
         run: pip install twine
 
-      # ── Download artifacts ──
       - name: Download sdist artifact
         uses: actions/download-artifact@v4
         with:
@@ -244,14 +175,12 @@ jobs:
           echo "=== wheels ==="
           ls -lh wheels/ || echo "(no wheels)"
 
-      # ── Upload sdist to TestPyPI ──
       - name: Upload sdist to TestPyPI
         env:
           TWINE_USERNAME: "__token__"
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*
 
-      # ── Upload wheels to a GitHub Release ──
       - name: Determine version from sdist filename
         id: version
         run: |
@@ -272,10 +201,3 @@ jobs:
           files: wheels/*.whl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Uncomment for real PyPI releases (sdist only):
-      # - name: Upload sdist to PyPI
-      #   env:
-      #     TWINE_USERNAME: "__token__"
-      #     TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      #   run: python -m twine upload dist/*

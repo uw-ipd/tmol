@@ -16,64 +16,40 @@ Full documentation: [tmol Wiki](https://github.com/uw-ipd/tmol/wiki/DevHome)
 
 ### Pre-built wheels (recommended)
 
-Pre-built wheels ship with **ahead-of-time (AOT) compiled** C++/CUDA extensions -- no `nvcc` or CUDA toolkit needed at install time.
+Pre-built wheels ship with **ahead-of-time (AOT) compiled** C++/CUDA extensions -- no `nvcc` or CUDA toolkit needed at install time. Pick the wheel matching your **PyTorch version** and **platform**:
 
-Wheels are available for Linux x86_64. Pick the one matching your **PyTorch version** and **CXX11 ABI**:
+**x86_64 GPU (Linux):**
 
-<details>
-<summary><b>Which ABI do I have?</b></summary>
+| PyTorch | CUDA | Wheel tag              | Note |
+|---------|------|------------------------|------|
+| 2.8     | 12.6 | `+cu126torch2.8`       | NGC native |
+| 2.9     | 13.0 | `+cu130torch2.9`       | NGC native |
+| 2.10    | 13.1 | `+cu131torch2.10`      | NGC native |
+| 2.10    | 12.8 | `+cu128torch2.10`      | Google Colab compatible |
 
-```bash
-python -c "import torch; print('CXX11 ABI:', torch._C._GLIBCXX_USE_CXX11_ABI)"
-```
+**ARM64 / aarch64 GPU (Linux, e.g., Grace Hopper, Jetson):**
 
-| Result  | Typical source                           | Wheel suffix        |
-|---------|------------------------------------------|---------------------|
-| `True`  | NGC container, conda, source-built torch | `cxx11abiTRUE`      |
-| `False` | `pip install torch` on bare metal        | `cxx11abiFALSE`     |
+| PyTorch | CUDA | Wheel tag              |
+|---------|------|------------------------|
+| 2.8     | 12.6 | `+cu126torch2.8`       |
+| 2.9     | 13.0 | `+cu130torch2.9`       |
+| 2.10    | 13.1 | `+cu131torch2.10`      |
 
-The ABI must match because C++ extensions are linked against PyTorch's C++ standard library. A mismatch causes segfaults or missing-symbol errors. See [flash-attention#457](https://github.com/Dao-AILab/flash-attention/issues/457) for more background.
+**CPU-only (any platform):**
 
-</details>
+| PyTorch | Wheel tag |
+|---------|-----------|
+| 2.10    | `+cpu`    |
 
-**x86_64 (Linux):**
-
-| PyTorch | Python | CUDA | ABI   | Wheel tag                              |
-|---------|--------|------|-------|----------------------------------------|
-| 2.8     | 3.12   | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
-| 2.8     | 3.12   | 12.6 | FALSE | `+cu126torch2.8cxx11abiFALSE`         |
-| 2.9     | 3.12   | 13.0 | TRUE  | `+cu130torch2.9cxx11abiTRUE`          |
-| 2.9     | 3.12   | 12.6 | FALSE | `+cu126torch2.9cxx11abiFALSE`         |
-| 2.10    | 3.12   | 13.1 | TRUE  | `+cu131torch2.10cxx11abiTRUE`         |
-| 2.10    | 3.12   | 12.6 | FALSE | `+cu126torch2.10cxx11abiFALSE`        |
-| 2.8     | 3.10   | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
-| 2.8     | 3.10   | 12.6 | FALSE | `+cu126torch2.8cxx11abiFALSE`         |
-| 2.9     | 3.10   | 12.6 | TRUE  | `+cu126torch2.9cxx11abiTRUE`          |
-| 2.9     | 3.10   | 12.6 | FALSE | `+cu126torch2.9cxx11abiFALSE`         |
-| 2.10    | 3.10   | 12.6 | TRUE  | `+cu126torch2.10cxx11abiTRUE`         |
-| 2.10    | 3.10   | 12.6 | FALSE | `+cu126torch2.10cxx11abiFALSE`        |
-
-**ARM64 / aarch64 (Linux, e.g., Grace Hopper, Jetson):**
-
-| PyTorch | Python | CUDA | ABI   | Wheel tag                              |
-|---------|--------|------|-------|----------------------------------------|
-| 2.8     | 3.12   | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
-| 2.9     | 3.12   | 13.0 | TRUE  | `+cu130torch2.9cxx11abiTRUE`          |
-| 2.10    | 3.12   | 13.1 | TRUE  | `+cu131torch2.10cxx11abiTRUE`         |
-| 2.8     | 3.10   | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
-| 2.9     | 3.10   | 12.6 | TRUE  | `+cu126torch2.9cxx11abiTRUE`          |
-| 2.10    | 3.10   | 12.6 | TRUE  | `+cu126torch2.10cxx11abiTRUE`         |
-
-> [!NOTE]
-> Python 3.10 wheels use `cp310` in the filename; Python 3.12 wheels use `cp312`. pip automatically selects the correct one for your Python version. Python 3.11 users can install from the source distribution (requires nvcc).
+All wheels are Python 3.12 (`cp312`).
 
 > [!TIP]
-> CUDA wheels are **forward-compatible** within a major version: a `cu124` wheel works on any CUDA 12.x driver >= 12.4. You do not need an exact CUDA version match.
+> CUDA wheels are **forward-compatible** within a major version: a `cu126` wheel works on any CUDA 12.x driver >= 12.6. You do not need an exact CUDA version match.
 
 Check your environment:
 
 ```bash
-python -c "import sys; import torch; print(f'Python: {sys.version_info.major}.{sys.version_info.minor}, PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, ABI: {torch._C._GLIBCXX_USE_CXX11_ABI}')"
+python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.version_info.minor}, PyTorch {torch.__version__}, CUDA {torch.version.cuda}')"
 ```
 
 Install from [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
@@ -86,13 +62,38 @@ pip install https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/WHEEL_F
 pip install tmol --find-links https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/
 ```
 
-### From PyPI (source distribution)
+<details>
+<summary><b>Google Colab</b></summary>
 
-The source distribution on PyPI compiles C++/CUDA extensions during installation.
-This requires `nvcc` (CUDA toolkit) and a C++17-capable compiler.
+Colab ships PyTorch 2.10 with CUDA 12.8. Install the Colab-specific wheel:
 
 ```bash
-pip install tmol              # requires nvcc for kernel compilation
+pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.10-cp312-cp312-linux_x86_64.whl
+```
+
+Replace `vX.Y.Z` and `X.Y.Z` with the desired release version.
+
+</details>
+
+<details>
+<summary><b>CPU-only (no GPU)</b></summary>
+
+For machines without a GPU (laptops, CI servers, data preprocessing):
+
+```bash
+pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cpu-cp312-cp312-linux_x86_64.whl
+```
+
+The CPU wheel works with any PyTorch installation (CPU or CUDA). CUDA operations will raise a runtime error; all CPU operations work normally.
+
+</details>
+
+### From PyPI (source distribution)
+
+The source distribution compiles C++/CUDA extensions during installation. If `nvcc` is available, both CPU and CUDA extensions are built. Without `nvcc`, only CPU extensions are built.
+
+```bash
+pip install tmol              # builds extensions (CUDA if nvcc available, CPU otherwise)
 pip install tmol[dev]         # includes development tools (black, flake8, pytest, etc.)
 ```
 
@@ -100,7 +101,13 @@ pip install tmol[dev]         # includes development tools (black, flake8, pytes
 
 ```bash
 git clone https://github.com/uw-ipd/tmol.git && cd tmol
-pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
+pip install -e ".[dev]"   # builds extensions via CMake (CUDA auto-detected)
+```
+
+If you don't have a CUDA toolkit, the build automatically falls back to CPU-only extensions. You can also force a CPU-only build explicitly:
+
+```bash
+pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 ```
 
 ## Usage

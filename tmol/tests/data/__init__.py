@@ -157,6 +157,8 @@ def biotite_1ubq():
 @pytest.fixture()
 def biotite_1ubq_err():
     fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1ubq_err.pdb")
+    if not os.path.exists(fname):
+        pytest.skip(f"Test data file not found: {fname}")
     return biotite.structure.io.load_structure(
         fname, extra_fields=["occupancy", "b_factor"]
     )
@@ -165,6 +167,8 @@ def biotite_1ubq_err():
 @pytest.fixture()
 def biotite_1ubq_cif():
     fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1UBQ.cif")
+    if not os.path.exists(fname):
+        pytest.skip(f"Test data file not found: {fname}")
     return biotite.structure.io.load_structure(
         fname, extra_fields=["occupancy", "b_factor"]
     )

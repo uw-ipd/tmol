@@ -251,9 +251,13 @@ def _extract_residue_metadata(
     torch_device: torch.device,
 ):
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
-    biotite_chain_id_for_res = biotite.structure.chains.get_all_chain_positions(
-        biotite_structure
-    )[biotite_residue_starts]
+
+    chain_starts = biotite.structure.get_chain_starts(biotite_structure)
+    n_atoms = biotite_structure.array_length()
+    per_atom_chain_idx = numpy.zeros(n_atoms, dtype=int)
+    for i, start in enumerate(chain_starts):
+        per_atom_chain_idx[start:] = i
+    biotite_chain_id_for_res = per_atom_chain_idx[biotite_residue_starts]
 
     if len(biotite_chain_id_for_res) > 1:
         chain_breaks = biotite_chain_id_for_res[1:] != biotite_chain_id_for_res[:-1]

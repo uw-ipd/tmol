@@ -20,7 +20,7 @@ git clone https://github.com/uw-ipd/tmol.git && cd tmol
 pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
 ```
 
-Requirements: Python 3.10+, PyTorch 2.5+, `nvcc` (CUDA toolkit), C++17 compiler, CMake 3.18+.
+Requirements: Python 3.12+, PyTorch 2.8+, C++17 compiler, CMake 3.18+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built.
 
 ## Building Extensions
 
@@ -47,10 +47,8 @@ CMake build options:
 | `CMAKE_CUDA_ARCHITECTURES` | `80;86;89;90` | GPU compute capabilities to compile for |
 | `TMOL_BUILD_TESTS` | `OFF` | Build test-only C++/CUDA extensions |
 | `TMOL_NVCC_THREADS` | `4` | Threads per nvcc invocation |
-| `TMOL_FORCE_CXX11_ABI` | `FALSE` | Force C++11 ABI (for NGC container compat) |
-| `TORCH_CUDA_ARCH_LIST` | `8.0 8.6 8.9 9.0 10.0+PTX` | GPU architectures to compile for |
+| `TMOL_ENABLE_CUDA` | `ON` | Set to `OFF` for CPU-only build (no `nvcc` needed) |
 | `MAX_JOBS` | auto | Max parallel compilation jobs |
-| `NVCC_THREADS` | `4` | Threads per nvcc invocation |
 
 ## Extension Loading: AOT vs JIT
 
@@ -124,7 +122,7 @@ pytest --benchmark-enable --benchmark-only --benchmark-max-time=.1
 
 ```bash
 # Install a release wheel from GitHub
-pip install https://github.com/uw-ipd/tmol/releases/download/v0.1.1/tmol-0.1.1+cu126torch2.8cxx11abiTRUE-cp312-cp312-linux_x86_64.whl
+pip install https://github.com/uw-ipd/tmol/releases/download/v0.1.1/tmol-0.1.1+cu131torch2.10-cp312-cp312-linux_x86_64.whl
 
 # Or install a specific branch/tag from source
 pip install git+https://github.com/uw-ipd/tmol.git@v0.1.1
@@ -158,9 +156,8 @@ tmol uses GitHub Actions for all CI:
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| `ci.yml` | Push to `main`/`kdidi/*`, PRs | Lint, test (CPU + CUDA), benchmark, JIT test. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
-| `build_wheel.yml` | Push to `kdidi/precompiled_extensions` | Builds wheels across a PyTorch/CUDA/ABI matrix. Saves as artifacts (no upload). |
-| `publish.yml` | Manual (`workflow_dispatch`) | Builds wheels + sdist, uploads sdist to TestPyPI, uploads wheels to a GitHub Release. |
+| `ci.yml` | Push to `master`/`kdidi/*`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
+| `publish.yml` | Push to `master`/`kdidi/*`, manual | Builds wheels (GPU + CPU) + sdist, uploads sdist to TestPyPI, uploads wheels to a GitHub Release. |
 
 ### CI architecture
 
@@ -174,13 +171,8 @@ Push/PR -> GitHub Actions -> self-hosted runner (fela, bare metal)
                           NGC PyTorch container (GPU access)
                                   |
                                   v
-                          Setup -> Lint -> Test CPU -> Test CUDA -> Benchmark -> JIT Test
+                          Setup -> Lint -> Test CPU -> Test CUDA -> Benchmark
 ```
-
-### Wheel builds vs releases
-
-- **CI wheels** (`build_wheel.yml`): Built automatically on push. Saved as GitHub Actions artifacts (temporary, expire after 90 days). These validate that the code compiles across the matrix.
-- **Release wheels** (`publish.yml`): Triggered manually when you bump the version. Builds wheels and uploads them to a permanent **GitHub Release**, plus sdist to TestPyPI.
 
 ### Self-hosted runner
 
@@ -199,9 +191,9 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
 ## Releasing
 
 1. Bump version in `pyproject.toml`
-2. Commit and push
-3. Go to **Actions > Publish to TestPyPI > Run workflow** in the GitHub UI
-4. The workflow builds all wheels, uploads sdist to TestPyPI, and creates a GitHub Release with wheels attached
+2. Commit and push to `master` (or a `kdidi/**` branch)
+3. The `publish.yml` workflow triggers automatically, building all wheels (GPU + CPU) and sdist
+4. Sdist is uploaded to TestPyPI; wheels are attached to a GitHub Release
 5. Users install via: `pip install tmol --find-links https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/`
 
 ## Code Style
@@ -230,6 +222,6 @@ Pre-commit runs `clang-format` (C++) and `black` (Python) on staged files. If fo
 
 ### Pull requests
 
-All changes to main go through pull requests. PRs are merged via squash or rebase to keep a linear history. Each PR should be an atomic unit of work.
+All changes to master go through pull requests. PRs are merged via squash or rebase to keep a linear history. Each PR should be an atomic unit of work.
 
 
