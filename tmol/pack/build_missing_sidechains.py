@@ -64,4 +64,4 @@ def build_missing_sidechains_with_missing_atoms(
     task.add_conformer_sampler(fixed_sampler)
 
     # Call pack_rotamers to build the missing sidechains
-    return pack_rotamers(pose_stack, sfxn, task, verbose=True)
+    return pack_rotamers(pose_stack, sfxn, task, verbose=False)
