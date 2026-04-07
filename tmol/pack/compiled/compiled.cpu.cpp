@@ -58,7 +58,8 @@ auto AnnealerDispatch<D>::forward(
 
   int n_traj = 1;
   int const n_outer_iterations = 20;
-  int const n_inner_iterations_factor = 20;
+  // Rosetta uses 5x; our old value of 20x was 4x too many inner iterations
+  int const n_inner_iterations_factor = 5;
 
   auto scores_t = TPack<float, 2, D>::zeros({n_poses, n_traj});
   auto current_rotamer_assignments_t =
@@ -73,7 +74,7 @@ auto AnnealerDispatch<D>::forward(
   auto quench_order = quench_order_t.view;
 
   float const high_temp = 100;
-  float const low_temp = 0.2;
+  float const low_temp = 0.3;  // matches Rosetta SimAnnealerBase::lowtemp
 
   for (int pose = 0; pose < n_poses; ++pose) {
     int const n_res = pose_n_res[pose];
