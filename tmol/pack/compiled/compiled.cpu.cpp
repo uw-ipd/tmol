@@ -49,8 +49,6 @@ auto AnnealerDispatch<D>::forward(
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
     -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
-  clock_t start = clock();
-
   // No Frills Simulated Annealing!
   int const n_poses = pose_n_res.size(0);
   int const max_n_res = n_rotamers_for_res.size(1);
@@ -254,11 +252,6 @@ auto AnnealerDispatch<D>::forward(
           best_rotamer_assignments[pose][traj]);
     }  // end trajectory loop
   }  // end pose loop
-
-  clock_t stop = clock();
-  std::cout << "CPU simulated annealing in "
-            << ((double)stop - start) / CLOCKS_PER_SEC << " seconds"
-            << std::endl;
 
   return {scores_t, best_rotamer_assignments_t};
 }
