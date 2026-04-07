@@ -20,6 +20,7 @@ _CI_CIF_CODES = [
     "6H9V",  # OXT edge case
     "3N0I",  # OXT edge case, multi-chain
     "6C4C",  # non-standard hydrogen naming
+    "3AA0",  # Crash on export with mismatch of CO and PBT n-atoms
 ]
 
 
