@@ -61,12 +61,13 @@ struct DunbrackChiSampler {
     TView<Int, 1, D> nchi_for_tableset,
     TView<Int, 2, D> rotwells,
 
-    TView<Int, 1, D> ndihe_for_res,               // nres x 1
-    TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
+    TView<Int, 1, D> ndihe_for_res,               // nbubl x 1
+    TView<Int, 1, D> dihedral_offset_for_res,     // nbubl x 1
     TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
 
     TView<Int, 2, D>
-        rottable_set_for_buildable_restype,  // n-buildable-restypes x 2
+        bubl_and_rottable_set_for_buildable_restype,  // n-buildable-restypes
+                                                      // x 2
     TView<Int, 2, D> chi_expansion_for_buildable_restype,
     TView<Real, 3, D> non_dunbrack_expansion_for_buildable_restype,
     TView<Int, 2, D> non_dunbrack_expansion_counts_for_buildable_restype,
@@ -112,14 +113,12 @@ struct DunbrackChiSampler {
     //                   num_possible_rots_for_restable[restable_for_rt[i]] )
     //
 
-    // Input parameter: rottable_set_for_buildable_restype
-    //                     array of the dunbrack table set to use for each block
-    //                     of residue types; no need to be unique for a single
-    //                     residue
-    //                     as multiple residue types might share the same table
-    //                     set
-    //                     (e.g. HIS and HIS_D)
-    //                     and the residue index for that residue type
+    // Input parameter: bubl_and_rottable_set_for_buildable_restype
+    //                     array of the 1. buildable-block index and
+    //                     2. dunbrack table set to use for each buildable
+    //                     block type; no need to be unique for a single
+    //                     buildable block as multiple block types might share
+    //                     the same table set (e.g. HIS and HIS_D)
     //                  chi_expansion_for_buildable_restype
     //                     two-D tensor with 0s where a residue type should
     //                     expand
@@ -148,16 +147,16 @@ struct DunbrackChiSampler {
     //                     [0..1) which should have been previously calculated
     //                     based on residue burial and residue type
 
-    Int const nres(ndihe_for_res.size(0));
+    Int const nbubl(ndihe_for_res.size(0));
     // The number of buildable residue types across all residues
-    Int const n_brt(rottable_set_for_buildable_restype.size(0));
+    Int const n_brt(bubl_and_rottable_set_for_buildable_restype.size(0));
 
     auto n_possible_rotamers_per_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
     auto n_possible_rotamers_per_brt = n_possible_rotamers_per_brt_tp.view;
 
     // std::cout << "1" << std::endl;
     determine_n_possible_rots(
-        rottable_set_for_buildable_restype,
+        bubl_and_rottable_set_for_buildable_restype,
         n_rotamers_for_tableset,
         n_possible_rotamers_per_brt);
 
@@ -180,13 +179,13 @@ struct DunbrackChiSampler {
     //   2. What table set does it come from?
     //   3. What residue does it come from?
 
-    auto backbone_dihedrals_tp = TPack<Real, 1, D>::empty(nres * 2);
+    auto backbone_dihedrals_tp = TPack<Real, 1, D>::empty(nbubl * 2);
     auto backbone_dihedrals = backbone_dihedrals_tp.view;
 
     // This should be extracted to a function
-    auto compute_backbone_dihedrals = [=] EIGEN_DEVICE_FUNC(int res) {
-      for (int dihe_ind = 0; dihe_ind < ndihe_for_res[res]; ++dihe_ind) {
-        int i = dihedral_offset_for_res[res] + dihe_ind;
+    auto compute_backbone_dihedrals = [=] EIGEN_DEVICE_FUNC(int bubl) {
+      for (int dihe_ind = 0; dihe_ind < ndihe_for_res[bubl]; ++dihe_ind) {
+        int i = dihedral_offset_for_res[bubl] + dihe_ind;
         Int at0 = dihedral_atom_inds[i][0];
         Int at1 = dihedral_atom_inds[i][1];
         Int at2 = dihedral_atom_inds[i][2];
@@ -196,12 +195,21 @@ struct DunbrackChiSampler {
           dihe = score::common::dihedral_angle<Real>::V(
               coords[at0], coords[at1], coords[at2], coords[at3]);
         } else if (dihe_ind == 0) {
-          // neutral phi in radians, as suggested by Roland Dunbrack
-          dihe = -M_PI / 3.0;
+          // neutral phi
+          dihe = -60 * M_PI / 180.0;  // As suggested by Roland Dunbrack
         } else if (dihe_ind == 1) {
-          // neutral psi in radians, as suggested by Roland Dunbrack
-          dihe = M_PI / 3.0;
+          // neutral psi
+          dihe = 60 * M_PI / 180.0;  // As suggested by Roland Dunbrack
         }
+        printf(
+            "dihedral %d for bubl %d is %f from atoms %d, %d, %d, %d\n",
+            dihe_ind,
+            bubl,
+            dihe,
+            at0,
+            at1,
+            at2,
+            at3);
         backbone_dihedrals[i] = dihe;
       }
     };
@@ -232,11 +240,15 @@ struct DunbrackChiSampler {
         rotameric_bb_periodicity,
         n_rotamers_for_tableset_offsets,
         sorted_rotamer_2_rotamer,
-        rottable_set_for_buildable_restype,
+        bubl_and_rottable_set_for_buildable_restype,
         brt_for_possible_rotamer,
         possible_rotamer_offset_for_brt,
         backbone_dihedrals,
         rotamer_probability);
+
+    for (int i = 0; i < rotamer_probability.size(0); ++i) {
+      printf("rotamer_probability %f\n", rotamer_probability[i]);
+    }
     // std::cout << "5" << std::endl;
 
     // And now the count of rotamers to build per restype:
@@ -273,7 +285,7 @@ struct DunbrackChiSampler {
 
     Int n_rotamers = count_expanded_rotamers(
         nchi_for_buildable_restype,
-        rottable_set_for_buildable_restype,
+        bubl_and_rottable_set_for_buildable_restype,
         nchi_for_tableset,
         chi_expansion_for_buildable_restype,
         non_dunbrack_expansion_counts_for_buildable_restype,
@@ -312,7 +324,7 @@ struct DunbrackChiSampler {
         sorted_rotamer_2_rotamer,
         nchi_for_tableset,
 
-        rottable_set_for_buildable_restype,
+        bubl_and_rottable_set_for_buildable_restype,
         chi_expansion_for_buildable_restype,
         non_dunbrack_expansion_for_buildable_restype,
         nchi_for_buildable_restype,
@@ -326,6 +338,14 @@ struct DunbrackChiSampler {
 
         expansion_dim_prods_for_brt,
         chi_for_rotamers);
+    // std::cout << "9" << std::endl;
+    for (int i = 0; i < chi_for_rotamers.size(0); ++i) {
+      printf("chi for rotamer %d: ", i);
+      for (int j = 0; j < chi_for_rotamers.size(1); ++j) {
+        printf("%f ", chi_for_rotamers[i][j]);
+      }
+      printf("\n");
+    }
 
     return {
         n_rotamers_to_build_per_brt_tp,
@@ -335,13 +355,13 @@ struct DunbrackChiSampler {
   }
 
   static void determine_n_possible_rots(
-      TView<Int, 2, D> rottable_set_for_buildable_restype,
+      TView<Int, 2, D> bubl_and_rottable_set_for_buildable_restype,
       TView<int64_t, 1, D> n_rotamers_for_tableset,
       TView<Int, 1, D> n_possible_rotamers_per_brt) {
-    Int const n_brt = rottable_set_for_buildable_restype.size(0);
+    Int const n_brt = bubl_and_rottable_set_for_buildable_restype.size(0);
     assert(n_possible_rotamers_per_brt.size(0) == n_brt);
     auto lambda_determine_n_possible_rots = [=] EIGEN_DEVICE_FUNC(int brt) {
-      Int rottable_set = rottable_set_for_buildable_restype[brt][1];
+      Int rottable_set = bubl_and_rottable_set_for_buildable_restype[brt][1];
       n_possible_rotamers_per_brt[brt] = n_rotamers_for_tableset[rottable_set];
     };
 
@@ -387,7 +407,7 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
       TView<Int, 1, D> n_rotamers_for_tableset_offsets,
       TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
-      TView<Int, 2, D> rottable_set_for_buildable_restype,
+      TView<Int, 2, D> bubl_and_rottable_set_for_buildable_restype,
       TView<Int, 1, D> brt_for_possible_rotamer,
       TView<Int, 1, D> possible_rotamer_offset_for_brt,
       TView<Real, 1, D> backbone_dihedrals,
@@ -398,8 +418,8 @@ struct DunbrackChiSampler {
                                                       int possible_rotamer) {
       // Compute the probability of the ith possible rotamer
       int const brt = brt_for_possible_rotamer[possible_rotamer];
-      int const res = rottable_set_for_buildable_restype[brt][0];
-      int const table_set = rottable_set_for_buildable_restype[brt][1];
+      int const bbi = bubl_and_rottable_set_for_buildable_restype[brt][0];
+      int const table_set = bubl_and_rottable_set_for_buildable_restype[brt][1];
       int const sorted_rotno =
           possible_rotamer - possible_rotamer_offset_for_brt[brt];
 
@@ -408,7 +428,7 @@ struct DunbrackChiSampler {
       Vec<Real, 2> bbdihe, bbstep;
       Vec<Int, 2> bin_index;
       for (int ii = 0; ii < 2; ++ii) {
-        Real wrap_iidihe = backbone_dihedrals[2 * res + ii]
+        Real wrap_iidihe = backbone_dihedrals[2 * bbi + ii]
                            - rotameric_bb_start[table_set][ii];
         while (wrap_iidihe < 0) {
           wrap_iidihe += 2 * M_PI;
@@ -482,6 +502,10 @@ struct DunbrackChiSampler {
         rotamer_probability_cumsum,
         mgpu::plus_t<Real>());
 
+    for (int i = 0; i < rotamer_probability_cumsum.size(0); ++i) {
+      printf("rotamer_probability_cumsum %f\n", rotamer_probability_cumsum[i]);
+    }
+
     // And with the cumulative sum, we can now decide which rotamers we will
     // build
     auto build_possible_rotamer_tp =
@@ -496,6 +520,9 @@ struct DunbrackChiSampler {
         };
 
     Dispatch<D>::forall(n_possible_rotamers, decide_on_possible_rotamer);
+    for (int i = 0; i < build_possible_rotamer.size(0); ++i) {
+      printf("build_possible_rotamer %d\n", build_possible_rotamer[i]);
+    }
 
     // Let's count the number of possible rotamers we're keeping per restype
     auto count_rotamers_to_build_tp =
@@ -503,11 +530,15 @@ struct DunbrackChiSampler {
     auto count_rotamers_to_build = count_rotamers_to_build_tp.view;
 
     // exclusive segmented scan on the build_possible_rotamer array
-    Dispatch<D>::exclusive_segmented_scan(
+    Dispatch<D>::inclusive_segmented_scan(
         build_possible_rotamer,
         possible_rotamer_offset_for_brt,
         count_rotamers_to_build,
         mgpu::plus_t<Int>());
+
+    for (int i = 0; i < count_rotamers_to_build.size(0); ++i) {
+      printf("count_rotamers_to_build %d\n", count_rotamers_to_build[i]);
+    }
 
     auto count_rots_to_build_per_brt = [=] EIGEN_DEVICE_FUNC(int brt) {
       Int const offset = possible_rotamer_offset_for_brt[brt];
@@ -521,11 +552,15 @@ struct DunbrackChiSampler {
     };
 
     Dispatch<D>::forall(n_brt, count_rots_to_build_per_brt);
+    for (int i = 0; i < n_brt; ++i) {
+      printf(
+          "n_rotamers_to_build_per_brt %d\n", n_rotamers_to_build_per_brt[i]);
+    }
   }
 
   static Int count_expanded_rotamers(
       TView<Int, 1, D> nchi_for_buildable_restype,
-      TView<Int, 2, D> rottable_set_for_buildable_restype,
+      TView<Int, 2, D> bubl_and_rottable_set_for_buildable_restype,
       TView<Int, 1, D> nchi_for_tableset,
       TView<Int, 2, D> chi_expansion_for_buildable_restype,
       TView<Int, 2, D> non_dunbrack_expansion_counts_for_buildable_restype,
@@ -536,7 +571,7 @@ struct DunbrackChiSampler {
     int const n_brt = nchi_for_buildable_restype.size(0);
     int const max_nchi = expansion_dim_prods_for_brt.size(1);
 
-    assert(rottable_set_for_buildable_restype.size(0) == n_brt);
+    assert(bubl_and_rottable_set_for_buildable_restype.size(0) == n_brt);
     assert(chi_expansion_for_buildable_restype.size(0) == n_brt);
     assert(n_expansions_for_brt.size(0) == n_brt);
     assert(expansion_dim_prods_for_brt.size(0) == n_brt);
@@ -545,7 +580,7 @@ struct DunbrackChiSampler {
 
     auto count_expansions_for_brt = [=] EIGEN_DEVICE_FUNC(int brt) {
       Int const nchi = nchi_for_buildable_restype[brt];
-      Int const table_set = rottable_set_for_buildable_restype[brt][1];
+      Int const table_set = bubl_and_rottable_set_for_buildable_restype[brt][1];
       Int const n_dun_chi = nchi_for_tableset[table_set];
       Int n_expansions = 1;
 
@@ -617,7 +652,7 @@ struct DunbrackChiSampler {
       TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
       TView<Int, 1, D> nchi_for_tableset,
 
-      TView<Int, 2, D> rottable_set_for_buildable_restype,
+      TView<Int, 2, D> bubl_and_rottable_set_for_buildable_restype,
       TView<Int, 2, D> chi_expansion_for_buildable_restype,
       TView<Real, 3, D> non_dunbrack_expansion_for_buildable_restype,
       TView<Int, 1, D> nchi_for_buildable_restype,
@@ -643,8 +678,8 @@ struct DunbrackChiSampler {
 
     auto sample_chi_for_rotamer = [=] EIGEN_DEVICE_FUNC(int rotamer) {
       int const brt = brt_for_rotamer[rotamer];
-      int const res = rottable_set_for_buildable_restype[brt][0];
-      int const table_set = rottable_set_for_buildable_restype[brt][1];
+      int const res = bubl_and_rottable_set_for_buildable_restype[brt][0];
+      int const table_set = bubl_and_rottable_set_for_buildable_restype[brt][1];
       int const expanded_rotamer_for_brt =
           rotamer - n_rotamers_to_build_per_brt_offsets[brt];
       int const n_expansions = n_expansions_for_brt[brt];
@@ -667,6 +702,11 @@ struct DunbrackChiSampler {
         bbstep[ii] = rotameric_bb_step[table_set][ii];
         bbdihe[ii] = wrap_iidihe / bbstep[ii];
         bin_index[ii] = int(bbdihe[ii]);
+        printf(
+            "bbdihe %f, bin_index %d for ii %d \n",
+            bbdihe[ii],
+            bin_index[ii],
+            ii);
       }
 
       // Look up the index of the rotamer: we know where the rotamer is in
@@ -684,6 +724,19 @@ struct DunbrackChiSampler {
 
       // OK: we have the phi & psi values, and we have the rotamer index
       // Now we can start calculating the chi.
+      printf("bin index[0] %d, bin index[1] %d \n", bin_index[0], bin_index[1]);
+      printf(
+          "table set %d, base rotamer %d, expanded rotamer %d for rotamer %d "
+          "\n",
+          table_set,
+          base_rotno,
+          expanded_rotamer_for_brt,
+          rotamer);
+      printf(
+          "sorted rotamer %d is rotamer %d \n",
+          base_rotno,
+          sorted_rotamer_2_rotamer[bin_index[0]][bin_index[1]]
+                                  [tableset_offset + base_rotno]);
 
       // How do we do that?
       // For each chi,
@@ -716,6 +769,12 @@ struct DunbrackChiSampler {
               tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
                   rotmean_slice, bbdihe);
           ii_chi = score::common::get<0>(mean_and_derivs);
+          printf(
+              "base chi %d for rotamer %d, with offset %d is %f \n",
+              ii,
+              rotamer,
+              rot_table_start,
+              ii_chi * 180 / M_PI);
           if (chi_expansion_for_buildable_restype[brt][ii]) {
             // OK! we expand this chi; so retrieve the standard deviation
             TensorAccessor<Real, 2, D> rotsdev_slice(

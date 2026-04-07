@@ -34,6 +34,14 @@ struct ComplexDispatch {
       TView<T, 1, D> out,
       Func op);
 
+  template <typename T, typename B, typename Func>
+  static void inclusive_segmented_scan(
+      TView<T, 1, D> vals,
+      TView<B, 1, D>
+          seg_start,  // n-segments length array of indices where segments start
+      TView<T, 1, D> out,
+      Func op);
+
   static void synchronize();
 };
 }  // namespace common

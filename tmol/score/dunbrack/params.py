@@ -684,6 +684,8 @@ class DunbrackParamResolver(ValidateAttrs):
         )
         return rotwells
 
+    # TO DO: DECIDE IF THIS IS PART OF THE API OF THIS CLASS
+    # SURE SEEMS LIKE IT IS
     def _indices_from_names(
         self,
         dataframe: pandas.DataFrame,
