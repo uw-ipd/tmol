@@ -65,6 +65,11 @@ struct InteractionGraph {
   TView<int64_t, 1, D> chunk_offsets_;
   TView<Real, 1, D> energy1b_;
   TView<Real, 1, D> energy2b_;
+  TView<Int, 2, D> n_neighbors_;  // [n_poses, max_n_res]
+  TView<Int, 2, D>
+      neighbor_starts_;  // [n_poses, max_n_res] exclusive prefix sum
+  TView<Int, 1, D>
+      neighbor_list_;  // [total_neighbors] flat neighbor block indices
 
   int n_poses_cpu() const { return pose_n_res_.size(0); }
   int max_n_res_cpu() const { return n_rotamers_for_res_.size(1); }
@@ -114,13 +119,11 @@ struct InteractionGraph {
     int sub_rot_chunk_size =
         min(chunk_size_, sub_res_n_rots - chunk_size_ * sub_rot_chunk);
 
-    // TO DO: iterate across all residues instead of just the
-    // neighbors of ran_rot_res
     if (this_thread_active) {
-      for (int k = 0; k < n_res(pose); ++k) {
-        if (k == sub_res) {
-          continue;
-        }
+      int const nb_start = neighbor_starts_[pose][sub_res];
+      int const n_nb = n_neighbors_[pose][sub_res];
+      for (int nb_idx = 0; nb_idx < n_nb; ++nb_idx) {
+        int const k = neighbor_list_[nb_start + nb_idx];
         int const local_k_rot = rotamer_assignment[k];
         int const k_chunk = local_k_rot / chunk_size_;
         int64_t const k_sub_chunk_offset_offset =
@@ -934,6 +937,77 @@ auto AnnealerDispatch<D>::forward(
     -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
   clock_t start = clock();
 
+  int const n_poses_cpu = pose_n_res.size(0);
+  int const max_n_res_cpu = chunk_offset_offsets.size(1);
+
+  // Build CSR neighbor list from chunk_offset_offsets.
+  // chunk_offset_offsets[pose][b1][b2] == -1 means no interaction.
+  // It is already symmetric, so we iterate each row to find neighbors.
+
+  auto n_neighbors_t = TPack<int, 2, D>::zeros({n_poses_cpu, max_n_res_cpu});
+  auto n_neighbors = n_neighbors_t.view;
+
+  {
+    int const count = n_poses_cpu * max_n_res_cpu;
+    mgpu::standard_context_t ctx;
+    mgpu::transform<128, 1>(
+        [=] MGPU_DEVICE(int idx) {
+          if (idx >= count) return;
+          int pose = idx / max_n_res_cpu;
+          int b = idx % max_n_res_cpu;
+          int n = pose_n_res[pose];
+          int cnt = 0;
+          for (int b2 = 0; b2 < n; ++b2) {
+            if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) ++cnt;
+          }
+          n_neighbors[pose][b] = cnt;
+        },
+        count,
+        ctx);
+  }
+
+  auto neighbor_starts_t =
+      TPack<int, 2, D>::zeros({n_poses_cpu, max_n_res_cpu});
+  auto neighbor_starts = neighbor_starts_t.view;
+  int total_neighbors;
+  {
+    mgpu::standard_context_t ctx;
+    mgpu::mem_t<int> total(1, ctx, mgpu::memory_space_host);
+    mgpu::scan<mgpu::scan_type_exc>(
+        n_neighbors.data(),
+        n_poses_cpu * max_n_res_cpu,
+        neighbor_starts.data(),
+        mgpu::plus_t<int>(),
+        total.data(),
+        ctx);
+    cudaStreamSynchronize(0);
+    total_neighbors = total.data()[0];
+  }
+
+  auto neighbor_list_t =
+      TPack<int, 1, D>::zeros({total_neighbors > 0 ? total_neighbors : 1});
+  auto neighbor_list = neighbor_list_t.view;
+
+  {
+    int const count = n_poses_cpu * max_n_res_cpu;
+    mgpu::standard_context_t ctx;
+    mgpu::transform<128, 1>(
+        [=] MGPU_DEVICE(int idx) {
+          if (idx >= count) return;
+          int pose = idx / max_n_res_cpu;
+          int b = idx % max_n_res_cpu;
+          int n = pose_n_res[pose];
+          int offset = neighbor_starts[pose][b];
+          for (int b2 = 0; b2 < n; ++b2) {
+            if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) {
+              neighbor_list[offset++] = b2;
+            }
+          }
+        },
+        count,
+        ctx);
+  }
+
   InteractionGraph<D, int, float> ig(
       {max_n_rotamers_per_pose,
        pose_n_res,
@@ -946,7 +1020,10 @@ auto AnnealerDispatch<D>::forward(
        chunk_offset_offsets,
        chunk_offsets,
        energy1b,
-       energy2b});
+       energy2b,
+       n_neighbors,
+       neighbor_starts,
+       neighbor_list});
 
   auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
       std::nullopt, at::cuda::detail::getDefaultCUDAGenerator());

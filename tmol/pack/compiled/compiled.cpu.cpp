@@ -8,6 +8,7 @@
 #include "compiled.impl.hh"
 
 #include <ctime>
+#include <vector>
 
 namespace tmol {
 namespace pack {
@@ -48,7 +49,7 @@ auto AnnealerDispatch<D>::forward(
     TView<int64_t, 1, D> chunk_offsets,  // n-chunks-on-interacting-res
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
-    -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
+    -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> {
   // No Frills Simulated Annealing!
   int const n_poses = pose_n_res.size(0);
   int const max_n_res = n_rotamers_for_res.size(1);
@@ -78,6 +79,16 @@ auto AnnealerDispatch<D>::forward(
     int const n_res = pose_n_res[pose];
     int const pose_n_rotamers = n_rotamers_for_pose[pose];
     int const pose_rotamer_offset = rotamer_offset_for_pose[pose];
+
+    // Build per-residue neighbor list for this pose
+    std::vector<std::vector<int>> neighbors(max_n_res);
+    for (int b = 0; b < n_res; ++b) {
+      for (int b2 = 0; b2 < n_res; ++b2) {
+        if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) {
+          neighbors[b].push_back(b2);
+        }
+      }
+    }
     int const n_inner_iterations = n_inner_iterations_factor * pose_n_rotamers;
 
     for (int traj = 0; traj < n_traj; ++traj) {
@@ -160,10 +171,7 @@ auto AnnealerDispatch<D>::forward(
           double prev_e = energy1b[global_prev_rot];
           double deltaE = new_e - prev_e;
 
-          // TO DO: iterate across all residues instead of just the
-          // neighbors of ran_rot_res
-          for (int k = 0; k < n_res; ++k) {
-            if (k == ran_res) continue;
+          for (int k : neighbors[ran_res]) {
             int const local_k_rot = current_rotamer_assignments[pose][traj][k];
             int const k_n_rots = n_rotamers_for_res[pose][k];
             int const krot_chunk = local_k_rot / chunk_size;
