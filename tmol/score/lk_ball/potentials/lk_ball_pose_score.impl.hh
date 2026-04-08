@@ -438,11 +438,11 @@ class LKBallPoseScoreDispatch {
     int const max_n_tiles = block_type_tile_pol_occ_inds.size(1);
 
     auto scratch_rot_spheres_t =
-        TPack<Real, 3, Dev>::zeros({n_poses, max_n_rots_per_pose, 4});
+        TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4});
     auto scratch_rot_spheres = scratch_rot_spheres_t.view;
 
-    auto scratch_rot_neighbors_t = TPack<Int, 3, Dev>::zeros(
-        {n_poses, max_n_rots_per_pose, max_n_rots_per_pose});
+    auto scratch_rot_neighbors_t =
+        TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks});
     auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
 
     TPack<Real, 4, Dev> output_t;
@@ -1138,9 +1138,13 @@ class LKBallRotamerScoreDispatch {
     auto scratch_rot_spheres_t = TPack<Real, 2, Dev>::zeros({n_rots, 4});
     auto scratch_rot_spheres = scratch_rot_spheres_t.view;
 
-    auto scratch_rot_neighbors_t = TPack<Int, 3, Dev>::zeros(
-        {n_poses, max_n_rots_per_pose, max_n_rots_per_pose});
-    auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
+    auto scratch_block_spheres_t =
+        TPack<Real, 3, Dev>::zeros({n_poses, max_n_blocks, 4});
+    auto scratch_block_spheres = scratch_block_spheres_t.view;
+
+    auto scratch_block_neighbors_t =
+        TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks});
+    auto scratch_block_neighbors = scratch_block_neighbors_t.view;
 
     score::common::sphere_overlap::
         compute_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
@@ -1151,21 +1155,22 @@ class LKBallRotamerScoreDispatch {
             scratch_rot_spheres);
 
     score::common::sphere_overlap::
-        detect_rot_neighbors<DeviceDispatch, Dev, Real, Int>::f(
-            max_n_rots_per_pose,
-            block_ind_for_rot,
-            block_type_ind_for_rot,
-            block_type_n_atoms,
-            n_rots_for_pose,
-            rot_offset_for_pose,
-            n_rots_for_block,
-            scratch_rot_spheres,
-            scratch_rot_neighbors,
+        compute_block_spheres_from_rot_spheres<DeviceDispatch, Dev, Real, Int>::
+            f(scratch_rot_spheres,
+              n_rots_for_block,
+              rot_offset_for_block,
+              scratch_block_spheres);
+
+    score::common::sphere_overlap::
+        detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
+            first_rot_block_type,
+            scratch_block_spheres,
+            scratch_block_neighbors,
             Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
 
     auto dispatch_indices_t = score::common::sphere_overlap::
-        rot_neighbor_indices<DeviceDispatch, Dev, Int>::f(
-            scratch_rot_neighbors, rot_offset_for_pose);
+        rot_neighbor_indices_from_block_neighbors<DeviceDispatch, Dev, Int>::f(
+            scratch_block_neighbors, n_rots_for_block, rot_offset_for_block);
     auto dispatch_indices = dispatch_indices_t.view;
 
     TPack<Real, 2, Dev> output_t;
