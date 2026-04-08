@@ -4,6 +4,13 @@ import attrs
 from typing import Optional, Union
 from tmol.types.torch import Tensor
 
+from tmol.pose.pose_stack import PoseStack
+from tmol.kinematics.datatypes import (
+    KinematicModuleData,
+    n_movable_bond_dof_types,
+    n_movable_jump_dof_types,
+)
+
 
 @attrs.define
 class CartesianMoveMap:
@@ -28,14 +35,6 @@ class CartesianMoveMap:
     """
 
     coord_mask: Optional[torch.Tensor] = None
-
-
-from tmol.pose.pose_stack import PoseStack
-from tmol.kinematics.datatypes import (
-    KinematicModuleData,
-    n_movable_bond_dof_types,
-    n_movable_jump_dof_types,
-)
 
 
 @attrs.define(slots=True, auto_attribs=True)

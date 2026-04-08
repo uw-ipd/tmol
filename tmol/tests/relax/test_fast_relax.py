@@ -5,6 +5,7 @@ import pytest
 from tmol.relax.fast_relax import _default_cart_min_fn, fast_relax
 import time
 
+from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
@@ -88,6 +89,8 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     if torch_device == torch.device("cuda"):
         torch.cuda.synchronize()
     stop_time = time.perf_counter()
+    assert new_pose_stack
+    assert isinstance(new_pose_stack, PoseStack)
 
     elapsed_time = stop_time - start_time
 
@@ -140,6 +143,9 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 
     torch.cuda.synchronize()
     stop_time = time.perf_counter()
+
+    assert new_pose_stack
+    assert isinstance(new_pose_stack, PoseStack)
 
     elapsed_time = stop_time - start_time
 
@@ -222,6 +228,9 @@ def test_fast_relax_pertuz(
         torch.cuda.synchronize()
     stop_time = time.perf_counter()
 
+    assert new_pose_stack
+    assert isinstance(new_pose_stack, PoseStack)
+
     elapsed_time = stop_time - start_time
 
     print(f"1s78 {n_poses} FastRelax Execution time: {elapsed_time:.6f} seconds")
@@ -291,6 +300,9 @@ def test_fast_relax_for_different_shapes(
 
     if torch_device == torch.device("cuda"):
         torch.cuda.synchronize()
+    assert new_pose_stack
+    assert isinstance(new_pose_stack, PoseStack)
+
     stop_time = time.perf_counter()
 
     elapsed_time = stop_time - start_time
