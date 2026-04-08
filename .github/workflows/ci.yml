@@ -63,6 +63,8 @@ jobs:
               $SIF bash << 'GPU_WORK'
           set -ex
 
+          errors=()
+
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PYTHONUSERBASE=/ci-pip-pkgs
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
@@ -103,17 +105,17 @@ jobs:
           echo "=== environment ==="
           python --version
           python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPUs: {torch.cuda.device_count()}')"
-          nvidia-smi || true
+          nvidia-smi || { errors+=($?); }
 
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
           CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
-            --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda" || true
+            --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda" || { errors+=($?); }
 
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
           pytest -p no:rerunfailures -s -v --durations=25 --cov=./tmol \
-            --junitxml=testing.cuda.junit.xml -k "cuda" || true
+            --junitxml=testing.cuda.junit.xml -k "cuda" || { errors+=($?); }
 
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
@@ -125,10 +127,12 @@ jobs:
             --benchmark-name=short --benchmark-sort=fullname \
             --benchmark-columns=ops,mean,iqr \
             --benchmark-json=${BENCHMARK_RESULT} \
-            --benchmark-max-time=.1 || true
+            --benchmark-max-time=.1 || { errors+=($?); }
 
           pytest-benchmark compare --name=short --sort=fullname \
-            --columns=ops,mean,iqr $(find benchmark -name '*.json') || true
+            --columns=ops,mean,iqr $(find benchmark -name '*.json') || { errors+=($?); }
+
+          if [ ${#errors[@]} -ne 0 ]; then echo "Build and test (GPU) failed"; exit 1; fi
 
           GPU_WORK
 
