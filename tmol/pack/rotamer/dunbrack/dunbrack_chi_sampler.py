@@ -526,6 +526,7 @@ class DunbrackChiSampler(ChiSampler):
         ]
 
         # Rosetta defaults (buried): rotameric=0.98, semi-rotameric=0.95.
+        # Based on testing (alf) semi-rot should also be 0.98
         # Table sets are ordered rotameric-first; semi-rotameric sets start at
         # index n_rotameric_sets.
         n_rotameric_sets = int(
@@ -536,7 +537,7 @@ class DunbrackChiSampler(ChiSampler):
         )
         prob_cumsum_limit_for_bbt = torch.where(
             is_semi,
-            torch.full((n_bbts,), 0.95, dtype=torch.float32, device=self.device),
+            torch.full((n_bbts,), 0.98, dtype=torch.float32, device=self.device),
             torch.full((n_bbts,), 0.98, dtype=torch.float32, device=self.device),
         )
 
