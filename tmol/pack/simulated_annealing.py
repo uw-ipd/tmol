@@ -4,9 +4,13 @@ from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.compiled.compiled import pack_anneal
 
 
-def run_simulated_annealing(
-    energy_tables: PackerEnergyTables,
-):
+def run_simulated_annealing(energy_tables: PackerEnergyTables):
+    """Run GPU simulated annealing.
+
+    500 parallel hitemp trajectories explore with geometric cooling; the top
+    25% seed 10 low-temperature reruns each; the top 25% of those receive a
+    final greedy quench.
+    """
     return pack_anneal(
         energy_tables.max_n_rotamers_per_pose,
         energy_tables.pose_n_res,
