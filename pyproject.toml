@@ -58,7 +58,7 @@ dependencies = [
     # Interactive
     "ipython>=8.0",
     # Structure I/O
-    "biotite>=1.6.0",
+    "biotite>=1.2.0",
     # Ligand preparation
     "openbabel-wheel==3.1.1.22",
 ]
