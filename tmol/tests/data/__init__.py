@@ -200,6 +200,42 @@ def biotite_1bl8():
     )
 
 
+@pytest.fixture()
+def cif_184l_with_i4b():
+    """Lysozyme 184L with I4B ligand."""
+    import biotite.structure.io.pdbx
+
+    fname = os.path.join(__file__.rpartition("/")[0], "cif", "184l__1__1.A__1.E.cif")
+    pdbx_file = biotite.structure.io.pdbx.CIFFile.read(fname)
+    return biotite.structure.io.pdbx.get_structure(
+        pdbx_file, model=1, include_bonds=True
+    )
+
+
+@pytest.fixture()
+def cif_155c_with_hem():
+    """Cytochrome c 155C with HEM ligand."""
+    import biotite.structure.io.pdbx
+
+    fname = os.path.join(__file__.rpartition("/")[0], "cif", "155c__1__1.A__1.B.cif")
+    pdbx_file = biotite.structure.io.pdbx.CIFFile.read(fname)
+    return biotite.structure.io.pdbx.get_structure(
+        pdbx_file, model=1, include_bonds=True
+    )
+
+
+@pytest.fixture()
+def cif_1a25_with_pse():
+    """1A25 with PSE ligand (partial occupancy)."""
+    import biotite.structure.io.pdbx
+
+    fname = os.path.join(__file__.rpartition("/")[0], "cif", "1a25__1__1.B__1.I.cif")
+    pdbx_file = biotite.structure.io.pdbx.CIFFile.read(fname)
+    return biotite.structure.io.pdbx.get_structure(
+        pdbx_file, model=1, include_bonds=True
+    )
+
+
 def no_termini_pose_stack_from_pdb(pdb, torch_device, residue_start, residue_end):
     from tmol.io import pose_stack_from_pdb
 
