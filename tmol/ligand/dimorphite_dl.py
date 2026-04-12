@@ -146,15 +146,13 @@ class MyParser(argparse.ArgumentParser):
         if file is None:
             file = sys.stdout
         self._print_message(self.format_help(), file)
-        _log_info(
-            """
+        _log_info("""
 examples:
   python dimorphite_dl.py --smiles_file sample_molecules.smi
   python dimorphite_dl.py --smiles "CCC(=O)O" --min_ph -3.0 --max_ph -2.0
   python dimorphite_dl.py --smiles "CCCN" --min_ph -3.0 --max_ph -2.0 --output_file output.smi
   python dimorphite_dl.py --smiles_file sample_molecules.smi --pka_precision 2.0 --label_states
-  python dimorphite_dl.py --test"""
-        )
+  python dimorphite_dl.py --test""")
         _log_info("")
 
 
