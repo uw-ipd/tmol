@@ -1,9 +1,11 @@
 import os
 import attr
-from typing import List
+from typing import List, Optional
 
-from .chemical import ChemicalDatabase
+from .chemical import AtomType, ChemicalDatabase, RawResidueType
 from .scoring import ScoringDatabase
+from .scoring.elec import PartialCharges
+from .scoring.cartbonded import CartRes
 
 # maybe this should live in the database?
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
@@ -11,24 +13,78 @@ from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 @attr.s
 class ParameterDatabase:
-    """The parameters describing the available chemical types and the scoring terms"""
+    """Chemical and scoring parameter container used by tmol.
+
+    The process-global accessor ``get_default()`` returns a shared mutable
+    instance.  Use ``get_fresh_default()`` when caller isolation is required.
+    """
 
     __default = None
 
     @classmethod
     def get_default(cls) -> "ParameterDatabase":
-        """Load and return default parameter database."""
+        """Return the process-global cached parameter database."""
         if cls.__default is None:
             cls.__default = ParameterDatabase.from_file(
                 os.path.join(os.path.dirname(__file__), "default")
             )
         return cls.__default
 
+    get_current = get_default
+
+    @classmethod
+    def get_fresh_default(cls) -> "ParameterDatabase":
+        """Load a new default parameter database instance from disk."""
+        return ParameterDatabase.from_file(
+            os.path.join(os.path.dirname(__file__), "default")
+        )
+
     scoring: ScoringDatabase = attr.ib()
     chemical: PatchedChemicalDatabase = attr.ib()
 
+    def add_residue_scoring_params(
+        self,
+        res_name: str,
+        partial_charges: Optional[dict[str, float]] = None,
+        cartbonded_params: Optional[CartRes] = None,
+    ) -> None:
+        """Add scoring parameters for a dynamically registered residue type."""
+        if partial_charges is not None:
+            new_entries = tuple(
+                PartialCharges(res=res_name, atom=atom, charge=charge)
+                for atom, charge in partial_charges.items()
+            )
+            self.scoring.elec.atom_charge_parameters = (
+                self.scoring.elec.atom_charge_parameters + new_entries
+            )
+        if cartbonded_params is not None:
+            self.scoring.cartbonded.residue_params[res_name] = cartbonded_params
+
+    def remove_residue_scoring_params(self, res_name: str):
+        """Remove all scoring parameters for a residue type."""
+        self.scoring.elec.atom_charge_parameters = tuple(
+            p for p in self.scoring.elec.atom_charge_parameters if p.res != res_name
+        )
+        self.scoring.cartbonded.residue_params.pop(res_name, None)
+
+    def add_residue_type(
+        self,
+        residue_type: RawResidueType,
+        new_atom_types: Optional[list[AtomType]] = None,
+    ) -> None:
+        """Add a residue type to the chemical database."""
+        if new_atom_types:
+            self.chemical.atom_types = (*self.chemical.atom_types, *new_atom_types)
+        self.chemical.residues = (*self.chemical.residues, residue_type)
+
+    def remove_residue_type(self, res_name: str) -> None:
+        """Remove a residue type from the chemical database."""
+        self.chemical.residues = [
+            r for r in self.chemical.residues if r.name != res_name
+        ]
+
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, path: str) -> "ParameterDatabase":
         chemdb = ChemicalDatabase.from_file(os.path.join(path, "chemical"))
         patched_chemdb = PatchedChemicalDatabase.from_chem_db(chemdb)  # apply patches
         return cls(
