@@ -23,6 +23,7 @@ using torch::Tensor;
 
 std::vector<Tensor> build_interaction_graph(
     int64_t const chunk_size,
+    int64_t const max_n_block_types,
     Tensor n_rots_for_pose,
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
@@ -33,6 +34,17 @@ std::vector<Tensor> build_interaction_graph(
     Tensor sparse_inds,
     Tensor sparse_energies) {
   nvtx_range_push("pack_build_ig");
+
+  at::Tensor max_n_bump_checked_rotamers_per_pose;
+  at::Tensor n_molten_blocks_per_pose;
+  at::Tensor n_bc_rots_per_pose;
+  at::Tensor bc_rot_offset_for_pose;
+  at::Tensor n_bc_rots_for_molten_block;
+  at::Tensor bc_rot_offset_for_molten_block;
+  at::Tensor molten_block_ind_for_bc_rot;
+  at::Tensor rotamer_for_nonmolten_block;
+  at::Tensor bc_rot_to_orig_rot;
+
   at::Tensor energy1b;
   at::Tensor chunk_pair_offset_for_block_pair;
   at::Tensor chunk_pair_offset;
@@ -60,14 +72,33 @@ std::vector<Tensor> build_interaction_graph(
               TCAST(block_ind_for_rot),
               TCAST(sparse_inds),
               TCAST(sparse_energies));
-        energy1b = std::get<0>(result).tensor;
-        chunk_pair_offset_for_block_pair = std::get<1>(result).tensor;
-        chunk_pair_offset = std::get<2>(result).tensor;
-        energy2b = std::get<3>(result).tensor;
+
+        max_n_bump_checked_rotamers_per_pose = std::get<0>(result).tensor;
+        n_molten_blocks_per_pose = std::get<1>(result).tensor;
+        n_bc_rots_per_pose = std::get<2>(result).tensor;
+        bc_rot_offset_for_pose = std::get<3>(result).tensor;
+        n_bc_rots_for_molten_block = std::get<4>(result).tensor;
+        bc_rot_offset_for_molten_block = std::get<5>(result).tensor;
+        molten_block_ind_for_bc_rot = std::get<6>(result).tensor;
+        rotamer_for_nonmolten_block = std::get<7>(result).tensor;
+        bc_rot_to_orig_rot = std::get<8>(result).tensor;
+        energy1b = std::get<9>(result).tensor;
+        chunk_pair_offset_for_block_pair = std::get<10>(result).tensor;
+        chunk_pair_offset = std::get<11>(result).tensor;
+        energy2b = std::get<12>(result).tensor;
       }));
 
   std::vector<torch::Tensor> result(
-      {energy1b,
+      {max_n_bump_checked_rotamers_per_pose,
+       n_molten_blocks_per_pose,
+       n_bc_rots_per_pose,
+       bc_rot_offset_for_pose,
+       n_bc_rots_for_molten_block,
+       bc_rot_offset_for_molten_block,
+       molten_block_ind_for_bc_rot,
+       rotamer_for_nonmolten_block,
+       bc_rot_to_orig_rot,
+       energy1b,
        chunk_pair_offset_for_block_pair,
        chunk_pair_offset,
        energy2b});
