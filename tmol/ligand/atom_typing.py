@@ -140,8 +140,6 @@ def _classify_C(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
     if hyb == 9:
         prefix = "CR"
     elif obatom.IsChiral():
-        # Chiral tetrahedral carbons should remain saturated even if
-        # bond-order perception undercounts attached hydrogens.
         prefix = "CS"
     elif nbonds == 4:
         prefix = "CS"

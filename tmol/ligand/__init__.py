@@ -164,12 +164,17 @@ def prepare_single_ligand(
         A tuple of (RawResidueType, partial_charges, atom_type_elements).
     """
     from rdkit import Chem
+    from rdkit.Chem import AllChem
 
     rdkit_mol = ligand_atom_array_to_rdkit_mol(ligand_info)
-    protonated_rdkit = protonate_ligand_mol(rdkit_mol, ph=ph)
-    protonated_rdkit = Chem.AddHs(protonated_rdkit, addCoords=True)
-    charges_by_index = compute_mmff94_charges(protonated_rdkit)
-    mol = rdkit_mol_to_obmol(protonated_rdkit)
+    protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
+    try:
+        protonated = AllChem.AssignBondOrdersFromTemplate(protonated, rdkit_mol)
+    except Exception:
+        pass
+    protonated = Chem.AddHs(protonated, addCoords=True)
+    charges_by_index = compute_mmff94_charges(protonated)
+    mol = rdkit_mol_to_obmol(protonated)
     atom_types = assign_tmol_atom_types(mol.OBMol)
     atom_types_by_index = _rename_atoms_to_cif_by_index(atom_types, ligand_info)
     if atom_types_by_index is not None:
