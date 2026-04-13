@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SIF: /net/software/containers/versions/modelhub/pytorch_24.10-py3.sif
+  SIF: /net/scratch/kdidi/pytorch_24.10-py3-x11.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
 
 jobs:
