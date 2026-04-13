@@ -15,6 +15,9 @@ import biotite.structure as struc
 import biotite.structure.info as struc_info
 import biotite.structure.info.ccd as ccd
 import numpy as np
+from biotite.interface.rdkit import to_mol
+from rdkit import Chem
+from rdkit.Chem import RWMol, rdDetermineBonds
 
 from tmol.io.canonical_ordering import CanonicalOrdering
 
@@ -128,8 +131,6 @@ def _strip_metals(mol):
     OpenBabel downstream cannot parse CCD coordination-bond SMILES, and
     metals are dropped during ligand preparation anyway.
     """
-    from rdkit.Chem import RWMol
-
     metals = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() in _METAL_SYMBOLS]
     if metals:
         em = RWMol(mol)
@@ -147,13 +148,6 @@ def _atom_array_to_smiles(atom_array: struc.AtomArray) -> Optional[str]:
     Metal atoms are stripped since OpenBabel cannot handle coordination
     bond SMILES downstream.
     """
-    try:
-        from rdkit import Chem
-        from rdkit.Chem import rdDetermineBonds
-        from biotite.interface.rdkit import to_mol
-    except ImportError:
-        return None
-
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
 
     try:

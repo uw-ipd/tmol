@@ -6,6 +6,8 @@ OpenBabel only for atom typing and residue building (MolBlock roundtrip).
 
 import logging
 
+from openbabel import pybel
+from rdkit import Chem
 from rdkit.Chem import AllChem
 
 logger = logging.getLogger(__name__)
@@ -38,9 +40,6 @@ def rdkit_mol_to_obmol(rdkit_mol):
     No 3D generation or minimization is performed -- the RDKit mol is
     expected to already have coordinates (from the crystal structure).
     """
-    from rdkit import Chem
-    from openbabel import pybel
-
     mol_block = Chem.MolToMolBlock(rdkit_mol, kekulize=False)
     mol = pybel.readstring("mol", mol_block)
     return mol

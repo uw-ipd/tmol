@@ -19,6 +19,9 @@ import functools
 from typing import Optional
 
 import biotite.structure as struc
+from openbabel import openbabel
+from rdkit import Chem
+from rdkit.Chem import AllChem
 
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import RawResidueType
@@ -41,6 +44,7 @@ from tmol.ligand.registry import (
 )
 from tmol.ligand.residue_builder import build_residue_type
 from tmol.ligand.smiles import (
+    _ELEMENT_TO_ATOMIC_NUM,
     ligand_atom_array_to_rdkit_mol,
     protonate_ligand_mol,
 )
@@ -60,9 +64,6 @@ def _default_detection_ordering() -> CanonicalOrdering:
 
 def _build_cif_obmol(ligand_info: LigandInfo):
     """Build an OBMol from CIF atom names, elements, and coordinates."""
-    from openbabel import openbabel
-    from tmol.ligand.smiles import _ELEMENT_TO_ATOMIC_NUM
-
     obmol = openbabel.OBMol()
     obmol.BeginModify()
     for elem, coord in zip(ligand_info.elements, ligand_info.coords):
@@ -102,10 +103,8 @@ def _rename_atoms_to_cif(
         )
         return atom_types
 
-    from openbabel import openbabel as ob
-
     cif_idx_to_name = {}
-    for i, obatom in enumerate(ob.OBMolAtomIter(cif_obmol)):
+    for i, obatom in enumerate(openbabel.OBMolAtomIter(cif_obmol)):
         if i < len(ligand_info.atom_names):
             cif_idx_to_name[obatom.GetIndex()] = ligand_info.atom_names[i]
 
@@ -163,9 +162,6 @@ def prepare_single_ligand(
     Returns:
         A tuple of (RawResidueType, partial_charges, atom_type_elements).
     """
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
-
     rdkit_mol = ligand_atom_array_to_rdkit_mol(ligand_info)
     protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
     try:
