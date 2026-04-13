@@ -1323,27 +1323,25 @@ def protonate_mol_variants(
         new_mols = [mol_used_to_idx_sites]
         properly_formed_smi_found.append(Chem.MolToSmiles(mol_used_to_idx_sites))
 
-    new_smis = list(
-        set(
-            [Chem.MolToSmiles(m, isomericSmiles=True, canonical=True) for m in new_mols]
-        )
-    )
-    new_smis = [
-        s for s in new_smis if UtilFuncs.convert_smiles_str_to_mol(s) is not None
-    ]
-    if len(new_smis) == 0:
+    seen: set[str] = set()
+    output_mols: list[Chem.rdchem.Mol] = []
+    for m in new_mols:
+        smi = Chem.MolToSmiles(m, isomericSmiles=True, canonical=True)
+        if smi in seen:
+            continue
+        if UtilFuncs.convert_smiles_str_to_mol(smi) is None:
+            continue
+        seen.add(smi)
+        output_mols.append(m)
+
+    if len(output_mols) == 0:
         properly_formed_smi_found.reverse()
         for smi in properly_formed_smi_found:
             m = UtilFuncs.convert_smiles_str_to_mol(smi)
             if m is not None:
-                new_smis = [smi]
+                output_mols = [m]
                 break
 
-    output_mols: list[Chem.rdchem.Mol] = []
-    for smi in new_smis:
-        m = Chem.MolFromSmiles(smi)
-        if m is not None:
-            output_mols.append(m)
     return output_mols
 
 

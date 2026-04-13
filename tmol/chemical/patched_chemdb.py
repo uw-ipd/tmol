@@ -40,7 +40,7 @@ class RestypeGraphBuilder:
 # delete atoms, bonds, torsions, and connections involving atom
 def remove_atom(res, atom):
     res.atoms = tuple(x for x in res.atoms if x.name != atom)
-    res.bonds = tuple((x, y) for x, y in res.bonds if x != atom and y != atom)
+    res.bonds = tuple(b for b in res.bonds if b[0] != atom and b[1] != atom)
     res.torsions = tuple(
         x for x in res.torsions if atom not in [x.a.atom, x.b.atom, x.c.atom, x.d.atom]
     )
@@ -131,7 +131,8 @@ def get_modified_atoms(patch):
         added.append(i.name)
 
     # modded finds all atoms whose CONNECTIVITY or COORDINATES have changed
-    for i, j in patch.add_bonds:
+    for bond in patch.add_bonds:
+        i, j = bond[0], bond[1]
         if i[0] == "<" and i[-1] == ">" and i not in modded:
             modded.append(i)
         if j[0] == "<" and j[-1] == ">" and j not in modded:
@@ -183,7 +184,8 @@ def _validate_raw_residue_atoms(res, allatoms):
 def _validate_raw_residue_bonds(res, allatoms):
     # illegal bonds
     bad_bonds = []
-    for i, j in res.bonds:
+    for bond in res.bonds:
+        i, j = bond[0], bond[1]
         if i not in allatoms:
             bad_bonds.append((i, i, j))
         if j not in allatoms:
@@ -382,7 +384,8 @@ def _validate_patch_atom_aliases(patch, addedatoms):
 def _validate_patch_bonds(patch, added_ats_and_conns):
     # make sure all bonds are references or added atoms
     bad_bonds = []
-    for i, j in patch.add_bonds:
+    for bond in patch.add_bonds:
+        i, j = bond[0], bond[1]
         if (i[0] != "<" or i[-1] != ">") and (i not in added_ats_and_conns):
             bad_bonds.append((i, j))
     if len(bad_bonds) > 0:
@@ -487,7 +490,8 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
 
         # -1. Add atoms bonded to deleted atoms to modded set
         #     needs to be done after name map
-        for i, j in res.bonds:
+        for bond in res.bonds:
+            i, j = bond[0], bond[1]
             if i in deleted and j not in deleted:
                 modded.append(j)
             if j in deleted and i not in deleted:
@@ -538,12 +542,13 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
 
         # 4. add bonds
         newbonds = []
-        for i, j in variant.add_bonds:
+        for bond in variant.add_bonds:
+            i, j, btype = bond[0], bond[1], bond[2]
             if i in namemap:
                 i = namemap[i]
             if j in namemap:
                 j = namemap[j]
-            newbonds.append((i, j))
+            newbonds.append((i, j, btype))
         newres.bonds = (*newres.bonds, *newbonds)
 
         # 5. update icoors

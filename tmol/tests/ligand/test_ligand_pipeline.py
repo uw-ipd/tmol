@@ -281,6 +281,7 @@ class TestLigandScoringData:
             ), f"Improper center incorrectly includes saturated atom {name}"
 
 
+@pytest.mark.slow
 def test_prepare_ligands_missing_sidechain_rebuild_skips_ligand_dunbrack(
     cif_184l_with_i4b, torch_device
 ):
@@ -314,6 +315,7 @@ def test_prepare_ligands_missing_sidechain_rebuild_skips_ligand_dunbrack(
     assert not torch.any(torch.isinf(nonzero_coords))
 
 
+@pytest.mark.slow
 def test_prepare_ligands_ligand_only_missing_does_not_invoke_dunbrack(
     cif_184l_with_i4b, torch_device
 ):

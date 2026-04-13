@@ -120,7 +120,10 @@ TMOL_BUILD_TESTS = {env = "TMOL_BUILD_TESTS", default = "OFF"}
 
 # Test settings ----------------------------------------------------------------
 [tool.pytest.ini_options]
-addopts = "--benchmark-disable --benchmark-columns=ops,mean,iqr"
+addopts = "--benchmark-disable --benchmark-columns=ops,mean,iqr -m 'not slow'"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 filterwarnings = [
     "ignore:(?s).*is not compatible with the compiler Pytorch.*:",
     "ignore:(?s).*Benchmark fixture was not used.*:",

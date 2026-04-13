@@ -15,9 +15,13 @@ def compute_mmff94_charges(mol) -> dict[int, float]:
     """Compute MMFF94 partial charges via RDKit.
 
     Falls back to Gasteiger charges when MMFF94 parameterization fails
-    (e.g. unusual element combinations).
+    (e.g. unusual element combinations or kekulization issues like
+    porphyrin rings in HEM).
     """
-    props = AllChem.MMFFGetMoleculeProperties(mol)
+    try:
+        props = AllChem.MMFFGetMoleculeProperties(mol)
+    except Exception:
+        props = None
     if props is None:
         logger.warning("MMFF94 parameterization failed, falling back to Gasteiger")
         AllChem.ComputeGasteigerCharges(mol)
@@ -37,6 +41,6 @@ def rdkit_mol_to_obmol(rdkit_mol):
     from rdkit import Chem
     from openbabel import pybel
 
-    mol_block = Chem.MolToMolBlock(rdkit_mol)
+    mol_block = Chem.MolToMolBlock(rdkit_mol, kekulize=False)
     mol = pybel.readstring("mol", mol_block)
     return mol
