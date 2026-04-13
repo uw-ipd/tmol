@@ -16,10 +16,11 @@ LABEL description="tmol - Dependencies only (for development and scoring)"
 # Create directories for bind mounts
 RUN mkdir -p /tmol_host /projects /net /squash
 
-# Install system dependencies (libxrender1 is required by openbabel-wheel plugins)
+# Install system dependencies (runtime deps of openbabel-wheel plugins)
 RUN apt-get update && apt-get install -y \
         libxrender1 \
-        libxrender-dev \
+        libx11-6 \
+        libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy pyproject.toml to extract dependencies
