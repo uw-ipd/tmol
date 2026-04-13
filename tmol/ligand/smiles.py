@@ -7,7 +7,12 @@ SMILES roundtrip in the main pipeline).
 
 import logging
 
-from tmol.ligand.detect import LigandInfo
+from biotite.interface.rdkit import to_mol
+from rdkit import Chem
+from rdkit.Chem import rdDetermineBonds
+
+from tmol.ligand.detect import LigandInfo, _strip_metals
+from tmol.ligand.dimorphite_dl import protonate_mol_variants
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +35,6 @@ _ELEMENT_TO_ATOMIC_NUM = {
 
 def ligand_atom_array_to_rdkit_mol(ligand_info: LigandInfo):
     """Build an RDKit Mol directly from a ligand AtomArray."""
-    from rdkit import Chem
-    from rdkit.Chem import rdDetermineBonds
-    from biotite.interface.rdkit import to_mol
-    from tmol.ligand.detect import _strip_metals
-
     atom_array = ligand_info.atom_array
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
     if has_bonds:
@@ -66,8 +66,6 @@ def protonate_ligand_mol(
 ):
     """Protonate an RDKit Mol at a target pH and return first variant."""
     try:
-        from tmol.ligand.dimorphite_dl import protonate_mol_variants
-
         variants = protonate_mol_variants(
             mol,
             min_ph=ph,
