@@ -56,7 +56,7 @@ def pack_rotamers(
         energy2b,
     ) = build_interaction_graph(
         chunk_size,
-        pbt.n_block_types,
+        pbt.n_types,
         rotamer_set.n_rots_for_pose,
         rotamer_set.rot_offset_for_pose,
         rotamer_set.n_rots_for_block,

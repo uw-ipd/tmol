@@ -63,6 +63,7 @@ std::vector<Tensor> build_interaction_graph(
             Real,
             Int>::
             f(chunk_size,
+              max_n_block_types,
               TCAST(n_rots_for_pose),
               TCAST(rot_offset_for_pose),
               TCAST(n_rots_for_block),
