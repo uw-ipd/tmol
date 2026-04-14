@@ -247,9 +247,49 @@ def _filter_supported_atoms_and_connectivity(
             to_remove.add(i_3lc)
 
     res_names = _res_names_for_structure(biotite_structure)
-    valid_atoms = numpy.array([name not in to_remove for name in res_names])
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
-    valid_res = valid_atoms[biotite_residue_starts]
+    valid_res = numpy.array([name not in to_remove for name in res_names])[
+        biotite_residue_starts
+    ]
+
+    # Filter residues missing mainchain atoms required for rotamer building.
+    # The required atoms are taken from the residue type's polymer.mainchain_atoms
+    # definition; residues with no mainchain definition (non-polymer) are skipped.
+    atom_names = biotite_structure.atom_name
+    if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
+        coords = biotite_structure.coord  # (n_poses, n_atoms, 3)
+    else:
+        coords = biotite_structure.coord[numpy.newaxis, :]  # (1, n_atoms, 3)
+    residue_ends = numpy.append(
+        biotite_residue_starts[1:], biotite_structure.array_length()
+    )
+    for i in range(len(valid_res)):
+        if not valid_res[i]:
+            continue
+        start, end = biotite_residue_starts[i], residue_ends[i]
+        res_name3 = biotite_structure.res_name[start]
+        required = co.restypes_mainchain_atoms.get(res_name3)
+        if not required:
+            continue
+        res_atom_names = atom_names[start:end]
+        missing = set()
+        for req_atom in required:
+            matches = numpy.where(res_atom_names == req_atom)[0]
+            if len(matches) == 0 or numpy.isnan(coords[:, start + matches[0], :]).any():
+                missing.add(req_atom)
+        if missing:
+            logger.warning(
+                "Residue %s %s %d is missing mainchain atoms %s; skipping",
+                biotite_structure.chain_id[start],
+                res_name3,
+                biotite_structure.res_id[start],
+                sorted(missing),
+            )
+            valid_res[i] = False
+
+    valid_atoms = valid_res[
+        biotite.structure.get_all_residue_positions(biotite_structure)
+    ]
 
     lower = numpy.roll(valid_res, 1)
     lower[0] = True
