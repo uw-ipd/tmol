@@ -473,19 +473,24 @@ MGPU_DEVICE float warp_wide_sim_annealing(
       float const total_delta_e =
           reduce_shfl_and_broadcast(g, delta_e, mgpu::plus_t<float>());
 
-      // --- Metropolis accept/reject ---
+      // --- Metropolis accept/reject (thread 0 decides, broadcasts) ---
       bool accept;
-      if (quench) {
-        accept = total_delta_e < 0.0f;
-      } else {
-        accept = total_delta_e < 0.0f
-                 || accept_rand < expf(-total_delta_e / temperature);
+      if (g.thread_rank() == 0) {
+        if (quench) {
+          accept = total_delta_e < 0.0f;
+        } else {
+          accept = total_delta_e < 0.0f
+                   || accept_rand < expf(-total_delta_e / temperature);
+        }
       }
+      accept = g.shfl(accept, 0);
 
       if (accept) {
-        // All threads write the same value - safe in lockstep execution
-        current_rotamer_assignment[ran_res] = local_new_rot;
-        current_total_energy += total_delta_e;
+        if (g.thread_rank() == 0) {
+          current_rotamer_assignment[ran_res] = local_new_rot;
+          current_total_energy += total_delta_e;
+        }
+        current_total_energy = g.shfl(current_total_energy, 0);
         if (current_total_energy < best_energy) {
           best_energy = current_total_energy;
           for (int k = g.thread_rank(); k < n_res; k += 32) {

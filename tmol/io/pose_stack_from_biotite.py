@@ -187,20 +187,20 @@ def biotite_from_pose_stack(
     return biotite_from_canonical_form(cf, co=co)
 
 
-def _map_atoms_to_canonical(co, connect, atom_res_inds, res_names, atom_names):
+def _map_atoms_to_canonical(co, not_connected, atom_res_inds, res_names, atom_names):
     """Map Biotite atom names to canonical ordering indices.
 
     Suppresses atoms that conflict with block type resolution:
     - "H" on N-terminal residues (CIF amide H vs tmol's H1/H2/H3)
     - "OXT" on non-C-terminal residues (CIF chain-break OXT)
 
-    The ``connect`` array must already incorporate chain boundaries
+    The ``not_connected`` array must already incorporate chain boundaries
     (see ``canonical_form_from_biotite``).
 
     Returns (valid_atom_mask, valid_atom_inds, valid_res_inds).
     """
-    is_nterm_atom = ~connect[atom_res_inds, 0]
-    is_cterm_atom = ~connect[atom_res_inds, 1]
+    is_nterm_atom = ~not_connected[atom_res_inds, 0]
+    is_cterm_atom = ~not_connected[atom_res_inds, 1]
 
     atom_inds = []
     valid = []
@@ -257,45 +257,45 @@ def _filter_supported_atoms_and_connectivity(
     upper = numpy.roll(valid_res, -1)
     upper[-1] = True
     upper = upper[valid_res]
-    connect = numpy.invert(numpy.column_stack((lower, upper)))
+    not_connected = numpy.invert(numpy.column_stack((lower, upper)))
 
     if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
         biotite_structure = biotite_structure[:, valid_atoms]
     else:
         biotite_structure = biotite_structure[valid_atoms]
 
-    return biotite_structure, connect
+    return biotite_structure, not_connected
 
 
 def _break_connections_for_missing_density(
-    connect: numpy.ndarray,
+    not_connected: numpy.ndarray,
     biotite_chain_id_for_res: numpy.ndarray,
     tmol_coords: torch.Tensor,
     threshold: float,
 ) -> None:
     """Break inter-residue connections where upper/lower atoms are too far apart.
 
-    Modifies ``connect`` in-place. For each pair of adjacent residues (i, i+1)
-    that are currently marked as connected and belong to the same chain, the
-    minimum distance between any atom in residue i and any atom in residue i+1
-    is compared across all poses. If that minimum distance exceeds ``threshold``
-    (in Angstroms), the connection is broken by setting connect[i, 1] = True
-    and connect[i+1, 0] = True.
+    Modifies ``not_connected`` in-place. For each pair of adjacent residues
+    (i, i+1) that are currently marked as connected and belong to the same
+    chain, the minimum distance between any atom in residue i and any atom in
+    residue i+1 is compared across all poses. If that minimum distance exceeds
+    ``threshold`` (in Angstroms), the connection is broken by setting
+    not_connected[i, 1] = True and not_connected[i+1, 0] = True.
 
     Args:
-        connect: Shape (n_res, 2) boolean array. False = normal (connected or
-            terminus), True = explicitly broken connection.
+        not_connected: Shape (n_res, 2) boolean array. True = no connection
+            (terminus or explicitly broken); False = connected.
         biotite_chain_id_for_res: Shape (n_res,) integer chain IDs.
         tmol_coords: Shape (n_poses, n_res, max_atoms, 3) coordinate tensor.
         threshold: Distance threshold in Angstroms. Connections where the
             closest inter-residue atom pair exceeds this distance are broken.
     """
-    n_res = connect.shape[0]
+    n_res = not_connected.shape[0]
     coords_np = tmol_coords.cpu().numpy()
 
     for i in range(n_res - 1):
         # Skip already-disconnected pairs
-        if connect[i, 1] or connect[i + 1, 0]:
+        if not_connected[i, 1] or not_connected[i + 1, 0]:
             continue
         # Skip cross-chain pairs (handled separately by chain-break logic)
         if biotite_chain_id_for_res[i] != biotite_chain_id_for_res[i + 1]:
@@ -331,13 +331,13 @@ def _break_connections_for_missing_density(
                 min_dist,
                 threshold,
             )
-            connect[i, 1] = True
-            connect[i + 1, 0] = True
+            not_connected[i, 1] = True
+            not_connected[i + 1, 0] = True
 
 
 def _extract_residue_metadata(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
-    connect,
+    not_connected,
     torch_device: torch.device,
 ):
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
@@ -350,12 +350,14 @@ def _extract_residue_metadata(
     biotite_chain_id_for_res = per_atom_chain_idx[biotite_residue_starts]
 
     if len(biotite_chain_id_for_res) > 1:
-        chain_breaks = biotite_chain_id_for_res[1:] != biotite_chain_id_for_res[:-1]
-        connect[1:, 0] &= ~chain_breaks
-        connect[:-1, 1] &= ~chain_breaks
+        res_is_disconnected_from_neighbor = (
+            biotite_chain_id_for_res[1:] != biotite_chain_id_for_res[:-1]
+        )
+        not_connected[1:, 0] &= ~res_is_disconnected_from_neighbor
+        not_connected[:-1, 1] &= ~res_is_disconnected_from_neighbor
 
     res_not_connected_1 = torch.tensor(
-        connect, dtype=torch.bool, device=torch_device
+        not_connected, dtype=torch.bool, device=torch_device
     ).unsqueeze(0)
     biotite_chain_labels = biotite_structure.chain_id[biotite_residue_starts]
     biotite_insertion_codes = biotite_structure.ins_code[biotite_residue_starts]
@@ -369,7 +371,7 @@ def _extract_residue_metadata(
         biotite_residue_labels,
         biotite_residues,
         res_not_connected_1,
-        connect,
+        not_connected,
     )
 
 
@@ -495,7 +497,7 @@ def canonical_form_from_biotite(
     if co is None:
         co = canonical_ordering_for_biotite()
 
-    biotite_structure, connect = _filter_supported_atoms_and_connectivity(
+    biotite_structure, not_connected = _filter_supported_atoms_and_connectivity(
         biotite_structure, co
     )
     (
@@ -505,8 +507,8 @@ def canonical_form_from_biotite(
         biotite_residue_labels,
         biotite_residues,
         res_not_connected_1,
-        connect,
-    ) = _extract_residue_metadata(biotite_structure, connect, torch_device)
+        not_connected,
+    ) = _extract_residue_metadata(biotite_structure, not_connected, torch_device)
 
     atom_res_inds = biotite.structure.get_all_residue_positions(biotite_structure)
     biotite_name_for_atom = biotite_structure.atom_name
@@ -516,7 +518,11 @@ def canonical_form_from_biotite(
     tmol_restypes = [restype_to_index[i_3lc] for i_3lc in biotite_residues]
 
     valid_atom_mask, valid_atom_inds, valid_res_inds = _map_atoms_to_canonical(
-        co, connect, atom_res_inds, biotite_res_name_for_atom, biotite_name_for_atom
+        co,
+        not_connected,
+        atom_res_inds,
+        biotite_res_name_for_atom,
+        biotite_name_for_atom,
     )
     tmol_coords, n_poses = _populate_canonical_coords(
         biotite_structure,
@@ -559,13 +565,13 @@ def canonical_form_from_biotite(
     # upper atom of residue i and lower atom of residue i+1 are too far apart.
     if missing_density_distance_threshold > 0 and len(biotite_residues) > 1:
         _break_connections_for_missing_density(
-            connect,
+            not_connected,
             biotite_chain_id_for_res,
             tmol_coords,
             missing_density_distance_threshold,
         )
         res_not_connected_1 = torch.tensor(
-            connect, dtype=torch.bool, device=torch_device
+            not_connected, dtype=torch.bool, device=torch_device
         ).unsqueeze(0)
 
     res_not_connected = res_not_connected_1.repeat(n_poses, 1, 1)
