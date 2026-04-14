@@ -143,18 +143,10 @@ jobs:
 
           GPU_WORK
 
-      - name: Upload test results
+      - name: Test Summary
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: test-summary/action@v2
         with:
-          name: test-results
-          path: |
+          paths: |
             testing.cpu.junit.xml
             testing.cuda.junit.xml
-
-      - name: Upload benchmark results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-results
-          path: benchmark/**/*
