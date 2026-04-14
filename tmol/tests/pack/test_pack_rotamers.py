@@ -150,8 +150,15 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
+    print("rotamer_for_nonmolten_block", rotamer_for_nonmolten_block.dtype)
     new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack, rotamer_set, rotamer_assignments
+        pose_stack,
+        rotamer_set,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        rotamer_assignments,
     )
     write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")
 
@@ -240,29 +247,42 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
 
     chunk_size = 16
 
-    energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            energies.indices().to(torch.int32),
-            energies.values(),
-        )
+    (
+        max_n_bump_checked_rotamers_per_pose_tensor,
+        n_molten_blocks_per_pose,
+        n_bc_rots_per_pose,
+        bc_rot_offset_for_pose,
+        n_bc_rots_for_molten_block,
+        bc_rot_offset_for_molten_block,
+        molten_block_ind_for_bc_rot,
+        rotamer_for_nonmolten_block,
+        bc_rot_to_orig_rot,
+        energy1b,
+        chunk_pair_offset_for_block_pair,
+        chunk_pair_offset,
+        energy2b,
+    ) = build_interaction_graph(
+        chunk_size,
+        pbt.n_types,
+        rotamer_set.n_rots_for_pose,
+        rotamer_set.rot_offset_for_pose,
+        rotamer_set.n_rots_for_block,
+        rotamer_set.rot_offset_for_block,
+        rotamer_set.pose_for_rot,
+        rotamer_set.block_type_ind_for_rot,
+        rotamer_set.block_ind_for_rot,
+        energies.indices().to(torch.int32),
+        energies.values(),
     )
 
     packer_energy_tables = PackerEnergyTables(
-        max_n_rotamers_per_pose=rotamer_set.max_n_rots_per_pose,
-        pose_n_res=pose_stack.n_res_per_pose,
-        pose_n_rotamers=rotamer_set.n_rots_for_pose,
-        pose_rotamer_offset=rotamer_set.rot_offset_for_pose,
-        nrotamers_for_res=rotamer_set.n_rots_for_block,
-        oneb_offsets=rotamer_set.rot_offset_for_block,
-        res_for_rot=rotamer_set.block_ind_for_rot,
+        max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),
+        pose_n_res=n_molten_blocks_per_pose,
+        pose_n_rotamers=n_bc_rots_per_pose,
+        pose_rotamer_offset=bc_rot_offset_for_pose,
+        nrotamers_for_res=n_bc_rots_for_molten_block,
+        oneb_offsets=bc_rot_offset_for_molten_block,
+        res_for_rot=molten_block_ind_for_bc_rot,
         chunk_size=chunk_size,
         chunk_offset_offsets=chunk_pair_offset_for_block_pair,
         chunk_offsets=chunk_pair_offset,
@@ -273,7 +293,13 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
     new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack, rotamer_set, rotamer_assignments
+        pose_stack,
+        rotamer_set,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        rotamer_assignments,
     )
     if torch_device == torch.device("cuda"):
         torch.cuda.synchronize()
@@ -314,29 +340,42 @@ def test_pack_rotamers_w_empty_interaction_graph(
 
     chunk_size = 16
 
-    energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            energies.indices().to(torch.int32),
-            energies.values(),
-        )
+    (
+        max_n_bump_checked_rotamers_per_pose_tensor,
+        n_molten_blocks_per_pose,
+        n_bc_rots_per_pose,
+        bc_rot_offset_for_pose,
+        n_bc_rots_for_molten_block,
+        bc_rot_offset_for_molten_block,
+        molten_block_ind_for_bc_rot,
+        rotamer_for_nonmolten_block,
+        bc_rot_to_orig_rot,
+        energy1b,
+        chunk_pair_offset_for_block_pair,
+        chunk_pair_offset,
+        energy2b,
+    ) = build_interaction_graph(
+        chunk_size,
+        pbt.n_types,
+        rotamer_set.n_rots_for_pose,
+        rotamer_set.rot_offset_for_pose,
+        rotamer_set.n_rots_for_block,
+        rotamer_set.rot_offset_for_block,
+        rotamer_set.pose_for_rot,
+        rotamer_set.block_type_ind_for_rot,
+        rotamer_set.block_ind_for_rot,
+        energies.indices().to(torch.int32),
+        energies.values(),
     )
 
     packer_energy_tables = PackerEnergyTables(
-        max_n_rotamers_per_pose=rotamer_set.max_n_rots_per_pose,
-        pose_n_res=pose_stack.n_res_per_pose,
-        pose_n_rotamers=rotamer_set.n_rots_for_pose,
-        pose_rotamer_offset=rotamer_set.rot_offset_for_pose,
-        nrotamers_for_res=rotamer_set.n_rots_for_block,
-        oneb_offsets=rotamer_set.rot_offset_for_block,
-        res_for_rot=rotamer_set.block_ind_for_rot,
+        max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),
+        pose_n_res=n_molten_blocks_per_pose,
+        pose_n_rotamers=n_bc_rots_per_pose,
+        pose_rotamer_offset=bc_rot_offset_for_pose,
+        nrotamers_for_res=n_bc_rots_for_molten_block,
+        oneb_offsets=bc_rot_offset_for_molten_block,
+        res_for_rot=molten_block_ind_for_bc_rot,
         chunk_size=chunk_size,
         chunk_offset_offsets=chunk_pair_offset_for_block_pair,
         chunk_offsets=chunk_pair_offset,
@@ -347,7 +386,13 @@ def test_pack_rotamers_w_empty_interaction_graph(
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
     new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack, rotamer_set, rotamer_assignments
+        pose_stack,
+        rotamer_set,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        rotamer_assignments,
     )
 
     wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
@@ -387,19 +432,32 @@ def test_pack_rotamers_w_dslf(
 
     chunk_size = 16
 
-    energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            energies.indices().to(torch.int32),
-            energies.values(),
-        )
+    (
+        max_n_bump_checked_rotamers_per_pose_tensor,
+        n_molten_blocks_per_pose,
+        n_bc_rots_per_pose,
+        bc_rot_offset_for_pose,
+        n_bc_rots_for_molten_block,
+        bc_rot_offset_for_molten_block,
+        molten_block_ind_for_bc_rot,
+        rotamer_for_nonmolten_block,
+        bc_rot_to_orig_rot,
+        energy1b,
+        chunk_pair_offset_for_block_pair,
+        chunk_pair_offset,
+        energy2b,
+    ) = build_interaction_graph(
+        chunk_size,
+        pbt.n_types,
+        rotamer_set.n_rots_for_pose,
+        rotamer_set.rot_offset_for_pose,
+        rotamer_set.n_rots_for_block,
+        rotamer_set.rot_offset_for_block,
+        rotamer_set.pose_for_rot,
+        rotamer_set.block_type_ind_for_rot,
+        rotamer_set.block_ind_for_rot,
+        energies.indices().to(torch.int32),
+        energies.values(),
     )
     # print("energy1b", energy1b.shape)
     # print("chunk_pair_offset_for_block_pair", chunk_pair_offset_for_block_pair.shape)
@@ -407,13 +465,13 @@ def test_pack_rotamers_w_dslf(
     # print("energy2b", energy2b.shape)
 
     packer_energy_tables = PackerEnergyTables(
-        max_n_rotamers_per_pose=rotamer_set.max_n_rots_per_pose,
-        pose_n_res=pose_stack.n_res_per_pose,
-        pose_n_rotamers=rotamer_set.n_rots_for_pose,
-        pose_rotamer_offset=rotamer_set.rot_offset_for_pose,
-        nrotamers_for_res=rotamer_set.n_rots_for_block,
-        oneb_offsets=rotamer_set.rot_offset_for_block,
-        res_for_rot=rotamer_set.block_ind_for_rot,
+        max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),
+        pose_n_res=n_molten_blocks_per_pose,
+        pose_n_rotamers=n_bc_rots_per_pose,
+        pose_rotamer_offset=bc_rot_offset_for_pose,
+        nrotamers_for_res=n_bc_rots_for_molten_block,
+        oneb_offsets=bc_rot_offset_for_molten_block,
+        res_for_rot=molten_block_ind_for_bc_rot,
         chunk_size=chunk_size,
         chunk_offset_offsets=chunk_pair_offset_for_block_pair,
         chunk_offsets=chunk_pair_offset,
@@ -423,10 +481,18 @@ def test_pack_rotamers_w_dslf(
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack, rotamer_set, rotamer_assignments
-    )
+    # correct for some residues being ignored as part of the background
+    scores = scores + 5.81982421875
 
+    new_pose_stack = impose_top_rotamer_assignments(
+        pose_stack,
+        rotamer_set,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        rotamer_assignments,
+    )
     wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
     new_scores = wpsm(new_pose_stack.coords)
     torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)

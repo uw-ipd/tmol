@@ -6,6 +6,7 @@
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/diamond_macros.hh>
+#include <tmol/score/common/accumulate.hh>
 
 #include <moderngpu/operators.hxx>
 
@@ -52,6 +53,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         TPack<int64_t, 3, D>,
         TPack<int64_t, 1, D>,
         TPack<Real, 1, D> > {
+  printf("Size of Int %d bytes\n", sizeof(Int));
   int const n_poses = n_rots_for_pose.size(0);
   int const n_rotamers = pose_for_rot.size(0);
   int const max_n_blocks = n_rots_for_block.size(1);
@@ -162,6 +164,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
             n_poses * max_n_blocks * max_n_blocks,
             mgpu::plus_t<Int>());
 
+    printf("n_adjacent_chunk_pairs_total %ld\n", n_adjacent_chunk_pairs_total);
     auto chunk_pair_adjacency_tp =
         TPack<int64_t, 1, D>::zeros({n_adjacent_chunk_pairs_total});
     auto chunk_pair_adjacency = chunk_pair_adjacency_tp.view;
@@ -222,6 +225,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
             n_adjacent_chunk_pairs_total,
             mgpu::plus_t<Int>());
 
+    printf("n_two_body_energies start %ld\n", n_two_body_energies);
     auto energy2b_tp = TPack<Real, 1, D>::zeros({n_two_body_energies});
     auto energy2b = energy2b_tp.view;
 
@@ -329,6 +333,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       int const rot1 = index;
       int const block1 = block_ind_for_rot[rot1];
       int const pose = pose_for_rot[rot1];
+      //   printf("compute_best_energy_for_rotamers: rot1 %d, block1 %d, pose
+      //   %d\n",
+      //          rot1, block1, pose);
       int const n_rots_block1 = n_rots_for_block[pose][block1];
       int const n_chunks1 = (n_rots_block1 - 1) / chunk_size + 1;
       int const rot_in_block1 = rot1 - rot_offset_for_block[pose][block1];
@@ -336,6 +343,10 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       int const rot_ind_wi_chunk1 = rot_in_block1 - chunk1 * chunk_size;
       int const overhang1 = n_rots_block1 - chunk1 * chunk_size;
       int const chunk1_size = (overhang1 > chunk_size ? chunk_size : overhang1);
+      //   printf("chunk1 %d, rot_ind_wi_chunk1 %d, chunk1_size %d\n",
+      //          chunk1, rot_ind_wi_chunk1, chunk1_size);
+
+      //   bool focused_rotamer = (rot1 == 7678);
 
       Real best_energy = energy1b[rot1];
       for (int block2 = 0; block2 < max_n_blocks; ++block2) {
@@ -347,12 +358,23 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         if (block_pair_chunk_offset == -1) {
           continue;
         }
+        // if (focused_rotamer) {
+        //   printf("rot1 %d, block1 %d, block2 %d, block_pair_chunk_offset
+        //   %d\n",
+        //          rot1, block1, block2, block_pair_chunk_offset);
+        // }
         bool first_rotamer = true;
         Real best_energy_for_rot1_w_block2 = 1234;
         int const n_rots_block2 = n_rots_for_block[pose][block2];
         int const n_chunks2 = (n_rots_block2 - 1) / chunk_size + 1;
+        // if (focused_rotamer) {
+        //   printf("n_rots_block2 %d, n_chunks2 %d\n", n_rots_block2,
+        //   n_chunks2);
+        // }
         for (int local_rot2 = 0; local_rot2 < n_rots_block2; ++local_rot2) {
           int const chunk2 = local_rot2 / chunk_size;
+          int const rot_ind_wi_chunk2 = local_rot2 - chunk2 * chunk_size;
+
           int const overhang2 = n_rots_block2 - chunk2 * chunk_size;
           int const chunk2_size =
               (overhang2 > chunk_size ? chunk_size : overhang2);
@@ -362,9 +384,24 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           if (chunk_pair_offset == -1) {
             continue;
           }
+          //   if (focused_rotamer) {
+          //     printf("  energy2b index: chunk_pair offset %d
+          //     rot_ind_wi_chunk1 %d chunk2_size %d rot_ind_wi_chunk2 %d =
+          //     %d\n",
+          //            chunk_pair_offset, rot_ind_wi_chunk1, chunk2_size,
+          //            rot_ind_wi_chunk2, chunk_pair_offset + rot_ind_wi_chunk1
+          //            * chunk2_size
+          //                + rot_ind_wi_chunk2);
+          //   }
           Real e2b = energy2b
               [chunk_pair_offset + rot_ind_wi_chunk1 * chunk2_size
-               + local_rot2];
+               + rot_ind_wi_chunk2];
+          //   if (focused_rotamer) {
+          //     printf("  local_rot2 %d, chunk2 %d, chunk2_size %d,
+          //     chunk_pair_offset %d e2b %5.2f\n",
+          //            local_rot2, chunk2, chunk2_size, chunk_pair_offset,
+          //            e2b);
+          //   }
           if (first_rotamer || e2b < best_energy_for_rot1_w_block2) {
             best_energy_for_rot1_w_block2 = e2b;
             first_rotamer = false;
@@ -435,7 +472,11 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       Real energy_for_rot = best_energy_for_rot[rot];
       Real best_energy_for_block_type =
           best_energy_for_block_type_per_block[pose][block][block_type];
-      if (energy_for_rot < 5.0 || best_energy_for_block_type < 5.0) {
+      //   printf("decide_keep_rotamers: rot %d, block %d, pose %d, block_type
+      //   %d, energy_for_rot %5.2f, best_energy_for_block_type %5.2f\n",
+      //           rot, block, pose, block_type, energy_for_rot,
+      //           best_energy_for_block_type);
+      if (energy_for_rot < 5.0 || best_energy_for_block_type > 5.0) {
         keep_rotamer[rot] = 1;
       }
     });
@@ -508,6 +549,8 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           old_to_new_rotamer_index.data(),
           n_rotamers,
           mgpu::plus_t<int64_t>());
+  printf(
+      "n_kept_rotamers %ld from a starting %ld\n", n_kept_rotamers, n_rotamers);
 
   auto new_to_old_rotamer_index_tp =
       TPack<int64_t, 1, D>::zeros({n_kept_rotamers});
@@ -539,6 +582,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           block_to_molten_block_inds.data(),
           n_poses * max_n_blocks,
           mgpu::plus_t<Int>());
+  printf("n_molten_blocks %d\n", n_molten_blocks);
   auto molten_block_to_block_inds_tp =
       TPack<Int, 1, D>::zeros({n_molten_blocks});
   auto molten_block_to_block_inds = molten_block_to_block_inds_tp.view;
@@ -546,9 +590,12 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     int const pose = index / max_n_blocks;
     int const block = index % max_n_blocks;
     if (keep_block[pose][block]) {
-      int molten_block_index = block_to_molten_block_inds[block];
-      molten_block_to_block_inds[molten_block_index] =
-          block + pose * max_n_blocks;
+      int molten_block_index = block_to_molten_block_inds[index];
+      molten_block_to_block_inds[molten_block_index] = index;
+      // printf("record_molten_block_indices: pose %d block %d = %d,
+      // molten_block_index %d\n",
+      //        pose, block, molten_block_to_block_inds[molten_block_index],
+      //        molten_block_index);
     }
   });
   printf("record_molten_block_indices\n");
@@ -588,6 +635,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   printf("reduce n_molten_blocks_per_pose\n");
   int const max_n_molten_blocks = DeviceDispatch<D>::reduce(
       n_molten_blocks_per_pose.data(), n_poses, mgpu::maximum_t<Int>());
+  printf("max_n_molten_blocks %d\n", max_n_molten_blocks);
 
   auto n_bc_rots_per_pose_tp = TPack<Int, 1, D>::zeros({n_poses});
   auto bc_rot_offset_for_pose_tp = TPack<Int, 1, D>::zeros({n_poses});
@@ -663,15 +711,26 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     int const pose_n_molten_blocks = n_molten_blocks_per_pose[pose];
     int const offset_for_molten_block =
         bc_rot_offset_for_molten_block[pose][local_molten_block_index];
-    if (local_molten_block_index < pose_n_molten_blocks) {
+    // printf("fill_n_bc_rots_for_molten_block: pose %d block %d
+    // local_molten_block_index %d offset_for_molten_block %d
+    // pose_n_molten_blocks %d\n",
+    //        pose, block, local_molten_block_index, offset_for_molten_block,
+    //        pose_n_molten_blocks);
+    if (local_molten_block_index < pose_n_molten_blocks - 1) {
+      // printf("  next offset for molten block: %d\n",
+      //        bc_rot_offset_for_molten_block[pose][local_molten_block_index +
+      //        1]);
       n_bc_rots_for_molten_block[pose][local_molten_block_index] =
           (bc_rot_offset_for_molten_block[pose][local_molten_block_index + 1]
            - offset_for_molten_block);
     } else {
       if (pose < n_poses - 1) {
+        // printf("  next offset for pose: %d\n", bc_rot_offset_for_pose[pose +
+        // 1]);
         n_bc_rots_for_molten_block[pose][local_molten_block_index] =
             (bc_rot_offset_for_pose[pose + 1] - offset_for_molten_block);
       } else {
+        // printf("  total n kept rotamers: %d\n", n_kept_rotamers);
         n_bc_rots_for_molten_block[pose][local_molten_block_index] =
             (n_kept_rotamers - offset_for_molten_block);
       }
@@ -689,7 +748,11 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     // molten_block_offset_for_pose[pose];
     int const molten_block_index =
         block_to_molten_block_inds[pose * max_n_blocks + block];
-    molten_block_ind_for_bc_rot[bc_rot] = molten_block_index;
+
+    // This needs to be the *local* molten block index, counting from 0
+    // within the pose that it is part of
+    molten_block_ind_for_bc_rot[bc_rot] =
+        molten_block_index - molten_block_offset_for_pose[pose];
   });
   printf("fill_molten_block_ind_for_bc_rot\n");
   DeviceDispatch<D>::template forall<launch_t>(
@@ -708,6 +771,11 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     int const pose = index / max_n_molten_blocks;
     int const block = index % max_n_molten_blocks;
     int const n_rots = n_bc_rots_for_molten_block[pose][block];
+    printf(
+        "count_n_chunks_for_block: pose %d block %d n_rots %d\n",
+        pose,
+        block,
+        n_rots);
     if (n_rots != 0) {
       int const n_chunks = (n_rots - 1) / chunk_size + 1;
       n_chunks_for_block[pose][block] = n_chunks;
@@ -715,7 +783,8 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   });
   printf("count_n_chunks_for_block 2\n");
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_blocks, count_n_chunks_for_block);
+      n_poses * max_n_molten_blocks, count_n_chunks_for_block);
+  printf("count_n_chunks_for_block 2 done\n");
 
   auto respair_is_adjacent_tp = TPack<int32_t, 3, D>::zeros(
       {n_poses, max_n_molten_blocks, max_n_molten_blocks});
@@ -729,11 +798,16 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     int const bc_rot2 = old_to_new_rotamer_index[rot2];
     int const kept_rot1 = keep_rotamer[rot1];
     int const kept_rot2 = keep_rotamer[rot2];
+    // printf("note_adjacent_respairs: index %d pose %d rot1 %d rot2 %d bc_rot1
+    // %d bc_rot2 %d kept_rot1 %d kept_rot2 %d\n",
+    //         index, pose, rot1, rot2, bc_rot1, bc_rot2, kept_rot1, kept_rot2);
     if (!kept_rot1 || !kept_rot2) {
       return;
     }
     int const molten_block1 = molten_block_ind_for_bc_rot[bc_rot1];
     int const molten_block2 = molten_block_ind_for_bc_rot[bc_rot2];
+    // printf("  molten_block1 %d molten_block2 %d\n", molten_block1,
+    // molten_block2);
     if (molten_block1 == molten_block2) {
       return;
     }
@@ -806,13 +880,18 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     if (molten_block1 == molten_block2) {
       return;
     }
+    // printf("note_adjacent_chunk_pairs: index %d pose %d rot1 %d rot2 %d
+    // bc_rot1 %d bc_rot2 %d kept_rot1 %d kept_rot2 %d molten_block1 %d
+    // molten_block2 %d\n",
+    //         index, pose, rot1, rot2, bc_rot1, bc_rot2, kept_rot1, kept_rot2,
+    //         molten_block1, molten_block2);
 
     int const block1_rot_offset =
         bc_rot_offset_for_molten_block[pose][molten_block1];
     int const block2_rot_offset =
         bc_rot_offset_for_molten_block[pose][molten_block2];
-    int const local_rot1 = rot1 - block1_rot_offset;
-    int const local_rot2 = rot2 - block2_rot_offset;
+    int const local_rot1 = bc_rot1 - block1_rot_offset;
+    int const local_rot2 = bc_rot2 - block2_rot_offset;
     int const chunk1 = local_rot1 / chunk_size;
     int const chunk2 = local_rot2 / chunk_size;
     int const n_rots_block1 = n_bc_rots_for_molten_block[pose][molten_block1];
@@ -857,6 +936,10 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           n_adjacent_chunk_pairs_total,
           mgpu::plus_t<Int>());
 
+  printf(
+      "n_adjacent_chunk_pairs_total %d, n_two_body_energies %ld final\n",
+      n_adjacent_chunk_pairs_total,
+      n_two_body_energies);
   auto energy2b_tp = TPack<Real, 1, D>::zeros({n_two_body_energies});
   auto energy2b = energy2b_tp.view;
 
@@ -873,16 +956,26 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     int const block1 = block_ind_for_rot[rot1];
     int const block2 = block_ind_for_rot[rot2];
     int const molten_block1 =
-        block_to_molten_block_inds[pose * max_n_blocks + block1];
+        block_to_molten_block_inds[pose * max_n_blocks + block1]
+        - molten_block_offset_for_pose[pose];
     int const molten_block2 =
-        block_to_molten_block_inds[pose * max_n_blocks + block2];
+        block_to_molten_block_inds[pose * max_n_blocks + block2]
+        - molten_block_offset_for_pose[pose];
     int const kept_block1 = keep_block[pose][block1];
     int const kept_block2 = keep_block[pose][block2];
+    // printf("record_energies_in_energy1b_and_energy2b: index %d pose %d rot1
+    // %d rot2 %d bc_rot1 %d bc_rot2 %d kept_rot1 %d kept_rot2 %d energy %5.2f
+    // block1 %d block2 %d molten_block1 %d molten_block2 %d kept_block1 %d
+    // kept_block2 %d\n",
+    //         index, pose, rot1, rot2, bc_rot1, bc_rot2, kept_rot1, kept_rot2,
+    //         energy, block1, block2, molten_block1, molten_block2,
+    //         kept_block1, kept_block2);
 
     // Even if both rotamers are the sole remaining rotamer
     // for these two positions that have been relegated to
     // the background, we will not do anything with this energy;
-    // we do not keep the background / background energies
+    // we do not keep the background / background energies;
+    // PERHAPS WE SHOULD! This will be the line to change.
     if (!kept_rot1 && !kept_rot2) {
       return;
     }
@@ -897,7 +990,8 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       if (rot1 == rotamer_for_nonmolten_block[pose][block1]) {
         // then we should put this two body energy into the one-body energy for
         // the other rotamer
-        energy1b[bc_rot2] += energy;
+        // TO DO: make atomic add
+        score::common::accumulate<D, Real>::add(energy1b[bc_rot2], energy);
       }
       return;
     } else if (!kept_block2) {
@@ -910,13 +1004,26 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       if (rot2 == rotamer_for_nonmolten_block[pose][block2]) {
         // then we should put this two body energy into the one-body energy for
         // the other rotamer
-        energy1b[bc_rot1] += energy;
+        // TO DO: make atomic add
+        score::common::accumulate<D, Real>::add(energy1b[bc_rot1], energy);
       }
       return;
     }
 
+    if (!kept_rot1 || !kept_rot2) {
+      // We will not save this interaction energy;
+      // neither of these rotmaers are the
+      // sole remaining rotamer of a block that has
+      // been relegated to the background, and
+      // so we are looking at an interaction that
+      // is not going to end up in the final
+      // interaction graph.
+      return;
+    }
+
     if (block1 == block2) {
-      energy1b[rot1] = energy;
+      // TO DO: make atomic add
+      score::common::accumulate<D, Real>::add(energy1b[bc_rot1], energy);
     } else {
       int const block1_rot_offset =
           bc_rot_offset_for_molten_block[pose][molten_block1];
@@ -938,6 +1045,14 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
 
       int const rot_ind_wi_chunk1 = local_rot1 - chunk1 * chunk_size;
       int const rot_ind_wi_chunk2 = local_rot2 - chunk2 * chunk_size;
+      //   printf("record_energies_in_energy1b_and_energy2b: index %d pose %d
+      //   rot1 %d rot2 %d bc_rot1 %d bc_rot2 %d kept_rot1 %d kept_rot2 %d
+      //   energy %5.2f block1 %d block2 %d molten_block1 %d molten_block2 %d
+      //   chunk1 %d chunk2 %d rot_ind_wi_chunk1 %d rot_ind_wi_chunk2 %d\n",
+      //           index, pose, rot1, rot2, bc_rot1, bc_rot2, kept_rot1,
+      //           kept_rot2, energy, block1, block2, molten_block1,
+      //           molten_block2, chunk1, chunk2, rot_ind_wi_chunk1,
+      //           rot_ind_wi_chunk2);
 
       int const block_pair_chunk_offset_ij =
           chunk_pair_offset_for_block_pair[pose][molten_block1][molten_block2];
@@ -949,6 +1064,12 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       int const chunk_offset_ji = chunk_pair_offsets
           [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1];
 
+      //   printf("chunk_offset_ij %d chunk_offset_ji %d ind1 %d ind2 %d\n",
+      //     chunk_offset_ij, chunk_offset_ji,
+      //     chunk_offset_ij + rot_ind_wi_chunk1 * chunk2_size +
+      //     rot_ind_wi_chunk2, chunk_offset_ji + rot_ind_wi_chunk2 *
+      //     chunk1_size + rot_ind_wi_chunk1
+      //  );
       energy2b
           [chunk_offset_ij + rot_ind_wi_chunk1 * chunk2_size
            + rot_ind_wi_chunk2] = energy;

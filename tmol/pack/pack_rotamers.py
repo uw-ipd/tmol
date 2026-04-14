@@ -110,10 +110,15 @@ def pack_rotamers(
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time5 = time.perf_counter()
+
+    print("rotamer_for_nonmolten_block", rotamer_for_nonmolten_block.dtype)
+
     new_pose_stack = impose_top_rotamer_assignments(
         pose_stack,
         rotamer_set,
         rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
         bc_rot_to_orig_rot,
         rotamer_assignments,
     )
