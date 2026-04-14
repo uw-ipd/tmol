@@ -100,6 +100,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         n_chunks_for_block[pose][block] = n_chunks;
       }
     });
+    printf("count_n_chunks_for_block 1\n");
     DeviceDispatch<D>::template forall<launch_t>(
         n_poses * max_n_blocks, count_n_chunks_for_block);
 
@@ -119,6 +120,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       // Assert: block1 < block2
       respair_is_adjacent[pose][block1][block2] = 1;
     });
+    printf("note_adjacent_respairs 1\n");
     DeviceDispatch<D>::template forall<launch_t>(
         n_sparse_entries, note_adjacent_respairs);
 
@@ -143,6 +145,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         n_chunks_for_block_pair[pose][block2][block1] = n_chunk_pairs;
       }
     });
+    printf("note_n_chunks_for_block_pair 1\n");
     DeviceDispatch<D>::template forall<launch_t>(
         n_poses * max_n_blocks * max_n_blocks, note_n_chunks_for_block_pair);
 
@@ -151,6 +154,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     auto chunk_pair_offset_for_block_pair =
         chunk_pair_offset_for_block_pair_tp.view;
 
+    printf("scan_and_return_total n_chunks_for_block_pair\n");
     int const n_adjacent_chunk_pairs_total =
         DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
             n_chunks_for_block_pair.data(),
@@ -202,6 +206,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1] =
               chunk1_size * chunk2_size;
     });
+    printf("note_adjacent_chunk_pairs 1\n");
     DeviceDispatch<D>::template forall<launch_t>(
         n_sparse_entries, note_adjacent_chunk_pairs);
 
@@ -209,6 +214,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         TPack<int64_t, 1, D>::zeros({n_adjacent_chunk_pairs_total});
     auto chunk_pair_offsets = chunk_pair_offsets_tp.view;
 
+    printf("scan_and_return_total chunk_pair_adjacency\n");
     int64_t const n_two_body_energies =
         DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
             chunk_pair_adjacency.data(),
@@ -269,6 +275,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
                  + rot_ind_wi_chunk1] = energy;
           }
         });
+    printf("record_energies_in_energy1b_and_energy2b 1\n");
     DeviceDispatch<D>::template forall<launch_t>(
         n_sparse_entries, record_energies_in_energy1b_and_energy2b);
 
@@ -289,6 +296,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
             chunk_pair_offset_for_block_pair[pose][block2][block1] = -1;
           }
         });
+    printf("sentinel_out_non_adjacent_block_pairs 1\n");
     DeviceDispatch<D>::template forall<launch_t>(
         n_poses * max_n_blocks * max_n_blocks,
         sentinel_out_non_adjacent_block_pairs);
@@ -300,6 +308,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
             chunk_pair_offsets[index] = -1;
           }
         });
+    printf("sentinel_out_non_adjacent_chunk_pairs 1\n");
     DeviceDispatch<D>::template forall<launch_t>(
         n_adjacent_chunk_pairs_total, sentinel_out_non_adjacent_chunk_pairs);
 
@@ -367,6 +376,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       }  // for block2
       best_energy_for_rot[rot1] = best_energy;
     });
+    printf("compute_best_energy_for_rotamers\n");
     DeviceDispatch<D>::template forall<launch_t>(
         n_rotamers, compute_best_energy_for_rotamers);
 
@@ -409,6 +419,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
                 best_energy_for_block_type;
           }
         });
+    printf("compute_best_energy_for_block_type_per_block\n");
     DeviceDispatch<D>::template forall<launch_t>(
         n_poses * max_n_blocks * max_n_block_types,
         compute_best_energy_for_block_type_per_block);
@@ -428,6 +439,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         keep_rotamer[rot] = 1;
       }
     });
+    printf("decide_keep_rotamers\n");
     DeviceDispatch<D>::template forall<launch_t>(
         n_rotamers, decide_keep_rotamers);
 
@@ -472,6 +484,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         }
       }
     });
+    printf("decide_keep_blocks\n");
     DeviceDispatch<D>::template forall<launch_t>(
         n_poses * max_n_blocks, decide_keep_blocks);
 
@@ -488,6 +501,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto old_to_new_rotamer_index_tp =
       TPack<int64_t, 1, tmol::Device::CPU>::zeros({n_rotamers});
   auto old_to_new_rotamer_index = old_to_new_rotamer_index_tp.view;
+  printf("scan_and_return_total keep_rotamer\n");
   int64_t const n_kept_rotamers =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           keep_rotamer.data(),
@@ -505,6 +519,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       new_to_old_rotamer_index[new_index] = rot;
     }
   });
+  printf("record_new_rotamer_indices\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_rotamers, record_new_rotamer_indices);
 
@@ -517,6 +532,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       TPack<Int, 1, D>::zeros({n_poses * max_n_blocks});
   auto block_to_molten_block_inds = block_to_molten_block_inds_tp.view;
 
+  printf("scan_and_return_total\n");
   int const n_molten_blocks =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           keep_block.data(),
@@ -535,6 +551,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           block + pose * max_n_blocks;
     }
   });
+  printf("record_molten_block_indices\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_blocks, record_molten_block_indices);
 
@@ -549,6 +566,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     int pose_n_molten_blocks = last_offset_for_pose + last_block_kept;
     molten_block_offset_for_pose[pose + 1] = pose_n_molten_blocks;
   });
+  printf("record_n_molten_blocks_per_pose\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses - 1, record_n_molten_blocks_per_pose);
   auto n_molten_blocks_per_pose_tp = TPack<Int, 1, D>::zeros({n_poses});
@@ -563,9 +581,11 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           n_molten_blocks - molten_block_offset_for_pose[pose];
     }
   });
+  printf("compute_n_molten_blocks_per_pose\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses, compute_n_molten_blocks_per_pose);
   // get maximum number of molten blocks per pose.
+  printf("reduce n_molten_blocks_per_pose\n");
   int const max_n_molten_blocks = DeviceDispatch<D>::reduce(
       n_molten_blocks_per_pose.data(), n_poses, mgpu::maximum_t<Int>());
 
@@ -595,6 +615,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     // in this pose has been bump-checked away
     bc_rot_offset_for_pose[pose] = new_first_rotamer_for_pose;
   });
+  printf("fill_bc_rot_offsets_per_pose\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses, fill_bc_rot_offsets_per_pose);
   auto fill_n_bc_rots_per_pose = ([=] TMOL_DEVICE_FUNC(int index) {
@@ -607,8 +628,10 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       n_bc_rots_per_pose[pose] = n_kept_rotamers - pose_bc_rot_offset;
     }
   });
+  printf("fill_n_bc_rots_per_pose\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses, fill_n_bc_rots_per_pose);
+  printf("reduce n_bc_rots_per_pose\n");
   int const max_n_bc_rots_per_pose = DeviceDispatch<D>::reduce(
       n_bc_rots_per_pose.data(), n_poses, mgpu::maximum_t<Int>());
   auto max_n_bump_checked_rotamers_per_pose_tp =
@@ -627,6 +650,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     bc_rot_offset_for_molten_block[pose][local_molten_block_index] =
         bc_rot_for_block;
   });
+  printf("fill_bc_rot_offset_for_molten_block\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_molten_blocks, fill_bc_rot_offset_for_molten_block);
   auto fill_n_bc_rots_for_molten_block = ([=] TMOL_DEVICE_FUNC(int index) {
@@ -653,6 +677,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       }
     }
   });
+  printf("fill_n_bc_rots_for_molten_block\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_molten_blocks, fill_n_bc_rots_for_molten_block);
   auto fill_molten_block_ind_for_bc_rot = ([=] TMOL_DEVICE_FUNC(int index) {
@@ -666,6 +691,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         block_to_molten_block_inds[pose * max_n_blocks + block];
     molten_block_ind_for_bc_rot[bc_rot] = molten_block_index;
   });
+  printf("fill_molten_block_ind_for_bc_rot\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_kept_rotamers, fill_molten_block_ind_for_bc_rot);
 
@@ -687,6 +713,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       n_chunks_for_block[pose][block] = n_chunks;
     }
   });
+  printf("count_n_chunks_for_block 2\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_blocks, count_n_chunks_for_block);
 
@@ -713,6 +740,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     // Assert: molten_block1 < molten_block2
     respair_is_adjacent[pose][molten_block1][molten_block2] = 1;
   });
+  printf("note_adjacent_respairs 2\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_sparse_entries, note_adjacent_respairs);
 
@@ -739,6 +767,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           n_chunk_pairs;
     }
   });
+  printf("note_n_chunks_for_block_pair 2\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_molten_blocks * max_n_molten_blocks,
       note_n_chunks_for_block_pair);
@@ -748,6 +777,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto chunk_pair_offset_for_block_pair =
       chunk_pair_offset_for_block_pair_tp.view;
 
+  printf("scan_and_return_total n_chunks_for_block_pair 2\n");
   int const n_adjacent_chunk_pairs_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           n_chunks_for_block_pair.data(),
@@ -811,6 +841,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1] =
             chunk1_size * chunk2_size;
   });
+  printf("note_adjacent_chunk_pairs 2\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_sparse_entries, note_adjacent_chunk_pairs);
 
@@ -818,6 +849,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       TPack<int64_t, 1, D>::zeros({n_adjacent_chunk_pairs_total});
   auto chunk_pair_offsets = chunk_pair_offsets_tp.view;
 
+  printf("scan_and_return_total chunk_pair_adjacency 2\n");
   int64_t const n_two_body_energies =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           chunk_pair_adjacency.data(),
@@ -925,6 +957,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
            + rot_ind_wi_chunk1] = energy;
     }
   });
+  printf("record_energies_in_energy1b_and_energy2b 2\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_sparse_entries, record_energies_in_energy1b_and_energy2b);
 
@@ -945,6 +978,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           chunk_pair_offset_for_block_pair[pose][block2][block1] = -1;
         }
       });
+  printf("sentinel_out_non_adjacent_block_pairs 2\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_molten_blocks * max_n_molten_blocks,
       sentinel_out_non_adjacent_block_pairs);
@@ -956,6 +990,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           chunk_pair_offsets[index] = -1;
         }
       });
+  printf("sentinel_out_non_adjacent_chunk_pairs 2\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_adjacent_chunk_pairs_total, sentinel_out_non_adjacent_chunk_pairs);
 
