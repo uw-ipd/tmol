@@ -60,7 +60,7 @@ jobs:
               --bind /net/scratch:/net/scratch \
               --bind $PIP_PKGS:/ci-pip-pkgs \
               --pwd $GITHUB_WORKSPACE \
-              $SIF bash << 'GPU_WORK'
+              $SIF bash << 'BUILD'
           set -ex
 
           errors=()
@@ -106,28 +106,59 @@ jobs:
           python --version
           python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPUs: {torch.cuda.device_count()}')"
           nvidia-smi
+          
+          BUILD
 
       - name: Test CPU
         continue-on-error: true
         run: |
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
+          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
+            -t 06:00:00 --cpus-per-task=16 --mem=128G \
+            apptainer exec --nv \
+              --bind /net/scratch:/net/scratch \
+              --bind $PIP_PKGS:/ci-pip-pkgs \
+              --pwd $GITHUB_WORKSPACE \
+              $SIF bash << 'CPU_TEST'
+          set -ex
           CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
             --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda"
+
+          CPU_TEST
 
       - name: Test CUDA
         continue-on-error: true
         run: |
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
+          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
+            -t 06:00:00 --cpus-per-task=16 --mem=128G \
+            apptainer exec --nv \
+              --bind /net/scratch:/net/scratch \
+              --bind $PIP_PKGS:/ci-pip-pkgs \
+              --pwd $GITHUB_WORKSPACE \
+              $SIF bash << 'GPU_TEST'
+          set -ex
           pytest -p no:rerunfailures -s -v --durations=25 --cov=./tmol \
             --junitxml=testing.cuda.junit.xml -k "cuda"
+
+          GPU_TEST
 
       - name: Benchmark
         continue-on-error: true
         run: |
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
+          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
+            -t 06:00:00 --cpus-per-task=16 --mem=128G \
+            apptainer exec --nv \
+              --bind /net/scratch:/net/scratch \
+              --bind $PIP_PKGS:/ci-pip-pkgs \
+              --pwd $GITHUB_WORKSPACE \
+              $SIF bash << 'BENCHMARK'
+          set -ex
+
           BENCHMARK_DIR=benchmark/$GITHUB_REPOSITORY/$GITHUB_REF_NAME
           BENCHMARK_RESULT=${BENCHMARK_DIR}/${GITHUB_RUN_NUMBER}.json
           mkdir -p $BENCHMARK_DIR
@@ -141,7 +172,7 @@ jobs:
           pytest-benchmark compare --name=short --sort=fullname \
             --columns=ops,mean,iqr $(find benchmark -name '*.json')
 
-          GPU_WORK
+          BENCHMARK
 
       - name: Test Summary
         if: always()
@@ -150,3 +181,5 @@ jobs:
           paths: |
             testing.cpu.junit.xml
             testing.cuda.junit.xml
+
+      
