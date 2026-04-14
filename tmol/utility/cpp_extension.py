@@ -3,7 +3,15 @@ import pathlib
 import warnings
 from functools import wraps
 
-from .. import include_paths as tmol_include_paths
+
+# Avoid importing from parent package (..) to prevent circular import issues
+# when this module is imported during package initialization.
+# Compute tmol include paths directly.
+def _tmol_include_paths():
+    """C++/CUDA include paths for tmol components."""
+    return [os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))]
+
+
 from .._cuda_env import get_cccl_include as _get_cccl_include
 
 # ---------------------------------------------------------------------------
@@ -28,7 +36,7 @@ warnings.filterwarnings(
     r"is not compatible with the compiler Pytorch(\n|.)*",
 )
 
-_default_include_paths = list(tmol_include_paths() + extern_include_paths())
+_default_include_paths = list(_tmol_include_paths() + extern_include_paths())
 
 # Add CCCL include path (nv/target, cub/, thrust/) from pip-installed nvidia-cuda-cccl
 _cccl_include = _get_cccl_include()

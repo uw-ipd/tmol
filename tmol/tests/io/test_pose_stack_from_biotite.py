@@ -73,9 +73,10 @@ def test_pose_stack_from_biotite_1ubq_smoke(biotite_1ubq, torch_device):
     pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
 
 
+# 1ubq with one residue's 3LC changed to ERR to test a non-recognized residue type
 def test_pose_stack_from_biotite_1ubq_err_smoke(biotite_1ubq_err, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1ubq_err)
-    bt = biotite_1ubq_err[0][starts[-5] : starts[-1]]
+    bt = biotite_1ubq_err[starts[-5] : starts[-1]]
     pose_stack_from_biotite(bt, torch_device=torch_device)
 
 
