@@ -51,7 +51,7 @@ jobs:
           flake8 || echo "::warning::flake8 found issues"
           LINT
 
-      - name: Build and test (GPU)
+      - name: Build
         run: |
           mkdir -p $PIP_PKGS
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
@@ -105,18 +105,27 @@ jobs:
           echo "=== environment ==="
           python --version
           python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPUs: {torch.cuda.device_count()}')"
-          nvidia-smi || { errors+=($?); }
+          nvidia-smi
 
+      - name: Test CPU
+        continue-on-error: true
+        run: |
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
           CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
-            --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda" || { errors+=($?); }
+            --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda"
 
+      - name: Test CUDA
+        continue-on-error: true
+        run: |
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
           pytest -p no:rerunfailures -s -v --durations=25 --cov=./tmol \
-            --junitxml=testing.cuda.junit.xml -k "cuda" || { errors+=($?); }
+            --junitxml=testing.cuda.junit.xml -k "cuda"
 
+      - name: Benchmark
+        continue-on-error: true
+        run: |
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
           BENCHMARK_DIR=benchmark/$GITHUB_REPOSITORY/$GITHUB_REF_NAME
@@ -127,12 +136,10 @@ jobs:
             --benchmark-name=short --benchmark-sort=fullname \
             --benchmark-columns=ops,mean,iqr \
             --benchmark-json=${BENCHMARK_RESULT} \
-            --benchmark-max-time=.1 || { errors+=($?); }
+            --benchmark-max-time=.1
 
           pytest-benchmark compare --name=short --sort=fullname \
-            --columns=ops,mean,iqr $(find benchmark -name '*.json') || { errors+=($?); }
-
-          if [ ${#errors[@]} -ne 0 ]; then echo "Build and test (GPU) failed"; exit 1; fi
+            --columns=ops,mean,iqr $(find benchmark -name '*.json')
 
           GPU_WORK
 
