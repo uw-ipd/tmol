@@ -73,8 +73,8 @@ def impose_top_rotamer_assignments(
 
     assignment[is_molten_block] = bc_rot_to_orig_rot[bc_assignment_global].reshape(-1)
 
-    print("assignment", assignment.shape)
-    print("assignment", assignment)
+    # print("assignment", assignment.shape)
+    # print("assignment", assignment)
 
     # lets figure out how many atoms per pose
     new_block_type_ind64 = torch.full(
