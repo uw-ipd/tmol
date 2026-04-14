@@ -500,8 +500,6 @@ class DunbrackChiSampler(ChiSampler):
         # state expansions and we'll put that information into the
         # chi_expansions_for_buildable_restype tensor
 
-        sampling_db = self.dun_param_resolver.sampling_db
-
         # Treat all residues as buried (index 1). Burial classification is not
         # yet implemented; buried is the conservative choice (more rotamers).
         sc = pbt.dun_sampler_cache
