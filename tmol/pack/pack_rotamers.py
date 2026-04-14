@@ -29,6 +29,55 @@ def pack_rotamers(
         torch.cuda.synchronize()
     end_time1 = time.perf_counter()
 
+    (
+        packer_energy_tables,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        end_time2,
+        end_time3,
+    ) = _calculate_packer_energies(pose_stack, sfxn, rotamer_set, verbose=verbose)
+
+    if verbose and torch.cuda.is_available():
+        torch.cuda.synchronize()
+    end_time4 = time.perf_counter()
+
+    scores, rotamer_assignments = run_simulated_annealing(
+        packer_energy_tables, **sa_params
+    )
+    if verbose and torch.cuda.is_available():
+        torch.cuda.synchronize()
+    end_time5 = time.perf_counter()
+
+    print("rotamer_for_nonmolten_block", rotamer_for_nonmolten_block.dtype)
+
+    new_pose_stack = impose_top_rotamer_assignments(
+        pose_stack,
+        rotamer_set,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        rotamer_assignments,
+    )
+    if verbose and torch.cuda.is_available():
+        torch.cuda.synchronize()
+    end_time6 = time.perf_counter()
+
+    if verbose:
+        print(
+            f"pack_rotamers {end_time6 - start_time: .2f}"
+            + f" build rots: {end_time1-start_time: .2f} calcRPEs: {end_time2 - end_time1: .2f}"
+            + f" build IG: {end_time3-end_time2: .2f} build IG part2: {end_time4 - end_time3: .2f}"
+            + f" run SA: {end_time5-end_time4: .2f} pose ctor: {end_time6 - end_time5: .2f}"
+        )
+
+    return new_pose_stack
+
+
+def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, verbose=False):
+    pbt = pose_stack.packed_block_types
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
 
     energies = rotamer_scoring_module(rotamer_set.coords)
@@ -100,38 +149,12 @@ def pack_rotamers(
         energy2b=energy2b,
     )
 
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
-    end_time4 = time.perf_counter()
-
-    scores, rotamer_assignments = run_simulated_annealing(
-        packer_energy_tables, **sa_params
-    )
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
-    end_time5 = time.perf_counter()
-
-    print("rotamer_for_nonmolten_block", rotamer_for_nonmolten_block.dtype)
-
-    new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack,
-        rotamer_set,
+    return (
+        packer_energy_tables,
         rotamer_for_nonmolten_block,
         n_molten_blocks_per_pose,
         bc_rot_offset_for_molten_block,
         bc_rot_to_orig_rot,
-        rotamer_assignments,
+        end_time2,
+        end_time3,
     )
-    if verbose and torch.cuda.is_available():
-        torch.cuda.synchronize()
-    end_time6 = time.perf_counter()
-
-    if verbose:
-        print(
-            f"pack_rotamers {end_time6 - start_time: .2f}"
-            + f" build rots: {end_time1-start_time: .2f} calcRPEs: {end_time2 - end_time1: .2f}"
-            + f" build IG: {end_time3-end_time2: .2f} build IG part2: {end_time4 - end_time3: .2f}"
-            + f" run SA: {end_time5-end_time4: .2f} pose ctor: {end_time6 - end_time5: .2f}"
-        )
-
-    return new_pose_stack
