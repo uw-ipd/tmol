@@ -55,6 +55,8 @@ jobs:
 
       - name: Build
         run: |
+
+          cat "TESTING" > testing.cpu.junit.xml
           exit
           mkdir -p $PIP_PKGS
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
