@@ -143,7 +143,6 @@ jobs:
       - name: Test CUDA
         continue-on-error: true
         run: |
-          exit
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
