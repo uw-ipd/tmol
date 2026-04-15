@@ -19,12 +19,20 @@ concurrency:
 env:
   SIF: /net/software/containers/versions/modelhub/pytorch_24.10-py3.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
+  
 
 jobs:
   ci:
     runs-on: [self-hosted, gpu]
     timeout-minutes: 720
     steps:
+      - name: Clean workspace
+        run: |
+          if [ -d "$GITHUB_WORKSPACE" ]; then
+            echo "Removing existing workspace directory: $GITHUB_WORKSPACE"
+            rm -rf "$GITHUB_WORKSPACE"
+          fi
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -131,9 +139,6 @@ jobs:
           export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
           export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
 
-          GPU_ARCH=$(python3 -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}{c[1]}')")
-          echo "=== Building for GPU architecture: sm_${GPU_ARCH} ==="
-
           CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
             --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda"
 
@@ -152,6 +157,15 @@ jobs:
               --pwd $GITHUB_WORKSPACE \
               $SIF bash << 'GPU_TEST'
           set -ex
+          
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+          export PYTHONUSERBASE=/ci-pip-pkgs
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
+          
+          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
+          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
+
           pytest -p no:rerunfailures -s -v --durations=25 --cov=./tmol \
             --junitxml=testing.cuda.junit.xml -k "cuda"
 
@@ -170,6 +184,14 @@ jobs:
               --pwd $GITHUB_WORKSPACE \
               $SIF bash << 'BENCHMARK'
           set -ex
+          
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+          export PYTHONUSERBASE=/ci-pip-pkgs
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
+          
+          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
+          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
 
           BENCHMARK_DIR=benchmark/$GITHUB_REPOSITORY/$GITHUB_REF_NAME
           BENCHMARK_RESULT=${BENCHMARK_DIR}/${GITHUB_RUN_NUMBER}.json
@@ -191,7 +213,7 @@ jobs:
         uses: test-summary/action@v2
         with:
           paths: |
-            testing.cpu.junit.xml
-            testing.cuda.junit.xml
+            $GITHUB_WORKSPACE/testing.cpu.junit.xml
+            $GITHUB_WORKSPACE/testing.cuda.junit.xml
 
       
