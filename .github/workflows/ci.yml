@@ -26,12 +26,6 @@ jobs:
     runs-on: [self-hosted, gpu]
     timeout-minutes: 720
     steps:
-      - name: Clean workspace
-        run: |
-          if [ -d "$GITHUB_WORKSPACE" ]; then
-            echo "Removing existing workspace directory: $GITHUB_WORKSPACE"
-            rm -rf "$GITHUB_WORKSPACE"
-          fi
 
       - name: Checkout
         uses: actions/checkout@v5
