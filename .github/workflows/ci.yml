@@ -117,7 +117,7 @@ jobs:
       - name: Test CPU
         continue-on-error: true
         run: |
-          exit
+          #exit
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
@@ -138,7 +138,7 @@ jobs:
           export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
 
           CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
-            --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda"
+            --cov=./tmol --junitxml=$GITHUB_WORKSPACE/testing.cpu.junit.xml -k "not cuda"
 
           CPU_TEST
 
@@ -166,14 +166,14 @@ jobs:
           export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
 
           pytest -p no:rerunfailures -s -v --durations=25 --cov=./tmol \
-            --junitxml=testing.cuda.junit.xml -k "cuda"
+            --junitxml=$GITHUB_WORKSPACE/testing.cuda.junit.xml -k "cuda"
 
           GPU_TEST
 
       - name: Benchmark
         continue-on-error: true
         run: |
-          exit
+          #exit
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
