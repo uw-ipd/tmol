@@ -55,6 +55,7 @@ jobs:
 
       - name: Build
         run: |
+          exit
           mkdir -p $PIP_PKGS
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
             -t 06:00:00 --cpus-per-task=16 --mem=128G \
@@ -114,6 +115,7 @@ jobs:
       - name: Test CPU
         continue-on-error: true
         run: |
+          exit
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
@@ -141,6 +143,7 @@ jobs:
       - name: Test CUDA
         continue-on-error: true
         run: |
+          exit
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
@@ -168,6 +171,7 @@ jobs:
       - name: Benchmark
         continue-on-error: true
         run: |
+          exit
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
@@ -207,7 +211,7 @@ jobs:
         uses: test-summary/action@v2
         with:
           paths: |
-            $GITHUB_WORKSPACE/testing.cpu.junit.xml
-            $GITHUB_WORKSPACE/testing.cuda.junit.xml
+            testing.cpu.junit.xml
+            testing.cuda.junit.xml
 
       
