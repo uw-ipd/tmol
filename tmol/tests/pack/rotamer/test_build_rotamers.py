@@ -43,7 +43,6 @@ from tmol.score.hbond.hbond_energy_term import (
 
 # TEMP
 from tmol.io.pdb_parsing import atom_record_dtype, to_pdb_lines
-from tmol.score.dunbrack.params import DunbrackParamResolver
 
 
 def test_annotate_restypes(

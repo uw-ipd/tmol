@@ -500,8 +500,6 @@ class DunbrackChiSampler(ChiSampler):
         # state expansions and we'll put that information into the
         # chi_expansions_for_buildable_restype tensor
 
-        sampling_db = self.dun_param_resolver.sampling_db
-
         # Treat all residues as buried (index 1). Burial classification is not
         # yet implemented; buried is the conservative choice (more rotamers).
         sc = pbt.dun_sampler_cache
@@ -526,6 +524,7 @@ class DunbrackChiSampler(ChiSampler):
         ]
 
         # Rosetta defaults (buried): rotameric=0.98, semi-rotameric=0.95.
+        # Based on testing (alf) semi-rot should also be 0.98
         # Table sets are ordered rotameric-first; semi-rotameric sets start at
         # index n_rotameric_sets.
         n_rotameric_sets = int(
@@ -536,7 +535,7 @@ class DunbrackChiSampler(ChiSampler):
         )
         prob_cumsum_limit_for_bbt = torch.where(
             is_semi,
-            torch.full((n_bbts,), 0.95, dtype=torch.float32, device=self.device),
+            torch.full((n_bbts,), 0.98, dtype=torch.float32, device=self.device),
             torch.full((n_bbts,), 0.98, dtype=torch.float32, device=self.device),
         )
 

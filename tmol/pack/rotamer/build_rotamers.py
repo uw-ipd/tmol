@@ -13,7 +13,7 @@ from tmol.types.functional import validate_args
 
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 from tmol.database.chemical import ChemicalDatabase
-from tmol.kinematics.datatypes import KinForest
+from tmol.kinematics.datatypes import KinForest, NodeType
 from tmol.kinematics.compiled.compiled_ops import forward_only_op
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -84,6 +84,8 @@ def _build_chi_phi_c_corrections(pbt):
     chi4_table = _build_chi4_atom_table(pbt)  # (n_types, max_n_chi, 4)
     kfidx = pbt.rotamer_kinforest.kinforest_idx  # (n_types, max_n_atoms)
     dofs_ideal = pbt.rotamer_kinforest.dofs_ideal  # (n_types, max_n_atoms, 9)
+    parent_arr = pbt.rotamer_kinforest.parent  # (n_types, max_n_atoms) KFO order
+    doftype_arr = pbt.rotamer_kinforest.doftype  # (n_types, max_n_atoms) KFO order
 
     n_types, max_n_chi = chi4_table.shape[:2]
     corrections = numpy.zeros((n_types, max_n_chi), dtype=numpy.float32)
@@ -98,16 +100,129 @@ def _build_chi_phi_c_corrections(pbt):
             four_rto = chi4_table[ti, ci]
             if any(a < 0 for a in four_rto):
                 continue
+            cda_kfo = int(kfidx[ti, four_rto[2]])
+            # For root children (jump parents), the correction is pose-dependent
+            # and cannot be precomputed; leave it as 0 and let
+            # correct_phi_c_for_jump_parents handle it at build time.
+            parent_kfo = int(parent_arr[ti, cda_kfo])
+            if doftype_arr[ti, parent_kfo] == NodeType.jump:
+                continue
             xyzs = ideal_coords[four_rto]
             chi_ideal = float(
                 coord_dihedrals(xyzs[0:1], xyzs[1:2], xyzs[2:3], xyzs[3:4])[0]
             )
-            cda_kfo = int(kfidx[ti, four_rto[2]])
             phi_c_ideal = float(dofs_ideal[ti, cda_kfo, 3])
             corrections[ti, ci] = chi_ideal - phi_c_ideal
 
     object.__setattr__(pbt, "_chi_phi_c_corrections", corrections)
     return corrections
+
+
+def correct_phi_c_for_jump_parents(
+    pbt,
+    conformer_samples,
+    new_ind_for_sampler_rotamer,
+    block_type_ind_for_conformer_torch,
+    n_atoms_offset_for_conformer_torch,
+    conformer_kinforest,
+    nodes,
+    scans,
+    gens,
+    conf_dofs_kto,
+):
+    """For chi-defining atoms whose kinforest parent is a jump atom, the phi_c
+    written by assign_chi_dofs_from_samples does not directly map to the
+    chi dihedral angle measured from coordinates.  This function:
+      1. Does a trial forward pass with the current DOFs.
+      2. For each such atom, measures the actual dihedral from the trial coords.
+      3. Adds (intended - measured) to conf_dofs_kto[atom_kto, 3] so the
+         final forward pass produces the correct geometry.
+    """
+    # trial forward pass to get coords in RTO
+    n_rots = block_type_ind_for_conformer_torch.shape[0]
+    n_at_total = (
+        n_atoms_offset_for_conformer_torch[-1].item()
+        + pbt.n_atoms[block_type_ind_for_conformer_torch[-1]].item()
+    )
+    trial_coords_rto = calculate_rotamer_coords(
+        pbt, n_rots, n_at_total, conformer_kinforest, nodes, scans, gens, conf_dofs_kto
+    )
+
+    doftype_cpu = conformer_kinforest.doftype.cpu().numpy()
+    parent_cpu = conformer_kinforest.parent.cpu().numpy()
+    kfidx = pbt.rotamer_kinforest.kinforest_idx  # (n_types, max_n_atoms) numpy int32
+    bt_ind_np = block_type_ind_for_conformer_torch.cpu().numpy()
+    at_off_np = n_atoms_offset_for_conformer_torch.cpu().numpy()
+    chi4_table = _build_chi4_atom_table(pbt)  # (n_types, max_n_chi, 4)
+    coords_np = trial_coords_rto.cpu().double().numpy()
+
+    for i, sample_data in enumerate(conformer_samples):
+        sample_dict = sample_data[2]
+        if "chi_for_rotamers" not in sample_dict:
+            continue
+        chi_intended = sample_dict["chi_for_rotamers"].cpu()  # (n_samp_rots, max_n_chi)
+        chi_atoms_rto = sample_dict[
+            "chi_defining_atom_for_rotamer"
+        ].cpu()  # (n_samp_rots, max_n_chi)
+        if chi_intended.shape[0] == 0:
+            continue
+
+        _, max_n_chi = chi_atoms_rto.shape
+        conf_inds = new_ind_for_sampler_rotamer[i].cpu().numpy()  # (n_samp,)
+
+        # global rot index and per-rot metadata for every (samp_rot, chi) pair
+        g_rot = conf_inds  # (n_samp,)
+        bt_idx = bt_ind_np[g_rot]  # (n_samp,)
+        at_off = at_off_np[g_rot]  # (n_samp,)
+
+        # chi-defining atom (RTO) for every (samp_rot, chi): (n_samp, max_n_chi)
+        cda_rto = chi_atoms_rto.numpy()
+
+        # KTO index of the chi-defining atom: (n_samp, max_n_chi)
+        # kinforest_idx[bt, atom_rto] + at_off + 1 (virtual root offset)
+        cda_kto = (
+            kfidx[
+                bt_idx[:, None], numpy.clip(cda_rto, 0, None)
+            ]  # clip -1 before indexing
+            + at_off[:, None]
+            + 1
+        )
+        cda_kto[cda_rto < 0] = 0  # will be masked out below
+
+        # parent doftype for each chi-defining atom: (n_samp, max_n_chi)
+        parent_kto = parent_cpu[cda_kto]
+        is_jump_parent = doftype_cpu[parent_kto] == NodeType.jump  # (n_samp, max_n_chi)
+        valid = (cda_rto >= 0) & is_jump_parent  # (n_samp, max_n_chi)
+
+        if not valid.any():
+            continue
+
+        # 4-atom RTO indices for every (samp_rot, chi): (n_samp, max_n_chi, 4)
+        four_atoms_rto = chi4_table[bt_idx[:, None], numpy.arange(max_n_chi)[None, :]]
+
+        # absolute RTO indices into trial_coords_rto: (n_samp, max_n_chi, 4)
+        four_atoms_abs = four_atoms_rto + at_off[:, None, None]
+        four_atoms_abs[four_atoms_rto < 0] = 0  # clip invalid entries
+
+        # flatten to the valid (samp_rot, chi) pairs
+        valid_flat = valid.reshape(-1)
+        four_abs_flat = four_atoms_abs.reshape(-1, 4)[valid_flat]  # (n_valid, 4)
+        intended_flat = chi_intended.numpy().reshape(-1)[valid_flat]  # (n_valid,)
+        cda_kto_flat = cda_kto.reshape(-1)[valid_flat]  # (n_valid,)
+
+        # gather coordinates: (n_valid, 4, 3)
+        xyzs = torch.tensor(
+            coords_np[four_abs_flat], dtype=torch.float64, device=torch.device("cpu")
+        )
+
+        meas_rad = coord_dihedrals(xyzs[:, 0], xyzs[:, 1], xyzs[:, 2], xyzs[:, 3])
+
+        delta = torch.tensor(intended_flat, dtype=torch.float64) - meas_rad
+        delta = (delta + numpy.pi) % (2 * numpy.pi) - numpy.pi
+
+        conf_dofs_kto[torch.tensor(cda_kto_flat, dtype=torch.int64), 3] += delta.to(
+            conf_dofs_kto.dtype
+        ).to(conf_dofs_kto.device)
 
 
 def exc_cumsum_from_inc_cumsum(cumsum):
@@ -921,6 +1036,19 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
             conformer_samples[i][2],
             conf_dofs_kto,
         )
+
+    correct_phi_c_for_jump_parents(
+        pbt,
+        conformer_samples,
+        new_ind_for_sampler_rotamer,
+        block_type_ind_for_conformer_torch,
+        n_atoms_offset_for_conformer_torch,
+        conformer_kinforest,
+        nodes,
+        scans,
+        gens,
+        conf_dofs_kto,
+    )
 
     rotamer_coords = calculate_rotamer_coords(
         pbt,

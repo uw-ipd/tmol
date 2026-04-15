@@ -350,7 +350,7 @@ residues:
     - { name:    CG, phi:   -0.000000 deg, theta:   67.400000 deg, d:    1.503512, parent:    CB, grand_parent:    CA, great_grand_parent:     N}
     - { name:   OD1, phi:    0.000000 deg, theta:   59.200000 deg, d:    1.236400, parent:    CG, grand_parent:    CB, great_grand_parent:    CA}
     - { name:   ND2, phi: -180.000000 deg, theta:   63.500000 deg, d:    1.308642, parent:    CG, grand_parent:    CB, great_grand_parent:   OD1}
-    - { name:  HD21, phi: -180.000000 deg, theta:   60.000000 deg, d:    1.000469, parent:   ND2, grand_parent:    CG, great_grand_parent:    CB}
+    - { name:  HD21, phi:    0.000000 deg, theta:   60.000000 deg, d:    1.000469, parent:   ND2, grand_parent:    CG, great_grand_parent:    CB}
     - { name:  HD22, phi:  180.000000 deg, theta:   60.000000 deg, d:    0.999495, parent:   ND2, grand_parent:    CG, great_grand_parent:  HD21}
     - { name:   HB2, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090804, parent:    CB, grand_parent:    CA, great_grand_parent:    CG}
     - { name:   HB3, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.090088, parent:    CB, grand_parent:    CA, great_grand_parent:   HB2}
@@ -718,7 +718,7 @@ residues:
     - { name:    CD, phi:   -0.000061 deg, theta:   67.570305 deg, d:    1.516880, parent:    CG, grand_parent:    CB, great_grand_parent:    CA}
     - { name:   OE1, phi:   -0.000051 deg, theta:   59.049110 deg, d:    1.234164, parent:    CD, grand_parent:    CG, great_grand_parent:    CB}
     - { name:   NE2, phi: -180.000000 deg, theta:   63.586773 deg, d:    1.328109, parent:    CD, grand_parent:    CG, great_grand_parent:   OE1}
-    - { name:  HE21, phi:  180.000000 deg, theta:   59.976410 deg, d:    1.000957, parent:   NE2, grand_parent:    CD, great_grand_parent:    CG}
+    - { name:  HE21, phi:    0.000000 deg, theta:   59.976410 deg, d:    1.000957, parent:   NE2, grand_parent:    CD, great_grand_parent:    CG}
     - { name:  HE22, phi:  180.000000 deg, theta:   59.967007 deg, d:    1.000084, parent:   NE2, grand_parent:    CD, great_grand_parent:  HE21}
     - { name:   HG2, phi:  120.000000 deg, theta:   71.100000 deg, d:    1.090000, parent:    CG, grand_parent:    CB, great_grand_parent:    CD}
     - { name:   HG3, phi:  120.000000 deg, theta:   71.100000 deg, d:    1.090000, parent:    CG, grand_parent:    CB, great_grand_parent:   HG2}
