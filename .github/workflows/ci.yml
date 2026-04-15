@@ -122,6 +122,18 @@ jobs:
               --pwd $GITHUB_WORKSPACE \
               $SIF bash << 'CPU_TEST'
           set -ex
+          
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+          export PYTHONUSERBASE=/ci-pip-pkgs
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
+          
+          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
+          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
+
+          GPU_ARCH=$(python3 -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}{c[1]}')")
+          echo "=== Building for GPU architecture: sm_${GPU_ARCH} ==="
+
           CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
             --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda"
 
