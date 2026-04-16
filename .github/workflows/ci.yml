@@ -210,7 +210,7 @@ jobs:
           BENCHMARK
 
       - name: Test Summary
-        if: always() && steps.cpu.conclusion == 'success' || steps.cuda.conclusion == 'success'
+        if: always() && (steps.cpu.conclusion == 'success' || steps.cuda.conclusion == 'success')
         uses: test-summary/action@v2
         with:
           paths: |
