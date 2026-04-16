@@ -116,7 +116,7 @@ jobs:
       - name: Test CPU
         id: cpu
         continue-on-error: true
-        if: steps.build.outcome == 'success'
+        if: always() #steps.build.outcome == 'success'
         run: |
           exit 1
           # ── Test CPU ───────────────────────────────────────────────────
@@ -146,7 +146,7 @@ jobs:
       - name: Test CUDA
         id: cuda
         continue-on-error: true
-        if: steps.build.outcome == 'success'
+        if: always() #steps.build.outcome == 'success'
         run: |
           exit 1
           # ── Test CUDA ──────────────────────────────────────────────────
@@ -174,7 +174,6 @@ jobs:
           GPU_TEST
 
       - name: Benchmark
-        continue-on-error: true
         if: steps.build.outcome == 'success'
         run: |
           exit 1
