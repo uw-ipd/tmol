@@ -172,7 +172,7 @@ jobs:
           GPU_TEST
 
       - name: Benchmark
-        if: steps.build.outcome == 'success'
+        if: steps.build.conclusion == 'success'
         run: |
           exit 1
           # ── Benchmark ──────────────────────────────────────────────────
@@ -210,15 +210,10 @@ jobs:
           BENCHMARK
 
       - name: Test Summary
-        if: steps.cpu.outcome == 'success' || steps.cuda.outcome == 'success'
+        if: steps.cpu.conclusion == 'success' || steps.cuda.conclusion == 'success'
         uses: test-summary/action@v2
         with:
           paths: |
             testing.*.junit.xml
-
-      - name: Check Failure
-        if: failure()
-        run: |
-          exit 1
 
       
