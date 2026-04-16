@@ -219,4 +219,9 @@ jobs:
           paths: |
             testing.*.junit.xml
 
+      - name: Check Failure
+        if: failure()
+        run: |
+          exit 1
+
       
