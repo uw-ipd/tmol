@@ -56,7 +56,7 @@ jobs:
         id: build
         if: always()
         run: |
-          exit 0
+          exit 1
           mkdir -p $PIP_PKGS
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
             -t 06:00:00 --cpus-per-task=16 --mem=128G \
@@ -115,7 +115,7 @@ jobs:
 
       - name: Test CPU
         id: cpu
-        if: always() #steps.build.outcome == 'success'
+        if: always() && steps.build.outcome == 'success'
         run: |
           exit 1
           # ── Test CPU ───────────────────────────────────────────────────
@@ -144,7 +144,7 @@ jobs:
 
       - name: Test CUDA
         id: cuda
-        if: always() #steps.build.outcome == 'success'
+        if: always() && steps.build.outcome == 'success'
         run: |
           exit 0
           # ── Test CUDA ──────────────────────────────────────────────────
