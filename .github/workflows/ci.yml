@@ -38,7 +38,6 @@ jobs:
             xargs -P8 -I{} bash -c 'ts=$(git log -1 --format="%ct" -- "$1") && touch -d "@$ts" "$1"' _ {}
 
       - name: Lint
-        continue-on-error: true
         run: |
           apptainer exec \
             --bind /net/scratch:/net/scratch \
@@ -55,6 +54,7 @@ jobs:
 
       - name: Build
         id: build
+        if: always()
         run: |
           exit 0
           mkdir -p $PIP_PKGS
@@ -115,7 +115,6 @@ jobs:
 
       - name: Test CPU
         id: cpu
-        continue-on-error: true
         if: always() #steps.build.outcome == 'success'
         run: |
           exit 1
@@ -145,7 +144,6 @@ jobs:
 
       - name: Test CUDA
         id: cuda
-        continue-on-error: true
         if: always() #steps.build.outcome == 'success'
         run: |
           exit 1
