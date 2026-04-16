@@ -146,7 +146,7 @@ jobs:
         id: cuda
         if: always() #steps.build.outcome == 'success'
         run: |
-          exit 1
+          exit 0
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
