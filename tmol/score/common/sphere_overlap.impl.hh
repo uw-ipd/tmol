@@ -438,6 +438,164 @@ struct block_neighbor_indices {
   }
 };
 
+// Compute block-level bounding spheres that enclose all rotamers for each
+// block, using pre-computed per-rotamer spheres.  One thread per block; serial
+// loop over n_rots_for_block[pose][block] rotamers.  Safe for packing (no
+// write races) unlike compute_block_spheres which launches per rotamer.
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
+struct compute_block_spheres_from_rot_spheres {
+  static void f(
+      TView<Real, 2, D> rot_spheres,          // [n_rots_global, 4]
+      TView<Int, 2, D> n_rots_for_block,      // [n_poses, max_n_blocks]
+      TView<Int, 2, D> rot_offset_for_block,  // [n_poses, max_n_blocks] global
+      TView<Real, 3, D> block_spheres         // [n_poses, max_n_blocks, 4] out
+  ) {
+    LAUNCH_BOX_32;
+
+    int const n_poses = n_rots_for_block.size(0);
+    int const max_n_blocks = n_rots_for_block.size(1);
+
+    auto compute = ([=] TMOL_DEVICE_FUNC(int ind) {
+      int const pose = ind / max_n_blocks;
+      int const block = ind % max_n_blocks;
+      int const n_rots = n_rots_for_block[pose][block];
+      if (n_rots <= 0) return;
+      int const rot_start = rot_offset_for_block[pose][block];
+      if (rot_start < 0) return;
+
+      Real cx = 0, cy = 0, cz = 0;
+      for (int r = 0; r < n_rots; ++r) {
+        cx += rot_spheres[rot_start + r][0];
+        cy += rot_spheres[rot_start + r][1];
+        cz += rot_spheres[rot_start + r][2];
+      }
+      cx /= n_rots;
+      cy /= n_rots;
+      cz /= n_rots;
+
+      Real rmax = 0;
+      for (int r = 0; r < n_rots; ++r) {
+        Real dx = rot_spheres[rot_start + r][0] - cx;
+        Real dy = rot_spheres[rot_start + r][1] - cy;
+        Real dz = rot_spheres[rot_start + r][2] - cz;
+        Real d =
+            sqrt(dx * dx + dy * dy + dz * dz) + rot_spheres[rot_start + r][3];
+        if (d > rmax) rmax = d;
+      }
+
+      block_spheres[pose][block][0] = cx;
+      block_spheres[pose][block][1] = cy;
+      block_spheres[pose][block][2] = cz;
+      block_spheres[pose][block][3] = rmax;
+    });
+
+    DeviceDispatch<D>::template forall<launch_t>(
+        n_poses * max_n_blocks, compute);
+  }
+};
+
+// Convert a block-level neighbor matrix into rotamer-pair dispatch indices
+// (the same [3, n_pairs] format as rot_neighbor_indices), expanding each
+// neighboring block pair (b1, b2) into all n_rots[b1]*n_rots[b2] pairs.
+// This avoids the O(max_n_rots^2) dense matrix used by rot_neighbor_indices.
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device D,
+    typename Int>
+struct rot_neighbor_indices_from_block_neighbors {
+  static auto
+  f(TView<Int, 3, D> block_neighbors,   // [n_poses, max_n_blocks, max_n_blocks]
+    TView<Int, 2, D> n_rots_for_block,  // [n_poses, max_n_blocks]
+    TView<Int, 2, D> rot_offset_for_block  // [n_poses, max_n_blocks] global
+    ) -> TPack<Int, 2, D> {
+    LAUNCH_BOX_32;
+
+    int const n_poses = block_neighbors.size(0);
+    int const max_n_blocks = block_neighbors.size(1);
+    int const n_cells = n_poses * max_n_blocks * max_n_blocks;
+
+    // Step 1: per-block-pair rotamer pair counts.
+    // For diagonal (b1==b2): only self-pairs (r,r), count = n_rots[b1].
+    // For off-diagonal (b1<b2): all pairs, count = n_rots[b1]*n_rots[b2].
+    auto pair_counts_t = TPack<Int, 3, D>::zeros_like(block_neighbors);
+    auto pair_counts = pair_counts_t.view;
+
+    auto compute_counts = ([=] TMOL_DEVICE_FUNC(int ind) {
+      int const pose = ind / (max_n_blocks * max_n_blocks);
+      int const bp = ind % (max_n_blocks * max_n_blocks);
+      int const b1 = bp / max_n_blocks;
+      int const b2 = bp % max_n_blocks;
+      if (block_neighbors[pose][b1][b2]) {
+        if (b1 == b2) {
+          pair_counts[pose][b1][b2] = n_rots_for_block[pose][b1];
+        } else {
+          pair_counts[pose][b1][b2] =
+              n_rots_for_block[pose][b1] * n_rots_for_block[pose][b2];
+        }
+      }
+    });
+    DeviceDispatch<D>::template forall<launch_t>(n_cells, compute_counts);
+
+    // Step 2: prefix scan → per-block-pair offsets and total
+    auto pair_offsets_t = TPack<Int, 3, D>::zeros_like(block_neighbors);
+    auto pair_offsets = pair_offsets_t.view;
+
+    int const total =
+        DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+            pair_counts.data(),
+            pair_offsets.data(),
+            n_cells,
+            mgpu::plus_t<Int>());
+
+    // Step 3: allocate output [3, total]
+    auto indices_t = TPack<Int, 2, D>::full({3, total}, -1);
+    auto indices = indices_t.view;
+
+    // Step 4: fill — one thread per block pair, serial loop over rot pairs.
+    // Diagonal (b1==b2): only (r,r) self-pairs (intrares scoring).
+    // Off-diagonal (b1<b2): all nr1*nr2 pairs.
+    auto fill = ([=] TMOL_DEVICE_FUNC(int ind) {
+      int const pose = ind / (max_n_blocks * max_n_blocks);
+      int const bp = ind % (max_n_blocks * max_n_blocks);
+      int const b1 = bp / max_n_blocks;
+      int const b2 = bp % max_n_blocks;
+      if (!block_neighbors[pose][b1][b2]) return;
+
+      int const nr1 = n_rots_for_block[pose][b1];
+      int const nr2 = n_rots_for_block[pose][b2];
+      int const off1 = rot_offset_for_block[pose][b1];
+      int const off2 = rot_offset_for_block[pose][b2];
+      if (off1 < 0 || off2 < 0) return;
+
+      int offset = pair_offsets[pose][b1][b2];
+      if (b1 == b2) {
+        for (int i = 0; i < nr1; ++i) {
+          indices[0][offset] = pose;
+          indices[1][offset] = off1 + i;
+          indices[2][offset] = off1 + i;  // same rot
+          ++offset;
+        }
+      } else {
+        for (int i = 0; i < nr1; ++i) {
+          for (int j = 0; j < nr2; ++j) {
+            indices[0][offset] = pose;
+            indices[1][offset] = off1 + i;
+            indices[2][offset] = off2 + j;
+            ++offset;
+          }
+        }
+      }
+    });
+    DeviceDispatch<D>::template forall<launch_t>(n_cells, fill);
+
+    return indices_t;
+  }
+};
+
 }  // namespace sphere_overlap
 }  // namespace common
 }  // namespace score

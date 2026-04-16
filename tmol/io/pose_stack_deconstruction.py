@@ -64,8 +64,6 @@ def canonical_form_from_pose_stack(
         real_expanded_pose_ats = real_expanded_pose_ats.cpu().numpy()
         real_atoms = pose_stack.real_atoms.cpu().numpy()
 
-        block_atom_is_real_np = block_atom_is_real.cpu().numpy()
-
         nz_pose_ind_for_real_atom_np = nz_pose_ind_for_real_atom.cpu().numpy()
         nz_res_ind_for_real_atom_np = nz_res_ind_for_real_atom.cpu().numpy()
         real_canonical_atom_inds_for_bt_np = (

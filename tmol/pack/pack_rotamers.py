@@ -13,7 +13,11 @@ from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
 
 
 def pack_rotamers(
-    pose_stack: PoseStack, sfxn: ScoreFunction, task: PackerTask, verbose=False
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    task: PackerTask,
+    verbose=False,
+    **sa_params,
 ):
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -72,7 +76,9 @@ def pack_rotamers(
         torch.cuda.synchronize()
     end_time4 = time.perf_counter()
 
-    scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+    scores, rotamer_assignments = run_simulated_annealing(
+        packer_energy_tables, **sa_params
+    )
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time5 = time.perf_counter()

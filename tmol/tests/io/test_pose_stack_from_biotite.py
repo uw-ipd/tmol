@@ -1,17 +1,15 @@
 import biotite.structure
-from biotite.structure.io.pdb import PDBFile
 from biotite.structure.io.pdbx import CIFFile, set_structure
 import pytest
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.io.pose_stack_from_biotite import (
     build_context_from_biotite,
     canonical_form_from_biotite,
     pose_stack_from_biotite,
     biotite_from_pose_stack,
 )
+from tmol.tests.data import load_cif
 
 _CI_CIF_CODES = [
     "1UBQ",  # small, clean protein
@@ -24,30 +22,19 @@ _CI_CIF_CODES = [
 ]
 
 
-def _fetch_cif(pdb_code, tmp_path):
-    """Fetch a CIF from RCSB and return the biotite structure."""
-    from biotite.database import rcsb
-
-    path = rcsb.fetch(pdb_code, "cif", target_path=tmp_path)
-    return biotite.structure.io.load_structure(
-        path, extra_fields=["occupancy", "b_factor"]
-    )
-
-
 @pytest.mark.parametrize("pdb_code", _CI_CIF_CODES)
-def test_load_score_roundtrip_cif(pdb_code, torch_device, tmp_path):
-    """Fetch a CIF from RCSB, build PoseStack, score, and re-export."""
-    if torch_device != torch.device("cpu"):
-        pytest.skip("CIF roundtrip only runs on CPU")
+def test_load_score_roundtrip_cif(pdb_code, tmp_path):
+    """Load a local CIF, build PoseStack, score, and re-export."""
+    device = torch.device("cpu")
 
     from tmol import beta2016_score_function
 
-    bt_struct = _fetch_cif(pdb_code, tmp_path)
+    bt_struct = load_cif(pdb_code)
     if isinstance(bt_struct, biotite.structure.AtomArrayStack):
         bt_struct = bt_struct[0]
 
-    pose_stack = pose_stack_from_biotite(bt_struct, torch_device)
-    sfxn = beta2016_score_function(torch_device)
+    pose_stack = pose_stack_from_biotite(bt_struct, device)
+    sfxn = beta2016_score_function(device)
     scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
     scores = scorer.unweighted_scores(pose_stack.coords)
 
@@ -86,14 +73,14 @@ def test_pose_stack_from_biotite_1ubq_cif_smoke(biotite_1ubq_cif, torch_device):
 
 def test_pose_stack_from_and_to_biotite_1ubq_smoke(biotite_1ubq, torch_device):
     pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
-    biotite_atom_array = biotite_from_pose_stack(pose_stack)
+    biotite_from_pose_stack(pose_stack)
 
 
 def test_pose_stack_from_and_to_biotite_multiple_poses_smoke(
     biotite_1r21, torch_device
 ):
     pose_stack = pose_stack_from_biotite(biotite_1r21, torch_device=torch_device)
-    biotite_atom_array = biotite_from_pose_stack(pose_stack)
+    biotite_from_pose_stack(pose_stack)
 
 
 def test_canonical_form_multipose_metadata_propagation(biotite_1r21, torch_device):
@@ -133,7 +120,7 @@ def test_pose_stack_from_biotite_his_d_smoke(biotite_1r21, torch_device):
 def test_pose_stack_from_biotite_missing_sidechain_smoke(biotite_1bl8, torch_device):
     bt = biotite_1bl8
     pose_stack = pose_stack_from_biotite(bt, torch_device=torch_device)
-    biotite_atom_array = biotite_from_pose_stack(pose_stack)
+    biotite_from_pose_stack(pose_stack)
 
 
 def test_pose_stack_from_biotite_missing_single_sidechain_smoke(
@@ -142,4 +129,4 @@ def test_pose_stack_from_biotite_missing_single_sidechain_smoke(
     starts = biotite.structure.get_residue_starts(biotite_1bl8)
     bt = biotite_1bl8[starts[0] : starts[6]]
     pose_stack = pose_stack_from_biotite(bt, torch_device=torch_device)
-    biotite_atom_array = biotite_from_pose_stack(pose_stack)
+    biotite_from_pose_stack(pose_stack)

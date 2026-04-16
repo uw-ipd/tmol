@@ -9,8 +9,6 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 # from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
 from tmol.pack.pack_rotamers import pack_rotamers
-from tmol.score.dunbrack.params import DunbrackParamResolver
-from tmol.database import ParameterDatabase
 
 
 def build_missing_sidechains_with_missing_atoms(

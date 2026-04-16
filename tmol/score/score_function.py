@@ -302,28 +302,44 @@ class RotamerScoringModule:
         self.term_modules = term_modules
 
     def __call__(self, coords):
-        weighted_scores = None
+        # Accumulate weighted values and their indices across all terms at the
+        # dense [nnz] level.  This avoids torch.stack on sparse tensors, which
+        # previously created a [n_subterms, n_poses, n_rots, n_rots] 4D sparse
+        # tensor whose index storage grew as n_subterms × nnz × 4 int32.
+        all_values = []
+        all_indices = []
+        n_poses = None
+        n_rots = None
         weights_offset = 0
+
         for term in self.term_modules:
-            sparse_values = term(coords)
-            n_weights_for_term = sparse_values.shape[0]
-            weighted = torch.sum(
-                self.weights[weights_offset : (n_weights_for_term + weights_offset)]
-                * sparse_values,
-                dim=0,
-            )
-            weights_offset += n_weights_for_term
-            if weighted_scores is None:
-                weighted_scores = weighted
-            else:
-                weighted_scores += weighted
-        if weighted_scores is None:
+            scores, indices = term.forward(coords)  # [n_subterms, nnz], [3, nnz]
+            n_subterms = scores.shape[0]
+
+            # Apply per-subterm weights and sum to [nnz] — no sparse tensor yet.
+            w = self.weights[weights_offset : weights_offset + n_subterms, 0, 0, 0]
+            weighted_values = (w[:, None] * scores).sum(dim=0)
+
+            all_values.append(weighted_values)
+            all_indices.append(indices)
+            weights_offset += n_subterms
+
+            if n_poses is None:
+                n_poses = term.n_poses
+                n_rots = term.n_rots
+
+        if n_poses is None:
+            # No terms at all
             return torch.sparse_coo_tensor(
-                indices=torch.zeros((0, 3), dtype=torch.int32, device=coords.device),
-                values=torch.zeros((0, 1), dtype=torch.float32, device=coords.device),
-                size=(0, 0),
-                nnz=0,
-                layout=torch.sparse_coo,
+                torch.zeros((3, 0), dtype=torch.int32, device=coords.device),
+                torch.zeros(0, dtype=torch.float32, device=coords.device),
+                size=(0, 0, 0),
             )
-        else:
-            return weighted_scores
+
+        combined_values = torch.cat(all_values)
+        combined_indices = torch.cat(all_indices, dim=1)
+        return torch.sparse_coo_tensor(
+            combined_indices,
+            combined_values,
+            size=(n_poses, n_rots, n_rots),
+        )
