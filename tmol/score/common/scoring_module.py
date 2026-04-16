@@ -148,12 +148,22 @@ class TermRotamerScoringModule(TermScoringModule):
         self.n_poses = rotamer_set.n_rots_for_pose.shape[0]
         self.n_rots = rotamer_set.coord_offset_for_rot.shape[0]
 
-    def forward(
-        self,
-        coords,
-    ):
+    def forward(self, coords):
+        """Return (scores, indices) without creating any sparse tensor.
+
+        scores:  [n_subterms, nnz] float32
+        indices: [3, nnz]          int32  (pose, rot_i, rot_j in global rot numbering)
+        """
         scores, indices = self.term_score_poses(*self.format_arguments(coords, True))
-        sparse_result = torch.stack(
+        return scores, indices
+
+    def forward_split(self, coords):
+        scores, indices = self.forward(coords)
+        # Legacy path: kept for any callers outside RotamerScoringModule.
+        # Prefer forward + caller-side weighting to avoid the torch.stack
+        # memory cost (stacking creates a [n_subterms, n_poses, n_rots, n_rots]
+        # 4D sparse tensor whose index storage is n_subterms x nnz x 4 int32).
+        return torch.stack(
             [
                 torch.sparse_coo_tensor(
                     indices,
@@ -163,4 +173,3 @@ class TermRotamerScoringModule(TermScoringModule):
                 for subterm in range(scores.size(0))
             ]
         )
-        return sparse_result

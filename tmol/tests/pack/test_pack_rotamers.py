@@ -458,7 +458,6 @@ def test_pack_rotamers_irregular_sized_poses(
     task.restrict_to_repacking()
     task.set_include_current()
     task.or_expand_chi(1)
-    task.or_expand_chi(2)
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)

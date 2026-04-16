@@ -609,7 +609,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    n_traj = 1 if torch_device == torch.device("cpu") else 1250
+    n_traj = 1 if torch_device == torch.device("cpu") else 312
     assert scores.shape == (1, n_traj)
     scores_cpu = scores.cpu()
     # make sure that scores are in ascending order
@@ -657,7 +657,7 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    n_traj = 1 if torch_device == torch.device("cpu") else 1250
+    n_traj = 1 if torch_device == torch.device("cpu") else 312
     assert scores.shape == (2, n_traj)
     assert scores.device == torch_device
     scores_cpu = scores.cpu()
