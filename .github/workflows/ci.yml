@@ -118,6 +118,7 @@ jobs:
         id: cpu
         if: steps.build.outcome == 'success'
         run: |
+          exit 1
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
@@ -146,6 +147,7 @@ jobs:
         id: cuda
         if: steps.build.outcome == 'success'
         run: |
+          exit 1
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
