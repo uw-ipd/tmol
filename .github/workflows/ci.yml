@@ -24,6 +24,7 @@ env:
 jobs:
   ci:
     runs-on: [self-hosted, gpu]
+    continue-on-error: true
     timeout-minutes: 720
     steps:
 
@@ -113,9 +114,7 @@ jobs:
           BUILD
 
       - name: Test CPU
-        continue-on-error: true
         run: |
-          #exit
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
@@ -141,7 +140,6 @@ jobs:
           CPU_TEST
 
       - name: Test CUDA
-        continue-on-error: true
         run: |
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
@@ -168,9 +166,7 @@ jobs:
           GPU_TEST
 
       - name: Benchmark
-        continue-on-error: true
         run: |
-          #exit
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
