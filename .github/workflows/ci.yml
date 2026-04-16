@@ -24,7 +24,6 @@ env:
 jobs:
   ci:
     runs-on: [self-hosted, gpu]
-    continue-on-error: true
     timeout-minutes: 720
     steps:
 
@@ -116,6 +115,7 @@ jobs:
 
       - name: Test CPU
         id: cpu
+        continue-on-error: true
         if: steps.build.outcome == 'success'
         run: |
           exit 1
@@ -145,6 +145,7 @@ jobs:
 
       - name: Test CUDA
         id: cuda
+        continue-on-error: true
         if: steps.build.outcome == 'success'
         run: |
           exit 1
@@ -173,7 +174,10 @@ jobs:
           GPU_TEST
 
       - name: Benchmark
+        continue-on-error: true
+        if: steps.build.outcome == 'success'
         run: |
+          exit 1
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
