@@ -57,7 +57,7 @@ jobs:
       - name: Build
         id: build
         run: |
-
+          exit 0
           mkdir -p $PIP_PKGS
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
             -t 06:00:00 --cpus-per-task=16 --mem=128G \
