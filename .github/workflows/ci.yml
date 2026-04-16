@@ -56,7 +56,6 @@ jobs:
         id: build
         if: always()
         run: |
-          exit 1
           mkdir -p $PIP_PKGS
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
             -t 06:00:00 --cpus-per-task=16 --mem=128G \
@@ -117,7 +116,6 @@ jobs:
         id: cpu
         if: always() && steps.build.outcome == 'success'
         run: |
-          exit 1
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
@@ -146,7 +144,6 @@ jobs:
         id: cuda
         if: always() && steps.build.outcome == 'success'
         run: |
-          exit 0
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
@@ -172,7 +169,7 @@ jobs:
           GPU_TEST
 
       - name: Benchmark
-        if: always() && steps.build.conclusion == 'success'
+        if: always() && steps.build.outcome == 'success'
         run: |
           exit 1
           # ── Benchmark ──────────────────────────────────────────────────
@@ -210,7 +207,7 @@ jobs:
           BENCHMARK
 
       - name: Test Summary
-        if: always() && (steps.cpu.conclusion == 'success' || steps.cuda.conclusion == 'success')
+        if: always() #&& (steps.cpu.outcome == 'success' || steps.cuda.outcome == 'success')
         uses: test-summary/action@v2
         with:
           paths: |
