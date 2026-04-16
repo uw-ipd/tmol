@@ -206,7 +206,6 @@ jobs:
         uses: test-summary/action@v2
         with:
           paths: |
-            testing.cpu.junit.xml
-            testing.cuda.junit.xml
+            testing.*.junit.xml
 
       
