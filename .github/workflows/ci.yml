@@ -55,6 +55,7 @@ jobs:
           LINT
 
       - name: Build
+        id: build
         run: |
 
           mkdir -p $PIP_PKGS
@@ -114,6 +115,8 @@ jobs:
           BUILD
 
       - name: Test CPU
+        id: cpu
+        if: steps.build.outcome == 'success'
         run: |
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
@@ -140,6 +143,8 @@ jobs:
           CPU_TEST
 
       - name: Test CUDA
+        id: cuda
+        if: steps.build.outcome == 'success'
         run: |
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
@@ -202,7 +207,7 @@ jobs:
           BENCHMARK
 
       - name: Test Summary
-        if: always()
+        if: steps.cpu.outcome == 'success' || steps.cuda.outcome == 'success'
         uses: test-summary/action@v2
         with:
           paths: |
