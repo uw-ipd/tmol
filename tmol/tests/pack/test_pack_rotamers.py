@@ -13,6 +13,7 @@ from tmol.pack.rotamer.build_rotamers import build_rotamers
 from tmol.pack.rotamer.fixed_aa_chi_sampler import (
     FixedAAChiSampler,
 )
+from tmol.pack.rotamer.opth_sampler import OptHSampler
 from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.simulated_annealing import run_simulated_annealing
 from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
@@ -23,6 +24,63 @@ from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
 from tmol.pack.pack_rotamers import pack_rotamers
 
 from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
+
+
+def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
+    pose_stack = PoseStackBuilder.from_poses(poses, torch_device)
+    restype_set = pose_stack.packed_block_types.restype_set
+    palette = PackerPalette(restype_set)
+    task = PackerTask(pose_stack, palette)
+    task.restrict_to_repacking()
+    task.set_include_current()
+    fixed_sampler = FixedAAChiSampler()
+    task.add_conformer_sampler(dun_sampler)
+    task.add_conformer_sampler(fixed_sampler)
+    return pose_stack, task
+
+
+def build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=16):
+    rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
+    energies = rotamer_scoring_module(rotamer_set.coords).coalesce()
+    energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
+        build_interaction_graph(
+            chunk_size,
+            rotamer_set.n_rots_for_pose,
+            rotamer_set.rot_offset_for_pose,
+            rotamer_set.n_rots_for_block,
+            rotamer_set.rot_offset_for_block,
+            rotamer_set.pose_for_rot,
+            rotamer_set.block_type_ind_for_rot,
+            rotamer_set.block_ind_for_rot,
+            energies.indices().to(torch.int32),
+            energies.values(),
+        )
+    )
+    return PackerEnergyTables(
+        max_n_rotamers_per_pose=rotamer_set.max_n_rots_per_pose,
+        pose_n_res=pose_stack.n_res_per_pose,
+        pose_n_rotamers=rotamer_set.n_rots_for_pose,
+        pose_rotamer_offset=rotamer_set.rot_offset_for_pose,
+        nrotamers_for_res=rotamer_set.n_rots_for_block,
+        oneb_offsets=rotamer_set.rot_offset_for_block,
+        res_for_rot=rotamer_set.block_ind_for_rot,
+        chunk_size=chunk_size,
+        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
+        chunk_offsets=chunk_pair_offset,
+        energy1b=energy1b,
+        energy2b=energy2b,
+    )
+
+
+def run_pack_and_assert_scores(pose_stack, rotamer_set, packer_energy_tables, sfxn):
+    scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+    new_pose_stack = impose_top_rotamer_assignments(
+        pose_stack, rotamer_set, rotamer_assignments
+    )
+    wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
+    new_scores = wpsm(new_pose_stack.coords)
+    torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)
+    return new_pose_stack, scores
 
 
 def get_packer_sfxn(default_database, torch_device):
@@ -63,98 +121,86 @@ def get_constraints_only_sfxn(default_database, torch_device):
 
 def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
     n_poses = 4
-
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    pose_stack, task = setup_pose_stack_and_task(
+        [p] * n_poses, torch_device, dun_sampler
+    )
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+    packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    new_pose_stack, _ = run_pack_and_assert_scores(
+        pose_stack, rotamer_set, packer_energy_tables, sfxn
+    )
+    write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")
 
+
+def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
+    n_poses = 4
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     restype_set = pose_stack.packed_block_types.restype_set
-
     palette = PackerPalette(restype_set)
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()
     task.set_include_current()
-
-    fixed_sampler = FixedAAChiSampler()
-    task.add_conformer_sampler(dun_sampler)
-    task.add_conformer_sampler(fixed_sampler)
-
+    task.add_conformer_sampler(OptHSampler())
+    task.add_conformer_sampler(FixedAAChiSampler())
     sfxn = get_packer_sfxn(default_database, torch_device)
-
-    pbt = pose_stack.packed_block_types
-
-    pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
-
-    rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
-
-    energies = rotamer_scoring_module(rotamer_set.coords)
-    energies = energies.coalesce()
-
-    chunk_size = 16
-
-    energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            energies.indices().to(torch.int32),
-            energies.values(),
-        )
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
     )
 
-    packer_energy_tables = PackerEnergyTables(
-        max_n_rotamers_per_pose=rotamer_set.max_n_rots_per_pose,
-        pose_n_res=pose_stack.n_res_per_pose,
-        pose_n_rotamers=rotamer_set.n_rots_for_pose,
-        pose_rotamer_offset=rotamer_set.rot_offset_for_pose,
-        nrotamers_for_res=rotamer_set.n_rots_for_block,
-        oneb_offsets=rotamer_set.rot_offset_for_block,
-        res_for_rot=rotamer_set.block_ind_for_rot,
-        chunk_size=chunk_size,
-        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
-        chunk_offsets=chunk_pair_offset,
-        energy1b=energy1b,
-        energy2b=energy2b,
+    # Diagnostic: verify NHQ flip rotamers have chi rotated by ~180 degrees.
+    from tmol.numeric.dihedrals import coord_dihedrals as _cd
+
+    pose_i = 0
+    print()
+    for block_j, blt in enumerate(task.blts[pose_i]):
+        orig = blt.original_block_type
+        if not hasattr(orig, "opth_sampler_cache"):
+            continue
+        cache = orig.opth_sampler_cache
+        if cache.nhq_chi_col < 0:
+            continue
+        a4 = cache.nhq_chi_4atoms
+        off = int(pose_stack.block_coord_offset[pose_i, block_j].item())
+        c = pose_stack.coords[pose_i][[off + int(a4[k]) for k in range(4)]].double()
+        input_chi = float(_cd(c[0:1], c[1:2], c[2:3], c[3:4])[0])
+        n_rots = int(rotamer_set.n_rots_for_block[pose_i, block_j].item())
+        rot_off = int(rotamer_set.rot_offset_for_block[pose_i, block_j].item())
+        for r in range(n_rots):
+            co = int(rotamer_set.coord_offset_for_rot[rot_off + r].item())
+            rc4 = rotamer_set.coords[[co + int(a4[k]) for k in range(4)]].double()
+            rot_chi = float(_cd(rc4[0:1], rc4[1:2], rc4[2:3], rc4[3:4])[0])
+            delta = math.degrees(rot_chi - input_chi)
+            # normalise to (-180, 180]
+            delta = (delta + 180.0) % 360.0 - 180.0
+            print(
+                f"  res {block_j:3d} ({orig.name3}) rot {r}: "
+                f"input={math.degrees(input_chi):7.1f}  "
+                f"rotamer={math.degrees(rot_chi):7.1f}  "
+                f"delta={delta:7.1f}"
+            )
+
+    packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    new_pose_stack, _ = run_pack_and_assert_scores(
+        pose_stack, rotamer_set, packer_energy_tables, sfxn
     )
-
-    scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
-
-    new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack, rotamer_set, rotamer_assignments
-    )
-    write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")
-
-    wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
-    new_scores = wpsm(new_pose_stack.coords)
-    torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)
+    write_pose_stack_pdb(new_pose_stack, "pack_rotamers_optH_1ubq.pdb")
 
 
 def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_device):
     n_poses = 4
-
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-
-    pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    restype_set = pose_stack.packed_block_types.restype_set
-
-    palette = PackerPalette(restype_set)
-    task = PackerTask(pose_stack, palette)
-    task.restrict_to_repacking()
-    task.set_include_current()
-
-    fixed_sampler = FixedAAChiSampler()
-    task.add_conformer_sampler(dun_sampler)
-    task.add_conformer_sampler(fixed_sampler)
-
+    pose_stack, task = setup_pose_stack_and_task(
+        [p] * n_poses, torch_device, dun_sampler
+    )
     sfxn = get_constraints_only_sfxn(default_database, torch_device)
-
-    pbt = pose_stack.packed_block_types
-
-    pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
     constraints = ConstraintSet.create_empty(device=torch_device, n_poses=n_poses)
 
     # a distance constraint
@@ -207,264 +253,68 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
     )
 
     pose_stack = attrs.evolve(pose_stack, constraint_set=constraints)
-
-    rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
-
-    energies = rotamer_scoring_module(rotamer_set.coords)
-    energies = energies.coalesce()
-
-    chunk_size = 16
-
-    energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            energies.indices().to(torch.int32),
-            energies.values(),
-        )
-    )
-
-    packer_energy_tables = PackerEnergyTables(
-        max_n_rotamers_per_pose=rotamer_set.max_n_rots_per_pose,
-        pose_n_res=pose_stack.n_res_per_pose,
-        pose_n_rotamers=rotamer_set.n_rots_for_pose,
-        pose_rotamer_offset=rotamer_set.rot_offset_for_pose,
-        nrotamers_for_res=rotamer_set.n_rots_for_block,
-        oneb_offsets=rotamer_set.rot_offset_for_block,
-        res_for_rot=rotamer_set.block_ind_for_rot,
-        chunk_size=chunk_size,
-        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
-        chunk_offsets=chunk_pair_offset,
-        energy1b=energy1b,
-        energy2b=energy2b,
-    )
-
-    scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
-
-    new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack, rotamer_set, rotamer_assignments
-    )
+    packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    run_pack_and_assert_scores(pose_stack, rotamer_set, packer_energy_tables, sfxn)
     if torch_device == torch.device("cuda"):
         torch.cuda.synchronize()
-
-    wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
-    new_scores = wpsm(new_pose_stack.coords)
-    torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)
 
 
 def test_pack_rotamers_w_empty_interaction_graph(
     default_database, disulfide_pdb, dun_sampler, torch_device
 ):
     n_poses = 4
-
     p = pose_stack_from_pdb(disulfide_pdb, torch_device)
-
-    pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    restype_set = pose_stack.packed_block_types.restype_set
-
-    palette = PackerPalette(restype_set)
-    task = PackerTask(pose_stack, palette)
-    task.restrict_to_repacking()
-    task.set_include_current()
-
-    fixed_sampler = FixedAAChiSampler()
-    task.add_conformer_sampler(dun_sampler)
-    task.add_conformer_sampler(fixed_sampler)
-
+    pose_stack, task = setup_pose_stack_and_task(
+        [p] * n_poses, torch_device, dun_sampler
+    )
     sfxn = get_constraints_only_sfxn(default_database, torch_device)
-
-    pbt = pose_stack.packed_block_types
-
-    pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
-    rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
-
-    energies = rotamer_scoring_module(rotamer_set.coords)
-    energies = energies.coalesce()
-
-    chunk_size = 16
-
-    energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            energies.indices().to(torch.int32),
-            energies.values(),
-        )
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
     )
-
-    packer_energy_tables = PackerEnergyTables(
-        max_n_rotamers_per_pose=rotamer_set.max_n_rots_per_pose,
-        pose_n_res=pose_stack.n_res_per_pose,
-        pose_n_rotamers=rotamer_set.n_rots_for_pose,
-        pose_rotamer_offset=rotamer_set.rot_offset_for_pose,
-        nrotamers_for_res=rotamer_set.n_rots_for_block,
-        oneb_offsets=rotamer_set.rot_offset_for_block,
-        res_for_rot=rotamer_set.block_ind_for_rot,
-        chunk_size=chunk_size,
-        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
-        chunk_offsets=chunk_pair_offset,
-        energy1b=energy1b,
-        energy2b=energy2b,
-    )
-
-    scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
-
-    new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack, rotamer_set, rotamer_assignments
-    )
-
-    wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
-    new_scores = wpsm(new_pose_stack.coords)
-    torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)
+    packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    run_pack_and_assert_scores(pose_stack, rotamer_set, packer_energy_tables, sfxn)
 
 
 def test_pack_rotamers_w_dslf(
     default_database, disulfide_pdb, dun_sampler, torch_device
 ):
     n_poses = 4
-
     p = pose_stack_from_pdb(disulfide_pdb, torch_device)
-
-    pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    restype_set = pose_stack.packed_block_types.restype_set
-
-    palette = PackerPalette(restype_set)
-    task = PackerTask(pose_stack, palette)
-    task.restrict_to_repacking()
-    task.set_include_current()
-
-    fixed_sampler = FixedAAChiSampler()
-    task.add_conformer_sampler(dun_sampler)
-    task.add_conformer_sampler(fixed_sampler)
-
+    pose_stack, task = setup_pose_stack_and_task(
+        [p] * n_poses, torch_device, dun_sampler
+    )
     sfxn = get_packer_sfxn(default_database, torch_device)
-
-    pbt = pose_stack.packed_block_types
-
-    pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
-
-    rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
-
-    energies = rotamer_scoring_module(rotamer_set.coords)
-    energies = energies.coalesce()
-
-    chunk_size = 16
-
-    energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            energies.indices().to(torch.int32),
-            energies.values(),
-        )
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
     )
-    # print("energy1b", energy1b.shape)
-    # print("chunk_pair_offset_for_block_pair", chunk_pair_offset_for_block_pair.shape)
-    # print("chunk_pair_offset", chunk_pair_offset.shape)
-    # print("energy2b", energy2b.shape)
-
-    packer_energy_tables = PackerEnergyTables(
-        max_n_rotamers_per_pose=rotamer_set.max_n_rots_per_pose,
-        pose_n_res=pose_stack.n_res_per_pose,
-        pose_n_rotamers=rotamer_set.n_rots_for_pose,
-        pose_rotamer_offset=rotamer_set.rot_offset_for_pose,
-        nrotamers_for_res=rotamer_set.n_rots_for_block,
-        oneb_offsets=rotamer_set.rot_offset_for_block,
-        res_for_rot=rotamer_set.block_ind_for_rot,
-        chunk_size=chunk_size,
-        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
-        chunk_offsets=chunk_pair_offset,
-        energy1b=energy1b,
-        energy2b=energy2b,
-    )
-
-    scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
-
-    new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack, rotamer_set, rotamer_assignments
-    )
-
-    wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
-    new_scores = wpsm(new_pose_stack.coords)
-    torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)
+    packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    run_pack_and_assert_scores(pose_stack, rotamer_set, packer_energy_tables, sfxn)
 
 
 def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
-
     if torch_device == torch.device("cpu"):
         return
     n_poses = 10
-
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-
-    pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-
-    restype_set = pose_stack.packed_block_types.restype_set
-
-    palette = PackerPalette(restype_set)
-    task = PackerTask(pose_stack, palette)
-    task.restrict_to_repacking()
-    task.set_include_current()
+    pose_stack, task = setup_pose_stack_and_task(
+        [p] * n_poses, torch_device, dun_sampler
+    )
     task.or_expand_chi(1)
-    # task.or_expand_chi(2)
-
-    fixed_sampler = FixedAAChiSampler()
-    task.add_conformer_sampler(dun_sampler)
-    task.add_conformer_sampler(fixed_sampler)
-
     sfxn = get_packer_sfxn(default_database, torch_device)
-
     pack_rotamers(pose_stack, sfxn, task)
 
 
 def test_pack_rotamers_irregular_sized_poses(
     default_database, ubq_pdb, dun_sampler, torch_device
 ):
-
     if torch_device == torch.device("cpu"):
         return
     n_poses = 20
-
-    pose_stack = PoseStackBuilder.from_poses(
-        [
-            pose_stack_from_pdb(
-                ubq_pdb, torch_device, residue_start=0, residue_end=20 + i
-            )
-            for i in range(n_poses)
-        ],
-        torch_device,
-    )
-
-    restype_set = pose_stack.packed_block_types.restype_set
-
-    palette = PackerPalette(restype_set)
-    task = PackerTask(pose_stack, palette)
-    task.restrict_to_repacking()
-    task.set_include_current()
+    poses = [
+        pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20 + i)
+        for i in range(n_poses)
+    ]
+    pose_stack, task = setup_pose_stack_and_task(poses, torch_device, dun_sampler)
     task.or_expand_chi(1)
-
-    fixed_sampler = FixedAAChiSampler()
-    task.add_conformer_sampler(dun_sampler)
-    task.add_conformer_sampler(fixed_sampler)
-
     sfxn = get_packer_sfxn(default_database, torch_device)
-
     pack_rotamers(pose_stack, sfxn, task)

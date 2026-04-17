@@ -101,15 +101,16 @@ class PackerPalette:
 
         Each block must have coordinates represented in the tensor with the other
         rotamers, and the easiest way to do that is to create a rotamer with the
-        DOFs of the input conformation. The IncludeCurrentSampler copies these
-        DOFs from the inverse-folded coordinates of the starting Pose's blocks.
+        DOFs of the input conformation. The FallbackSampler copies these DOFs
+        from the inverse-folded coordinates of the starting Pose's blocks, but
+        only for positions where no other sampler provides rotamers (e.g. residue
+        types not covered by DunbrackChiSampler). Positions with at least one
+        other sampler are left to that sampler exclusively.
         Future versions of PackerPalette have the option to override this method.
         """
-        from tmol.pack.rotamer.include_current_sampler import (
-            IncludeCurrentSampler,
-        )
+        from tmol.pack.rotamer.fallback_sampler import FallbackSampler
 
-        return [IncludeCurrentSampler()]
+        return [FallbackSampler()]
 
 
 # TO DO: BLT should hold "considered block types" as a boolean vector
