@@ -214,14 +214,4 @@ jobs:
             testing.*.junit.xml
 
 
-      - uses: codecov/codecov-action@v5
-        if: always()
-        with:
-          fail_ci_if_error: true # optional (default = false)
-          files: $GITHUB_WORKSPACE/tmol.cov # ./coverage1.xml,./coverage2.xml # optional
-          #flags: unittests # optional
-          name: tmol # codecov-umbrella # optional
-          token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true # optional (default = false)
-
       

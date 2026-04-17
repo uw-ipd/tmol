@@ -59,7 +59,6 @@ dependencies = [
     "ipython>=8.0",
     # Biotite
     "biotite>=1.2.0",
-    "pytest-cov",
 ]
 
 [project.optional-dependencies]
