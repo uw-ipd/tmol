@@ -463,18 +463,4 @@ if(TMOL_BUILD_TESTS)
     )
   endif()
 
-  # --- TORCH_LIBRARY test extension (not pybind) ---
-  add_library(test_custom_op MODULE
-    tmol/tests/utility/torchscript/custom_op.cpp
-  )
-  set_target_properties(test_custom_op PROPERTIES
-    PREFIX ""
-    OUTPUT_NAME "_custom_op"
-    SUFFIX "${_PY_EXT_SUFFIX}"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tmol/tests/utility/torchscript"
-  )
-  target_compile_definitions(test_custom_op PRIVATE TORCH_EXTENSION_NAME=_custom_op)
-  tmol_set_cpp_flags(test_custom_op)
-  install(TARGETS test_custom_op DESTINATION "tmol/tests/utility/torchscript")
-
 endif()
