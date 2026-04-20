@@ -288,9 +288,7 @@ def _filter_supported_atoms_and_connectivity(
             )
             valid_res[i] = False
 
-    valid_atoms = valid_res[
-        biotite.structure.get_all_residue_positions(biotite_structure)
-    ]
+    valid_atoms = valid_res[get_all_residue_positions(biotite_structure)]
 
     lower = numpy.roll(valid_res, 1)
     lower[0] = True
