@@ -10,8 +10,6 @@ from tmol.kinematics.scan_ordering import (
     KinForestScanOrdering,
     annotate_block_type_with_residue_kinforest_data,
 )
-from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
-from tmol.utility.ndarray.common_operations import invert_mapping
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -60,6 +58,9 @@ class PackedRotamerKintree:
 
 @validate_args
 def construct_single_residue_kinforest(restype: RefinedResidueType):
+    from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
+    from tmol.utility.ndarray.common_operations import invert_mapping
+
     """Create a kinforest for a single residue and its associated
     scan ordering data.
 

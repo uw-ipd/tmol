@@ -4,7 +4,6 @@ import time
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_function import ScoreFunction
 
-from tmol.pack.compiled.compiled import build_interaction_graph
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.build_rotamers import build_rotamers
 from tmol.pack.datatypes import PackerEnergyTables
@@ -19,6 +18,8 @@ def pack_rotamers(
     verbose=False,
     **sa_params,
 ):
+    from tmol.pack.compiled.compiled import build_interaction_graph
+
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     start_time = time.perf_counter()

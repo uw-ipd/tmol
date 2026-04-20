@@ -1089,7 +1089,7 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
             atom_records[i_offset + j]["occupancy"] = 1.0  # occupancy
             atom_records[i_offset + j]["b"] = 0.0  # B-factor
 
-    # with open("test_build_rotamers.pdb", "w") as fid:
+    # with open("tmol/tests/pack/rotamer/gold_repack_1ubq_rotamers.pdb", "w") as fid:
     #     fid.writelines(to_pdb_lines(atom_records))
 
     with open("tmol/tests/pack/rotamer/gold_repack_1ubq_rotamers.pdb") as fid:
