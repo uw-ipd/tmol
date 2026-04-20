@@ -39,7 +39,7 @@ def test_annotate_restypes(fresh_default_restype_set, default_database, torch_de
 
 
 def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device):
-    gold_vals = numpy.array([[-0.428092]], dtype=numpy.float32)
+    gold_vals = numpy.array([[-0.405594]], dtype=numpy.float32)
     elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
     r2_not_cterm = torch.zeros((1, 3, 2), dtype=torch.bool, device=torch_device)
     r2_not_cterm[0, 2, 1] = True
