@@ -376,6 +376,7 @@ def test_build_interaction_graph(ubq_ig, torch_device):
         _molten_block_ind_for_bc_rot,
         _rotamer_for_nonmolten_block,
         _bc_rot_to_orig_rot,
+        bg_bg_energies,
         energy1b,
         chunk_pair_offset_for_block_pair,
         chunk_pair_offset,
@@ -521,6 +522,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
         _molten_block_ind_for_bc_rot,
         _rotamer_for_nonmolten_block,
         _bc_rot_to_orig_rot,
+        bg_bg_energies,
         energy1b,
         chunk_pair_offset_for_block_pair,
         chunk_pair_offset,
@@ -666,6 +668,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
         molten_block_ind_for_bc_rot,
         rotamer_for_nonmolten_block,
         bc_rot_to_orig_rot,
+        bg_bg_energies,
         energy1b,
         chunk_pair_offset_for_block_pair,
         chunk_pair_offset,
@@ -683,6 +686,9 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
         sparse_indices,
         energies,
     )
+    orig_n_res = rotamer_set.n_rots_for_block.shape[1]
+    n_eliminated_res = torch.sum(rotamer_for_nonmolten_block != -1)
+    n_remaining = orig_n_res - n_eliminated_res
 
     packer_energy_tables = PackerEnergyTables(
         max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),
@@ -708,7 +714,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
     score_delta = scores_cpu[:, :-1] - scores_cpu[:, 1:]
     assert torch.all(score_delta <= 0.0)
 
-    assert rotamer_assignments.shape == (1, n_traj, 76)
+    assert rotamer_assignments.shape == (1, n_traj, n_remaining)
 
 
 def test_run_two_poses_simA(ubq_ig, torch_device):
@@ -732,6 +738,7 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
         molten_block_ind_for_bc_rot,
         rotamer_for_nonmolten_block,
         bc_rot_to_orig_rot,
+        bg_bg_energies,
         energy1b,
         chunk_pair_offset_for_block_pair,
         chunk_pair_offset,
@@ -749,6 +756,11 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
         sparse_indices,
         energies,
     )
+    orig_n_res = rotamer_set.n_rots_for_block.shape[1]
+    n_eliminated_res0 = torch.sum(rotamer_for_nonmolten_block[0, :] != -1)
+    n_eliminated_res1 = torch.sum(rotamer_for_nonmolten_block[1, :] != -1)
+    assert n_eliminated_res0 == n_eliminated_res1
+    n_remaining = orig_n_res - n_eliminated_res0
 
     packer_energy_tables = PackerEnergyTables(
         max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),
@@ -776,4 +788,4 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
     assert torch.all(score_delta <= 0.0)
 
     assert rotamer_assignments.device == torch_device
-    assert rotamer_assignments.shape == (2, n_traj, 76)
+    assert rotamer_assignments.shape == (2, n_traj, n_remaining)

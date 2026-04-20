@@ -101,6 +101,7 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
         molten_block_ind_for_bc_rot,
         rotamer_for_nonmolten_block,
         bc_rot_to_orig_rot,
+        bg_bg_energies,
         energy1b,
         chunk_pair_offset_for_block_pair,
         chunk_pair_offset,
@@ -257,6 +258,7 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
         molten_block_ind_for_bc_rot,
         rotamer_for_nonmolten_block,
         bc_rot_to_orig_rot,
+        bg_bg_energies,
         energy1b,
         chunk_pair_offset_for_block_pair,
         chunk_pair_offset,
@@ -350,6 +352,7 @@ def test_pack_rotamers_w_empty_interaction_graph(
         molten_block_ind_for_bc_rot,
         rotamer_for_nonmolten_block,
         bc_rot_to_orig_rot,
+        bg_bg_energies,
         energy1b,
         chunk_pair_offset_for_block_pair,
         chunk_pair_offset,
@@ -442,6 +445,7 @@ def test_pack_rotamers_w_dslf(
         molten_block_ind_for_bc_rot,
         rotamer_for_nonmolten_block,
         bc_rot_to_orig_rot,
+        bg_bg_energies,
         energy1b,
         chunk_pair_offset_for_block_pair,
         chunk_pair_offset,
@@ -480,9 +484,10 @@ def test_pack_rotamers_w_dslf(
     )
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+    print("scores", scores.shape)
 
     # correct for some residues being ignored as part of the background
-    scores = scores + 5.81982421875
+    scores = scores + bg_bg_energies.unsqueeze(1)
 
     new_pose_stack = impose_top_rotamer_assignments(
         pose_stack,

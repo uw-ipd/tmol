@@ -49,11 +49,13 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         TPack<int64_t, 2, D>,    // rotamer_for_nonmolten_block
         TPack<int64_t, 1, D>,    // bc_rot_to_orig_rot
 
-        TPack<Real, 1, D>,
+        TPack<Real, 1, D>,  // bg/bg energies
+        TPack<Real, 1, D>,  // energy1b
         TPack<int64_t, 3, D>,
         TPack<int64_t, 1, D>,
-        TPack<Real, 1, D> > {
-  printf("Size of Int %d bytes\n", sizeof(Int));
+        TPack<Real, 1, D> >  // energy2b
+{
+  //   printf("Size of Int %d bytes\n", sizeof(Int));
   int const n_poses = n_rots_for_pose.size(0);
   int const n_rotamers = pose_for_rot.size(0);
   int const max_n_blocks = n_rots_for_block.size(1);
@@ -164,7 +166,8 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
             n_poses * max_n_blocks * max_n_blocks,
             mgpu::plus_t<Int>());
 
-    printf("n_adjacent_chunk_pairs_total %ld\n", n_adjacent_chunk_pairs_total);
+    // printf("n_adjacent_chunk_pairs_total %ld\n",
+    // n_adjacent_chunk_pairs_total);
     auto chunk_pair_adjacency_tp =
         TPack<int64_t, 1, D>::zeros({n_adjacent_chunk_pairs_total});
     auto chunk_pair_adjacency = chunk_pair_adjacency_tp.view;
@@ -225,7 +228,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
             n_adjacent_chunk_pairs_total,
             mgpu::plus_t<Int>());
 
-    printf("n_two_body_energies start %ld\n", n_two_body_energies);
+    // printf("n_two_body_energies start %ld\n", n_two_body_energies);
     auto energy2b_tp = TPack<Real, 1, D>::zeros({n_two_body_energies});
     auto energy2b = energy2b_tp.view;
 
@@ -472,10 +475,10 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       Real energy_for_rot = best_energy_for_rot[rot];
       Real best_energy_for_block_type =
           best_energy_for_block_type_per_block[pose][block][block_type];
-      //   printf("decide_keep_rotamers: rot %d, block %d, pose %d, block_type
-      //   %d, energy_for_rot %5.2f, best_energy_for_block_type %5.2f\n",
-      //           rot, block, pose, block_type, energy_for_rot,
-      //           best_energy_for_block_type);
+      // printf("decide_keep_rotamers: rot %d, block %d, pose %d, block_type %d,
+      // energy_for_rot %5.2f, best_energy_for_block_type %5.2f\n",
+      //         rot, block, pose, block_type, energy_for_rot,
+      //         best_energy_for_block_type);
       if (energy_for_rot < 5.0 || best_energy_for_block_type > 5.0) {
         keep_rotamer[rot] = 1;
       }
@@ -507,11 +510,16 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         }
       }
       if (n_kept_rotamers_for_block > 1) {
+        // printf("keeping block %d of pose %d with %d rotamers\n", block, pose,
+        //        n_kept_rotamers_for_block);
         keep_block[pose][block] = 1;
       } else {
         // we are not keeping this block,
         // so if it has 1 rotamer, then we have to also
         // note that we are not keeping that rotamer
+        // printf("Not keeping block %d of pose %d with only %d rotamers\n",
+        // block, pose,
+        //        n_kept_rotamers_for_block);
         if (n_kept_rotamers_for_block == 1) {
           for (int rot_in_block = 0; rot_in_block < block_n_rots;
                ++rot_in_block) {
@@ -550,7 +558,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           n_rotamers,
           mgpu::plus_t<int64_t>());
   printf(
-      "n_kept_rotamers %ld from a starting %ld\n", n_kept_rotamers, n_rotamers);
+      "Bump Check kept %ld rotamers (eliminated %4.1f%%)\n",
+      n_kept_rotamers,
+      100.0 * (n_rotamers - n_kept_rotamers) / n_rotamers);
 
   auto new_to_old_rotamer_index_tp =
       TPack<int64_t, 1, D>::zeros({n_kept_rotamers});
@@ -582,7 +592,10 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           block_to_molten_block_inds.data(),
           n_poses * max_n_blocks,
           mgpu::plus_t<Int>());
-  printf("n_molten_blocks %d from an original %d\n", n_molten_blocks, n_poses * max_n_blocks);
+  printf(
+      "n_molten_blocks %d from an original %d\n",
+      n_molten_blocks,
+      n_poses * max_n_blocks);
   auto molten_block_to_block_inds_tp =
       TPack<Int, 1, D>::zeros({n_molten_blocks});
   auto molten_block_to_block_inds = molten_block_to_block_inds_tp.view;
@@ -943,6 +956,12 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto energy2b_tp = TPack<Real, 1, D>::zeros({n_two_body_energies});
   auto energy2b = energy2b_tp.view;
 
+  // By saving the background / background interaction energies, we can,
+  // at minimal extra expense, keep track of what the Pose's total energy
+  // is; this is more for debugging than any other purpose.
+  auto bg_bg_energies_tp = TPack<Real, 1, D>::zeros({n_poses});
+  auto bg_bg_energies = bg_bg_energies_tp.view;
+
   auto record_energies_in_energy1b_and_energy2b = ([=] TMOL_DEVICE_FUNC(
                                                        int index) {
     int const pose = sparse_inds[0][index];
@@ -971,11 +990,19 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     //         energy, block1, block2, molten_block1, molten_block2,
     //         kept_block1, kept_block2);
 
-    // Even if both rotamers are the sole remaining rotamer
-    // for these two positions that have been relegated to
-    // the background, we will not do anything with this energy;
-    // we do not keep the background / background energies;
-    // PERHAPS WE SHOULD! This will be the line to change.
+    if (!kept_block1 && !kept_block2) {
+      if (rot1 == rotamer_for_nonmolten_block[pose][block1]
+          && rot2 == rotamer_for_nonmolten_block[pose][block2]) {
+        // then this is a background / background interaction that we are not
+        // keeping in the interaction graph, but we will save it in the
+        // bg_bg_energies table so that we can keep track of the total energy of
+        // the pose
+        score::common::accumulate<D, Real>::add(bg_bg_energies[pose], energy);
+      }
+      return;
+    }
+    // otherwise, if both rotamers have been eliminated, then we do not need
+    // to do anything with their interaction energy
     if (!kept_rot1 && !kept_rot2) {
       return;
     }
@@ -1125,6 +1152,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       molten_block_ind_for_bc_rot_tp,
       rotamer_for_nonmolten_block_tp,
       new_to_old_rotamer_index_tp,
+      bg_bg_energies_tp,
       energy1b_tp,
       chunk_pair_offset_for_block_pair_tp,
       chunk_pair_offsets_tp,

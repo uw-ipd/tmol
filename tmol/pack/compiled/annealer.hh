@@ -41,7 +41,8 @@ struct InteractionGraphBuilder {
           TPack<int64_t, 2, D>,    // rotamer_for_nonmolten_block
           TPack<int64_t, 1, D>,    // bc_rot_to_orig_rot
 
-          TPack<Real, 1, D>,
+          TPack<Real, 1, D>,  // bg/bg energies
+          TPack<Real, 1, D>,  // energy1b
           TPack<int64_t, 3, D>,
           TPack<int64_t, 1, D>,
           TPack<Real, 1, D> >;  // energy2b

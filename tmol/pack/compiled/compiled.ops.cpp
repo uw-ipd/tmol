@@ -45,6 +45,7 @@ std::vector<Tensor> build_interaction_graph(
   at::Tensor rotamer_for_nonmolten_block;
   at::Tensor bc_rot_to_orig_rot;
 
+  at::Tensor bg_bg_energies;
   at::Tensor energy1b;
   at::Tensor chunk_pair_offset_for_block_pair;
   at::Tensor chunk_pair_offset;
@@ -83,10 +84,11 @@ std::vector<Tensor> build_interaction_graph(
         molten_block_ind_for_bc_rot = std::get<6>(result).tensor;
         rotamer_for_nonmolten_block = std::get<7>(result).tensor;
         bc_rot_to_orig_rot = std::get<8>(result).tensor;
-        energy1b = std::get<9>(result).tensor;
-        chunk_pair_offset_for_block_pair = std::get<10>(result).tensor;
-        chunk_pair_offset = std::get<11>(result).tensor;
-        energy2b = std::get<12>(result).tensor;
+        bg_bg_energies = std::get<9>(result).tensor;
+        energy1b = std::get<10>(result).tensor;
+        chunk_pair_offset_for_block_pair = std::get<11>(result).tensor;
+        chunk_pair_offset = std::get<12>(result).tensor;
+        energy2b = std::get<13>(result).tensor;
       }));
 
   std::vector<torch::Tensor> result(
@@ -99,6 +101,7 @@ std::vector<Tensor> build_interaction_graph(
        molten_block_ind_for_bc_rot,
        rotamer_for_nonmolten_block,
        bc_rot_to_orig_rot,
+       bg_bg_energies,
        energy1b,
        chunk_pair_offset_for_block_pair,
        chunk_pair_offset,
