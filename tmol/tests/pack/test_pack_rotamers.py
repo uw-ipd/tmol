@@ -194,13 +194,14 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
 
     # a distance constraint
     cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
-    cnstr_params = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
+    cnstr_params = torch.full((1, 2), 0, dtype=torch.float32, device=torch_device)
 
     res1_type = pose_stack.block_type(0, 3)
     res2_type = pose_stack.block_type(0, 4)
     cnstr_atoms[0, 0] = torch.tensor([0, 3, res1_type.atom_to_idx["C"]])
     cnstr_atoms[0, 1] = torch.tensor([0, 4, res2_type.atom_to_idx["N"]])
     cnstr_params[0, 0] = 1.47
+    cnstr_params[0, 1] = 0.1
 
     constraints = constraints.add_constraints(
         ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
@@ -208,13 +209,14 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
 
     # a distance constraint
     cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
-    cnstr_params = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
+    cnstr_params = torch.full((1, 2), 0, dtype=torch.float32, device=torch_device)
 
     res1_type = pose_stack.block_type(0, 5)
     res2_type = pose_stack.block_type(0, 6)
     cnstr_atoms[0, 0] = torch.tensor([0, 5, res1_type.atom_to_idx["C"]])
     cnstr_atoms[0, 1] = torch.tensor([0, 6, res2_type.atom_to_idx["N"]])
     cnstr_params[0, 0] = 1.47
+    cnstr_params[0, 1] = 0.1
 
     constraints = constraints.add_constraints(
         ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params

@@ -50,17 +50,22 @@ class ConstraintEnergyTerm(EnergyTerm):
 
     @classmethod
     def harmonic(cls, atoms, params):
+        # params[:, 0] == mean (target value)
+        # params[:, 1] == standard deviation
         atoms1 = atoms[:, 0]
         atoms2 = atoms[:, 1]
         dist = torch.linalg.norm(atoms1 - atoms2, dim=-1)
-        return (dist - params[:, 0]) ** 2
+        return ((dist - params[:, 0]) / params[:, 1]) ** 2
 
     @classmethod
     def harmonic_coordinate(cls, atoms, params):
+        # params[:, 0]   == distance to target coordinate
+        # params[:, 1:4] == target coordinate
+        # params[:, 4]   == standard deviation
         atoms1 = atoms[:, 0]
         atoms2 = params[:, 1:4]
         dist = torch.linalg.norm(atoms1 - atoms2, dim=-1)
-        return (dist - params[:, 0]) ** 2
+        return ((dist - params[:, 0]) / params[:, 4]) ** 2
 
     @classmethod
     def bounded(cls, atoms, params):
@@ -91,6 +96,9 @@ class ConstraintEnergyTerm(EnergyTerm):
 
     @classmethod
     def circularharmonic(cls, atoms, params):
+        # params[:, 0] == mean (target value)
+        # params[:, 1] == standard deviation
+        # params[:, 2] == constant that's added to the score regardless
         x0 = params[:, 0]  # The desired angle
         sd = params[:, 1]
         offset = params[:, 2]

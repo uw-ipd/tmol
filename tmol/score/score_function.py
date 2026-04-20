@@ -49,6 +49,9 @@ class ScoreFunction:
         self._weights[st.value] = weight
         self._weights_tensor_out_of_date = True
 
+    def get_weight(self, st: ScoreType):
+        return self._weights[st.value]
+
     def score_type_covered_by_contained_term(self, st: ScoreType):
         for term in self._all_terms:
             if st in term.score_types():
@@ -77,11 +80,11 @@ class ScoreFunction:
             self._multi_body_terms_out_of_date = True
 
     def term_for_st_has_no_other_non_zero_weights(self, st: ScoreType):
-        term = self.term_for_st(st)
-        for st2 in term.score_types:
+        term = self._term_for_st[st.value]
+        for st2 in term.score_types():
             if st2 == st:
                 continue
-            if self._weights[st2] != 0:
+            if self._weights[st2.value] != 0:
                 return True
         return False
 
