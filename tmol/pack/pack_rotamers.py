@@ -18,7 +18,6 @@ def pack_rotamers(
     verbose=False,
     **sa_params,
 ):
-    from tmol.pack.compiled.compiled import build_interaction_graph
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -78,6 +77,8 @@ def pack_rotamers(
 
 
 def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, verbose=False):
+    from tmol.pack.compiled.compiled import build_interaction_graph
+
     pbt = pose_stack.packed_block_types
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
 
