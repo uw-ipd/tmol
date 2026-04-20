@@ -15,6 +15,7 @@ from tmol.io.pose_stack_deconstruction import canonical_form_from_pose_stack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.utility.biotite_util import get_all_residue_positions
 
 from tmol import beta2016_score_function
 
@@ -550,7 +551,7 @@ def canonical_form_from_biotite(
         not_connected,
     ) = _extract_residue_metadata(biotite_structure, not_connected, torch_device)
 
-    atom_res_inds = biotite.structure.get_all_residue_positions(biotite_structure)
+    atom_res_inds = get_all_residue_positions(biotite_structure)
     biotite_name_for_atom = biotite_structure.atom_name
     biotite_res_name_for_atom = biotite_structure.res_name
 

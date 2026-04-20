@@ -4,9 +4,12 @@ from tmol.pack.datatypes import PackerEnergyTables
 def run_simulated_annealing(energy_tables: PackerEnergyTables):
     """Run GPU simulated annealing.
 
-    500 parallel hitemp trajectories explore with geometric cooling; the top
-    25% seed 10 low-temperature reruns each; the top 25% of those receive a
-    final greedy quench.
+    Phase 1 (hi-temp SA): 500 trajectories run at high temperature
+    Phase 2 (lo-temp SA): Each top hi-temp trajectory seeds 10 lo-temp
+    trajectories, then round1_cut = 0.25 keeps the top 25%
+      -> 500 * 10 * 0.25 = 1250 trajectories
+    Phase 3 (full quench): round2_cut = 0.25 keeps the top 25% of those
+      -> int(1250 * 0.25) = 312 trajectories
     """
     # Import compiled components to load torch_ops
     from tmol.pack.compiled.compiled import pack_anneal

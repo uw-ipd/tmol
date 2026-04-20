@@ -19,12 +19,14 @@ concurrency:
 env:
   SIF: /net/software/containers/versions/modelhub/pytorch_24.10-py3.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
+  
 
 jobs:
   ci:
     runs-on: [self-hosted, gpu]
     timeout-minutes: 720
     steps:
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -36,7 +38,6 @@ jobs:
             xargs -P8 -I{} bash -c 'ts=$(git log -1 --format="%ct" -- "$1") && touch -d "@$ts" "$1"' _ {}
 
       - name: Lint
-        continue-on-error: true
         run: |
           apptainer exec \
             --bind /net/scratch:/net/scratch \
@@ -51,7 +52,9 @@ jobs:
           flake8 || echo "::warning::flake8 found issues"
           LINT
 
-      - name: Build and test (GPU)
+      - name: Build
+        id: build
+        if: always()
         run: |
           mkdir -p $PIP_PKGS
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
@@ -60,8 +63,10 @@ jobs:
               --bind /net/scratch:/net/scratch \
               --bind $PIP_PKGS:/ci-pip-pkgs \
               --pwd $GITHUB_WORKSPACE \
-              $SIF bash << 'GPU_WORK'
+              $SIF bash << 'BUILD'
           set -ex
+
+          errors=()
 
           PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PYTHONUSERBASE=/ci-pip-pkgs
@@ -103,20 +108,89 @@ jobs:
           echo "=== environment ==="
           python --version
           python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPUs: {torch.cuda.device_count()}')"
-          nvidia-smi || true
+          nvidia-smi
+          
+          BUILD
 
+      - name: Test CPU
+        id: cpu
+        if: always() && steps.build.outcome == 'success'
+        run: |
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
-          CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
-            --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda" || true
+          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
+            -t 06:00:00 --cpus-per-task=16 --mem=128G \
+            apptainer exec --nv \
+              --bind /net/scratch:/net/scratch \
+              --bind $PIP_PKGS:/ci-pip-pkgs \
+              --pwd $GITHUB_WORKSPACE \
+              $SIF bash << 'CPU_TEST'
+          set -ex
+          
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+          export PYTHONUSERBASE=/ci-pip-pkgs
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
+          
+          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
+          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
 
+          CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
+            --cov=$GITHUB_WORKSPACE/tmol.cov --junitxml=$GITHUB_WORKSPACE/testing.cpu.junit.xml -k "not cuda"
+
+          CPU_TEST
+
+      - name: Test CUDA
+        id: cuda
+        if: always() && steps.build.outcome == 'success'
+        run: |
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
-          pytest -p no:rerunfailures -s -v --durations=25 --cov=./tmol \
-            --junitxml=testing.cuda.junit.xml -k "cuda" || true
+          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
+            -t 06:00:00 --cpus-per-task=16 --mem=128G \
+            apptainer exec --nv \
+              --bind /net/scratch:/net/scratch \
+              --bind $PIP_PKGS:/ci-pip-pkgs \
+              --pwd $GITHUB_WORKSPACE \
+              $SIF bash << 'GPU_TEST'
+          set -ex
+          
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+          export PYTHONUSERBASE=/ci-pip-pkgs
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
+          
+          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
+          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
 
+          pytest -p no:rerunfailures -s -v --durations=25 --cov=$GITHUB_WORKSPACE/tmol.cov \
+            --junitxml=$GITHUB_WORKSPACE/testing.cuda.junit.xml -k "cuda"
+
+          GPU_TEST
+
+      - name: Benchmark
+        if: always() && steps.build.outcome == 'success'
+        run: |
+          exit 1
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
+          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
+            -t 06:00:00 --cpus-per-task=16 --mem=128G \
+            apptainer exec --nv \
+              --bind /net/scratch:/net/scratch \
+              --bind $PIP_PKGS:/ci-pip-pkgs \
+              --pwd $GITHUB_WORKSPACE \
+              $SIF bash << 'BENCHMARK'
+          set -ex
+          
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+          export PYTHONUSERBASE=/ci-pip-pkgs
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
+          
+          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
+          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
+
           BENCHMARK_DIR=benchmark/$GITHUB_REPOSITORY/$GITHUB_REF_NAME
           BENCHMARK_RESULT=${BENCHMARK_DIR}/${GITHUB_RUN_NUMBER}.json
           mkdir -p $BENCHMARK_DIR
@@ -125,25 +199,19 @@ jobs:
             --benchmark-name=short --benchmark-sort=fullname \
             --benchmark-columns=ops,mean,iqr \
             --benchmark-json=${BENCHMARK_RESULT} \
-            --benchmark-max-time=.1 || true
+            --benchmark-max-time=.1
 
           pytest-benchmark compare --name=short --sort=fullname \
-            --columns=ops,mean,iqr $(find benchmark -name '*.json') || true
+            --columns=ops,mean,iqr $(find benchmark -name '*.json')
 
-          GPU_WORK
+          BENCHMARK
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Test Summary
+        if: always() #&& (steps.cpu.outcome == 'success' || steps.cuda.outcome == 'success')
+        uses: test-summary/action@v2
         with:
-          name: test-results
-          path: |
-            testing.cpu.junit.xml
-            testing.cuda.junit.xml
+          paths: |
+            testing.*.junit.xml
 
-      - name: Upload benchmark results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-results
-          path: benchmark/**/*
+
+      

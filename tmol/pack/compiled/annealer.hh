@@ -16,6 +16,7 @@ template <
     typename Int>
 struct InteractionGraphBuilder {
   static auto f(
+      int const verbose,
       int const chunk_size,
       int const max_n_block_types,
       TView<Int, 1, D> n_rots_for_pose,

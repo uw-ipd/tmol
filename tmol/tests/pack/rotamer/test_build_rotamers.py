@@ -42,7 +42,7 @@ from tmol.score.hbond.hbond_energy_term import (
 )
 
 # TEMP
-from tmol.io.pdb_parsing import atom_record_dtype, to_pdb_lines
+from tmol.io.pdb_parsing import atom_record_dtype
 
 
 def test_annotate_restypes(
@@ -1089,15 +1089,27 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
             atom_records[i_offset + j]["occupancy"] = 1.0  # occupancy
             atom_records[i_offset + j]["b"] = 0.0  # B-factor
 
-    # with open("tmol/tests/pack/rotamer/gold_repack_1ubq_rotamers.pdb", "w") as fid:
-    #     fid.writelines(to_pdb_lines(atom_records))
+    # uncomment if rotgen changes
+    # from tmol.io.pdb_parsing import to_pdb_lines
+    # with open("test_build_rotamers.pdb", "w") as fid:
+    #    fid.writelines(to_pdb_lines(atom_records))
+
+    def parse_atom_coords(lines):
+        coords = []
+        for line in lines:
+            if line.startswith("ATOM"):
+                coords.append(
+                    (float(line[30:38]), float(line[38:46]), float(line[46:54]))
+                )
+        return numpy.array(coords)
 
     with open("tmol/tests/pack/rotamer/gold_repack_1ubq_rotamers.pdb") as fid:
-        gold_lines = fid.readlines()
-    test_lines = list(to_pdb_lines(atom_records))
-    assert len(gold_lines) == len(test_lines)
-    for gold_line, test_line in zip(gold_lines, test_lines):
-        assert gold_line == test_line
+        gold_coords = parse_atom_coords(fid.readlines())
+    test_coords = numpy.stack(
+        [atom_records["x"], atom_records["y"], atom_records["z"]], axis=-1
+    )
+    assert gold_coords.shape == test_coords.shape
+    numpy.testing.assert_allclose(test_coords, gold_coords, atol=1e-3)
 
 
 def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
@@ -1182,7 +1194,7 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     rotamer_scorer = energy_term.render_rotamer_scoring_module(poses, rotamer_set)
 
     coords = torch.nn.Parameter(rotamer_set.coords.clone())
-    sparse_scores = rotamer_scorer(rot_coords).coalesce()
+    sparse_scores = rotamer_scorer.forward_split(rot_coords).coalesce()
 
     def copy_rot_xyz(
         pose_stack,

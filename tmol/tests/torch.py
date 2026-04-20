@@ -54,7 +54,7 @@ def cuda_not_implemented(f):
 
 
 @pytest.fixture
-def torch_backward_coverage(cov):
+def torch_backward_coverage(request):
     """Torch hook to enable coverage in backward pass.
 
     Returns a hook function used to enable coverage tracing during
@@ -72,6 +72,9 @@ def torch_backward_coverage(cov):
     # call backward via sum so hook fires before custom_op backward
     result.sum().backward()
     """
+
+    cov = request.config.pluginmanager.get_plugin("_cov")
+    cov = getattr(cov, "cov", None) if cov else None
 
     if cov:
         print("cov collector???", hasattr(cov, "collector"))

@@ -144,7 +144,7 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
     def _d(x):
         return x.to(device)
 
-    print("n_rots", n_rots)
+    # print("n_rots", n_rots)
 
     n_rots_per_pose = torch.sum(n_rots, dim=1)
     n_rots_total = torch.sum(n_rots_per_pose).item()
@@ -382,6 +382,7 @@ def test_build_interaction_graph(ubq_ig, torch_device):
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
+        False,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
         rotamer_set.n_rots_for_pose,
@@ -528,6 +529,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
+        False,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
         rotamer_set.n_rots_for_pose,
@@ -674,6 +676,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
+        False,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
         rotamer_set.n_rots_for_pose,
@@ -707,7 +710,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    n_traj = 1 if torch_device == torch.device("cpu") else 1250
+    n_traj = 1 if torch_device == torch.device("cpu") else 312
     assert scores.shape == (1, n_traj)
     scores_cpu = scores.cpu()
     # make sure that scores are in ascending order
@@ -744,6 +747,7 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
+        False,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
         rotamer_set.n_rots_for_pose,
@@ -779,7 +783,7 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    n_traj = 1 if torch_device == torch.device("cpu") else 1250
+    n_traj = 1 if torch_device == torch.device("cpu") else 312
     assert scores.shape == (2, n_traj)
     assert scores.device == torch_device
     scores_cpu = scores.cpu()

@@ -22,6 +22,7 @@ namespace compiled {
 using torch::Tensor;
 
 std::vector<Tensor> build_interaction_graph(
+    int64_t const verbose,
     int64_t const chunk_size,
     int64_t const max_n_block_types,
     Tensor n_rots_for_pose,
@@ -63,7 +64,8 @@ std::vector<Tensor> build_interaction_graph(
             Dev,
             Real,
             Int>::
-            f(chunk_size,
+            f(verbose,
+              chunk_size,
               max_n_block_types,
               TCAST(n_rots_for_pose),
               TCAST(rot_offset_for_pose),

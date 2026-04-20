@@ -107,6 +107,7 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, verbose=False):
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
+        verbose,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,

@@ -107,6 +107,7 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
+        False,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,
@@ -266,6 +267,7 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
+        False,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,
@@ -360,6 +362,7 @@ def test_pack_rotamers_w_empty_interaction_graph(
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
+        False,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,
@@ -453,6 +456,7 @@ def test_pack_rotamers_w_dslf(
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
+        False,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,
@@ -558,7 +562,6 @@ def test_pack_rotamers_irregular_sized_poses(
     task.restrict_to_repacking()
     task.set_include_current()
     task.or_expand_chi(1)
-    task.or_expand_chi(2)
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)

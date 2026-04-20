@@ -5,6 +5,16 @@ import biotite.structure.io
 
 from . import pdb
 
+_CIF_DATA_DIR = os.path.join(os.path.dirname(__file__), "cif")
+
+
+def load_cif(pdb_code):
+    """Load a CIF from the bundled test data directory."""
+    path = os.path.join(_CIF_DATA_DIR, f"{pdb_code}.cif")
+    return biotite.structure.io.load_structure(
+        path, extra_fields=["occupancy", "b_factor"]
+    )
+
 
 @pytest.fixture(scope="session")
 def min_pdb():
