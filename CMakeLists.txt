@@ -245,6 +245,9 @@ set(_C_SOURCES
   # kinematics/compiled
   tmol/kinematics/compiled/compiled_ops.cpp
   tmol/kinematics/compiled/compiled.cpu.cpp
+  # optimization/compiled
+  tmol/optimization/compiled/lbfgs.ops.cpp
+  tmol/optimization/compiled/lbfgs.cpu.cpp
   # pack/compiled
   tmol/pack/compiled/compiled.ops.cpp
   tmol/pack/compiled/compiled.cpu.cpp
@@ -289,6 +292,7 @@ if(TMOL_HAS_CUDA)
     tmol/io/details/compiled/gen_pose_leaf_atoms.cuda.cu
     tmol/io/details/compiled/resolve_his_taut.cuda.cu
     tmol/kinematics/compiled/compiled.cuda.cu
+    tmol/optimization/compiled/lbfgs.cuda.cu
     tmol/pack/compiled/compiled.cuda.cu
     tmol/pack/rotamer/dunbrack/compiled.cuda.cu
     tmol/pose/compiled/apsp.cuda.cu

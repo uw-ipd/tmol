@@ -77,7 +77,7 @@ class HBondRotPairData {
 
   // Parameters that define the hbond energies
   TView<HBondPairParams<Real>, 2, Dev> pair_params;
-  TView<HBondPolynomials<double>, 2, Dev> pair_polynomials;
+  TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials;
 };
 
 template <tmol::Device Dev, typename Real, typename Int>
@@ -238,7 +238,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
     TView<Int, 2, Dev> block_type_atom_is_hydrogen,
 
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
-    TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+    TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
     int const max_important_bond_separation,
@@ -475,7 +475,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
     TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
     TView<Int, 2, Dev> block_type_atom_is_hydrogen,
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
-    TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+    TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
     int const max_important_bond_separation,
     int pose_ind,

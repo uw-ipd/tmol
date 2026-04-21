@@ -500,7 +500,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     // HBond potential parameters
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
-    TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+    TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
     bool output_block_pair_energies,
@@ -866,7 +866,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 
     // HBond potential parameters
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
-    TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+    TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
     TView<Int, 3, Dev> scratch_rot_neighbors,  // from forward pass
@@ -1120,7 +1120,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     // HBond potential parameters
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
-    TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+    TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
     bool output_block_pair_energies,
@@ -1468,7 +1468,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 
     // HBond potential parameters
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
-    TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+    TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
     TView<Int, 2, Dev> dispatch_indices,  // from forward pass
