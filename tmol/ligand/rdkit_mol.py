@@ -17,7 +17,7 @@ from tmol.ligand.dimorphite_dl import protonate_mol_variants
 logger = logging.getLogger(__name__)
 
 
-_ELEMENT_TO_ATOMIC_NUM = {
+ELEMENT_TO_ATOMIC_NUM = {
     "H": 1,
     "C": 6,
     "N": 7,
@@ -77,5 +77,8 @@ def protonate_ligand_mol(
         if variants:
             return variants[0]
     except Exception:
-        logger.warning("Dimorphite-DL direct-Mol protonation failed; keeping input mol")
+        logger.warning(
+            "Dimorphite-DL direct-Mol protonation failed; keeping input mol",
+            exc_info=True,
+        )
     return mol

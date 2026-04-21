@@ -13,7 +13,7 @@ from rdkit.Chem import AllChem
 logger = logging.getLogger(__name__)
 
 
-def compute_mmff94_charges(mol) -> dict[int, float]:
+def compute_mmff94_charges(mol: Chem.Mol) -> dict[int, float]:
     """Compute MMFF94 partial charges via RDKit.
 
     Falls back to Gasteiger charges when MMFF94 parameterization fails
@@ -34,7 +34,7 @@ def compute_mmff94_charges(mol) -> dict[int, float]:
     return {i: props.GetMMFFPartialCharge(i) for i in range(mol.GetNumAtoms())}
 
 
-def rdkit_mol_to_obmol(rdkit_mol):
+def rdkit_mol_to_obmol(rdkit_mol: Chem.Mol) -> pybel.Molecule:
     """Convert an RDKit Mol to an OpenBabel molecule via MolBlock roundtrip.
 
     No 3D generation or minimization is performed -- the RDKit mol is

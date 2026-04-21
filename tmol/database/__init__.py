@@ -79,9 +79,9 @@ class ParameterDatabase:
 
     def remove_residue_type(self, res_name: str) -> None:
         """Remove a residue type from the chemical database."""
-        self.chemical.residues = [
+        self.chemical.residues = tuple(
             r for r in self.chemical.residues if r.name != res_name
-        ]
+        )
 
     @classmethod
     def from_file(cls, path: str) -> "ParameterDatabase":

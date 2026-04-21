@@ -27,7 +27,17 @@ def normalize_bond_tuples(raw):
     Historically, some YAML snippets used ``[atom1, atom2]`` for bonds.
     The typed schema expects 3-tuples: ``(atom1, atom2, bond_type)``.
     This helper expands 2-field entries to use ``"SINGLE"`` as default.
+
+    Handles both the top-level dict shape (``chemical.yaml``) and a
+    flat list of residue/variant dicts.
     """
+    if isinstance(raw, dict):
+        for key in ("residues", "variants"):
+            entries = raw.get(key)
+            if isinstance(entries, list):
+                normalize_bond_tuples(entries)
+        return raw
+
     if not isinstance(raw, list):
         return raw
 

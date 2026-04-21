@@ -31,9 +31,6 @@ ELEMENT_SYMBOLS = {
     53: "I",
 }
 
-# Database-backed HBond properties keyed by atom type name.
-HBOND_PROPERTIES: dict[str, dict] = get_hbond_properties()
-
 
 class AtomTypeAssignment(NamedTuple):
     atom_name: str
@@ -411,11 +408,6 @@ def _modify_polar_c(
             for bond in openbabel.OBAtomBondIter(obatom)
             if not _is_hydrogen(bond.GetNbrAtom(obatom))
         )
-        n_total = obatom.GetTotalDegree()
-        if n_total - (n_total - n_heavy) == 1:
-            # aliphatic tip: only 1 heavy neighbor
-            # n_heavy == 1
-            pass
         if n_heavy <= 1:
             result.append(a)
             continue

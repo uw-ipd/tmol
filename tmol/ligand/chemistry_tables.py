@@ -4,8 +4,6 @@ These helpers derive atom-class sets and hbond metadata from the default
 chemical database so atom-type updates can be handled centrally in YAML.
 """
 
-from functools import lru_cache
-
 from tmol.database import ParameterDatabase
 
 _LEGACY_POLAR_CLASSES = frozenset(
@@ -29,10 +27,9 @@ _LEGACY_POLAR_CLASSES = frozenset(
 
 
 def _default_atom_types():
-    return ParameterDatabase.get_current().chemical.atom_types
+    return ParameterDatabase.get_default().chemical.atom_types
 
 
-@lru_cache(maxsize=1)
 def get_hbond_properties() -> dict[str, dict]:
     props: dict[str, dict] = {}
     for at in _default_atom_types():
@@ -52,15 +49,11 @@ def get_hbond_properties() -> dict[str, dict]:
     return props
 
 
-@lru_cache(maxsize=1)
 def get_polar_classes() -> frozenset[str]:
-    # Keep parity with Rosetta mol2genparams legacy polar-carbon behavior.
-    # Only classes in the original POLARCLASSES set trigger *p carbon typing.
     available = {at.name for at in _default_atom_types()}
     return frozenset(name for name in _LEGACY_POLAR_CLASSES if name in available)
 
 
-@lru_cache(maxsize=1)
 def get_sp2_atom_types() -> frozenset[str]:
     sp2_types = set()
     for at in _default_atom_types():

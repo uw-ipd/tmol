@@ -669,7 +669,7 @@ class TestGroundTruthRegression:
         from tmol.ligand.atom_typing import assign_tmol_atom_types
         from tmol.ligand.mol3d import compute_mmff94_charges, rdkit_mol_to_obmol
         from tmol.ligand.residue_builder import build_residue_type
-        from tmol.ligand.smiles import protonate_ligand_mol
+        from tmol.ligand.rdkit_mol import protonate_ligand_mol
 
         name = request.param
         gt = self.GROUND_TRUTH_DIR
