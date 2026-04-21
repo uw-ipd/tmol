@@ -49,13 +49,16 @@ def armijo_linesearch(
               * 'factor' corresponds roughly to 'beta' in the text (see point 1)
     """
     # evaluate phi(0) if not input
+    n_evals = 0
     if old_fval is None:
         phi0 = func(0.0)
+        n_evals += 1
     else:
         phi0 = old_fval
 
     # check armijo condition
     phi_a0 = func(alpha0)
+    n_evals += 1
 
     # first, we check if we can increase the stepsize
     #     (if the func is still behaving linearly)
@@ -64,11 +67,12 @@ def armijo_linesearch(
         # attempt to increase stepsize
         alpha1 = alpha0 / factor
         phi_a1 = func(alpha1)
+        n_evals += 1
         if phi_a1 < phi_a0:
-            return alpha1, phi_a1
+            return alpha1, phi_a1, n_evals, "increased"
 
         # step back
-        return alpha0, phi_a0
+        return alpha0, phi_a0, n_evals, "step_back"
 
     # next, we check if we need to decrease the stepsize
     alpha1 = alpha0
@@ -94,13 +98,38 @@ def armijo_linesearch(
                     " Finite=",
                     finite_diff,
                 )
-                return 0.0, phi0
-            return alpha1, phi_a1
+                return 0.0, phi0, n_evals, "inaccurate_G"
+            return alpha1, phi_a1, n_evals, "minstep"
 
         alpha1 *= factor * factor  # see note above, decrease by factor^2
         phi_a1 = func(alpha1)
+        n_evals += 1
 
-    return alpha1, phi_a1
+    return alpha1, phi_a1, n_evals, "armijo"
+
+
+@torch.jit.script
+def _lbfgs_two_loop(
+    grad: torch.Tensor,
+    old_dirs: torch.Tensor,  # (m, N) oldest→newest, y vectors
+    old_stps: torch.Tensor,  # (m, N) oldest→newest, s vectors
+) -> torch.Tensor:
+    m = old_dirs.shape[0]
+    ro = 1.0 / (old_dirs * old_stps).sum(dim=1)
+    al = torch.zeros(m, dtype=grad.dtype, device=grad.device)
+
+    q = grad.neg()
+    for i in range(m - 1, -1, -1):
+        al_i = float(ro[i] * old_stps[i].dot(q))
+        al[i] = al_i
+        q.add_(old_dirs[i], alpha=-al_i)
+
+    r = q
+    for i in range(m):
+        be = float(ro[i] * old_dirs[i].dot(r))
+        r.add_(old_stps[i], alpha=float(al[i]) - be)
+
+    return r
 
 
 class LBFGS_Armijo(Optimizer):
@@ -124,7 +153,7 @@ class LBFGS_Armijo(Optimizer):
         max_iter=200,
         rtol=None,  # None => dtype-based default
         atol=None,  # None => dtype-based default
-        gradtol=1e-4,
+        gradtol=1.0,
         history_size=128,
         minstep=1e-12,
         verbose=False,
@@ -277,11 +306,13 @@ class LBFGS_Armijo(Optimizer):
             )
             state["history_start"] = 0  # Circular buffer start index
             state["history_count"] = 0  # Number of items in history
+            state["x_ref"] = x.clone()  # reference position for s computation
 
         old_dirs_mat = state["old_dirs_mat"]
         old_stps_mat = state["old_stps_mat"]
         history_start = state["history_start"]
         history_count = state["history_count"]
+        x_ref = state["x_ref"]
 
         n_iter = 0
 
@@ -297,9 +328,9 @@ class LBFGS_Armijo(Optimizer):
             else:
                 # do lbfgs update (update memory)
                 y = flat_grad.sub(prev_flat_grad)
-                s = d.mul(t)
+                s = x.sub(x_ref)  # cumulative displacement since last good step
                 ys = y.dot(s)  # y*s
-                if ys > 1e-10:
+                if ys > 1e-6:
                     # updating memory - write directly into circular buffer
                     if history_count < history_size:
                         # Still filling up the buffer
@@ -312,11 +343,12 @@ class LBFGS_Armijo(Optimizer):
 
                     old_dirs_mat[idx].copy_(y)
                     old_stps_mat[idx].copy_(s)
+                    x_ref = x.clone()  # advance reference only on good steps
 
                 # compute the approximate (L-BFGS) inverse Hessian
                 if history_count == 0:
                     # No history: use steepest descent direction
-                    d = r = flat_grad.neg()
+                    d = flat_grad.neg()
                 else:
                     # Create views old -> new
                     if history_count < history_size:
@@ -335,33 +367,7 @@ class LBFGS_Armijo(Optimizer):
                         old_dirs_view = old_dirs_mat[indices]
                         old_stps_view = old_stps_mat[indices]
 
-                    # Compute all ro values in one batched operation
-                    ro = 1.0 / torch.sum(old_dirs_view * old_stps_view, dim=1)
-
-                    # First loop: backward pass - fully batched
-                    q = flat_grad.neg()
-
-                    # Compute all dot products: old_stps_mat @ q
-                    stps_dot_q = torch.mv(old_stps_view, q)
-                    al = stps_dot_q * ro
-
-                    # Compute cumulative updates in reverse order
-                    al_flipped = torch.flip(al, dims=[0])
-                    old_dirs_flipped = torch.flip(old_dirs_view, dims=[0])
-
-                    # Apply all updates at once: q -= old_dirs_mat.T @ al_flipped
-                    q.add_(torch.mv(old_dirs_flipped.t(), al_flipped), alpha=-1.0)
-
-                    # Second loop: forward pass - fully batched
-                    r = q
-                    be = (
-                        torch.mv(old_dirs_view, r) * ro
-                    )  # All dot products in one matmul
-
-                    # Single batched update: r += old_stps_mat.T @ (al - be)
-                    r.add_(torch.mv(old_stps_view.t(), al - be))
-
-                    d = r
+                    d = _lbfgs_two_loop(flat_grad, old_dirs_view, old_stps_view)
 
             if prev_flat_grad is None:
                 prev_flat_grad = flat_grad.clone()
@@ -405,16 +411,64 @@ class LBFGS_Armijo(Optimizer):
                 return E.to(dtype=gtd.dtype)
 
             # do the line search
-            t, loss = armijo_linesearch(
+            # match Rosetta: start at 2x prev accepted step, capped at 1.0
+            start_t = min(t / 0.5, 1.0)
+            t, loss, ls_evals, _ = armijo_linesearch(
                 linefn,  # callback for energy eval
                 gtd,  # directional derivative
                 prev_loss,  # current function value (at x)
-                alpha0=t,  # stepsize
+                alpha0=start_t,  # stepsize
                 factor=0.5,
                 sigma_decrease=0.1,
                 sigma_increase=0.8,
                 minstep=self._minstep,
             )
+
+            if self.verbose:
+                print(
+                    f"  iter {n_iter:4d}  E={loss:.6f}  ls_evals={ls_evals}  start_step={start_t:.6e}  accepted_step={t:.6e}"
+                )
+
+            if t == 0.0:
+                # Failed line search: reset L-BFGS history, retry with steepest
+                # descent at step 1/||grad||, matching Rosetta's recovery behavior.
+                # linefn captures d/gtd by reference, so reassigning them here
+                # is sufficient — no need to redefine the closure.
+                history_count = 0
+                history_start = 0
+                x_ref = x.clone()  # reset reference position with history
+                d = flat_grad.neg()
+                gtd = flat_grad.dot(d)
+                if gtd > -1e-5:
+                    if self.verbose:
+                        print(
+                            f"  iter {n_iter:4d}  ls failed and gradient ~0, stopping"
+                        )
+                    break
+                t = 1.0 / float((-gtd).sqrt())
+                prev_loss = loss
+                start_t = min(t / 0.5, 1.0)
+                t, loss, ls_evals_retry, _ = armijo_linesearch(
+                    linefn,
+                    gtd,
+                    prev_loss,
+                    alpha0=start_t,
+                    factor=0.5,
+                    sigma_decrease=0.1,
+                    sigma_increase=0.8,
+                    minstep=self._minstep,
+                )
+                ls_evals += ls_evals_retry
+                if self.verbose:
+                    print(
+                        f"  iter {n_iter:4d}  [reset+retry] E={loss:.6f}  ls_evals={ls_evals_retry}  start_step={start_t:.6e}  accepted_step={t:.6e}"
+                    )
+                if t == 0.0:
+                    if self.verbose:
+                        print(
+                            f"  iter {n_iter:4d}  ls failed again after reset, stopping"
+                        )
+                    break
 
             # update - direct modification
             x.copy_(x_backup).add_(d, alpha=t)
@@ -428,21 +482,11 @@ class LBFGS_Armijo(Optimizer):
             current_evals += self.ls_func_evals
             state["func_evals"] += self.ls_func_evals
 
-            # if self.verbose:
-            #    print(
-            #        f"  iter {n_iter:4d}  E={loss:12.4f}"
-            #        f"  max_grad={float(max_grad):10.4f}"
-            #        f"  step={t:.4e}"
-            #        f"  ls_evals={self.ls_func_evals}"
-            #        f"  total_evals={current_evals}"
-            #    )
-
             # converge check 1: gradient
             if max_grad <= gradtol:
                 if self.verbose:
                     print(f"  converged: max_grad {float(max_grad):.4e} <= {gradtol}")
                 break
-
             # converge check 2: abs tol
             if abs(loss - prev_loss) <= atol:
                 if self.verbose:
@@ -450,13 +494,10 @@ class LBFGS_Armijo(Optimizer):
                         f"  converged: |dE| {abs(loss - prev_loss):.4e} <= atol {atol}"
                     )
                 break
-
             # converge check 3: rel tol
-            if 2 * abs(loss - prev_loss) <= rtol * (abs(loss) + abs(prev_loss) + 1e-10):
+            rdiff = 2 * abs(loss - prev_loss) / (abs(loss) + abs(prev_loss) + 1e-10)
+            if rdiff <= rtol:
                 if self.verbose:
-                    rdiff = (
-                        2 * abs(loss - prev_loss) / (abs(loss) + abs(prev_loss) + 1e-10)
-                    )
                     print(f"  converged: rel_dE {rdiff:.4e} <= rtol {rtol}")
                 break
 
@@ -473,5 +514,6 @@ class LBFGS_Armijo(Optimizer):
         state["history_count"] = history_count
         state["prev_flat_grad"] = prev_flat_grad
         state["prev_loss"] = prev_loss
+        state["x_ref"] = x_ref
 
         return orig_loss
