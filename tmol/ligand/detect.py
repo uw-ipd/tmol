@@ -170,6 +170,7 @@ def _atom_array_to_smiles(atom_array: struc.AtomArray) -> Optional[str]:
                 rdDetermineBonds.DetermineBonds(rwmol)
             mol = rwmol.GetMol()
     except Exception:
+        logger.debug("Failed to convert AtomArray to SMILES", exc_info=True)
         return None
 
     mol = Chem.RemoveHs(mol)

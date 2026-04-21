@@ -127,4 +127,16 @@ venv.bak/
 
 # macos
 ._*
+# CMake / scikit-build build artifacts
+CMakeCache.txt
+CMakeFiles/
+CMakeInit.txt
+cmake_install.cmake
+build.ninja
+.ninja_deps
+.ninja_log
+.cmake/
+.skbuild-info.json
+detect_cuda_version.cc
+
 # End of https://www.gitignore.io/api/python,jupyternotebook

@@ -167,8 +167,9 @@ def pose_stack_from_biotite(
         **kwargs: Additional arguments passed to pose_stack_from_canonical_form.
 
     Returns:
-        PoseStack when ``return_context`` is False, otherwise a tuple of
-        ``(pose_stack, BiotitePoseBuildContext)``.
+        PoseStack when no optional values requested and return_context is False.
+        ``(PoseStack, BiotitePoseBuildContext)`` when return_context is True.
+        ``(PoseStack, dict)`` when optional return values were requested via kwargs.
     """
     from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
     from tmol.pack.build_missing_sidechains import build_missing_sidechains

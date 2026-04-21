@@ -43,8 +43,8 @@ from tmol.ligand.registry import (
     register_ligand,
 )
 from tmol.ligand.residue_builder import build_residue_type
-from tmol.ligand.smiles import (
-    _ELEMENT_TO_ATOMIC_NUM,
+from tmol.ligand.rdkit_mol import (
+    ELEMENT_TO_ATOMIC_NUM,
     ligand_atom_array_to_rdkit_mol,
     protonate_ligand_mol,
 )
@@ -68,7 +68,7 @@ def _build_cif_obmol(ligand_info: LigandInfo):
     obmol.BeginModify()
     for elem, coord in zip(ligand_info.elements, ligand_info.coords):
         obatom = obmol.NewAtom()
-        atomic_num = _ELEMENT_TO_ATOMIC_NUM.get(elem.strip(), 0)
+        atomic_num = ELEMENT_TO_ATOMIC_NUM.get(elem.strip(), 0)
         if atomic_num == 0:
             atomic_num = openbabel.GetAtomicNum(elem.strip())
         obatom.SetAtomicNum(atomic_num)
@@ -167,7 +167,10 @@ def prepare_single_ligand(
     try:
         protonated = AllChem.AssignBondOrdersFromTemplate(protonated, rdkit_mol)
     except Exception:
-        pass
+        logger.debug(
+            "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
+            ligand_info.res_name,
+        )
     protonated = Chem.AddHs(protonated, addCoords=True)
     charges_by_index = compute_mmff94_charges(protonated)
     mol = rdkit_mol_to_obmol(protonated)

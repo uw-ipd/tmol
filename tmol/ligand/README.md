@@ -14,7 +14,7 @@ flowchart TD
     end
 
     subgraph preparation [Preparation — per ligand]
-        B --> C["ligand_atom_array_to_rdkit_mol\n(smiles.py)"]
+        B --> C["ligand_atom_array_to_rdkit_mol\n(rdkit_mol.py)"]
         C --> D["protonate_ligand_mol\n(Dimorphite-DL)"]
         D --> E["Chem.AddHs"]
 
@@ -73,14 +73,14 @@ When `register_ligand` adds a ligand to the `ParameterDatabase`:
 
 | File | Lines | Role |
 |------|------:|------|
-| `__init__.py` | ~310 | `prepare_single_ligand`, `prepare_ligands`, CIF atom renaming |
-| `detect.py` | ~280 | `LigandInfo`, `detect_nonstandard_residues`, CCD SMILES lookup |
-| `smiles.py` | ~130 | `ligand_atom_array_to_rdkit_mol`, `protonate_ligand_mol` |
-| `mol3d.py` | ~110 | `compute_mmff94_charges`, `rdkit_mol_to_obmol` |
-| `atom_typing.py` | ~580 | Rosetta-style atom type assignment from OBMol |
-| `residue_builder.py` | ~340 | `build_residue_type` — RawResidueType from OBMol |
-| `registry.py` | ~330 | `register_ligand`, `LigandPreparationCache`, `rebuild_canonical_ordering` |
-| `graph_match.py` | ~110 | VF2 heavy-atom isomorphism for CIF name mapping |
-| `params_io.py` | ~180 | Rosetta `.params` file read/write |
-| `chemistry_tables.py` | ~70 | H-bond/polar/sp2 atom-type sets from default DB |
-| `dimorphite_dl.py` | ~1400 | Vendored Dimorphite-DL (Apache-2.0) |
+| `__init__.py` | 307 | `prepare_single_ligand`, `prepare_ligands`, CIF atom renaming |
+| `detect.py` | 276 | `LigandInfo`, `detect_nonstandard_residues`, CCD SMILES lookup |
+| `rdkit_mol.py` | 81 | `ligand_atom_array_to_rdkit_mol`, `protonate_ligand_mol` |
+| `mol3d.py` | 45 | `compute_mmff94_charges`, `rdkit_mol_to_obmol` |
+| `atom_typing.py` | 571 | Rosetta-style atom type assignment from OBMol |
+| `residue_builder.py` | 343 | `build_residue_type` — RawResidueType from OBMol |
+| `registry.py` | 333 | `register_ligand`, `LigandPreparationCache`, `rebuild_canonical_ordering` |
+| `graph_match.py` | 114 | VF2 heavy-atom isomorphism for CIF name mapping |
+| `params_io.py` | 178 | Rosetta `.params` file read/write |
+| `chemistry_tables.py` | 67 | H-bond/polar/sp2 atom-type sets from default DB |
+| `dimorphite_dl.py` | 1407 | Vendored Dimorphite-DL (Apache-2.0) |
