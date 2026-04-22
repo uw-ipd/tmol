@@ -67,6 +67,7 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     def task_op(task):
         task.restrict_to_repacking()
         task.set_include_current()
+        task.or_bump_check(True)
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)
@@ -121,6 +122,7 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     def task_op(task):
         task.restrict_to_repacking()
         task.set_include_current()
+        task.or_bump_check(True)
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)
@@ -205,6 +207,7 @@ def test_fast_relax_pertuz(
     def task_op(task):
         task.restrict_to_repacking()
         task.set_include_current()
+        task.or_bump_check(True)
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)
@@ -279,6 +282,7 @@ def test_fast_relax_for_different_shapes(
     def task_op(task):
         task.restrict_to_repacking()
         task.set_include_current()
+        task.or_bump_check(True)
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)

@@ -16,7 +16,7 @@ template <
     typename Int>
 struct InteractionGraphBuilder {
   static auto f(
-      int const verbose,
+      int const bump_check,
       int const chunk_size,
       int const max_n_block_types,
       TView<Int, 1, D> n_rots_for_pose,
@@ -27,7 +27,8 @@ struct InteractionGraphBuilder {
       TView<Int, 1, D> block_type_ind_for_rot,
       TView<int32_t, 1, D> block_ind_for_rot,
       TView<int32_t, 2, D> sparse_inds,
-      TView<Real, 1, D> sparse_energies)
+      TView<Real, 1, D> sparse_energies,
+      int const verbose)
       -> std::tuple<
           TPack<
               int64_t,

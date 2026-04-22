@@ -37,7 +37,7 @@ def pack_rotamers(
         bc_rot_to_orig_rot,
         end_time2,
         end_time3,
-    ) = _calculate_packer_energies(pose_stack, sfxn, rotamer_set, verbose=verbose)
+    ) = _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=verbose)
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -76,7 +76,7 @@ def pack_rotamers(
     return new_pose_stack
 
 
-def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, verbose=False):
+def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=False):
     from tmol.pack.compiled.compiled import build_interaction_graph
 
     pbt = pose_stack.packed_block_types
@@ -107,7 +107,7 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, verbose=False):
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
-        verbose,
+        task.bump_check,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,
@@ -119,6 +119,7 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, verbose=False):
         rotamer_set.block_ind_for_rot,
         energies.indices().to(torch.int32),
         energies.values(),
+        verbose,
     )
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()

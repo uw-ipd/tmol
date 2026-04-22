@@ -165,7 +165,7 @@ class ScoreFunction:
         """
         self.pre_work_initialization(pose_stack)
         term_modules = [
-            t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()
+            t.render_block_pair_scoring_module(pose_stack) for t in self.all_terms()
         ]
         return WholePoseScoringModule(
             self.weights_tensor(), term_modules, output_block_pair_energies=True

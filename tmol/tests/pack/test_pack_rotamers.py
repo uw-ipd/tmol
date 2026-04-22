@@ -107,7 +107,7 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
-        False,
+        True,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,
@@ -119,6 +119,7 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
         rotamer_set.block_ind_for_rot,
         energies.indices().to(torch.int32),
         energies.values(),
+        False,
     )
 
     # packer_energy_tables = PackerEnergyTables(
@@ -267,7 +268,7 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
-        False,
+        True,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,
@@ -279,6 +280,7 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
         rotamer_set.block_ind_for_rot,
         energies.indices().to(torch.int32),
         energies.values(),
+        False,
     )
 
     packer_energy_tables = PackerEnergyTables(
@@ -374,6 +376,7 @@ def test_pack_rotamers_w_empty_interaction_graph(
         rotamer_set.block_ind_for_rot,
         energies.indices().to(torch.int32),
         energies.values(),
+        False,
     )
 
     packer_energy_tables = PackerEnergyTables(
@@ -456,7 +459,7 @@ def test_pack_rotamers_w_dslf(
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
-        False,
+        True,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,
@@ -468,6 +471,7 @@ def test_pack_rotamers_w_dslf(
         rotamer_set.block_ind_for_rot,
         energies.indices().to(torch.int32),
         energies.values(),
+        False,
     )
     # print("energy1b", energy1b.shape)
     # print("chunk_pair_offset_for_block_pair", chunk_pair_offset_for_block_pair.shape)

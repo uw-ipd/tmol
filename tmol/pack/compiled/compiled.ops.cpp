@@ -22,7 +22,7 @@ namespace compiled {
 using torch::Tensor;
 
 std::vector<Tensor> build_interaction_graph(
-    int64_t const verbose,
+    int64_t const bump_check,
     int64_t const chunk_size,
     int64_t const max_n_block_types,
     Tensor n_rots_for_pose,
@@ -33,7 +33,8 @@ std::vector<Tensor> build_interaction_graph(
     Tensor block_type_ind_for_rot,
     Tensor block_ind_for_rot,
     Tensor sparse_inds,
-    Tensor sparse_energies) {
+    Tensor sparse_energies,
+    int64_t const verbose) {
   nvtx_range_push("pack_build_ig");
 
   at::Tensor max_n_bump_checked_rotamers_per_pose;
@@ -64,7 +65,7 @@ std::vector<Tensor> build_interaction_graph(
             Dev,
             Real,
             Int>::
-            f(verbose,
+            f(bump_check,
               chunk_size,
               max_n_block_types,
               TCAST(n_rots_for_pose),
@@ -75,7 +76,8 @@ std::vector<Tensor> build_interaction_graph(
               TCAST(block_type_ind_for_rot),
               TCAST(block_ind_for_rot),
               TCAST(sparse_inds),
-              TCAST(sparse_energies));
+              TCAST(sparse_energies),
+              verbose);
 
         max_n_bump_checked_rotamers_per_pose = std::get<0>(result).tensor;
         n_molten_blocks_per_pose = std::get<1>(result).tensor;
