@@ -54,6 +54,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         common_args = args[:-2]
         pose_stack = args[-2]
         block_pair_scoring = args[-1]
+        coords_dtype = common_args[0].dtype
 
         # Derived atom coords do not need gradients - gradients for hbond
         # energies flow through derived_atom_inds back to the source atoms
@@ -102,9 +103,9 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_type,
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
             pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
-            self.hb_param_db.pair_param_table,
-            self.hb_param_db.pair_poly_table,
-            self.hb_param_db.global_param_table,
+            self.hb_param_db.pair_param_table.to(coords_dtype),
+            self.hb_param_db.pair_poly_table.to(coords_dtype),
+            self.hb_param_db.global_param_table.to(coords_dtype),
             derived_coords,
             derived_atom_inds,
             block_pair_scoring,
@@ -114,6 +115,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         common_args = args[:-2]
         pose_stack = args[-2]
         block_pair_scoring = args[-1]
+        coords_dtype = common_args[0].dtype
 
         with torch.no_grad():
             derived_coords, derived_atom_inds = gen_hbond_bases(
@@ -159,9 +161,9 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_type,
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
             pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
-            self.hb_param_db.pair_param_table,
-            self.hb_param_db.pair_poly_table,
-            self.hb_param_db.global_param_table,
+            self.hb_param_db.pair_param_table.to(coords_dtype),
+            self.hb_param_db.pair_poly_table.to(coords_dtype),
+            self.hb_param_db.global_param_table.to(coords_dtype),
             derived_coords,
             derived_atom_inds,
             block_pair_scoring,
