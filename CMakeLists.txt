@@ -278,6 +278,7 @@ set(_C_SOURCES
   # score/hbond
   tmol/score/hbond/potentials/compiled.ops.cpp
   tmol/score/hbond/potentials/hbond_pose_score.cpu.cpp
+  tmol/score/hbond/potentials/gen_hbond_bases.cpu.cpp
   # score/ljlk
   tmol/score/ljlk/potentials/compiled.ops.cpp
   tmol/score/ljlk/potentials/ljlk_pose_score.cpu.cpp
@@ -303,6 +304,7 @@ if(TMOL_HAS_CUDA)
     tmol/score/dunbrack/potentials/dunbrack_pose_score.cuda.cu
     tmol/score/elec/potentials/elec_pose_score.cuda.cu
     tmol/score/hbond/potentials/hbond_pose_score.cuda.cu
+    tmol/score/hbond/potentials/gen_hbond_bases.cuda.cu
     tmol/score/ljlk/potentials/ljlk_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/lk_ball_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/gen_pose_waters.cuda.cu

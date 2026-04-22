@@ -47,33 +47,17 @@ class HBondRotPairData {
   HBondGlobalParams<Real> global_params;
   Real total_hbond;
 
-  // NOTE: the remaining data members of this class
-  // "duplicate" the tensor argumentss to the kernel.
-  // Fortunately, nvcc will be able to tell that these
-  // are the same members that are passed in and will
-  // not duplicate their allocation in register memory
-
-  // If the hbond involves atoms from other residues, we need
-  // to be able to retrieve their coordinates
-  TView<Vec<Real, 3>, 1, Dev> coords;
-  TView<Int, 1, Dev> rot_coord_offset;
-  TView<Int, 1, Dev> rot_block_type;
-
-  TView<Int, 2, Dev> first_rot_for_block;
-  TView<Int, 2, Dev> first_rot_block_type;
-
-  // For determining which atoms to retrieve from neighboring
-  // residues we have to know how the blocks in the Pose
-  // are connected
-  TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections;
-
-  // And we need to know the properties of the block types
-  // that we are working with to iterate across chemical bonds
-  TView<Int, 1, Dev> block_type_n_all_bonds;
-  TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds;
-  TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges;
-  TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds;
-  TView<Int, 2, Dev> block_type_atom_is_hydrogen;
+  // Derived-atom tensors produced by the hbond pre-pass kernel.
+  // Indexed by the global pose-atom index (the same index that
+  // addresses rot_coords / dV_dcoords).
+  //   derived_coords[atom_ind][0] : D  (donor heavy) for donor H atoms
+  //   derived_coords[atom_ind][1] : B  (acceptor base) for acceptor atoms
+  //   derived_coords[atom_ind][2] : B0 (acceptor base 2) for acceptor atoms
+  //   derived_atom_inds mirrors the same layout, holding the source
+  //   atom's global pose-atom index (-1 if unused) so gradients can
+  //   be attributed back without re-walking the bond graph.
+  TView<Vec<Real, 3>, 2, Dev> derived_coords;
+  TView<Int, 2, Dev> derived_atom_inds;
 
   // Parameters that define the hbond energies
   TView<HBondPairParams<Real>, 2, Dev> pair_params;
@@ -221,21 +205,16 @@ template <
     int TILE_SIZE,
     int MAX_N_CONN>
 void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
-    TView<Vec<Real, 3>, 1, Dev> coords,
-    TView<Int, 2, Dev> first_rot_for_block,
-    TView<Int, 2, Dev> first_rot_block_type,
     TView<Int, 1, Dev> rot_coord_offset,
-    TView<Int, 1, Dev> rot_block_type,
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
     TView<Int, 3, Dev> pose_stack_min_bond_separation,
     TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
 
-    TView<Int, 1, Dev> block_type_n_all_bonds,
-    TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
-    TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
     TView<Int, 1, Dev> block_type_n_interblock_bonds,
     TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
-    TView<Int, 2, Dev> block_type_atom_is_hydrogen,
+
+    TView<Vec<Real, 3>, 2, Dev> derived_coords,
+    TView<Int, 2, Dev> derived_atom_inds,
 
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
     TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
@@ -330,23 +309,8 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
   inter_dat.pair_data.global_params = global_params[0];
   inter_dat.pair_data.total_hbond = 0;
 
-  // Keep a "copy" of the tensors needed during score evaluation so they
-  // can be passed in to the lower-level functions when needed;
-  // nvcc is smart enough not to duplicate the registers used here
-  inter_dat.pair_data.coords = coords;
-  inter_dat.pair_data.first_rot_for_block = first_rot_for_block;
-  inter_dat.pair_data.first_rot_block_type = first_rot_block_type;
-  inter_dat.pair_data.rot_coord_offset = rot_coord_offset;
-  inter_dat.pair_data.rot_block_type = rot_block_type;
-  inter_dat.pair_data.pose_stack_inter_residue_connections =
-      pose_stack_inter_residue_connections;
-  inter_dat.pair_data.block_type_n_all_bonds = block_type_n_all_bonds;
-  inter_dat.pair_data.block_type_all_bonds = block_type_all_bonds;
-  inter_dat.pair_data.block_type_atom_all_bond_ranges =
-      block_type_atom_all_bond_ranges;
-  inter_dat.pair_data.block_type_atoms_forming_chemical_bonds =
-      block_type_atoms_forming_chemical_bonds;
-  inter_dat.pair_data.block_type_atom_is_hydrogen = block_type_atom_is_hydrogen;
+  inter_dat.pair_data.derived_coords = derived_coords;
+  inter_dat.pair_data.derived_atom_inds = derived_atom_inds;
   inter_dat.pair_data.pair_params = pair_params;
   inter_dat.pair_data.pair_polynomials = pair_polynomials;
 }
@@ -463,17 +427,9 @@ template <
     int TILE_SIZE,
     int MAX_N_CONN>
 void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
-    TView<Vec<Real, 3>, 1, Dev> coords,
-    TView<Int, 2, Dev> first_rot_for_block,
-    TView<Int, 2, Dev> first_rot_block_type,
     TView<Int, 1, Dev> rot_coord_offset,
-    TView<Int, 1, Dev> rot_block_type,
-    TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
-    TView<Int, 1, Dev> block_type_n_all_bonds,
-    TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
-    TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
-    TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
-    TView<Int, 2, Dev> block_type_atom_is_hydrogen,
+    TView<Vec<Real, 3>, 2, Dev> derived_coords,
+    TView<Int, 2, Dev> derived_atom_inds,
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
     TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
@@ -535,22 +491,8 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
   intra_dat.pair_data.global_params = global_params[0];
   intra_dat.pair_data.total_hbond = 0;
 
-  // Keep a "copy" of the tensors needed during score evaluation;
-  // nvcc is smart enough not to duplicate the registers used here
-  intra_dat.pair_data.coords = coords;
-  intra_dat.pair_data.first_rot_for_block = first_rot_for_block;
-  intra_dat.pair_data.first_rot_block_type = first_rot_block_type;
-  intra_dat.pair_data.rot_coord_offset = rot_coord_offset;
-  intra_dat.pair_data.rot_block_type = rot_block_type;
-  intra_dat.pair_data.pose_stack_inter_residue_connections =
-      pose_stack_inter_residue_connections;
-  intra_dat.pair_data.block_type_n_all_bonds = block_type_n_all_bonds;
-  intra_dat.pair_data.block_type_all_bonds = block_type_all_bonds;
-  intra_dat.pair_data.block_type_atom_all_bond_ranges =
-      block_type_atom_all_bond_ranges;
-  intra_dat.pair_data.block_type_atoms_forming_chemical_bonds =
-      block_type_atoms_forming_chemical_bonds;
-  intra_dat.pair_data.block_type_atom_is_hydrogen = block_type_atom_is_hydrogen;
+  intra_dat.pair_data.derived_coords = derived_coords;
+  intra_dat.pair_data.derived_atom_inds = derived_atom_inds;
   intra_dat.pair_data.pair_params = pair_params;
   intra_dat.pair_data.pair_polynomials = pair_polynomials;
 }
@@ -687,39 +629,6 @@ void TMOL_DEVICE_FUNC hbond_load_intrares_data_from_shared(
   }
 }
 
-// Some coordinates are available in shared memory, some we will
-// have to go out to global memory for.
-template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
-TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
-    bonded_atom::BlockCentricAtom<Int> bcat,
-    HBondSingleResData<Real> const& single_res_dat,
-    HBondRotPairData<Dev, Real, Int> const& rotpair_dat,
-    int tile_start) {
-  Eigen::Matrix<Real, 3, 1> xyz{Real(0), Real(0), Real(0)};
-  if (bcat.atom != -1) {
-    bool in_smem = false;
-    if (bcat.block == single_res_dat.block_ind) {
-      int bcat_tile_ind = bcat.atom - tile_start;
-      if (bcat_tile_ind >= 0 && bcat_tile_ind < TILE_SIZE) {
-        in_smem = true;
-        xyz = coord_from_shared(single_res_dat.coords, bcat_tile_ind);
-      }
-    }
-    if (!in_smem) {
-      // outside of tile or on other res, retrieve from global coords
-      int coord_offset =
-          (bcat.block == single_res_dat.block_ind
-               ? single_res_dat.rot_coord_offset
-               : rotpair_dat
-                     .rot_coord_offset[rotpair_dat.first_rot_for_block
-                                           [rotpair_dat.pose_ind][bcat.block]]);
-
-      xyz = rotpair_dat.coords[bcat.atom + coord_offset];
-    }
-  }
-  return xyz;
-}
-
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
 TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
     int donH_ind,             // in [0:n_donH)
@@ -733,44 +642,20 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
     HBondRotPairData<Dev, Real, Int> const& respair_dat,
     int cp_separation) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
-  using bonded_atom::BlockCentricAtom;
-  using bonded_atom::RotamerCentricIndexedBonds;
 
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
 
   Real const dist = distance<Real>::V(Hxyz, Axyz);
   if (dist < respair_dat.global_params.max_ha_dis) {
-    BlockCentricAtom<Int> H{
-        don_dat.block_ind,
-        don_dat.block_type,
-        don_start + don_h_atom_tile_ind,
-    };
-    BlockCentricAtom<Int> A{
-        acc_dat.block_ind, acc_dat.block_type, acc_start + acc_atom_tile_ind};
-    RotamerCentricIndexedBonds<Int, Dev> bonds{
-        acc_dat.block_ind,
-        acc_dat.block_type,
-        respair_dat.pose_stack_inter_residue_connections[respair_dat.pose_ind],
-        respair_dat.first_rot_block_type[respair_dat.pose_ind],
-        respair_dat.block_type_n_all_bonds,
-        respair_dat.block_type_all_bonds,
-        respair_dat.block_type_atom_all_bond_ranges,
-        respair_dat.block_type_atoms_forming_chemical_bonds};
-    auto acc_bases = RotamerCentricAcceptorBases<Int>::for_acceptor(
-        A,
-        acc_dat.acc_hybridization[acc_ind],
-        bonds,
-        respair_dat.block_type_atom_is_hydrogen);
-    auto don_bases = RotamerCentricDonorBase<Int>::for_polar_H(
-        H, bonds, respair_dat.block_type_atom_is_hydrogen);
+    int const H_pose_atom_ind =
+        don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
+    int const A_pose_atom_ind =
+        acc_dat.rot_coord_offset + acc_start + acc_atom_tile_ind;
 
-    Real3 Dxyz =
-        load_coord<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
-    Real3 Bxyz =
-        load_coord<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
-    Real3 B0xyz =
-        load_coord<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
+    Real3 Dxyz = respair_dat.derived_coords[H_pose_atom_ind][0];
+    Real3 Bxyz = respair_dat.derived_coords[A_pose_atom_ind][1];
+    Real3 B0xyz = respair_dat.derived_coords[A_pose_atom_ind][2];
 
     unsigned char dt = don_dat.donH_type[donH_ind];
     unsigned char at = acc_dat.acc_type[acc_ind];
@@ -804,44 +689,27 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     Real dTdV,
     TView<Eigen::Matrix<Real, 3, 1>, 1, Dev> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
-  using bonded_atom::BlockCentricAtom;
-  using bonded_atom::RotamerCentricIndexedBonds;
 
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
 
   auto const dist_r = distance<Real>::V_dV(Hxyz, Axyz);
   if (dist_r.V < respair_dat.global_params.max_ha_dis) {
-    BlockCentricAtom<Int> H{
-        don_dat.block_ind,
-        don_dat.block_type,
-        don_start + don_h_atom_tile_ind,
-    };
-    BlockCentricAtom<Int> A{
-        acc_dat.block_ind, acc_dat.block_type, acc_start + acc_atom_tile_ind};
-    RotamerCentricIndexedBonds<Int, Dev> bonds{
-        acc_dat.block_ind,
-        acc_dat.block_type,
-        respair_dat.pose_stack_inter_residue_connections[respair_dat.pose_ind],
-        respair_dat.first_rot_block_type[respair_dat.pose_ind],
-        respair_dat.block_type_n_all_bonds,
-        respair_dat.block_type_all_bonds,
-        respair_dat.block_type_atom_all_bond_ranges,
-        respair_dat.block_type_atoms_forming_chemical_bonds};
-    auto acc_bases = RotamerCentricAcceptorBases<Int>::for_acceptor(
-        A,
-        acc_dat.acc_hybridization[acc_ind],
-        bonds,
-        respair_dat.block_type_atom_is_hydrogen);
-    auto don_bases = RotamerCentricDonorBase<Int>::for_polar_H(
-        H, bonds, respair_dat.block_type_atom_is_hydrogen);
+    int const H_pose_atom_ind =
+        don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
+    int const A_pose_atom_ind =
+        acc_dat.rot_coord_offset + acc_start + acc_atom_tile_ind;
 
-    Real3 Dxyz =
-        load_coord<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
-    Real3 Bxyz =
-        load_coord<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
-    Real3 B0xyz =
-        load_coord<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
+    Real3 Dxyz = respair_dat.derived_coords[H_pose_atom_ind][0];
+    Real3 Bxyz = respair_dat.derived_coords[A_pose_atom_ind][1];
+    Real3 B0xyz = respair_dat.derived_coords[A_pose_atom_ind][2];
+
+    int const D_pose_atom_ind =
+        respair_dat.derived_atom_inds[H_pose_atom_ind][0];
+    int const B_pose_atom_ind =
+        respair_dat.derived_atom_inds[A_pose_atom_ind][1];
+    int const B0_pose_atom_ind =
+        respair_dat.derived_atom_inds[A_pose_atom_ind][2];
 
     unsigned char dt = don_dat.donH_type[donH_ind];
     unsigned char at = acc_dat.acc_type[acc_ind];
@@ -857,71 +725,22 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
         respair_dat.global_params);
 
     Real dVdT_m = dTdV;
-    // 0.5
-    //* (dTdV[0][respair_dat.pose_ind][don_dat.block_ind][acc_dat.block_ind]
-    //+ dTdV[0][respair_dat.pose_ind][acc_dat.block_ind]
-    //[don_dat.block_ind]);
 
-    // accumulate don D atom derivatives to global memory
-    for (int j = 0; j < 3; ++j) {
-      if (hbond_V_dV.dV_dD[j] != 0) {
-        accumulate<Dev, Real>::add(
-            dV_dcoords[don_dat.rot_coord_offset + don_bases.D.atom][j],
-            dVdT_m * hbond_V_dV.dV_dD[j]);
+    auto accum_at = ([&] TMOL_DEVICE_FUNC(int atom_ind, Real3 dV_dat) {
+      if (atom_ind < 0) return;
+      for (int j = 0; j < 3; ++j) {
+        if (dV_dat[j] != 0) {
+          accumulate<Dev, Real>::add(
+              dV_dcoords[atom_ind][j], dVdT_m * dV_dat[j]);
+        }
       }
-    }
-    // accumulate don H atom derivatives to global memory
-    for (int j = 0; j < 3; ++j) {
-      if (hbond_V_dV.dV_dH[j] != 0) {
-        accumulate<Dev, Real>::add(
-            dV_dcoords[don_dat.rot_coord_offset + H.atom][j],
-            dVdT_m * hbond_V_dV.dV_dH[j]);
-      }
-    }
+    });
 
-    // accumulate acc A atom derivatives to global memory
-    for (int j = 0; j < 3; ++j) {
-      if (hbond_V_dV.dV_dA[j] != 0) {
-        accumulate<Dev, Real>::add(
-            dV_dcoords[acc_dat.rot_coord_offset + A.atom][j],
-            dVdT_m * hbond_V_dV.dV_dA[j]);
-      }
-    }
-    // accumulate acc B and B0 atom derivatives to global memory;
-    // it is possible that B or B0 are not part of the same block as A.
-    // In that case, we need to retrieve the coordinate offset for the
-    // atom's block from global memory so that we can record its
-    // derivatives to the right place. The logic for B and B0 is
-    // essentially identical, so a lambda here will save some
-    // code duplication
-
-    auto accum_for_acc_atom =
-        ([&] TMOL_DEVICE_FUNC(
-             bonded_atom::BlockCentricAtom<Int> const& bcat, Real3 dV_dat) {
-          bool any_nonzero = false;
-          for (int j = 0; j < 3; ++j) {
-            if (dV_dat[j] != 0 && bcat.atom >= 0) {
-              any_nonzero = true;
-              break;
-            }
-          }
-          if (any_nonzero) {
-            int coord_offset = acc_dat.rot_coord_offset;
-            if (bcat.block != acc_bases.A.block) {
-              coord_offset =
-                  respair_dat
-                      .rot_coord_offset[respair_dat.first_rot_for_block
-                                            [respair_dat.pose_ind][bcat.block]];
-            }
-            for (int j = 0; j < 3; ++j) {
-              accumulate<Dev, Real>::add(
-                  dV_dcoords[coord_offset + bcat.atom][j], dVdT_m * dV_dat[j]);
-            }
-          }
-        });
-
-    accum_for_acc_atom(acc_bases.B, hbond_V_dV.dV_dB);
-    accum_for_acc_atom(acc_bases.B0, hbond_V_dV.dV_dB0);
+    accum_at(D_pose_atom_ind, hbond_V_dV.dV_dD);
+    accum_at(H_pose_atom_ind, hbond_V_dV.dV_dH);
+    accum_at(A_pose_atom_ind, hbond_V_dV.dV_dA);
+    accum_at(B_pose_atom_ind, hbond_V_dV.dV_dB);
+    accum_at(B0_pose_atom_ind, hbond_V_dV.dV_dB0);
     return hbond_V_dV.V;
   } else {
     return 0;
@@ -942,44 +761,27 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     int cp_separation,
     TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
-  using bonded_atom::BlockCentricAtom;
-  using bonded_atom::RotamerCentricIndexedBonds;
 
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
 
   auto const dist_r = distance<Real>::V_dV(Hxyz, Axyz);
   if (dist_r.V < respair_dat.global_params.max_ha_dis) {
-    BlockCentricAtom<Int> H{
-        don_dat.block_ind,
-        don_dat.block_type,
-        don_start + don_h_atom_tile_ind,
-    };
-    BlockCentricAtom<Int> A{
-        acc_dat.block_ind, acc_dat.block_type, acc_start + acc_atom_tile_ind};
-    RotamerCentricIndexedBonds<Int, Dev> bonds{
-        acc_dat.block_ind,
-        acc_dat.block_type,
-        respair_dat.pose_stack_inter_residue_connections[respair_dat.pose_ind],
-        respair_dat.first_rot_block_type[respair_dat.pose_ind],
-        respair_dat.block_type_n_all_bonds,
-        respair_dat.block_type_all_bonds,
-        respair_dat.block_type_atom_all_bond_ranges,
-        respair_dat.block_type_atoms_forming_chemical_bonds};
-    auto acc_bases = RotamerCentricAcceptorBases<Int>::for_acceptor(
-        A,
-        acc_dat.acc_hybridization[acc_ind],
-        bonds,
-        respair_dat.block_type_atom_is_hydrogen);
-    auto don_bases = RotamerCentricDonorBase<Int>::for_polar_H(
-        H, bonds, respair_dat.block_type_atom_is_hydrogen);
+    int const H_pose_atom_ind =
+        don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
+    int const A_pose_atom_ind =
+        acc_dat.rot_coord_offset + acc_start + acc_atom_tile_ind;
 
-    Real3 Dxyz =
-        load_coord<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
-    Real3 Bxyz =
-        load_coord<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
-    Real3 B0xyz =
-        load_coord<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
+    Real3 Dxyz = respair_dat.derived_coords[H_pose_atom_ind][0];
+    Real3 Bxyz = respair_dat.derived_coords[A_pose_atom_ind][1];
+    Real3 B0xyz = respair_dat.derived_coords[A_pose_atom_ind][2];
+
+    int const D_pose_atom_ind =
+        respair_dat.derived_atom_inds[H_pose_atom_ind][0];
+    int const B_pose_atom_ind =
+        respair_dat.derived_atom_inds[A_pose_atom_ind][1];
+    int const B0_pose_atom_ind =
+        respair_dat.derived_atom_inds[A_pose_atom_ind][2];
 
     unsigned char dt = don_dat.donH_type[donH_ind];
     unsigned char at = acc_dat.acc_type[acc_ind];
@@ -994,66 +796,20 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
         respair_dat.pair_polynomials[dt][at],
         respair_dat.global_params);
 
-    // accumulate don D atom derivatives to global memory
-    for (int j = 0; j < 3; ++j) {
-      if (hbond_V_dV.dV_dD[j] != 0) {
-        accumulate<Dev, Real>::add(
-            dV_dcoords[0][don_dat.rot_coord_offset + don_bases.D.atom][j],
-            hbond_V_dV.dV_dD[j]);
+    auto accum_at = ([&] TMOL_DEVICE_FUNC(int atom_ind, Real3 dV_dat) {
+      if (atom_ind < 0) return;
+      for (int j = 0; j < 3; ++j) {
+        if (dV_dat[j] != 0) {
+          accumulate<Dev, Real>::add(dV_dcoords[0][atom_ind][j], dV_dat[j]);
+        }
       }
-    }
-    // accumulate don H atom derivatives to global memory
-    for (int j = 0; j < 3; ++j) {
-      if (hbond_V_dV.dV_dH[j] != 0) {
-        accumulate<Dev, Real>::add(
-            dV_dcoords[0][don_dat.rot_coord_offset + H.atom][j],
-            hbond_V_dV.dV_dH[j]);
-      }
-    }
+    });
 
-    // accumulate acc A atom derivatives to global memory
-    for (int j = 0; j < 3; ++j) {
-      if (hbond_V_dV.dV_dA[j] != 0) {
-        accumulate<Dev, Real>::add(
-            dV_dcoords[0][acc_dat.rot_coord_offset + A.atom][j],
-            hbond_V_dV.dV_dA[j]);
-      }
-    }
-    // accumulate acc B and B0 atom derivatives to global memory;
-    // it is possible that B or B0 are not part of the same block as A.
-    // In that case, we need to retrieve the coordinate offset for the
-    // atom's block from global memory so that we can record its
-    // derivatives to the right place. The logic for B and B0 is
-    // essentially identical, so a lambda here will save some
-    // code duplication
-
-    auto accum_for_acc_atom =
-        ([&] TMOL_DEVICE_FUNC(
-             bonded_atom::BlockCentricAtom<Int> const& bcat, Real3 dV_dat) {
-          bool any_nonzero = false;
-          for (int j = 0; j < 3; ++j) {
-            if (dV_dat[j] != 0 && bcat.atom >= 0) {
-              any_nonzero = true;
-              break;
-            }
-          }
-          if (any_nonzero) {
-            int coord_offset = acc_dat.rot_coord_offset;
-            if (bcat.block != acc_bases.A.block) {
-              coord_offset =
-                  respair_dat
-                      .rot_coord_offset[respair_dat.first_rot_for_block
-                                            [respair_dat.pose_ind][bcat.block]];
-            }
-            for (int j = 0; j < 3; ++j) {
-              accumulate<Dev, Real>::add(
-                  dV_dcoords[0][coord_offset + bcat.atom][j], dV_dat[j]);
-            }
-          }
-        });
-
-    accum_for_acc_atom(acc_bases.B, hbond_V_dV.dV_dB);
-    accum_for_acc_atom(acc_bases.B0, hbond_V_dV.dV_dB0);
+    accum_at(D_pose_atom_ind, hbond_V_dV.dV_dD);
+    accum_at(H_pose_atom_ind, hbond_V_dV.dV_dH);
+    accum_at(A_pose_atom_ind, hbond_V_dV.dV_dA);
+    accum_at(B_pose_atom_ind, hbond_V_dV.dV_dB);
+    accum_at(B0_pose_atom_ind, hbond_V_dV.dV_dB0);
     return hbond_V_dV.V;
   } else {
     return 0;
