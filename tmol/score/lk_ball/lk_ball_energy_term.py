@@ -33,6 +33,36 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         )
         self.tile_size = LKBallEnergyTerm.tile_size
 
+        # Precompute the stacked lk-ball global-parameter tensors
+        # These depend only on static values from ljlk_param_resolver globals,
+        #   so they can be built once rather than on every forward
+        gp = self.ljlk_param_resolver.global_params
+        self._lk_ball_global_params = torch.stack(
+            tuple(
+                t.to(torch.float)
+                for t in (
+                    gp.lj_hbond_dis,
+                    gp.lj_hbond_OH_donor_dis,
+                    gp.lj_hbond_hdis,
+                    gp.lkb_water_dist,
+                    gp.max_dis,
+                )
+            ),
+            dim=1,
+        )
+        self._lk_ball_water_gen_global_params = torch.stack(
+            tuple(
+                t.to(torch.float)
+                for t in (
+                    gp.lkb_water_dist,
+                    gp.lkb_water_angle_sp2,
+                    gp.lkb_water_angle_sp3,
+                    gp.lkb_water_angle_ring,
+                )
+            ),
+            dim=1,
+        )
+
     @classmethod
     def class_name(cls):
         return "LKBall"
@@ -220,7 +250,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_n_attached_H,
             pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
-            self.stack_lk_ball_water_gen_global_params(),
+            self._lk_ball_water_gen_global_params,
             self.ljlk_param_resolver.global_params.lkb_water_tors_sp2,
             self.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
             self.ljlk_param_resolver.global_params.lkb_water_tors_ring,
@@ -243,7 +273,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.lk_ball_params.tile_pol_occ_inds,
             pose_stack.packed_block_types.lk_ball_params.tile_lk_ball_params,
             pose_stack.packed_block_types.bond_separation,
-            self.stack_lk_ball_global_params(),
+            self._lk_ball_global_params,
             water_coords,
             block_pair_scoring,
         ]
@@ -275,7 +305,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_n_attached_H,
             pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
-            self.stack_lk_ball_water_gen_global_params(),
+            self._lk_ball_water_gen_global_params,
             self.ljlk_param_resolver.global_params.lkb_water_tors_sp2,
             self.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
             self.ljlk_param_resolver.global_params.lkb_water_tors_ring,
@@ -298,7 +328,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.lk_ball_params.tile_pol_occ_inds,
             pose_stack.packed_block_types.lk_ball_params.tile_lk_ball_params,
             pose_stack.packed_block_types.bond_separation,
-            self.stack_lk_ball_global_params(),
+            self._lk_ball_global_params,
             water_coords,
             block_pair_scoring,
         ]
@@ -315,33 +345,3 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
     def get_score_term_attributes(self, pose_stack):
         return [pose_stack]
-
-    def _tfloat(self, ts):
-        return tuple(map(lambda t: t.to(torch.float), ts))
-
-    def stack_lk_ball_global_params(self):
-        return torch.stack(
-            self._tfloat(
-                [
-                    self.ljlk_param_resolver.global_params.lj_hbond_dis,
-                    self.ljlk_param_resolver.global_params.lj_hbond_OH_donor_dis,
-                    self.ljlk_param_resolver.global_params.lj_hbond_hdis,
-                    self.ljlk_param_resolver.global_params.lkb_water_dist,
-                    self.ljlk_param_resolver.global_params.max_dis,
-                ]
-            ),
-            dim=1,
-        )
-
-    def stack_lk_ball_water_gen_global_params(self):
-        return torch.stack(
-            self._tfloat(
-                [
-                    self.ljlk_param_resolver.global_params.lkb_water_dist,
-                    self.ljlk_param_resolver.global_params.lkb_water_angle_sp2,
-                    self.ljlk_param_resolver.global_params.lkb_water_angle_sp3,
-                    self.ljlk_param_resolver.global_params.lkb_water_angle_ring,
-                ]
-            ),
-            dim=1,
-        )

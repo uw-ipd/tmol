@@ -91,7 +91,7 @@ def armijo_linesearch(
         # (fd) Change (2) probably is infrequent (and might slow things down?)
         if alpha1 < minstep:
             if phi_a1 >= phi0:
-                finite_diff = (phi_a1 - phi0) / alpha1
+                finite_diff = (phi_a1 - phi0) / alpha1 if alpha1 != 0 else float("inf")
                 print(
                     "Inaccurate G! Step=",
                     alpha1,
@@ -394,7 +394,7 @@ class LBFGS_Armijo(Optimizer):
             # do the line search
             # match Rosetta: start at 2x prev accepted step, capped at 1.0
             start_t = min(t / 0.5, 1.0)
-            t, loss, ls_evals, _ = armijo_linesearch(
+            t, loss, ls_evals, status = armijo_linesearch(
                 linefn,  # callback for energy eval
                 gtd_val,  # directional derivative
                 prev_loss,  # current function value (at x)
@@ -429,8 +429,8 @@ class LBFGS_Armijo(Optimizer):
                     break
                 t = 1.0 / ((-gtd_val) ** 0.5)
                 prev_loss = loss
-                start_t = min(t / 0.5, 1.0)
-                t, loss, ls_evals_retry, _ = armijo_linesearch(
+                start_t = max(min(t / 0.5, 1.0), self._minstep)
+                t, loss, ls_evals_retry, status = armijo_linesearch(
                     linefn,
                     gtd_val,
                     prev_loss,
@@ -455,7 +455,10 @@ class LBFGS_Armijo(Optimizer):
             # update - direct modification
             x.copy_(x_backup).add_(d, alpha=t)
 
-            closure()  # fd: needed for derivatives, but adds an extra func eval...
+            # ONLY if the last step was 'step_back' then grads are out of date
+            #   recompute the closure
+            if status == "step_back":
+                closure()
 
             flat_grad = param.grad.data.view(-1)  # Direct reference
             max_grad = flat_grad.max().item()

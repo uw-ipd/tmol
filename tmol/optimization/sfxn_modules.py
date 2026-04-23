@@ -29,18 +29,30 @@ class CartesianSfxnNetwork(torch.nn.Module):
             )
         self.coord_mask = coord_mask
 
+        # Precompute flat integer indices for the boolean mask
+        # Flat integer is faster than bool mask
+        #   (since i think torch does nonzero each time under the hood)
+        self._coord_flat_idx = (
+            self.coord_mask.reshape(-1).nonzero(as_tuple=False).squeeze(-1)
+        )
+
         self.masked_coords = torch.nn.Parameter(self.full_coords[self.coord_mask])
         self.count = 0
 
     def forward(self):
         self.count += 1
         self.full_coords = self.full_coords.detach()
-        self.full_coords[self.coord_mask] = self.masked_coords
+        # self.full_coords[self.coord_mask] = self.masked_coords
+        self.full_coords.view(-1, self.full_coords.shape[-1])[
+            self._coord_flat_idx
+        ] = self.masked_coords
         return self.whole_pose_scoring_module(self.full_coords)
 
     def pose_stack_from_dofs(self):
         full_coords = self.full_coords.detach().clone()
-        full_coords[self.coord_mask] = self.masked_coords.detach()
+        full_coords.view(-1, full_coords.shape[-1])[
+            self._coord_flat_idx
+        ] = self.masked_coords.detach()
         return attrs.evolve(self.pose_stack, coords=full_coords)
 
 
@@ -99,6 +111,12 @@ class KinForestSfxnNetwork(torch.nn.Module):
             ] = True
         self.dof_mask = dof_mask
 
+        # Precompute flat integer indices for the boolean mask
+        # Flat integer is faster than bool mask
+        self._dof_flat_idx = (
+            self.dof_mask.reshape(-1).nonzero(as_tuple=False).squeeze(-1)
+        )
+
         self.masked_dofs = torch.nn.Parameter(self.full_dofs[self.dof_mask])
         self.count = 0
 
@@ -112,7 +130,7 @@ class KinForestSfxnNetwork(torch.nn.Module):
 
         # update the full-dofs, calc the coords, and map them
         # to the pose-stack-ordered coords
-        self.full_dofs[self.dof_mask] = self.masked_dofs
+        self.full_dofs.view(-1)[self._dof_flat_idx] = self.masked_dofs
         kin_coords = self.kin_module(self.full_dofs)
         self.flat_coords[self.id[1:]] = kin_coords[1:].to(self.flat_coords.dtype)
         self.full_coords = self.flat_coords.view(self.orig_coords_shape)
@@ -124,7 +142,7 @@ class KinForestSfxnNetwork(torch.nn.Module):
 
         full_dofs = self.full_dofs.clone()
         flat_coords = self.flat_coords.detach()
-        full_dofs[self.dof_mask] = self.masked_dofs
+        full_dofs.view(-1)[self._dof_flat_idx] = self.masked_dofs
         kin_coords = self.kin_module(full_dofs)
         flat_coords[self.id[1:]] = kin_coords[1:].to(flat_coords.dtype)
         full_coords = flat_coords.view(self.orig_coords_shape)
