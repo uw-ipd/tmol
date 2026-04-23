@@ -1,8 +1,5 @@
 from tmol.pack.datatypes import PackerEnergyTables
 
-# Import compiled components to load torch_ops
-from tmol.pack.compiled.compiled import pack_anneal
-
 
 def run_simulated_annealing(energy_tables: PackerEnergyTables):
     """Run GPU simulated annealing.
@@ -14,6 +11,8 @@ def run_simulated_annealing(energy_tables: PackerEnergyTables):
     Phase 3 (full quench): round2_cut = 0.25 keeps the top 25% of those
       -> int(1250 * 0.25) = 312 trajectories
     """
+    from tmol.pack.compiled.compiled import pack_anneal
+
     return pack_anneal(
         energy_tables.max_n_rotamers_per_pose,
         energy_tables.pose_n_res,

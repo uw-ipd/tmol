@@ -2,8 +2,6 @@ import torch
 from functools import reduce
 from torch.optim import Optimizer
 
-from tmol.optimization.compiled import lbfgs_two_loop as _lbfgs_two_loop_op
-
 
 def armijo_linesearch(
     func,
@@ -219,6 +217,8 @@ class LBFGS_Armijo(Optimizer):
             Despite the name, this performs the full LBFGS minimization trajectory.
             Stores lots of information in self.state
         """
+        from tmol.optimization.compiled import lbfgs_two_loop as _lbfgs_two_loop_op
+
         # lbfgs only works w/ single parameter group
         assert len(self.param_groups) == 1
 
@@ -404,11 +404,6 @@ class LBFGS_Armijo(Optimizer):
                 sigma_increase=0.8,
                 minstep=self._minstep,
             )
-
-            if self.verbose:
-                print(
-                    f"  iter {n_iter:4d}  E={loss:.6f}  ls_evals={ls_evals}  start_step={start_t:.6e}  accepted_step={t:.6e}"
-                )
 
             if t == 0.0:
                 # Failed line search: reset L-BFGS history, retry with steepest

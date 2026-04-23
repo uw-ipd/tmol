@@ -6,8 +6,6 @@ import sys
 from ..energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
-from tmol.score.constraint.potentials.compiled import get_torsion_angle
-
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -46,6 +44,8 @@ class ConstraintEnergyTerm(EnergyTerm):
 
     @classmethod
     def get_torsion_angle_test(cls, tensor):
+        from tmol.score.constraint.potentials.compiled import get_torsion_angle
+
         return get_torsion_angle(tensor)
 
     @classmethod
@@ -99,6 +99,8 @@ class ConstraintEnergyTerm(EnergyTerm):
         # params[:, 0] == mean (target value)
         # params[:, 1] == standard deviation
         # params[:, 2] == constant that's added to the score regardless
+        from tmol.score.constraint.potentials.compiled import get_torsion_angle
+
         x0 = params[:, 0]  # The desired angle
         sd = params[:, 1]
         offset = params[:, 2]

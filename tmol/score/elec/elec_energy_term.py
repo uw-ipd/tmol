@@ -5,8 +5,6 @@ from ..bond_dependent_term import BondDependentTerm
 
 from tmol.database import ParameterDatabase
 from tmol.score.elec.params import ElecParamResolver, ElecGlobalParams
-from tmol.score.elec.potentials.compiled import elec_pose_scores, elec_rotamer_scores
-
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -126,9 +124,13 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(ElecEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
+        from tmol.score.elec.potentials.compiled import elec_pose_scores
+
         return elec_pose_scores
 
     def get_rotamer_score_term_function(self):
+        from tmol.score.elec.potentials.compiled import elec_rotamer_scores
+
         return elec_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack):

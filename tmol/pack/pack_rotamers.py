@@ -4,7 +4,6 @@ import time
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_function import ScoreFunction
 
-from tmol.pack.compiled.compiled import build_interaction_graph
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.build_rotamers import build_rotamers
 from tmol.pack.datatypes import PackerEnergyTables
@@ -39,6 +38,8 @@ def pack_rotamers(
     end_time2 = time.perf_counter()
 
     chunk_size = 16
+
+    from tmol.pack.compiled.compiled import build_interaction_graph
 
     energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
         build_interaction_graph(

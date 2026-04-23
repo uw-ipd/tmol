@@ -3,11 +3,6 @@ import torch
 
 from .params import LKBallBlockTypeParams, LKBallPackedBlockTypesParams
 
-from tmol.score.lk_ball.potentials.compiled import (
-    lk_ball_pose_score,
-    lk_ball_rotamer_score,
-    gen_pose_waters,
-)
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..hbond.hbond_dependent_term import HBondDependentTerm
 from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver
@@ -228,6 +223,11 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         super(LKBallEnergyTerm, self).setup_poses(pose_stack)
 
     def pose_score_lk_ball(self, *args):
+        from tmol.score.lk_ball.potentials.compiled import (
+            lk_ball_pose_score,
+            gen_pose_waters,
+        )
+
         common_args = args[:-2]
         pose_stack = args[-2]
         block_pair_scoring = args[-1]
@@ -283,6 +283,11 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         return lk_ball_pose_score(*args)
 
     def rotamer_score_lk_ball(self, *args):
+        from tmol.score.lk_ball.potentials.compiled import (
+            lk_ball_rotamer_score,
+            gen_pose_waters,
+        )
+
         common_args = args[:-2]
         pose_stack = args[-2]
         block_pair_scoring = args[-1]
