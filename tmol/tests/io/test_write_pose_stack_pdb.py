@@ -62,9 +62,9 @@ def test_atom_records_for_multi_chain_pdb(pertuzumab_pdb, torch_device):
     assert len(pdb_atom_lines) > len(pertuzumab_atom_lines)
 
 
-def test_write_pose_stack_pdb(ubq_pdb, pertuzumab_pdb):
+def test_write_pose_stack_pdb(ubq_pdb, pertuzumab_pdb, tmp_path):
     device = torch.device("cpu")
-    output_fname = "tmol/tests/io/write_pose_stack_pdb.pdb"
+    output_fname = str(tmp_path / "write_pose_stack_pdb.pdb")
     for pdb in [ubq_pdb, pertuzumab_pdb]:
         ps = pose_stack_from_pdb(ubq_pdb, device)
         assert not os.path.isfile(output_fname)
