@@ -19,7 +19,6 @@ from tmol.pack.simulated_annealing import run_simulated_annealing
 from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
 
 from tmol.io import pose_stack_from_pdb
-from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
 
 from tmol.pack.pack_rotamers import pack_rotamers
 
