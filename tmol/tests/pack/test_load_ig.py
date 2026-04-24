@@ -40,7 +40,7 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(ig, pdb_fname, 
 
     n_rots = torch.zeros((76,), dtype=torch.int64)
     for i in range(76):
-        arrname = f"{i+1}"
+        arrname = f"{i + 1}"
         n_rots[i] = oneb[arrname].shape[0]
 
     def _ti64(x):
@@ -91,11 +91,11 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(ig, pdb_fname, 
     for i in range(76):
         i_n_rots = n_rots_for_block[0, i]
         i_offset = rot_offset_for_block[0, i]
-        energy1b[i_offset : (i_offset + i_n_rots)] = _tf32(oneb[f"{i+1}"])
+        energy1b[i_offset : (i_offset + i_n_rots)] = _tf32(oneb[f"{i + 1}"])
         for j in range(i + 1, 76):
             j_n_rots = n_rots_for_block[0, j]
             j_offset = rot_offset_for_block[0, j]
-            table_name = f"{i+1}-{j+1}"
+            table_name = f"{i + 1}-{j + 1}"
             if table_name in twob:
                 # let's say all energies here will be listed as non-zero
                 entry_offset.append(cumm_offset)
@@ -132,7 +132,7 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
     n_poses = 2
     n_rots = torch.zeros((n_poses, 76), dtype=int)
     for i in range(76):
-        arrname = f"{i+1}"
+        arrname = f"{i + 1}"
         n_rots[:, i] = oneb[arrname].shape[0]
 
     def _ti64(x):
@@ -190,11 +190,11 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
     for i in range(76):
         i_n_rots = n_rots_for_block[0, i]
         i_offset = rot_offset_for_block[0, i]
-        energy1b[i_offset : (i_offset + i_n_rots)] = _tf32(oneb[f"{i+1}"])
+        energy1b[i_offset : (i_offset + i_n_rots)] = _tf32(oneb[f"{i + 1}"])
         for j in range(i + 1, 76):
             j_n_rots = n_rots_for_block[0, j]
             j_offset = rot_offset_for_block[0, j]
-            table_name = f"{i+1}-{j+1}"
+            table_name = f"{i + 1}-{j + 1}"
             if table_name in twob:
                 # let's say all energies here will be listed as non-zero
                 entry_offset.append(cumm_offset)
@@ -211,11 +211,11 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
     for i in range(76):
         i_n_rots = n_rots_for_block[1, i]
         i_offset = rot_offset_for_block[1, i]
-        energy1b[i_offset : (i_offset + i_n_rots)] = _tf32(oneb[f"{i+1}"])
+        energy1b[i_offset : (i_offset + i_n_rots)] = _tf32(oneb[f"{i + 1}"])
         for j in range(i + 1, 76):
             j_n_rots = n_rots_for_block[1, j]
             j_offset = rot_offset_for_block[1, j]
-            table_name = f"{i+1}-{j+1}"
+            table_name = f"{i + 1}-{j + 1}"
             if table_name in twob:
                 # let's say all energies here will be listed as non-zero
                 entry_offset.append(cumm_offset)

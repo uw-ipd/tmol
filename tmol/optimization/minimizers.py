@@ -44,8 +44,8 @@ def build_kinforest_network(
     if verbose:
         print(
             f"build_kinforest_network {end_time3 - start_time: .2f}"
-            + f" s1: {end_time1-start_time: .2f} s2: {end_time2 - end_time1: .2f}"
-            + f" s3: {end_time3-end_time2: .2f}"
+            + f" s1: {end_time1 - start_time: .2f} s2: {end_time2 - end_time1: .2f}"
+            + f" s3: {end_time3 - end_time2: .2f}"
         )
 
     return kf_network
@@ -105,8 +105,8 @@ def run_min(
 
     if verbose:
         print(
-            f"run_min {end_time3 - start_time: .2f} setup: {end_time1-start_time: .2f}"
-            + f" opt {end_time2 - end_time1: .2f} stack-ctor: {end_time3-end_time2: .2f}"
+            f"run_min {end_time3 - start_time: .2f} setup: {end_time1 - start_time: .2f}"
+            + f" opt {end_time2 - end_time1: .2f} stack-ctor: {end_time3 - end_time2: .2f}"
         )
 
     return new_pose_stack

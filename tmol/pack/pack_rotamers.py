@@ -93,9 +93,9 @@ def pack_rotamers(
     if verbose:
         print(
             f"pack_rotamers {end_time6 - start_time: .2f}"
-            + f" build rots: {end_time1-start_time: .2f} calcRPEs: {end_time2 - end_time1: .2f}"
-            + f" build IG: {end_time3-end_time2: .2f} build IG part2: {end_time4 - end_time3: .2f}"
-            + f" run SA: {end_time5-end_time4: .2f} pose ctor: {end_time6 - end_time5: .2f}"
+            + f" build rots: {end_time1 - start_time: .2f} calcRPEs: {end_time2 - end_time1: .2f}"
+            + f" build IG: {end_time3 - end_time2: .2f} build IG part2: {end_time4 - end_time3: .2f}"
+            + f" run SA: {end_time5 - end_time4: .2f} pose ctor: {end_time6 - end_time5: .2f}"
         )
 
     return new_pose_stack
