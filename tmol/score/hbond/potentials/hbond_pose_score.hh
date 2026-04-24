@@ -100,7 +100,7 @@ struct HBondPoseScoreDispatch {
 
       // HBond potential parameters
       TView<HBondPairParams<Real>, 2, Dev> pair_params,
-      TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
+      TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
       // Derived-atom coords + source-atom indices produced by the
@@ -185,7 +185,7 @@ struct HBondPoseScoreDispatch {
 
       // HBond potential parameters
       TView<HBondPairParams<Real>, 2, Dev> pair_params,
-      TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
+      TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
       //////////////////////
 
@@ -276,7 +276,7 @@ struct HBondRotamerScoreDispatch {
 
       // HBond potential parameters
       TView<HBondPairParams<Real>, 2, Dev> pair_params,
-      TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
+      TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
       // Derived-atom coords + source-atom indices produced by the
@@ -361,7 +361,7 @@ struct HBondRotamerScoreDispatch {
 
       // HBond potential parameters
       TView<HBondPairParams<Real>, 2, Dev> pair_params,
-      TView<HBondPolynomials<Real>, 2, Dev> pair_polynomials,
+      TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
       //////////////////////
 

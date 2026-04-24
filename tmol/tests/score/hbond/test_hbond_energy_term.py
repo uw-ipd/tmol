@@ -48,7 +48,7 @@ def test_annotate_restypes(
 
 
 def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device):
-    gold_vals = numpy.array([[-55.21]], dtype=numpy.float32)
+    gold_vals = numpy.array([[-55.6756]], dtype=numpy.float32)
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     for bt in p1.packed_block_types.active_block_types:
@@ -64,7 +64,7 @@ def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device
     # make sure we're still good
     torch.arange(100, device=torch_device)
     numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-2, rtol=1e-2
+        gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
     )
 
 
@@ -84,9 +84,8 @@ class TestHBondEnergyTerm(EnergyTermTestBase):
         default_database,
         torch_device: torch.device,
     ):
-        # float32 coefficients lead to cpu/cuda discrepancies of ~0.2%
         return super().test_whole_pose_scoring_jagged(
-            ubq_pdb, default_database, torch_device, update_baseline=False, rtol=5e-3
+            ubq_pdb, default_database, torch_device, update_baseline=False
         )
 
     @classmethod
@@ -116,7 +115,6 @@ class TestHBondEnergyTerm(EnergyTermTestBase):
             torch_device,
             resnums=resnums,
             update_baseline=False,
-            rtol=5e-3,  # float32 coefficients lead to cpu/cuda discrepancies of ~0.2%
         )
 
     @classmethod

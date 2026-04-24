@@ -19,9 +19,9 @@ from ..chemical_database import AcceptorHybridization
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class HBondPolyParams(TensorGroup, ConvertAttrs):
-    range: Tensor[torch.float32][..., 2]
-    bound: Tensor[torch.float32][..., 2]
-    coeffs: Tensor[torch.float32][..., 11]
+    range: Tensor[torch.double][..., 2]
+    bound: Tensor[torch.double][..., 2]
+    coeffs: Tensor[torch.double][..., 11]
 
     def __setitem__(self, idx, value):
         self.range[idx] = value.range[idx]
@@ -177,7 +177,7 @@ class CompactedHBondDatabase(ValidateAttrs):
 
     global_param_table: Tensor[torch.float32][:, :]
     pair_param_table: Tensor[torch.float32][:, :, :]
-    pair_poly_table: Tensor[torch.float32][:, :, :]
+    pair_poly_table: Tensor[torch.float64][:, :, :]
 
     @classmethod
     @validate_args
@@ -255,7 +255,7 @@ class CompactedHBondDatabase(ValidateAttrs):
         pad = torch.zeros(
             [pp.AHdist.coeffs.shape[0], pp.AHdist.coeffs.shape[1], 1],
             device=device,
-            dtype=torch.float32,
+            dtype=torch.float64,
         )
 
         pair_poly_table = _p(
