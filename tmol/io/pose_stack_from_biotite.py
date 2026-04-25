@@ -57,7 +57,8 @@ def build_context_from_biotite(
             value are treated as disconnected (upper/lower connects broken).
             Set to 0 to disable. Default is 2.4.
         prepare_ligands: If True, detect and prepare non-standard residues
-            (requires ``tmol.ligand``; install with ``openbabel-wheel``).
+            (via ``tmol.ligand``, which uses RDKit for atom typing and
+            residue-type construction).
         ligand_ph: Target pH for ligand protonation (default 7.4, only used when
             prepare_ligands=True).
         strict_atom_types: If True, unknown ligand atom types raise errors

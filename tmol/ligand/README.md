@@ -19,11 +19,9 @@ flowchart TD
         D --> E["Chem.AddHs"]
 
         E --> F["compute_mmff94_charges\n(mol3d.py — RDKit MMFF94)"]
-        E --> G["rdkit_mol_to_obmol\n(mol3d.py — MolBlock roundtrip)"]
-
-        G --> H["assign_tmol_atom_types\n(atom_typing.py — OpenBabel)"]
+        E --> H["assign_tmol_atom_types\n(atom_typing.py — RDKit)"]
         H --> I["rename atoms to CIF names\n(__init__.py)"]
-        I --> J["build_residue_type\n(residue_builder.py — OpenBabel)"]
+        I --> J["build_residue_type\n(residue_builder.py — RDKit)"]
     end
 
     subgraph registration [Registration into ParameterDatabase]
@@ -49,8 +47,8 @@ flowchart TD
 | Mol construction from AtomArray | **RDKit** + Biotite | Direct coordinate + bond transfer, no SMILES roundtrip |
 | Protonation at target pH | **RDKit** via Dimorphite-DL | `protonate_mol_variants` operates on Mol objects directly |
 | Partial charges (MMFF94) | **RDKit** | `AllChem.MMFFGetMoleculeProperties` with Gasteiger fallback |
-| Atom typing | **OpenBabel** | 579-line Rosetta AtomTypeClassifier port; must produce identical types |
-| Residue type building | **OpenBabel** | Atom tree, internal coordinates, bond order from OBMol |
+| Atom typing | **RDKit** | Rosetta AtomTypeClassifier port operating on perceived RDKit hybridization, aromaticity, ring membership, and bond orders |
+| Residue type building | **RDKit** | Atom tree, internal coordinates, bond order from Chem.Mol |
 
 ## What Gets Registered
 
@@ -77,8 +75,8 @@ When `register_ligand` adds a ligand to the `ParameterDatabase`:
 | `detect.py` | 276 | `LigandInfo`, `detect_nonstandard_residues`, CCD SMILES lookup |
 | `rdkit_mol.py` | 81 | `ligand_atom_array_to_rdkit_mol`, `protonate_ligand_mol` |
 | `mol3d.py` | 45 | `compute_mmff94_charges`, `rdkit_mol_to_obmol` |
-| `atom_typing.py` | 571 | Rosetta-style atom type assignment from OBMol |
-| `residue_builder.py` | 343 | `build_residue_type` — RawResidueType from OBMol |
+| `atom_typing.py` | 520 | Rosetta-style atom type assignment from Chem.Mol |
+| `residue_builder.py` | 330 | `build_residue_type` — RawResidueType from Chem.Mol |
 | `registry.py` | 333 | `register_ligand`, `LigandPreparationCache`, `rebuild_canonical_ordering` |
 | `graph_match.py` | 114 | VF2 heavy-atom isomorphism for CIF name mapping |
 | `params_io.py` | 178 | Rosetta `.params` file read/write |

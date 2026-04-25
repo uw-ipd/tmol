@@ -1,12 +1,12 @@
-"""Molecular charge computation and OpenBabel conversion for ligands.
+"""Molecular charge computation for ligands.
 
-The main pipeline uses RDKit for MMFF94 partial charges and converts to
-OpenBabel only for atom typing and residue building (MolBlock roundtrip).
+MMFF94 partial charges via RDKit, with a Gasteiger fallback for molecules
+RDKit's MMFF94 implementation cannot parameterize (e.g. porphyrin-like
+kekulization edge cases).
 """
 
 import logging
 
-from openbabel import pybel
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
@@ -32,14 +32,3 @@ def compute_mmff94_charges(mol: Chem.Mol) -> dict[int, float]:
             for i in range(mol.GetNumAtoms())
         }
     return {i: props.GetMMFFPartialCharge(i) for i in range(mol.GetNumAtoms())}
-
-
-def rdkit_mol_to_obmol(rdkit_mol: Chem.Mol) -> pybel.Molecule:
-    """Convert an RDKit Mol to an OpenBabel molecule via MolBlock roundtrip.
-
-    No 3D generation or minimization is performed -- the RDKit mol is
-    expected to already have coordinates (from the crystal structure).
-    """
-    mol_block = Chem.MolToMolBlock(rdkit_mol, kekulize=False)
-    mol = pybel.readstring("mol", mol_block)
-    return mol

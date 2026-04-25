@@ -1,6 +1,6 @@
-"""Build tmol RawResidueType definitions from OpenBabel molecules.
+"""Build tmol RawResidueType definitions from RDKit molecules.
 
-Converts an OBMol with assigned atom types into a complete RawResidueType
+Converts a Chem.Mol with assigned atom types into a complete RawResidueType
 suitable for registration in tmol's ChemicalDatabase. Handles atom tree
 construction, internal coordinate computation, rotatable bond detection,
 and non-polymer property assignment.
@@ -14,7 +14,7 @@ import math
 from collections import deque
 
 import numpy as np
-from openbabel import openbabel
+from rdkit import Chem
 
 from tmol.database.chemical import (
     Atom,
@@ -29,7 +29,25 @@ from tmol.ligand.atom_typing import AtomTypeAssignment
 logger = logging.getLogger(__name__)
 
 
-def _find_nbr_atom(obmol: openbabel.OBMol, skip_indices=None) -> int:
+def _mol_coords(mol: Chem.Mol) -> np.ndarray:
+    """Return an (N, 3) float array of 3D coordinates from mol's first conformer.
+
+    If the mol has no conformer (e.g. a SMILES-only unit-test input),
+    return zeros — the caller's icoor geometry will be degenerate but the
+    atom tree and topology outputs still build correctly.
+    """
+    n = mol.GetNumAtoms()
+    if mol.GetNumConformers() == 0:
+        return np.zeros((n, 3))
+    conf = mol.GetConformer(0)
+    coords = np.zeros((n, 3))
+    for i in range(n):
+        p = conf.GetAtomPosition(i)
+        coords[i] = (p.x, p.y, p.z)
+    return coords
+
+
+def _find_nbr_atom(mol: Chem.Mol, skip_indices=None) -> int:
     """Find the neighbor atom (root) for the atom tree.
 
     Selects the heavy atom closest to the center of mass that has
@@ -37,7 +55,7 @@ def _find_nbr_atom(obmol: openbabel.OBMol, skip_indices=None) -> int:
     indices in ``skip_indices``.
 
     Args:
-        obmol: An OBMol with 3D coordinates.
+        mol: A Chem.Mol with 3D coordinates.
         skip_indices: Optional set of 0-based atom indices to exclude.
 
     Returns:
@@ -46,25 +64,20 @@ def _find_nbr_atom(obmol: openbabel.OBMol, skip_indices=None) -> int:
     if skip_indices is None:
         skip_indices = set()
 
-    n_atoms = obmol.NumAtoms()
-    coords = np.zeros((n_atoms, 3))
-    for obatom in openbabel.OBMolAtomIter(obmol):
-        idx = obatom.GetIndex()
-        coords[idx] = [obatom.GetX(), obatom.GetY(), obatom.GetZ()]
-
+    coords = _mol_coords(mol)
     com = coords.mean(axis=0)
     dists_sq = np.sum((coords - com) ** 2, axis=1)
 
     best_idx = 0
     best_dist = float("inf")
 
-    for obatom in openbabel.OBMolAtomIter(obmol):
-        idx = obatom.GetIndex()
+    for atom in mol.GetAtoms():
+        idx = atom.GetIdx()
         if idx in skip_indices:
             continue
-        if obatom.GetAtomicNum() == 1:
+        if atom.GetAtomicNum() == 1:
             continue
-        if obatom.GetTotalDegree() < 2:
+        if atom.GetDegree() < 2:
             continue
         if dists_sq[idx] < best_dist:
             best_dist = dists_sq[idx]
@@ -74,12 +87,12 @@ def _find_nbr_atom(obmol: openbabel.OBMol, skip_indices=None) -> int:
 
 
 def _build_atom_tree(
-    obmol: openbabel.OBMol, root_idx: int
+    mol: Chem.Mol, root_idx: int
 ) -> tuple[list[int], dict[int, int], dict[int, tuple[int, int]]]:
     """Build an atom tree via BFS from the root atom.
 
     Args:
-        obmol: The OBMol.
+        mol: The Chem.Mol.
         root_idx: 0-based index of the root (NBR) atom.
 
     Returns:
@@ -88,7 +101,7 @@ def _build_atom_tree(
         - parent: Maps each atom index to its parent index.
         - grandparents: Maps each atom index to (grandparent, great-grandparent).
     """
-    n_atoms = obmol.NumAtoms()
+    n_atoms = mol.GetNumAtoms()
     visited = [False] * n_atoms
     parent: dict[int, int] = {root_idx: root_idx}
     order: list[int] = []
@@ -96,9 +109,9 @@ def _build_atom_tree(
     visited[root_idx] = True
 
     adj: dict[int, list[int]] = {i: [] for i in range(n_atoms)}
-    for obbond in openbabel.OBMolBondIter(obmol):
-        a = obbond.GetBeginAtomIdx() - 1
-        b = obbond.GetEndAtomIdx() - 1
+    for bond in mol.GetBonds():
+        a = bond.GetBeginAtomIdx()
+        b = bond.GetEndAtomIdx()
         adj[a].append(b)
         adj[b].append(a)
 
@@ -152,7 +165,7 @@ def _dihedral(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> flo
 
 
 def _compute_icoors(
-    obmol: openbabel.OBMol,
+    mol: Chem.Mol,
     order: list[int],
     parent: dict[int, int],
     grandparents: dict[int, tuple[int, int]],
@@ -166,7 +179,7 @@ def _compute_icoors(
     - phi: dihedral(child, parent, grandparent, great-grandparent)
 
     Args:
-        obmol: The OBMol with 3D coordinates.
+        mol: The Chem.Mol with 3D coordinates.
         order: BFS traversal order.
         parent: Parent map from atom tree.
         grandparents: (grandparent, great-grandparent) map.
@@ -175,10 +188,7 @@ def _compute_icoors(
     Returns:
         A list of Icoor objects in BFS traversal order.
     """
-    coords = np.zeros((obmol.NumAtoms(), 3))
-    for obatom in openbabel.OBMolAtomIter(obmol):
-        idx = obatom.GetIndex()
-        coords[idx] = [obatom.GetX(), obatom.GetY(), obatom.GetZ()]
+    coords = _mol_coords(mol)
 
     icoors: list[Icoor] = []
 
@@ -220,12 +230,12 @@ def _compute_icoors(
 
 
 def build_residue_type(
-    obmol: openbabel.OBMol,
+    mol: Chem.Mol,
     res_name: str,
     atom_types: list[AtomTypeAssignment],
     atom_aliases: tuple = (),
 ) -> RawResidueType:
-    """Build a complete RawResidueType from an OBMol.
+    """Build a complete RawResidueType from a Chem.Mol.
 
     Constructs atoms, bonds, internal coordinates, and non-polymer
     properties suitable for registration in tmol's ChemicalDatabase.
@@ -234,7 +244,7 @@ def build_residue_type(
     lost identity during SMILES roundtrip) are silently dropped.
 
     Args:
-        obmol: An OpenBabel OBMol with 3D coordinates and bonds.
+        mol: An RDKit Mol with 3D coordinates and bonds.
         res_name: Three-letter residue name (e.g. "LG1", "ATP").
         atom_types: Atom type assignments from assign_tmol_atom_types().
         atom_aliases: Optional tuple of AtomAlias for CIF name mapping.
@@ -256,40 +266,42 @@ def build_residue_type(
         keep_indices = None
 
     idx_to_name = {at.index: at.atom_name for at in atom_types}
-    atom_names = [idx_to_name.get(i) for i in range(obmol.NumAtoms())]
+    atom_names = [idx_to_name.get(i) for i in range(mol.GetNumAtoms())]
 
     atoms = tuple(Atom(name=at.atom_name, atom_type=at.atom_type) for at in atom_types)
 
     bonds: list[tuple[str, str, str]] = []
-    for obbond in openbabel.OBMolBondIter(obmol):
-        a = obbond.GetBeginAtomIdx() - 1
-        b = obbond.GetEndAtomIdx() - 1
+    for bond in mol.GetBonds():
+        a = bond.GetBeginAtomIdx()
+        b = bond.GetEndAtomIdx()
 
         if atom_names[a] is None or atom_names[b] is None:
             continue
 
         # Determine the bond type string
-        order = obbond.GetBondOrder()
-        if obbond.IsAromatic():
-            b_type = "AROMATIC"  # aro check before ring!
-        elif obbond.IsInRing():
+        if bond.GetIsAromatic():
+            # NOTE: Check aromatic before ring!
+            b_type = "AROMATIC"
+        elif bond.IsInRing():
             b_type = "RING"
-        elif order == 1:
-            b_type = "SINGLE"
-        elif order == 2:
-            b_type = "DOUBLE"
-        elif order == 3:
-            b_type = "TRIPLE"
         else:
-            b_type = "SINGLE"  # default to single
+            order = bond.GetBondTypeAsDouble()
+            if order == 1.0:
+                b_type = "SINGLE"
+            elif order == 2.0:
+                b_type = "DOUBLE"
+            elif order == 3.0:
+                b_type = "TRIPLE"
+            else:
+                b_type = "SINGLE"  # default to single
 
         bonds.append((atom_names[a], atom_names[b], b_type))
 
     nbr_idx = _find_nbr_atom(
-        obmol,
-        skip_indices=keep_indices and (set(range(obmol.NumAtoms())) - keep_indices),
+        mol,
+        skip_indices=keep_indices and (set(range(mol.GetNumAtoms())) - keep_indices),
     )
-    order, parent, grandparents = _build_atom_tree(obmol, nbr_idx)
+    order, parent, grandparents = _build_atom_tree(mol, nbr_idx)
     if keep_indices is not None:
         order = [i for i in order if i in keep_indices]
 
@@ -304,7 +316,7 @@ def build_residue_type(
             ggp = gp
         grandparents[idx] = (gp, ggp)
 
-    icoors = _compute_icoors(obmol, order, parent, grandparents, atom_names)
+    icoors = _compute_icoors(mol, order, parent, grandparents, atom_names)
 
     properties = ChemicalProperties(
         is_canonical=False,

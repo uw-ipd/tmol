@@ -31,13 +31,9 @@ IncludeCmd: yes
     ln -s /projects /mnt/projects
 
     # Update system and install essential packages
-    # libxrender1, libx11-6, libxext6 are runtime deps of openbabel-wheel plugins
     apt-get update && apt-get install -y \
         build-essential \
         git \
-        libxrender1 \
-        libx11-6 \
-        libxext6 \
         && rm -rf /var/lib/apt/lists/*
 
     # Fix CUDA compat warning in Apptainer (read-only filesystem)
