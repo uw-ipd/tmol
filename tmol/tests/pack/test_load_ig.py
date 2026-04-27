@@ -382,7 +382,7 @@ def test_build_interaction_graph(ubq_ig, torch_device):
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
-        False,
+        True,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
         rotamer_set.n_rots_for_pose,
@@ -394,6 +394,7 @@ def test_build_interaction_graph(ubq_ig, torch_device):
         rotamer_set.block_ind_for_rot,
         sparse_indices,
         energies,
+        False,
     )
     orig_n_rotamers = rotamer_set.pose_for_rot.shape[0]
     orig_rot_to_bc_rot = torch.full(
@@ -529,7 +530,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
-        False,
+        True,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
         rotamer_set.n_rots_for_pose,
@@ -541,6 +542,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
         rotamer_set.block_ind_for_rot,
         sparse_indices,
         energies,
+        False,
     )
     orig_n_rotamers = rotamer_set.pose_for_rot.shape[0]
     orig_rot_to_bc_rot = torch.full(
@@ -688,6 +690,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
         rotamer_set.block_ind_for_rot,
         sparse_indices,
         energies,
+        False,
     )
     orig_n_res = rotamer_set.n_rots_for_block.shape[1]
     n_eliminated_res = torch.sum(rotamer_for_nonmolten_block != -1)
@@ -759,6 +762,7 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
         rotamer_set.block_ind_for_rot,
         sparse_indices,
         energies,
+        False,
     )
     orig_n_res = rotamer_set.n_rots_for_block.shape[1]
     n_eliminated_res0 = torch.sum(rotamer_for_nonmolten_block[0, :] != -1)

@@ -2,7 +2,6 @@ import numpy
 import numba
 import toolz
 import torch
-import attr
 
 from typing import List, Tuple
 

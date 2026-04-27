@@ -69,6 +69,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   assert(sparse_energies.size(0) == n_sparse_entries);
 
   LAUNCH_BOX_32;
+  CTA_REAL_REDUCE_T_TYPEDEF;
 
   // We will perform a "bump check" to eliminate some rotamers if they
   // are too high in energy to be worth considering; we do this after
@@ -364,9 +365,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         TPack<Real, 1, D>::full({n_rotamers}, 0);
     auto best_energy_for_rot = best_energy_for_rot_tp.view;
 
-    auto compute_best_energy_for_rotamers = ([=] TMOL_DEVICE_FUNC(int index) {
-      int const rot1 = index / max_n_blocks;
-      int const block2 = index % max_n_blocks;
+    auto compute_best_energy_for_rotamers = ([=] TMOL_DEVICE_FUNC(int cta) {
+      int const rot1 = cta / max_n_blocks;
+      int const block2 = cta % max_n_blocks;
       int const block1 = block_ind_for_rot[rot1];
       int const pose = pose_for_rot[rot1];
       int const n_rots_block1 = n_rots_for_block[pose][block1];
@@ -388,127 +389,145 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       // }
 
       if (block2 == block1) {
-        Real one_body_energy = energy1b[rot1];
-        score::common::accumulate<D, Real>::add(
-            best_energy_for_rot[rot1], one_body_energy);
+        auto accum_one_body_energy = ([&] TMOL_DEVICE_FUNC(int tid) {
+          if (tid == 0) {
+            Real one_body_energy = energy1b[rot1];
+            score::common::accumulate<D, Real>::add(
+                best_energy_for_rot[rot1], one_body_energy);
+          }
+        });
+        DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+            accum_one_body_energy);
         return;
       }
+
       int64_t const block_pair_chunk_offset =
           chunk_pair_offset_for_block_pair[pose][block1][block2];
       if (block_pair_chunk_offset == -1) {
         return;
       }
-      // bool focused_block_pair = false;
-      // if (focused_rotamer) {
-      //   if (block2 == 81) {
-      //     focused_block_pair = true;
-      //   }
-      //   printf("rot1 %d, block1 %d, block2 %d, block_pair_chunk_offset
-      //   %ld\n",
-      //          rot1, block1, block2, block_pair_chunk_offset);
-      // }
-      bool first_rotamer = true;
-      Real best_energy_for_rot1_w_block2 = 1234;
-      int const n_rots_block2 = n_rots_for_block[pose][block2];
-      int const n_chunks2 = (n_rots_block2 - 1) / chunk_size + 1;
-      // if (focused_rotamer) {
-      //   printf("n_rots_block2 %d, n_chunks2 %d\n", n_rots_block2,
-      //   n_chunks2);
-      // }
-      for (int local_rot2 = 0; local_rot2 < n_rots_block2; ++local_rot2) {
-        int const chunk2 = local_rot2 / chunk_size;
-        int const rot_ind_wi_chunk2 = local_rot2 - chunk2 * chunk_size;
+      auto find_min_energy_for_rotamer_and_block2 =
+          ([&] TMOL_DEVICE_FUNC(int tid) {
+            // bool focused_block_pair = false;
+            // if (focused_rotamer) {
+            //   if (block2 == 81) {
+            //     focused_block_pair = true;
+            //   }
+            //   printf("rot1 %d, block1 %d, block2 %d, block_pair_chunk_offset
+            //   %ld\n",
+            //          rot1, block1, block2, block_pair_chunk_offset);
+            // }
+            bool first_rotamer = true;
+            Real best_energy_for_rot1_w_block2 = 1234;
+            int const n_rots_block2 = n_rots_for_block[pose][block2];
+            int const n_chunks2 = (n_rots_block2 - 1) / chunk_size + 1;
+            // if (focused_rotamer) {
+            //   printf("n_rots_block2 %d, n_chunks2 %d\n", n_rots_block2,
+            //   n_chunks2);
+            // }
+            for (int local_rot2 = tid; local_rot2 < n_rots_block2;
+                 local_rot2 += nt) {
+              int const chunk2 = local_rot2 / chunk_size;
+              int const rot_ind_wi_chunk2 = local_rot2 - chunk2 * chunk_size;
 
-        int const overhang2 = n_rots_block2 - chunk2 * chunk_size;
-        int const chunk2_size =
-            (overhang2 > chunk_size ? chunk_size : overhang2);
+              int const overhang2 = n_rots_block2 - chunk2 * chunk_size;
+              int const chunk2_size =
+                  (overhang2 > chunk_size ? chunk_size : overhang2);
 
-        int64_t const chunk_pair_offset = chunk_pair_offsets
-            [block_pair_chunk_offset + chunk1 * n_chunks2 + chunk2];
-        if (chunk_pair_offset == -1) {
-          continue;
-        }
-        //   if (focused_rotamer) {
-        //     printf("  energy2b index: chunk_pair offset %d
-        //     rot_ind_wi_chunk1 %d chunk2_size %d rot_ind_wi_chunk2 %d =
-        //     %d\n",
-        //            chunk_pair_offset, rot_ind_wi_chunk1, chunk2_size,
-        //            rot_ind_wi_chunk2, chunk_pair_offset + rot_ind_wi_chunk1
-        //            * chunk2_size
-        //                + rot_ind_wi_chunk2);
-        //   }
-        Real e2b = energy2b
-            [chunk_pair_offset + rot_ind_wi_chunk1 * chunk2_size
-             + rot_ind_wi_chunk2];
-        // if (focused_block_pair) {
-        //   printf("  local_rot2 %d, chunk2 %d, chunk2_size %d,
-        //   chunk_pair_offset %ld e2b %5.2f\n",
-        //          local_rot2, chunk2, chunk2_size, chunk_pair_offset,
-        //          e2b);
-        // }
-        if (first_rotamer || e2b < best_energy_for_rot1_w_block2) {
-          best_energy_for_rot1_w_block2 = e2b;
-          first_rotamer = false;
-        }
-      }
-      if (!first_rotamer) {
-        // if (focused_rotamer) {
-        //   printf("  best energy for interaction with block %d is %.3f\n",
-        //     block2, best_energy_for_rot1_w_block2);
-        // }
-        if (best_energy_for_rot1_w_block2 != 0.0) {
-          score::common::accumulate<D, Real>::add(
-              best_energy_for_rot[rot1], best_energy_for_rot1_w_block2);
-        }
-      }
+              int64_t const chunk_pair_offset = chunk_pair_offsets
+                  [block_pair_chunk_offset + chunk1 * n_chunks2 + chunk2];
+              if (chunk_pair_offset == -1) {
+                continue;
+              }
+              //   if (focused_rotamer) {
+              //     printf("  energy2b index: chunk_pair offset %d
+              //     rot_ind_wi_chunk1 %d chunk2_size %d rot_ind_wi_chunk2 %d =
+              //     %d\n",
+              //            chunk_pair_offset, rot_ind_wi_chunk1, chunk2_size,
+              //            rot_ind_wi_chunk2, chunk_pair_offset +
+              //            rot_ind_wi_chunk1
+              //            * chunk2_size
+              //                + rot_ind_wi_chunk2);
+              //   }
+              Real e2b = energy2b
+                  [chunk_pair_offset + rot_ind_wi_chunk1 * chunk2_size
+                   + rot_ind_wi_chunk2];
+              // if (focused_block_pair) {
+              //   printf("  local_rot2 %d, chunk2 %d, chunk2_size %d,
+              //   chunk_pair_offset %ld e2b %5.2f\n",
+              //          local_rot2, chunk2, chunk2_size, chunk_pair_offset,
+              //          e2b);
+              // }
+              if (first_rotamer || e2b < best_energy_for_rot1_w_block2) {
+                best_energy_for_rot1_w_block2 = e2b;
+                first_rotamer = false;
+              }
+            }
+
+            bool all_first_rotamer =
+                DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+                    first_rotamer, mgpu::minimum_t<bool>());
+            Real best_energy =
+                DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+                    best_energy_for_rot1_w_block2, mgpu::minimum_t<Real>());
+
+            if (!all_first_rotamer && tid == 0) {
+              if (best_energy != 0.0) {
+                score::common::accumulate<D, Real>::add(
+                    best_energy_for_rot[rot1], best_energy);
+              }
+            }
+          });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          find_min_energy_for_rotamer_and_block2);
     });
     // printf("compute_best_energy_for_rotamers\n");
-    DeviceDispatch<D>::template forall<launch_t>(
+    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
         n_rotamers * max_n_blocks, compute_best_energy_for_rotamers);
 
     // Now let's figure out the best energy for each block type
 
-    auto best_energy_for_block_type_per_block_tp = TPack<Real, 3, D>::full(
-        {n_poses, max_n_blocks, max_n_block_types}, 1234);
-    auto best_energy_for_block_type_per_block =
-        best_energy_for_block_type_per_block_tp.view;
+    auto best_energy_per_block_tp =
+        TPack<Real, 2, D>::full({n_poses, max_n_blocks}, 1234);
+    auto best_energy_per_block = best_energy_per_block_tp.view;
 
     // This is just the dumbest way to do this; but it's cheap and it'll work
-    auto compute_best_energy_for_block_type_per_block =
-        ([=] TMOL_DEVICE_FUNC(int index) {
-          int const pose = index / (max_n_blocks * max_n_block_types);
-          index = index - pose * max_n_blocks * max_n_block_types;
-          int const block = index / max_n_block_types;
-          int const block_type = index % max_n_block_types;
+    auto compute_best_energy_per_block = ([=] TMOL_DEVICE_FUNC(int cta) {
+      int const pose = cta / max_n_blocks;
+      int const block = cta % max_n_blocks;
 
-          if (n_rots_for_block[pose][block] == 0) {
-            return;
+      if (n_rots_for_block[pose][block] == 0) {
+        return;
+      }
+      auto find_min_energy_for_block = ([&] TMOL_DEVICE_FUNC(int tid) {
+        Real best_energy = 1234;
+        bool first_rotamer = true;
+        int const block_n_rots = n_rots_for_block[pose][block];
+        for (int rot_in_block = tid; rot_in_block < block_n_rots;
+             rot_in_block += nt) {
+          int const rot = rot_offset_for_block[pose][block] + rot_in_block;
+          Real energy_for_rot = best_energy_for_rot[rot];
+          if (first_rotamer || energy_for_rot < best_energy) {
+            best_energy = energy_for_rot;
+            first_rotamer = false;
           }
-
-          Real best_energy_for_block_type = 1234;
-          bool first_rotamer_of_block_type = true;
-          int const block_n_rots = n_rots_for_block[pose][block];
-          for (int rot_in_block = 0; rot_in_block < block_n_rots;
-               ++rot_in_block) {
-            int const rot = rot_offset_for_block[pose][block] + rot_in_block;
-            if (block_type_ind_for_rot[rot] == block_type) {
-              Real energy_for_rot = best_energy_for_rot[rot];
-              if (first_rotamer_of_block_type
-                  || energy_for_rot < best_energy_for_block_type) {
-                best_energy_for_block_type = energy_for_rot;
-                first_rotamer_of_block_type = false;
-              }
-            }
-          }
-          if (!first_rotamer_of_block_type) {
-            best_energy_for_block_type_per_block[pose][block][block_type] =
-                best_energy_for_block_type;
-          }
-        });
-    // printf("compute_best_energy_for_block_type_per_block\n");
-    DeviceDispatch<D>::template forall<launch_t>(
-        n_poses * max_n_blocks * max_n_block_types,
-        compute_best_energy_for_block_type_per_block);
+        }
+        bool any_first =
+            DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+                first_rotamer, mgpu::minimum_t<bool>());
+        Real block_best_energy =
+            DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+                best_energy, mgpu::minimum_t<Real>());
+        if (!any_first && tid == 0) {
+          best_energy_per_block[pose][block] = block_best_energy;
+        }
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          find_min_energy_for_block);
+    });
+    // printf("compute_best_energy_per_block\n");
+    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+        n_poses * max_n_blocks, compute_best_energy_per_block);
 
     // Now we ask:
     // for every rotamer, should we keep it?
@@ -519,10 +538,8 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       int const pose = pose_for_rot[rot];
       int const block_type = block_type_ind_for_rot[rot];
       Real energy_for_rot = best_energy_for_rot[rot];
-      Real best_energy_for_block_type =
-          best_energy_for_block_type_per_block[pose][block][block_type];
-      if (!bump_check || energy_for_rot < 5.0
-          || best_energy_for_block_type > 5.0) {
+      Real best_energy_for_block = best_energy_per_block[pose][block];
+      if (energy_for_rot < 5.0 || best_energy_for_block > 5.0) {
         keep_rotamer[rot] = 1;
       }
     });
@@ -537,49 +554,61 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     // ever had one rotamer or perhaps because all of its
     // rotamers except one were eliminate by the bump check.
 
-    auto decide_keep_blocks = ([=] TMOL_DEVICE_FUNC(int index) {
-      int const pose = index / max_n_blocks;
-      int const block = index % max_n_blocks;
+    auto decide_keep_blocks = ([=] TMOL_DEVICE_FUNC(int cta) {
+      int const pose = cta / max_n_blocks;
+      int const block = cta % max_n_blocks;
       int const block_n_rots = n_rots_for_block[pose][block];
       if (block_n_rots == 0) {
         return;
       }
       int n_kept_rotamers_for_block = 0;
-      for (int rot_in_block = 0; rot_in_block < block_n_rots; ++rot_in_block) {
-        int const rot = rot_offset_for_block[pose][block] + rot_in_block;
-        if (keep_rotamer[rot]) {
-          n_kept_rotamers_for_block += 1;
-          if (n_kept_rotamers_for_block > 1) {
-            break;
-          }
-        }
-      }
-      if (n_kept_rotamers_for_block > 1) {
-        // printf("keeping block %d of pose %d with %d rotamers\n", block, pose,
-        //        n_kept_rotamers_for_block);
-        keep_block[pose][block] = 1;
-      } else {
-        // we are not keeping this block,
-        // so if it has 1 rotamer, then we have to also
-        // note that we are not keeping that rotamer
-        // printf("Not keeping block %d of pose %d with only %d rotamers\n",
-        // block, pose,
-        //        n_kept_rotamers_for_block);
-        if (n_kept_rotamers_for_block == 1) {
-          for (int rot_in_block = 0; rot_in_block < block_n_rots;
-               ++rot_in_block) {
-            int const rot = rot_offset_for_block[pose][block] + rot_in_block;
-            if (keep_rotamer[rot]) {
-              rotamer_for_nonmolten_block[pose][block] = rot;
-              keep_rotamer[rot] = 0;
+      auto count_n_rots_for_block = ([&] TMOL_DEVICE_FUNC(int tid) {
+        for (int rot_in_block = tid; rot_in_block < block_n_rots;
+             rot_in_block += nt) {
+          int const rot = rot_offset_for_block[pose][block] + rot_in_block;
+          if (keep_rotamer[rot]) {
+            n_kept_rotamers_for_block += 1;
+            if (n_kept_rotamers_for_block > 1) {
               break;
             }
           }
         }
-      }
+        n_kept_rotamers_for_block =
+            DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+                n_kept_rotamers_for_block, mgpu::plus_t<int>());
+        if (tid == 0) {
+          if (n_kept_rotamers_for_block > 1) {
+            // printf("keeping block %d of pose %d with %d rotamers\n", block,
+            // pose,
+            //        n_kept_rotamers_for_block);
+            keep_block[pose][block] = 1;
+          } else {
+            // we are not keeping this block,
+            // so if it has 1 rotamer, then we have to also
+            // note that we are not keeping that rotamer
+            // printf("Not keeping block %d of pose %d with only %d rotamers\n",
+            // block, pose,
+            //        n_kept_rotamers_for_block);
+            if (n_kept_rotamers_for_block == 1) {
+              for (int rot_in_block = 0; rot_in_block < block_n_rots;
+                   ++rot_in_block) {
+                int const rot =
+                    rot_offset_for_block[pose][block] + rot_in_block;
+                if (keep_rotamer[rot]) {
+                  rotamer_for_nonmolten_block[pose][block] = rot;
+                  keep_rotamer[rot] = 0;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          count_n_rots_for_block);
     });
     // printf("decide_keep_blocks\n");
-    DeviceDispatch<D>::template forall<launch_t>(
+    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
         n_poses * max_n_blocks, decide_keep_blocks);
 
   }  // end scope of first-pass interaction graph construction
