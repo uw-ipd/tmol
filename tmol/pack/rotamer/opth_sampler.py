@@ -180,12 +180,15 @@ def _opth_fill_dofs(
     reset_kto, reset_bt, reset_k = [], [], []
     chi_kto, chi_val_list = [], []
 
+    # chi_atoms is set >= 0 only for rotamers needing a chi override:
+    # NHQ flips, HIS tautomer swaps, and proton-chi samples.  Step 2 and
+    # step 3 below run only over those rotamers.
     flip_sis = (chi_atoms >= 0).any(dim=1).nonzero(as_tuple=True)[0].tolist()
     for si in flip_sis:
         bt_idx = bt_inds[si].item()
         at_off = at_offs[si].item()
 
-        # Step 2: reset downstream atoms to ideal for NHQ flip rotamers
+        # Step 2: reset downstream atoms to ideal.
         if flip_NHQ:
             downstream = pbt.active_block_types[
                 bt_idx
@@ -196,7 +199,7 @@ def _opth_fill_dofs(
                 reset_bt.append(bt_idx)
                 reset_k.append(k)
 
-        # Step 3: override chi torsion (DOF column 3) with corrected value
+        # Step 3: write the chi torsion(s) into DOF column 3.
         for chi_col in range(chi_atoms.shape[1]):
             chi_rto = chi_atoms[si, chi_col].item()
             if chi_rto < 0:
@@ -480,15 +483,22 @@ class OptHSampler(ConformerSampler):
         chi_defining_atom_for_rotamer,
         chi_for_rotamers,
     ):
-        # rotamer offset 0 = current chi
-        # rotamer offset 1 = current chi + pi
+        # Two NHQ rotamers per (blt, considered-bt):
+        #   offset 0 = input chi  (no rotation)
+        #   offset 1 = input chi + 180 deg
+        # Setting chi_defining_atom_for_rotamer >= 0 marks a rotamer for
+        # chi-override + downstream-rebuild in _opth_fill_dofs; rotamers
+        # left at -1 inherit input DOFs unchanged.  So we only mark offsets
+        # whose chi actually differs from input.
         chi_col = orig_cache.nhq_chi_col
 
-        # Only rebuild rotamer offset 0 for HIS flips
+        # Offset 0: chi == input, so only mark on HIS<->HIS_D tautomer swap
+        # (atom layout differs, ring must be rebuilt from ideal).
         if orig_cache.is_his and bt is not blt.original_block_type:
             chi_defining_atom_for_rotamer[rot_offset, chi_col] = bt_cache.nhq_chi_atom
             chi_for_rotamers[rot_offset, chi_col] = float(flip_chi)
-        # always rebuild rotamer offset 1
+
+        # Offset 1: always the +180 deg flip, always marked.
         chi_defining_atom_for_rotamer[rot_offset + 1, chi_col] = bt_cache.nhq_chi_atom
         chi_for_rotamers[rot_offset + 1, chi_col] = float(flip_chi) + math.pi
 
