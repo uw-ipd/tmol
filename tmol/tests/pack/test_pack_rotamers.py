@@ -19,7 +19,6 @@ from tmol.pack.simulated_annealing import run_simulated_annealing
 from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
 
 from tmol.io import pose_stack_from_pdb
-from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
 
 from tmol.pack.pack_rotamers import pack_rotamers
 
@@ -130,10 +129,9 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
         pose_stack, task, pose_stack.packed_block_types.chem_db
     )
     packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
-    new_pose_stack, _ = run_pack_and_assert_scores(
+    _, _ = run_pack_and_assert_scores(
         pose_stack, rotamer_set, packer_energy_tables, sfxn
     )
-    write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")
 
 
 def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
@@ -185,10 +183,9 @@ def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
             )
 
     packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
-    new_pose_stack, _ = run_pack_and_assert_scores(
+    _, _ = run_pack_and_assert_scores(
         pose_stack, rotamer_set, packer_energy_tables, sfxn
     )
-    write_pose_stack_pdb(new_pose_stack, "pack_rotamers_optH_1ubq.pdb")
 
 
 def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_device):

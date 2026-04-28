@@ -187,20 +187,14 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       HBondScoringData<Dev, Real, Int>& inter_dat,                    \
       shared_mem_union& shared) {                                     \
     hbond_load_tile_invariant_interres_data<DeviceDispatch, Dev, nt>( \
-        rot_coords,                                                   \
-        first_rot_for_block,                                          \
-        first_rot_block_type,                                         \
         rot_coord_offset,                                             \
-        block_type_ind_for_rot,                                       \
         pose_stack_inter_residue_connections,                         \
         pose_stack_min_bond_separation,                               \
         pose_stack_inter_block_bondsep,                               \
-        block_type_n_all_bonds,                                       \
-        block_type_all_bonds,                                         \
-        block_type_atom_all_bond_ranges,                              \
         block_type_n_interblock_bonds,                                \
         block_type_atoms_forming_chemical_bonds,                      \
-        block_type_atom_is_hydrogen,                                  \
+        derived_coords,                                               \
+        derived_atom_inds,                                            \
         pair_params,                                                  \
         pair_polynomials,                                             \
         global_params,                                                \
@@ -333,17 +327,9 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       HBondScoringData<Dev, Real, Int>& intra_dat,                    \
       shared_mem_union& shared) {                                     \
     hbond_load_tile_invariant_intrares_data<DeviceDispatch, Dev, nt>( \
-        rot_coords,                                                   \
-        first_rot_for_block,                                          \
-        first_rot_block_type,                                         \
         rot_coord_offset,                                             \
-        block_type_ind_for_rot,                                       \
-        pose_stack_inter_residue_connections,                         \
-        block_type_n_all_bonds,                                       \
-        block_type_all_bonds,                                         \
-        block_type_atom_all_bond_ranges,                              \
-        block_type_atoms_forming_chemical_bonds,                      \
-        block_type_atom_is_hydrogen,                                  \
+        derived_coords,                                               \
+        derived_atom_inds,                                            \
         pair_params,                                                  \
         pair_polynomials,                                             \
         global_params,                                                \
@@ -502,6 +488,11 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
     TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
+
+    // Derived-atom coords + source-atom indices produced by the
+    // hbond pre-pass kernel (GenerateHBondBases).
+    TView<Vec<Real, 3>, 2, Dev> derived_coords,
+    TView<Int, 2, Dev> derived_atom_inds,
 
     bool output_block_pair_energies,
     bool compute_derivs
@@ -869,6 +860,11 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
+    // Derived-atom coords + source-atom indices produced by the
+    // hbond pre-pass kernel (GenerateHBondBases).
+    TView<Vec<Real, 3>, 2, Dev> derived_coords,
+    TView<Int, 2, Dev> derived_atom_inds,
+
     TView<Int, 3, Dev> scratch_rot_neighbors,  // from forward pass
     TView<Real, 4, Dev> dTdV                   // nterms x nposes x len x len
     ) -> TPack<Vec<Real, 3>, 1, Dev>  // TODO: add extra dimension for terms
@@ -1122,6 +1118,11 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
     TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
+
+    // Derived-atom coords + source-atom indices produced by the
+    // hbond pre-pass kernel (GenerateHBondBases).
+    TView<Vec<Real, 3>, 2, Dev> derived_coords,
+    TView<Int, 2, Dev> derived_atom_inds,
 
     bool output_block_pair_energies,
     bool compute_derivs
@@ -1470,6 +1471,11 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
     TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
+
+    // Derived-atom coords + source-atom indices produced by the
+    // hbond pre-pass kernel (GenerateHBondBases).
+    TView<Vec<Real, 3>, 2, Dev> derived_coords,
+    TView<Int, 2, Dev> derived_atom_inds,
 
     TView<Int, 2, Dev> dispatch_indices,  // from forward pass
     TView<Real, 2, Dev> dTdV              // nterms x nposes x len x len

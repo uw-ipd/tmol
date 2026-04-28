@@ -19,18 +19,17 @@ class TermScoringModule(torch.nn.Module):
 
         self.term_score_poses = term_score_poses
 
-    def format_arguments(self, coords, block_pair_scoring):
-        params = (
-            [coords.flatten(start_dim=0, end_dim=-2)]
-            + self.common_parameters
-            + self.term_parameters
-            + [block_pair_scoring]
-        )
+    def _build_static_tails(self, block_pair_scoring):
+        # Pre-build the (non-coords) portion of the arg list once,
+        #    for both float32 and float64 coord dtypes.
+        # Reused across every forward call to eliminat repeated cats/conversions
+        # (fd) if f32+f64 is too wasteful, make this a ScoringModule input?
+        tail = list(self.common_parameters) + list(self.term_parameters)
+        self._static_tail_f32 = tuple(tail) + (block_pair_scoring,)
 
-        if coords.dtype == torch.float64:
-            convert_float64(params)
-
-        return params
+        tail_f64 = list(tail)
+        convert_float64(tail_f64)
+        self._static_tail_f64 = tuple(tail_f64) + (block_pair_scoring,)
 
     def add_parameters(self, table, params):
         def _p(t):
@@ -87,24 +86,47 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
             classname, pose_stack, term_parameters, term_score_poses
         )
         self.count = 0
+        self._build_static_tails(False)
 
     def forward(
         self,
         coords,
     ):
+        flat = coords.flatten(start_dim=0, end_dim=-2)
+        tail = (
+            self._static_tail_f64
+            if coords.dtype == torch.float64
+            else self._static_tail_f32
+        )
         # ignore the dispatch_indices return tensor
-        args = self.format_arguments(coords, False)
-        scores, _ = self.term_score_poses(*args)
+        scores, _ = self.term_score_poses(flat, *tail)
         return scores
 
 
 class TermBlockPairScoringModule(TermPoseScoringModule):
+    def __init__(
+        self,
+        classname,
+        pose_stack,
+        term_parameters,
+        term_score_poses,
+    ):
+        super(TermBlockPairScoringModule, self).__init__(
+            classname, pose_stack, term_parameters, term_score_poses
+        )
+        self._build_static_tails(True)
+
     def forward(
         self,
         coords,
     ):
-        scores, _ = self.term_score_poses(*self.format_arguments(coords, True))
-
+        flat = coords.flatten(start_dim=0, end_dim=-2)
+        tail = (
+            self._static_tail_f64
+            if coords.dtype == torch.float64
+            else self._static_tail_f32
+        )
+        scores, _ = self.term_score_poses(flat, *tail)
         return scores
 
 
@@ -147,6 +169,7 @@ class TermRotamerScoringModule(TermScoringModule):
         )
         self.n_poses = rotamer_set.n_rots_for_pose.shape[0]
         self.n_rots = rotamer_set.coord_offset_for_rot.shape[0]
+        self._build_static_tails(True)
 
     def forward(self, coords):
         """Return (scores, indices) without creating any sparse tensor.
@@ -154,7 +177,13 @@ class TermRotamerScoringModule(TermScoringModule):
         scores:  [n_subterms, nnz] float32
         indices: [3, nnz]          int32  (pose, rot_i, rot_j in global rot numbering)
         """
-        scores, indices = self.term_score_poses(*self.format_arguments(coords, True))
+        flat = coords.flatten(start_dim=0, end_dim=-2)
+        tail = (
+            self._static_tail_f64
+            if coords.dtype == torch.float64
+            else self._static_tail_f32
+        )
+        scores, indices = self.term_score_poses(flat, *tail)
         return scores, indices
 
     def forward_split(self, coords):

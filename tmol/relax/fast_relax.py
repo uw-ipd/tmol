@@ -382,7 +382,7 @@ def relax_pack_min_step(
     if verbose:
         print(
             f"pack-min {end_time3 - start_time: .2f} task-init {end_time1 - start_time: .2f}"
-            + f" packing {end_time2 - end_time1: .2f} min {end_time3-end_time2: .2f}"
+            + f" packing {end_time2 - end_time1: .2f} min {end_time3 - end_time2: .2f}"
         )
 
     return minimized_pose_stack
