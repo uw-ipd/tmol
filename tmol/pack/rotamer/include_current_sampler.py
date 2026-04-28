@@ -1,4 +1,3 @@
-import numpy
 import torch
 import attr
 
@@ -51,12 +50,13 @@ class IncludeCurrentSampler(ConformerSampler):
             (
                 1
                 if bt is blt.original_block_type
-                and (blt.include_current or not numpy.any(blt.block_type_allowed))
+                and self in blt.conformer_samplers
+                and blt.block_type_allowed[i]
                 else 0
             )
             for one_pose_blts in task.blts
             for blt in one_pose_blts
-            for bt in blt.considered_block_types
+            for i, bt in enumerate(blt.considered_block_types)
         ]
         n_rots_for_gbt = torch.tensor(
             n_rots_for_gbt_list, dtype=torch.int32, device=pose_stack.device

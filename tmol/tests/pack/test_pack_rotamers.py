@@ -13,6 +13,7 @@ from tmol.pack.rotamer.build_rotamers import build_rotamers
 from tmol.pack.rotamer.fixed_aa_chi_sampler import (
     FixedAAChiSampler,
 )
+from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
 from tmol.pack.rotamer.opth_sampler import OptHSampler
 from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.simulated_annealing import run_simulated_annealing
@@ -31,7 +32,7 @@ def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
     palette = PackerPalette(restype_set)
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()
-    task.set_include_current()
+    task.add_conformer_sampler(IncludeCurrentSampler())
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
@@ -142,7 +143,7 @@ def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
     palette = PackerPalette(restype_set)
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()
-    task.set_include_current()
+    task.add_conformer_sampler(IncludeCurrentSampler())
     task.add_conformer_sampler(OptHSampler())
     task.add_conformer_sampler(FixedAAChiSampler())
     sfxn = get_packer_sfxn(default_database, torch_device)
@@ -150,11 +151,11 @@ def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
         pose_stack, task, pose_stack.packed_block_types.chem_db
     )
 
-    # Diagnostic: verify NHQ flip rotamers have chi rotated by ~180 degrees.
+    # NHQ flip rotamers must have chi either matching the input (~0 deg)
+    # or flipped by ~180 deg.
     from tmol.numeric.dihedrals import coord_dihedrals as _cd
 
     pose_i = 0
-    print()
     for block_j, blt in enumerate(task.blts[pose_i]):
         orig = blt.original_block_type
         if not hasattr(orig, "opth_sampler_cache"):
@@ -173,13 +174,11 @@ def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
             rc4 = rotamer_set.coords[[co + int(a4[k]) for k in range(4)]].double()
             rot_chi = float(_cd(rc4[0:1], rc4[1:2], rc4[2:3], rc4[3:4])[0])
             delta = math.degrees(rot_chi - input_chi)
-            # normalise to (-180, 180]
             delta = (delta + 180.0) % 360.0 - 180.0
-            print(
-                f"  res {block_j:3d} ({orig.name3}) rot {r}: "
-                f"input={math.degrees(input_chi):7.1f}  "
-                f"rotamer={math.degrees(rot_chi):7.1f}  "
-                f"delta={delta:7.1f}"
+            # assert deltas are only 0 or 180
+            assert min(abs(delta), abs(abs(delta) - 180.0)) < 1.0, (
+                f"res {block_j} ({orig.name3}) rot {r}: "
+                f"unexpected NHQ chi delta {delta:.2f} deg"
             )
 
     packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)

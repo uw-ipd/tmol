@@ -63,8 +63,8 @@ def test_include_current_sampler_smoke(ubq_pdb, torch_device, default_restype_se
     sampler = IncludeCurrentSampler()
     task.add_conformer_sampler(sampler)
 
-    residues_to_fix = [(0, 0), (0, 2), (0, 4), (1, 1), (1, 3), (1, 5)]
-    for pose, res in residues_to_fix:
+    disabled_residues = [(0, 0), (0, 2), (0, 4), (1, 1), (1, 3), (1, 5)]
+    for pose, res in disabled_residues:
         task.blts[pose][res].disable_packing()
 
     for rt in poses.packed_block_types.active_block_types:
@@ -72,24 +72,29 @@ def test_include_current_sampler_smoke(ubq_pdb, torch_device, default_restype_se
     sampler.annotate_packed_block_types(poses.packed_block_types)
     results = sampler.create_samples_for_poses(poses, task)
 
+    enabled_residues = [
+        (pose, res)
+        for pose in range(2)
+        for res in range(6 if pose == 0 else 7)
+        if (pose, res) not in disabled_residues
+    ]
+
     assert results[0].shape[0] == 21 * 13
-    assert results[1].shape[0] == len(residues_to_fix)
+    assert results[1].shape[0] == len(enabled_residues)
 
     assert results[0].device == torch_device
     assert results[1].device == torch_device
     assert results[2] == {}
 
     n_rots_for_rt_gold = numpy.zeros((21 * 13,), dtype=numpy.int32)
-    rt_for_rot_gold = numpy.full((6,), -1, dtype=numpy.int32)
-    for i, (pose, res) in enumerate(residues_to_fix):
+    rt_for_rot_gold = numpy.full((len(enabled_residues),), -1, dtype=numpy.int32)
+    for i, (pose, res) in enumerate(enabled_residues):
         curr_rt = pbt.active_block_types[poses.block_type_ind[pose, res]]
         curr_rt_in_considered = task.blts[pose][res].considered_block_types.index(
             curr_rt
         )
         i_gbt = (pose * 6 + res) * 21 + curr_rt_in_considered
-        n_rots_for_rt_gold[i_gbt] = (
-            1  # 6 cause p0 has 6 res and we only have two poses to worry about
-        )
+        n_rots_for_rt_gold[i_gbt] = 1
         rt_for_rot_gold[i] = i_gbt
 
     numpy.testing.assert_equal(n_rots_for_rt_gold, results[0].cpu().numpy())

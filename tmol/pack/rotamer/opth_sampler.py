@@ -14,10 +14,13 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.datatypes import KinForest
 from tmol.pack.rotamer.conformer_sampler import ConformerSampler
+from tmol.pack.rotamer.single_residue_kinforest import (
+    construct_single_residue_kinforest,
+)
 from tmol.numeric.dihedrals import coord_dihedrals
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
-# Residue categories that get NHQ flip treatment (requires fix_NHQ=True)
+# Residue categories that get NHQ flip treatment (requires flip_NHQ=True)
 _NQ_FLIP_BASES = frozenset(("ASN", "GLN"))
 _HIS_FLIP_BASES = frozenset(("HIS", "HIS_D"))
 
@@ -46,10 +49,13 @@ class OptHSamplerRTCache:
     nhq_chi_col: int  # chi index or -1
     nhq_chi_atom: int
     nhq_chi_4atoms: NDArray[numpy.int32][:]
+    nhq_downstream_kfo: NDArray[numpy.int32][:]
     is_his: bool
 
 
-def _build_empty_proton_cache(nhq_chi_col, nhq_chi_atom, nhq_chi_4atoms, is_his):
+def _build_empty_proton_cache(
+    nhq_chi_col, nhq_chi_atom, nhq_chi_4atoms, nhq_downstream_kfo, is_his
+):
     return OptHSamplerRTCache(
         has_proton_chi=False,
         n_chi_total=0,
@@ -60,19 +66,20 @@ def _build_empty_proton_cache(nhq_chi_col, nhq_chi_atom, nhq_chi_4atoms, is_his)
         nhq_chi_col=nhq_chi_col,
         nhq_chi_atom=nhq_chi_atom,
         nhq_chi_4atoms=nhq_chi_4atoms,
+        nhq_downstream_kfo=nhq_downstream_kfo,
         is_his=is_his,
     )
 
 
-def _downstream_kfo_atoms(rt) -> list:
+def _compute_nhq_downstream_kfo(rt, nhq_rto: int) -> NDArray[numpy.int32]:
     """Return KFO indices of all atoms downstream of rt's NHQ chi-defining atom.
 
     Traverses the per-residue-type kinforest parent array starting from the
-    children of nhq_chi_atom.  Returns an empty list for all non-NHQ residues.
+    children of nhq_chi_atom.  Computed once during annotate_residue_type and
+    cached on the OptHSamplerRTCache; returns an empty array for non-NHQ rts.
     """
-    nhq_rto = int(rt.opth_sampler_cache.nhq_chi_atom)
     if nhq_rto < 0:
-        return []
+        return numpy.zeros(0, dtype=numpy.int32)
     kfidx = rt.rotamer_kinforest.kinforest_idx  # (n_atoms,) numpy, TO -> KFO
     parents = rt.rotamer_kinforest.parent  # (n_atoms,) numpy, KFO -> parent KFO
     kfo_nhq = int(kfidx[nhq_rto])
@@ -83,7 +90,7 @@ def _downstream_kfo_atoms(rt) -> list:
         k = queue.pop()
         downstream.append(k)
         queue.extend(ch for ch in range(n_at) if int(parents[ch]) == k)
-    return downstream
+    return numpy.array(downstream, dtype=numpy.int32)
 
 
 def _opth_fill_dofs(
@@ -97,7 +104,7 @@ def _opth_fill_dofs(
     chi_atoms,
     chi_vals,
     conf_dofs_kto,
-    fix_NHQ,
+    flip_NHQ,
 ):
     """Fill conf_dofs_kto for all OptHSampler rotamers
 
@@ -170,7 +177,6 @@ def _opth_fill_dofs(
     )
     corrections = _build_chi_phi_c_corrections(pbt)  # (n_types, max_n_chi) numpy
 
-    downstream_cache = {}
     reset_kto, reset_bt, reset_k = [], [], []
     chi_kto, chi_val_list = [], []
 
@@ -180,12 +186,12 @@ def _opth_fill_dofs(
         at_off = at_offs[si].item()
 
         # Step 2: reset downstream atoms to ideal for NHQ flip rotamers
-        if fix_NHQ:
-            if bt_idx not in downstream_cache:
-                downstream_cache[bt_idx] = _downstream_kfo_atoms(
-                    pbt.active_block_types[bt_idx]
-                )
-            for k in downstream_cache[bt_idx]:
+        if flip_NHQ:
+            downstream = pbt.active_block_types[
+                bt_idx
+            ].opth_sampler_cache.nhq_downstream_kfo
+            for k in downstream:
+                k = int(k)
                 reset_kto.append(k + at_off + 1)
                 reset_bt.append(bt_idx)
                 reset_k.append(k)
@@ -221,7 +227,7 @@ def _n_rots_for_gbt(sampler, blt, orig, orig_cache, bt, bt_cache):
         return bt_cache.n_proton_samples
 
     # NHQ flip
-    if sampler.fix_NHQ and orig_cache.nhq_chi_col >= 0:
+    if sampler.flip_NHQ and orig_cache.nhq_chi_col >= 0:
         if orig_cache.is_his:
             # HIS/HIS_D: 2 rotamers for EVERY HIS/HIS_D considered block type
             if bt_cache.is_his:
@@ -234,11 +240,11 @@ def _n_rots_for_gbt(sampler, blt, orig, orig_cache, bt, bt_cache):
     return 0
 
 
-def _chi_cols_needed(bt_cache, orig_cache, fix_NHQ):
+def _chi_cols_needed(bt_cache, orig_cache, flip_NHQ):
     """Return the minimum chi tensor width needed for a GBT with non-zero rots."""
     if bt_cache.has_proton_chi:
         return bt_cache.n_chi_total
-    if fix_NHQ and orig_cache.nhq_chi_col >= 0:
+    if flip_NHQ and orig_cache.nhq_chi_col >= 0:
         return orig_cache.nhq_chi_col + 1
     return 1
 
@@ -248,7 +254,7 @@ class OptHSampler(ConformerSampler):
     """Build rotamers by sampling proton chi angles only, keeping all heavy
     atoms at their input-conformation positions.
 
-    When fix_NHQ is True (default), also builds flip rotamers for:
+    When flip_NHQ is True (default), also builds flip rotamers for:
     - ASN/GLN: current conformation + 180-degree rotation of the last chi.
     - HIS/HIS_D: {HIS, HIS_D} x {current chi2, chi2+180} = 4 rotamers.
       All atoms through CG are taken from the input; ring atoms are rebuilt
@@ -259,7 +265,7 @@ class OptHSampler(ConformerSampler):
     oversamples). Assigning them to different blocks in the same task is fine.
     """
 
-    fix_NHQ: bool = True
+    flip_NHQ: bool = True
 
     @classmethod
     def sampler_name(cls):
@@ -276,6 +282,7 @@ class OptHSampler(ConformerSampler):
         nhq_chi_col = -1
         nhq_chi_atom = -1
         nhq_chi_4atoms = numpy.zeros(4, dtype=numpy.int32)
+        nhq_downstream_kfo = numpy.zeros(0, dtype=numpy.int32)
         is_his = base in _HIS_FLIP_BASES
 
         if base in _NQ_FLIP_BASES or is_his:
@@ -287,6 +294,11 @@ class OptHSampler(ConformerSampler):
             nhq_chi_4atoms = numpy.array(
                 [int(uaids[k][0]) for k in range(4)], dtype=numpy.int32
             )
+            # rotamer_kinforest is required to walk downstream atoms; build it
+            # here (idempotent) since the OptHSampler annotation pass runs
+            # before build_rotamers.annotate_restype.
+            construct_single_residue_kinforest(rt)
+            nhq_downstream_kfo = _compute_nhq_downstream_kfo(rt, nhq_chi_atom)
 
         # proton chi annotation
         if not rt.chi_samples:
@@ -294,7 +306,11 @@ class OptHSampler(ConformerSampler):
                 rt,
                 "opth_sampler_cache",
                 _build_empty_proton_cache(
-                    nhq_chi_col, nhq_chi_atom, nhq_chi_4atoms, is_his
+                    nhq_chi_col,
+                    nhq_chi_atom,
+                    nhq_chi_4atoms,
+                    nhq_downstream_kfo,
+                    is_his,
                 ),
             )
             return
@@ -353,6 +369,7 @@ class OptHSampler(ConformerSampler):
                 nhq_chi_col=nhq_chi_col,
                 nhq_chi_atom=nhq_chi_atom,
                 nhq_chi_4atoms=nhq_chi_4atoms,
+                nhq_downstream_kfo=nhq_downstream_kfo,
                 is_his=is_his,
             ),
         )
@@ -366,7 +383,7 @@ class OptHSampler(ConformerSampler):
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         if rt.chi_samples:  # has a proton chi
             return True
-        if self.fix_NHQ:  # is NHQ if flipNHQ is enabled
+        if self.flip_NHQ:  # is NHQ if flipNHQ is enabled
             return rt.base_name in _NQ_FLIP_BASES or rt.base_name in _HIS_FLIP_BASES
         return False
 
@@ -412,7 +429,7 @@ class OptHSampler(ConformerSampler):
                 opth_assigned = self in blt.conformer_samplers
 
                 # Measure chi-to-flip for NHQ
-                if opth_assigned and self.fix_NHQ and orig_cache.nhq_chi_col >= 0:
+                if opth_assigned and self.flip_NHQ and orig_cache.nhq_chi_col >= 0:
                     pos_flip_chi[(pose_i, block_j)] = self._measure_nhq_flip_chi(
                         pose_stack, coords, pose_i, block_j, orig_cache
                     )
@@ -427,7 +444,7 @@ class OptHSampler(ConformerSampler):
                     if n_rots > 0:
                         max_n_chi_cols = max(
                             max_n_chi_cols,
-                            _chi_cols_needed(bt_cache, orig_cache, self.fix_NHQ),
+                            _chi_cols_needed(bt_cache, orig_cache, self.flip_NHQ),
                         )
         return n_rots_for_gbt_list, max_n_chi_cols, pos_flip_chi
 
@@ -512,7 +529,7 @@ class OptHSampler(ConformerSampler):
                             chi_for_rotamers,
                         )
                     # NHQ: flip and (for flips/tautamer change) idealize downstream
-                    elif self.fix_NHQ and orig_cache.nhq_chi_col >= 0:
+                    elif self.flip_NHQ and orig_cache.nhq_chi_col >= 0:
                         self._fill_nhq_block(
                             bt,
                             blt,
@@ -630,7 +647,7 @@ class OptHSampler(ConformerSampler):
             sample_dict["chi_defining_atom_for_rotamer"],
             sample_dict["chi_for_rotamers"],
             conf_dofs_kto,
-            self.fix_NHQ,
+            self.flip_NHQ,
         )
 
         if torch.cuda.is_available():
