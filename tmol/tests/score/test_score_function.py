@@ -32,6 +32,38 @@ def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
     assert scores is not None
 
 
+def test_block_pair_scoring_matches_whole_pose(ubq_pdb, torch_device):
+    sfxn = beta2016_score_function(torch_device)
+
+    # set a weight to ensure weights are being handled properly
+    sfxn.set_weight(ScoreType.fa_ljrep, 3)
+
+    # test multiple poses to ensure score is being attributed the same
+    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose_stack2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=20)
+    pose_stack3 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=30)
+    pose_stack = PoseStackBuilder.from_poses(
+        [pose_stack1, pose_stack2, pose_stack3], torch_device
+    )
+
+    full_scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
+    block_scorer = sfxn.render_block_pair_scoring_module(pose_stack)
+
+    # check individual terms
+    full_score = full_scorer(pose_stack.coords, sum_terms=False)
+    block_score = block_scorer(pose_stack.coords, sum_terms=False)
+    torch.testing.assert_close(
+        full_score, torch.sum(block_score, dim=(2, 3)), atol=1e-3, rtol=1e-3
+    )
+
+    # check total pose values
+    full_score = full_scorer(pose_stack.coords, sum_terms=True)
+    block_score = block_scorer(pose_stack.coords, sum_terms=True)
+    torch.testing.assert_close(
+        full_score, torch.sum(block_score, dim=(1, 2)), atol=1e-3, rtol=1e-3
+    )
+
+
 def test_virtual_residue_scoring(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
