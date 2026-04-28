@@ -100,7 +100,6 @@ jobs:
                   apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                   --pwd $GITHUB_WORKSPACE \
                   --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
-                  tmol.sif bash << 'BUILD'
               $SIF bash << 'CPU_TEST'
           set -ex
           
@@ -116,8 +115,7 @@ jobs:
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
-            -t 06:00:00 --cpus-per-task=16 --mem=128G \
-            apptainer exec --nv \
+                -t 06:00:00 --cpus-per-task=16 --mem=128G \
                 apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                 --pwd $GITHUB_WORKSPACE \
                 --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
