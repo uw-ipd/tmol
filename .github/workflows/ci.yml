@@ -17,7 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SIF: /net/software/containers/versions/modelhub/pytorch_24.10-py3.sif
+  #SIF: /net/software/containers/versions/modelhub/pytorch_24.10-py3.sif
+  SIF: /home/bench/git_ci_apptainer/tmol.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
   
 
@@ -56,60 +57,36 @@ jobs:
         id: build
         if: always()
         run: |
-          mkdir -p $PIP_PKGS
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
-            -t 06:00:00 --cpus-per-task=16 --mem=128G \
-            apptainer exec --nv \
-              --bind /net/scratch:/net/scratch \
-              --bind $PIP_PKGS:/ci-pip-pkgs \
-              --pwd $GITHUB_WORKSPACE \
-              $SIF bash << 'BUILD'
+                  -t 06:00:00 --cpus-per-task=16 --mem=128G \
+                  apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
+                  --pwd $GITHUB_WORKSPACE \
+                  --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
+                  $SIF bash << 'BUILD'
           set -ex
 
-          errors=()
+          pwd
 
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export PYTHONUSERBASE=/ci-pip-pkgs
-          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
+          python3.10 -m venv .venv
+          source .venv/bin/activate
 
-          # ── Setup ──────────────────────────────────────────────────────
-          command -v uv >/dev/null 2>&1 || pip install --user uv
+          pip install pip --upgrade
+          pip install uv
 
-          TMPDIR=$GITHUB_WORKSPACE/.ci-tmp
-          mkdir -p $TMPDIR
+          uv pip compile pyproject.toml --all-extras --output-file requirements.txt
+          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" requirements.txt > to_install.txt
 
-          pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==|^clang-format==|^black==|^flake8==|^pathspec==|^click==|^mypy-extensions==)' > $TMPDIR/container_pins.txt
-          uv pip compile pyproject.toml --all-extras \
-            --constraint $TMPDIR/container_pins.txt \
-            --output-file $TMPDIR/requirements.txt
+          uv pip install -r to_install.txt
+          uv pip install torch
 
-          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" \
-            $TMPDIR/requirements.txt > $TMPDIR/to_install.txt
-
-          uv pip install --prefix /ci-pip-pkgs --python /usr/bin/python3 --break-system-packages \
-            -r $TMPDIR/to_install.txt 'packaging>=24.2' 'scikit-build-core>=0.10' 'numpy<2'
-
-          # ── Build ──────────────────────────────────────────────────────
-          rm -rf build/
-
-          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
-          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
-
-          GPU_ARCH=$(python3 -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}{c[1]}')")
+          GPU_ARCH=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}{c[1]}')")
           echo "=== Building for GPU architecture: sm_${GPU_ARCH} ==="
-          MAX_JOBS=12 pip install -v --no-build-isolation --no-deps --prefix /ci-pip-pkgs \
-            -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${GPU_ARCH}" \
-            -Ccmake.define.TMOL_BUILD_TESTS=ON \
-            -Ccmake.define.TMOL_NVCC_THREADS=2 \
-            -e .
+          MAX_JOBS=12 pip install -v --no-deps \
+                  -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${GPU_ARCH}" \
+                  -Ccmake.define.TMOL_BUILD_TESTS=ON \
+                  -Ccmake.define.TMOL_NVCC_THREADS=2 \
+                  -e .
 
-          # ── Environment info ───────────────────────────────────────────
-          echo "=== environment ==="
-          python --version
-          python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPUs: {torch.cuda.device_count()}')"
-          nvidia-smi
-          
           BUILD
 
       - name: Test CPU
@@ -119,22 +96,14 @@ jobs:
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
-            -t 06:00:00 --cpus-per-task=16 --mem=128G \
-            apptainer exec --nv \
-              --bind /net/scratch:/net/scratch \
-              --bind $PIP_PKGS:/ci-pip-pkgs \
-              --pwd $GITHUB_WORKSPACE \
+                  -t 06:00:00 --cpus-per-task=16 --mem=128G \
+                  apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
+                  --pwd $GITHUB_WORKSPACE \
+                  --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
+                  tmol.sif bash << 'BUILD'
               $SIF bash << 'CPU_TEST'
           set -ex
           
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export PYTHONUSERBASE=/ci-pip-pkgs
-          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
-          
-          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
-          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
-
           CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
             --cov=$GITHUB_WORKSPACE/tmol.cov --junitxml=$GITHUB_WORKSPACE/testing.cpu.junit.xml -k "not cuda"
 
@@ -149,20 +118,12 @@ jobs:
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
             -t 06:00:00 --cpus-per-task=16 --mem=128G \
             apptainer exec --nv \
-              --bind /net/scratch:/net/scratch \
-              --bind $PIP_PKGS:/ci-pip-pkgs \
-              --pwd $GITHUB_WORKSPACE \
+                apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
+                --pwd $GITHUB_WORKSPACE \
+                --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
               $SIF bash << 'GPU_TEST'
           set -ex
           
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export PYTHONUSERBASE=/ci-pip-pkgs
-          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
-          
-          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
-          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
-
           pytest -p no:rerunfailures -s -v --durations=25 --cov=$GITHUB_WORKSPACE/tmol.cov \
             --junitxml=$GITHUB_WORKSPACE/testing.cuda.junit.xml -k "cuda"
 
