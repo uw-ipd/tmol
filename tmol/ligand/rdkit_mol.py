@@ -11,7 +11,7 @@ from biotite.interface.rdkit import to_mol
 from rdkit import Chem
 from rdkit.Chem import rdDetermineBonds
 
-from tmol.ligand.detect import LigandInfo, _strip_metals
+from tmol.ligand.detect import NonStandardResidueInfo, _strip_metals
 from tmol.ligand.dimorphite_dl import protonate_mol_variants
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ ELEMENT_TO_ATOMIC_NUM = {
 }
 
 
-def ligand_atom_array_to_rdkit_mol(ligand_info: LigandInfo):
+def ligand_atom_array_to_rdkit_mol(ligand_info: NonStandardResidueInfo):
     """Build an RDKit Mol directly from a ligand AtomArray."""
     atom_array = ligand_info.atom_array
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0

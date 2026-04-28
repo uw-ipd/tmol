@@ -16,8 +16,6 @@ from tmol.ligand.chemistry_tables import get_polar_classes
 
 logger = logging.getLogger(__name__)
 
-POLARCLASSES = get_polar_classes()
-
 ELEMENT_SYMBOLS = {
     1: "H",
     6: "C",

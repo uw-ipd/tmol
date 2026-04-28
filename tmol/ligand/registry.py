@@ -262,38 +262,50 @@ def _collect_new_atom_types(
     return result
 
 
-def register_ligand(
+@dataclass(frozen=True)
+class LigandInjectionData:
+    """Data needed to inject a ligand into a ParameterDatabase.
+
+    Returned by :func:`build_injection_data`; collected by
+    ``prepare_ligands`` and bulk-injected via
+    :func:`tmol.database.inject_residue_params`.
+    """
+
+    residue_type: RawResidueType
+    new_atom_types: tuple[AtomType, ...]
+    partial_charges: dict[str, float]
+    cartbonded_params: CartRes
+
+
+def build_injection_data(
     param_db: ParameterDatabase,
     residue_type: RawResidueType,
     partial_charges: Optional[dict[str, float]] = None,
     atom_type_elements: Optional[dict[str, str]] = None,
     *,
     strict_atom_types: bool = False,
-) -> bool:
-    """Register a new ligand residue type in the ParameterDatabase.
-
-    Extends the chemical database with the new residue and atom types,
-    and injects scoring parameters (charges, cartbonded) via the
-    ParameterDatabase.add_residue_scoring_params API.
+) -> Optional[LigandInjectionData]:
+    """Build injection data for a ligand without modifying the database.
 
     Args:
-        param_db: The ParameterDatabase to extend (mutated in place).
+        param_db: The current ParameterDatabase (read-only).
         residue_type: The ligand RawResidueType to register.
-        partial_charges: Optional per-atom partial charges {atom_name: charge}.
-        atom_type_elements: Optional mapping {atom_type: element_symbol} for
+        partial_charges: Per-atom partial charges ``{atom_name: charge}``.
+        atom_type_elements: Mapping ``{atom_type: element_symbol}`` for
             newly introduced atom types.
         strict_atom_types: If True, fail when an unknown atom type element
-            cannot be resolved from atom_type_elements.
+            cannot be resolved from ``atom_type_elements``.
+
     Returns:
-        True when a new residue type is inserted into the database, otherwise
-        False if the residue was already present.
+        ``LigandInjectionData`` if the residue is new, or ``None`` if it
+        is already present in ``param_db``.
     """
     chem_db = param_db.chemical
 
     existing_names = {r.name for r in chem_db.residues}
     if residue_type.name in existing_names:
         logger.info("Residue %s already registered, skipping", residue_type.name)
-        return False
+        return None
 
     new_atom_types = _collect_new_atom_types(
         chem_db,
@@ -315,15 +327,14 @@ def register_ligand(
         len(residue_type.bonds),
     )
 
-    param_db.add_residue_type(residue_type, new_atom_types=new_atom_types or None)
-
     cart_res = _build_cartbonded_params(residue_type)
-    param_db.add_residue_scoring_params(
-        residue_type.name,
-        partial_charges=partial_charges,
+
+    return LigandInjectionData(
+        residue_type=residue_type,
+        new_atom_types=tuple(new_atom_types),
+        partial_charges=partial_charges or {},
         cartbonded_params=cart_res,
     )
-    return True
 
 
 def rebuild_canonical_ordering(

@@ -42,6 +42,7 @@ def build_context_from_biotite(
     prepare_ligands: bool = False,
     ligand_ph: float = 7.4,
     strict_atom_types: bool = False,
+    ligand_params_files: list[str] | None = None,
 ) -> BiotitePoseBuildContext:
     """Build immutable construction context from a Biotite structure.
 
@@ -51,7 +52,7 @@ def build_context_from_biotite(
         param_db: Optional parameter database. When provided, canonical ordering,
             residue types, and packed block types are built from this database.
             If prepare_ligands=True, it is extended with ligand data. If None,
-            defaults are used (or a fresh DB when preparing ligands).
+            defaults are used.
         missing_density_distance_threshold: Distance threshold in Angstroms.
             Adjacent residues whose closest inter-atom distance exceeds this
             value are treated as disconnected (upper/lower connects broken).
@@ -63,6 +64,8 @@ def build_context_from_biotite(
             prepare_ligands=True).
         strict_atom_types: If True, unknown ligand atom types raise errors
             instead of using a fallback element heuristic.
+        ligand_params_files: Optional list of tmol YAML params file paths.
+            Residues defined in these files skip the RDKit/OB pipeline.
 
     Returns:
         BiotitePoseBuildContext containing canonical form, ordering,
@@ -72,13 +75,14 @@ def build_context_from_biotite(
         from tmol.ligand import prepare_ligands as _prepare_ligands
 
         if param_db is None:
-            param_db = ParameterDatabase.get_fresh_default()
+            param_db = ParameterDatabase.get_default()
 
         param_db, co = _prepare_ligands(
             biotite_structure,
             param_db=param_db,
             ph=ligand_ph,
             strict_atom_types=strict_atom_types,
+            params_files=ligand_params_files,
         )
         cf = canonical_form_from_biotite(
             biotite_structure,
@@ -137,6 +141,7 @@ def pose_stack_from_biotite(
     prepare_ligands: bool = False,
     ligand_ph: float = 7.4,
     strict_atom_types: bool = False,
+    ligand_params_files: list[str] | None = None,
     return_context: bool = False,
     **kwargs: object,
 ) -> PoseStack | tuple[PoseStack, dict] | tuple[PoseStack, BiotitePoseBuildContext]:
@@ -164,6 +169,7 @@ def pose_stack_from_biotite(
             prepare_ligands=True).
         strict_atom_types: If True, unknown ligand atom types raise errors
             instead of using a fallback element heuristic.
+        ligand_params_files: Optional list of tmol YAML params file paths.
         return_context: If True, return ``(pose_stack, BiotitePoseBuildContext)``.
         **kwargs: Additional arguments passed to pose_stack_from_canonical_form.
 
@@ -186,6 +192,7 @@ def pose_stack_from_biotite(
         prepare_ligands=prepare_ligands,
         ligand_ph=ligand_ph,
         strict_atom_types=strict_atom_types,
+        ligand_params_files=ligand_params_files,
     )
 
     result = pose_stack_from_canonical_form(

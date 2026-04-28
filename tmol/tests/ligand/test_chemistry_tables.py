@@ -7,7 +7,7 @@ from tmol.ligand.chemistry_tables import (
 
 
 def test_hbond_properties_derived_from_chemical_db():
-    param_db = ParameterDatabase.get_fresh_default()
+    param_db = ParameterDatabase.get_default()
     atom_types_by_name = {at.name: at for at in param_db.chemical.atom_types}
     hbond_props = get_hbond_properties()
 
