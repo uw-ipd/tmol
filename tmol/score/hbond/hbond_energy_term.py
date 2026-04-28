@@ -24,6 +24,8 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         # Cache of parameter tables converted to whichever coord dtype is used
         # in scoring. Avoids a per-forward .to(coords_dtype) on three tensors.
         # Keyed by dtype; stored value is a (pair_param, pair_poly, global_param) tuple.
+        # pair_poly_table is always kept at float64 — the C++ kernel templates
+        # HBondPolynomials on double independently of the Real coord dtype.
         self._param_tables_by_dtype: dict = {}
 
     def _param_tables(self, coords_dtype):
@@ -31,7 +33,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         if tables is None:
             tables = (
                 self.hb_param_db.pair_param_table.to(coords_dtype),
-                self.hb_param_db.pair_poly_table.to(coords_dtype),
+                self.hb_param_db.pair_poly_table.to(torch.float64),
                 self.hb_param_db.global_param_table.to(coords_dtype),
             )
             self._param_tables_by_dtype[coords_dtype] = tables

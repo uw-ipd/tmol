@@ -181,7 +181,7 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.fa_ljrep: n([240.7147]),
         ScoreType.fa_lk: n([298.27637]),
         ScoreType.fa_elec: n([-136.2924]),
-        ScoreType.hbond: n([-55.20748]),
+        ScoreType.hbond: n([-55.675613]),
         ScoreType.lk_ball_iso: n([422.03955]),
         ScoreType.lk_ball: n([172.19647]),
         ScoreType.lk_bridge: n([1.5785888]),

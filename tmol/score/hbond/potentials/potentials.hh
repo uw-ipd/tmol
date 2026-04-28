@@ -36,29 +36,29 @@ struct AcceptorHybridization {
 };
 
 template <typename Real>
-def AH_dist_V_dV(Real3 A, Real3 H, HBondPoly<Real> const& AHdist_poly)
+def AH_dist_V_dV(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly)
     -> tuple<Real, Real3, Real3> {
   auto dist = distance<Real>::V_dV(A, H);
-  auto poly = bound_poly<11, Real>::V_dV(
+  auto poly = bound_poly<11, double>::V_dV(
       dist.V, AHdist_poly.coeffs, AHdist_poly.range, AHdist_poly.bound);
 
   return {poly.V, poly.dV_dX * dist.dV_dA, poly.dV_dX * dist.dV_dB};
 }
 
 template <typename Real>
-def AH_dist_V(Real3 A, Real3 H, HBondPoly<Real> const& AHdist_poly) -> Real {
+def AH_dist_V(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly) -> Real {
   Real dist = distance<Real>::V(A, H);
-  return bound_poly<11, Real>::V(
+  return bound_poly<11, double>::V(
       dist, AHdist_poly.coeffs, AHdist_poly.range, AHdist_poly.bound);
 }
 
 template <typename Real>
 def AHD_angle_V_dV(
-    Real3 A, Real3 H, Real3 D, HBondPoly<Real> const& cosAHD_poly)
+    Real3 A, Real3 H, Real3 D, HBondPoly<double> const& cosAHD_poly)
     -> tuple<Real, Real3, Real3, Real3> {
   // In non-cos space
   auto AHD = pt_interior_angle<Real>::V_dV(A, H, D);
-  auto poly = bound_poly<11, Real>::V_dV(
+  auto poly = bound_poly<11, double>::V_dV(
       AHD.V, cosAHD_poly.coeffs, cosAHD_poly.range, cosAHD_poly.bound);
 
   return {
@@ -69,23 +69,23 @@ def AHD_angle_V_dV(
 }
 
 template <typename Real>
-def AHD_angle_V(Real3 A, Real3 H, Real3 D, HBondPoly<Real> const& cosAHD_poly)
+def AHD_angle_V(Real3 A, Real3 H, Real3 D, HBondPoly<double> const& cosAHD_poly)
     -> Real {
   // In non-cos space
   Real AHD = pt_interior_angle<Real>::V(A, H, D);
-  return bound_poly<11, Real>::V(
+  return bound_poly<11, double>::V(
       AHD, cosAHD_poly.coeffs, cosAHD_poly.range, cosAHD_poly.bound);
 }
 
 template <typename Real>
 def _BAH_angle_base_form_V_dV(
-    Real3 B, Real3 A, Real3 H, HBondPoly<Real> const& cosBAH_poly)
+    Real3 B, Real3 A, Real3 H, HBondPoly<double> const& cosBAH_poly)
     -> tuple<Real, Real3, Real3, Real3> {
   Real3 AH = H - A;
   Real3 BA = A - B;
 
   auto cosT = cos_interior_angle<Real>::V_dV(AH, BA);
-  auto poly = bound_poly<11, Real>::V_dV(
+  auto poly = bound_poly<11, double>::V_dV(
       cosT.V, cosBAH_poly.coeffs, cosBAH_poly.range, cosBAH_poly.bound);
 
   return {
@@ -97,12 +97,12 @@ def _BAH_angle_base_form_V_dV(
 
 template <typename Real>
 def _BAH_angle_base_form_V(
-    Real3 B, Real3 A, Real3 H, HBondPoly<Real> const& cosBAH_poly) -> Real {
+    Real3 B, Real3 A, Real3 H, HBondPoly<double> const& cosBAH_poly) -> Real {
   Real3 AH = H - A;
   Real3 BA = A - B;
 
   Real cosT = cos_interior_angle<Real>::V(AH, BA);
-  return bound_poly<11, Real>::V(
+  return bound_poly<11, double>::V(
       cosT, cosBAH_poly.coeffs, cosBAH_poly.range, cosBAH_poly.bound);
 }
 
@@ -113,7 +113,7 @@ def BAH_angle_V_dV(
     Real3 A,
     Real3 H,
     Int acceptor_hybridization,
-    HBondPoly<Real> const& cosBAH_poly,
+    HBondPoly<double> const& cosBAH_poly,
     Real hb_sp3_softmax_fade) -> tuple<Real, Real3, Real3, Real3, Real3> {
   using std::exp;
   using std::log;
@@ -176,7 +176,7 @@ def BAH_angle_V(
     Real3 A,
     Real3 H,
     Int acceptor_hybridization,
-    HBondPoly<Real> const& cosBAH_poly,
+    HBondPoly<double> const& cosBAH_poly,
     Real hb_sp3_softmax_fade) -> Real {
   using std::exp;
   using std::log;
@@ -369,7 +369,7 @@ struct hbond_score {
       Real3 B0,
 
       HBondPairParams<Real> const& pair_params,
-      HBondPolynomials<Real> const& polynomials,
+      HBondPolynomials<double> const& polynomials,
       HBondGlobalParams<Real> global_params) -> hbond_score_V_dV_t<Real> {
     Real E = 0.0;
     Real3 dE_dD = {0, 0, 0};
@@ -410,7 +410,7 @@ struct hbond_score {
     iadd(tie(E, dE_dB0, dE_dB, dE_dA, dE_dH), E_B0BAHchi);
 
     // Donor/Acceptor Weighting
-    Real const ad_weight =
+    float const ad_weight =
         pair_params.acceptor_weight * pair_params.donor_weight;
 
     E *= ad_weight;
@@ -451,7 +451,7 @@ struct hbond_score {
       Real3 B0,
 
       HBondPairParams<Real> const& pair_params,
-      HBondPolynomials<Real> const& polynomials,
+      HBondPolynomials<double> const& polynomials,
       HBondGlobalParams<Real> global_params) -> Real {
     Real E = 0.0;
 
@@ -483,7 +483,7 @@ struct hbond_score {
         global_params.hb_sp2_outer_width);
 
     // Donor/Acceptor Weighting
-    Real const ad_weight =
+    float const ad_weight =
         pair_params.acceptor_weight * pair_params.donor_weight;
 
     E *= ad_weight;
