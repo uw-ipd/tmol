@@ -411,9 +411,10 @@ class OptHSampler(ConformerSampler):
             for block_j, blt in enumerate(one_pose_blts):
                 orig = blt.original_block_type
                 orig_cache = orig.opth_sampler_cache
+                opth_assigned = self in blt.conformer_samplers
 
                 # Measure chi-to-flip for NHQ
-                if self.fix_NHQ and orig_cache.nhq_chi_col >= 0:
+                if opth_assigned and self.fix_NHQ and orig_cache.nhq_chi_col >= 0:
                     off = int(pose_stack.block_coord_offset[pose_i, block_j].item())
                     a4 = orig_cache.nhq_chi_4atoms
                     c = coords[pose_i][
@@ -429,6 +430,9 @@ class OptHSampler(ConformerSampler):
 
                 for bt in blt.considered_block_types:
                     bt_cache = bt.opth_sampler_cache
+                    if not opth_assigned:
+                        n_rots_for_gbt_list.append(0)
+                        continue
                     n_rots = _n_rots_for_gbt(self, blt, orig, orig_cache, bt, bt_cache)
                     n_rots_for_gbt_list.append(n_rots)
                     if n_rots > 0:
@@ -481,9 +485,13 @@ class OptHSampler(ConformerSampler):
                 orig = blt.original_block_type
                 orig_cache = orig.opth_sampler_cache
                 flip_chi = pos_flip_chi.get((pose_i, block_j), None)
+                opth_assigned = self in blt.conformer_samplers
 
                 for bt in blt.considered_block_types:
                     bt_cache = bt.opth_sampler_cache
+                    if not opth_assigned:
+                        gbt_idx += 1
+                        continue
                     n_rots = n_rots_for_gbt_list[gbt_idx]
                     gbt_idx += 1
 
