@@ -51,30 +51,34 @@ SKIP_RESIDUES = frozenset({"HOH", "WAT", "DOD", "VRT"})
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class LigandInfo:
-    """Detected non-standard residue requiring ligand preparation.
+class NonStandardResidueInfo:
+    """Detected non-standard residue requiring preparation.
+
+    Any residue not in tmol's standard database is represented here,
+    regardless of whether it is a true ligand, modified amino acid,
+    or modified nucleotide.
 
     Attributes:
         res_name: Three-letter residue code (e.g. "ATP", "NAG").
         ccd_type: CCD chemical component type string, or "UNKNOWN" if the
-            residue is not in the CCD.
-        is_ligand: True if the residue is a non-polymer (true ligand),
-            False if it is a modified amino acid or nucleotide.
+            residue is not in the CCD.  Informational only.
         atom_names: Atom names for one representative instance.
         elements: Element symbols for each atom.
         coords: Cartesian coordinates of shape (n_atoms, 3).
-        atom_array: The ligand sub-AtomArray (with bonds if available).
+        atom_array: The sub-AtomArray (with bonds if available).
         ccd_smiles: Canonical SMILES from the CCD, or None if unavailable.
     """
 
     res_name: str
     ccd_type: str
-    is_ligand: bool
     atom_names: tuple[str, ...]
     elements: tuple[str, ...]
     coords: np.ndarray = attr.ib(eq=False, hash=False)
     atom_array: struc.AtomArray = attr.ib(eq=False, hash=False)
     ccd_smiles: Optional[str] = None
+
+
+LigandInfo = NonStandardResidueInfo
 
 
 @functools.cache
@@ -195,28 +199,15 @@ def _get_ccd_smiles(res_name: str) -> Optional[str]:
     return _atom_array_to_smiles(ccd_array)
 
 
-def _classify_residue(res_name: str) -> tuple[str, bool]:
-    """Classify a residue as ligand or modified polymer.
-
-    Returns:
-        A (ccd_type, is_ligand) tuple.
-    """
-    ccd_type = get_chem_comp_type(res_name)
-    if ccd_type is None:
-        return ("UNKNOWN", True)
-    if ccd_type in AA_LIKE_CHEM_TYPES or ccd_type in NA_LIKE_CHEM_TYPES:
-        return (ccd_type, False)
-    return (ccd_type, True)
-
-
 def detect_nonstandard_residues(
     atom_array: struc.AtomArray,
     canonical_ordering: CanonicalOrdering,
-) -> list[LigandInfo]:
+) -> list[NonStandardResidueInfo]:
     """Detect residues in an AtomArray that are not in tmol's database.
 
-    Groups atoms by residue, checks each unique residue name against the
-    canonical ordering, and classifies unknowns via the CCD.
+    Any residue whose 3-letter code is not in the canonical ordering
+    is returned for preparation, regardless of whether it is a ligand,
+    modified amino acid, or modified nucleotide.
 
     Args:
         atom_array: Biotite AtomArray from a CIF or PDB file.
@@ -224,13 +215,12 @@ def detect_nonstandard_residues(
             defines known residue types.
 
     Returns:
-        A list of LigandInfo objects, one per unique unknown residue name.
-        Each contains the atoms, elements, and coordinates of the first
-        instance encountered.
+        A list of NonStandardResidueInfo objects, one per unique unknown
+        residue name.
     """
     known_names = set(canonical_ordering.restype_io_equiv_classes)
     seen: set[str] = set()
-    ligands: list[LigandInfo] = []
+    results: list[NonStandardResidueInfo] = []
 
     residue_starts = struc.get_residue_starts(atom_array)
 
@@ -248,24 +238,20 @@ def detect_nonstandard_residues(
             mask &= atom_array.chain_id == atom_array.chain_id[start]
 
         sub = atom_array[mask]
-        ccd_type, is_ligand = _classify_residue(res_name)
+        ccd_type = get_chem_comp_type(res_name) or "UNKNOWN"
         ccd_smiles = _get_ccd_smiles(res_name)
 
         logger.info(
-            "Detected non-standard residue %s (CCD type: %s, ligand: %s, "
-            "%d atoms, CCD SMILES: %s)",
+            "Detected non-standard residue %s (CCD type: %s, %d atoms)",
             res_name,
             ccd_type,
-            is_ligand,
             len(sub),
-            ccd_smiles,
         )
 
-        ligands.append(
-            LigandInfo(
+        results.append(
+            NonStandardResidueInfo(
                 res_name=res_name,
                 ccd_type=ccd_type,
-                is_ligand=is_ligand,
                 atom_names=tuple(sub.atom_name),
                 elements=tuple(sub.element),
                 coords=sub.coord.copy(),
@@ -274,4 +260,4 @@ def detect_nonstandard_residues(
             )
         )
 
-    return ligands
+    return results

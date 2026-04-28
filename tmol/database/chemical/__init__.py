@@ -226,9 +226,6 @@ class ChemicalDatabase:
     residues: Tuple[RawResidueType, ...]
     variants: Tuple[VariantType, ...]
 
-    # fd I don't particularly like this way of providing access to the unpatched database,
-    # fd    but I'm not sure how else to do this.  Maybe keeping the unpatched in
-    # fd    the default DB alongside the patched?
     @classmethod
     def get_default(cls) -> "ChemicalDatabase":
         """Load and return default parameter database."""

@@ -1,9 +1,8 @@
 # Ligand Preparation Pipeline
 
-Detects non-standard residues (ligands) in Biotite AtomArrays, builds
-protonated 3D molecules with partial charges, assigns Rosetta-compatible
-atom types, and registers the results into tmol's `ParameterDatabase` so
-ligands are seamlessly loaded via `PoseStack`.
+Detects non-standard residues in Biotite AtomArrays, builds protonated
+3D molecules with partial charges, assigns Rosetta-compatible atom types,
+and returns a new `ParameterDatabase` with the residue data injected.
 
 ## Pipeline Overview
 
@@ -13,74 +12,91 @@ flowchart TD
         A["Biotite AtomArray"] --> B["detect_nonstandard_residues\n(detect.py)"]
     end
 
-    subgraph preparation [Preparation — per ligand]
+    subgraph preparation [Preparation -- per residue]
         B --> C["ligand_atom_array_to_rdkit_mol\n(rdkit_mol.py)"]
         C --> D["protonate_ligand_mol\n(Dimorphite-DL)"]
-        D --> E["Chem.AddHs"]
+        D --> E["AssignBondOrdersFromTemplate\n+ SanitizeMol + Chem.AddHs"]
 
-        E --> F["compute_mmff94_charges\n(mol3d.py — RDKit MMFF94)"]
-        E --> G["rdkit_mol_to_obmol\n(mol3d.py — MolBlock roundtrip)"]
+        E --> F["compute_mmff94_charges\n(mol3d.py -- RDKit MMFF94)"]
+        E --> G["rdkit_mol_to_obmol\n(mol3d.py -- MolBlock roundtrip)"]
 
-        G --> H["assign_tmol_atom_types\n(atom_typing.py — OpenBabel)"]
+        G --> H["assign_tmol_atom_types\n(atom_typing.py -- OpenBabel)"]
         H --> I["rename atoms to CIF names\n(__init__.py)"]
-        I --> J["build_residue_type\n(residue_builder.py — OpenBabel)"]
+        I --> J["build_residue_type\n(residue_builder.py -- OpenBabel)"]
     end
 
-    subgraph registration [Registration into ParameterDatabase]
-        J --> K["register_ligand\n(registry.py)"]
+    subgraph injection [Injection into ParameterDatabase]
+        J --> K["build_injection_data\n(registry.py)"]
         F --> K
 
-        K --> L1["chemical.residues\n+= RawResidueType"]
-        K --> L2["chemical.atom_types\n+= new AtomType entries"]
-        K --> L3["scoring.elec\n+= partial charges"]
-        K --> L4["scoring.cartbonded\n+= bond/angle/improper params"]
+        K --> L["inject_residue_params\n(database/__init__.py)"]
+        L --> L1["chemical.residues += RawResidueType"]
+        L --> L2["scoring.elec += partial charges"]
+        L --> L3["scoring.cartbonded += bond/angle/improper"]
+        L --> M["New frozen ParameterDatabase"]
     end
 
     subgraph io [IO Integration]
-        K --> M["rebuild_canonical_ordering\n(registry.py)"]
-        M --> N["pose_stack_from_biotite\n(prepare_ligands=True)"]
+        M --> N["rebuild_canonical_ordering"]
+        N --> O["pose_stack_from_biotite\n(prepare_ligands=True)"]
+    end
+
+    subgraph direct [Direct Injection Path]
+        P["tmol YAML params file"] --> Q["inject_params_file\n(params_file.py)"]
+        Q --> M
     end
 ```
 
+## Database Design
+
+`ParameterDatabase` is **frozen** (immutable). The ligand pipeline never
+mutates the input database. Instead, `prepare_ligands` collects all
+injection data, then calls `inject_residue_params` once to produce a
+**new** `ParameterDatabase` with the ligand data added.
+
+## Direct Params File Injection
+
+Users can bypass the RDKit/OB pipeline by providing a tmol YAML params
+file directly:
+
+```python
+from tmol.ligand.params_file import inject_params_file
+
+extended_db = inject_params_file(ParameterDatabase.get_default(), "my_ligand.yaml")
+```
+
+The YAML format has three sections matching the existing database schemas:
+
+- `residues` -- same schema as `chemical.yaml` entries
+- `residue_params` -- same schema as `cartbonded.yaml`
+- `atom_charge_parameters` -- same schema as `elec.yaml`
+
+See `params_file.py` for `load_params_file`, `write_params_file`, and
+`inject_params_files`.
+
 ## Library Responsibilities
 
-| Step | Library | Why |
-|------|---------|-----|
-| Mol construction from AtomArray | **RDKit** + Biotite | Direct coordinate + bond transfer, no SMILES roundtrip |
-| Protonation at target pH | **RDKit** via Dimorphite-DL | `protonate_mol_variants` operates on Mol objects directly |
-| Partial charges (MMFF94) | **RDKit** | `AllChem.MMFFGetMoleculeProperties` with Gasteiger fallback |
-| Atom typing | **OpenBabel** | 579-line Rosetta AtomTypeClassifier port; must produce identical types |
-| Residue type building | **OpenBabel** | Atom tree, internal coordinates, bond order from OBMol |
-
-## What Gets Registered
-
-When `register_ligand` adds a ligand to the `ParameterDatabase`:
-
-- **Chemical DB**: A `RawResidueType` with atoms, 3-tuple bonds (with bond
-  order), internal coordinates, and non-polymer chemical properties. Any new
-  atom types (e.g. generic ligand types like `CS`, `CR`, `NH`) are appended
-  to `chemical.atom_types`.
-
-- **Scoring — elec**: Per-atom `PartialCharges` entries from the RDKit MMFF94
-  charge computation.
-
-- **Scoring — cartbonded**: A `CartRes` with bond length, bond angle, and
-  sp2-improper parameters derived from the ligand's internal coordinates.
-  No proper torsion parameters are generated (those would come from
-  genbonded, which is not yet parameterized).
+| Step | Library |
+|------|---------|
+| Mol construction from AtomArray | **RDKit** + Biotite |
+| Protonation at target pH | **RDKit** via Dimorphite-DL |
+| Partial charges (MMFF94) | **RDKit** (Gasteiger fallback) |
+| Atom typing | **OpenBabel** (Rosetta AtomTypeClassifier port) |
+| Residue type building | **OpenBabel** (atom tree, icoors, bond order) |
 
 ## File Inventory
 
 | File | Lines | Role |
 |------|------:|------|
-| `__init__.py` | 307 | `prepare_single_ligand`, `prepare_ligands`, CIF atom renaming |
-| `detect.py` | 276 | `LigandInfo`, `detect_nonstandard_residues`, CCD SMILES lookup |
+| `__init__.py` | 349 | `prepare_single_ligand`, `prepare_ligands`, CIF atom renaming |
+| `detect.py` | 279 | `NonStandardResidueInfo`, `detect_nonstandard_residues` |
 | `rdkit_mol.py` | 81 | `ligand_atom_array_to_rdkit_mol`, `protonate_ligand_mol` |
-| `mol3d.py` | 45 | `compute_mmff94_charges`, `rdkit_mol_to_obmol` |
-| `atom_typing.py` | 571 | Rosetta-style atom type assignment from OBMol |
-| `residue_builder.py` | 343 | `build_residue_type` — RawResidueType from OBMol |
-| `registry.py` | 333 | `register_ligand`, `LigandPreparationCache`, `rebuild_canonical_ordering` |
+| `mol3d.py` | 46 | `compute_mmff94_charges`, `rdkit_mol_to_obmol` |
+| `atom_typing.py` | 566 | Rosetta-style atom type assignment from OBMol |
+| `residue_builder.py` | 343 | `build_residue_type` -- RawResidueType from OBMol |
+| `registry.py` | 340 | `build_injection_data`, `LigandPreparationCache` |
+| `params_file.py` | 185 | tmol YAML params load/write/inject |
 | `graph_match.py` | 114 | VF2 heavy-atom isomorphism for CIF name mapping |
-| `params_io.py` | 178 | Rosetta `.params` file read/write |
+| `params_io.py` | 178 | Rosetta `.params` file read/write (backward compat) |
 | `chemistry_tables.py` | 67 | H-bond/polar/sp2 atom-type sets from default DB |
 | `dimorphite_dl.py` | 1407 | Vendored Dimorphite-DL (Apache-2.0) |
