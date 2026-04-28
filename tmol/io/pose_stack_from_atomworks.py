@@ -1,3 +1,4 @@
+# flake8: noqa: E201,E231,E241
 import torch
 import numpy
 import toolz
