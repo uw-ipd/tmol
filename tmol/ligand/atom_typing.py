@@ -42,6 +42,7 @@ _HYB_MAP = {
     Chem.HybridizationType.OTHER: 3,
 }
 
+
 class AtomTypeAssignment(NamedTuple):
     atom_name: str
     atom_type: str
@@ -432,9 +433,7 @@ def _modify_polar_c(
             result.append(a)
             continue
 
-        n_heavy = sum(
-            1 for nbr in atom.GetNeighbors() if not _is_hydrogen(nbr)
-        )
+        n_heavy = sum(1 for nbr in atom.GetNeighbors() if not _is_hydrogen(nbr))
         if n_heavy <= 1:
             result.append(a)
             continue
@@ -442,7 +441,7 @@ def _modify_polar_c(
         attached_to_polar = False
         for nbr in atom.GetNeighbors():
             nbr_type = type_by_idx.get(nbr.GetIdx())
-            if nbr_type in POLARCLASSES:
+            if nbr_type in get_polar_classes():
                 attached_to_polar = True
                 break
 

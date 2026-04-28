@@ -839,7 +839,7 @@ class TestDUDRegression:
         from rdkit.Chem import AllChem
 
         from tmol.ligand.atom_typing import assign_tmol_atom_types
-        from tmol.ligand.mol3d import compute_mmff94_charges, rdkit_mol_to_obmol
+        from tmol.ligand.mol3d import compute_mmff94_charges
         from tmol.ligand.rdkit_mol import protonate_ligand_mol
         from tmol.ligand.residue_builder import build_residue_type
 
@@ -864,63 +864,88 @@ class TestDUDRegression:
             pass
         protonated = Chem.AddHs(protonated, addCoords=True)
         charges_by_idx = compute_mmff94_charges(protonated)
-        obmol = rdkit_mol_to_obmol(protonated)
-        atom_types = assign_tmol_atom_types(obmol.OBMol)
+        atom_types = assign_tmol_atom_types(protonated)
         charges = {
             at.atom_name: charges_by_idx[at.index]
             for at in atom_types
             if at.index in charges_by_idx
         }
-        restype = build_residue_type(obmol.OBMol, name, atom_types)
+        restype = build_residue_type(protonated, name, atom_types)
+
+        ref_atom_types = {name: atype for name, atype, _ in ref["atoms"]}
+        ref_charges = {name: charge for name, _, charge in ref["atoms"]}
 
         return {
             "name": name,
             "target": target,
             "ref": ref,
+            "ref_atom_types": ref_atom_types,
+            "ref_charges": ref_charges,
             "atom_types": atom_types,
             "charges": charges,
             "restype": restype,
         }
 
     def test_atom_count_matches(self, dud_data):
-        """Total atom count must match reference params."""
-        ref_count = len(dud_data["ref"]["atoms"])
-        actual_count = len(dud_data["restype"].atoms)
-        assert actual_count == ref_count, (
-            f"Atom count mismatch for {dud_data['name']}: "
-            f"got {actual_count}, expected {ref_count}"
+        """Heavy atom count must match reference.
+
+        Dimorphite protonation at pH 7.4 may add/remove H atoms vs the
+        Rosetta reference.  We compare heavy atom counts (which should
+        always agree) and allow H count differences.
+        """
+        ref_heavy = sum(
+            1 for n, _, _ in dud_data["ref"]["atoms"] if not n.startswith("H")
+        )
+        actual_heavy = sum(
+            1 for a in dud_data["restype"].atoms if not a.name.startswith("H")
+        )
+        assert actual_heavy == ref_heavy, (
+            f"Heavy atom count mismatch for {dud_data['name']}: "
+            f"got {actual_heavy}, expected {ref_heavy}"
         )
 
     def test_atom_types_match(self, dud_data):
-        """Atom types must match reference for each atom name."""
-        ref_atoms = dud_data["ref"]["atoms"]
+        """Atom types must match reference for shared atoms."""
+        ref_types = dud_data["ref_atom_types"]
         actual = {a.name: a.atom_type for a in dud_data["restype"].atoms}
-        for name, expected_type in ref_atoms.items():
-            assert name in actual, f"Missing atom {name} in {dud_data['name']}"
+        for name, expected_type in ref_types.items():
+            if name not in actual:
+                continue
             assert actual[name] == expected_type, (
                 f"Type mismatch for {name} in {dud_data['name']}: "
                 f"got {actual[name]}, expected {expected_type}"
             )
 
-    def test_bond_count_matches(self, dud_data):
-        """Bond count must match reference."""
-        ref_count = len(dud_data["ref"]["bond_types"])
-        actual_count = len(dud_data["restype"].bonds)
-        assert actual_count == ref_count, (
-            f"Bond count mismatch for {dud_data['name']}: "
-            f"got {actual_count}, expected {ref_count}"
+    def test_bond_count_heavy(self, dud_data):
+        """Heavy-atom bond count must match reference."""
+        ref_bonds_heavy = {
+            pair
+            for pair, order, ring in dud_data["ref"]["bond_types"]
+            if all(not a.startswith("H") for a in pair)
+        }
+        actual_bonds_heavy = {
+            frozenset([b[0], b[1]])
+            for b in dud_data["restype"].bonds
+            if not b[0].startswith("H") and not b[1].startswith("H")
+        }
+        assert len(actual_bonds_heavy) == len(ref_bonds_heavy), (
+            f"Heavy bond count mismatch for {dud_data['name']}: "
+            f"got {len(actual_bonds_heavy)}, expected {len(ref_bonds_heavy)}"
         )
 
     def test_charges_within_tolerance(self, dud_data):
-        """Charges must be within tolerance of reference."""
-        ref_charges = dud_data["ref"].get("charges", {})
-        if not ref_charges:
-            pytest.skip("No reference charges available")
+        """Charges for shared atoms must be within tolerance of reference."""
+        ref_charges = dud_data["ref_charges"]
         actual = dud_data["charges"]
+        compared = 0
         for atom_name, ref_q in ref_charges.items():
             if atom_name not in actual:
                 continue
+            compared += 1
             assert abs(actual[atom_name] - ref_q) < self.CHARGE_TOLERANCE, (
                 f"Charge mismatch for {atom_name} in {dud_data['name']}: "
                 f"got {actual[atom_name]:.4f}, expected {ref_q:.4f}"
             )
+        assert (
+            compared > 0
+        ), f"No shared atoms to compare charges for {dud_data['name']}"

@@ -82,8 +82,8 @@ See `params_file.py` for `load_params_file`, `write_params_file`, and
 | Mol construction from AtomArray | **RDKit** + Biotite |
 | Protonation at target pH | **RDKit** via Dimorphite-DL |
 | Partial charges (MMFF94) | **RDKit** (Gasteiger fallback) |
-| Atom typing | **OpenBabel** (Rosetta AtomTypeClassifier port) |
-| Residue type building | **OpenBabel** (atom tree, icoors, bond order) |
+| Atom typing | **RDKit** (Rosetta AtomTypeClassifier port) |
+| Residue type building | **RDKit** (atom tree, icoors, bond order) |
 
 ## File Inventory
 
@@ -92,7 +92,7 @@ See `params_file.py` for `load_params_file`, `write_params_file`, and
 | `__init__.py` | 349 | `prepare_single_ligand`, `prepare_ligands`, CIF atom renaming |
 | `detect.py` | 279 | `NonStandardResidueInfo`, `detect_nonstandard_residues` |
 | `rdkit_mol.py` | 81 | `ligand_atom_array_to_rdkit_mol`, `protonate_ligand_mol` |
-| `mol3d.py` | 45 | `compute_mmff94_charges`, `rdkit_mol_to_obmol` |
+| `mol3d.py` | 30 | `compute_mmff94_charges` |
 | `atom_typing.py` | 520 | Rosetta-style atom type assignment from Chem.Mol |
 | `residue_builder.py` | 330 | `build_residue_type` — RawResidueType from Chem.Mol |
 | `registry.py` | 333 | `register_ligand`, `LigandPreparationCache`, `rebuild_canonical_ordering` |

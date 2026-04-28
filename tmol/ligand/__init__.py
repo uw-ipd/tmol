@@ -58,7 +58,7 @@ def _default_detection_ordering() -> CanonicalOrdering:
     return CanonicalOrdering.from_chemdb(ParameterDatabase.get_default().chemical)
 
 
-def _build_cif_rdkit_mol(ligand_info: LigandInfo) -> Chem.Mol:
+def _build_cif_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.Mol:
     """Build a Chem.Mol from CIF atom names, elements, and coordinates.
 
     Uses rdDetermineBonds.DetermineBonds to infer bonds from heavy-atom
