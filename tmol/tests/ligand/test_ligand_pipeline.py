@@ -677,7 +677,7 @@ class TestGroundTruthRegression:
         from rdkit import Chem
 
         from tmol.ligand.atom_typing import assign_tmol_atom_types
-        from tmol.ligand.mol3d import compute_mmff94_charges, rdkit_mol_to_obmol
+        from tmol.ligand.mol3d import compute_mmff94_charges
         from tmol.ligand.residue_builder import build_residue_type
         from tmol.ligand.rdkit_mol import protonate_ligand_mol
 
@@ -693,14 +693,13 @@ class TestGroundTruthRegression:
         protonated = Chem.AddHs(protonated, addCoords=False)
         prot_smi = Chem.MolToSmiles(Chem.RemoveHs(protonated), isomericSmiles=True)
         charges_by_idx = compute_mmff94_charges(protonated)
-        obmol = rdkit_mol_to_obmol(protonated)
-        atom_types = assign_tmol_atom_types(obmol.OBMol)
+        atom_types = assign_tmol_atom_types(protonated)
         charges = {
             at.atom_name: charges_by_idx[at.index]
             for at in atom_types
             if at.index in charges_by_idx
         }
-        restype = build_residue_type(obmol.OBMol, name, atom_types)
+        restype = build_residue_type(protonated, name, atom_types)
 
         return {
             "name": name,

@@ -222,9 +222,5 @@ jobs:
           reporter: java-junit
           fail-on-error: false
 
-      - name: Upload benchmark results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-results
-          path: benchmark/**/*
+
+      

@@ -19,9 +19,8 @@ import functools
 from typing import Optional
 
 import biotite.structure as struc
-from openbabel import openbabel
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, rdDetermineBonds
 
 from tmol.database import ParameterDatabase, inject_residue_params
 from tmol.database.chemical import RawResidueType
@@ -29,10 +28,7 @@ from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.ligand.atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand.detect import NonStandardResidueInfo, detect_nonstandard_residues
 from tmol.ligand.graph_match import match_heavy_atoms
-from tmol.ligand.mol3d import (
-    compute_mmff94_charges,
-    rdkit_mol_to_obmol,
-)
+from tmol.ligand.mol3d import compute_mmff94_charges
 from tmol.ligand.registry import (
     LigandPreparationCache,
     build_injection_data,
@@ -62,40 +58,55 @@ def _default_detection_ordering() -> CanonicalOrdering:
     return CanonicalOrdering.from_chemdb(ParameterDatabase.get_default().chemical)
 
 
-def _build_cif_obmol(ligand_info: NonStandardResidueInfo):
-    """Build an OBMol from CIF atom names, elements, and coordinates."""
-    obmol = openbabel.OBMol()
-    obmol.BeginModify()
-    for elem, coord in zip(ligand_info.elements, ligand_info.coords):
-        obatom = obmol.NewAtom()
-        atomic_num = ELEMENT_TO_ATOMIC_NUM.get(elem.strip(), 0)
-        if atomic_num == 0:
-            atomic_num = openbabel.GetAtomicNum(elem.strip())
-        obatom.SetAtomicNum(atomic_num)
-        obatom.SetVector(float(coord[0]), float(coord[1]), float(coord[2]))
-    obmol.EndModify()
-    obmol.ConnectTheDots()
-    obmol.PerceiveBondOrders()
-    return obmol
+def _build_cif_rdkit_mol(ligand_info: LigandInfo) -> Chem.Mol:
+    """Build a Chem.Mol from CIF atom names, elements, and coordinates.
+
+    Uses rdDetermineBonds.DetermineBonds to infer bonds from heavy-atom
+    coordinates, if necessary.
+    """
+    rwmol = Chem.RWMol()
+    n = len(ligand_info.elements)
+    conf = Chem.Conformer(n)
+    for i, (elem, coord) in enumerate(zip(ligand_info.elements, ligand_info.coords)):
+        sym = elem.strip()
+        if sym in ELEMENT_TO_ATOMIC_NUM:
+            atom = Chem.Atom(sym)
+        else:
+            z = Chem.GetPeriodicTable().GetAtomicNumber(sym)
+            atom = Chem.Atom(z)
+        rwmol.AddAtom(atom)
+        conf.SetAtomPosition(i, (float(coord[0]), float(coord[1]), float(coord[2])))
+    rwmol.AddConformer(conf, assignId=True)
+    if rwmol.GetNumAtoms() > 1:
+        try:
+            rdDetermineBonds.DetermineBonds(rwmol)
+        except Exception:
+            logger.debug(
+                "DetermineBonds failed for CIF Mol of %s; using bondless Mol",
+                ligand_info.res_name,
+                exc_info=True,
+            )
+
+    return rwmol.GetMol()
 
 
 def _rename_atoms_to_cif(
-    pipeline_obmol,
+    pipeline_mol: Chem.Mol,
     atom_types: list[AtomTypeAssignment],
     ligand_info: NonStandardResidueInfo,
 ) -> list[AtomTypeAssignment]:
     """Rename pipeline atoms to use CIF atom names via graph matching.
 
-    Heavy atoms are matched between the pipeline OBMol and the CIF OBMol
-    by molecular graph isomorphism, then renamed to the CIF names.
+    Heavy atoms are matched between the pipeline Mol and the CIF Mol by
+    molecular graph isomorphism, then renamed to the CIF names.
     Hydrogens keep their auto-generated names (no CIF equivalent).
 
     Returns a new list of AtomTypeAssignment with updated atom_name fields.
     """
-    cif_obmol = _build_cif_obmol(ligand_info)
+    cif_mol = _build_cif_rdkit_mol(ligand_info)
 
     try:
-        idx_mapping = match_heavy_atoms(pipeline_obmol, cif_obmol)
+        idx_mapping = match_heavy_atoms(pipeline_mol, cif_mol)
     except ValueError:
         logger.warning(
             "Could not match CIF atoms for %s, keeping pipeline names",
@@ -104,9 +115,9 @@ def _rename_atoms_to_cif(
         return atom_types
 
     cif_idx_to_name = {}
-    for i, obatom in enumerate(openbabel.OBMolAtomIter(cif_obmol)):
+    for i, atom in enumerate(cif_mol.GetAtoms()):
         if i < len(ligand_info.atom_names):
-            cif_idx_to_name[obatom.GetIndex()] = ligand_info.atom_names[i]
+            cif_idx_to_name[atom.GetIdx()] = ligand_info.atom_names[i]
 
     pipeline_to_cif = {}
     for pipeline_idx, cif_idx in idx_mapping.items():
@@ -180,16 +191,15 @@ def prepare_single_ligand(
         )
     protonated = Chem.AddHs(protonated, addCoords=True)
     charges_by_index = compute_mmff94_charges(protonated)
-    mol = rdkit_mol_to_obmol(protonated)
-    atom_types = assign_tmol_atom_types(mol.OBMol)
+    atom_types = assign_tmol_atom_types(protonated)
     atom_types_by_index = _rename_atoms_to_cif_by_index(atom_types, ligand_info)
     if atom_types_by_index is not None:
         atom_types = atom_types_by_index
     else:
-        atom_types = _rename_atoms_to_cif(mol.OBMol, atom_types, ligand_info)
+        atom_types = _rename_atoms_to_cif(protonated, atom_types, ligand_info)
 
     restype = build_residue_type(
-        mol.OBMol,
+        protonated,
         ligand_info.res_name,
         atom_types,
     )

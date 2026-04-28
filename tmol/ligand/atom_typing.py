@@ -1,6 +1,6 @@
 """Atom type assignment for ligand atoms.
 
-Assigns Rosetta generic_potential atom types to atoms in an OpenBabel OBMol.
+Assigns Rosetta generic_potential atom types to atoms in an RDKit Mol.
 The classification logic is a faithful port of Rosetta's AtomTypeClassifier
 (from mol2genparams / generic_potential) and produces identical atom types
 and atom names, including the polar-carbon modifier and the Rosetta hydrogen
@@ -10,9 +10,9 @@ naming convention (H<bonded_element><count>).
 import logging
 from typing import NamedTuple
 
-from openbabel import openbabel
+from rdkit import Chem
 
-from tmol.ligand.chemistry_tables import get_hbond_properties, get_polar_classes
+from tmol.ligand.chemistry_tables import get_polar_classes
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,18 @@ ELEMENT_SYMBOLS = {
     53: "I",
 }
 
+# Map RDKit HybridizationType enum -> legacy OB integer convention
+# NOTE: Aromatic is handled separately (returns 9) via IsAromatic
+_HYB_MAP = {
+    Chem.HybridizationType.S: 3,
+    Chem.HybridizationType.SP: 1,
+    Chem.HybridizationType.SP2: 2,
+    Chem.HybridizationType.SP3: 3,
+    Chem.HybridizationType.SP3D: 3,
+    Chem.HybridizationType.SP3D2: 3,
+    Chem.HybridizationType.UNSPECIFIED: 3,
+    Chem.HybridizationType.OTHER: 3,
+}
 
 class AtomTypeAssignment(NamedTuple):
     atom_name: str
@@ -41,32 +53,56 @@ def _elem_symbol(atomic_num: int) -> str:
     sym = ELEMENT_SYMBOLS.get(atomic_num)
     if sym is not None:
         return sym
-    return openbabel.GetSymbol(atomic_num)
+    return Chem.GetPeriodicTable().GetElementSymbol(atomic_num)
 
 
-def _is_hydrogen(obatom: openbabel.OBAtom) -> bool:
-    return obatom.GetAtomicNum() == 1
+def _is_hydrogen(atom: Chem.Atom) -> bool:
+    return atom.GetAtomicNum() == 1
 
 
-def _ensure_explicit_hydrogens(obmol: openbabel.OBMol) -> None:
-    """Add explicit hydrogens when an OBMol has none.
+def _prepare_mol_for_typing(mol: Chem.Mol) -> Chem.Mol:
+    """Normalize RDKit perception so it matches Rosetta expectations.
+
+    Idempotent when the mol has already been sanitized + hydrogenated by
+    the main pipeline; required for direct unit-test entry points.
+    """
+    if not any(a.GetAtomicNum() == 1 for a in mol.GetAtoms()):
+        mol = Chem.AddHs(mol, addCoords=mol.GetNumConformers() > 0)
+
+    # Sanitize - strict requirement for correct aromaticity/perception
+    Chem.SanitizeMol(mol)
+
+    # Perceive rings
+    Chem.GetSSSR(mol)
+
+    if mol.GetNumConformers() > 0:
+        # We have conformers - assign stereochemistry from 3D geometry
+        Chem.AssignStereochemistryFrom3D(mol)
+    else:
+        # No conformers - assign stereochemistry from available info (e.g. chiral tags, E/Z bonds)
+        Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+
+    return mol
+
+
+def _ensure_explicit_hydrogens(mol: Chem.Mol) -> Chem.Mol:
+    """Add explicit hydrogens when a Mol has none.
 
     Rosetta's degree-based carbon typing assumes explicit H neighbors are
     present; without them, saturated carbons can be misclassified as CD/CT.
+    Returns the (possibly new) mol so the caller can rebind.
     """
-    has_hydrogen = any(
-        obatom.GetAtomicNum() == 1 for obatom in openbabel.OBMolAtomIter(obmol)
-    )
-    if not has_hydrogen:
-        obmol.AddHydrogens()
+    if not any(a.GetAtomicNum() == 1 for a in mol.GetAtoms()):
+        # Only add coordinates if we have a conformer
+        mol = Chem.AddHs(mol, addCoords=mol.GetNumConformers() > 0)
+    return mol
 
 
-def _neighbor_counts(obatom: openbabel.OBAtom) -> tuple[int, int, int, int, int, int]:
-    """Return (nC, nH, nO, nN, nS, ntot) for neighbors of obatom."""
+def _neighbor_counts(atom: Chem.Atom) -> tuple[int, int, int, int, int, int]:
+    """Return (nC, nH, nO, nN, nS, ntot) for neighbors of atom."""
     nC = nH = nO = nN = nS = 0
     ntot = 0
-    for bond in openbabel.OBAtomBondIter(obatom):
-        nbr = bond.GetNbrAtom(obatom)
+    for nbr in atom.GetNeighbors():
         z = nbr.GetAtomicNum()
         ntot += 1
         if z == 1:
@@ -82,25 +118,27 @@ def _neighbor_counts(obatom: openbabel.OBAtom) -> tuple[int, int, int, int, int,
     return nC, nH, nO, nN, nS, ntot
 
 
-def _get_hyb(obatom: openbabel.OBAtom) -> int:
-    """Map openbabel hybridization to Rosetta mol2 convention.
+def _get_hyb(atom: Chem.Atom) -> int:
+    """Map RDKit hybridization to Rosetta mol2 convention.
 
-    OB: 1=sp, 2=sp2, 3=sp3, IsAromatic() separate.
     Rosetta mol2: 1=sp, 2=sp2, 3=sp3, 8=amide, 9=aromatic.
     """
-    if obatom.IsAromatic():
+    if atom.GetIsAromatic():
         return 9
-    hyb = obatom.GetHyb()
-    if hyb == 0:
-        return 3
-    return hyb
+    return _HYB_MAP.get(atom.GetHybridization(), 3)
 
 
-def _has_sp2_double_bonded_O(obatom: openbabel.OBAtom) -> bool:
-    """Check if a carbon has a double-bonded sp2 oxygen (C=O)."""
-    for bond in openbabel.OBAtomBondIter(obatom):
-        nbr = bond.GetNbrAtom(obatom)
-        if nbr.GetAtomicNum() == 8 and bond.GetBondOrder() == 2:
+def _has_sp2_double_bonded_O(atom: Chem.Atom) -> bool:
+    """Check if a carbon has a double-bonded sp2 oxygen (C=O).
+
+    Aromatic bonds are skipped (RDKit reports 1.5 for aromatic). A real
+    C=O amide/acid/ester bond is non-aromatic with order 2.0.
+    """
+    for bond in atom.GetBonds():
+        if bond.GetIsAromatic():
+            continue
+        nbr = bond.GetOtherAtom(atom)
+        if nbr.GetAtomicNum() == 8 and bond.GetBondTypeAsDouble() == 2.0:
             return True
     return False
 
@@ -110,9 +148,8 @@ def _has_sp2_double_bonded_O(obatom: openbabel.OBAtom) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def _classify_H(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
-    for bond in openbabel.OBAtomBondIter(obatom):
-        nbr = bond.GetNbrAtom(obatom)
+def _classify_H(atom: Chem.Atom, mol: Chem.Mol) -> str:
+    for nbr in atom.GetNeighbors():
         z = nbr.GetAtomicNum()
         if z == 6:
             return "HR" if _get_hyb(nbr) == 9 else "HC"
@@ -127,14 +164,14 @@ def _classify_H(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
     return "HG"
 
 
-def _classify_C(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
-    hyb = _get_hyb(obatom)
-    nbonds = obatom.GetTotalDegree()
-    nC, nH, nO, nN, nS, ntot = _neighbor_counts(obatom)
+def _classify_C(atom: Chem.Atom, mol: Chem.Mol) -> str:
+    hyb = _get_hyb(atom)
+    nbonds = atom.GetDegree()
+    nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom)
 
     if hyb == 9:
         prefix = "CR"
-    elif obatom.IsChiral():
+    elif atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED:
         prefix = "CS"
     elif nbonds == 4:
         prefix = "CS"
@@ -152,7 +189,7 @@ def _classify_C(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
     return prefix
 
 
-def _classify_N_hetero(obatom, hyb, nC, nH, nO, nN, ntot):
+def _classify_N_hetero(atom, hyb, nC, nH, nO, nN, ntot):
     """Classify nitrogen with non-C/H neighbors (lone pairs, heteroatoms)."""
     if hyb == 3:
         if ntot <= 3 and nH >= 1:
@@ -169,8 +206,7 @@ def _classify_N_hetero(obatom, hyb, nC, nH, nO, nN, ntot):
         if nH == 0:
             return "NG2"
         if nH == 1:
-            for bond in openbabel.OBAtomBondIter(obatom):
-                nbr = bond.GetNbrAtom(obatom)
+            for nbr in atom.GetNeighbors():
                 if nbr.GetAtomicNum() == 6 and _get_hyb(nbr) == 2:
                     if _has_sp2_double_bonded_O(nbr):
                         return "Nad"
@@ -180,14 +216,13 @@ def _classify_N_hetero(obatom, hyb, nC, nH, nO, nN, ntot):
     return "NG2"
 
 
-def _classify_N_sp2(obatom, nC, nH):
+def _classify_N_sp2(atom, nC, nH):
     """Classify sp2 nitrogen connected only to C/H."""
     is_guanidinium = False
     is_amide = False
     nCaro = 0
 
-    for bond in openbabel.OBAtomBondIter(obatom):
-        nbr = bond.GetNbrAtom(obatom)
+    for nbr in atom.GetNeighbors():
         if nbr.GetAtomicNum() != 6:
             continue
         nbr_hyb = _get_hyb(nbr)
@@ -195,9 +230,8 @@ def _classify_N_sp2(obatom, nC, nH):
             nCaro += 1
             nOsp2_j = 0
             nNsp2_j = 0
-            for bond_k in openbabel.OBAtomBondIter(nbr):
-                nbr_k = bond_k.GetNbrAtom(nbr)
-                if nbr_k.GetIndex() == obatom.GetIndex():
+            for nbr_k in nbr.GetNeighbors():
+                if nbr_k.GetIdx() == atom.GetIdx():
                     continue
                 if nbr_k.GetAtomicNum() == 8 and _get_hyb(nbr_k) == 2:
                     nOsp2_j += 1
@@ -219,7 +253,7 @@ def _classify_N_sp2(obatom, nC, nH):
         return "Ngu1" if nH == 1 else "NG2"
 
     if nC == 2 and nCaro >= 1:
-        if nH == 1 and obatom.IsAromatic():
+        if nH == 1 and atom.GetIsAromatic():
             return "Nin"
         return "NG21" if nH == 1 else "Nim" if nH == 0 else "NG22"
 
@@ -231,9 +265,9 @@ def _classify_N_sp2(obatom, nC, nH):
     return "NG21" if nH == 1 else "NG22"
 
 
-def _classify_N(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
-    hyb = _get_hyb(obatom)
-    nC, nH, nO, nN, nS, ntot = _neighbor_counts(obatom)
+def _classify_N(atom: Chem.Atom, mol: Chem.Mol) -> str:
+    hyb = _get_hyb(atom)
+    nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom)
 
     if hyb == 1:
         return "NG1"
@@ -244,10 +278,10 @@ def _classify_N(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
         return "Nam2"
 
     if nC + nH < ntot:
-        return _classify_N_hetero(obatom, hyb, nC, nH, nO, nN, ntot)
+        return _classify_N_hetero(atom, hyb, nC, nH, nO, nN, ntot)
 
     if hyb == 2:
-        return _classify_N_sp2(obatom, nC, nH)
+        return _classify_N_sp2(atom, nC, nH)
 
     if hyb == 9:
         if ntot == 3 and nC == 2 and nH == 1:
@@ -268,14 +302,14 @@ def _classify_N(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
     return "NG2"
 
 
-def _classify_O_no_carbon(obatom, hyb, nH, nN, ntot):
+def _classify_O_no_carbon(atom, hyb, nH, nN, ntot):
     """Classify oxygen not bonded to any carbon."""
     if hyb == 3:
         if nH >= 1:
             is_PO4H = False
             if ntot == 2:
-                for bond in openbabel.OBAtomBondIter(obatom):
-                    if bond.GetNbrAtom(obatom).GetAtomicNum() == 15:
+                for nbr in atom.GetNeighbors():
+                    if nbr.GetAtomicNum() == 15:
                         is_PO4H = True
                         break
             return "Ohx" if is_PO4H else "OG31"
@@ -285,14 +319,13 @@ def _classify_O_no_carbon(obatom, hyb, nH, nN, ntot):
     return "OG2"
 
 
-def _classify_O_sp2(obatom, nC):
+def _classify_O_sp2(atom, nC):
     """Classify sp2 oxygen bonded to at least one carbon."""
     if nC == 2:
         return "Ofu"
 
     c_nbr = None
-    for bond in openbabel.OBAtomBondIter(obatom):
-        nbr = bond.GetNbrAtom(obatom)
+    for nbr in atom.GetNeighbors():
         if nbr.GetAtomicNum() == 6:
             c_nbr = nbr
             break
@@ -308,12 +341,11 @@ def _classify_O_sp2(obatom, nC):
         return "Oal"
 
     if nO_j == 1:
-        for bond in openbabel.OBAtomBondIter(c_nbr):
-            nbr = bond.GetNbrAtom(c_nbr)
-            if nbr.GetIndex() == obatom.GetIndex():
+        for nbr in c_nbr.GetNeighbors():
+            if nbr.GetIdx() == atom.GetIdx():
                 continue
             if nbr.GetAtomicNum() == 8:
-                deg = nbr.GetTotalDegree()
+                deg = nbr.GetDegree()
                 if deg == 2:
                     return "Oal"
                 if deg == 1:
@@ -323,12 +355,12 @@ def _classify_O_sp2(obatom, nC):
     return "OG2"
 
 
-def _classify_O(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
-    hyb = _get_hyb(obatom)
-    nC, nH, nO, nN, nS, ntot = _neighbor_counts(obatom)
+def _classify_O(atom: Chem.Atom, mol: Chem.Mol) -> str:
+    hyb = _get_hyb(atom)
+    nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom)
 
     if nC == 0:
-        return _classify_O_no_carbon(obatom, hyb, nH, nN, ntot)
+        return _classify_O_no_carbon(atom, hyb, nH, nN, ntot)
 
     if ntot > 2:
         return "OG2"
@@ -337,41 +369,40 @@ def _classify_O(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
         if nH >= 1:
             return "Ohx"
         if ntot == 2 and nC == 2:
-            return "Ofu" if obatom.IsAromatic() else "Oet"
+            return "Ofu" if atom.GetIsAromatic() else "Oet"
         return "OG31" if nH >= 1 else "OG3"
 
     if hyb == 2:
-        return _classify_O_sp2(obatom, nC)
+        return _classify_O_sp2(atom, nC)
 
     return "OG2"
 
 
-def _classify_S(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
-    nC, nH, nO, nN, nS, ntot = _neighbor_counts(obatom)
+def _classify_S(atom: Chem.Atom, mol: Chem.Mol) -> str:
+    nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom)
     if nC == 1 and nH == 1 and ntot == 2:
         return "Sth"
     elif nC + nS == 2 and ntot == 2:
-        return "SR" if obatom.IsAromatic() else "Ssl"
+        return "SR" if atom.GetIsAromatic() else "Ssl"
     elif ntot == 1:
         return "SG2"
     else:
-        hyb = _get_hyb(obatom)
+        hyb = _get_hyb(atom)
         return "SG5" if hyb == 2 and ntot >= 4 else "SG3"
 
 
-def _classify_P(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
-    if obatom.GetTotalDegree() >= 4:
+def _classify_P(atom: Chem.Atom, mol: Chem.Mol) -> str:
+    if atom.GetDegree() >= 4:
         return "PG5"
     return "PG3"
 
 
-def _classify_halogen(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
-    z = obatom.GetAtomicNum()
+def _classify_halogen(atom: Chem.Atom, mol: Chem.Mol) -> str:
+    z = atom.GetAtomicNum()
     base = {9: "F", 17: "Cl", 35: "Br", 53: "I"}[z]
-    if obatom.GetTotalDegree() == 1:
-        for bond in openbabel.OBAtomBondIter(obatom):
-            nbr = bond.GetNbrAtom(obatom)
-            if nbr.GetAtomicNum() == 6 and nbr.IsAromatic():
+    if atom.GetDegree() == 1:
+        for nbr in atom.GetNeighbors():
+            if nbr.GetAtomicNum() == 6 and nbr.GetIsAromatic():
                 return base + "R"
     return base
 
@@ -383,15 +414,15 @@ def _classify_halogen(obatom: openbabel.OBAtom, obmol: openbabel.OBMol) -> str:
 
 def _modify_polar_c(
     assignments: list[AtomTypeAssignment],
-    obmol: openbabel.OBMol,
+    mol: Chem.Mol,
 ) -> list[AtomTypeAssignment]:
     """Convert CS/CD/CR/CT -> CSp/CDp/CRp/CTp for polar-adjacent carbons."""
     type_by_idx = {a.index: a.atom_type for a in assignments}
 
     result = []
     for a in assignments:
-        obatom = obmol.GetAtom(a.index + 1)  # OB is 1-indexed
-        if obatom.GetAtomicNum() != 6:
+        atom = mol.GetAtomWithIdx(a.index)
+        if atom.GetAtomicNum() != 6:
             result.append(a)
             continue
 
@@ -402,19 +433,16 @@ def _modify_polar_c(
             continue
 
         n_heavy = sum(
-            1
-            for bond in openbabel.OBAtomBondIter(obatom)
-            if not _is_hydrogen(bond.GetNbrAtom(obatom))
+            1 for nbr in atom.GetNeighbors() if not _is_hydrogen(nbr)
         )
         if n_heavy <= 1:
             result.append(a)
             continue
 
         attached_to_polar = False
-        for bond in openbabel.OBAtomBondIter(obatom):
-            nbr = bond.GetNbrAtom(obatom)
-            nbr_type = type_by_idx.get(nbr.GetIndex())
-            if nbr_type in get_polar_classes():
+        for nbr in atom.GetNeighbors():
+            nbr_type = type_by_idx.get(nbr.GetIdx())
+            if nbr_type in POLARCLASSES:
                 attached_to_polar = True
                 break
 
@@ -434,29 +462,29 @@ def _modify_polar_c(
 
 def _correct_ring_nitrogen(
     assignments: list[AtomTypeAssignment],
-    obmol: openbabel.OBMol,
+    mol: Chem.Mol,
 ) -> list[AtomTypeAssignment]:
     """Correct Nad3->Nim for nitrogen in 5/6-membered rings."""
     result = list(assignments)
 
-    sssr = obmol.GetSSSR()
-    for ring in sssr:
-        ring_size = ring.Size()
+    rings = mol.GetRingInfo().AtomRings()
+    for ring in rings:
+        ring_size = len(ring)
         if ring_size < 5 or ring_size > 6:
             continue
 
         for i, a in enumerate(result):
-            obatom = obmol.GetAtom(a.index + 1)
-            if obatom.GetAtomicNum() != 7:
+            if a.index not in ring:
                 continue
-            if not ring.IsMember(obatom):
+            atom = mol.GetAtomWithIdx(a.index)
+            if atom.GetAtomicNum() != 7:
                 continue
 
-            hyb = _get_hyb(obatom)
+            hyb = _get_hyb(atom)
             if hyb not in (2, 9):
                 continue
 
-            nC, nH, nO, nN, nS, ntot = _neighbor_counts(obatom)
+            nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom)
             if ntot < 3 and nH == 0 and nN >= 1:
                 result[i] = a._replace(atom_type="Nim")
 
@@ -468,14 +496,12 @@ def _correct_ring_nitrogen(
 # ---------------------------------------------------------------------------
 
 
-def assign_tmol_atom_types(
-    obmol: openbabel.OBMol,
-) -> list[AtomTypeAssignment]:
-    """Assign Rosetta generic_potential atom types to each atom in an OBMol.
+def assign_tmol_atom_types(mol: Chem.Mol) -> list[AtomTypeAssignment]:
+    """Assign Rosetta generic_potential atom types to each atom in a Mol.
 
     Follows the exact classification logic from Rosetta's AtomTypeClassifier
     (mol2genparams), including the polar-carbon modifier and ring-nitrogen
-    corrections.  Atom names follow Rosetta's rename_atoms convention:
+    corrections. Atom names follow Rosetta's rename_atoms convention:
     heavy atoms as <Element><count>, hydrogens as H<bonded_element><count>.
     """
     classifiers = {
@@ -491,22 +517,23 @@ def assign_tmol_atom_types(
         53: _classify_halogen,
     }
 
-    # Ensure degree-based atom typing sees explicit hydrogens, matching
-    # legacy mol2genparams behavior for aliphatic carbons.
-    _ensure_explicit_hydrogens(obmol)
+    mol = _prepare_mol_for_typing(mol)
+    mol = _ensure_explicit_hydrogens(mol)
+    Chem.SanitizeMol(mol)
+    Chem.GetSSSR(mol)
 
     # Pass 1: classify all atoms, name heavy atoms
     heavy_assignments: list[tuple[int, str, str, int]] = []
-    h_atoms: list[tuple[int, int]] = []  # (ob_index, bonded_heavy_ob_index)
+    h_atoms: list[tuple[int, int, str]] = []  # (idx, bonded_heavy_idx, atom_type)
     elem_counts: dict[str, int] = {}
 
-    for obatom in openbabel.OBMolAtomIter(obmol):
-        idx = obatom.GetIndex()
-        z = obatom.GetAtomicNum()
+    for atom in mol.GetAtoms():
+        idx = atom.GetIdx()
+        z = atom.GetAtomicNum()
 
         classifier = classifiers.get(z)
         if classifier is not None:
-            atom_type = classifier(obatom, obmol)
+            atom_type = classifier(atom, mol)
         else:
             elem = _elem_symbol(z)
             atom_type = "CS"
@@ -514,8 +541,8 @@ def assign_tmol_atom_types(
 
         if z == 1:
             bonded_heavy_idx = -1
-            for bond in openbabel.OBAtomBondIter(obatom):
-                bonded_heavy_idx = bond.GetNbrAtom(obatom).GetIndex()
+            for nbr in atom.GetNeighbors():
+                bonded_heavy_idx = nbr.GetIdx()
                 break
             h_atoms.append((idx, bonded_heavy_idx, atom_type))
         else:
@@ -559,9 +586,9 @@ def assign_tmol_atom_types(
         )
 
     # Pass 3: modify polar carbons
-    assignments = _modify_polar_c(assignments, obmol)
+    assignments = _modify_polar_c(assignments, mol)
 
     # Pass 4: ring nitrogen corrections
-    assignments = _correct_ring_nitrogen(assignments, obmol)
+    assignments = _correct_ring_nitrogen(assignments, mol)
 
     return assignments

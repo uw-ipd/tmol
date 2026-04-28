@@ -1,34 +1,34 @@
 """Graph isomorphism matching for ligand atom name mapping.
 
-Matches heavy atoms between two OBMol representations of the same
-molecule (e.g. a CIF-derived OBMol and a SMILES-derived OBMol) by
-molecular graph isomorphism on the heavy-atom subgraph.
+Matches heavy atoms between two RDKit representations of the same
+molecule (e.g. a CIF-derived Mol and a SMILES-derived Mol) by molecular
+graph isomorphism on the heavy-atom subgraph.
 """
 
-from openbabel import openbabel
+from rdkit import Chem
 
 
-def _heavy_atom_graph(obmol: openbabel.OBMol):
+def _heavy_atom_graph(mol: Chem.Mol):
     """Build a heavy-atom adjacency list with element labels.
 
     Returns:
-        atoms: list of (ob_index, atomic_num) for heavy atoms
+        atoms: list of (rdkit_index, atomic_num) for heavy atoms
         adj: dict mapping heavy atom position -> set of neighbor positions
-        idx_to_pos: dict mapping ob_index -> position in atoms list
+        idx_to_pos: dict mapping rdkit_index -> position in atoms list
     """
     atoms = []
     idx_to_pos = {}
-    for obatom in openbabel.OBMolAtomIter(obmol):
-        if obatom.GetAtomicNum() == 1:
+    for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() == 1:
             continue
         pos = len(atoms)
-        idx_to_pos[obatom.GetIndex()] = pos
-        atoms.append((obatom.GetIndex(), obatom.GetAtomicNum()))
+        idx_to_pos[atom.GetIdx()] = pos
+        atoms.append((atom.GetIdx(), atom.GetAtomicNum()))
 
     adj: dict[int, set[int]] = {i: set() for i in range(len(atoms))}
-    for obbond in openbabel.OBMolBondIter(obmol):
-        a = obbond.GetBeginAtomIdx() - 1
-        b = obbond.GetEndAtomIdx() - 1
+    for bond in mol.GetBonds():
+        a = bond.GetBeginAtomIdx()
+        b = bond.GetEndAtomIdx()
         if a in idx_to_pos and b in idx_to_pos:
             adj[idx_to_pos[a]].add(idx_to_pos[b])
             adj[idx_to_pos[b]].add(idx_to_pos[a])
@@ -88,21 +88,21 @@ def _vf2_match(atoms1, adj1, atoms2, adj2):
 
 
 def match_heavy_atoms(
-    pipeline_obmol: openbabel.OBMol,
-    cif_obmol: openbabel.OBMol,
+    pipeline_mol: Chem.Mol,
+    cif_mol: Chem.Mol,
 ) -> dict[int, int]:
-    """Match heavy atoms between pipeline and CIF OBMol by graph isomorphism.
+    """Match heavy atoms between pipeline and CIF Mol by graph isomorphism.
 
     Args:
-        pipeline_obmol: OBMol from the SMILES pipeline (with H).
-        cif_obmol: OBMol built from CIF coordinates (heavy atoms only).
+        pipeline_mol: Mol from the SMILES pipeline (with H).
+        cif_mol: Mol built from CIF coordinates (heavy atoms only).
 
     Returns:
-        Dict mapping pipeline OB atom index -> CIF OB atom index for
-        each heavy atom. Raises ValueError if no isomorphism found.
+        Dict mapping pipeline atom index -> CIF atom index for each
+        heavy atom. Raises ValueError if no isomorphism found.
     """
-    atoms1, adj1, idx_to_pos1 = _heavy_atom_graph(pipeline_obmol)
-    atoms2, adj2, idx_to_pos2 = _heavy_atom_graph(cif_obmol)
+    atoms1, adj1, idx_to_pos1 = _heavy_atom_graph(pipeline_mol)
+    atoms2, adj2, idx_to_pos2 = _heavy_atom_graph(cif_mol)
 
     pos_mapping = _vf2_match(atoms1, adj1, atoms2, adj2)
     if pos_mapping is None:
