@@ -79,9 +79,7 @@ jobs:
           TMPDIR=$GITHUB_WORKSPACE/.ci-tmp
           mkdir -p $TMPDIR
 
-          pip freeze | grep -vE '(file://|^-e |^#|^pandas==|^scipy==|^sympy==|^clang-format==|^black==|^flake8==|^pathspec==|^click==|^mypy-extensions==)' > $TMPDIR/container_pins.txt
           uv pip compile pyproject.toml --all-extras \
-            --constraint $TMPDIR/container_pins.txt \
             --output-file $TMPDIR/requirements.txt
 
           grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" \
