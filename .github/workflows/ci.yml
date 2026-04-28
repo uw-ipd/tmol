@@ -103,6 +103,8 @@ jobs:
               $SIF bash << 'CPU_TEST'
           set -ex
           
+          source .venv/bin/activate
+          
           CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
             --cov=$GITHUB_WORKSPACE/tmol.cov --junitxml=$GITHUB_WORKSPACE/testing.cpu.junit.xml -k "not cuda"
 
@@ -121,6 +123,8 @@ jobs:
                 --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
               $SIF bash << 'GPU_TEST'
           set -ex
+          
+          source .venv/bin/activate
           
           pytest -p no:rerunfailures -s -v --durations=25 --cov=$GITHUB_WORKSPACE/tmol.cov \
             --junitxml=$GITHUB_WORKSPACE/testing.cuda.junit.xml -k "cuda"
