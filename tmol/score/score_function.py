@@ -150,9 +150,7 @@ class ScoreFunction:
         term_modules = [
             t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()
         ]
-        return WholePoseScoringModule(
-            self.weights_tensor(), term_modules, output_block_pair_energies=False
-        )
+        return WholePoseScoringModule(self.weights_tensor(), term_modules)
 
     def render_block_pair_scoring_module(self, pose_stack: PoseStack):
         """Create an object designed to evaluate the score of a set of Poses
@@ -165,11 +163,9 @@ class ScoreFunction:
         """
         self.pre_work_initialization(pose_stack)
         term_modules = [
-            t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()
+            t.render_block_pair_scoring_module(pose_stack) for t in self.all_terms()
         ]
-        return WholePoseScoringModule(
-            self.weights_tensor(), term_modules, output_block_pair_energies=True
-        )
+        return BlockPairScoringModule(self.weights_tensor(), term_modules)
 
     def render_rotamer_scoring_module(
         self, pose_stack: PoseStack, rotamer_set: "RotamerSet"  # noqa: F405
@@ -243,22 +239,21 @@ class WholePoseScoringModule:
         self,
         weights: Tensor[torch.float32][:],
         term_modules: Sequence[torch.nn.Module],
-        output_block_pair_energies=False,
     ):
         self.weights = torch.nn.Parameter(weights.unsqueeze(1), requires_grad=False)
         self.term_modules = term_modules
-        self.output_block_pair_energies = output_block_pair_energies
 
-    def __call__(self, coords):
-        weighted = torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
-        return weighted
+    def __call__(self, coords, sum_terms=True, apply_weights=True):
+        unweighted = self.unweighted_scores(coords)
+        weighted = self.weights * unweighted if apply_weights else unweighted
+        summed = torch.sum(weighted, dim=0) if sum_terms else weighted
+
+        return summed
 
     def unweighted_scores(self, coords):
         scores = []
         for term in self.term_modules:
-            values = term(coords)
-            scores += values
-
+            scores += term(coords)
         return torch.stack(scores)
 
 
@@ -267,26 +262,23 @@ class BlockPairScoringModule:
         self,
         weights: Tensor[torch.float32][:],
         term_modules: Sequence[torch.nn.Module],
-        output_block_pair_energies=False,
     ):
-        self.weights = torch.nn.Parameter(weights.unsqueeze(1), requires_grad=False)
+        self.weights = torch.nn.Parameter(
+            weights.unsqueeze(1).unsqueeze(1).unsqueeze(1), requires_grad=False
+        )
         self.term_modules = term_modules
-        self.output_block_pair_energies = output_block_pair_energies
 
-    def __call__(self, coords):
-        weighted = torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
-        return weighted
+    def __call__(self, coords, sum_terms=True, apply_weights=True):
+        unweighted = self.unweighted_scores(coords)
+        weighted = self.weights * unweighted if apply_weights else unweighted
+        summed = torch.sum(weighted, dim=0) if sum_terms else weighted
+
+        return summed
 
     def unweighted_scores(self, coords):
         scores = []
         for term in self.term_modules:
-            values, indices = term(coords)
-            if self.output_block_pair_energies:
-                for subterm in range(values.size(1)):
-                    scores += torch.sparse_coo_tensor(indices, values[:, subterm])
-            else:
-                scores += values
-
+            scores += term(coords)
         return torch.stack(scores)
 
 
