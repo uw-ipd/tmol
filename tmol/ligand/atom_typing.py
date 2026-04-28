@@ -16,8 +16,6 @@ from tmol.ligand.chemistry_tables import get_hbond_properties, get_polar_classes
 
 logger = logging.getLogger(__name__)
 
-POLARCLASSES = get_polar_classes()
-
 ELEMENT_SYMBOLS = {
     1: "H",
     6: "C",
@@ -416,7 +414,7 @@ def _modify_polar_c(
         for bond in openbabel.OBAtomBondIter(obatom):
             nbr = bond.GetNbrAtom(obatom)
             nbr_type = type_by_idx.get(nbr.GetIndex())
-            if nbr_type in POLARCLASSES:
+            if nbr_type in get_polar_classes():
                 attached_to_polar = True
                 break
 

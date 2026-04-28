@@ -18,7 +18,7 @@ donor_atom_types:
   - { d: OH,       donor_type: hbdon_HXL } #ex: Ser OG--HG; Thr OG1--HG1
   - { d: OHphenol, donor_type: hbdon_AHX } #ex: Tyr OH--HH
   - { d: Owat,     donor_type: hbdon_H2O } #ex: water O--H
-  # Generic ligand donors (Rosetta ∪ Frank donor semantics)
+  # Generic ligand side-chain donors
   - { d: Nad,      donor_type: hbdon_GENERIC_SC }
   - { d: Nam,      donor_type: hbdon_GENERIC_SC }
   - { d: Nam2,     donor_type: hbdon_GENERIC_SC }
@@ -57,7 +57,7 @@ acceptor_atom_types:
   # ring acceptors
   - { a: NhisDDepro, acceptor_type: hbacc_IMD } #ex: His(HIS res_type) ND1 -- tautomer state with hydrogen on nitrogen closer to backbone
   - { a: NhisEDepro, acceptor_type: hbacc_IME } #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
-  # Generic ligand acceptors (Rosetta ∪ Frank acceptor semantics)
+  # Generic ligand side-chain acceptors
   - { a: Oad,       acceptor_type: hbacc_GENERIC_SP2SC }
   - { a: Oal,       acceptor_type: hbacc_GENERIC_SP2SC }
   - { a: Oat,       acceptor_type: hbacc_GENERIC_SP2SC }

@@ -23,11 +23,11 @@ from openbabel import openbabel
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from tmol.database import ParameterDatabase
+from tmol.database import ParameterDatabase, inject_residue_params
 from tmol.database.chemical import RawResidueType
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.ligand.atom_typing import AtomTypeAssignment, assign_tmol_atom_types
-from tmol.ligand.detect import LigandInfo, detect_nonstandard_residues
+from tmol.ligand.detect import NonStandardResidueInfo, detect_nonstandard_residues
 from tmol.ligand.graph_match import match_heavy_atoms
 from tmol.ligand.mol3d import (
     compute_mmff94_charges,
@@ -35,12 +35,12 @@ from tmol.ligand.mol3d import (
 )
 from tmol.ligand.registry import (
     LigandPreparationCache,
+    build_injection_data,
     cache_ligand,
     get_cached_charges_for_key,
     get_cached_ligand_for_key,
     get_default_cache,
     rebuild_canonical_ordering,
-    register_ligand,
 )
 from tmol.ligand.residue_builder import build_residue_type
 from tmol.ligand.rdkit_mol import (
@@ -59,10 +59,10 @@ def _default_detection_ordering() -> CanonicalOrdering:
     Detection should be stable across repeated calls even when ``param_db`` has
     already been extended with ligands in earlier invocations.
     """
-    return CanonicalOrdering.from_chemdb(ParameterDatabase.get_fresh_default().chemical)
+    return CanonicalOrdering.from_chemdb(ParameterDatabase.get_default().chemical)
 
 
-def _build_cif_obmol(ligand_info: LigandInfo):
+def _build_cif_obmol(ligand_info: NonStandardResidueInfo):
     """Build an OBMol from CIF atom names, elements, and coordinates."""
     obmol = openbabel.OBMol()
     obmol.BeginModify()
@@ -82,7 +82,7 @@ def _build_cif_obmol(ligand_info: LigandInfo):
 def _rename_atoms_to_cif(
     pipeline_obmol,
     atom_types: list[AtomTypeAssignment],
-    ligand_info: LigandInfo,
+    ligand_info: NonStandardResidueInfo,
 ) -> list[AtomTypeAssignment]:
     """Rename pipeline atoms to use CIF atom names via graph matching.
 
@@ -121,7 +121,7 @@ def _rename_atoms_to_cif(
 
 
 def _rename_atoms_to_cif_by_index(
-    atom_types: list[AtomTypeAssignment], ligand_info: LigandInfo
+    atom_types: list[AtomTypeAssignment], ligand_info: NonStandardResidueInfo
 ) -> list[AtomTypeAssignment] | None:
     """Rename heavy atoms from CIF names using direct index alignment.
 
@@ -150,7 +150,7 @@ def _rename_atoms_to_cif_by_index(
 
 
 def prepare_single_ligand(
-    ligand_info: LigandInfo,
+    ligand_info: NonStandardResidueInfo,
     ph: float = 7.4,
 ) -> tuple[RawResidueType, dict[str, float], dict[str, str]]:
     """Run the full preparation pipeline for a single ligand.
@@ -169,6 +169,13 @@ def prepare_single_ligand(
     except Exception:
         logger.debug(
             "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
+            ligand_info.res_name,
+        )
+    try:
+        Chem.SanitizeMol(protonated)
+    except Exception:
+        logger.debug(
+            "SanitizeMol failed for %s, MMFF94 may fall back to Gasteiger",
             ligand_info.res_name,
         )
     protonated = Chem.AddHs(protonated, addCoords=True)
@@ -220,36 +227,51 @@ def prepare_ligands(
     ph: float = 7.4,
     strict_atom_types: bool = False,
     cache: LigandPreparationCache | None = None,
+    params_files: list[str] | None = None,
+    params_output: str | None = None,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Detect, prepare, and register all non-standard residues.
 
     Scans the input AtomArray for residues not in the ParameterDatabase,
     runs each through the ligand preparation pipeline (direct RDKit molecule
     construction, protonation, 3D generation, atom typing, residue building),
-    and registers them — extending both the chemical and scoring databases.
+    and returns a **new** ParameterDatabase with the ligand data injected.
 
     Args:
         atom_array: A biotite AtomArray from a CIF or PDB file.
-        param_db: The ParameterDatabase to extend. If None, the default
-            database is loaded as a fresh instance. Mutated in place.
+        param_db: The base ParameterDatabase (not modified). If None, the
+            default database is used.
         ph: Target pH for ligand protonation.
         strict_atom_types: If True, fail when unknown atom-type element
             mappings are encountered during registration.
         cache: Optional cache object controlling ligand reuse behavior.
             If None, uses the process-global default cache.
+        params_files: Optional list of tmol YAML params file paths to
+            inject before detection. Residues defined in these files
+            skip the RDKit/OB preparation pipeline.
+        params_output: Optional path to write all prepared ligand data
+            to a tmol YAML params file for later reuse.
 
     Returns:
-        A (ParameterDatabase, CanonicalOrdering) tuple with all detected
-        ligands registered.
+        A (ParameterDatabase, CanonicalOrdering) tuple. The returned
+        ParameterDatabase is a new instance with all detected ligands
+        injected; the input ``param_db`` is not modified.
     """
     if param_db is None:
-        param_db = ParameterDatabase.get_fresh_default()
+        param_db = ParameterDatabase.get_default()
     if cache is None:
         cache = get_default_cache()
 
+    if params_files:
+        from tmol.ligand.params_file import inject_params_files
+
+        param_db = inject_params_files(
+            param_db, params_files, strict_atom_types=strict_atom_types
+        )
+
     canonical_ordering = rebuild_canonical_ordering(param_db)
 
-    ligands = detect_nonstandard_residues(atom_array, _default_detection_ordering())
+    ligands = detect_nonstandard_residues(atom_array, canonical_ordering)
 
     if not ligands:
         logger.info("No non-standard residues detected")
@@ -257,7 +279,7 @@ def prepare_ligands(
 
     logger.info("Found %d non-standard residue type(s) to prepare", len(ligands))
 
-    modified = False
+    injection_data = []
     for lig in ligands:
         cache_key = (
             lig.res_name,
@@ -268,24 +290,24 @@ def prepare_ligands(
         cached = get_cached_ligand_for_key(cache_key, cache=cache)
         if cached is not None:
             logger.info("Using cached preparation for %s", lig.res_name)
-            inserted = register_ligand(
+            data = build_injection_data(
                 param_db,
                 cached,
                 partial_charges=get_cached_charges_for_key(cache_key, cache=cache),
                 strict_atom_types=strict_atom_types,
             )
-            modified = modified or inserted
+            if data is not None:
+                injection_data.append(data)
             continue
 
         logger.info(
-            "Preparing %s (CCD type: %s, is_ligand: %s)",
+            "Preparing %s (CCD type: %s)",
             lig.res_name,
             lig.ccd_type,
-            lig.is_ligand,
         )
 
         restype, charges, atom_type_elements = prepare_single_ligand(lig, ph=ph)
-        inserted = register_ligand(
+        data = build_injection_data(
             param_db,
             restype,
             partial_charges=charges,
@@ -299,9 +321,31 @@ def prepare_ligands(
             cache_key=cache_key,
             cache=cache,
         )
-        modified = modified or inserted
+        if data is not None:
+            injection_data.append(data)
 
-    if modified:
+    if injection_data:
+        all_residues = [d.residue_type for d in injection_data]
+        all_atom_types = []
+        for d in injection_data:
+            all_atom_types.extend(d.new_atom_types)
+        all_charges = {d.residue_type.name: d.partial_charges for d in injection_data}
+        all_cartbonded = {
+            d.residue_type.name: d.cartbonded_params for d in injection_data
+        }
+        param_db = inject_residue_params(
+            param_db,
+            residue_types=all_residues,
+            atom_types=all_atom_types or None,
+            partial_charges=all_charges,
+            cartbonded_params=all_cartbonded,
+        )
         canonical_ordering = rebuild_canonical_ordering(param_db)
+
+        if params_output:
+            from tmol.ligand.params_file import write_params_file
+
+            write_params_file(params_output, all_residues, all_charges, all_cartbonded)
+            logger.info("Wrote params to %s", params_output)
 
     return param_db, canonical_ordering

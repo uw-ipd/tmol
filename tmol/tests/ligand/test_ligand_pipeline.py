@@ -20,7 +20,7 @@ from tmol.ligand.params_io import read_params_file, write_params_file
 from tmol.ligand.registry import get_default_cache
 from tmol.ligand.registry import clear_cache
 from tmol.ligand.registry import get_cached_charges_for_key, get_cached_ligand_for_key
-from tmol.ligand.registry import register_ligand
+from tmol.ligand.registry import build_injection_data
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +44,6 @@ class TestDetectFromCIF:
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, canonical_ordering)
         i4b = {lig.res_name: lig for lig in ligands}.get("I4B")
         assert i4b is not None
-        assert i4b.is_ligand is True
         assert "NON-POLYMER" in i4b.ccd_type.upper()
         assert i4b.coords.shape == (len(i4b.atom_names), 3)
 
@@ -67,7 +66,7 @@ class TestFullPipeline:
     def param_db(self):
         from tmol.database import ParameterDatabase
 
-        return ParameterDatabase.get_fresh_default()
+        return ParameterDatabase.get_default()
 
     def test_i4b_small_drug(self, cif_184l_with_i4b, param_db):
         """Small drug-like ligand (I4B, 10 heavy atoms) in lysozyme."""
@@ -146,28 +145,40 @@ class TestFullPipeline:
         assert reread_charges is not None
         assert reread_charges[some_atom] != 999.0
 
-    def test_register_ligand_returns_inserted_status(self, cif_184l_with_i4b, param_db):
+    def test_build_injection_data_returns_data_or_none(
+        self, cif_184l_with_i4b, param_db
+    ):
+        from tmol.database import inject_residue_params
+
         ligands = detect_nonstandard_residues(
             cif_184l_with_i4b, canonical_ordering_for_biotite()
         )
         i4b = next(l for l in ligands if l.res_name == "I4B")
         restype, charges, atom_type_elements = prepare_single_ligand(i4b, ph=7.4)
 
-        inserted = register_ligand(
+        data = build_injection_data(
             param_db,
             restype,
             partial_charges=charges,
             atom_type_elements=atom_type_elements,
         )
-        assert inserted is True
+        assert data is not None
 
-        inserted_again = register_ligand(
+        extended_db = inject_residue_params(
             param_db,
+            residue_types=[data.residue_type],
+            atom_types=list(data.new_atom_types),
+            partial_charges={data.residue_type.name: data.partial_charges},
+            cartbonded_params={data.residue_type.name: data.cartbonded_params},
+        )
+
+        data_again = build_injection_data(
+            extended_db,
             restype,
             partial_charges=charges,
             atom_type_elements=atom_type_elements,
         )
-        assert inserted_again is False
+        assert data_again is None
 
     def test_ubq_passes_through_unchanged(self, biotite_1ubq, param_db):
         n_before = len(param_db.chemical.residues)
@@ -182,7 +193,7 @@ class TestLigandScoringData:
         """Elec partial charges are injected into the ParameterDatabase."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_fresh_default()
+        param_db = ParameterDatabase.get_default()
         param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
 
         i4b_charges = [
@@ -195,7 +206,7 @@ class TestLigandScoringData:
         """CartBonded params (lengths, angles, impropers) are in the DB."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_fresh_default()
+        param_db = ParameterDatabase.get_default()
         param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
 
         assert "I4B" in param_db.scoring.cartbonded.residue_params
@@ -207,7 +218,7 @@ class TestLigandScoringData:
         """New atom types have correct donor/acceptor/hybridization flags."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_fresh_default()
+        param_db = ParameterDatabase.get_default()
         param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
 
         atom_types_by_name = {at.name: at for at in param_db.chemical.atom_types}
@@ -223,37 +234,36 @@ class TestLigandScoringData:
         """All halogen types (aromatic and non-aromatic) have LJLK params."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_fresh_default()
+        param_db = ParameterDatabase.get_default()
         ljlk_names = {p.name for p in param_db.scoring.ljlk.atom_type_parameters}
         for halogen in ["F", "Cl", "Br", "I", "FR", "ClR", "BrR", "IR"]:
             assert halogen in ljlk_names, f"Missing LJLK params for {halogen}"
 
-    def test_remove_residue_scoring_params(self, cif_184l_with_i4b):
-        """add/remove API works correctly."""
+    def test_injection_does_not_mutate_original_db(self, cif_184l_with_i4b):
+        """inject_residue_params returns a new DB; the original is unchanged."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_fresh_default()
-        param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
+        original_db = ParameterDatabase.get_default()
+        original_residue_count = len(original_db.chemical.residues)
+        original_charge_count = len(original_db.scoring.elec.atom_charge_parameters)
 
-        assert "I4B" in param_db.scoring.cartbonded.residue_params
-        i4b_charges = [
-            p for p in param_db.scoring.elec.atom_charge_parameters if p.res == "I4B"
-        ]
-        assert len(i4b_charges) > 0
+        extended_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=original_db)
 
-        param_db.remove_residue_scoring_params("I4B")
-
-        assert "I4B" not in param_db.scoring.cartbonded.residue_params
-        i4b_charges_after = [
-            p for p in param_db.scoring.elec.atom_charge_parameters if p.res == "I4B"
-        ]
-        assert len(i4b_charges_after) == 0
+        assert "I4B" in extended_db.scoring.cartbonded.residue_params
+        assert any(
+            p.res == "I4B" for p in extended_db.scoring.elec.atom_charge_parameters
+        )
+        assert len(original_db.chemical.residues) == original_residue_count
+        assert (
+            len(original_db.scoring.elec.atom_charge_parameters)
+            == original_charge_count
+        )
 
     def test_i4b_aliphatic_carbons_not_sp2_typed(self, cif_184l_with_i4b):
         """I4B aliphatic substituent carbons should stay saturated (CS*)."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_fresh_default()
+        param_db = ParameterDatabase.get_default()
         param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
         i4b_rt = next(r for r in param_db.chemical.residues if r.name == "I4B")
         atom_type_by_name = {a.name: a.atom_type for a in i4b_rt.atoms}
@@ -270,7 +280,7 @@ class TestLigandScoringData:
         """I4B impropers should not force planarity on the saturated substituent."""
         from tmol.database import ParameterDatabase
 
-        param_db = ParameterDatabase.get_fresh_default()
+        param_db = ParameterDatabase.get_default()
         param_db, _ = prepare_ligands(cif_184l_with_i4b, param_db=param_db)
         cart_res = param_db.scoring.cartbonded.residue_params["I4B"]
 
@@ -306,7 +316,7 @@ def test_prepare_ligands_missing_sidechain_rebuild_skips_ligand_dunbrack(
         bt_missing,
         torch_device,
         prepare_ligands=True,
-        param_db=ParameterDatabase.get_fresh_default(),
+        param_db=ParameterDatabase.get_default(),
     )
 
     assert pose_stack.coords.shape[0] >= 1
@@ -339,7 +349,7 @@ def test_prepare_ligands_ligand_only_missing_does_not_invoke_dunbrack(
         bt_ligand_missing,
         torch_device,
         prepare_ligands=True,
-        param_db=ParameterDatabase.get_fresh_default(),
+        param_db=ParameterDatabase.get_default(),
     )
 
     assert pose_stack.coords.shape[0] >= 1
@@ -363,7 +373,7 @@ class TestPoseStackWithLigand:
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
         from tmol.score import beta2016_score_function
 
-        param_db = ParameterDatabase.get_fresh_default()
+        param_db = ParameterDatabase.get_default()
         pose_stack = pose_stack_from_biotite(
             atom_array, torch_device, prepare_ligands=True, param_db=param_db
         )
@@ -394,7 +404,7 @@ class TestPoseStackWithLigand:
         from tmol.database import ParameterDatabase
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
 
-        param_db = ParameterDatabase.get_fresh_default()
+        param_db = ParameterDatabase.get_default()
         pose_stack = pose_stack_from_biotite(
             cif_155c_with_hem, torch_device, prepare_ligands=True, param_db=param_db
         )
@@ -448,7 +458,7 @@ class TestPoseStackWithLigand:
             cif_184l_with_i4b,
             torch_device,
             prepare_ligands=True,
-            param_db=ParameterDatabase.get_fresh_default(),
+            param_db=ParameterDatabase.get_default(),
             return_context=True,
         )
         sfxn = beta2016_score_function(
@@ -783,3 +793,135 @@ class TestGroundTruthRegression:
             f"  missing from icoor: {atom_names - icoor_names}\n"
             f"  extra in icoor: {icoor_names - atom_names}"
         )
+
+
+DUD_DIR = Path(__file__).parent.parent / "data" / "dud_ligands"
+DUD_CASES = [
+    ("ada", name)
+    for name in [
+        "ZINC02169852",
+        "ZINC03814293",
+        "ZINC03814294",
+        "ZINC03814298",
+        "ZINC03814300",
+        "ZINC03814305",
+        "ZINC03814301",
+        "ZINC03814297",
+        "ZINC03814303",
+        "ZINC01614355",
+    ]
+] + [
+    ("comt", name)
+    for name in [
+        "ZINC00330141",
+        "ZINC00392003",
+        "ZINC00021789",
+        "ZINC03801154",
+        "ZINC03814480",
+    ]
+]
+
+
+class TestDUDRegression:
+    """Validate pipeline against DUD benchmark ligands with Rosetta reference params.
+
+    Compares our SMILES-based pipeline (RDKit mol from mol2, protonation,
+    MMFF94 charges, OB atom typing, residue building) against Rosetta's
+    mol2genparams reference .params files for 15 drug-like molecules from
+    the DUD (Directory of Useful Decoys) dataset.
+    """
+
+    CHARGE_TOLERANCE = 0.05
+
+    @pytest.fixture(params=DUD_CASES, ids=[f"{t}_{n}" for t, n in DUD_CASES])
+    def dud_data(self, request):
+        """Load a DUD mol2, run pipeline, and load reference params."""
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+
+        from tmol.ligand.atom_typing import assign_tmol_atom_types
+        from tmol.ligand.mol3d import compute_mmff94_charges, rdkit_mol_to_obmol
+        from tmol.ligand.rdkit_mol import protonate_ligand_mol
+        from tmol.ligand.residue_builder import build_residue_type
+
+        target, name = request.param
+        mol2_path = DUD_DIR / target / f"{name}.mol2"
+        ref_params_path = DUD_DIR / target / f"{name}.params"
+
+        ref = _parse_reference_params(ref_params_path)
+
+        mol = Chem.MolFromMol2File(str(mol2_path), removeHs=True, sanitize=True)
+        if mol is None:
+            pytest.skip(f"RDKit cannot parse {mol2_path}")
+
+        protonated = protonate_ligand_mol(mol, ph=7.4)
+        try:
+            protonated = AllChem.AssignBondOrdersFromTemplate(protonated, mol)
+        except Exception:
+            pass
+        try:
+            Chem.SanitizeMol(protonated)
+        except Exception:
+            pass
+        protonated = Chem.AddHs(protonated, addCoords=True)
+        charges_by_idx = compute_mmff94_charges(protonated)
+        obmol = rdkit_mol_to_obmol(protonated)
+        atom_types = assign_tmol_atom_types(obmol.OBMol)
+        charges = {
+            at.atom_name: charges_by_idx[at.index]
+            for at in atom_types
+            if at.index in charges_by_idx
+        }
+        restype = build_residue_type(obmol.OBMol, name, atom_types)
+
+        return {
+            "name": name,
+            "target": target,
+            "ref": ref,
+            "atom_types": atom_types,
+            "charges": charges,
+            "restype": restype,
+        }
+
+    def test_atom_count_matches(self, dud_data):
+        """Total atom count must match reference params."""
+        ref_count = len(dud_data["ref"]["atoms"])
+        actual_count = len(dud_data["restype"].atoms)
+        assert actual_count == ref_count, (
+            f"Atom count mismatch for {dud_data['name']}: "
+            f"got {actual_count}, expected {ref_count}"
+        )
+
+    def test_atom_types_match(self, dud_data):
+        """Atom types must match reference for each atom name."""
+        ref_atoms = dud_data["ref"]["atoms"]
+        actual = {a.name: a.atom_type for a in dud_data["restype"].atoms}
+        for name, expected_type in ref_atoms.items():
+            assert name in actual, f"Missing atom {name} in {dud_data['name']}"
+            assert actual[name] == expected_type, (
+                f"Type mismatch for {name} in {dud_data['name']}: "
+                f"got {actual[name]}, expected {expected_type}"
+            )
+
+    def test_bond_count_matches(self, dud_data):
+        """Bond count must match reference."""
+        ref_count = len(dud_data["ref"]["bond_types"])
+        actual_count = len(dud_data["restype"].bonds)
+        assert actual_count == ref_count, (
+            f"Bond count mismatch for {dud_data['name']}: "
+            f"got {actual_count}, expected {ref_count}"
+        )
+
+    def test_charges_within_tolerance(self, dud_data):
+        """Charges must be within tolerance of reference."""
+        ref_charges = dud_data["ref"].get("charges", {})
+        if not ref_charges:
+            pytest.skip("No reference charges available")
+        actual = dud_data["charges"]
+        for atom_name, ref_q in ref_charges.items():
+            if atom_name not in actual:
+                continue
+            assert abs(actual[atom_name] - ref_q) < self.CHARGE_TOLERANCE, (
+                f"Charge mismatch for {atom_name} in {dud_data['name']}: "
+                f"got {actual[atom_name]:.4f}, expected {ref_q:.4f}"
+            )
