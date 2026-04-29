@@ -113,7 +113,8 @@ jobs:
           source .venv/bin/activate
           
           CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
-            --cov=$GITHUB_WORKSPACE/tmol.cov --junitxml=$GITHUB_WORKSPACE/testing.cpu.junit.xml -k "not cuda"
+            --cov=$GITHUB_WORKSPACE/tmol --cov-report=xml \
+            --junitxml=$GITHUB_WORKSPACE/testing.cpu.junit.xml -k "not cuda"
 
           CPU_TEST
 
@@ -133,7 +134,8 @@ jobs:
           
           source .venv/bin/activate
           
-          pytest -p no:rerunfailures -s -v --durations=25 --cov=$GITHUB_WORKSPACE/tmol.cov \
+          pytest -p no:rerunfailures -s -v --durations=25 \
+            --cov=$GITHUB_WORKSPACE/tmol --cov-report=xml \
             --junitxml=$GITHUB_WORKSPACE/testing.cuda.junit.xml -k "cuda"
 
           GPU_TEST
@@ -179,7 +181,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: $GITHUB_WORKSPACE/tmol.cov
+          files: $GITHUB_WORKSPACE/coverage.xml
           fail_ci_if_error: true # fail the CI if upload fails
 
       
