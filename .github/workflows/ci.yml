@@ -178,6 +178,7 @@ jobs:
             testing.*.junit.xml
 
       - name: Upload Codecov
+        if: always() #&& (steps.cpu.outcome == 'success' || steps.cuda.outcome == 'success')
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
