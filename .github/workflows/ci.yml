@@ -17,7 +17,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  #SIF: /net/software/containers/versions/modelhub/pytorch_24.10-py3.sif
   SIF: /home/bench/git_ci_apptainer/tmol.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
   
@@ -40,17 +39,12 @@ jobs:
 
       - name: Lint
         run: |
-          apptainer exec \
-            --bind /net/scratch:/net/scratch \
-            --bind $PIP_PKGS:/ci-pip-pkgs \
+          apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
             --pwd $GITHUB_WORKSPACE \
             $SIF bash << 'LINT'
           set -ex
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
-          pre-commit run --all-files --show-diff-on-failure || echo "::warning::pre-commit found issues"
-          flake8 || echo "::warning::flake8 found issues"
+          pre-commit run --all-files --show-diff-on-failure
+          flake8
           LINT
 
       - name: Build
@@ -146,13 +140,6 @@ jobs:
               $SIF bash << 'BENCHMARK'
           set -ex
           
-          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-          export PYTHONUSERBASE=/ci-pip-pkgs
-          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
-          
-          export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
-          export CMAKE_PREFIX_PATH=$(python3 -c 'import torch; print(torch.utils.cmake_prefix_path)')
 
           BENCHMARK_DIR=benchmark/$GITHUB_REPOSITORY/$GITHUB_REF_NAME
           BENCHMARK_RESULT=${BENCHMARK_DIR}/${GITHUB_RUN_NUMBER}.json
