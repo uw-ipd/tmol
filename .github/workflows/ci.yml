@@ -175,5 +175,11 @@ jobs:
           paths: |
             testing.*.junit.xml
 
+      - name: Upload Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: $GITHUB_WORKSPACE/tmol.cov
+          fail_ci_if_error: true # fail the CI if upload fails
 
       
