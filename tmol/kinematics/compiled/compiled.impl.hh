@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -45,6 +46,7 @@ template <
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_indices_for_atoms(
+    ContextManager& mgr,
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
     TView<Int, 1, D> block_type_n_atoms,
@@ -80,9 +82,10 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_indices_for_atoms(
   });
 
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_blocks, get_n_atoms_for_block);
+      mgr, n_poses * max_n_blocks, get_n_atoms_for_block);
   Int n_kfo_atoms =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           block_n_atoms.data(),
           block_kfo_offset.data(),
           n_poses * max_n_blocks,
@@ -122,7 +125,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_indices_for_atoms(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_blocks * max_n_atoms_per_block, get_kfo_mapping);
+      mgr, n_poses * max_n_blocks * max_n_atoms_per_block, get_kfo_mapping);
 
   return std::make_tuple(
       block_kfo_offset_tp, kfo_2_orig_mapping_tp, atom_kfo_index_tp);
@@ -147,6 +150,7 @@ template <
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::
     get_block_parent_connectivity_from_toposort(
+        ContextManager& mgr,
         TView<Int, 2, D> pose_stack_block_type,                 // P x L
         TView<Int, 4, D> pose_stack_inter_residue_connections,  // P x L x C x 2
         TView<Int, 2, D> pose_stack_ff_parent,
@@ -246,7 +250,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_blocks, get_parent_connections);
+      mgr, n_poses * max_n_blocks, get_parent_connections);
 
   // Also handle the first output connection for the end residue of each edge
   auto set_output_conn_for_edge_end = ([=] TMOL_DEVICE_FUNC(int i) {
@@ -282,7 +286,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_ff_edges_per_pose, set_output_conn_for_edge_end);
+      mgr, n_poses * max_n_ff_edges_per_pose, set_output_conn_for_edge_end);
 
   return pose_stack_block_in_and_first_out_t;
 }
@@ -298,6 +302,7 @@ template <
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_atom_parents(
+    ContextManager& mgr,
     TView<Int, 2, D> pose_stack_block_type,                 // P x L
     TView<Int, 4, D> pose_stack_inter_residue_connections,  // P x L x C x 2
     TView<Int, 2, D> pose_stack_ff_parent,                  // P x L
@@ -371,7 +376,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_atom_parents(
       kfo_parent_atoms[i] = atom_kfo_index[pose][block][bt_parent_for_atom];
     }
   });
-  DeviceDispatch<D>::template forall<launch_t>(n_kfo_atoms, get_parent_atoms);
+  DeviceDispatch<D>::template forall<launch_t>(
+      mgr, n_kfo_atoms, get_parent_atoms);
 
   // second step: look up parent's parent. All atoms have a parent, even the
   // root which is its own parent.
@@ -380,7 +386,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_atom_parents(
     kfo_grandparent_atoms[i] = kfo_parent_atoms[parent];
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_kfo_atoms, get_grandparent_atoms);
+      mgr, n_kfo_atoms, get_grandparent_atoms);
   return {kfo_parent_atoms_t, kfo_grandparent_atoms_t};
 }
 
@@ -389,6 +395,7 @@ template <
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
+    ContextManager& mgr,
     TView<Int, 2, D> pose_stack_block_type,  // x
     TView<Int, 3, D>
         pose_stack_block_in_and_first_out,  // x pose_stack_ff_conn_to_parent
@@ -468,17 +475,18 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_kfo_atoms, count_children_for_parent);
+      mgr, n_kfo_atoms, count_children_for_parent);
 
   auto sum_jump_and_non_jump_children = ([=] TMOL_DEVICE_FUNC(int i) {
     // Now each atom looks at how many jump and non-jump children it has.
     n_children[i] = n_non_jump_children[i] + n_jump_children[i];
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_kfo_atoms, sum_jump_and_non_jump_children);
+      mgr, n_kfo_atoms, sum_jump_and_non_jump_children);
 
   // Now get the beginning and end indices for the child-list ranges.
   DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+      mgr,
       n_children.data(),
       child_list_span.data(),
       n_kfo_atoms + 1,
@@ -505,7 +513,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
       child_list[non_jump_start + non_jump_offset] = i;
     }
   });
-  DeviceDispatch<D>::template forall<launch_t>(n_kfo_atoms, fill_child_list);
+  DeviceDispatch<D>::template forall<launch_t>(
+      mgr, n_kfo_atoms, fill_child_list);
 
   // TO DO: replace with segmented sort!
 
@@ -544,7 +553,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
       }
     }
   });
-  DeviceDispatch<D>::template forall<launch_t>(n_kfo_atoms, sort_child_list);
+  DeviceDispatch<D>::template forall<launch_t>(
+      mgr, n_kfo_atoms, sort_child_list);
   return {n_children_t, child_list_span_t, child_list_t, is_atom_jump_t};
 }
 
@@ -553,6 +563,7 @@ template <
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
+    ContextManager& mgr,
     int64_t const max_n_pose_atoms,
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> kfo_2_orig_mapping,  // K x 3
@@ -599,7 +610,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
     frame_z[i] = parents[parent];
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_kintree_nodes, first_pass_frame_xyz);
+      mgr, n_kintree_nodes, first_pass_frame_xyz);
 
   auto stub_defined_for_jump_atom = ([=] TMOL_DEVICE_FUNC(int jump_atom) {
     int first_nonjump_child = -1;
@@ -759,7 +770,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
       }
     }
   });
-  DeviceDispatch<D>::template forall<launch_t>(n_kintree_nodes, fix_jump_node);
+  DeviceDispatch<D>::template forall<launch_t>(
+      mgr, n_kintree_nodes, fix_jump_node);
 
   // Step 3: mark the DOFs that should always be held fixed:
   // For a "bonded atom", this happens for "theta" when its
@@ -822,7 +834,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_kintree_nodes * n_dofs, mark_fixed_dofs);
+      mgr, n_kintree_nodes * n_dofs, mark_fixed_dofs);
 
   return {id_t, frame_x_t, frame_y_t, frame_z_t, keep_dof_fixed_t};
 }
@@ -832,6 +844,7 @@ template <
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_jump_atom_indices(
+    ContextManager& mgr,
     TView<Int, 3, D>
         ff_edges,  // P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
     TView<Int, 2, D> pose_stack_block_type,  // P x L
@@ -882,7 +895,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_jump_atom_indices(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_edges, set_jump_and_root_jump_atom_indices);
+      mgr, n_poses * max_n_edges, set_jump_and_root_jump_atom_indices);
 
   return {pose_stack_atom_for_jump_t, pose_stack_atom_for_root_jump_t};
 }
@@ -903,6 +916,7 @@ template <
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
+    ContextManager& mgr,
     // TView<Int, 1, Device::CPU> pose_stack_n_res,  // P
     TView<Int, 2, D> pose_stack_block_coord_offset,  // P x L
     TView<Int, 2, D> pose_stack_block_type,          // x - P x L
@@ -1328,6 +1342,7 @@ template <
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
+    ContextManager& mgr,
     int64_t const max_n_atoms_per_pose,
     TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
     TView<Int, 2, D> pose_stack_block_type,                 // P x L
@@ -1513,6 +1528,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
         }
       });
   DeviceDispatch<D>::template forall<launch_t>(
+      mgr,
       n_poses * max_n_edges_per_ff,
       mark_ff_edge_end_block_output_conns_as_potential_bw_sp_roots);
 
@@ -1584,7 +1600,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_edges_per_ff, mark_ff_edge_as_root_of_scan_path);
+      mgr, n_poses * max_n_edges_per_ff, mark_ff_edge_as_root_of_scan_path);
 
   // Step 7
   // Mark the scan-path segments that root each (jump & non-jump) fold-forest
@@ -1694,6 +1710,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
+      mgr,
       n_poses * max_n_edges_per_ff,
       mark_scan_path_segs_that_root_fold_forest_edges);
 
@@ -1748,6 +1765,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
          + edge_toposort_index_bw] = n_blocks;
   });
   DeviceDispatch<D>::template forall<launch_t>(
+      mgr,
       n_poses * max_n_edges_per_ff * max_n_gens_per_bt,
       count_n_blocks_for_ffedge_for_gen_by_topo_sort);
 
@@ -1768,6 +1786,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   // SCAN!
   int n_blocks_building_edges_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           n_blocks_that_build_tsedge_for_gen.data(),
           block_offset_for_tsedge_for_gen.data(),
           n_gens_total * n_poses * max_n_edges_per_ff,
@@ -1775,6 +1794,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   // second scan for backward pass
   int n_blocks_building_edges_total2 =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           n_blocks_that_build_tsedge_for_gen_bw.data(),
           block_offset_for_tsedge_for_gen_bw.data(),
           n_gens_total * n_poses * max_n_edges_per_ff,
@@ -2021,6 +2041,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
+      mgr,
       n_poses * max_n_blocks * max_n_gens_per_bt * max_n_scan_path_segs_per_gen,
       collect_n_atoms_for_scan_path_segs);
 
@@ -2059,46 +2080,54 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
 
   int n_nodes_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           n_atoms_for_scan_path_seg_for_gen.data(),
           nodes_offset_for_scan_path_seg_for_gen.data(),
           n_blocks_building_edges_total * max_n_scan_path_segs_per_gen,
           mgpu::plus_t<Int>());
   int n_nodes_total2 =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           n_atoms_for_scan_path_seg_for_gen_bw.data(),
           nodes_offset_for_scan_path_seg_for_gen_bw.data(),
           n_blocks_building_edges_total * max_n_scan_path_segs_per_gen,
           mgpu::plus_t<Int>());
   int n_scan_path_roots_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           is_scan_path_seg_root_of_scan_path.data(),
           root_scan_path_offset.data(),
           n_blocks_building_edges_total * max_n_scan_path_segs_per_gen,
           mgpu::plus_t<Int>());
   int n_scan_path_roots_total2 =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           is_scan_path_seg_root_of_scan_path_bw.data(),
           root_scan_path_offset_bw.data(),
           n_blocks_building_edges_total * max_n_scan_path_segs_per_gen,
           mgpu::plus_t<Int>());
 
   DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+      mgr,
       n_scan_paths_for_gen.data(),
       n_scan_path_offsets_for_gen.data(),
       n_gens_total + 1,
       mgpu::plus_t<Int>());
   DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+      mgr,
       n_scan_paths_for_gen_bw.data(),
       n_scan_path_offsets_for_gen_bw.data(),
       n_gens_total + 1,
       mgpu::plus_t<Int>());
 
   DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+      mgr,
       temp_n_nodes_for_gen.data(),
       temp_nodes_offset_for_gen.data(),
       n_gens_total + 1,
       mgpu::plus_t<Int>());
   DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+      mgr,
       temp_n_nodes_for_gen_bw.data(),
       temp_nodes_offset_for_gen_bw.data(),
       n_gens_total + 1,
@@ -2395,7 +2424,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       n_poses * max_n_blocks * max_n_gens_per_bt * max_n_scan_path_segs_per_gen,
       n_gens_total + 1);
   DeviceDispatch<D>::template forall<launch_t>(
-      n_iter_for_fntfspss, fill_nodes_tensor_from_scan_path_seg_stencils);
+      mgr, n_iter_for_fntfspss, fill_nodes_tensor_from_scan_path_seg_stencils);
 
   return {nodes_fw_t, scans_fw_t, gens_fw_t, nodes_bw_t, scans_bw_t, gens_bw_t};
 }
@@ -2405,6 +2434,7 @@ template <
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
+    ContextManager& mgr,
     TView<Int, 1, D> kinforest_id,  // K
     int64_t max_n_atoms_per_pose_in,
     TView<Int, 2, D> pose_stack_block_coord_offset,
@@ -2537,7 +2567,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   });
 
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * n_blocks * max_n_torsions, resolve_torsion_location);
+      mgr, n_poses * n_blocks * max_n_torsions, resolve_torsion_location);
 
   // Step 2:
   auto set_torsion_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
@@ -2609,7 +2639,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * n_blocks * max_n_torsions, set_torsion_freedom);
+      mgr, n_poses * n_blocks * max_n_torsions, set_torsion_freedom);
 
   //  Step 3:
   auto set_jump_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
@@ -2640,7 +2670,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_jumps_per_pose, set_jump_freedom);
+      mgr, n_poses * max_n_jumps_per_pose, set_jump_freedom);
 
   //  Step 4:
   auto set_root_jump_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
@@ -2670,7 +2700,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * n_blocks, set_root_jump_freedom);
+      mgr, n_poses * n_blocks, set_root_jump_freedom);
 
   // Step 5:
   auto set_atom_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
@@ -2689,7 +2719,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * n_blocks * max_n_atoms_per_block, set_atom_freedom);
+      mgr, n_poses * n_blocks * max_n_atoms_per_block, set_atom_freedom);
 
   // Step 6:
   auto reindex_minimizer_map = ([=] TMOL_DEVICE_FUNC(int i) {
@@ -2708,7 +2738,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_kinforest_atoms, reindex_minimizer_map);
+      mgr, n_kinforest_atoms, reindex_minimizer_map);
 
   return minimizer_map_t;
 }
