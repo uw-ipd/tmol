@@ -173,7 +173,7 @@ class HBondDependentTerm(BondDependentTerm):
         tile_acc_inds = numpy.full((n_tiles, tile_size), -1, dtype=numpy.int32)
         tile_acceptor_type = numpy.copy(tile_acc_inds)
         tile_acceptor_hybridization = numpy.copy(tile_acc_inds)
-        tile_acc_inds[is_tiled_acc] = A_idx
+        tile_acc_inds[is_tiled_acc] = A_idx % tile_size
         tile_acceptor_type[is_tiled_acc] = acc_type[A_idx]
         tile_acceptor_hybridization[is_tiled_acc] = atom_acceptor_hybridization[
             0, A_idx
@@ -218,12 +218,24 @@ class HBondDependentTerm(BondDependentTerm):
         tile_donorH_type = numpy.copy(tile_donH_inds)
         tile_which_donH_of_donH_hvy = numpy.copy(tile_donH_inds)
 
-        tile_donH_inds[is_tiled_donH] = H_idx
-        tile_don_hvy_inds[is_tiled_don_hvy] = D_idx
-        tile_donH_hvy_inds[is_tiled_donH] = D_for_H
+        # INSTRUMENTATION: assert per-tile inds are valid block-atom indices
+        n_at = block_type.n_atoms
+        if (
+            (H_idx >= n_at).any()
+            or (D_idx >= n_at).any()
+            or (D_for_H >= n_at).any()
+            or (A_idx >= n_at).any()
+        ):
+            print(
+                f"[HBOND-PY-OOB] block_type.name={block_type.name} n_atoms={n_at} "
+                f"H_idx={H_idx.tolist()} D_idx={D_idx.tolist()} "
+                f"D_for_H={D_for_H.tolist()} A_idx={A_idx.tolist()}"
+            )
+        tile_donH_inds[is_tiled_donH] = H_idx % tile_size
+        tile_don_hvy_inds[is_tiled_don_hvy] = D_idx % tile_size
+        tile_donH_hvy_inds[is_tiled_donH] = D_for_H % tile_size
         tile_donorH_type[is_tiled_donH] = donH_type
         tile_which_donH_of_donH_hvy[is_tiled_donH] = which_H_for_Hs_D
-
         hbbt_params = HBondBlockTypeParams(
             donH_inds=H_idx,
             don_hvy_inds=D_idx,

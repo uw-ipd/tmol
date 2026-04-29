@@ -11,7 +11,7 @@ from biotite.interface.rdkit import to_mol
 from rdkit import Chem
 from rdkit.Chem import rdDetermineBonds
 
-from tmol.ligand.detect import NonStandardResidueInfo, _strip_metals
+from tmol.ligand.detect import NonStandardResidueInfo
 from tmol.ligand.dimorphite_dl import protonate_mol_variants
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,6 @@ def ligand_atom_array_to_rdkit_mol(ligand_info: NonStandardResidueInfo):
         mol = rwmol.GetMol()
 
     mol = Chem.RemoveHs(mol)
-    mol = _strip_metals(mol)
     if mol is None or mol.GetNumAtoms() == 0:
         raise ValueError(f"{ligand_info.res_name}: failed to build RDKit Mol")
     return mol

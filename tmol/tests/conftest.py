@@ -29,6 +29,8 @@ from .data import (  # noqa: F401
     cif_184l_with_i4b,
     cif_155c_with_hem,
     cif_1a25_with_pse,
+    cif_1a0i_with_atp,
+    pdb_1a0i_with_atp,
 )
 
 from .chemical import (  # noqa: F401

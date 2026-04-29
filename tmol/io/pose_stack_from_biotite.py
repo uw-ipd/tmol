@@ -228,6 +228,8 @@ def pose_stack_from_biotite(
             no_optH=no_optH,
         )
 
+    _assert_no_nan_coords(pose_stack)
+
     # This code tries to faithfully return what the caller expects based on the optional
     # return values that they requested. Since we override the return_block_has_missing_atoms
     # bool to True, we cannot just count on the existence or absence of optional returned vals
@@ -241,6 +243,60 @@ def pose_stack_from_biotite(
     if len(opt_return_vals) > (0 if return_block_has_missing_atoms else 1):
         return pose_stack, opt_return_vals
     return pose_stack
+
+
+def _assert_no_nan_coords(pose_stack: PoseStack) -> None:
+    """Raise a descriptive error if any real atom in the PoseStack has NaN coords.
+
+    Reports the offending pose, residue label/chain, block-type name, and atom
+    name so failures in the auto-parsing pipeline (ligand prep, leaf-atom
+    rebuild, sidechain build) can be traced to a specific residue.
+    """
+    coords = pose_stack.coords
+    real = pose_stack.real_atoms
+    nan_atom_mask = torch.isnan(coords).any(dim=-1) & real
+    if not torch.any(nan_atom_mask):
+        return
+
+    pbt = pose_stack.packed_block_types
+    block_coord_offset = pose_stack.block_coord_offset
+    block_type_ind = pose_stack.block_type_ind
+    pdb_info = getattr(pose_stack, "pdb_info", None)
+
+    bad: list[str] = []
+    nan_idxs = torch.nonzero(nan_atom_mask, as_tuple=False).cpu().tolist()
+    for pi, at_idx in nan_idxs:
+        valid_block_mask = block_type_ind[pi] >= 0
+        valid_block_inds = torch.nonzero(valid_block_mask, as_tuple=False).flatten()
+        offsets = block_coord_offset[pi, valid_block_inds]
+        sel = torch.nonzero(offsets <= at_idx, as_tuple=False).flatten()
+        if sel.numel() == 0:
+            continue
+        bi = int(valid_block_inds[sel[-1]].item())
+        offset_in_block = at_idx - int(block_coord_offset[pi, bi].item())
+        bt = pbt.active_block_types[int(block_type_ind[pi, bi].item())]
+        atom_name = (
+            bt.atoms[offset_in_block].name
+            if 0 <= offset_in_block < len(bt.atoms)
+            else f"#{offset_in_block}"
+        )
+        label = ""
+        if pdb_info is not None and pdb_info.residue_labels is not None:
+            chain = pdb_info.chain_labels[pi, bi]
+            resid = pdb_info.residue_labels[pi, bi]
+            label = f" chain={chain} resid={resid}"
+        bad.append(
+            f"pose={pi} block={bi} bt={bt.name}{label} atom={atom_name} "
+            f"(global_atom_idx={at_idx})"
+        )
+
+    head = bad[:20]
+    tail = f"\n  ... and {len(bad) - 20} more" if len(bad) > 20 else ""
+    raise RuntimeError(
+        "NaN coordinates produced by pose_stack_from_biotite:\n  "
+        + "\n  ".join(head)
+        + tail
+    )
 
 
 @validate_args
@@ -281,6 +337,7 @@ def _map_atoms_to_canonical(co, not_connected, atom_res_inds, res_names, atom_na
 
     atom_inds = []
     valid = []
+    unmapped: dict[str, list[str]] = {}
     for i, (resname, atname) in enumerate(zip(res_names, atom_names)):
         mapping = co.restypes_atom_index_mapping.get(resname, {})
         idx = mapping.get(atname, -1)
@@ -291,6 +348,8 @@ def _map_atoms_to_canonical(co, not_connected, atom_res_inds, res_names, atom_na
                 idx = -1
         atom_inds.append(idx)
         valid.append(idx >= 0)
+        if idx < 0:
+            unmapped.setdefault(resname, []).append(atname)
 
     valid_atom_mask = numpy.array(valid)
     atom_inds_arr = numpy.array(atom_inds)

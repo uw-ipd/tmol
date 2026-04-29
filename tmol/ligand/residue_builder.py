@@ -124,11 +124,38 @@ def _build_atom_tree(
                 parent[nbr] = current
                 queue.append(nbr)
 
+    bfs_position = {idx: i for i, idx in enumerate(order)}
+
+    def _is_heavy(i: int) -> bool:
+        return mol.GetAtomWithIdx(i).GetAtomicNum() != 1
+
+    def _pick_neighbor(
+        of: int, exclude: set[int], heavy_only: bool = False
+    ) -> int | None:
+        candidates = [n for n in adj[of] if n not in exclude]
+        if heavy_only:
+            candidates = [n for n in candidates if _is_heavy(n)]
+        if not candidates:
+            return None
+        candidates.sort(key=lambda n: bfs_position.get(n, len(order)))
+        return candidates[0]
+
     grandparents: dict[int, tuple[int, int]] = {}
     for idx in order:
+        idx_heavy = _is_heavy(idx)
         par = parent[idx]
         gp = parent.get(par, par)
+        if gp == par and idx != root_idx:
+            sub = _pick_neighbor(par, exclude={idx, par}, heavy_only=idx_heavy)
+            if sub is not None:
+                gp = sub
         ggp = parent.get(gp, gp)
+        if ggp == gp and idx != root_idx:
+            sub = _pick_neighbor(par, exclude={idx, par, gp}, heavy_only=idx_heavy)
+            if sub is None:
+                sub = _pick_neighbor(gp, exclude={par, gp, idx}, heavy_only=idx_heavy)
+            if sub is not None:
+                ggp = sub
         grandparents[idx] = (gp, ggp)
 
     return order, parent, grandparents

@@ -76,6 +76,7 @@ class NonStandardResidueInfo:
     coords: np.ndarray = attr.ib(eq=False, hash=False)
     atom_array: struc.AtomArray = attr.ib(eq=False, hash=False)
     ccd_smiles: Optional[str] = None
+    covalently_linked: bool = False
 
 
 LigandInfo = NonStandardResidueInfo
@@ -222,6 +223,8 @@ def detect_nonstandard_residues(
     seen: set[str] = set()
     results: list[NonStandardResidueInfo] = []
 
+    covalently_linked_names = _residue_names_with_cross_residue_bonds(atom_array)
+
     residue_starts = struc.get_residue_starts(atom_array)
 
     for start in residue_starts:
@@ -257,7 +260,56 @@ def detect_nonstandard_residues(
                 coords=sub.coord.copy(),
                 atom_array=sub,
                 ccd_smiles=ccd_smiles,
+                covalently_linked=res_name in covalently_linked_names,
             )
         )
 
     return results
+
+
+def _residue_names_with_cross_residue_bonds(
+    atom_array: struc.AtomArray,
+    spatial_cutoff: float = 1.8,
+) -> frozenset[str]:
+    """Return the set of res_names that have at least one bond to a different residue.
+
+    A "different residue" is identified by (chain_id, res_id, res_name) — so
+    distinct instances of the same residue name (e.g. two NAGs in a glycan
+    chain) also count as cross-residue bonds. Used to flag ligands that are
+    covalently attached to a polymer or to other ligand instances.
+
+    Detection runs two passes:
+    1. Explicit bonds in ``atom_array.bonds`` (if present).
+    2. Heavy-atom spatial proximity within ``spatial_cutoff`` Å. This
+       catches covalent attachments missing from the bond table — e.g.
+       CCD NON-POLYMER caps like ACE in a polypeptide, or files lacking
+       ``_struct_conn`` records.
+    """
+    chain_ids = atom_array.chain_id if hasattr(atom_array, "chain_id") else None
+    res_ids = atom_array.res_id
+    res_names = atom_array.res_name
+
+    linked: set[str] = set()
+
+    def _record(a: int, b: int) -> None:
+        same_chain = chain_ids is None or chain_ids[a] == chain_ids[b]
+        if same_chain and res_ids[a] == res_ids[b] and res_names[a] == res_names[b]:
+            return
+        linked.add(res_names[a].strip())
+        linked.add(res_names[b].strip())
+
+    if atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0:
+        for a, b, _ in atom_array.bonds.as_array():
+            _record(int(a), int(b))
+
+    if len(atom_array) > 1:
+        heavy_mask = np.char.strip(atom_array.element.astype(str)) != "H"
+        if heavy_mask.any():
+            from scipy.spatial import cKDTree
+
+            heavy_indices = np.nonzero(heavy_mask)[0]
+            tree = cKDTree(atom_array.coord[heavy_mask])
+            for i, j in tree.query_pairs(spatial_cutoff, output_type="ndarray"):
+                _record(int(heavy_indices[i]), int(heavy_indices[j]))
+
+    return frozenset(linked)

@@ -26,7 +26,11 @@ from tmol.database import ParameterDatabase, inject_residue_params
 from tmol.database.chemical import RawResidueType
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.ligand.atom_typing import AtomTypeAssignment, assign_tmol_atom_types
-from tmol.ligand.detect import NonStandardResidueInfo, detect_nonstandard_residues
+from tmol.ligand.detect import (
+    NonStandardResidueInfo,
+    _METAL_SYMBOLS,
+    detect_nonstandard_residues,
+)
 from tmol.ligand.graph_match import match_heavy_atoms
 from tmol.ligand.mol3d import compute_mmff94_charges
 from tmol.ligand.registry import (
@@ -291,6 +295,29 @@ def prepare_ligands(
 
     injection_data = []
     for lig in ligands:
+        metals_present = sorted(
+            {
+                e.strip().capitalize()
+                for e in lig.elements
+                if e.strip().capitalize() in _METAL_SYMBOLS
+            }
+        )
+        if metals_present:
+            logger.warning(
+                "Skipping %s: ligands containing metal atoms (%s) are not supported",
+                lig.res_name,
+                metals_present,
+            )
+            continue
+
+        if lig.covalently_linked:
+            logger.warning(
+                "Skipping %s: ligand is covalently linked to another residue "
+                "(e.g. glycan attached to protein) — not supported",
+                lig.res_name,
+            )
+            continue
+
         cache_key = (
             lig.res_name,
             round(ph, 3),

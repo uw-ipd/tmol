@@ -33,6 +33,22 @@ class DunbrackBlockAttrs:
     semirotameric_tableset_offset: int
 
 
+def _empty_dunbrack_attrs() -> "DunbrackBlockAttrs":
+    return DunbrackBlockAttrs(
+        n_dihedrals=0,
+        dih_uaids=numpy.full((0, 4, 3), -1, dtype=numpy.int32),
+        rotamer_table_set=-1,
+        rotameric_index=-1,
+        semirotameric_index=-1,
+        n_chi=0,
+        n_rotameric_chi=0,
+        probability_table_offset=-1,
+        mean_table_offset=-1,
+        rotamer_index_to_table_index_offset=-1,
+        semirotameric_tableset_offset=numpy.array(-1),
+    )
+
+
 class DunbrackEnergyTerm(EnergyTerm):
     device: torch.device  # = attr.ib()
 
@@ -65,6 +81,18 @@ class DunbrackEnergyTerm(EnergyTerm):
         super(DunbrackEnergyTerm, self).setup_block_type(block_type)
 
         if hasattr(block_type, "dunbrack_attrs"):
+            return
+
+        # Dunbrack rotamer libraries cover alpha amino acids only. For ligands
+        # and other non-AA block types, install a sentinel with
+        # rotamer_table_set=-1 so the C++ kernel short-circuits the block.
+        polymer = block_type.properties.polymer
+        if (
+            not polymer.is_polymer
+            or polymer.polymer_type != "amino_acid"
+            or polymer.backbone_type != "alpha"
+        ):
+            setattr(block_type, "dunbrack_attrs", _empty_dunbrack_attrs())
             return
 
         inds = self.global_params.all_table_indices.index.get_indexer(

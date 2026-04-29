@@ -147,6 +147,7 @@ def _setup_for_leaf_atom_coord_building(
         raise ValueError("\n".join(err_msg))
 
     block_leaf_atom_is_missing = torch.logical_and(block_at_is_leaf, block_atom_missing)
+
     pose_stack_atom_is_missing = torch.zeros(
         (n_poses, max_n_ats), dtype=torch.bool, device=device
     )
@@ -190,7 +191,6 @@ def _actually_build_leaf_coords(
     )
     pose_like_coords[pose_at_is_real] = block_coords[real_block_atoms]
 
-    # ok, we're ready
     from tmol.io.details.compiled.compiled import gen_pose_leaf_atoms
 
     return gen_pose_leaf_atoms(

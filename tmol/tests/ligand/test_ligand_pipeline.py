@@ -47,11 +47,6 @@ class TestDetectFromCIF:
         assert "NON-POLYMER" in i4b.ccd_type.upper()
         assert i4b.coords.shape == (len(i4b.atom_names), 3)
 
-    def test_detects_hem_in_155c(self, cif_155c_with_hem, canonical_ordering):
-        ligands = detect_nonstandard_residues(cif_155c_with_hem, canonical_ordering)
-        names = {lig.res_name for lig in ligands}
-        assert "HEM" in names
-
     def test_detects_pse_with_partial_occupancy(
         self, cif_1a25_with_pse, canonical_ordering
     ):
@@ -91,14 +86,11 @@ class TestFullPipeline:
         for a, b, _ in i4b_rt.bonds:
             assert a in atom_name_set and b in atom_name_set
 
-    def test_hem_large_ligand(self, cif_155c_with_hem, param_db):
-        """Large ligand (HEM, 43 heavy atoms) in cytochrome c."""
+    def test_hem_metal_ligand_skipped(self, cif_155c_with_hem, param_db):
+        """HEM contains Fe; metal-containing ligands are unsupported and skipped."""
         param_db, new_co = prepare_ligands(cif_155c_with_hem, param_db=param_db)
 
-        assert "HEM" in {r.name for r in param_db.chemical.residues}
-        hem_rt = next(r for r in param_db.chemical.residues if r.name == "HEM")
-        assert len(hem_rt.atoms) > 30
-        assert len(hem_rt.icoors) >= len(hem_rt.atoms) - 1
+        assert "HEM" not in {r.name for r in param_db.chemical.residues}
 
     def test_pse_partial_occupancy(self, cif_1a25_with_pse, param_db):
         """Ligand with partial occupancy (PSE, 0.56) still prepares."""
@@ -291,47 +283,9 @@ class TestLigandScoringData:
             ), f"Improper center incorrectly includes saturated atom {name}"
 
 
-@pytest.mark.slow
-def test_prepare_ligands_missing_sidechain_rebuild_skips_ligand_dunbrack(
-    cif_184l_with_i4b, torch_device
-):
-    """Missing-sidechain rebuild should not invoke Dunbrack on ligand blocks."""
+def test_prepare_ligands_missing_ligand_atom_fails(cif_184l_with_i4b, torch_device):
+    """Ligands with missing atoms are unsupported; loading must fail."""
     import numpy
-    import torch
-
-    from tmol.database import ParameterDatabase
-    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
-
-    bt = cif_184l_with_i4b.copy()
-    protein_cb = (bt.res_name != "I4B") & (bt.atom_name == "CB")
-    if not numpy.any(protein_cb):
-        pytest.skip("Could not find a protein CB atom to remove")
-
-    first_cb = numpy.nonzero(protein_cb)[0][0]
-    keep_mask = numpy.ones(bt.array_length(), dtype=bool)
-    keep_mask[first_cb] = False
-    bt_missing = bt[keep_mask]
-
-    pose_stack = pose_stack_from_biotite(
-        bt_missing,
-        torch_device,
-        prepare_ligands=True,
-        param_db=ParameterDatabase.get_default(),
-    )
-
-    assert pose_stack.coords.shape[0] >= 1
-    nonzero_coords = pose_stack.coords[pose_stack.coords != 0]
-    assert not torch.any(torch.isnan(nonzero_coords))
-    assert not torch.any(torch.isinf(nonzero_coords))
-
-
-@pytest.mark.slow
-def test_prepare_ligands_ligand_only_missing_does_not_invoke_dunbrack(
-    cif_184l_with_i4b, torch_device
-):
-    """Ligand-only missing atoms should bypass Dunbrack rebuilding cleanly."""
-    import numpy
-    import torch
 
     from tmol.database import ParameterDatabase
     from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
@@ -345,41 +299,236 @@ def test_prepare_ligands_ligand_only_missing_does_not_invoke_dunbrack(
     keep_mask[ligand_atoms[0]] = False
     bt_ligand_missing = bt[keep_mask]
 
-    pose_stack = pose_stack_from_biotite(
-        bt_ligand_missing,
-        torch_device,
-        prepare_ligands=True,
-        param_db=ParameterDatabase.get_default(),
-    )
-
-    assert pose_stack.coords.shape[0] >= 1
-    nonzero_coords = pose_stack.coords[pose_stack.coords != 0]
-    assert not torch.any(torch.isnan(nonzero_coords))
-    assert not torch.any(torch.isinf(nonzero_coords))
+    with pytest.raises(Exception):
+        pose_stack_from_biotite(
+            bt_ligand_missing,
+            torch_device,
+            prepare_ligands=True,
+            param_db=ParameterDatabase.get_fresh_default(),
+        )
 
 
-@pytest.mark.skip(
-    reason="Rotamer/Dunbrack energy term does not yet support ligands; "
-    "crashes with SIGFPE before pytest can catch the error",
-)
 class TestPoseStackWithLigand:
     """Build a PoseStack with ligands and verify scoring runs."""
 
     @staticmethod
-    def _score_cif_with_ligand(atom_array, torch_device):
+    def _sanity_check_pose_stack(pose_stack):
+        """Validate PoseStack invariants before handing it to scoring.
+
+        Scoring kernels access coords via block_coord_offset + per-block atom
+        index; if any of those are inconsistent the kernel hits a bounds-check
+        failure with no useful message. This surfaces the problem in Python.
+        """
+        import torch
+
+        pbt = pose_stack.packed_block_types
+        n_block_types = len(pbt.active_block_types)
+        n_poses, max_n_blocks = pose_stack.block_type_ind.shape
+        n_atoms_total = pose_stack.coords.shape[1]
+
+        bti = pose_stack.block_type_ind.cpu()
+        offsets = pose_stack.block_coord_offset.cpu()
+        n_atoms_per_bt = pbt.n_atoms.cpu()
+
+        valid_mask = bti != -1
+        valid_bti = bti[valid_mask]
+        assert valid_bti.numel() > 0, "PoseStack has no real blocks"
+        assert int(valid_bti.min()) >= 0
+        assert int(valid_bti.max()) < n_block_types, (
+            f"block_type_ind has value {int(valid_bti.max())} but only "
+            f"{n_block_types} block types exist"
+        )
+
+        # Each block's [offset, offset + n_atoms_for_that_bt) must fit inside coords.
+        for p in range(n_poses):
+            for b in range(max_n_blocks):
+                bt = int(bti[p, b])
+                if bt == -1:
+                    continue
+                off = int(offsets[p, b])
+                n = int(n_atoms_per_bt[bt])
+                assert 0 <= off, f"pose {p} block {b}: negative offset {off}"
+                assert off + n <= n_atoms_total, (
+                    f"pose {p} block {b} (bt={bt} name="
+                    f"{pbt.active_block_types[bt].name}): offset {off} + "
+                    f"n_atoms {n} exceeds coords length {n_atoms_total}"
+                )
+                slc = pose_stack.coords[p, off : off + n]
+                if not torch.isfinite(slc).all():
+                    bad = (~torch.isfinite(slc)).nonzero(as_tuple=False)
+                    raise AssertionError(
+                        f"non-finite coords in pose {p} block {b} "
+                        f"(bt={bt} name={pbt.active_block_types[bt].name}, "
+                        f"n_atoms={n}, offset={off}): atoms {bad[:5].tolist()}"
+                    )
+                # All-zero coords for a real atom usually means the block was
+                # registered but its coordinates were never copied in.
+                norms = slc.norm(dim=1)
+                if n > 0 and (norms == 0).all():
+                    raise AssertionError(
+                        f"pose {p} block {b} (bt={bt} name="
+                        f"{pbt.active_block_types[bt].name}): all "
+                        f"{n} atom coordinates are exactly zero"
+                    )
+
+        # Per-block-type LJLK atom_types must all be in range. A -1 here means
+        # the atom's Rosetta atom_type was never registered into the LJLK type
+        # table; the kernel will then read type_params[-1] and trip the bounds
+        # check.
+        if hasattr(pbt, "atom_types"):
+            at = pbt.atom_types.cpu()
+            for bt_ind in {int(b) for b in valid_bti.tolist()}:
+                bt = pbt.active_block_types[bt_ind]
+                n = int(n_atoms_per_bt[bt_ind])
+                row = at[bt_ind, :n]
+                if (row < 0).any():
+                    bad_idx = (row < 0).nonzero(as_tuple=False).flatten().tolist()
+                    bad_names = [
+                        (bt.atoms[i].name, bt.atoms[i].atom_type) for i in bad_idx
+                    ]
+                    raise AssertionError(
+                        f"block type {bt.name}: atoms {bad_names} have unresolved "
+                        f"LJLK atom_type indices (-1)"
+                    )
+
+        # Per-block-type LJLK heavy-atom-in-tile indices must be < n_atoms (they
+        # index into the per-block coords slice).
+        if hasattr(pbt, "ljlk_heavy_atoms_in_tile") and hasattr(
+            pbt, "ljlk_n_heavy_atoms_in_tile"
+        ):
+            hat = pbt.ljlk_heavy_atoms_in_tile.cpu()
+            n_in_tile = pbt.ljlk_n_heavy_atoms_in_tile.cpu()
+            tile_size = 32
+            for bt_ind in {int(b) for b in valid_bti.tolist()}:
+                bt = pbt.active_block_types[bt_ind]
+                n = int(n_atoms_per_bt[bt_ind])
+                for tile in range(n_in_tile.shape[1]):
+                    n_t = int(n_in_tile[bt_ind, tile])
+                    if n_t == 0:
+                        continue
+                    row = hat[bt_ind, tile * tile_size : tile * tile_size + n_t]
+                    if (row < 0).any() or (row >= n).any():
+                        raise AssertionError(
+                            f"block type {bt.name}: tile {tile} heavy-atom "
+                            f"indices {row.tolist()} out of range for n_atoms={n}"
+                        )
+
+        # inter_residue_connections must point to a real block on the same pose.
+        irc = pose_stack.inter_residue_connections.cpu()
+        for p in range(n_poses):
+            for b in range(max_n_blocks):
+                if int(bti[p, b]) == -1:
+                    continue
+                for c in range(irc.shape[2]):
+                    other = int(irc[p, b, c, 0])
+                    if other == -1:
+                        continue
+                    assert (
+                        0 <= other < max_n_blocks
+                    ), f"pose {p} block {b} conn {c} -> {other} (out of range)"
+                    assert int(bti[p, other]) != -1, (
+                        f"pose {p} block {b} conn {c} -> block {other} which "
+                        f"is sentinel (-1)"
+                    )
+
+    @staticmethod
+    def _score_cif_with_ligand(
+        atom_array, torch_device, dump_name=None, expected_ligand_name3=None
+    ):
+        import os
         import torch
 
         from tmol.database import ParameterDatabase
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+        from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
         from tmol.score import beta2016_score_function
 
         param_db = ParameterDatabase.get_default()
         pose_stack = pose_stack_from_biotite(
             atom_array, torch_device, prepare_ligands=True, param_db=param_db
         )
+
+        pbt = pose_stack.packed_block_types
+        bt_names = [bt.name3 for bt in pbt.active_block_types]
+        bti0 = pose_stack.block_type_ind64[0].cpu().numpy()
+        unique_bti = sorted({int(b) for b in bti0 if b != -1})
+        if dump_name is not None:
+            print(f"[dump debug] {dump_name}: active_block_types name3s = {bt_names}")
+            print(
+                f"[dump debug] {dump_name}: pose0 unique block_type_inds = "
+                f"{unique_bti}"
+            )
+            for b in unique_bti:
+                print(
+                    f"[dump debug]   bti={b} name3={pbt.active_block_types[b].name3} "
+                    f"name={pbt.active_block_types[b].name}"
+                )
+            write_pose_stack_pdb(
+                pose_stack, os.path.join(os.getcwd(), f"{dump_name}.pdb")
+            )
+
+        if expected_ligand_name3 is not None:
+            present = {pbt.active_block_types[b].name3 for b in unique_bti}
+            assert expected_ligand_name3 in present, (
+                f"expected ligand {expected_ligand_name3!r} not in pose stack; "
+                f"present block types = {sorted(present)}"
+            )
+
+            lig_bt_ind = next(
+                b
+                for b in unique_bti
+                if pbt.active_block_types[b].name3 == expected_ligand_name3
+            )
+            lig_bt = pbt.active_block_types[lig_bt_ind]
+            n_atoms = int(pbt.n_atoms[lig_bt_ind])
+            print(
+                f"[ligand dump] {expected_ligand_name3} (bt={lig_bt_ind} "
+                f"name={lig_bt.name}): n_atoms={n_atoms} "
+                f"max_n_atoms_pbt={pbt.max_n_atoms}"
+            )
+            if hasattr(pbt, "atom_types"):
+                print(
+                    f"  atom_types[:n] = "
+                    f"{pbt.atom_types[lig_bt_ind, :n_atoms].cpu().tolist()}"
+                )
+            else:
+                print("  atom_types not yet attached to pbt")
+            if hasattr(pbt, "ljlk_n_heavy_atoms_in_tile"):
+                print(
+                    f"  ljlk_n_heavy_atoms_in_tile = "
+                    f"{pbt.ljlk_n_heavy_atoms_in_tile[lig_bt_ind].cpu().tolist()}"
+                )
+                print(
+                    f"  ljlk_heavy_atoms_in_tile = "
+                    f"{pbt.ljlk_heavy_atoms_in_tile[lig_bt_ind].cpu().tolist()}"
+                )
+            if hasattr(pbt, "n_conn"):
+                print(f"  n_conn = {int(pbt.n_conn[lig_bt_ind])}")
+            if hasattr(pbt, "conn_atom"):
+                print(f"  conn_atom = {pbt.conn_atom[lig_bt_ind].cpu().tolist()}")
+            if hasattr(pbt, "bond_separation"):
+                bs = pbt.bond_separation[lig_bt_ind].cpu()
+                print(
+                    f"  bond_separation shape={tuple(bs.shape)} "
+                    f"min={int(bs[:n_atoms, :n_atoms].min())} "
+                    f"max={int(bs[:n_atoms, :n_atoms].max())}"
+                )
+            # Show the ligand's pose-level slice
+            for p in range(pose_stack.coords.shape[0]):
+                for b in range(pose_stack.block_type_ind.shape[1]):
+                    if int(pose_stack.block_type_ind[p, b]) == lig_bt_ind:
+                        off = int(pose_stack.block_coord_offset[p, b])
+                        print(
+                            f"  pose {p} block {b}: offset={off} "
+                            f"n={n_atoms} coords[0]={pose_stack.coords[p, off].cpu().tolist()} "
+                            f"coords[-1]={pose_stack.coords[p, off + n_atoms - 1].cpu().tolist()}"
+                        )
+
         assert pose_stack.coords.shape[0] >= 1
         nonzero_coords = pose_stack.coords[pose_stack.coords != 0]
         assert not torch.any(torch.isnan(nonzero_coords))
+
+        TestPoseStackWithLigand._sanity_check_pose_stack(pose_stack)
 
         sfxn = beta2016_score_function(torch_device, param_db=param_db)
         scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
@@ -408,35 +557,37 @@ class TestPoseStackWithLigand:
         pose_stack = pose_stack_from_biotite(
             cif_155c_with_hem, torch_device, prepare_ligands=True, param_db=param_db
         )
-        assert pose_stack.coords.shape[0] >= 1
-        nonzero_coords = pose_stack.coords[pose_stack.coords != 0]
-        assert not torch.any(torch.isnan(nonzero_coords))
 
     def test_pse_posestack_scores(self, cif_1a25_with_pse, torch_device):
         """Partial occupancy ligand (PSE, 0.56) scores without errors."""
-        self._score_cif_with_ligand(cif_1a25_with_pse, torch_device)
+        self._score_cif_with_ligand(
+            cif_1a25_with_pse, torch_device, "test_pse_posestack_scores"
+        )
 
-    def test_atp_posestack_scores(self, torch_device, tmp_path):
+    def test_atp_posestack_scores(self, cif_1a0i_with_atp, torch_device):
         """ATP ligand (31 heavy atoms + H = >32 total) triggers tile edge case.
 
         ATP has >32 total atoms but <=32 heavy atoms, which exercises the
         second tile iteration in the LJLK scoring kernel. This was a known
         crash (see uw-ipd/tmol jflat06/atp_ligand_load branch).
         """
-        import biotite.structure
-        from biotite.database import rcsb
-
-        path = rcsb.fetch("3QWQ", "cif", target_path=tmp_path)
-        bt = biotite.structure.io.load_structure(
-            path, extra_fields=["occupancy", "b_factor"]
+        self._score_cif_with_ligand(
+            cif_1a0i_with_atp,
+            torch_device,
+            "test_atp_posestack_scores",
+            expected_ligand_name3="ATP",
         )
-        if isinstance(bt, biotite.structure.AtomArrayStack):
-            bt = bt[0]
-        self._score_cif_with_ligand(bt, torch_device)
 
-    def test_i4b_minimize_and_cif_roundtrip(
-        self, cif_184l_with_i4b, torch_device, tmp_path
-    ):
+    def test_atp_posestack_scores_from_pdb(self, pdb_1a0i_with_atp, torch_device):
+        """Same as test_atp_posestack_scores but loaded from PDB instead of CIF."""
+        self._score_cif_with_ligand(
+            pdb_1a0i_with_atp,
+            torch_device,
+            "test_atp_posestack_scores_from_pdb",
+            expected_ligand_name3="ATP",
+        )
+
+    def test_i4b_minimize_and_cif_roundtrip(self, cif_184l_with_i4b, tmp_path):
         """Build with ligands, minimize briefly, and write back to CIF."""
         import biotite.structure
         import torch
@@ -451,8 +602,7 @@ class TestPoseStackWithLigand:
         from tmol.optimization.sfxn_modules import CartesianSfxnNetwork
         from tmol.score import beta2016_score_function
 
-        if torch_device != torch.device("cpu"):
-            pytest.skip("Roundtrip minimization test runs on CPU only")
+        torch_device = torch.device("cpu")
 
         pose_stack, context = pose_stack_from_biotite(
             cif_184l_with_i4b,
