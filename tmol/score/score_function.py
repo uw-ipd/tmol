@@ -271,7 +271,7 @@ class BlockPairScoringModule:
         summed = torch.sum(weighted, dim=0) if sum_terms else weighted
 
         return summed
-    
+
     def unweighted_scores(self, coords):
         return torch.cat([term(coords) for term in self.term_modules], dim=0)
 
