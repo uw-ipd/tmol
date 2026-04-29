@@ -15,6 +15,7 @@ def build_kinforest_network(
     ff: FoldForest,
     mm: MoveMap,
     verbose=False,
+    kin_dtype=torch.float32,
 ):
     from tmol.kinematics.script_modules import PoseStackKinematicsModule
     from tmol.optimization.sfxn_modules import KinForestSfxnNetwork
@@ -34,7 +35,7 @@ def build_kinforest_network(
     end_time2 = time.perf_counter()
 
     kf_network = KinForestSfxnNetwork(
-        sfxn, pose_stack, kin_module, minimizer_map.dof_mask
+        sfxn, pose_stack, kin_module, minimizer_map.dof_mask, kin_dtype=kin_dtype
     )
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -43,8 +44,8 @@ def build_kinforest_network(
     if verbose:
         print(
             f"build_kinforest_network {end_time3 - start_time: .2f}"
-            + f" s1: {end_time1-start_time: .2f} s2: {end_time2 - end_time1: .2f}"
-            + f" s3: {end_time3-end_time2: .2f}"
+            + f" s1: {end_time1 - start_time: .2f} s2: {end_time2 - end_time1: .2f}"
+            + f" s3: {end_time3 - end_time2: .2f}"
         )
 
     return kf_network
@@ -104,8 +105,8 @@ def run_min(
 
     if verbose:
         print(
-            f"run_min {end_time3 - start_time: .2f} setup: {end_time1-start_time: .2f}"
-            + f" opt {end_time2 - end_time1: .2f} stack-ctor: {end_time3-end_time2: .2f}"
+            f"run_min {end_time3 - start_time: .2f} setup: {end_time1 - start_time: .2f}"
+            + f" opt {end_time2 - end_time1: .2f} stack-ctor: {end_time3 - end_time2: .2f}"
         )
 
     return new_pose_stack
@@ -119,12 +120,15 @@ def run_kin_min(
     optimizer_cls=LBFGS_Armijo,
     optimizer_kwargs=None,
     verbose=False,
+    kin_dtype=torch.float32,
 ):
     """Run minimization on a PoseStack in internal DOF space.
 
     Builds a KinForestSfxnNetwork and delegates to run_min().
     """
-    kf_network = build_kinforest_network(pose_stack, sfxn, ff, mm, verbose)
+    kf_network = build_kinforest_network(
+        pose_stack, sfxn, ff, mm, verbose, kin_dtype=kin_dtype
+    )
     return run_min(
         kf_network,
         optimizer_cls=optimizer_cls,

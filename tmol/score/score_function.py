@@ -254,12 +254,7 @@ class WholePoseScoringModule:
         return weighted
 
     def unweighted_scores(self, coords):
-        scores = []
-        for term in self.term_modules:
-            values = term(coords)
-            scores += values
-
-        return torch.stack(scores)
+        return torch.cat([term(coords) for term in self.term_modules], dim=0)
 
 
 class BlockPairScoringModule:

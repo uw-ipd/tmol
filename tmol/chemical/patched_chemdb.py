@@ -173,7 +173,7 @@ def _validate_raw_residue_atoms(res, allatoms):
                 "Error: duplicated_atom_name; atoms may appear only once\n",
                 "Offending atoms:\n",
                 "\n".join(
-                    [f'    "{x}" appears {duplicated[x]+1} times' for x in duplicated]
+                    [f'    "{x}" appears {duplicated[x] + 1} times' for x in duplicated]
                 ),
             ]
         )
@@ -279,7 +279,7 @@ def _validate_raw_residue_icoors(res, allatoms, allconns):
                 f'Offending icoor{"s" if len(bad_icoors) > 1 else ""}\n',
                 "\n".join(
                     [
-                        f'    icoor for {x[0].name}: {x[1]} atom "{getattr(x[0],x[1])}" undeclared'
+                        f'    icoor for {x[0].name}: {x[1]} atom "{getattr(x[0], x[1])}" undeclared'
                         for x in bad_icoors
                     ]
                 ),
@@ -428,7 +428,7 @@ def _validate_patch_icoors(patch, added_ats_and_conns):
                 "Offending icoors:\n",
                 "\n".join(
                     [
-                        f'    Icoor for {x[1].name} with atom reference "{x[0]}" of "{getattr(x[1],x[0])}"'
+                        f'    Icoor for {x[1].name} with atom reference "{x[0]}" of "{getattr(x[1], x[0])}"'
                         for x in bad_icoors
                     ]
                 ),

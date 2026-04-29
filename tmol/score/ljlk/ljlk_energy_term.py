@@ -8,8 +8,6 @@ from tmol.database import ParameterDatabase
 from tmol.score.common.stack_condense import tile_subset_indices
 from tmol.score.ljlk.params import LJLKParamResolver
 
-from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores, ljlk_rotamer_scores
-
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -88,9 +86,13 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(LJLKEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
+        from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores
+
         return ljlk_pose_scores
 
     def get_rotamer_score_term_function(self):
+        from tmol.score.ljlk.potentials.compiled import ljlk_rotamer_scores
+
         return ljlk_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack):

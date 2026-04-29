@@ -29,18 +29,30 @@ class CartesianSfxnNetwork(torch.nn.Module):
             )
         self.coord_mask = coord_mask
 
+        # Precompute flat integer indices for the boolean mask
+        # Flat integer is faster than bool mask
+        #   (since i think torch does nonzero each time under the hood)
+        self._coord_flat_idx = (
+            self.coord_mask.reshape(-1).nonzero(as_tuple=False).squeeze(-1)
+        )
+
         self.masked_coords = torch.nn.Parameter(self.full_coords[self.coord_mask])
         self.count = 0
 
     def forward(self):
         self.count += 1
         self.full_coords = self.full_coords.detach()
-        self.full_coords[self.coord_mask] = self.masked_coords
+        # self.full_coords[self.coord_mask] = self.masked_coords
+        self.full_coords.view(-1, self.full_coords.shape[-1])[
+            self._coord_flat_idx
+        ] = self.masked_coords
         return self.whole_pose_scoring_module(self.full_coords)
 
     def pose_stack_from_dofs(self):
         full_coords = self.full_coords.detach().clone()
-        full_coords[self.coord_mask] = self.masked_coords.detach()
+        full_coords.view(-1, full_coords.shape[-1])[
+            self._coord_flat_idx
+        ] = self.masked_coords.detach()
         return attrs.evolve(self.pose_stack, coords=full_coords)
 
 
@@ -51,6 +63,7 @@ class KinForestSfxnNetwork(torch.nn.Module):
         pose_stack: PoseStack,
         kin_module: PoseStackKinematicsModule,
         dof_mask=None,
+        kin_dtype=torch.float32,
     ):
 
         super(KinForestSfxnNetwork, self).__init__()
@@ -68,10 +81,10 @@ class KinForestSfxnNetwork(torch.nn.Module):
 
         kincoords = torch.zeros(
             (kin_module.kmd.forest.id.shape[0], 3),
-            dtype=torch.float32,
+            dtype=kin_dtype,
             device=torch_device,
         )
-        kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
+        kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]].to(kin_dtype)
 
         raw_dofs = inverse_kin(
             kincoords,
@@ -98,6 +111,12 @@ class KinForestSfxnNetwork(torch.nn.Module):
             ] = True
         self.dof_mask = dof_mask
 
+        # Precompute flat integer indices for the boolean mask
+        # Flat integer is faster than bool mask
+        self._dof_flat_idx = (
+            self.dof_mask.reshape(-1).nonzero(as_tuple=False).squeeze(-1)
+        )
+
         self.masked_dofs = torch.nn.Parameter(self.full_dofs[self.dof_mask])
         self.count = 0
 
@@ -111,9 +130,9 @@ class KinForestSfxnNetwork(torch.nn.Module):
 
         # update the full-dofs, calc the coords, and map them
         # to the pose-stack-ordered coords
-        self.full_dofs[self.dof_mask] = self.masked_dofs
+        self.full_dofs.view(-1)[self._dof_flat_idx] = self.masked_dofs
         kin_coords = self.kin_module(self.full_dofs)
-        self.flat_coords[self.id[1:]] = kin_coords[1:]
+        self.flat_coords[self.id[1:]] = kin_coords[1:].to(self.flat_coords.dtype)
         self.full_coords = self.flat_coords.view(self.orig_coords_shape)
 
         # now evaluate the score
@@ -123,9 +142,9 @@ class KinForestSfxnNetwork(torch.nn.Module):
 
         full_dofs = self.full_dofs.clone()
         flat_coords = self.flat_coords.detach()
-        full_dofs[self.dof_mask] = self.masked_dofs
+        full_dofs.view(-1)[self._dof_flat_idx] = self.masked_dofs
         kin_coords = self.kin_module(full_dofs)
-        flat_coords[self.id[1:]] = kin_coords[1:]
+        flat_coords[self.id[1:]] = kin_coords[1:].to(flat_coords.dtype)
         full_coords = flat_coords.view(self.orig_coords_shape)
 
         return attrs.evolve(self.pose_stack, coords=full_coords)

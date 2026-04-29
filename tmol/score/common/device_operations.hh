@@ -4,7 +4,7 @@
 
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorAccessor.h>
-#include <tmol/extern/moderngpu/scan_types.hxx>  // CPU-friendly
+#include <moderngpu/scan_types.hxx>  // CPU-friendly
 
 namespace tmol {
 namespace score {

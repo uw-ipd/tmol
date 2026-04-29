@@ -103,6 +103,11 @@ struct HBondPoseScoreDispatch {
       TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
+      // Derived-atom coords + source-atom indices produced by the
+      // hbond pre-pass kernel (GenerateHBondBases).
+      TView<Vec<Real, 3>, 2, Dev> derived_coords,
+      TView<Int, 2, Dev> derived_atom_inds,
+
       bool output_block_pair_energies,
       bool compute_derivs)
       -> std::tuple<
@@ -183,6 +188,11 @@ struct HBondPoseScoreDispatch {
       TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
       //////////////////////
+
+      // Derived-atom coords + source-atom indices produced by the
+      // hbond pre-pass kernel (GenerateHBondBases).
+      TView<Vec<Real, 3>, 2, Dev> derived_coords,
+      TView<Int, 2, Dev> derived_atom_inds,
 
       TView<Int, 3, Dev> block_neighbors,  // from forward pass
       TView<Real, 4, Dev> dTdV             // nterms x nposes x len x len
@@ -269,6 +279,11 @@ struct HBondRotamerScoreDispatch {
       TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
+      // Derived-atom coords + source-atom indices produced by the
+      // hbond pre-pass kernel (GenerateHBondBases).
+      TView<Vec<Real, 3>, 2, Dev> derived_coords,
+      TView<Int, 2, Dev> derived_atom_inds,
+
       bool output_block_pair_energies,
       bool compute_derivs)
       -> std::tuple<
@@ -349,6 +364,11 @@ struct HBondRotamerScoreDispatch {
       TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
       //////////////////////
+
+      // Derived-atom coords + source-atom indices produced by the
+      // hbond pre-pass kernel (GenerateHBondBases).
+      TView<Vec<Real, 3>, 2, Dev> derived_coords,
+      TView<Int, 2, Dev> derived_atom_inds,
 
       TView<Int, 2, Dev> dispatch_indices,  // from forward pass
       TView<Real, 2, Dev> dTdV              // nterms x nposes x len x len

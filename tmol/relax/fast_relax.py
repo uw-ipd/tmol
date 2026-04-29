@@ -12,9 +12,9 @@ from tmol.kinematics.fold_forest import FoldForest
 from tmol.pack.pack_rotamers import pack_rotamers
 from tmol.pack.packer_task import PackerPalette, PackerTask
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
+from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
 from tmol.score.score_types import ScoreType
 from tmol.optimization.minimizers import run_cart_min, run_kin_min
-
 
 # Default schedule from Jack Maguire's tuned MonomerRelax2019.txt.
 # Each entry specifies fa_rep scale fractions for the packing and minimization
@@ -288,11 +288,11 @@ def fast_relax(
 
         def default_op(task):
             task.restrict_to_repacking()
-            task.set_include_current()
 
             fixed_sampler = FixedAAChiSampler()
             task.add_conformer_sampler(dun_sampler)
             task.add_conformer_sampler(fixed_sampler)
+            task.add_conformer_sampler(IncludeCurrentSampler())
 
         task_operations = [default_op]
 
@@ -381,7 +381,7 @@ def relax_pack_min_step(
     if verbose:
         print(
             f"pack-min {end_time3 - start_time: .2f} task-init {end_time1 - start_time: .2f}"
-            + f" packing {end_time2 - end_time1: .2f} min {end_time3-end_time2: .2f}"
+            + f" packing {end_time2 - end_time1: .2f} min {end_time3 - end_time2: .2f}"
         )
 
     return minimized_pose_stack

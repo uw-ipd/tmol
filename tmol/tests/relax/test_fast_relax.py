@@ -12,6 +12,7 @@ from tmol.score.score_types import ScoreType
 
 from tmol.pack.packer_task import PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
+from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
 from tmol.kinematics.move_map import CartesianMoveMap, MoveMap
 from tmol.kinematics.fold_forest import EdgeType, FoldForest
 
@@ -66,11 +67,11 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 
     def task_op(task):
         task.restrict_to_repacking()
-        task.set_include_current()
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)
         task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
 
     start_time = time.perf_counter()
 
@@ -120,11 +121,11 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 
     def task_op(task):
         task.restrict_to_repacking()
-        task.set_include_current()
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)
         task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
 
     start_time = time.perf_counter()
 
@@ -204,11 +205,11 @@ def test_fast_relax_pertuz(
 
     def task_op(task):
         task.restrict_to_repacking()
-        task.set_include_current()
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)
         task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
 
     start_time = time.perf_counter()
 
@@ -278,11 +279,11 @@ def test_fast_relax_for_different_shapes(
 
     def task_op(task):
         task.restrict_to_repacking()
-        task.set_include_current()
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)
         task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
 
     start_time = time.perf_counter()
 
