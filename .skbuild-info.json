@@ -1,0 +1,8 @@
+{
+  "source_dir": "/home/jflat06/rosetta/tmol",
+  "build_dir": "/home/jflat06/rosetta/tmol",
+  "cmake_path": "/tmp/pip-build-env-bvc5_xhh/normal/lib/python3.10/site-packages/cmake/data/bin/cmake",
+  "skbuild_path": "/tmp/pip-build-env-bvc5_xhh/overlay/lib/python3.10/site-packages/scikit_build_core",
+  "skbuild_version": "0.12.2",
+  "python_executable": "/home/jflat06/rosetta/tmol/.venv/bin/python"
+}
