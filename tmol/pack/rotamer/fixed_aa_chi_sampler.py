@@ -55,8 +55,7 @@ class FixedAAChiSampler(ChiSampler):
                 bt
                 for one_pose_blts in task.blts
                 for blt in one_pose_blts
-                for i, bt in enumerate(blt.considered_block_types)
-                if self in blt.conformer_samplers
+                for bt in blt.considered_block_types
             ],
             dtype=object,
         )
