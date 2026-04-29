@@ -15,7 +15,6 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.score.score_types import ScoreType
 from tmol.optimization.minimizers import run_cart_min, run_kin_min
 
-
 # Default schedule from Jack Maguire's tuned MonomerRelax2019.txt.
 # Each entry specifies fa_rep scale fractions for the packing and minimization
 # stages of a single pack-min step.  These fractions are multiplied by the
