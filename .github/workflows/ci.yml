@@ -32,10 +32,25 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Restore source timestamps
+      - name: Setup
         run: |
+          # Restore source timestamps
           git ls-files -- '*.cpp' '*.cu' '*.cuh' '*.h' '*.hh' '*.cc' | \
             xargs -P8 -I{} bash -c 'ts=$(git log -1 --format="%ct" -- "$1") && touch -d "@$ts" "$1"' _ {}
+
+
+          # Get the venv and pip setup
+          apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
+            --pwd $GITHUB_WORKSPACE \
+            $SIF bash << 'SETUP'
+          set -ex
+          
+          python3.10 -m venv .venv
+          source .venv/bin/activate
+
+          pip install pip --upgrade
+          pip install uv
+          SETUP
 
       - name: Lint
         run: |
@@ -43,6 +58,11 @@ jobs:
             --pwd $GITHUB_WORKSPACE \
             $SIF bash << 'LINT'
           set -ex
+          
+          source .venv/bin/activate
+
+          uv pip install pre-commit flake8
+
           pre-commit run --all-files --show-diff-on-failure
           flake8
           LINT
@@ -59,13 +79,7 @@ jobs:
                   $SIF bash << 'BUILD'
           set -ex
 
-          pwd
-
-          python3.10 -m venv .venv
           source .venv/bin/activate
-
-          pip install pip --upgrade
-          pip install uv
 
           uv pip compile pyproject.toml --all-extras --output-file requirements.txt
           grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" requirements.txt > to_install.txt
@@ -128,18 +142,17 @@ jobs:
       - name: Benchmark
         if: always() && steps.build.outcome == 'success'
         run: |
-          exit 1
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
           srun --gres=gpu:a6000:1 -p gpu --export=ALL \
-            -t 06:00:00 --cpus-per-task=16 --mem=128G \
-            apptainer exec --nv \
-              --bind /net/scratch:/net/scratch \
-              --bind $PIP_PKGS:/ci-pip-pkgs \
-              --pwd $GITHUB_WORKSPACE \
+                -t 06:00:00 --cpus-per-task=16 --mem=128G \
+                apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
+                --pwd $GITHUB_WORKSPACE \
+                --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
               $SIF bash << 'BENCHMARK'
           set -ex
           
+          source .venv/bin/activate
 
           BENCHMARK_DIR=benchmark/$GITHUB_REPOSITORY/$GITHUB_REF_NAME
           BENCHMARK_RESULT=${BENCHMARK_DIR}/${GITHUB_RUN_NUMBER}.json
