@@ -64,7 +64,7 @@ jobs:
           uv pip install pre-commit flake8
 
           pre-commit run --all-files --show-diff-on-failure
-          flake8
+          flake8 --exclude .venv
           LINT
 
       - name: Build
