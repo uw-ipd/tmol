@@ -131,8 +131,7 @@ def get_modified_atoms(patch):
         added.append(i.name)
 
     # modded finds all atoms whose CONNECTIVITY or COORDINATES have changed
-    for bond in patch.add_bonds:
-        i, j = bond[0], bond[1]
+    for i, j, *_ in patch.add_bonds:
         if i[0] == "<" and i[-1] == ">" and i not in modded:
             modded.append(i)
         if j[0] == "<" and j[-1] == ">" and j not in modded:
@@ -184,8 +183,7 @@ def _validate_raw_residue_atoms(res, allatoms):
 def _validate_raw_residue_bonds(res, allatoms):
     # illegal bonds
     bad_bonds = []
-    for bond in res.bonds:
-        i, j = bond[0], bond[1]
+    for i, j, *_ in res.bonds:
         if i not in allatoms:
             bad_bonds.append((i, i, j))
         if j not in allatoms:
@@ -384,8 +382,7 @@ def _validate_patch_atom_aliases(patch, addedatoms):
 def _validate_patch_bonds(patch, added_ats_and_conns):
     # make sure all bonds are references or added atoms
     bad_bonds = []
-    for bond in patch.add_bonds:
-        i, j = bond[0], bond[1]
+    for i, j, *_ in patch.add_bonds:
         if (i[0] != "<" or i[-1] != ">") and (i not in added_ats_and_conns):
             bad_bonds.append((i, j))
     if len(bad_bonds) > 0:
@@ -490,8 +487,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
 
         # -1. Add atoms bonded to deleted atoms to modded set
         #     needs to be done after name map
-        for bond in res.bonds:
-            i, j = bond[0], bond[1]
+        for i, j, *_ in res.bonds:
             if i in deleted and j not in deleted:
                 modded.append(j)
             if j in deleted and i not in deleted:
@@ -542,8 +538,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
 
         # 4. add bonds
         newbonds = []
-        for bond in variant.add_bonds:
-            i, j, btype = bond[0], bond[1], bond[2]
+        for i, j, btype in variant.add_bonds:
             if i in namemap:
                 i = namemap[i]
             if j in namemap:

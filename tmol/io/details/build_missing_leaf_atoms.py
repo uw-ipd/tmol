@@ -424,12 +424,9 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
             while _icoor_at_is_leaf(bt, j_icoor.great_grand_parent):
                 ggp_ind = bt.icoors_index[j_icoor.great_grand_parent]
                 if seen[ggp_ind]:
-                    # infinite loop. This should never happen.
-                    raise RuntimeError(
-                        "Infinite loop detected in icoor ancestor traversal for residue type "
-                        f"{bt.name}; ggp_ind={ggp_ind} ({bt.icoors[ggp_ind].name}) from "
-                        f"atom_index={j} ({bt.atoms[j].name})"
-                    )
+                    # cycle detected — can happen for small-molecule ligands
+                    # where all atoms are leaves; break and use accumulated phi
+                    break
                 else:
                     seen[ggp_ind] = True
                 j_icoor = bt.icoors[ggp_ind]
@@ -460,8 +457,12 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
             # which itself is a leaf atom, is absent. This "general" logic
             # is specifically for building the OXT atom on a cterm residue
             # when the O atom is given but OXT is not.
+            seen_backup = set()
             while _icoor_at_is_leaf(bt, j_icoor.great_grand_parent):
                 ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
+                if ggp_ind_backup in seen_backup:
+                    break
+                seen_backup.add(ggp_ind_backup)
                 j_icoor = bt.icoors[ggp_ind_backup]
                 phi_backup += j_icoor.phi
 
