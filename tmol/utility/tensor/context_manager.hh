@@ -10,18 +10,20 @@ class ContextManager {
   ContextManager() {}
   ~ContextManager() = default;
 
-  bool has(void* address) { return contexts_.find(address) != contexts_.end(); }
+  inline bool has(void* address) {
+    return contexts_.find(address) != contexts_.end();
+  }
 
-  void set(
+  inline void set(
       void* address, std::pair<int, std::shared_ptr<void>> dev_and_context) {
     contexts_[address] = dev_and_context;
   }
 
-  std::pair<int, std::shared_ptr<void>> get(void* address) {
+  inline std::pair<int, std::shared_ptr<void>> get(void* address) {
     return contexts_[address];
   }
 
-  std::mutex& get_mutex() { return mutex_; }
+  inline std::mutex& get_mutex() { return mutex_; }
 
  private:
   std::map<void*, std::pair<int, std::shared_ptr<void>>> contexts_;

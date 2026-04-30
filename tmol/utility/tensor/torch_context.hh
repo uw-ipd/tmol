@@ -2,6 +2,10 @@
 
 #include <moderngpu/context.hxx>
 #include <c10/cuda/CUDAStream.h>
+#include <tmol/utility/tensor/context_manager.hh>
+
+#include <memory>
+#include <mutex>
 
 namespace tmol {
 
@@ -13,7 +17,8 @@ struct ContextDeleter {
   }
 };
 
-std::shared_ptr<mgpu::standard_context_t> current_context(ContextManager& mgr) {
+inline std::shared_ptr<mgpu::standard_context_t> current_context(
+    ContextManager& mgr) {
   c10::cuda::CUDAStream c10_stream = c10::cuda::getCurrentCUDAStream();
   cudaStream_t cuda_stream(c10_stream);
   void* cuda_stream_address = static_cast<void*>(cuda_stream);

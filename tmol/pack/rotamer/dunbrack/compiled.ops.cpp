@@ -2,6 +2,7 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 #include <tmol/score/common/complex_dispatch.hh>
 
@@ -13,6 +14,8 @@ namespace tmol {
 namespace pack {
 namespace rotamer {
 namespace dunbrack {
+
+ContextManager mgr;
 
 using torch::Tensor;
 
@@ -75,6 +78,7 @@ std::vector<Tensor> dun_sample_chi(
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
           auto result = DunbrackChiSampler<DispatchMethod, Dev, Real, Int>::f(
+              mgr,
               TCAST(coords),
               // TCAST(res_coord_start_ind),
               TCAST(rotameric_prob_tables),

@@ -7,6 +7,7 @@
 #include <moderngpu/transform.hxx>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/torch_context.hh>
 #include <tmol/kinematics/compiled/kernel_segscan.cuh>
 
 namespace tmol {
@@ -16,23 +17,23 @@ namespace common {
 template <tmol::Device D>
 struct ComplexDispatch {
   template <typename Int, typename Func>
-  static void forall(Int N, Func f) {
-    mgpu::standard_context_t context;
-    mgpu::transform(f, N, context);
+  static void forall(ContextManager& mgr, Int N, Func f) {
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
+    mgpu::transform(f, N, *context);
   }
 
   template <typename T, typename Func>
-  static T reduce(TView<T, 1, D> vals, Func op) {
+  static T reduce(ContextManager& mgr, TView<T, 1, D> vals, Func op) {
     auto v_t = tmol::TPack<T, 1, D>::zeros({1});
     auto v = v_t.view;
-    mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
     mgpu::transform_reduce(
         [=] MGPU_DEVICE(int i) { return vals[i]; },
         vals.size(0),
         &v[0],
         op,
-        context);
+        *context);
 
     T val_cpu;
     cudaMemcpy(&val_cpu, &v[0], sizeof(T), cudaMemcpyDeviceToHost);
@@ -40,39 +41,41 @@ struct ComplexDispatch {
   }
 
   template <typename T, typename Func>
-  static void exclusive_scan(TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
-    mgpu::standard_context_t context;
+  static void exclusive_scan(
+      ContextManager& mgr, TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
     mgpu::scan_event<mgpu::scan_type_exc>(
         &vals[0],
         vals.size(0),
         &out[0],
         op,
         mgpu::discard_iterator_t<T>(),
-        context,
+        *context,
         0);
   }
 
   template <typename T, typename Func>
-  static void inclusive_scan(TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
-    mgpu::standard_context_t context;
+  static void inclusive_scan(
+      ContextManager& mgr, TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
     mgpu::scan_event<mgpu::scan_type_inc>(
         &vals[0],
         vals.size(0),
         &out[0],
         op,
         mgpu::discard_iterator_t<T>(),
-        context,
+        *context,
         0);
   }
 
   template <typename T, typename Func>
   static T exclusive_scan_w_final_val(
-      TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
+      ContextManager& mgr, TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
     auto final_val_t = TPack<T, 1, D>::empty({1});
     auto final_val = final_val_t.view;
-    mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
     mgpu::scan_event<mgpu::scan_type_exc>(
-        &vals[0], vals.size(0), &out[0], op, &final_val[0], context, 0);
+        &vals[0], vals.size(0), &out[0], op, &final_val[0], *context, 0);
     T final_val_cpu;
     cudaMemcpy(
         &final_val_cpu, final_val.data(), sizeof(T), cudaMemcpyDeviceToHost);
@@ -81,12 +84,13 @@ struct ComplexDispatch {
 
   template <typename T, typename B, typename Func>
   static void exclusive_segmented_scan(
+      ContextManager& mgr,
       TView<T, 1, D> vals,
       TView<B, 1, D> seg_start,
       TView<T, 1, D> out,
       Func op) {
     assert(vals.size(0) == out.size(0));
-    mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
     typedef typename mgpu::launch_params_t<128, 2> launch_t;
     constexpr int nt = launch_t::nt, vt = launch_t::vt;
@@ -125,17 +129,18 @@ struct ComplexDispatch {
         LBS.data(),
         op,
         T(0),
-        context);
+        *context);
   }
 
   template <typename T, typename B, typename Func>
   static void inclusive_segmented_scan(
+      ContextManager& mgr,
       TView<T, 1, D> vals,
       TView<B, 1, D> seg_start,
       TView<T, 1, D> out,
       Func op) {
     assert(vals.size(0) == out.size(0));
-    mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
     typedef typename mgpu::launch_params_t<128, 2> launch_t;
     constexpr int nt = launch_t::nt, vt = launch_t::vt;
@@ -174,7 +179,7 @@ struct ComplexDispatch {
         LBS.data(),
         op,
         T(0),
-        context);
+        *context);
   }
 
   static void synchronize() { cudaDeviceSynchronize(); }

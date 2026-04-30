@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 #include <tmol/utility/nvtx.hh>
 
@@ -17,6 +18,8 @@ namespace tmol {
 namespace score {
 namespace cartbonded {
 namespace potentials {
+
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -72,6 +75,7 @@ class CartBondedPoseScoreOp
           auto result =
               CartBondedPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   forward(
+                      mgr,
                       // common params
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
@@ -213,6 +217,7 @@ class CartBondedPoseScoreOp
             auto result =
                 CartBondedPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
                     backward(
+                        mgr,
                         // common params
                         TCAST(rot_coords),
                         TCAST(rot_coord_offset),
@@ -330,6 +335,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
           auto result =
               CartBondedRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   forward(
+                      mgr,
                       // common params
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
@@ -479,6 +485,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
             auto result =
                 CartBondedRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
                     backward(
+                        mgr,
                         // common params
                         TCAST(rot_coords),
                         TCAST(rot_coord_offset),

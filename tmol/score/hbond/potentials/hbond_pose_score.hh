@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -30,6 +31,7 @@ template <
     typename Int>
 struct HBondPoseScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -116,6 +118,7 @@ struct HBondPoseScoreDispatch {
           TPack<Int, 3, Dev> >;
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
@@ -206,6 +209,7 @@ template <
     typename Int>
 struct HBondRotamerScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -292,6 +296,7 @@ struct HBondRotamerScoreDispatch {
           TPack<Int, 2, Dev> >;
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,

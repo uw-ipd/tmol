@@ -1,5 +1,6 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/context_manager.hh>
 
 #include <tmol/score/common/device_operations.cpu.impl.hh>
 
@@ -36,6 +37,7 @@ void set_quench_order(
 
 template <tmol::Device D>
 auto AnnealerDispatch<D>::forward(
+    ContextManager&,
     int max_n_rotamers_per_pose,
     TView<int, 1, D> pose_n_res,               // n-poses
     TView<int, 1, D> n_rotamers_for_pose,      // n-poses

@@ -326,6 +326,7 @@ template <
     typename Real,
     typename Int>
 auto GenerateHBondBases<DeviceOps, Dev, Real, Int>::forward(
+    ContextManager& mgr,
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 1, Dev> rot_coord_offset,
     TView<Int, 2, Dev> first_rot_for_block,
@@ -453,7 +454,7 @@ auto GenerateHBondBases<DeviceOps, Dev, Real, Int>::forward(
     }
   });
 
-  DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_rots, f_basesgen);
+  DeviceOps<Dev>::template foreach_workgroup<launch_t>(mgr, n_rots, f_basesgen);
   nvtx_range_pop();
 
   return {derived_coords_t, derived_atom_inds_t};
