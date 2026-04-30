@@ -20,6 +20,7 @@ chemical:
     - {name: H4, atom_type: HO}
     - {name: H5, atom_type: HO}
     - {name: H6, atom_type: HO}
+    atom_aliases: []
     bonds:
     - [C3, O3, SINGLE]
     - [C4, O2, SINGLE]
@@ -88,12 +89,20 @@ chemical:
       is_canonical: false
       polymer:
         is_polymer: false
+        polymer_type: NA
+        backbone_type: NA
+        mainchain_atoms: null
+        sidechain_chirality: NA
+        termini_variants: []
       chemical_modifications: []
       connectivity: []
       protonation:
         protonated_atoms: []
         protonation_state: neutral
         pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: C4
 elec:
   atom_charge_parameters:
   - {res: LG1, atom: C1, charge: -0.15}
@@ -131,27 +140,27 @@ cartbonded:
       - {atm1: C4, atm2: C5, x0: 1.38952, K: 300.0}
       - {atm1: C5, atm2: C6, x0: 1.38681, K: 300.0}
       angle_parameters:
-      - {atm1: C4, atm2: O2, atm3: H5, x0: 1.9894, K: 80.0}
-      - {atm1: C3, atm2: O3, atm3: H6, x0: 1.98932, K: 80.0}
       - {atm1: C5, atm2: O1, atm3: H4, x0: 1.98995, K: 80.0}
-      - {atm1: O3, atm2: C3, atm3: C2, x0: 2.09517, K: 80.0}
-      - {atm1: O3, atm2: C3, atm3: C4, x0: 2.09483, K: 80.0}
-      - {atm1: C2, atm2: C3, atm3: C4, x0: 2.09318, K: 80.0}
-      - {atm1: O2, atm2: C4, atm3: C3, x0: 2.09544, K: 80.0}
-      - {atm1: O2, atm2: C4, atm3: C5, x0: 2.09617, K: 80.0}
-      - {atm1: C3, atm2: C4, atm3: C5, x0: 2.09156, K: 80.0}
-      - {atm1: H1, atm2: C1, atm3: C2, x0: 2.09266, K: 80.0}
-      - {atm1: H1, atm2: C1, atm3: C6, x0: 2.0928, K: 80.0}
-      - {atm1: C2, atm2: C1, atm3: C6, x0: 2.09773, K: 80.0}
-      - {atm1: O1, atm2: C5, atm3: C4, x0: 2.09525, K: 80.0}
-      - {atm1: O1, atm2: C5, atm3: C6, x0: 2.09597, K: 80.0}
-      - {atm1: C4, atm2: C5, atm3: C6, x0: 2.09196, K: 80.0}
       - {atm1: H2, atm2: C2, atm3: C1, x0: 2.09384, K: 80.0}
       - {atm1: H2, atm2: C2, atm3: C3, x0: 2.09381, K: 80.0}
       - {atm1: C1, atm2: C2, atm3: C3, x0: 2.09553, K: 80.0}
       - {atm1: H3, atm2: C6, atm3: C1, x0: 2.09262, K: 80.0}
       - {atm1: H3, atm2: C6, atm3: C5, x0: 2.09418, K: 80.0}
       - {atm1: C1, atm2: C6, atm3: C5, x0: 2.09638, K: 80.0}
+      - {atm1: H1, atm2: C1, atm3: C2, x0: 2.09266, K: 80.0}
+      - {atm1: H1, atm2: C1, atm3: C6, x0: 2.0928, K: 80.0}
+      - {atm1: C2, atm2: C1, atm3: C6, x0: 2.09773, K: 80.0}
+      - {atm1: O1, atm2: C5, atm3: C4, x0: 2.09525, K: 80.0}
+      - {atm1: O1, atm2: C5, atm3: C6, x0: 2.09597, K: 80.0}
+      - {atm1: C4, atm2: C5, atm3: C6, x0: 2.09196, K: 80.0}
+      - {atm1: O3, atm2: C3, atm3: C2, x0: 2.09517, K: 80.0}
+      - {atm1: O3, atm2: C3, atm3: C4, x0: 2.09483, K: 80.0}
+      - {atm1: C2, atm2: C3, atm3: C4, x0: 2.09318, K: 80.0}
+      - {atm1: O2, atm2: C4, atm3: C3, x0: 2.09544, K: 80.0}
+      - {atm1: O2, atm2: C4, atm3: C5, x0: 2.09617, K: 80.0}
+      - {atm1: C3, atm2: C4, atm3: C5, x0: 2.09156, K: 80.0}
+      - {atm1: C4, atm2: O2, atm3: H5, x0: 1.9894, K: 80.0}
+      - {atm1: C3, atm2: O3, atm3: H6, x0: 1.98932, K: 80.0}
       torsion_parameters: []
       improper_parameters: []
       hxltorsion_parameters: []
