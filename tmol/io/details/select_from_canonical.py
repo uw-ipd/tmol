@@ -1,6 +1,7 @@
 import numpy
 import torch
 import attr
+import logging
 
 from collections import defaultdict
 from typing import Optional, Tuple
@@ -10,6 +11,8 @@ from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+
+logger = logging.getLogger(__name__)
 
 
 @validate_args
@@ -489,6 +492,11 @@ def select_best_block_type_candidate(
     real_candidate_should_be_excluded = torch.any(
         real_candidate_provided_atoms_absent, dim=1
     )
+
+    real_candidate_n_extraneous_atoms_provided = torch.count_nonzero(
+        real_candidate_provided_atoms_absent, dim=1
+    )
+
     atom_is_absent = torch.logical_not(atom_is_present)
     real_candidate_non_term_patch_atom_is_present = (
         can_ann.bt_non_term_patch_added_canonical_atom_is_present[
@@ -508,10 +516,11 @@ def select_best_block_type_candidate(
     )
     real_candidate_misalignment_score = (
         2 * real_candidate_n_canonical_atoms_not_provided
+        + 10 * real_candidate_n_extraneous_atoms_provided
         + real_candidate_is_non_default_term
     )
     failure_score = 2 * (canonical_ordering.max_n_canonical_atoms + 1)
-    real_candidate_misalignment_score[real_candidate_should_be_excluded] = failure_score
+    # real_candidate_misalignment_score[real_candidate_should_be_excluded] = failure_score
     candidate_misalignment_score2 = torch.full(
         (
             n_poses,
@@ -538,7 +547,7 @@ def select_best_block_type_candidate(
         best_candidate_ind2[is_real_res],
     ]
 
-    if torch.any(best_candidate_score >= failure_score):
+    if torch.any(best_candidate_score >= 0):  # failure_score):
 
         nz_is_real_candidate = torch.nonzero(is_real_candidate)
         err_msg = []
@@ -547,7 +556,7 @@ def select_best_block_type_candidate(
             j = nz_is_real_candidate[cand_ind, 1]
             k = nz_is_real_candidate[cand_ind, 2]
 
-            if best_candidate_score[i, j] < failure_score:
+            if best_candidate_score[i, j] == 0:  # < failure_score:
                 continue
             ij_equiv_class = canonical_ordering.restype_io_equiv_classes[
                 res_types64[i, j]
@@ -595,6 +604,26 @@ def select_best_block_type_candidate(
                                 )
                             ]
                         )
+
+            if real_candidate_canonical_atom_was_not_provided[cand_ind].any():
+                equiv_class = cand_bt.io_equiv_class
+                for l in range(
+                    len(canonical_ordering.restypes_ordered_atom_names[equiv_class])
+                ):
+                    if real_candidate_canonical_atom_was_not_provided[cand_ind, l]:
+                        err_msg.extend(
+                            [
+                                str(x)
+                                for x in (
+                                    " atom",
+                                    canonical_ordering.restypes_ordered_atom_names[
+                                        equiv_class
+                                    ][l],
+                                    "missing but present in candidate",
+                                    cand_bt.name + "\n",
+                                )
+                            ]
+                        )
             # should there be an `else:` here??
             # No.
             # If there is at least one canonical atom that does not
@@ -606,7 +635,8 @@ def select_best_block_type_candidate(
             # user had provided not a single one of its atoms to us, but still
             # claimed that there was a residue.
 
-        raise RuntimeError(
+        # raise RuntimeError(
+        logger.warning(
             " ".join(
                 [
                     "failed to resolve a block type from the candidates available\n",
