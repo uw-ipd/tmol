@@ -210,8 +210,8 @@ def _map_atoms_to_canonical(co, not_connected, atom_res_inds, res_names, atom_na
 
     Returns (valid_atom_mask, valid_atom_inds, valid_res_inds).
     """
-    is_nterm_atom = ~not_connected[atom_res_inds, 0]
-    is_cterm_atom = ~not_connected[atom_res_inds, 1]
+    is_nterm_atom = not_connected[atom_res_inds, 0]
+    is_cterm_atom = not_connected[atom_res_inds, 1]
 
     atom_inds = []
     valid = []
@@ -301,10 +301,10 @@ def _filter_supported_atoms_and_connectivity(
     valid_atoms = valid_res[get_all_residue_positions(biotite_structure)]
 
     lower = numpy.roll(valid_res, 1)
-    lower[0] = True
+    lower[0] = False
     lower = lower[valid_res]
     upper = numpy.roll(valid_res, -1)
-    upper[-1] = True
+    upper[-1] = False
     upper = upper[valid_res]
     not_connected = numpy.invert(numpy.column_stack((lower, upper)))
 
@@ -625,6 +625,8 @@ def canonical_form_from_biotite(
 
     res_not_connected = res_not_connected_1.repeat(n_poses, 1, 1)
 
+    res_not_connected[:, 0, 0] = False
+    res_not_connected[:, -1, 1] = False
     # Return CanonicalForm with all converted data
     return CanonicalForm(
         chain_id=chain_id,
