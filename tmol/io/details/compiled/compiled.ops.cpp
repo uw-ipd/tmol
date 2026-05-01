@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
@@ -15,6 +16,8 @@ namespace tmol {
 namespace io {
 namespace details {
 namespace compiled {
+
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -52,6 +55,7 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
               Real,
               Int>::
               forward(
+                  mgr,
                   TCAST(orig_coords),
                   TCAST(orig_coords_atom_missing),
                   TCAST(pose_stack_atom_missing),
@@ -122,6 +126,7 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
               Real,
               Int>::
               backward(
+                  mgr,
                   TCAST(dE_d_new_coords),
                   TCAST(new_coords),
                   TCAST(orig_coords),
@@ -204,7 +209,8 @@ Tensor resolve_his_tautomerization(
                                       Dev,
                                       Real,
                                       int32_t>::
-                                      f(TCAST(coords),
+                                      f(mgr,
+                                        TCAST(coords),
                                         TCAST(res_types),
                                         TCAST(res_type_variants),
                                         TCAST(his_pose_ind),

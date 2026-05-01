@@ -1,6 +1,7 @@
 import torch
 import numpy
 import pytest
+import pathlib
 
 from tmol.relax.fast_relax import _default_cart_min_fn, fast_relax
 import time
@@ -47,10 +48,10 @@ def get_relax_sfxn(default_database, torch_device):
     return sfxn
 
 
-@pytest.mark.parametrize("n_poses", [1])
+@pytest.mark.parametrize("n_poses", [30])
 def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_poses):
-    # if torch_device == torch.device("cpu"):
-    #    return
+    if torch_device == torch.device("cpu"):
+        return
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
@@ -76,16 +77,36 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     start_time = time.perf_counter()
 
     verbose = True
-    new_pose_stack = fast_relax(
-        pose_stack,
-        sfxn,
-        palette,
-        mm,
-        fold_forest,
-        task_operations=[task_op],
-        num_repeats=1,
-        verbose=verbose,
-    )
+    with torch.profiler.profile(
+        activities=[
+            torch.profiler.ProfilerActivity.CPU,
+            torch.profiler.ProfilerActivity.CUDA,
+        ],
+        record_shapes=True,
+        profile_memory=True,
+        with_stack=True,
+        experimental_config=torch._C._profiler._ExperimentalConfig(verbose=True),
+        schedule=torch.profiler.schedule(wait=1, warmup=1, active=1, repeat=1),
+        execution_trace_observer=None,
+    ) as prof:
+        for _ in range(4):
+            new_pose_stack = fast_relax(
+                pose_stack,
+                sfxn,
+                palette,
+                mm,
+                fold_forest,
+                task_operations=[task_op],
+                num_repeats=1,
+                verbose=verbose,
+            )
+            prof.step()
+
+    (pathlib.Path(".").resolve() / "output").mkdir(exist_ok=True)
+
+    prof.export_chrome_trace("output/full_trace.json")
+    prof.export_stacks("output/full_stacks", metric="self_cpu_time_total")
+    # prof.export_memory_timeline("output/full_memory.html")
 
     if torch_device == torch.device("cuda"):
         torch.cuda.synchronize()
