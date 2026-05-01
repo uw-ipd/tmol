@@ -58,7 +58,7 @@ class PackedRotamerKintree:
 
 @validate_args
 def construct_single_residue_kinforest(restype: RefinedResidueType):
-    from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
+    from tmol.kinematics.compiled import inverse_kin
     from tmol.utility.ndarray.common_operations import invert_mapping
 
     """Create a kinforest for a single residue and its associated

@@ -76,6 +76,13 @@ def test_pose_stack_from_and_to_biotite_1ubq_smoke(biotite_1ubq, torch_device):
     biotite_from_pose_stack(pose_stack)
 
 
+def test_pose_stack_from_and_to_biotite_1ubq_no_opth_smoke(biotite_1ubq, torch_device):
+    pose_stack = pose_stack_from_biotite(
+        biotite_1ubq, torch_device=torch_device, no_optH=True
+    )
+    biotite_from_pose_stack(pose_stack)
+
+
 def test_pose_stack_from_and_to_biotite_multiple_poses_smoke(
     biotite_1r21, torch_device
 ):

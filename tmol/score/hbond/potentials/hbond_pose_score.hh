@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -30,6 +31,7 @@ template <
     typename Int>
 struct HBondPoseScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -103,6 +105,11 @@ struct HBondPoseScoreDispatch {
       TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
+      // Derived-atom coords + source-atom indices produced by the
+      // hbond pre-pass kernel (GenerateHBondBases).
+      TView<Vec<Real, 3>, 2, Dev> derived_coords,
+      TView<Int, 2, Dev> derived_atom_inds,
+
       bool output_block_pair_energies,
       bool compute_derivs)
       -> std::tuple<
@@ -111,6 +118,7 @@ struct HBondPoseScoreDispatch {
           TPack<Int, 3, Dev> >;
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
@@ -183,6 +191,11 @@ struct HBondPoseScoreDispatch {
       TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
       //////////////////////
+
+      // Derived-atom coords + source-atom indices produced by the
+      // hbond pre-pass kernel (GenerateHBondBases).
+      TView<Vec<Real, 3>, 2, Dev> derived_coords,
+      TView<Int, 2, Dev> derived_atom_inds,
 
       TView<Int, 3, Dev> block_neighbors,  // from forward pass
       TView<Real, 4, Dev> dTdV             // nterms x nposes x len x len
@@ -196,6 +209,7 @@ template <
     typename Int>
 struct HBondRotamerScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -269,6 +283,11 @@ struct HBondRotamerScoreDispatch {
       TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
+      // Derived-atom coords + source-atom indices produced by the
+      // hbond pre-pass kernel (GenerateHBondBases).
+      TView<Vec<Real, 3>, 2, Dev> derived_coords,
+      TView<Int, 2, Dev> derived_atom_inds,
+
       bool output_block_pair_energies,
       bool compute_derivs)
       -> std::tuple<
@@ -277,6 +296,7 @@ struct HBondRotamerScoreDispatch {
           TPack<Int, 2, Dev> >;
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
@@ -349,6 +369,11 @@ struct HBondRotamerScoreDispatch {
       TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
       //////////////////////
+
+      // Derived-atom coords + source-atom indices produced by the
+      // hbond pre-pass kernel (GenerateHBondBases).
+      TView<Vec<Real, 3>, 2, Dev> derived_coords,
+      TView<Int, 2, Dev> derived_atom_inds,
 
       TView<Int, 2, Dev> dispatch_indices,  // from forward pass
       TView<Real, 2, Dev> dTdV              // nterms x nposes x len x len

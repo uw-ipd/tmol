@@ -362,6 +362,7 @@ template <
     typename Int>
 struct KinForestFromStencil {
   static auto get_kfo_indices_for_atoms(
+      ContextManager& mgr,
       TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
       TView<Int, 1, D> block_type_n_atoms,
@@ -369,6 +370,7 @@ struct KinForestFromStencil {
       -> std::tuple<TPack<Int, 2, D>, TPack<Int, 2, D>, TPack<Int, 3, D>>;
 
   static auto get_kfo_atom_parents(
+      ContextManager& mgr,
       TView<Int, 2, D> pose_stack_block_type,                 // P x L
       TView<Int, 4, D> pose_stack_inter_residue_connections,  // P x L x C x 2
       TView<Int, 2, D> pose_stack_ff_parent,                  // P x L
@@ -383,6 +385,7 @@ struct KinForestFromStencil {
       -> std::tuple<TPack<Int, 1, D>, TPack<Int, 1, D>>;
 
   static auto get_children(
+      ContextManager& mgr,
       TView<Int, 2, D> pose_stack_block_type,              // x
       TView<Int, 3, D> pose_stack_block_in_and_first_out,  // x
       TView<Int, 2, D> kfo_2_orig_mapping,                 // x
@@ -396,6 +399,7 @@ struct KinForestFromStencil {
           TPack<bool, 1, D>>;
 
   static auto get_id_and_frame_xyz(
+      ContextManager& mgr,
       int64_t const max_n_pose_atoms,
       TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> kfo_2_orig_mapping,  // K x 3
@@ -412,6 +416,7 @@ struct KinForestFromStencil {
           TPack<bool, 2, D>>;
 
   static auto calculate_ff_edge_delays(
+      ContextManager& mgr,
       TView<Int, 2, D> pose_stack_block_coord_offset,  // P x L
       TView<Int, 2, D> pose_stack_block_type,          // x - P x L
       TView<Int, 3, Device::CPU> ff_edges_cpu,  // y - P x E x 4 -- 0: type, 1:
@@ -434,6 +439,7 @@ struct KinForestFromStencil {
           >;
 
   static auto get_jump_atom_indices(
+      ContextManager& mgr,
       TView<Int, 3, D>
           ff_edges,  // P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
       TView<Int, 2, D> pose_stack_block_type,  // P x L
@@ -441,6 +447,7 @@ struct KinForestFromStencil {
       ) -> std::tuple<TPack<Int, 3, D>, TPack<Int, 2, D>>;
 
   static auto get_block_parent_connectivity_from_toposort(
+      ContextManager& mgr,
       TView<Int, 2, D> pose_stack_block_type,                 // P x L
       TView<Int, 4, D> pose_stack_inter_residue_connections,  // P x L x C x 2
       TView<Int, 2, D> pose_stack_ff_parent,
@@ -459,6 +466,7 @@ struct KinForestFromStencil {
       ) -> TPack<Int, 3, D>;
 
   static auto get_scans2(
+      ContextManager& mgr,
       int64_t const max_n_atoms_per_pose,
       TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
       TView<Int, 2, D> pose_stack_block_type,                 // P x L
@@ -500,6 +508,7 @@ struct KinForestFromStencil {
           TPack<Int, 2, D>>;
 
   static auto create_minimizer_map(
+      ContextManager& mgr,
       TView<Int, 1, D> kinforest_id,  // K
       int64_t const max_n_atoms_per_pose,
       TView<Int, 2, D> pose_stack_block_coord_offset,

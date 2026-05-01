@@ -4,6 +4,7 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
 namespace pack {
@@ -16,6 +17,7 @@ template <
     typename Int>
 struct InteractionGraphBuilder {
   static auto f(
+      ContextManager& mgr,
       int const bump_check,
       int const chunk_size,
       int const max_n_block_types,
@@ -53,6 +55,7 @@ struct InteractionGraphBuilder {
 template <tmol::Device D>
 struct AnnealerDispatch {
   static auto forward(
+      ContextManager& mgr,
       int max_n_rotamers_per_pose,
       TView<int, 1, D> pose_n_res,
       TView<int, 1, D> pose_n_rotamers,

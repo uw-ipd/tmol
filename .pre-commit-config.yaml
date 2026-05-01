@@ -20,3 +20,14 @@ repos:
                 dev/.* 
                 \.conda/.*
             )$
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.1  # Use the latest stable version tag
+    hooks:
+      - id: flake8
+        exclude: >
+            (?x)^(
+                tmol/extern/.* |
+                dev/.* 
+                \.venv/.*
+            )$
+            

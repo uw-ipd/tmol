@@ -30,6 +30,7 @@ template <
     typename Int>
 struct GeneratePoseLeafAtoms {
   static auto forward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 2, Dev> orig_coords,
       TView<bool, 3, Dev> orig_coords_atom_missing,
       TView<bool, 2, Dev> pose_stack_atom_missing,
@@ -163,12 +164,13 @@ struct GeneratePoseLeafAtoms {
     });
 
     int const n_atoms = n_poses * max_n_blocks * max_n_block_atoms;
-    DeviceOps<Dev>::template forall<launch_t>(n_atoms, f_coord_builder);
+    DeviceOps<Dev>::template forall<launch_t>(mgr, n_atoms, f_coord_builder);
 
     return new_coords_t;
   };
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 2, Dev> dE_d_new_coords,
       TView<Vec<Real, 3>, 2, Dev> new_coords,
       TView<Vec<Real, 3>, 2, Dev> orig_coords,
@@ -316,7 +318,8 @@ struct GeneratePoseLeafAtoms {
     });
 
     int const n_atoms = n_poses * max_n_blocks * max_n_block_atoms;
-    DeviceOps<Dev>::template forall<launch_t>(n_atoms, f_coord_builder_derivs);
+    DeviceOps<Dev>::template forall<launch_t>(
+        mgr, n_atoms, f_coord_builder_derivs);
 
     return dE_d_orig_coords_t;
   };

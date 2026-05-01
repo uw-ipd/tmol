@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/unresolved_atom.hh>
@@ -30,6 +31,7 @@ template <
 class BackboneTorsionPoseScoreDispatch {
  public:
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -88,6 +90,7 @@ class BackboneTorsionPoseScoreDispatch {
       -> std::tuple<TPack<Real, 4, Dev>, TPack<Vec<Real, 3>, 2, Dev>>;
 
   static auto backward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -154,6 +157,7 @@ template <
 class BackboneTorsionRotamerScoreDispatch {
  public:
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -215,6 +219,7 @@ class BackboneTorsionRotamerScoreDispatch {
           TPack<Int, 2, Dev>>;
 
   static auto backward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,

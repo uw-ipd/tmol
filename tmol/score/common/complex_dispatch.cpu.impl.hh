@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
 namespace score {
@@ -11,14 +12,14 @@ namespace common {
 template <tmol::Device D>
 struct ComplexDispatch {
   template <typename Int, typename Func>
-  static void forall(Int N, Func f) {
+  static void forall(ContextManager&, Int N, Func f) {
     for (int ii = 0; ii < N; ++ii) {
       f(ii);
     }
   }
 
   template <typename T, typename Func>
-  static T reduce(TView<T, 1, D> vals, Func op) {
+  static T reduce(ContextManager&, TView<T, 1, D> vals, Func op) {
     if (vals.size(0) == 0) {
       return T(0);
     } else if (vals.size(0) == 1) {
@@ -33,7 +34,8 @@ struct ComplexDispatch {
   }
 
   template <typename T, typename Func>
-  static void exclusive_scan(TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
+  static void exclusive_scan(
+      ContextManager&, TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
     assert(vals.size(0) == out.size(0));
     out[0] = T(0);
     for (int ii = 1; ii < vals.size(0); ++ii) {
@@ -42,7 +44,8 @@ struct ComplexDispatch {
   }
 
   template <typename T, typename Func>
-  static void inclusive_scan(TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
+  static void inclusive_scan(
+      ContextManager&, TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
     assert(vals.size(0) == out.size(0));
     out[0] = vals[0];
     for (int ii = 1; ii < vals.size(0); ++ii) {
@@ -52,7 +55,7 @@ struct ComplexDispatch {
 
   template <typename T, typename Func>
   static T exclusive_scan_w_final_val(
-      TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
+      ContextManager&, TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
     assert(vals.size(0) == out.size(0));
     out[0] = T(0);
     for (int ii = 1; ii < vals.size(0); ++ii) {
@@ -63,6 +66,7 @@ struct ComplexDispatch {
 
   template <typename T, typename B, typename Func>
   static void exclusive_segmented_scan(
+      ContextManager&,
       TView<T, 1, D> vals,
       TView<B, 1, D> seg_start,
       TView<T, 1, D> out,
@@ -81,6 +85,7 @@ struct ComplexDispatch {
 
   template <typename T, typename B, typename Func>
   static void inclusive_segmented_scan(
+      ContextManager&,
       TView<T, 1, D> vals,
       TView<B, 1, D> seg_start,
       TView<T, 1, D> out,
