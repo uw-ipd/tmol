@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -359,6 +360,7 @@ template <
 class LKBallPoseScoreDispatch {
  public:
   static auto forward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
@@ -653,6 +655,7 @@ class LKBallPoseScoreDispatch {
     // context(wrapped_stream.stream());
     score::common::sphere_overlap::
         compute_block_spheres<DeviceDispatch, Dev, Real, Int>::f(
+            mgr,
             rot_coords,
             rot_coord_offset,
             block_ind_for_rot,
@@ -663,18 +666,20 @@ class LKBallPoseScoreDispatch {
 
     score::common::sphere_overlap::
         detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
+            mgr,
             first_rot_block_type,
             scratch_rot_spheres,
             scratch_rot_neighbors,
             Real(5.5));
     // 3 Only the forward pass in this calculation
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-        n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
+        mgr, n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
 
     return {output_t, scratch_rot_neighbors_t};
   }
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -990,7 +995,7 @@ class LKBallPoseScoreDispatch {
     // Since we have the sphere overlap results from the forward pass,
     // there's only a single kernel launch here
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-        n_poses * max_n_upper_triangle_inds, eval_derivs);
+        mgr, n_poses * max_n_upper_triangle_inds, eval_derivs);
 
     return {dV_d_pose_coords_t, dV_d_water_coords_t};
   }
@@ -1004,6 +1009,7 @@ template <
 class LKBallRotamerScoreDispatch {
  public:
   static auto forward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
@@ -1148,6 +1154,7 @@ class LKBallRotamerScoreDispatch {
 
     score::common::sphere_overlap::
         compute_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
+            mgr,
             rot_coords,
             rot_coord_offset,
             block_type_ind_for_rot,
@@ -1156,13 +1163,15 @@ class LKBallRotamerScoreDispatch {
 
     score::common::sphere_overlap::
         compute_block_spheres_from_rot_spheres<DeviceDispatch, Dev, Real, Int>::
-            f(scratch_rot_spheres,
+            f(mgr,
+              scratch_rot_spheres,
               n_rots_for_block,
               rot_offset_for_block,
               scratch_block_spheres);
 
     score::common::sphere_overlap::
         detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
+            mgr,
             first_rot_block_type,
             scratch_block_spheres,
             scratch_block_neighbors,
@@ -1170,7 +1179,10 @@ class LKBallRotamerScoreDispatch {
 
     auto dispatch_indices_t = score::common::sphere_overlap::
         rot_neighbor_indices_from_block_neighbors<DeviceDispatch, Dev, Int>::f(
-            scratch_block_neighbors, n_rots_for_block, rot_offset_for_block);
+            mgr,
+            scratch_block_neighbors,
+            n_rots_for_block,
+            rot_offset_for_block);
     auto dispatch_indices = dispatch_indices_t.view;
 
     TPack<Real, 2, Dev> output_t;
@@ -1359,12 +1371,13 @@ class LKBallRotamerScoreDispatch {
 
     // 3 Only the forward pass in this calculation
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-        dispatch_indices.size(1), eval_energies_by_block);
+        mgr, dispatch_indices.size(1), eval_energies_by_block);
 
     return {output_t, dispatch_indices_t};
   }
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -1698,7 +1711,7 @@ class LKBallRotamerScoreDispatch {
     // Since we have the sphere overlap results from the forward pass,
     // there's only a single kernel launch here
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-        dispatch_indices.size(1), eval_derivs);
+        mgr, dispatch_indices.size(1), eval_derivs);
 
     return {dV_d_pose_coords_t, dV_d_water_coords_t};
   }

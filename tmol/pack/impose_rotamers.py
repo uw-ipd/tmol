@@ -11,7 +11,11 @@ from tmol.utility.cumsum import exclusive_cumsum2d_w_totals
 def impose_top_rotamer_assignments(
     orig_pose_stack: PoseStack,
     rotamer_set: RotamerSet,
-    assignment: Tensor[torch.int32][:, :, :],
+    rotamer_for_nonmolten_block: Tensor[torch.int64][:, :],
+    n_molten_blocks_per_pose: Tensor[torch.int64][:],
+    bc_rot_offset_for_molten_block: Tensor[torch.int64][:, :],
+    bc_rot_to_orig_rot: Tensor[torch.int64][:],
+    bc_assignment: Tensor[torch.int32][:, :, :],
 ):
     """Impose the lowest-energy rotamer assignemnt to each pose in the original PoseStack."""
 
@@ -35,15 +39,51 @@ def impose_top_rotamer_assignments(
     n_poses = orig_pose_stack.n_poses
     max_n_blocks = orig_pose_stack.max_n_blocks
     max_n_atoms_per_block = orig_pose_stack.max_n_atoms
+    max_n_molten_blocks = bc_assignment.shape[2]
+    bc_assignment = bc_assignment[:, 0, :]
+    # n_assignments = bc_assignment.shape[1]
+    # print("bc_assignment", bc_assignment.shape, bc_assignment.dtype)
+
+    # map from the subset of blocks and bump-checked rotamer
+    # to an assignment in the original rotamer-set indexing
+    assignment = torch.full(
+        (n_poses, max_n_blocks), -1, dtype=torch.int64, device=device
+    )
+    is_nonmolten_block = rotamer_for_nonmolten_block != -1
+    assignment[is_nonmolten_block] = rotamer_for_nonmolten_block[is_nonmolten_block]
+
+    is_real_block = orig_pose_stack.block_type_ind64 != -1
+    is_molten_block = torch.logical_and(
+        rotamer_for_nonmolten_block == -1, is_real_block
+    )
+    # print("is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1)", is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1).shape)
+    # print("bc_assignment[is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1)]", bc_assignment[is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1)].shape)
+    # print("assignment[is_molten_block, :]", assignment[is_molten_block, :].shape)
+
+    molten_block_arange = (
+        torch.arange(max_n_molten_blocks, dtype=torch.int64, device=device)
+        .unsqueeze(0)
+        .expand(n_poses, -1)
+    )
+    is_real_molten_block = molten_block_arange < n_molten_blocks_per_pose.view(-1, 1)
+    bc_assignment_global = (
+        bc_assignment[is_real_molten_block]
+        + bc_rot_offset_for_molten_block[is_real_molten_block]
+    )
+
+    assignment[is_molten_block] = bc_rot_to_orig_rot[bc_assignment_global].reshape(-1)
+
+    # print("assignment", assignment.shape)
+    # print("assignment", assignment)
 
     # lets figure out how many atoms per pose
-
     new_block_type_ind64 = torch.full(
         (n_poses, max_n_blocks), -1, dtype=torch.int64, device=device
     )
-    new_rot_for_block64 = (
-        assignment[:, 0, :].to(torch.int64) + rotamer_set.rot_offset_for_block
-    )
+    # new_rot_for_block64 = (
+    #     assignment[:, 0, :].to(torch.int64) + rotamer_set.rot_offset_for_block
+    # )
+    new_rot_for_block64 = assignment
 
     is_real_block = orig_pose_stack.block_type_ind64 != -1
 

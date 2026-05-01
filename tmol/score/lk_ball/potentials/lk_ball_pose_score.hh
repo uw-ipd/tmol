@@ -8,6 +8,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -31,6 +32,7 @@ template <
     typename Int>
 struct LKBallPoseScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
@@ -97,6 +99,7 @@ struct LKBallPoseScoreDispatch {
       -> std::tuple<TPack<Real, 4, Dev>, TPack<Int, 3, Dev>>;
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -171,6 +174,7 @@ template <
     typename Int>
 struct LKBallRotamerScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
@@ -237,6 +241,7 @@ struct LKBallRotamerScoreDispatch {
       -> std::tuple<TPack<Real, 2, Dev>, TPack<Int, 2, Dev>>;
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
       TView<Int, 1, Dev> rot_coord_offset,

@@ -20,6 +20,7 @@ def ubq_ig():
 
 
 def test_load_ig(ubq_ig):
+    print("test_load_ig")
     oneb, twob = ubq_ig
     assert len(oneb) == 76
     nrots = numpy.zeros((76,), dtype=int)
@@ -144,7 +145,9 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
     def _d(x):
         return x.to(device)
 
-    n_rots_per_pose = torch.sum(n_rots, dim=0)
+    # print("n_rots", n_rots)
+
+    n_rots_per_pose = torch.sum(n_rots, dim=1)
     n_rots_total = torch.sum(n_rots_per_pose).item()
     n_rots_for_pose = torch.full((2,), n_rots_total // 2, dtype=torch.int64)
     rot_offset_for_pose = torch.zeros((2,), dtype=torch.int64)
@@ -153,14 +156,18 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
     rot_offset_for_block = _ti64(exclusive_cumsum1d(n_rots.ravel())).reshape(
         n_rots.shape
     )
+    # print("rot_offset_for_block[:, 25]", rot_offset_for_block[:, 25])
     pose_for_rot = torch.zeros((n_rots_total,), dtype=torch.int64)
+    # print("n_rots_per_pose", n_rots_per_pose)
     pose_for_rot[n_rots_per_pose[0] :] = 1
+    # print("pose_for_rot", pose_for_rot[[453, 454, 455, 1971, 1972, 1973]])
 
     rot_is_start_for_block = torch.zeros((n_rots_total), dtype=torch.int64)
     rot_is_start_for_block[rot_offset_for_block.ravel()] = 1
     block_ind_for_rot = torch.remainder(
         torch.cumsum(rot_is_start_for_block, dim=0) - 1, n_res
     )
+    # print("block_ind_for_rot", block_ind_for_rot[[453, 454, 455, 1971, 1972, 1973]])
     block_ind_for_rot32 = block_ind_for_rot.to(torch.int32)
     block_type_ind_for_rot = pose_stack.block_type_ind64[0, block_ind_for_rot]
 
@@ -245,33 +252,34 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
     return pose_stack, rotamer_set, _d(energy1b), _d(inds), _d(energies)
 
 
-def create_packer_energy_tables(
-    pose_stack,
-    rotamer_set,
-    chunk_size,
-    chunk_offset_offsets,
-    chunk_offsets,
-    energy1b,
-    energy2b,
-):
-    packer_energy_tables = PackerEnergyTables(
-        max_n_rotamers_per_pose=torch.max(rotamer_set.n_rots_for_pose).cpu().item(),
-        pose_n_res=pose_stack.n_res_per_pose,
-        pose_n_rotamers=rotamer_set.n_rots_for_pose,
-        pose_rotamer_offset=rotamer_set.rot_offset_for_pose,
-        nrotamers_for_res=rotamer_set.n_rots_for_block,
-        oneb_offsets=rotamer_set.rot_offset_for_block,
-        res_for_rot=rotamer_set.block_ind_for_rot,
-        chunk_size=chunk_size,
-        chunk_offset_offsets=chunk_offset_offsets,
-        chunk_offsets=chunk_offsets,
-        energy1b=energy1b,
-        energy2b=energy2b,
-    )
-    return packer_energy_tables
+# def create_packer_energy_tables(
+#     pose_stack,
+#     rotamer_set,
+#     chunk_size,
+#     chunk_offset_offsets,
+#     chunk_offsets,
+#     energy1b,
+#     energy2b,
+# ):
+#     packer_energy_tables = PackerEnergyTables(
+#         max_n_rotamers_per_pose=torch.max(rotamer_set.n_rots_for_pose).cpu().item(),
+#         pose_n_res=pose_stack.n_res_per_pose,
+#         pose_n_rotamers=rotamer_set.n_rots_for_pose,
+#         pose_rotamer_offset=rotamer_set.rot_offset_for_pose,
+#         nrotamers_for_res=rotamer_set.n_rots_for_block,
+#         oneb_offsets=rotamer_set.rot_offset_for_block,
+#         res_for_rot=rotamer_set.block_ind_for_rot,
+#         chunk_size=chunk_size,
+#         chunk_offset_offsets=chunk_offset_offsets,
+#         chunk_offsets=chunk_offsets,
+#         energy1b=energy1b,
+#         energy2b=energy2b,
+#     )
+#     return packer_energy_tables
 
 
 def test_construct_rotamer_set_and_sparse_energies_table_from_ig(ubq_ig, torch_device):
+    print("test_construct_rotamer_set_and_sparse_energies_table_from_ig", torch_device)
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
     # Step 1: convert the IG that we're getting from disk
@@ -348,6 +356,7 @@ def test_construct_rotamer_set_and_sparse_energies_table_from_ig(ubq_ig, torch_d
 
 
 def test_build_interaction_graph(ubq_ig, torch_device):
+    print("test_build_interaction_graph", torch_device)
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
     # Step 1: convert the IG that we're getting from disk
@@ -360,28 +369,58 @@ def test_build_interaction_graph(ubq_ig, torch_device):
 
     chunk_size = 16
 
-    _, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            sparse_indices,
-            energies,
-        )
+    (
+        _max_n_bump_checked_rotamers_per_pose_tensor,
+        _n_molten_blocks_per_pose,
+        _n_bc_rots_per_pose,
+        _bc_rot_offset_for_pose,
+        _n_bc_rots_for_molten_block,
+        _bc_rot_offset_for_molten_block,
+        _molten_block_ind_for_bc_rot,
+        _rotamer_for_nonmolten_block,
+        _bc_rot_to_orig_rot,
+        bg_bg_energies,
+        energy1b,
+        chunk_pair_offset_for_block_pair,
+        chunk_pair_offset,
+        energy2b,
+    ) = build_interaction_graph(
+        True,
+        chunk_size,
+        torch.max(rotamer_set.block_type_ind_for_rot) + 1,
+        rotamer_set.n_rots_for_pose,
+        rotamer_set.rot_offset_for_pose,
+        rotamer_set.n_rots_for_block,
+        rotamer_set.rot_offset_for_block,
+        rotamer_set.pose_for_rot,
+        rotamer_set.block_type_ind_for_rot,
+        rotamer_set.block_ind_for_rot,
+        sparse_indices,
+        energies,
+        False,
+    )
+    orig_n_rotamers = rotamer_set.pose_for_rot.shape[0]
+    orig_rot_to_bc_rot = torch.full(
+        (orig_n_rotamers,), -1, dtype=torch.int64, device=torch_device
+    )
+    orig_rot_to_bc_rot[_bc_rot_to_orig_rot] = torch.arange(
+        _bc_rot_to_orig_rot.shape[0], dtype=torch.int64, device=torch_device
     )
 
-    assert chunk_pair_offset_for_block_pair.shape == (1, 76, 76)
+    # okay, we have eliminated some residues
+    orig_n_res = rotamer_set.n_rots_for_block.shape[1]
+    n_eliminated_res = torch.sum(_rotamer_for_nonmolten_block != -1)
+    n_remaining = orig_n_res - n_eliminated_res
+
+    assert chunk_pair_offset_for_block_pair.shape == (1, n_remaining, n_remaining)
     assert chunk_pair_offset_for_block_pair.dtype == torch.int64
     assert chunk_pair_offset_for_block_pair.device == torch_device
-    assert chunk_pair_offset.shape == (5016,)
+    # print("chunk_pair_offset.shape", chunk_pair_offset.shape)
+    assert chunk_pair_offset.shape == (3698,)
     assert chunk_pair_offset.dtype == torch.int64
     assert chunk_pair_offset.device == torch_device
-    assert energy2b.shape == (608852,)
+    # print("energy2b.shape", energy2b.shape)
+    assert energy2b.shape == (423884,)
     assert energy2b.dtype == torch.float32
     assert energy2b.device == torch_device
 
@@ -390,8 +429,14 @@ def test_build_interaction_graph(ubq_ig, torch_device):
         pose = sparse_indices[0, i].item()
         rot1 = sparse_indices[1, i].item()
         rot2 = sparse_indices[2, i].item()
-        block1 = rotamer_set.block_ind_for_rot[rot1].item()
-        block2 = rotamer_set.block_ind_for_rot[rot2].item()
+        if orig_rot_to_bc_rot[rot1] == -1:
+            continue
+        if orig_rot_to_bc_rot[rot2] == -1:
+            continue
+        rot1 = orig_rot_to_bc_rot[rot1]
+        rot2 = orig_rot_to_bc_rot[rot2]
+        block1 = _molten_block_ind_for_bc_rot[rot1].item()
+        block2 = _molten_block_ind_for_bc_rot[rot2].item()
         chunk_offset_for_blocks_ij = chunk_pair_offset_for_block_pair[
             pose, block1, block2
         ].item()
@@ -412,14 +457,14 @@ def test_build_interaction_graph(ubq_ig, torch_device):
                 )
             assert i_energy == 0
         else:
-            n_rots_for_block1 = rotamer_set.n_rots_for_block[pose, block1].item()
-            n_rots_for_block2 = rotamer_set.n_rots_for_block[pose, block2].item()
+            n_rots_for_block1 = _n_bc_rots_for_molten_block[pose, block1].item()
+            n_rots_for_block2 = _n_bc_rots_for_molten_block[pose, block2].item()
 
             n_chunks_for_block1 = (n_rots_for_block1 - 1) // chunk_size + 1
             n_chunks_for_block2 = (n_rots_for_block2 - 1) // chunk_size + 1
 
-            rot_on_block1 = rot1 - rotamer_set.rot_offset_for_block[pose, block1].item()
-            rot_on_block2 = rot2 - rotamer_set.rot_offset_for_block[pose, block2].item()
+            rot_on_block1 = rot1 - _bc_rot_offset_for_molten_block[pose, block1].item()
+            rot_on_block2 = rot2 - _bc_rot_offset_for_molten_block[pose, block2].item()
             chunk1 = rot_on_block1 // chunk_size
             chunk2 = rot_on_block2 // chunk_size
 
@@ -459,6 +504,7 @@ def test_build_interaction_graph(ubq_ig, torch_device):
 
 
 def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
+    print("test_build_multi_pose_interaction_graph", torch_device)
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
     # Step 1: convert the IG that we're getting from disk
@@ -472,27 +518,59 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
     # n_energies_per_pose = 608852 // 2
     chunk_size = 16
 
-    _, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            sparse_indices,
-            energies,
-        )
+    (
+        _max_n_bump_checked_rotamers_per_pose_tensor,
+        _n_molten_blocks_per_pose,
+        _n_bc_rots_per_pose,
+        _bc_rot_offset_for_pose,
+        _n_bc_rots_for_molten_block,
+        _bc_rot_offset_for_molten_block,
+        _molten_block_ind_for_bc_rot,
+        _rotamer_for_nonmolten_block,
+        _bc_rot_to_orig_rot,
+        bg_bg_energies,
+        energy1b,
+        chunk_pair_offset_for_block_pair,
+        chunk_pair_offset,
+        energy2b,
+    ) = build_interaction_graph(
+        True,
+        chunk_size,
+        torch.max(rotamer_set.block_type_ind_for_rot) + 1,
+        rotamer_set.n_rots_for_pose,
+        rotamer_set.rot_offset_for_pose,
+        rotamer_set.n_rots_for_block,
+        rotamer_set.rot_offset_for_block,
+        rotamer_set.pose_for_rot,
+        rotamer_set.block_type_ind_for_rot,
+        rotamer_set.block_ind_for_rot,
+        sparse_indices,
+        energies,
+        False,
     )
-    assert chunk_pair_offset_for_block_pair.shape == (2, 76, 76)
+    orig_n_rotamers = rotamer_set.pose_for_rot.shape[0]
+    orig_rot_to_bc_rot = torch.full(
+        (orig_n_rotamers,), -1, dtype=torch.int64, device=torch_device
+    )
+    orig_rot_to_bc_rot[_bc_rot_to_orig_rot] = torch.arange(
+        _bc_rot_to_orig_rot.shape[0], dtype=torch.int64, device=torch_device
+    )
+    # okay, we have eliminated some residues
+    # print("_rotamer_for_nonmolten_block", _rotamer_for_nonmolten_block.shape)
+    orig_n_res = rotamer_set.n_rots_for_block.shape[1]
+    n_eliminated_res0 = torch.sum(_rotamer_for_nonmolten_block[0, :] != -1).item()
+    n_eliminated_res1 = torch.sum(_rotamer_for_nonmolten_block[1, :] != -1).item()
+    assert n_eliminated_res0 == n_eliminated_res1
+    n_remaining = orig_n_res - n_eliminated_res0
+    # print("orig_n_res", orig_n_res, "n_eliminated_res0", n_eliminated_res0, "n_eliminated_res1", n_eliminated_res1, "n_remaining", n_remaining)
+
+    assert chunk_pair_offset_for_block_pair.shape == (2, n_remaining, n_remaining)
     assert chunk_pair_offset_for_block_pair.dtype == torch.int64
     assert chunk_pair_offset_for_block_pair.device == torch_device
-    assert chunk_pair_offset.shape == (10032,)
+    assert chunk_pair_offset.shape == (3698 * 2,)
     assert chunk_pair_offset.dtype == torch.int64
     assert chunk_pair_offset.device == torch_device
-    assert energy2b.shape == (2 * 608852,)
+    assert energy2b.shape == (2 * 423884,)
     assert energy2b.dtype == torch.float32
     assert energy2b.device == torch_device
 
@@ -501,8 +579,14 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
         pose = sparse_indices[0, i].item()
         rot1 = sparse_indices[1, i].item()
         rot2 = sparse_indices[2, i].item()
-        block1 = rotamer_set.block_ind_for_rot[rot1].item()
-        block2 = rotamer_set.block_ind_for_rot[rot2].item()
+        if orig_rot_to_bc_rot[rot1] == -1:
+            continue
+        if orig_rot_to_bc_rot[rot2] == -1:
+            continue
+        rot1 = orig_rot_to_bc_rot[rot1]
+        rot2 = orig_rot_to_bc_rot[rot2]
+        block1 = _molten_block_ind_for_bc_rot[rot1].item()
+        block2 = _molten_block_ind_for_bc_rot[rot2].item()
         chunk_offset_for_blocks_ij = chunk_pair_offset_for_block_pair[
             pose, block1, block2
         ].item()
@@ -523,14 +607,14 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
                 )
             assert i_energy == 0
         else:
-            n_rots_for_block1 = rotamer_set.n_rots_for_block[pose, block1].item()
-            n_rots_for_block2 = rotamer_set.n_rots_for_block[pose, block2].item()
+            n_rots_for_block1 = _n_bc_rots_for_molten_block[pose, block1].item()
+            n_rots_for_block2 = _n_bc_rots_for_molten_block[pose, block2].item()
 
             n_chunks_for_block1 = (n_rots_for_block1 - 1) // chunk_size + 1
             n_chunks_for_block2 = (n_rots_for_block2 - 1) // chunk_size + 1
 
-            rot_on_block1 = rot1 - rotamer_set.rot_offset_for_block[pose, block1].item()
-            rot_on_block2 = rot2 - rotamer_set.rot_offset_for_block[pose, block2].item()
+            rot_on_block1 = rot1 - _bc_rot_offset_for_molten_block[pose, block1].item()
+            rot_on_block2 = rot2 - _bc_rot_offset_for_molten_block[pose, block2].item()
             chunk1 = rot_on_block1 // chunk_size
             chunk2 = rot_on_block2 // chunk_size
 
@@ -570,6 +654,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
 
 
 def test_run_single_pose_simA(ubq_ig, torch_device):
+    print("test_run_single_pose_simA", torch_device)
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
     # Step 1: convert the IG that we're getting from disk
@@ -582,29 +667,53 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
 
     chunk_size = 16
 
-    _, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            sparse_indices,
-            energies,
-        )
-    )
-
-    packer_energy_tables = create_packer_energy_tables(
-        ps,
-        rotamer_set,
-        chunk_size,
+    (
+        max_n_bump_checked_rotamers_per_pose_tensor,
+        n_molten_blocks_per_pose,
+        n_bc_rots_per_pose,
+        bc_rot_offset_for_pose,
+        n_bc_rots_for_molten_block,
+        bc_rot_offset_for_molten_block,
+        molten_block_ind_for_bc_rot,
+        rotamer_for_nonmolten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
+        energy1b,
         chunk_pair_offset_for_block_pair,
         chunk_pair_offset,
-        energy1b,
         energy2b,
+    ) = build_interaction_graph(
+        False,
+        chunk_size,
+        torch.max(rotamer_set.block_type_ind_for_rot) + 1,
+        rotamer_set.n_rots_for_pose,
+        rotamer_set.rot_offset_for_pose,
+        rotamer_set.n_rots_for_block,
+        rotamer_set.rot_offset_for_block,
+        rotamer_set.pose_for_rot,
+        rotamer_set.block_type_ind_for_rot,
+        rotamer_set.block_ind_for_rot,
+        sparse_indices,
+        energies,
+        False,
+    )
+    orig_n_res = rotamer_set.n_rots_for_block.shape[1]
+    n_eliminated_res = torch.sum(rotamer_for_nonmolten_block != -1)
+    n_remaining = orig_n_res - n_eliminated_res
+
+    packer_energy_tables = PackerEnergyTables(
+        max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),
+        pose_n_res=n_molten_blocks_per_pose,
+        pose_n_rotamers=n_bc_rots_per_pose,
+        pose_rotamer_offset=bc_rot_offset_for_pose,
+        nrotamers_for_res=n_bc_rots_for_molten_block,
+        oneb_offsets=bc_rot_offset_for_molten_block,
+        res_for_rot=molten_block_ind_for_bc_rot,
+        chunk_size=chunk_size,
+        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
+        chunk_offsets=chunk_pair_offset,
+        energy1b=energy1b,
+        energy2b=energy2b,
     )
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
@@ -616,10 +725,11 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
     score_delta = scores_cpu[:, :-1] - scores_cpu[:, 1:]
     assert torch.all(score_delta <= 0.0)
 
-    assert rotamer_assignments.shape == (1, n_traj, 76)
+    assert rotamer_assignments.shape == (1, n_traj, n_remaining)
 
 
 def test_run_two_poses_simA(ubq_ig, torch_device):
+    print("test_run_two_poses_simA", torch_device)
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
     ps, rotamer_set, energy1b, sparse_indices, energies = (
@@ -630,29 +740,55 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
 
     chunk_size = 16
 
-    _, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
-        build_interaction_graph(
-            chunk_size,
-            rotamer_set.n_rots_for_pose,
-            rotamer_set.rot_offset_for_pose,
-            rotamer_set.n_rots_for_block,
-            rotamer_set.rot_offset_for_block,
-            rotamer_set.pose_for_rot,
-            rotamer_set.block_type_ind_for_rot,
-            rotamer_set.block_ind_for_rot,
-            sparse_indices,
-            energies,
-        )
-    )
-
-    packer_energy_tables = create_packer_energy_tables(
-        ps,
-        rotamer_set,
-        chunk_size,
+    (
+        max_n_bump_checked_rotamers_per_pose_tensor,
+        n_molten_blocks_per_pose,
+        n_bc_rots_per_pose,
+        bc_rot_offset_for_pose,
+        n_bc_rots_for_molten_block,
+        bc_rot_offset_for_molten_block,
+        molten_block_ind_for_bc_rot,
+        rotamer_for_nonmolten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
+        energy1b,
         chunk_pair_offset_for_block_pair,
         chunk_pair_offset,
-        energy1b,
         energy2b,
+    ) = build_interaction_graph(
+        False,
+        chunk_size,
+        torch.max(rotamer_set.block_type_ind_for_rot) + 1,
+        rotamer_set.n_rots_for_pose,
+        rotamer_set.rot_offset_for_pose,
+        rotamer_set.n_rots_for_block,
+        rotamer_set.rot_offset_for_block,
+        rotamer_set.pose_for_rot,
+        rotamer_set.block_type_ind_for_rot,
+        rotamer_set.block_ind_for_rot,
+        sparse_indices,
+        energies,
+        False,
+    )
+    orig_n_res = rotamer_set.n_rots_for_block.shape[1]
+    n_eliminated_res0 = torch.sum(rotamer_for_nonmolten_block[0, :] != -1)
+    n_eliminated_res1 = torch.sum(rotamer_for_nonmolten_block[1, :] != -1)
+    assert n_eliminated_res0 == n_eliminated_res1
+    n_remaining = orig_n_res - n_eliminated_res0
+
+    packer_energy_tables = PackerEnergyTables(
+        max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),
+        pose_n_res=n_molten_blocks_per_pose,
+        pose_n_rotamers=n_bc_rots_per_pose,
+        pose_rotamer_offset=bc_rot_offset_for_pose,
+        nrotamers_for_res=n_bc_rots_for_molten_block,
+        oneb_offsets=bc_rot_offset_for_molten_block,
+        res_for_rot=molten_block_ind_for_bc_rot,
+        chunk_size=chunk_size,
+        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
+        chunk_offsets=chunk_pair_offset,
+        energy1b=energy1b,
+        energy2b=energy2b,
     )
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
@@ -666,4 +802,4 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
     assert torch.all(score_delta <= 0.0)
 
     assert rotamer_assignments.device == torch_device
-    assert rotamer_assignments.shape == (2, n_traj, 76)
+    assert rotamer_assignments.shape == (2, n_traj, n_remaining)

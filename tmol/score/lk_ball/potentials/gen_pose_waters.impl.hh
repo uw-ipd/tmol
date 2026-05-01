@@ -5,6 +5,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -32,6 +33,7 @@ template <
     typename Int>
 struct GeneratePoseWaters {
   static auto forward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
@@ -221,12 +223,14 @@ struct GeneratePoseWaters {
     });
 
     int const n_blocks = n_poses * max_n_blocks;
-    DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_rots, f_watergen);
+    DeviceOps<Dev>::template foreach_workgroup<launch_t>(
+        mgr, n_rots, f_watergen);
 
     return water_coords_t;
   };
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 2, Dev> dE_dWxyz,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -421,7 +425,8 @@ struct GeneratePoseWaters {
 
     int const n_blocks = n_poses * max_n_blocks;
     nvtx_range_push("watergen::dgen");
-    DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_rots, f_watergen);
+    DeviceOps<Dev>::template foreach_workgroup<launch_t>(
+        mgr, n_rots, f_watergen);
 
     nvtx_range_pop();
 
