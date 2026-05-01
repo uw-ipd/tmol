@@ -10,7 +10,7 @@
 namespace tmol {
 
 struct ContextDeleter {
-  static void operator()(void* ctxt) {
+  inline void operator()(void* ctxt) {
     mgpu::standard_context_t* std_ctxt =
         static_cast<mgpu::standard_context_t*>(ctxt);
     delete std_ctxt;
