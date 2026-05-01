@@ -77,25 +77,3 @@ def build_missing_sidechains(
                 blt.add_conformer_sampler(opth_sampler)
 
     return pack_rotamers(pose_stack, sfxn, task, verbose=False)
-
-
-def build_missing_sidechains_with_missing_atoms(
-    pose_stack: PoseStack,
-    sfxn: ScoreFunction,
-    dunbrack_sampler: DunbrackChiSampler,
-    block_has_missing_atoms: Tensor[torch.bool][:, :],
-    rts,
-) -> PoseStack:
-    """Backward-compatible wrapper around build_missing_sidechains.
-
-    Calls build_missing_sidechains with no_optH=True, preserving the original
-    behavior: Dunbrack for blocks with missing heavy atoms, all others frozen.
-    """
-    return build_missing_sidechains(
-        pose_stack,
-        sfxn,
-        dunbrack_sampler,
-        block_has_missing_atoms,
-        rts,
-        no_optH=True,
-    )

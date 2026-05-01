@@ -130,7 +130,6 @@ class BlockLevelTask:
         )
         self.conformer_samplers = palette.default_conformer_samplers(block_type)
         self.is_chi_sampler = []
-        self.include_current = False
         self.chi_expansion = numpy.zeros(
             (len(self.considered_block_types), 4), dtype=numpy.int32
         )
@@ -184,11 +183,6 @@ class PackerTask:
         for one_pose_blts in self.blts:
             for blt in one_pose_blts:
                 blt.add_conformer_sampler(sampler)
-
-    def set_include_current(self):
-        for one_pose_blts in self.blts:
-            for blt in one_pose_blts:
-                blt.include_current = True
 
     def or_expand_chi(self, chi_ind: int):
         for one_pose_blts in self.blts:

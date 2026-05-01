@@ -288,7 +288,6 @@ def fast_relax(
 
         def default_op(task):
             task.restrict_to_repacking()
-            task.set_include_current()
 
             fixed_sampler = FixedAAChiSampler()
             task.add_conformer_sampler(dun_sampler)
