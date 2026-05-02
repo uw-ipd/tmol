@@ -799,7 +799,7 @@ def _annotate_block_type_for_in_and_out_pair(
             )
         else:
 
-            if is_conn_atom[k_atom_ind]:
+            if j != n_conn + 1 and is_conn_atom[k_atom_ind]:
                 # In this case, "the" connection (there can possibly be more than one!)
                 # will be the first child and the other descendants will be second children.
                 # We save the gen depth, but when calculating the gen depth of the
@@ -808,8 +808,6 @@ def _annotate_block_type_for_in_and_out_pair(
                 # intra-residue bits and the gen-depth of the nodes downstream of it.
                 # TO DO: This case needs to be properly handled when calculating the
                 # maximum number of generations to run gen-seg-scan.
-                # if target:
-                #     print("conn atom", bt.atom_name(k_atom_ind))
                 gen_depth[k_atom_ind] = max([gen_depth[l] for l in k_kids]) + 1
             else:
                 _handle_case_of_no_exit_scan_path_segment(
