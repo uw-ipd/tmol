@@ -203,6 +203,19 @@ def _load_tmol_file(path):
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(scope="session")
+def pyrosetta_session():
+    """Initialize PyRosetta once per session with all DUD params files."""
+    pyrosetta = pytest.importorskip("pyrosetta")
+    all_params = sorted(DUD_DIR.glob("*/*.params"))
+    extra_res = " ".join(str(p) for p in all_params)
+    pyrosetta.init(
+        f"-gen_potential -extra_res_fa {extra_res} -mute all",
+        silent=True,
+    )
+    return pyrosetta
+
+
 class TestDUDScoring:
     """Load Rosetta-reference .tmol params into tmol and score each ligand."""
 
@@ -224,7 +237,7 @@ class TestDUDScoring:
             "in_pdb": in_pdb,
         }
 
-    def test_score(self, dud_scoring_data, torch_device):
+    def test_score(self, dud_scoring_data, torch_device, pyrosetta_session):
         import biotite.structure
         import biotite.structure.io
 
@@ -258,7 +271,7 @@ class TestDUDScoring:
         weights = sfxn.weights_tensor()
 
         score_types = sfxn.all_score_types()
-        print(f"\n=== {dud_scoring_data['name']} score breakdown ===")
+        print(f"\n=== {dud_scoring_data['name']} tmol score breakdown ===")
         total = 0.0
         for i, st in enumerate(score_types):
             w = float(weights[i])
@@ -268,3 +281,27 @@ class TestDUDScoring:
             if abs(weighted) > 1e-4:
                 print(f"  {st.name:<30s}  {u:10.4f} * {w:.2f} = {weighted:10.4f}")
         print(f"  {'total':<30s}  {'':>10s}         {total:10.4f}")
+
+        # --- PyRosetta reference scoring ---
+        # pyrosetta = pyrosetta_session
+        # ros_pose = pyrosetta.pose_from_pdb(str(dud_scoring_data["in_pdb"]))
+        # ros_sfxn = pyrosetta.create_score_function("beta_genpot")
+        # ros_sfxn(ros_pose)
+        # print(f"\n=== {dud_scoring_data['name']} PyRosetta score breakdown ===")
+        # energies = ros_pose.energies()
+        # total_ros = 0.0
+        # for term in ros_sfxn.get_nonzero_weighted_scoretypes():
+        #    w = ros_sfxn.get_weight(term)
+        #    u = energies.total_energies()[term]
+        #    weighted = w * u
+        #    total_ros += weighted
+        #    if abs(weighted) > 1e-4:
+        #        print(f"  {str(term):<30s}  {u:10.4f} * {w:.2f} = {weighted:10.4f}")
+        # print(f"  {'total':<30s}  {'':>10s}         {total_ros:10.4f}")
+
+        # --- Dump output PDBs ---
+        # from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
+
+        # name = dud_scoring_data["name"]
+        # write_pose_stack_pdb(pose_stack, f"{name}_tmol.pdb")
+        # ros_pose.dump_pdb(f"{name}_ros.pdb")

@@ -164,7 +164,7 @@ class HBondDependentTerm(BondDependentTerm):
 
         tile_size = HBondDependentTerm.tile_size
         tiled_acc_orig_inds, tile_n_acc = arg_tile_subset_indices(
-            A_idx, tile_size, block_type.n_atoms
+            A_idx, tile_size, block_type.n_atoms - 1
         )
 
         n_tiles = tile_n_acc.shape[0]
@@ -197,10 +197,10 @@ class HBondDependentTerm(BondDependentTerm):
         tile_acceptor_n_attached_H[is_tiled_acc] = n_H_for_at[A_idx]
 
         tiled_donH_orig_inds, tile_n_donH = arg_tile_subset_indices(
-            H_idx, tile_size, block_type.n_atoms
+            H_idx, tile_size, block_type.n_atoms - 1
         )
         tiled_don_hvy_orig_inds, tile_n_don_hvy = arg_tile_subset_indices(
-            D_idx, tile_size, block_type.n_atoms
+            D_idx, tile_size, block_type.n_atoms - 1
         )
 
         assert tile_n_donH.shape[0] == n_tiles

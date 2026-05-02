@@ -55,6 +55,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(LJLKEnergyTerm, self).setup_packed_block_types(packed_block_types)
         if hasattr(packed_block_types, "ljlk_heavy_atoms_in_tile"):
             assert hasattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile")
+            assert hasattr(packed_block_types, "ljlk_bond_separation")
             return
         max_n_tiles = (packed_block_types.max_n_atoms - 1) // self.tile_size + 1
         heavy_atoms_in_tile = torch.full(
@@ -81,6 +82,18 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
 
         setattr(packed_block_types, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
         setattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile", n_heavy_ats_in_tile)
+
+        # Ligands (non-polymer) use CP_CROSSOVER_3FULL: 1-4 pairs get full
+        # weight (1.0). Build a modified bond_separation where path_dist=4 is
+        # encoded as 5 for non-polymer block types so connectivity_weight
+        # returns 1.0. Keep bond_separation unchanged for hbond (binary excl.).
+        ljlk_bond_separation = packed_block_types.bond_separation.clone()
+        for i, bt in enumerate(packed_block_types.active_block_types):
+            if not bt.properties.polymer.is_polymer:
+                n = packed_block_types.n_atoms[i]
+                slab = ljlk_bond_separation[i, :n, :n]
+                slab[(slab == 3) | (slab == 4)] = 5
+        setattr(packed_block_types, "ljlk_bond_separation", ljlk_bond_separation)
 
     def setup_poses(self, poses: PoseStack):
         super(LJLKEnergyTerm, self).setup_poses(poses)
@@ -134,7 +147,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack.packed_block_types.atom_types,
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,
-            pose_stack.packed_block_types.bond_separation,
+            pose_stack.packed_block_types.ljlk_bond_separation,
             type_params,
             global_params,
         ]

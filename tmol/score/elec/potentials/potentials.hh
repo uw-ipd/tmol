@@ -68,7 +68,7 @@ def elec_delec_ddist(
 
   Real weight = connectivity_weight<Real>(bonded_path_length);
 
-  Real C1 = 322.0637;  // electrostatic energy constant
+  Real C1 = 332.0637;  // electrostatic energy constant
   Real C2 = C1 / (max_dis * eps(max_dis, D, D0, S));
 
   Real eiej = e_i * e_j;
@@ -148,7 +148,7 @@ def elec(
 
   Real weight = connectivity_weight<Real>(bonded_path_length);
 
-  Real C1 = 322.0637;  // electrostatic energy constant
+  Real C1 = 332.0637;  // electrostatic energy constant
   Real C2 = C1 / (max_dis * eps(max_dis, D, D0, S));
 
   Real eiej = e_i * e_j;
@@ -171,6 +171,9 @@ def elec(
     Real eps_elec = eps(low_poly_end, D, D0, S);
     Real deps_elec_d_dist = deps_ddist(low_poly_end, D, D0, S);
     Real dmax_elec = eiej * (C1 / (low_poly_end * eps_elec) - C2);
+    Real dmax_elec_d_dist =
+        -C1 * eiej * (eps_elec + low_poly_end * deps_elec_d_dist)
+        / (low_poly_end * low_poly_end * eps_elec * eps_elec);
 
     elecE = interpolate<Real>(
         dist,
@@ -179,7 +182,7 @@ def elec(
         0.0,
         low_poly_end,
         dmax_elec,
-        deps_elec_d_dist);
+        dmax_elec_d_dist);
 
   } else if (dist < hi_poly_start) {
     // Coulombic part

@@ -17,6 +17,8 @@ Key differences from CartBondedEnergyTerm:
     for both intra (Python-time lookup) and inter (GPU-time hash lookup).
 """
 
+import math
+
 import torch
 import numpy
 
@@ -40,7 +42,7 @@ from tmol.score.common.hash_util import (
     add_to_hashtable,
 )
 
-# Maximum hierarchy depth for any atom type (concrete → class → X).
+# Maximum hierarchy depth for any atom type (concrete -> class -> X).
 MAX_HIER_DEPTH = 3
 
 # Bond-type character to integer encoding (must match impl.hh GB_BOND_WILDCARD etc.)
@@ -53,12 +55,11 @@ BOND_CHAR_TO_INT = {
     ":": 5,  # AROMATIC
 }
 
-# IntEnum value → single-char representation used in the database file
+# IntEnum value -> single-char representation used in the database file
 BOND_TYPE_TO_CHAR = {
     int(BondType.SINGLE): "-",
     int(BondType.DOUBLE): "=",
     int(BondType.TRIPLE): "#",
-    int(BondType.RING): "@",
     int(BondType.AROMATIC): ":",
 }
 
@@ -73,7 +74,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         self.gen_database = param_db.scoring.genbonded
         self.device = device
 
-        # Build the global type-string → integer-index mapping once.
+        # Build the global type-string -> integer-index mapping once.
         # This covers every type string that appears anywhere in the database
         # (concrete, generic, and wildcard), so the mapping is stable and fixed
         # regardless of which block types are later loaded.
@@ -92,6 +93,35 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
 
     def n_bodies(self):
         return 2
+
+    @staticmethod
+    def _calculate_offset(k1, k2, k3, k4):
+        """Match Rosetta's GenTorsionParams::calculate_offset().
+
+        If more than one of k1,k2,k3 is non-zero, scan energy at 5-degree
+        intervals and return the negative of the minimum so the potential
+        is zero at its lowest point. Only invoked when the database offset
+        is zero (non-zero database offsets override this entirely).
+        """
+        nk_nonzero = sum(1 for k in (k1, k2, k3) if abs(k) > 1e-6)
+        if nk_nonzero <= 1:
+            return 0.0
+        t = numpy.arange(-180.0, 180.0, 5.0) * (math.pi / 180.0)
+        e = (
+            k1 * (1 + numpy.cos(t))
+            + k2 * (1 + numpy.cos(2 * t))
+            + k3 * (1 + numpy.cos(3 * t))
+            + k4 * (1 + numpy.cos(4 * t))
+        )
+        if k1 < 0:
+            e += -2.0 * k1
+        if k2 < 0:
+            e += -2.0 * k2
+        if k3 < 0:
+            e += -2.0 * k3
+        if k4 < 0:
+            e += -2.0 * k4
+        return -float(e.min())
 
     def find_torsion_subgraphs(self, bonds):
         """Return list of (i, j, k, l) tuples for all proper torsions in *bonds*.
@@ -149,8 +179,8 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         """For each torsion tuple (i,j,k,l), look up its genbonded parameters.
 
         Returns (kept_torsions, params) where:
-          kept_torsions – filtered list of (i,j,k,l) tuples that had a DB match
-          params        – numpy float32 array of shape (N_kept, 5):
+          kept_torsions : filtered list of (i,j,k,l) tuples that had a DB match
+          params        : numpy float32 array of shape (N_kept, 5):
                           columns [k1, k2, k3, k4, offset]
 
         Torsions with no matching database entry are dropped from the output.
@@ -166,16 +196,28 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             t3 = self.get_atom_chem_type(block_type, k)
             t4 = self.get_atom_chem_type(block_type, l)
 
-            # Look up the bond type for the central bond (j,k).
+            # Look up bond type and ring membership for the central bond (j,k).
             bond_type_int = block_type.bond_to_type.get(
                 (int(j), int(k)), int(BondType.SINGLE)
             )
-            bond_char = BOND_TYPE_TO_CHAR.get(bond_type_int, "-")
+            is_ring = block_type.bond_to_ringness.get((int(j), int(k)), False)
 
-            entry = self.gen_database.find_torsion_params(t1, t2, t3, t4, bond_char)
+            # find_torsion_params tries both forward and reversed directions
+            # internally and returns the most specific match.
+            entry = self.gen_database.find_torsion_params(
+                t1, t2, t3, t4, bond_type_int, is_ring
+            )
             if entry is not None:
                 kept.append((i, j, k, l))
-                rows.append([entry.k1, entry.k2, entry.k3, entry.k4, entry.offset])
+                # Rosetta's calculate_offset() zeros the minimum when the
+                # database offset is 0 and nk_nonzero(k1,k2,k3) > 1.
+                # Non-zero database offsets override this entirely.
+                offset = entry.offset
+                if abs(offset) < 1e-6:
+                    offset = self._calculate_offset(
+                        entry.k1, entry.k2, entry.k3, entry.k4
+                    )
+                rows.append([entry.k1, entry.k2, entry.k3, entry.k4, offset])
 
         if rows:
             params = numpy.array(rows, dtype=numpy.float32)
@@ -188,8 +230,8 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         """For each improper tuple (center, n1, n2, n3), look up parameters.
 
         Returns (kept_impropers, params) where:
-          kept_impropers – filtered list of tuples that had a DB match
-          params         – numpy float32 array of shape (N_kept, 2): [k, delta]
+          kept_impropers : filtered list of tuples that had a DB match
+          params         : numpy float32 array of shape (N_kept, 2): [k, delta]
 
         Impropers with no matching database entry are dropped.
         """
@@ -256,8 +298,8 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
 
         # --- Combine into single tagged tensor ---
         # Layout: Vec<Int,5>  = [tag, a0, a1, a2, a3]
-        #           tag=0 → proper torsion  (atoms: i,j,k,l)
-        #           tag=1 → improper torsion (atoms: center, n1, n2, n3)
+        #           tag=0 -> proper torsion  (atoms: i,j,k,l)
+        #           tag=1 -> improper torsion (atoms: center, n1, n2, n3)
         # Params: Vec<Real,5>
         #           proper:   [k1, k2, k3, k4, offset]
         #           improper: [k, delta, 0, 0, 0]
@@ -375,7 +417,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         # 4. Inter-block torsion hash table.
         #
         # Keyed by (type_idx_1, type_idx_2, type_idx_3, type_idx_4, bond_type_int).
-        # 5 key elements + 1 value-index slot → Vec<Int,6> in the C++ kernel,
+        # 5 key elements + 1 value-index slot -> Vec<Int,6> in the C++ kernel,
         # matching hash_lookup<Int, 5, D>.
         #
         # Wildcard entries (bond='~') are stored under bond_type_int=0.
@@ -408,7 +450,12 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
                     type_to_idx[et4],
                     bond_int,
                 )
-                values = (entry.k1, entry.k2, entry.k3, entry.k4, entry.offset)
+                offset = entry.offset
+                if abs(offset) < 1e-6:
+                    offset = self._calculate_offset(
+                        entry.k1, entry.k2, entry.k3, entry.k4
+                    )
+                values = (entry.k1, entry.k2, entry.k3, entry.k4, offset)
                 add_to_hashtable(hash_keys, hash_values, val_idx, key, values)
         else:
             # Empty hash table placeholders (1 entry, 2-slot table, 6-wide keys).

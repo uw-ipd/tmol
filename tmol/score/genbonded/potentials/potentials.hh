@@ -53,22 +53,22 @@ def gbtorsion_V_dV(
   auto torsion = dihedral_angle<Real>::V_dV(atm1, atm2, atm3, atm4);
   Real theta = torsion.V;
 
-  Real E = k1 * (1 + std::cos(theta - offset))
-           + k2 * (1 + std::cos(2 * theta - offset))
-           + k3 * (1 + std::cos(3 * theta - offset))
-           + k4 * (1 + std::cos(4 * theta - offset));
+  // offset is an additive constant (Rosetta convention), not a phase.
+  // Per-period phases (f1..f4) are all 0 in the current database.
+  Real E = k1 * (1 + std::cos(theta)) + k2 * (1 + std::cos(2 * theta))
+           + k3 * (1 + std::cos(3 * theta)) + k4 * (1 + std::cos(4 * theta));
 
   if (k1 < 0) E += -2.0 * k1;
   if (k2 < 0) E += -2.0 * k2;
   if (k3 < 0) E += -2.0 * k3;
   if (k4 < 0) E += -2.0 * k4;
 
+  E += offset;
+
   // printf("gbtorsion_V_dV E=%f (%f/%f/%f/%f)\n",E,k1,k2,k3,k4);
 
-  Real dEdtheta = -k1 * std::sin(theta - offset)
-                  - 2 * k2 * std::sin(2 * theta - offset)
-                  - 3 * k3 * std::sin(3 * theta - offset)
-                  - 4 * k4 * std::sin(4 * theta - offset);
+  Real dEdtheta = -k1 * std::sin(theta) - 2 * k2 * std::sin(2 * theta)
+                  - 3 * k3 * std::sin(3 * theta) - 4 * k4 * std::sin(4 * theta);
 
   Vec<Real3, 4> dEdx;
   dEdx[0] = dEdtheta * torsion.dV_dI;

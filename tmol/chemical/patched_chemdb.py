@@ -538,12 +538,14 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
 
         # 4. add bonds
         newbonds = []
-        for i, j, btype in variant.add_bonds:
+        for bond in variant.add_bonds:
+            i, j, btype = bond[0], bond[1], bond[2]
+            is_ring = bond[3] if len(bond) > 3 else False
             if i in namemap:
                 i = namemap[i]
             if j in namemap:
                 j = namemap[j]
-            newbonds.append((i, j, btype))
+            newbonds.append((i, j, btype, is_ring))
         newres.bonds = (*newres.bonds, *newbonds)
 
         # 5. update icoors

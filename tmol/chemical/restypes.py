@@ -29,15 +29,13 @@ class BondType(IntEnum):
     SINGLE = 1
     DOUBLE = 2
     TRIPLE = 3
-    RING = 4
-    AROMATIC = 5
+    AROMATIC = 4
 
 
 BOND_TYPE_FROM_STR = {
     "SINGLE": BondType.SINGLE,
     "DOUBLE": BondType.DOUBLE,
     "TRIPLE": BondType.TRIPLE,
-    "RING": BondType.RING,
     "AROMATIC": BondType.AROMATIC,
 }
 
@@ -194,6 +192,21 @@ class RefinedResidueType(RawResidueType):
                 bt_map[(ai, bi)] = bt_int
                 bt_map[(bi, ai)] = bt_int
         return frozendict(bt_map)
+
+    bond_to_ringness: Mapping = attr.ib()
+
+    @bond_to_ringness.default
+    def _setup_bond_to_ringness(self):
+        ring_map = {}
+        for b in self.bonds:
+            a0, a1 = b[0], b[1]
+            is_ring = bool(b[3]) if len(b) > 3 else False
+            ai = self.atom_to_idx.get(a0)
+            bi = self.atom_to_idx.get(a1)
+            if ai is not None and bi is not None:
+                ring_map[(ai, bi)] = is_ring
+                ring_map[(bi, ai)] = is_ring
+        return frozendict(ring_map)
 
     @property
     def n_conn(self):

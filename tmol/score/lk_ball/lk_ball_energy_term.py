@@ -101,7 +101,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
         tile_size = LKBallEnergyTerm.tile_size
         tiled_polar_orig_inds, tile_n_polar = arg_tile_subset_indices(
-            polar_inds, tile_size, block_type.n_atoms
+            polar_inds, tile_size, block_type.n_atoms - 1
         )
         tiled_polar_orig_inds = tiled_polar_orig_inds.reshape(n_tiles, tile_size)
 
@@ -122,7 +122,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         heavy_apolar_inds = numpy.nonzero(atom_is_heavy_apolar)[0].astype(numpy.int32)
 
         tiled_heavy_apolar_orig_inds, tile_n_apolar = arg_tile_subset_indices(
-            heavy_apolar_inds, tile_size, block_type.n_atoms
+            heavy_apolar_inds, tile_size, block_type.n_atoms - 1
         )
         tiled_heavy_apolar_orig_inds = tiled_heavy_apolar_orig_inds.reshape(
             n_tiles, tile_size

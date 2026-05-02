@@ -52,7 +52,9 @@ def normalize_bond_tuples(raw):
             normalized = []
             for bond in bonds:
                 if isinstance(bond, (list, tuple)) and len(bond) == 2:
-                    normalized.append([bond[0], bond[1], "SINGLE"])
+                    normalized.append([bond[0], bond[1], "SINGLE", False])
+                elif isinstance(bond, (list, tuple)) and len(bond) == 3:
+                    normalized.append([bond[0], bond[1], bond[2], False])
                 else:
                     normalized.append(bond)
             entry[field] = normalized
@@ -169,7 +171,7 @@ class RawResidueType:
     io_equiv_class: str
     atoms: Tuple[Atom, ...]
     atom_aliases: Tuple[AtomAlias, ...]
-    bonds: Tuple[Tuple[str, str, str], ...]
+    bonds: Tuple[tuple, ...]
     connections: Tuple[Connection, ...]
     torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
@@ -213,7 +215,7 @@ class VariantType:
     add_atom_aliases: Tuple[AtomAlias, ...]
     modify_atoms: Tuple[Atom, ...]
     add_connections: Tuple[Connection, ...]
-    add_bonds: Tuple[Tuple[str, str, str], ...]
+    add_bonds: Tuple[tuple, ...]
     icoors: Tuple[IcoorVariant, ...]
 
 
