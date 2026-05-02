@@ -114,6 +114,7 @@ struct type_caster<tmol::score::ljlk::potentials::LJGlobalParams<Real>> {
   bool load(handle src, bool convert) {
     nvtx_range_function();
 
+    CAST_ATTR(src, value, lj_dlin_sigma_factor);
     CAST_ATTR(src, value, lj_hbond_dis);
     CAST_ATTR(src, value, lj_hbond_OH_donor_dis);
     CAST_ATTR(src, value, lj_hbond_hdis);
@@ -133,6 +134,7 @@ struct type_caster<
   bool load(handle src, bool convert) {
     nvtx_range_function();
 
+    CAST_ATTR(src, value, lj_dlin_sigma_factor);
     CAST_ATTR(src, value, lj_hbond_dis);
     CAST_ATTR(src, value, lj_hbond_OH_donor_dis);
     CAST_ATTR(src, value, lj_hbond_hdis);
