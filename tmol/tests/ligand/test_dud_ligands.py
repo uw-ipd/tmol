@@ -203,17 +203,29 @@ def _load_tmol_file(path):
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="session")
-def pyrosetta_session():
-    """Initialize PyRosetta once per session with all DUD params files."""
-    pyrosetta = pytest.importorskip("pyrosetta")
-    all_params = sorted(DUD_DIR.glob("*/*.params"))
-    extra_res = " ".join(str(p) for p in all_params)
-    pyrosetta.init(
-        f"-gen_potential -extra_res_fa {extra_res} -mute all",
-        silent=True,
-    )
-    return pyrosetta
+# Terms in score.sc we compare against tmol (values are already weighted).
+_ROS_TERMS = {
+    "fa_intra_atr_xover4",
+    "fa_intra_rep_xover4",
+    "fa_intra_sol_xover4",
+    "fa_intra_elec",
+    "gen_bonded",
+}
+
+
+def _rosetta_score(sc_path: Path) -> dict[str, float]:
+    """Parse a pre-generated score.sc file; values are already weighted."""
+    with open(sc_path) as f:
+        lines = [l for l in f if l.startswith("SCORE:")]
+    header = lines[0].split()[1:]
+    values = lines[1].split()[1:]
+    scores = {}
+    for h, v in zip(header, values):
+        try:
+            scores[h] = float(v)
+        except ValueError:
+            scores[h] = v
+    return scores
 
 
 class TestDUDScoring:
@@ -237,7 +249,7 @@ class TestDUDScoring:
             "in_pdb": in_pdb,
         }
 
-    def test_score(self, dud_scoring_data, torch_device, pyrosetta_session):
+    def test_score(self, dud_scoring_data, torch_device):
         import biotite.structure
         import biotite.structure.io
 
@@ -267,41 +279,23 @@ class TestDUDScoring:
 
         sfxn = beta2016_score_function(torch_device, param_db=param_db)
         scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
-        unweighted = scorer.unweighted_scores(pose_stack.coords)  # (n_types, n_poses)
+        unweighted = scorer.unweighted_scores(pose_stack.coords)
         weights = sfxn.weights_tensor()
 
         score_types = sfxn.all_score_types()
-        print(f"\n=== {dud_scoring_data['name']} tmol score breakdown ===")
-        total = 0.0
-        for i, st in enumerate(score_types):
-            w = float(weights[i])
-            u = float(unweighted[i, 0])
-            weighted = w * u
-            total += weighted
-            if abs(weighted) > 1e-4:
-                print(f"  {st.name:<30s}  {u:10.4f} * {w:.2f} = {weighted:10.4f}")
-        print(f"  {'total':<30s}  {'':>10s}         {total:10.4f}")
+        total = sum(
+            float(weights[i]) * float(unweighted[i, 0]) for i in range(len(score_types))
+        )
 
-        # --- PyRosetta reference scoring ---
-        # pyrosetta = pyrosetta_session
-        # ros_pose = pyrosetta.pose_from_pdb(str(dud_scoring_data["in_pdb"]))
-        # ros_sfxn = pyrosetta.create_score_function("beta_genpot")
-        # ros_sfxn(ros_pose)
-        # print(f"\n=== {dud_scoring_data['name']} PyRosetta score breakdown ===")
-        # energies = ros_pose.energies()
-        # total_ros = 0.0
-        # for term in ros_sfxn.get_nonzero_weighted_scoretypes():
-        #    w = ros_sfxn.get_weight(term)
-        #    u = energies.total_energies()[term]
-        #    weighted = w * u
-        #    total_ros += weighted
-        #    if abs(weighted) > 1e-4:
-        #        print(f"  {str(term):<30s}  {u:10.4f} * {w:.2f} = {weighted:10.4f}")
-        # print(f"  {'total':<30s}  {'':>10s}         {total_ros:10.4f}")
+        # --- Rosetta reference scores from pre-generated .sc file ---
+        sc_path = (
+            DUD_DIR / dud_scoring_data["target"] / f"{dud_scoring_data['name']}.sc"
+        )
+        if not sc_path.exists():
+            pytest.skip(f"No reference scores: {sc_path}")
+        total_ros = _rosetta_score(sc_path).get("total_score", 0.0)
 
-        # --- Dump output PDBs ---
-        # from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
-
-        # name = dud_scoring_data["name"]
-        # write_pose_stack_pdb(pose_stack, f"{name}_tmol.pdb")
-        # ros_pose.dump_pdb(f"{name}_ros.pdb")
+        assert abs(total - total_ros) < 1.0, (
+            f"Total score mismatch for {dud_scoring_data['name']}: "
+            f"tmol={total:.4f}, ros={total_ros:.4f}, diff={total - total_ros:.4f}"
+        )
