@@ -826,7 +826,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
     SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() : m{} {}
+      shared_mem_union() {}
       LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
     } shared;
@@ -1000,7 +1000,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
     SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() : m{} {}
+      shared_mem_union() {}
       LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
 
@@ -1343,7 +1343,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
     auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
     SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() : m{} {}
+      shared_mem_union() {}
       LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
 
@@ -1681,7 +1681,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
     SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() : m{} {}
+      shared_mem_union() {}
       LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
     } shared;
@@ -1990,7 +1990,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
     auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
     SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() : m{} {}
+      shared_mem_union() {}
       LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
 

@@ -461,6 +461,12 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares2_tile_data_to_shared(
     int n_atoms_to_load2,
     LJLKScoringData<Real>& intra_dat,
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
+  // A prior same-tile ljlk_load_intrares_data_from_shared call may have
+  // aliased r2's pointers to the "1" shared-memory arrays. Reset them to
+  // the "2" arrays so the load below writes to the correct destination.
+  intra_dat.r2.coords = shared_m.coords2;
+  intra_dat.r2.params = shared_m.params2;
+  intra_dat.r2.heavy_inds = shared_m.heavy_inds2;
   auto store_n_heavy2 = ([&](int tid) {
     if (tid == 0) {
       shared_m.n_heavy2 =

@@ -573,7 +573,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
     SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() : m{} {}
+      shared_mem_union() {}
       ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
 
@@ -713,7 +713,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
     SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() : m{} {}
+      shared_mem_union() {}
       ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
 
@@ -1009,7 +1009,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
     SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() : m{} {}
+      shared_mem_union() {}
       ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
 
@@ -1312,7 +1312,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
     SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() : m{} {}
+      shared_mem_union() {}
       ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
 
@@ -1579,7 +1579,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
     SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() : m{} {}
+      shared_mem_union() {}
       ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
 
