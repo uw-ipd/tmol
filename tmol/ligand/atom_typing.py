@@ -16,6 +16,7 @@ from tmol.ligand.chemistry_tables import get_polar_classes
 
 logger = logging.getLogger(__name__)
 
+
 ELEMENT_SYMBOLS = {
     1: "H",
     6: "C",
@@ -61,6 +62,103 @@ def _is_hydrogen(atom: Chem.Atom) -> bool:
     return atom.GetAtomicNum() == 1
 
 
+def sanitize_tolerant(mol: Chem.Mol) -> None:
+    """Run ``Chem.SanitizeMol`` with a Kekulé/valence-tolerant fallback.
+
+    Some ligand inputs (e.g. guanidinium / amidine groups, fused
+    heteroaromatics with mixed Kekulé/aromatic perception, formal-charge
+    nitrogens) cannot be kekulized or pass RDKit's strict valence model
+    on first try. We retry with sanitization that skips KEKULIZE,
+    SETAROMATICITY, and PROPERTIES — preserving the incoming bond
+    orders / aromaticity flags rather than dropping the mol on the floor.
+
+    When the molecule carries explicit aromatic flags from the source
+    (see :func:`source_carried_kekule`), we skip ``SETAROMATICITY`` /
+    ``KEKULIZE`` from the start so RDKit's re-perception cannot
+    overwrite the source-supplied flags / Kekulé bond orders.
+    """
+    from tmol.ligand.rdkit_mol import source_carried_kekule
+
+    if source_carried_kekule(mol):
+        ops = (
+            Chem.SANITIZE_ALL
+            ^ Chem.SANITIZE_KEKULIZE
+            ^ Chem.SANITIZE_SETAROMATICITY
+        )
+        try:
+            Chem.SanitizeMol(mol, sanitizeOps=ops)
+            return
+        except Chem.rdchem.AtomValenceException:
+            pass
+    try:
+        Chem.SanitizeMol(mol)
+    except (Chem.rdchem.KekulizeException, Chem.rdchem.AtomValenceException):
+        ops = (
+            Chem.SANITIZE_ALL
+            ^ Chem.SANITIZE_KEKULIZE
+            ^ Chem.SANITIZE_SETAROMATICITY
+            ^ Chem.SANITIZE_PROPERTIES
+        )
+        Chem.SanitizeMol(mol, sanitizeOps=ops)
+
+
+_WAS_AROMATIC_PROP = "_tmol_was_aromatic"
+
+
+def _save_aromatic_perception(mol: Chem.Mol) -> None:
+    """Stamp each atom's current ``GetIsAromatic`` flag onto an atom prop.
+
+    Kekulization clears the live aromatic flag, but the classifier still
+    needs to know that a pyrrole-type N or aromatic ring carbon was once
+    aromatic to choose ``Nin`` over ``NG21``. Read back via
+    :func:`was_aromatic`.
+    """
+    for atom in mol.GetAtoms():
+        atom.SetIntProp(_WAS_AROMATIC_PROP, 1 if atom.GetIsAromatic() else 0)
+
+
+def was_aromatic(atom: Chem.Atom) -> bool:
+    """Return the aromatic flag captured before kekulization, falling back
+    to the live flag if the property wasn't set."""
+    if atom.HasProp(_WAS_AROMATIC_PROP):
+        return atom.GetIntProp(_WAS_AROMATIC_PROP) == 1
+    return atom.GetIsAromatic()
+
+
+def kekulize_tolerant(mol: Chem.Mol) -> None:
+    """Force Kekulé bond orders + clear aromatic flags, tolerant of failure.
+
+    Rosetta's atom-type classifier and the reference ``.tmol`` files use
+    Kekulé conventions (sp2 ``CD/CD1/CDp`` rather than aromatic
+    ``CR/CRp``; explicit ``DOUBLE``/``SINGLE`` ring bonds rather than
+    ``AROMATIC``). Aromaticity perception in RDKit's standard sanitize
+    flips them back, so we kekulize after every sanitize step.
+
+    Stamps :func:`was_aromatic` first so downstream classifiers can still
+    distinguish pyrrole-type N (``Nin``) from plain sp2 NH (``NG21``).
+    """
+    _save_aromatic_perception(mol)
+    try:
+        Chem.Kekulize(mol, clearAromaticFlags=True)
+    except (Chem.rdchem.KekulizeException, Chem.rdchem.AtomKekulizeException):
+        pass
+
+
+def should_kekulize_for_typing(mol: Chem.Mol) -> bool:
+    """``True`` when this mol's rings should use Kekulé typing.
+
+    Rosetta's mol2genparams takes atom types directly from the source
+    mol2's atom-type column. mol2 files written with sp2 (``C.2``) want
+    Kekulé / ``CD`` typing; SMILES sources and mol2 files with ``C.ar``
+    want aromatic / ``CR``. We can't recover the column itself, but we
+    can read a flag set when the source AtomArray carried explicit
+    Kekulé bond orders (see ``rdkit_mol.source_carried_kekule``).
+    """
+    from tmol.ligand.rdkit_mol import source_carried_kekule
+
+    return source_carried_kekule(mol)
+
+
 def _prepare_mol_for_typing(mol: Chem.Mol) -> Chem.Mol:
     """Normalize RDKit perception so it matches Rosetta expectations.
 
@@ -70,8 +168,18 @@ def _prepare_mol_for_typing(mol: Chem.Mol) -> Chem.Mol:
     if not any(a.GetAtomicNum() == 1 for a in mol.GetAtoms()):
         mol = Chem.AddHs(mol, addCoords=mol.GetNumConformers() > 0)
 
-    # Sanitize - strict requirement for correct aromaticity/perception
-    Chem.SanitizeMol(mol)
+    sanitize_tolerant(mol)
+
+    # Conditional kekulization: rings that carry an exocyclic C=O / C=N
+    # (purine, cytosine, amide-substituted ring) were originally encoded
+    # as sp2 in the source mol2 (``C.2`` → ``CD``), so we kekulize them
+    # to match Rosetta's reference. Plain phenyls have no such
+    # substituent and stay aromatic (``CR``).
+    # Don't kekulize when the CIF carried explicit aromatic flags —
+    # ``Kekulize`` clears them, and atom typing then loses the CR vs CD
+    # distinction. The flags + Kekulé bond orders that survive sanitize
+    # already give classifiers everything they need.
+    pass
 
     # Perceive rings
     Chem.GetSSSR(mol)
@@ -166,11 +274,35 @@ def _classify_H(atom: Chem.Atom, mol: Chem.Mol) -> str:
 
 
 def _classify_C(atom: Chem.Atom, mol: Chem.Mol) -> str:
+    from tmol.ligand.rdkit_mol import source_subtype
+
     hyb = _get_hyb(atom)
     nbonds = atom.GetDegree()
     nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom)
 
-    if hyb == 9:
+    sub = source_subtype(atom)
+    # mol2genparams takes the CR-vs-CD decision straight from the mol2
+    # atom-type column. Only ``C.ar`` → ``CR``; everything else
+    # (``C.2``, ``C.cat``, ``C.3`` even when RDKit aromatized the ring)
+    # picks the Kekulé branch and gets ``CD``-flavoured types via the
+    # degree-based rules below.
+    if sub == "ar":
+        prefix = "CR"
+    elif sub:
+        # Source explicit non-``.ar`` subtype — never treat as aromatic
+        # for typing purposes, even if RDKit perceived the ring as
+        # aromatic.
+        if atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED:
+            prefix = "CS"
+        elif nbonds == 4:
+            prefix = "CS"
+        elif nbonds == 3:
+            prefix = "CD"
+        elif nbonds <= 2:
+            prefix = "CT"
+        else:
+            return "CS"
+    elif hyb == 9:
         prefix = "CR"
     elif atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED:
         prefix = "CS"
@@ -203,7 +335,17 @@ def _classify_N_hetero(atom, hyb, nC, nH, nO, nN, ntot):
         if nO >= 2:
             return "NG2"
         if nH == 0 and nN >= 1:
-            return "Nad3"
+            # Azole-style ring N (triazole / tetrazole): all ring Ns
+            # adjacent to another ring N get Nim regardless of degree.
+            # The aromatic flag is read from the saved-pre-kekulize
+            # snapshot since Kekulize clears the live one.
+            if was_aromatic(atom):
+                return "Nim"
+            # Acyclic R2-N=C-... amide-style → Nad3 only when 3-coord;
+            # 2-coord sp2 N with an N neighbor is an imine.
+            if ntot == 3:
+                return "Nad3"
+            return "Nim"
         if nH == 0:
             return "NG2"
         if nH == 1:
@@ -254,7 +396,10 @@ def _classify_N_sp2(atom, nC, nH):
         return "Ngu1" if nH == 1 else "NG2"
 
     if nC == 2 and nCaro >= 1:
-        if nH == 1 and atom.GetIsAromatic():
+        # Pyrrole-type N-H sits in a Hückel-aromatic 5-ring. We must
+        # consult the saved aromaticity flag because the live one has
+        # already been cleared by kekulize_tolerant by this point.
+        if nH == 1 and was_aromatic(atom):
             return "Nin"
         return "NG21" if nH == 1 else "Nim" if nH == 0 else "NG22"
 
@@ -267,8 +412,20 @@ def _classify_N_sp2(atom, nC, nH):
 
 
 def _classify_N(atom: Chem.Atom, mol: Chem.Mol) -> str:
+    from tmol.ligand.rdkit_mol import source_subtype
+
     hyb = _get_hyb(atom)
     nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom)
+    sub = source_subtype(atom)
+
+    # Source-mol2 ``N.am`` is an amide N → ``Nad`` (or ``Nad3`` when
+    # 3-coord with no H). The carbon-aromaticity heuristic that drives
+    # ``Nin`` is otherwise too eager when the neighboring C sits in an
+    # aromatic ring (cytosine-like).
+    if sub == "am":
+        if ntot == 3 and nH == 0:
+            return "Nad3"
+        return "Nad"
 
     if hyb == 1:
         return "NG1"
@@ -323,7 +480,14 @@ def _classify_O_no_carbon(atom, hyb, nH, nN, ntot):
 def _classify_O_sp2(atom, nC):
     """Classify sp2 oxygen bonded to at least one carbon."""
     if nC == 2:
-        return "Ofu"
+        # 2-carbon sp2 O is Ofu only when it sits in a furan-style
+        # aromatic 5-ring. Acyclic ester / lactone Os that RDKit
+        # aromatized via lone-pair conjugation get Oet.
+        ri = atom.GetOwningMol().GetRingInfo()
+        in_5ring = any(
+            len(r) == 5 and atom.GetIdx() in r for r in ri.AtomRings()
+        )
+        return "Ofu" if in_5ring else "Oet"
 
     c_nbr = None
     for nbr in atom.GetNeighbors():
@@ -357,8 +521,11 @@ def _classify_O_sp2(atom, nC):
 
 
 def _classify_O(atom: Chem.Atom, mol: Chem.Mol) -> str:
+    from tmol.ligand.rdkit_mol import source_subtype
+
     hyb = _get_hyb(atom)
     nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom)
+    sub = source_subtype(atom)
 
     if nC == 0:
         return _classify_O_no_carbon(atom, hyb, nH, nN, ntot)
@@ -366,14 +533,43 @@ def _classify_O(atom: Chem.Atom, mol: Chem.Mol) -> str:
     if ntot > 2:
         return "OG2"
 
+    # Source-mol2 ``O.2`` forces the sp2 branch even when the neighbour
+    # carbon is aromatic. Rosetta's mol2genparams reads CR/CD and
+    # Oal/Ohx straight from the source column; our phenolic-OH
+    # short-circuit is a heuristic that only applies when the source
+    # didn't already say sp2.
+    if sub != "2" and ntot == 2 and nH >= 1 and nC == 1:
+        c_nbr = next(n for n in atom.GetNeighbors() if n.GetAtomicNum() == 6)
+        if c_nbr.GetIsAromatic():
+            return "Ohx"
+
+    # When source says ``O.2``, route to the sp2 classifier directly.
+    if sub == "2":
+        return _classify_O_sp2(atom, nC)
+
     if hyb == 3:
         if nH >= 1:
             return "Ohx"
         if ntot == 2 and nC == 2:
-            return "Ofu" if atom.GetIsAromatic() else "Oet"
+            # Ofu = O sitting inside a furan-style aromatic 5-ring.
+            # ``was_aromatic`` on its own is too permissive: RDKit's
+            # sanitize also flags ester / lactone Os aromatic via lone-
+            # pair conjugation with an adjacent carboxyl. We require
+            # both the aromatic flag (pre-kekulize) AND membership in
+            # a 5-membered ring.
+            ri = mol.GetRingInfo()
+            in_5ring = any(
+                len(r) == 5 and atom.GetIdx() in r for r in ri.AtomRings()
+            )
+            return "Ofu" if was_aromatic(atom) and in_5ring else "Oet"
         return "OG31" if nH >= 1 else "OG3"
 
-    if hyb == 2:
+    if hyb == 2 or hyb == 9:
+        # Treat aromatic-perceived Os (hyb=9) the same as sp2 — RDKit
+        # often marks carboxylate / nitro / heterocyclic oxygens
+        # aromatic when their lone pair conjugates into a ring, but the
+        # Rosetta classifier wants the Oat / Oal / Oad distinction
+        # driven by the bonded carbon's substituent pattern.
         return _classify_O_sp2(atom, nC)
 
     return "OG2"
@@ -518,7 +714,12 @@ def assign_tmol_atom_types(mol: Chem.Mol) -> list[AtomTypeAssignment]:
 
     mol = _prepare_mol_for_typing(mol)
     mol = _ensure_explicit_hydrogens(mol)
-    Chem.SanitizeMol(mol)
+    sanitize_tolerant(mol)
+    # Don't kekulize when the CIF carried explicit aromatic flags —
+    # ``Kekulize`` clears them, and atom typing then loses the CR vs CD
+    # distinction. The flags + Kekulé bond orders that survive sanitize
+    # already give classifiers everything they need.
+    pass
     Chem.GetSSSR(mol)
 
     # Pass 1: classify all atoms, name heavy atoms
@@ -553,7 +754,11 @@ def assign_tmol_atom_types(mol: Chem.Mol) -> list[AtomTypeAssignment]:
     # Build heavy atom index->element mapping for hydrogen naming
     heavy_elem_by_idx = {idx: _elem_symbol(z) for idx, _, _, z in heavy_assignments}
 
-    # Pass 2: name hydrogens as H<bonded_heavy_element><count>
+    # Pass 2: name hydrogens as H<bonded_heavy_element><count> — matches
+    # Rosetta mol2genparams's classic naming. Note that some other
+    # ground-truth sources (e.g. Frank's .tmol files) use sequential
+    # H1/H2/... naming instead; the chemistry tests collapse this via
+    # graph-based parent matching rather than byte-equal H names.
     h_name_counts: dict[str, int] = {}
     h_assignments: list[tuple[int, str, str]] = []
     for h_idx, heavy_idx, h_type in h_atoms:

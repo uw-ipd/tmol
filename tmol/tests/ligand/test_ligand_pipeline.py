@@ -20,7 +20,7 @@ from tmol.ligand.params_io import read_params_file, write_params_file
 from tmol.ligand.registry import get_default_cache
 from tmol.ligand.registry import clear_cache
 from tmol.ligand.registry import get_cached_charges_for_key, get_cached_ligand_for_key
-from tmol.ligand.registry import build_injection_data
+from tmol.ligand.registry import inject_ligand_preparations
 
 
 @pytest.fixture(autouse=True)
@@ -83,7 +83,7 @@ class TestFullPipeline:
         atom_names = [a.name for a in i4b_rt.atoms]
         atom_name_set = set(atom_names)
         assert len(atom_names) == len(atom_name_set), "Duplicate atom names"
-        for a, b, _ in i4b_rt.bonds:
+        for a, b, *_ in i4b_rt.bonds:
             assert a in atom_name_set and b in atom_name_set
 
     def test_hem_metal_ligand_skipped(self, cif_155c_with_hem, param_db):
@@ -137,40 +137,24 @@ class TestFullPipeline:
         assert reread_charges is not None
         assert reread_charges[some_atom] != 999.0
 
-    def test_build_injection_data_returns_data_or_none(
+    def test_inject_ligand_preparations_is_idempotent(
         self, cif_184l_with_i4b, param_db
     ):
-        from tmol.database import inject_residue_params
-
         ligands = detect_nonstandard_residues(
             cif_184l_with_i4b, canonical_ordering_for_biotite()
         )
         i4b = next(l for l in ligands if l.res_name == "I4B")
-        restype, charges, atom_type_elements = prepare_single_ligand(i4b, ph=7.4)
+        prep = prepare_single_ligand(i4b, ph=7.4)
 
-        data = build_injection_data(
-            param_db,
-            restype,
-            partial_charges=charges,
-            atom_type_elements=atom_type_elements,
-        )
-        assert data is not None
+        n_before = len(param_db.chemical.residues)
+        extended_db = inject_ligand_preparations(param_db, [prep])
+        assert len(extended_db.chemical.residues) > n_before
+        assert any(r.name == "I4B" for r in extended_db.chemical.residues)
 
-        extended_db = inject_residue_params(
-            param_db,
-            residue_types=[data.residue_type],
-            atom_types=list(data.new_atom_types),
-            partial_charges={data.residue_type.name: data.partial_charges},
-            cartbonded_params={data.residue_type.name: data.cartbonded_params},
-        )
-
-        data_again = build_injection_data(
-            extended_db,
-            restype,
-            partial_charges=charges,
-            atom_type_elements=atom_type_elements,
-        )
-        assert data_again is None
+        # Re-injecting the same preparation is a no-op (residue already
+        # registered) — same number of residues, same database identity.
+        again = inject_ligand_preparations(extended_db, [prep])
+        assert len(again.chemical.residues) == len(extended_db.chemical.residues)
 
     def test_ubq_passes_through_unchanged(self, biotite_1ubq, param_db):
         n_before = len(param_db.chemical.residues)
@@ -645,7 +629,8 @@ class TestParamsRoundtrip:
         co = canonical_ordering_for_biotite()
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
         i4b = next(lig for lig in ligands if lig.res_name == "I4B")
-        restype, charges, atom_type_elements = prepare_single_ligand(i4b)
+        prep = prepare_single_ligand(i4b)
+        restype, charges = prep.residue_type, prep.partial_charges
 
         path = tmp_path / "I4B.params"
         write_params_file(restype, path, partial_charges=charges)
@@ -655,21 +640,23 @@ class TestParamsRoundtrip:
         assert len(loaded.atoms) == len(restype.atoms)
         assert len(loaded.bonds) == len(restype.bonds)
         assert len(loaded.icoors) == len(restype.icoors)
-        assert len(atom_type_elements) > 0
+        assert prep.atom_type_elements is not None
+        assert len(prep.atom_type_elements) > 0
 
     def test_params_roundtrip_preserves_bond_types(self, tmp_path, cif_184l_with_i4b):
         co = canonical_ordering_for_biotite()
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
         i4b = next(lig for lig in ligands if lig.res_name == "I4B")
-        restype, charges, _ = prepare_single_ligand(i4b)
+        prep = prepare_single_ligand(i4b)
+        restype, charges = prep.residue_type, prep.partial_charges
 
         path = tmp_path / "I4B_bondtypes.params"
         write_params_file(restype, path, partial_charges=charges)
         loaded = read_params_file(path)
 
-        assert all(len(b) == 3 for b in loaded.bonds)
-        assert {(a, b, t) for a, b, t in loaded.bonds} == {
-            (a, b, t) for a, b, t in restype.bonds
+        assert all(len(b) == 4 for b in loaded.bonds)
+        assert {(a, b, t, r) for a, b, t, r in loaded.bonds} == {
+            (a, b, t, r) for a, b, t, r in restype.bonds
         }
 
 
@@ -719,13 +706,15 @@ def test_prepare_single_ligand_uses_index_mapping_before_graph(
     def _fail_graph_match(*_args, **_kwargs):
         raise AssertionError("Graph matching should not be called in direct Mol path")
 
-    monkeypatch.setattr(ligand_module, "_rename_atoms_to_cif", _fail_graph_match)
-    restype, charges, _ = prepare_single_ligand(i4b, ph=7.4)
-    atom_names = {a.name for a in restype.atoms}
+    monkeypatch.setattr(
+        ligand_module, "_rename_atoms_to_cif_by_graph", _fail_graph_match
+    )
+    prep = prepare_single_ligand(i4b, ph=7.4)
+    atom_names = {a.name for a in prep.residue_type.atoms}
     assert "C3'" in atom_names
     assert "C4'" in atom_names
     assert "C2'" in atom_names
-    assert "C3'" in charges
+    assert "C3'" in prep.partial_charges
 
 
 def _parse_reference_params(path):
@@ -909,7 +898,7 @@ class TestGroundTruthRegression:
     def test_bond_topology_matches(self, ref_data):
         """Bond pairs must match reference (order-independent)."""
         actual_bonds = set()
-        for a, b, _ in ref_data["restype"].bonds:
+        for a, b, *_ in ref_data["restype"].bonds:
             actual_bonds.add(frozenset([a, b]))
 
         ref_bonds = set()

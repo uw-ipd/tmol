@@ -1,19 +1,25 @@
-"""Regression tests for the ligand pipeline against DUD benchmark ligands.
+"""Regression tests for DUD benchmark ligands.
 
-Compares our SMILES-based pipeline (RDKit mol from mol2, protonation,
-MMFF94 charges, OB atom typing, residue building) against Rosetta's
-mol2genparams reference .params files for drug-like molecules from the
-DUD (Directory of Useful Decoys) dataset.
+Two regression layers:
+
+1. ``TestCifToTmolEquivalence`` — drives the AtomArray pipeline from each
+   ligand's ``.cif`` and asserts the resulting ``LigandPreparation``
+   matches Frank's reference ``.tmol`` (loaded via ``load_params_file``)
+   on atoms, atom types, bonds (including the 4-tuple ring flag),
+   partial charges, and cartbonded parameters.
+
+2. ``TestDUDScoring`` — loads the ``.tmol`` directly into a
+   ``ParameterDatabase`` and confirms scoring the matching ``_in.pdb``
+   pose reproduces the pre-generated Rosetta total in the ``.sc`` file.
 """
 
 from pathlib import Path
 
 import cattr
+import numpy as np
 import pytest
-import torch
+import torch  # noqa: F401  (used via torch_device fixture)
 import yaml
-
-from tmol.tests.ligand.test_ligand_pipeline import _parse_reference_params
 
 DUD_DIR = Path(__file__).parent.parent / "data" / "dud_ligands"
 DUD_CASES = [
@@ -40,125 +46,6 @@ DUD_CASES = [
         "ZINC03814480",
     ]
 ]
-
-
-class TestDUDRegression:
-    """Validate pipeline against DUD benchmark ligands with Rosetta reference params."""
-
-    CHARGE_TOLERANCE = 0.05
-
-    @pytest.fixture(params=DUD_CASES, ids=[f"{t}_{n}" for t, n in DUD_CASES])
-    def dud_data(self, request):
-        """Load a DUD mol2, run pipeline, and load reference params."""
-        from rdkit import Chem
-        from rdkit.Chem import AllChem
-
-        from tmol.ligand.atom_typing import assign_tmol_atom_types
-        from tmol.ligand.mol3d import compute_mmff94_charges
-        from tmol.ligand.rdkit_mol import protonate_ligand_mol
-        from tmol.ligand.residue_builder import build_residue_type
-
-        target, name = request.param
-        mol2_path = DUD_DIR / target / f"{name}.mol2"
-        ref_params_path = DUD_DIR / target / f"{name}.params"
-
-        ref = _parse_reference_params(ref_params_path)
-
-        mol = Chem.MolFromMol2File(str(mol2_path), removeHs=True, sanitize=True)
-        if mol is None:
-            pytest.skip(f"RDKit cannot parse {mol2_path}")
-
-        protonated = protonate_ligand_mol(mol, ph=7.4)
-        try:
-            protonated = AllChem.AssignBondOrdersFromTemplate(protonated, mol)
-        except Exception:
-            pass
-        try:
-            Chem.SanitizeMol(protonated)
-        except Exception:
-            pass
-        protonated = Chem.AddHs(protonated, addCoords=True)
-        charges_by_idx = compute_mmff94_charges(protonated)
-        atom_types = assign_tmol_atom_types(protonated)
-        charges = {
-            at.atom_name: charges_by_idx[at.index]
-            for at in atom_types
-            if at.index in charges_by_idx
-        }
-        restype = build_residue_type(protonated, name, atom_types)
-
-        ref_atom_types = {name: atype for name, atype, _ in ref["atoms"]}
-        ref_charges = {name: charge for name, _, charge in ref["atoms"]}
-
-        return {
-            "name": name,
-            "target": target,
-            "ref": ref,
-            "ref_atom_types": ref_atom_types,
-            "ref_charges": ref_charges,
-            "atom_types": atom_types,
-            "charges": charges,
-            "restype": restype,
-        }
-
-    def test_atom_count_matches(self, dud_data):
-        """Heavy atom count must match reference."""
-        ref_heavy = sum(
-            1 for n, _, _ in dud_data["ref"]["atoms"] if not n.startswith("H")
-        )
-        actual_heavy = sum(
-            1 for a in dud_data["restype"].atoms if not a.name.startswith("H")
-        )
-        assert actual_heavy == ref_heavy, (
-            f"Heavy atom count mismatch for {dud_data['name']}: "
-            f"got {actual_heavy}, expected {ref_heavy}"
-        )
-
-    def test_atom_types_match(self, dud_data):
-        """Atom types must match reference for shared atoms."""
-        ref_types = dud_data["ref_atom_types"]
-        actual = {a.name: a.atom_type for a in dud_data["restype"].atoms}
-        for name, expected_type in ref_types.items():
-            if name not in actual:
-                continue
-            assert actual[name] == expected_type, (
-                f"Type mismatch for {name} in {dud_data['name']}: "
-                f"got {actual[name]}, expected {expected_type}"
-            )
-
-    def test_bond_count_heavy(self, dud_data):
-        """Heavy-atom bond count must match reference."""
-        ref_bonds_heavy = {
-            pair
-            for pair, order, ring in dud_data["ref"]["bond_types"]
-            if all(not a.startswith("H") for a in pair)
-        }
-        actual_bonds_heavy = {
-            frozenset([b[0], b[1]])
-            for b in dud_data["restype"].bonds
-            if not b[0].startswith("H") and not b[1].startswith("H")
-        }
-        assert len(actual_bonds_heavy) == len(ref_bonds_heavy), (
-            f"Heavy bond count mismatch for {dud_data['name']}: "
-            f"got {len(actual_bonds_heavy)}, expected {len(ref_bonds_heavy)}"
-        )
-
-    def test_charges_within_tolerance(self, dud_data):
-        """Charges for shared atoms must be within tolerance of reference."""
-        ref_charges = dud_data["ref_charges"]
-        actual = dud_data["charges"]
-        compared = 0
-        for atom_name, ref_q in ref_charges.items():
-            if atom_name not in actual:
-                continue
-            compared += 1
-            assert abs(actual[atom_name] - ref_q) < self.CHARGE_TOLERANCE, (
-                f"Charge mismatch for {atom_name} in {dud_data['name']}: "
-                f"got {actual[atom_name]:.4f}, expected {ref_q:.4f}"
-            )
-        assert (
-            compared > 0
-        ), f"No shared atoms to compare charges for {dud_data['name']}"
 
 
 # ---------------------------------------------------------------------------
@@ -199,6 +86,261 @@ def _load_tmol_file(path):
 
 
 # ---------------------------------------------------------------------------
+# CIF -> NonStandardResidueInfo
+# ---------------------------------------------------------------------------
+
+
+def _cif_to_nonstandard_residue_info(cif_path: Path, res_name: str):
+    """Build a ``NonStandardResidueInfo`` from a DUD CIF.
+
+    Reads atoms + bonds via biotite's pdbx round-trip and pulls the
+    AM1-BCC partial charges out of the custom ``_atom_site.partial_charge``
+    column we wrote alongside the standard fields. The result has the
+    same shape as what ``detect_nonstandard_residues`` would emit for
+    an unknown residue code, so ``prepare_single_ligand`` can consume
+    it without further setup.
+    """
+    import biotite.structure as struc
+    import biotite.structure.io.pdbx as pdbx
+
+    from tmol.ligand.detect import NonStandardResidueInfo
+
+    cif = pdbx.CIFFile.read(str(cif_path))
+    # ``extra_fields=['charge']`` pulls in the integer formal charges
+    # written by our mol2-to-cif step; without them RDKit cannot
+    # perceive aromaticity for charged-N rings on the round-trip.
+    arr = pdbx.get_structure(
+        cif, model=1, include_bonds=True, extra_fields=["charge"]
+    )
+    if isinstance(arr, struc.AtomArrayStack):
+        arr = arr[0]
+
+    arr.res_name = np.array([res_name] * len(arr), dtype=arr.res_name.dtype)
+
+    atom_site = cif.block["atom_site"]
+    atom_names = list(atom_site["label_atom_id"].as_array())
+    partial_charges = {
+        name: float(q)
+        for name, q in zip(
+            atom_names, atom_site["partial_charge"].as_array(float)
+        )
+    }
+    # Custom per-atom aromatic flag (Y/N) carried by the CIF — bonds are
+    # stored as plain Kekulé SINGLE/DOUBLE so this column is the only
+    # signal that distinguishes a benzene ring from an isolated C=C.
+    aromatic_chars = atom_site["tmol_aromatic"].as_array()
+    arr.set_annotation(
+        "tmol_aromatic",
+        np.array([str(v) == "Y" for v in aromatic_chars], dtype=bool),
+    )
+    # Source mol2 atom-type subtype (``ar``, ``2``, ``cat``, ``3``,
+    # ``pl3`` …). Drives the CR-vs-CD carbon-typing decision: aromatic
+    # carbons tagged ``ar`` get CR, ``2``/``cat`` get CD/CD1, etc.
+    if "tmol_source_subtype" in atom_site:
+        arr.set_annotation(
+            "tmol_source_subtype",
+            np.array([str(v) for v in atom_site["tmol_source_subtype"].as_array()]),
+        )
+
+    return NonStandardResidueInfo(
+        res_name=res_name,
+        ccd_type="UNKNOWN",
+        atom_names=tuple(atom_names),
+        elements=tuple(str(e) for e in arr.element),
+        coords=arr.coord.copy(),
+        atom_array=arr,
+        ccd_smiles=None,
+        covalently_linked=False,
+        partial_charges=partial_charges,
+    )
+
+
+# ---------------------------------------------------------------------------
+# CIF -> LigandPreparation == .tmol -> LigandPreparation
+# ---------------------------------------------------------------------------
+
+
+def _is_heavy(name: str) -> bool:
+    """True iff this atom name belongs to a heavy atom (not a hydrogen).
+
+    H-naming convention diverges between the two paths (the AtomArray
+    pipeline produces ``HC1``/``HN1``/``HO1`` from ``_classify_H`` while
+    Frank's ``.tmol`` uses sequential ``H1``..``Hn``). The chemistry
+    we're regressing on is the heavy-atom skeleton + atom types + bond
+    schema + cartbonded geometry, so we filter Hs out of the structural
+    comparisons. Names are compared as plain ``str`` to neutralise
+    ``numpy.str_`` artifacts from the CIF-load path.
+    """
+    return not str(name).startswith("H")
+
+
+def _cartres_heavy_key_set(params, kind):
+    """Canonical, order-normalised key set for a CartRes parameter list.
+
+    The two paths can emit the same physical bond/angle/improper with
+    different atom orderings. Each kind has its own normalisation:
+
+    - ``"length"`` — frozenset of the two endpoints.
+    - ``"angle"``  — center atom (atm2) fixed; endpoints sorted.
+    - ``"improper"`` — sorted 4-tuple of atom names. The central sp2
+      atom isn't always at the same position in the two
+      representations, so we sort everything and rely on the per-group
+      uniqueness in both sources.
+    """
+    keys = set()
+    if kind == "length":
+        for p in params:
+            a, b = str(p.atm1), str(p.atm2)
+            if _is_heavy(a) and _is_heavy(b):
+                keys.add(frozenset([a, b]))
+    elif kind == "angle":
+        for p in params:
+            a1, c, a3 = str(p.atm1), str(p.atm2), str(p.atm3)
+            if all(_is_heavy(n) for n in (a1, c, a3)):
+                lo, hi = sorted([a1, a3])
+                keys.add((lo, c, hi))
+    elif kind == "improper":
+        for p in params:
+            names = [str(p.atm1), str(p.atm2), str(p.atm3), str(p.atm4)]
+            if all(_is_heavy(n) for n in names):
+                keys.add(tuple(sorted(names)))
+    else:
+        raise ValueError(f"Unknown cartbonded group kind: {kind}")
+    return keys
+
+
+class TestCifToTmolEquivalence:
+    """The AtomArray pipeline must produce the same LigandPreparation
+    that ``load_params_file`` produces from Frank's reference ``.tmol``."""
+
+    CHARGE_TOLERANCE = 0.05
+
+    @pytest.fixture(params=DUD_CASES, ids=[f"{t}_{n}" for t, n in DUD_CASES])
+    def prep_pair(self, request):
+        from tmol.ligand import prepare_single_ligand
+        from tmol.ligand.params_file import load_params_file
+
+        target, name = request.param
+        cif_path = DUD_DIR / target / f"{name}.cif"
+        tmol_path = DUD_DIR / target / f"{name}.tmol"
+
+        info = _cif_to_nonstandard_residue_info(cif_path, "LG1")
+        prep_cif = prepare_single_ligand(info, ph=7.4)
+
+        preps_tmol = load_params_file(tmol_path)
+        assert len(preps_tmol) == 1, (
+            f"{tmol_path}: expected one residue, got {len(preps_tmol)}"
+        )
+        prep_tmol = preps_tmol[0]
+
+        return {"name": name, "cif": prep_cif, "tmol": prep_tmol}
+
+    def test_atom_set(self, prep_pair):
+        """Same set of (heavy_atom_name, atom_type) pairs."""
+        cif_atoms = {
+            (str(a.name), a.atom_type)
+            for a in prep_pair["cif"].residue_type.atoms
+            if _is_heavy(a.name)
+        }
+        tmol_atoms = {
+            (str(a.name), a.atom_type)
+            for a in prep_pair["tmol"].residue_type.atoms
+            if _is_heavy(a.name)
+        }
+        assert cif_atoms == tmol_atoms, (
+            f"Heavy atom set mismatch for {prep_pair['name']}:\n"
+            f"  only in cif:  {sorted(cif_atoms - tmol_atoms)}\n"
+            f"  only in tmol: {sorted(tmol_atoms - cif_atoms)}"
+        )
+
+    def test_atom_types(self, prep_pair):
+        """For heavy atoms shared by name, atom_type must match."""
+        cif_types = {
+            str(a.name): a.atom_type
+            for a in prep_pair["cif"].residue_type.atoms
+            if _is_heavy(a.name)
+        }
+        tmol_types = {
+            str(a.name): a.atom_type
+            for a in prep_pair["tmol"].residue_type.atoms
+            if _is_heavy(a.name)
+        }
+        mismatches = [
+            (n, cif_types[n], tmol_types[n])
+            for n in cif_types.keys() & tmol_types.keys()
+            if cif_types[n] != tmol_types[n]
+        ]
+        assert not mismatches, (
+            f"Atom type mismatches for {prep_pair['name']}:\n"
+            + "\n".join(f"  {n}: cif={c}, tmol={t}" for n, c, t in mismatches)
+        )
+
+    def test_bonds(self, prep_pair):
+        """Heavy-atom bonds with bond_type and is_in_ring (4-tuple)."""
+
+        def keyset(bonds):
+            out = set()
+            for a, b, bond_type, *rest in bonds:
+                a, b = str(a), str(b)
+                if not (_is_heavy(a) and _is_heavy(b)):
+                    continue
+                ring = bool(rest[0]) if rest else False
+                out.add((frozenset([a, b]), bond_type, ring))
+            return out
+
+        cif_bonds = keyset(prep_pair["cif"].residue_type.bonds)
+        tmol_bonds = keyset(prep_pair["tmol"].residue_type.bonds)
+        assert cif_bonds == tmol_bonds, (
+            f"Heavy bond set mismatch for {prep_pair['name']}:\n"
+            f"  only in cif:  {cif_bonds - tmol_bonds}\n"
+            f"  only in tmol: {tmol_bonds - cif_bonds}"
+        )
+
+    def test_partial_charges(self, prep_pair):
+        """Per-atom partial charges agree within tolerance for shared names."""
+        cif_q = prep_pair["cif"].partial_charges
+        tmol_q = prep_pair["tmol"].partial_charges
+        shared = cif_q.keys() & tmol_q.keys()
+        assert shared, f"No shared atom names for {prep_pair['name']}"
+        bad = [
+            (n, cif_q[n], tmol_q[n])
+            for n in shared
+            if abs(cif_q[n] - tmol_q[n]) >= self.CHARGE_TOLERANCE
+        ]
+        assert not bad, (
+            f"Partial-charge mismatch (>{self.CHARGE_TOLERANCE}) for "
+            f"{prep_pair['name']}:\n"
+            + "\n".join(
+                f"  {n}: cif={c:+.4f}, tmol={t:+.4f}, diff={c - t:+.4f}"
+                for n, c, t in bad
+            )
+        )
+
+    def test_cartbonded_params(self, prep_pair):
+        """Heavy-atom length / angle / improper atom-tuples (order-normalised)."""
+        cif_cb = prep_pair["cif"].cartbonded_params
+        tmol_cb = prep_pair["tmol"].cartbonded_params
+        groups = [
+            ("length_parameters", "length"),
+            ("angle_parameters", "angle"),
+            ("improper_parameters", "improper"),
+        ]
+        diffs = []
+        for attr_name, kind in groups:
+            cif_keys = _cartres_heavy_key_set(getattr(cif_cb, attr_name), kind)
+            tmol_keys = _cartres_heavy_key_set(getattr(tmol_cb, attr_name), kind)
+            if cif_keys != tmol_keys:
+                diffs.append(
+                    f"  {attr_name}: only in cif {cif_keys - tmol_keys}, "
+                    f"only in tmol {tmol_keys - cif_keys}"
+                )
+        assert not diffs, (
+            f"Cartbonded parameter set mismatch for {prep_pair['name']}:\n"
+            + "\n".join(diffs)
+        )
+
+
+# ---------------------------------------------------------------------------
 # Scoring tests
 # ---------------------------------------------------------------------------
 
@@ -236,11 +378,6 @@ class TestDUDScoring:
         target, name = request.param
         tmol_path = DUD_DIR / target / f"{name}.tmol"
         in_pdb = DUD_DIR / target / f"{name}_in.pdb"
-
-        if not tmol_path.exists():
-            pytest.skip(f"No .tmol file: {tmol_path}")
-        if not in_pdb.exists():
-            pytest.skip(f"No _in.pdb: {in_pdb}")
 
         return {
             "name": name,
@@ -291,8 +428,6 @@ class TestDUDScoring:
         sc_path = (
             DUD_DIR / dud_scoring_data["target"] / f"{dud_scoring_data['name']}.sc"
         )
-        if not sc_path.exists():
-            pytest.skip(f"No reference scores: {sc_path}")
         total_ros = _rosetta_score(sc_path).get("total_score", 0.0)
 
         assert abs(total - total_ros) < 1.0, (
