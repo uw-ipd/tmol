@@ -47,7 +47,9 @@ def _mol_coords(mol: Chem.Mol) -> np.ndarray:
     return coords
 
 
-def _find_nbr_atom(mol: Chem.Mol, skip_indices=None) -> int:
+def _find_nbr_atom(
+    mol: Chem.Mol, coords: np.ndarray, skip_indices: set[int] | None = None
+) -> int:
     """Find the neighbor atom (root) for the atom tree.
 
     Selects the heavy atom closest to the center of mass that has
@@ -55,20 +57,23 @@ def _find_nbr_atom(mol: Chem.Mol, skip_indices=None) -> int:
     indices in ``skip_indices``.
 
     Args:
-        mol: A Chem.Mol with 3D coordinates.
+        mol: A Chem.Mol.
+        coords: Pre-computed (N, 3) coordinate array from ``_mol_coords``.
         skip_indices: Optional set of 0-based atom indices to exclude.
 
     Returns:
         0-based atom index for the NBR atom.
+
+    Raises:
+        ValueError: If no valid root atom can be found.
     """
     if skip_indices is None:
         skip_indices = set()
 
-    coords = _mol_coords(mol)
     com = coords.mean(axis=0)
     dists_sq = np.sum((coords - com) ** 2, axis=1)
 
-    best_idx = 0
+    best_idx = -1
     best_dist = float("inf")
 
     for atom in mol.GetAtoms():
@@ -83,22 +88,32 @@ def _find_nbr_atom(mol: Chem.Mol, skip_indices=None) -> int:
             best_dist = dists_sq[idx]
             best_idx = idx
 
+    if best_idx < 0:
+        # Fallback: pick the first heavy atom with any bonds
+        for atom in mol.GetAtoms():
+            idx = atom.GetIdx()
+            if idx in skip_indices:
+                continue
+            if atom.GetAtomicNum() == 1:
+                continue
+            best_idx = idx
+            break
+
+    if best_idx < 0:
+        raise ValueError("No valid root atom found (mol has no heavy atoms)")
+
     return best_idx
 
 
 def _build_atom_tree(
     mol: Chem.Mol, root_idx: int
 ) -> tuple[list[int], dict[int, int], dict[int, tuple[int, int]]]:
-    """Build an atom tree via BFS from the root atom.
-
-    Args:
-        mol: The Chem.Mol.
-        root_idx: 0-based index of the root (NBR) atom.
+    """Build an atom tree via simple BFS from the root.
 
     Returns:
         A tuple of:
-        - order: BFS traversal order (list of 0-based atom indices).
-        - parent: Maps each atom index to its parent index.
+        - order: BFS traversal order (parents always precede children).
+        - parent: Maps each atom index to its parent index (root maps to itself).
         - grandparents: Maps each atom index to (grandparent, great-grandparent).
     """
     n_atoms = mol.GetNumAtoms()
@@ -119,10 +134,11 @@ def _build_atom_tree(
         current = queue.popleft()
         order.append(current)
         for nbr in adj[current]:
-            if not visited[nbr]:
-                visited[nbr] = True
-                parent[nbr] = current
-                queue.append(nbr)
+            if visited[nbr]:
+                continue
+            visited[nbr] = True
+            parent[nbr] = current
+            queue.append(nbr)
 
     bfs_position = {idx: i for i, idx in enumerate(order)}
 
@@ -197,6 +213,7 @@ def _compute_icoors(
     parent: dict[int, int],
     grandparents: dict[int, tuple[int, int]],
     atom_names: list[str],
+    coords: np.ndarray | None = None,
 ) -> list[Icoor]:
     """Compute internal coordinates for all atoms.
 
@@ -211,11 +228,13 @@ def _compute_icoors(
         parent: Parent map from atom tree.
         grandparents: (grandparent, great-grandparent) map.
         atom_names: Atom names indexed by 0-based atom index.
+        coords: Pre-computed (N, 3) array. Computed from mol if None.
 
     Returns:
         A list of Icoor objects in BFS traversal order.
     """
-    coords = _mol_coords(mol)
+    if coords is None:
+        coords = _mol_coords(mol)
 
     icoors: list[Icoor] = []
 
@@ -256,6 +275,62 @@ def _compute_icoors(
     return icoors
 
 
+_AMIDE_N_TYPES = {"Nad", "Nad3"}
+_GUANIDINIUM_N_TYPES = {"Ngu1", "Ngu2"}
+_PLANAR_N_TYPES = _AMIDE_N_TYPES | _GUANIDINIUM_N_TYPES
+
+# Rosetta convention: rings larger than this are treated as
+# non-cyclic for the purposes of the bond's is_in_ring flag.
+_MAX_RING_SIZE_TREATED_AS_RING = 8
+
+
+def _is_in_large_ring(mol: Chem.Mol, bond: Chem.Bond) -> bool:
+    """True if every cycle this bond participates in is >8 atoms."""
+    if not bond.IsInRing():
+        return False
+    ri = mol.GetRingInfo()
+    a, b = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+    for ring in ri.AtomRings():
+        if a in ring and b in ring and len(ring) <= _MAX_RING_SIZE_TREATED_AS_RING:
+            return False
+    return True
+
+
+def _is_planar_resonance_bond(
+    atom_a: Chem.Atom, atom_b: Chem.Atom, type_a: str, type_b: str
+) -> bool:
+    """True iff this N-C bond is the planar partner in an acyclic
+    resonance group — i.e. the amide N-C(=O) or the guanidinium N-C(N)(N)
+    bond, but NOT other N-C connections incident to the same N.
+
+    Reuses the atom-type classifier's existing detection: ``Nad`` /
+    ``Nad3`` mark amide nitrogens and ``Ngu1`` / ``Ngu2`` mark
+    guanidinium nitrogens. We only upgrade the specific N-C bond whose
+    C is the resonance partner (a carbonyl C for amide; a multi-N C for
+    guanidinium); methylene tethers etc. stay SINGLE.
+    """
+    if type_a in _PLANAR_N_TYPES and atom_b.GetAtomicNum() == 6:
+        n_atom, c_atom, n_type = atom_a, atom_b, type_a
+    elif type_b in _PLANAR_N_TYPES and atom_a.GetAtomicNum() == 6:
+        n_atom, c_atom, n_type = atom_b, atom_a, type_b
+    else:
+        return False
+
+    other_neighbors = (
+        nbr for nbr in c_atom.GetNeighbors() if nbr.GetIdx() != n_atom.GetIdx()
+    )
+    if n_type in _AMIDE_N_TYPES:
+        # C must have a C=O carbonyl on its other side.
+        return any(
+            b.GetBondType() == Chem.BondType.DOUBLE
+            and b.GetOtherAtom(c_atom).GetAtomicNum() == 8
+            for b in c_atom.GetBonds()
+            if b.GetOtherAtom(c_atom).GetIdx() != n_atom.GetIdx()
+        )
+    # guanidinium: C must have ≥2 other N neighbors.
+    return sum(1 for nbr in other_neighbors if nbr.GetAtomicNum() == 7) >= 2
+
+
 def build_residue_type(
     mol: Chem.Mol,
     res_name: str,
@@ -294,6 +369,7 @@ def build_residue_type(
 
     idx_to_name = {at.index: at.atom_name for at in atom_types}
     atom_names = [idx_to_name.get(i) for i in range(mol.GetNumAtoms())]
+    atom_type_by_name = {at.atom_name: at.atom_type for at in atom_types}
 
     atoms = tuple(Atom(name=at.atom_name, atom_type=at.atom_type) for at in atom_types)
 
@@ -305,29 +381,47 @@ def build_residue_type(
         if atom_names[a] is None or atom_names[b] is None:
             continue
 
-        # Determine the bond type string
-        if bond.GetIsAromatic():
-            # NOTE: Check aromatic before ring!
+        # Kekulé first — Frank's reference .tmol files emit DOUBLE/SINGLE
+        # for ring bonds when they carry a definite bond order, and only
+        # fall back to AROMATIC when the bond was never kekulized (e.g.
+        # acyclic resonance groups like amide N-C(=O)). Reading the bond
+        # order directly catches the kekulized case; the GetIsAromatic
+        # branch only fires when the bond type is still AROMATIC at this
+        # point, i.e. kekulization was skipped or failed.
+        bt = bond.GetBondType()
+        if bt == Chem.BondType.SINGLE:
+            b_type = "SINGLE"
+        elif bt == Chem.BondType.DOUBLE:
+            b_type = "DOUBLE"
+        elif bt == Chem.BondType.TRIPLE:
+            b_type = "TRIPLE"
+        elif bt == Chem.BondType.AROMATIC or bond.GetIsAromatic():
             b_type = "AROMATIC"
-        elif bond.IsInRing():
-            b_type = "RING"
         else:
-            order = bond.GetBondTypeAsDouble()
-            if order == 1.0:
-                b_type = "SINGLE"
-            elif order == 2.0:
-                b_type = "DOUBLE"
-            elif order == 3.0:
-                b_type = "TRIPLE"
-            else:
-                b_type = "SINGLE"  # default to single
+            b_type = "SINGLE"
 
-        bonds.append((atom_names[a], atom_names[b], b_type))
+        # Planar acyclic resonance (amide / guanidinium) — RDKit reports
+        # the bond as SINGLE because it isn't on a Hückel ring, but the
+        # geometry is planar and the downstream scoring treats this as
+        # an aromatic bond.
+        if b_type == "SINGLE" and _is_planar_resonance_bond(
+            mol.GetAtomWithIdx(a),
+            mol.GetAtomWithIdx(b),
+            atom_type_by_name.get(atom_names[a], ""),
+            atom_type_by_name.get(atom_names[b], ""),
+        ):
+            b_type = "AROMATIC"
 
-    nbr_idx = _find_nbr_atom(
-        mol,
-        skip_indices=keep_indices and (set(range(mol.GetNumAtoms())) - keep_indices),
+        # 4th field: is_in_ring (for scoring; rings >8 atoms count as
+        # not-in-a-ring, matching Rosetta convention).
+        is_in_ring = bond.IsInRing() and not _is_in_large_ring(mol, bond)
+        bonds.append((atom_names[a], atom_names[b], b_type, is_in_ring))
+
+    coords = _mol_coords(mol)
+    dropped_indices = (
+        (set(range(mol.GetNumAtoms())) - keep_indices) if keep_indices else None
     )
+    nbr_idx = _find_nbr_atom(mol, coords, skip_indices=dropped_indices)
     order, parent, grandparents = _build_atom_tree(mol, nbr_idx)
     if keep_indices is not None:
         order = [i for i in order if i in keep_indices]
@@ -343,7 +437,7 @@ def build_residue_type(
             ggp = gp
         grandparents[idx] = (gp, ggp)
 
-    icoors = _compute_icoors(mol, order, parent, grandparents, atom_names)
+    icoors = _compute_icoors(mol, order, parent, grandparents, atom_names, coords)
 
     properties = ChemicalProperties(
         is_canonical=False,
@@ -374,6 +468,7 @@ def build_residue_type(
         atom_aliases=atom_aliases,
         bonds=tuple(bonds),
         connections=(),
+        # NOTE: Ligand torsions are intentionally empty
         torsions=(),
         icoors=tuple(icoors),
         properties=properties,

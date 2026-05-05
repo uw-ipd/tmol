@@ -67,6 +67,9 @@ class NonStandardResidueInfo:
         coords: Cartesian coordinates of shape (n_atoms, 3).
         atom_array: The sub-AtomArray (with bonds if available).
         ccd_smiles: Canonical SMILES from the CCD, or None if unavailable.
+        partial_charges: Optional ``{atom_name: charge}`` map. When
+            provided, ``prepare_single_ligand`` uses these directly instead of
+            recomputing MMFF94 charges.
     """
 
     res_name: str
@@ -77,6 +80,7 @@ class NonStandardResidueInfo:
     atom_array: struc.AtomArray = attr.ib(eq=False, hash=False)
     ccd_smiles: Optional[str] = None
     covalently_linked: bool = False
+    partial_charges: Optional[dict[str, float]] = None
 
 
 LigandInfo = NonStandardResidueInfo

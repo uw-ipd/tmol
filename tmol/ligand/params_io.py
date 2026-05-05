@@ -58,8 +58,10 @@ def write_params_file(
             charge = partial_charges[atom.name]
         lines.append(f"ATOM {atom.name:4s} {atom.atom_type:4s} X {charge:8.4f}")
 
-    for a, b, c in restype.bonds:
-        lines.append(f"BOND {a:4s} {b:4s} {c:12s}")
+    for a, b, c, *rest in restype.bonds:
+        is_ring = bool(rest[0]) if rest else False
+        ring_tok = " RING" if is_ring else ""
+        lines.append(f"BOND_TYPE {a:4s} {b:4s} {c:12s}{ring_tok}")
 
     if restype.default_jump_connection_atom:
         lines.append(f"NBR_ATOM {restype.default_jump_connection_atom}")
@@ -97,7 +99,7 @@ def read_params_file(path: str | Path) -> RawResidueType:
     name = "UNK"
     name3 = "UNK"
     atoms: list[Atom] = []
-    bonds: list[tuple[str, str, str]] = []
+    bonds: list[tuple[str, str, str, bool]] = []
     icoors: list[Icoor] = []
     nbr_atom = ""
 
@@ -118,12 +120,11 @@ def read_params_file(path: str | Path) -> RawResidueType:
                 bond_type = "SINGLE"
                 if len(parts) >= 4:
                     bond_type = _BOND_TOK_TO_TYPE.get(parts[3].upper(), "SINGLE")
-                bonds.append((parts[1], parts[2], bond_type))
+                bonds.append((parts[1], parts[2], bond_type, False))
             elif parts[0] == "BOND_TYPE" and len(parts) >= 4:
                 order = _BOND_TOK_TO_TYPE.get(parts[3].upper(), "SINGLE")
                 ring = len(parts) >= 5 and parts[4].upper() == "RING"
-                bond_type = "RING" if ring and order != "AROMATIC" else order
-                bonds.append((parts[1], parts[2], bond_type))
+                bonds.append((parts[1], parts[2], order, ring))
 
             elif parts[0] == "NBR_ATOM" and len(parts) >= 2:
                 nbr_atom = parts[1]

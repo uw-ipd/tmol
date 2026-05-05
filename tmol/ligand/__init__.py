@@ -15,15 +15,14 @@ Typical usage::
 """
 
 import logging
-import functools
 from typing import Optional
 
 import biotite.structure as struc
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdDetermineBonds
 
-from tmol.database import ParameterDatabase, inject_residue_params
-from tmol.database.chemical import RawResidueType
+from tmol.database import ParameterDatabase
+from tmol.database.chemical import RawResidueType  # noqa: F401  re-exported
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.ligand.atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand.detect import (
@@ -32,16 +31,18 @@ from tmol.ligand.detect import (
     detect_nonstandard_residues,
 )
 from tmol.ligand.graph_match import match_heavy_atoms
-from tmol.ligand.mol3d import compute_mmff94_charges
 from tmol.ligand.registry import (
+    LigandPreparation,
     LigandPreparationCache,
-    build_injection_data,
+    _build_cartbonded_params,
     cache_ligand,
     get_cached_charges_for_key,
     get_cached_ligand_for_key,
     get_default_cache,
+    inject_ligand_preparations,
     rebuild_canonical_ordering,
 )
+from tmol.ligand.mol3d import build_partial_charges
 from tmol.ligand.residue_builder import build_residue_type
 from tmol.ligand.rdkit_mol import (
     ELEMENT_TO_ATOMIC_NUM,
@@ -50,16 +51,6 @@ from tmol.ligand.rdkit_mol import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-@functools.cache
-def _default_detection_ordering() -> CanonicalOrdering:
-    """Canonical ordering used to detect non-standard residues.
-
-    Detection should be stable across repeated calls even when ``param_db`` has
-    already been extended with ligands in earlier invocations.
-    """
-    return CanonicalOrdering.from_chemdb(ParameterDatabase.get_default().chemical)
 
 
 def _build_cif_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.Mol:
@@ -99,13 +90,63 @@ def _rename_atoms_to_cif(
     atom_types: list[AtomTypeAssignment],
     ligand_info: NonStandardResidueInfo,
 ) -> list[AtomTypeAssignment]:
-    """Rename pipeline atoms to use CIF atom names via graph matching.
+    """Rename pipeline atoms to use the CIF atom names from ``ligand_info``.
 
-    Heavy atoms are matched between the pipeline Mol and the CIF Mol by
-    molecular graph isomorphism, then renamed to the CIF names.
-    Hydrogens keep their auto-generated names (no CIF equivalent).
+    Tries the fast index-aligned path first (works whenever the pipeline
+    didn't reorder heavy atoms relative to the input AtomArray, which is
+    the common mol2 / CCD case) and falls back to graph isomorphism only
+    if the index path can't be applied safely.
 
-    Returns a new list of AtomTypeAssignment with updated atom_name fields.
+    Hydrogens keep their pipeline-assigned names regardless — the input
+    rarely names them, and Frank's reference uses a sequential
+    convention that doesn't survive a Chem.RemoveHs / Chem.AddHs
+    round-trip anyway.
+    """
+    by_index = _rename_atoms_to_cif_by_index(atom_types, ligand_info)
+    if by_index is not None:
+        return by_index
+    return _rename_atoms_to_cif_by_graph(pipeline_mol, atom_types, ligand_info)
+
+
+def _rename_atoms_to_cif_by_index(
+    atom_types: list[AtomTypeAssignment], ligand_info: NonStandardResidueInfo
+) -> list[AtomTypeAssignment] | None:
+    """Fast path: rename heavy atoms by direct RDKit-index alignment.
+
+    Returns ``None`` when the index alignment isn't safe (atom count
+    mismatch, element mismatch, or duplicate names produced) so the
+    caller can try graph matching.
+    """
+    if len(ligand_info.atom_names) != len(ligand_info.elements):
+        return None
+
+    renamed: list[AtomTypeAssignment] = []
+    seen_names: set[str] = set()
+    for at in atom_types:
+        new_name = at.atom_name
+        if at.element != "H":
+            if at.index >= len(ligand_info.atom_names):
+                return None
+            cif_elem = ligand_info.elements[at.index].strip().upper()
+            if cif_elem != at.element.upper():
+                return None
+            new_name = ligand_info.atom_names[at.index]
+        if new_name in seen_names:
+            return None
+        seen_names.add(new_name)
+        renamed.append(at._replace(atom_name=new_name))
+    return renamed
+
+
+def _rename_atoms_to_cif_by_graph(
+    pipeline_mol: Chem.Mol,
+    atom_types: list[AtomTypeAssignment],
+    ligand_info: NonStandardResidueInfo,
+) -> list[AtomTypeAssignment]:
+    """Slow-path fallback: VF2 heavy-atom isomorphism between the pipeline
+    Mol and a Mol rebuilt from the CIF input. Used when the fast index
+    path can't be applied. Returns the input atom types unchanged if no
+    isomorphism is found.
     """
     cif_mol = _build_cif_rdkit_mol(ligand_info)
 
@@ -135,72 +176,50 @@ def _rename_atoms_to_cif(
     ]
 
 
-def _rename_atoms_to_cif_by_index(
-    atom_types: list[AtomTypeAssignment], ligand_info: NonStandardResidueInfo
-) -> list[AtomTypeAssignment] | None:
-    """Rename heavy atoms from CIF names using direct index alignment.
-
-    Returns None if index-based mapping is not safe, so callers can fall
-    back to graph-based matching.
-    """
-    if len(ligand_info.atom_names) != len(ligand_info.elements):
-        return None
-
-    renamed: list[AtomTypeAssignment] = []
-    seen_names: set[str] = set()
-    for at in atom_types:
-        new_name = at.atom_name
-        if at.element != "H":
-            if at.index >= len(ligand_info.atom_names):
-                return None
-            cif_elem = ligand_info.elements[at.index].strip().upper()
-            if cif_elem != at.element.upper():
-                return None
-            new_name = ligand_info.atom_names[at.index]
-        if new_name in seen_names:
-            return None
-        seen_names.add(new_name)
-        renamed.append(at._replace(atom_name=new_name))
-    return renamed
-
-
 def prepare_single_ligand(
     ligand_info: NonStandardResidueInfo,
     ph: float = 7.4,
-) -> tuple[RawResidueType, dict[str, float], dict[str, str]]:
-    """Run the full preparation pipeline for a single ligand.
+) -> LigandPreparation:
+    """Run the full RDKit preparation pipeline for a single ligand.
+
+    Returns a :class:`LigandPreparation` — the same struct
+    :func:`tmol.ligand.params_file.load_params_file` produces for each
+    residue defined in a ``.tmol`` file, so the AtomArray-driven path
+    and the params-file path converge on a single abstraction that
+    :func:`inject_ligand_preparations` consumes.
 
     Args:
         ligand_info: Detected ligand information.
         ph: Target pH for protonation.
-
-    Returns:
-        A tuple of (RawResidueType, partial_charges, atom_type_elements).
     """
     rdkit_mol = ligand_atom_array_to_rdkit_mol(ligand_info)
-    protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
-    try:
-        protonated = AllChem.AssignBondOrdersFromTemplate(protonated, rdkit_mol)
-    except Exception:
-        logger.debug(
-            "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
-            ligand_info.res_name,
-        )
-    try:
-        Chem.SanitizeMol(protonated)
-    except Exception:
-        logger.debug(
-            "SanitizeMol failed for %s, MMFF94 may fall back to Gasteiger",
-            ligand_info.res_name,
-        )
-    protonated = Chem.AddHs(protonated, addCoords=True)
-    charges_by_index = compute_mmff94_charges(protonated)
-    atom_types = assign_tmol_atom_types(protonated)
-    atom_types_by_index = _rename_atoms_to_cif_by_index(atom_types, ligand_info)
-    if atom_types_by_index is not None:
-        atom_types = atom_types_by_index
+    # When the caller supplies authoritative per-atom partial charges
+    # (e.g. AM1-BCC from a Tripos mol2 file) we treat that as evidence
+    # the input already encodes the desired protonation state, and skip
+    # Dimorphite-DL — otherwise it can flip ring nitrogens (imidazole-
+    # type) to their protonated form at pH 7.4, adding a hydrogen that
+    # the caller's reference deliberately omits.
+    if ligand_info.partial_charges:
+        protonated = rdkit_mol
     else:
-        atom_types = _rename_atoms_to_cif(protonated, atom_types, ligand_info)
+        protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
+        try:
+            protonated = AllChem.AssignBondOrdersFromTemplate(protonated, rdkit_mol)
+        except Exception:
+            logger.debug(
+                "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
+                ligand_info.res_name,
+            )
+    # Use the smart sanitize so source-supplied aromatic flags
+    # (CIF ``_atom_site.tmol_aromatic``) are not blown away by RDKit's
+    # default aromaticity perception.
+    from tmol.ligand.atom_typing import sanitize_tolerant
+
+    sanitize_tolerant(protonated)
+    protonated = Chem.AddHs(protonated, addCoords=True)
+
+    atom_types = assign_tmol_atom_types(protonated)
+    atom_types = _rename_atoms_to_cif(protonated, atom_types, ligand_info)
 
     restype = build_residue_type(
         protonated,
@@ -208,13 +227,12 @@ def prepare_single_ligand(
         atom_types,
     )
 
-    # Build final charge map only after names are finalized and residue built.
-    # This guarantees alignment with scoring lookups keyed by (residue, atom_name).
-    charges = {
-        at.atom_name: charges_by_index[at.index]
-        for at in atom_types
-        if at.index in charges_by_index
-    }
+    charges = build_partial_charges(
+        protonated,
+        atom_types,
+        input_charges=ligand_info.partial_charges,
+    )
+
     atom_type_elements: dict[str, str] = {}
     for at in atom_types:
         prev = atom_type_elements.get(at.atom_type)
@@ -232,7 +250,20 @@ def prepare_single_ligand(
             f"{ligand_info.res_name}: missing partial charges for atoms: {missing_names}"
         )
 
-    return restype, charges, atom_type_elements
+    coords: dict[str, tuple[float, float, float]] = {}
+    if protonated.GetNumConformers() > 0:
+        conf = protonated.GetConformer()
+        for at in atom_types:
+            if at.atom_name in restype_atom_names:
+                p = conf.GetAtomPosition(at.index)
+                coords[at.atom_name] = (float(p.x), float(p.y), float(p.z))
+
+    return LigandPreparation(
+        residue_type=restype,
+        partial_charges=charges,
+        cartbonded_params=_build_cartbonded_params(restype, coords=coords),
+        atom_type_elements=atom_type_elements,
+    )
 
 
 def prepare_ligands(
@@ -271,6 +302,15 @@ def prepare_ligands(
         ParameterDatabase is a new instance with all detected ligands
         injected; the input ``param_db`` is not modified.
     """
+    if isinstance(atom_array, struc.AtomArrayStack):
+        if len(atom_array) == 1:
+            atom_array = atom_array[0]
+        else:
+            raise TypeError(
+                "prepare_ligands expects a single AtomArray, not an "
+                f"AtomArrayStack with {len(atom_array)} models. "
+                "Select a single model first (e.g. stack[0])."
+            )
     if param_db is None:
         param_db = ParameterDatabase.get_default()
     if cache is None:
@@ -293,7 +333,7 @@ def prepare_ligands(
 
     logger.info("Found %d non-standard residue type(s) to prepare", len(ligands))
 
-    injection_data = []
+    preparations: list[LigandPreparation] = []
     for lig in ligands:
         metals_present = sorted(
             {
@@ -324,64 +364,48 @@ def prepare_ligands(
             tuple(lig.atom_names),
             tuple(lig.elements),
         )
-        cached = get_cached_ligand_for_key(cache_key, cache=cache)
-        if cached is not None:
+        cached_rt = get_cached_ligand_for_key(cache_key, cache=cache)
+        cached_q = get_cached_charges_for_key(cache_key, cache=cache)
+        if cached_rt is not None and cached_q is not None:
             logger.info("Using cached preparation for %s", lig.res_name)
-            data = build_injection_data(
-                param_db,
-                cached,
-                partial_charges=get_cached_charges_for_key(cache_key, cache=cache),
-                strict_atom_types=strict_atom_types,
+            # Cache predates the unified struct, so it stores
+            # (restype, charges) only. Rebuild the cartbonded slice
+            # from the cached residue type's icoors here.
+            preparations.append(
+                LigandPreparation(
+                    residue_type=cached_rt,
+                    partial_charges=cached_q,
+                    cartbonded_params=_build_cartbonded_params(cached_rt),
+                    atom_type_elements=None,
+                )
             )
-            if data is not None:
-                injection_data.append(data)
             continue
 
-        logger.info(
-            "Preparing %s (CCD type: %s)",
-            lig.res_name,
-            lig.ccd_type,
-        )
-
-        restype, charges, atom_type_elements = prepare_single_ligand(lig, ph=ph)
-        data = build_injection_data(
-            param_db,
-            restype,
-            partial_charges=charges,
-            atom_type_elements=atom_type_elements,
-            strict_atom_types=strict_atom_types,
-        )
+        logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)
+        prep = prepare_single_ligand(lig, ph=ph)
         cache_ligand(
             lig.res_name,
-            restype,
-            charges=charges,
+            prep.residue_type,
+            charges=prep.partial_charges,
             cache_key=cache_key,
             cache=cache,
         )
-        if data is not None:
-            injection_data.append(data)
+        preparations.append(prep)
 
-    if injection_data:
-        all_residues = [d.residue_type for d in injection_data]
-        all_atom_types = []
-        for d in injection_data:
-            all_atom_types.extend(d.new_atom_types)
-        all_charges = {d.residue_type.name: d.partial_charges for d in injection_data}
-        all_cartbonded = {
-            d.residue_type.name: d.cartbonded_params for d in injection_data
-        }
-        param_db = inject_residue_params(
-            param_db,
-            residue_types=all_residues,
-            atom_types=all_atom_types or None,
-            partial_charges=all_charges,
-            cartbonded_params=all_cartbonded,
+    if preparations:
+        param_db = inject_ligand_preparations(
+            param_db, preparations, strict_atom_types=strict_atom_types
         )
         canonical_ordering = rebuild_canonical_ordering(param_db)
 
         if params_output:
             from tmol.ligand.params_file import write_params_file
 
+            all_residues = [p.residue_type for p in preparations]
+            all_charges = {p.residue_type.name: p.partial_charges for p in preparations}
+            all_cartbonded = {
+                p.residue_type.name: p.cartbonded_params for p in preparations
+            }
             write_params_file(params_output, all_residues, all_charges, all_cartbonded)
             logger.info("Wrote params to %s", params_output)
 
