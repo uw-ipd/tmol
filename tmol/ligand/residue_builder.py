@@ -47,7 +47,9 @@ def _mol_coords(mol: Chem.Mol) -> np.ndarray:
     return coords
 
 
-def _find_nbr_atom(mol: Chem.Mol, skip_indices=None) -> int:
+def _find_nbr_atom(
+    mol: Chem.Mol, coords: np.ndarray, skip_indices: set[int] | None = None
+) -> int:
     """Find the neighbor atom (root) for the atom tree.
 
     Selects the heavy atom closest to the center of mass that has
@@ -55,20 +57,23 @@ def _find_nbr_atom(mol: Chem.Mol, skip_indices=None) -> int:
     indices in ``skip_indices``.
 
     Args:
-        mol: A Chem.Mol with 3D coordinates.
+        mol: A Chem.Mol.
+        coords: Pre-computed (N, 3) coordinate array from ``_mol_coords``.
         skip_indices: Optional set of 0-based atom indices to exclude.
 
     Returns:
         0-based atom index for the NBR atom.
+
+    Raises:
+        ValueError: If no valid root atom can be found.
     """
     if skip_indices is None:
         skip_indices = set()
 
-    coords = _mol_coords(mol)
     com = coords.mean(axis=0)
     dists_sq = np.sum((coords - com) ** 2, axis=1)
 
-    best_idx = 0
+    best_idx = -1
     best_dist = float("inf")
 
     for atom in mol.GetAtoms():
@@ -82,6 +87,20 @@ def _find_nbr_atom(mol: Chem.Mol, skip_indices=None) -> int:
         if dists_sq[idx] < best_dist:
             best_dist = dists_sq[idx]
             best_idx = idx
+
+    if best_idx < 0:
+        # Fallback: pick the first heavy atom with any bonds
+        for atom in mol.GetAtoms():
+            idx = atom.GetIdx()
+            if idx in skip_indices:
+                continue
+            if atom.GetAtomicNum() == 1:
+                continue
+            best_idx = idx
+            break
+
+    if best_idx < 0:
+        raise ValueError("No valid root atom found (mol has no heavy atoms)")
 
     return best_idx
 
@@ -194,6 +213,7 @@ def _compute_icoors(
     parent: dict[int, int],
     grandparents: dict[int, tuple[int, int]],
     atom_names: list[str],
+    coords: np.ndarray | None = None,
 ) -> list[Icoor]:
     """Compute internal coordinates for all atoms.
 
@@ -208,11 +228,13 @@ def _compute_icoors(
         parent: Parent map from atom tree.
         grandparents: (grandparent, great-grandparent) map.
         atom_names: Atom names indexed by 0-based atom index.
+        coords: Pre-computed (N, 3) array. Computed from mol if None.
 
     Returns:
         A list of Icoor objects in BFS traversal order.
     """
-    coords = _mol_coords(mol)
+    if coords is None:
+        coords = _mol_coords(mol)
 
     icoors: list[Icoor] = []
 
@@ -395,10 +417,11 @@ def build_residue_type(
         is_in_ring = bond.IsInRing() and not _is_in_large_ring(mol, bond)
         bonds.append((atom_names[a], atom_names[b], b_type, is_in_ring))
 
-    nbr_idx = _find_nbr_atom(
-        mol,
-        skip_indices=keep_indices and (set(range(mol.GetNumAtoms())) - keep_indices),
+    coords = _mol_coords(mol)
+    dropped_indices = (
+        (set(range(mol.GetNumAtoms())) - keep_indices) if keep_indices else None
     )
+    nbr_idx = _find_nbr_atom(mol, coords, skip_indices=dropped_indices)
     order, parent, grandparents = _build_atom_tree(mol, nbr_idx)
     if keep_indices is not None:
         order = [i for i in order if i in keep_indices]
@@ -414,7 +437,7 @@ def build_residue_type(
             ggp = gp
         grandparents[idx] = (gp, ggp)
 
-    icoors = _compute_icoors(mol, order, parent, grandparents, atom_names)
+    icoors = _compute_icoors(mol, order, parent, grandparents, atom_names, coords)
 
     properties = ChemicalProperties(
         is_canonical=False,

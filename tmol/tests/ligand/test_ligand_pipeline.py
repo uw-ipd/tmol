@@ -661,14 +661,14 @@ class TestParamsRoundtrip:
 
 
 def test_collect_new_atom_types_strict_mode_errors(default_database):
-    from tmol.ligand.registry import _collect_new_atom_types
+    from tmol.ligand.registry import collect_new_atom_types
 
     residue = SimpleNamespace(
         name="UNK",
         atoms=(SimpleNamespace(name="X1", atom_type="ZZZ"),),
     )
     with pytest.raises(ValueError, match="Unknown element mapping"):
-        _collect_new_atom_types(
+        collect_new_atom_types(
             default_database.chemical,
             residue,
             atom_type_elements={},

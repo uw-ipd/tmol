@@ -99,9 +99,7 @@ def _radians_to_deg_str(val: float) -> str:
     return f"{math.degrees(val):.6f} deg"
 
 
-_OMIT_IF_EMPTY_FIELDS = (
-    "torsions",
-)
+_OMIT_IF_EMPTY_FIELDS = ("torsions",)
 
 _PROPERTIES_OMIT_IF_DEFAULT: dict[str, Any] = {}
 _POLYMER_OMIT_IF_DEFAULT: dict[str, Any] = {}
@@ -221,15 +219,24 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
         pc = cattr.structure(item, PartialCharges)
         charges_by_res.setdefault(pc.res, {})[pc.atom] = pc.charge
 
-    return [
-        LigandPreparation(
-            residue_type=rt,
-            partial_charges=charges_by_res.get(rt.name, {}),
-            cartbonded_params=cart_by_res.get(rt.name, _empty_cartres()),
-            atom_type_elements=None,
+    preps = []
+    for rt in residues:
+        charges = charges_by_res.get(rt.name, {})
+        if not charges:
+            logger.warning(
+                "%s: no elec charges in %s -- all partial charges will be 0.0",
+                rt.name,
+                path,
+            )
+        preps.append(
+            LigandPreparation(
+                residue_type=rt,
+                partial_charges=charges,
+                cartbonded_params=cart_by_res.get(rt.name, _empty_cartres()),
+                atom_type_elements=None,
+            )
         )
-        for rt in residues
-    ]
+    return preps
 
 
 def _empty_cartres() -> CartRes:
@@ -256,15 +263,11 @@ class _FlowList(list):
 
 
 def _flow_list_representer(dumper, data):
-    return dumper.represent_sequence(
-        "tag:yaml.org,2002:seq", data, flow_style=True
-    )
+    return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
 
 
 def _flow_dict_representer(dumper, data):
-    return dumper.represent_mapping(
-        "tag:yaml.org,2002:map", data, flow_style=True
-    )
+    return dumper.represent_mapping("tag:yaml.org,2002:map", data, flow_style=True)
 
 
 class _CompactDumper(yaml.SafeDumper):

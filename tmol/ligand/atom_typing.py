@@ -17,6 +17,12 @@ from tmol.ligand.chemistry_tables import get_polar_classes
 logger = logging.getLogger(__name__)
 
 
+# Rosetta hybridization convention (matches mol2genparams)
+HYB_SP = 1
+HYB_SP2 = 2
+HYB_SP3 = 3
+HYB_AROMATIC = 9
+
 ELEMENT_SYMBOLS = {
     1: "H",
     6: "C",
@@ -80,11 +86,7 @@ def sanitize_tolerant(mol: Chem.Mol) -> None:
     from tmol.ligand.rdkit_mol import source_carried_kekule
 
     if source_carried_kekule(mol):
-        ops = (
-            Chem.SANITIZE_ALL
-            ^ Chem.SANITIZE_KEKULIZE
-            ^ Chem.SANITIZE_SETAROMATICITY
-        )
+        ops = Chem.SANITIZE_ALL ^ Chem.SANITIZE_KEKULIZE ^ Chem.SANITIZE_SETAROMATICITY
         try:
             Chem.SanitizeMol(mol, sanitizeOps=ops)
             return
@@ -173,14 +175,6 @@ def _prepare_mol_for_typing(mol: Chem.Mol) -> Chem.Mol:
     # Conditional kekulization: rings that carry an exocyclic C=O / C=N
     # (purine, cytosine, amide-substituted ring) were originally encoded
     # as sp2 in the source mol2 (``C.2`` → ``CD``), so we kekulize them
-    # to match Rosetta's reference. Plain phenyls have no such
-    # substituent and stay aromatic (``CR``).
-    # Don't kekulize when the CIF carried explicit aromatic flags —
-    # ``Kekulize`` clears them, and atom typing then loses the CR vs CD
-    # distinction. The flags + Kekulé bond orders that survive sanitize
-    # already give classifiers everything they need.
-    pass
-
     # Perceive rings
     Chem.GetSSSR(mol)
 
@@ -230,11 +224,13 @@ def _neighbor_counts(atom: Chem.Atom) -> tuple[int, int, int, int, int, int]:
 def _get_hyb(atom: Chem.Atom) -> int:
     """Map RDKit hybridization to Rosetta mol2 convention.
 
-    Rosetta mol2: 1=sp, 2=sp2, 3=sp3, 8=amide, 9=aromatic.
+    Returns: 1=sp, 2=sp2, 3=sp3, 9=aromatic.
+    Aromatic is checked first via GetIsAromatic(); other hybridizations
+    map through _HYB_MAP with sp3 (3) as the default for unknown types.
     """
     if atom.GetIsAromatic():
-        return 9
-    return _HYB_MAP.get(atom.GetHybridization(), 3)
+        return HYB_AROMATIC
+    return _HYB_MAP.get(atom.GetHybridization(), HYB_SP3)
 
 
 def _has_sp2_double_bonded_O(atom: Chem.Atom) -> bool:
@@ -484,9 +480,7 @@ def _classify_O_sp2(atom, nC):
         # aromatic 5-ring. Acyclic ester / lactone Os that RDKit
         # aromatized via lone-pair conjugation get Oet.
         ri = atom.GetOwningMol().GetRingInfo()
-        in_5ring = any(
-            len(r) == 5 and atom.GetIdx() in r for r in ri.AtomRings()
-        )
+        in_5ring = any(len(r) == 5 and atom.GetIdx() in r for r in ri.AtomRings())
         return "Ofu" if in_5ring else "Oet"
 
     c_nbr = None
@@ -558,11 +552,9 @@ def _classify_O(atom: Chem.Atom, mol: Chem.Mol) -> str:
             # both the aromatic flag (pre-kekulize) AND membership in
             # a 5-membered ring.
             ri = mol.GetRingInfo()
-            in_5ring = any(
-                len(r) == 5 and atom.GetIdx() in r for r in ri.AtomRings()
-            )
+            in_5ring = any(len(r) == 5 and atom.GetIdx() in r for r in ri.AtomRings())
             return "Ofu" if was_aromatic(atom) and in_5ring else "Oet"
-        return "OG31" if nH >= 1 else "OG3"
+        return "OG3"
 
     if hyb == 2 or hyb == 9:
         # Treat aromatic-perceived Os (hyb=9) the same as sp2 — RDKit
@@ -615,6 +607,7 @@ def _modify_polar_c(
 ) -> list[AtomTypeAssignment]:
     """Convert CS/CD/CR/CT -> CSp/CDp/CRp/CTp for polar-adjacent carbons."""
     type_by_idx = {a.index: a.atom_type for a in assignments}
+    polar_classes = get_polar_classes()
 
     result = []
     for a in assignments:
@@ -637,7 +630,7 @@ def _modify_polar_c(
         attached_to_polar = False
         for nbr in atom.GetNeighbors():
             nbr_type = type_by_idx.get(nbr.GetIdx())
-            if nbr_type in get_polar_classes():
+            if nbr_type in polar_classes:
                 attached_to_polar = True
                 break
 
@@ -659,7 +652,12 @@ def _correct_ring_nitrogen(
     assignments: list[AtomTypeAssignment],
     mol: Chem.Mol,
 ) -> list[AtomTypeAssignment]:
-    """Correct Nad3->Nim for nitrogen in 5/6-membered rings."""
+    """Override nitrogen type to Nim for sp2/aromatic N in 5/6-membered rings.
+
+    Applies a graph-pattern match (ntot<3, nH==0, nN>=1) regardless of
+    the current atom type -- any nitrogen matching the Rosetta ring-N
+    pattern is forced to Nim.
+    """
     result = list(assignments)
 
     rings = mol.GetRingInfo().AtomRings()
@@ -676,7 +674,7 @@ def _correct_ring_nitrogen(
                 continue
 
             hyb = _get_hyb(atom)
-            if hyb not in (2, 9):
+            if hyb not in (HYB_SP2, HYB_AROMATIC):
                 continue
 
             nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom)
@@ -714,13 +712,6 @@ def assign_tmol_atom_types(mol: Chem.Mol) -> list[AtomTypeAssignment]:
 
     mol = _prepare_mol_for_typing(mol)
     mol = _ensure_explicit_hydrogens(mol)
-    sanitize_tolerant(mol)
-    # Don't kekulize when the CIF carried explicit aromatic flags —
-    # ``Kekulize`` clears them, and atom typing then loses the CR vs CD
-    # distinction. The flags + Kekulé bond orders that survive sanitize
-    # already give classifiers everything they need.
-    pass
-    Chem.GetSSSR(mol)
 
     # Pass 1: classify all atoms, name heavy atoms
     heavy_assignments: list[tuple[int, str, str, int]] = []

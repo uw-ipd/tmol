@@ -30,10 +30,13 @@ def compute_mmff94_charges(mol: Chem.Mol) -> dict[int, float]:
     if props is None:
         logger.warning("MMFF94 parameterization failed, falling back to Gasteiger")
         AllChem.ComputeGasteigerCharges(mol)
-        return {
-            i: float(mol.GetAtomWithIdx(i).GetDoubleProp("_GasteigerCharge"))
-            for i in range(mol.GetNumAtoms())
-        }
+        charges = {}
+        for i in range(mol.GetNumAtoms()):
+            q = float(mol.GetAtomWithIdx(i).GetDoubleProp("_GasteigerCharge"))
+            if q != q:  # NaN check
+                q = 0.0
+            charges[i] = q
+        return charges
     return {i: props.GetMMFFPartialCharge(i) for i in range(mol.GetNumAtoms())}
 
 

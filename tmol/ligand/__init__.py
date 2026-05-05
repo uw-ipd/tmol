@@ -204,9 +204,7 @@ def prepare_single_ligand(
     else:
         protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
         try:
-            protonated = AllChem.AssignBondOrdersFromTemplate(
-                protonated, rdkit_mol
-            )
+            protonated = AllChem.AssignBondOrdersFromTemplate(protonated, rdkit_mol)
         except Exception:
             logger.debug(
                 "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
@@ -304,6 +302,15 @@ def prepare_ligands(
         ParameterDatabase is a new instance with all detected ligands
         injected; the input ``param_db`` is not modified.
     """
+    if isinstance(atom_array, struc.AtomArrayStack):
+        if len(atom_array) == 1:
+            atom_array = atom_array[0]
+        else:
+            raise TypeError(
+                "prepare_ligands expects a single AtomArray, not an "
+                f"AtomArrayStack with {len(atom_array)} models. "
+                "Select a single model first (e.g. stack[0])."
+            )
     if param_db is None:
         param_db = ParameterDatabase.get_default()
     if cache is None:
@@ -395,9 +402,7 @@ def prepare_ligands(
             from tmol.ligand.params_file import write_params_file
 
             all_residues = [p.residue_type for p in preparations]
-            all_charges = {
-                p.residue_type.name: p.partial_charges for p in preparations
-            }
+            all_charges = {p.residue_type.name: p.partial_charges for p in preparations}
             all_cartbonded = {
                 p.residue_type.name: p.cartbonded_params for p in preparations
             }

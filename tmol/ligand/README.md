@@ -24,7 +24,7 @@ flowchart TD
     end
 
     subgraph injection [Injection into ParameterDatabase]
-        J --> K["build_injection_data\n(registry.py)"]
+        J --> K["inject_ligand_preparations\n(registry.py)"]
         F --> K
 
         K --> L["inject_residue_params\n(database/__init__.py)"]
@@ -95,7 +95,7 @@ See `params_file.py` for `load_params_file`, `write_params_file`, and
 | `mol3d.py` | 30 | `compute_mmff94_charges` |
 | `atom_typing.py` | 520 | Rosetta-style atom type assignment from Chem.Mol |
 | `residue_builder.py` | 330 | `build_residue_type` — RawResidueType from Chem.Mol |
-| `registry.py` | 333 | `register_ligand`, `LigandPreparationCache`, `rebuild_canonical_ordering` |
+| `registry.py` | 390 | `inject_ligand_preparations`, `LigandPreparation`, `LigandPreparationCache` |
 | `graph_match.py` | 114 | VF2 heavy-atom isomorphism for CIF name mapping |
 | `params_io.py` | 178 | Rosetta `.params` file read/write (backward compat) |
 | `chemistry_tables.py` | 67 | H-bond/polar/sp2 atom-type sets from default DB |

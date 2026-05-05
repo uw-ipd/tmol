@@ -170,7 +170,7 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
         return Chem.RemoveHs(mol, sanitize=False)
 
 
-def ligand_atom_array_to_rdkit_mol(ligand_info: NonStandardResidueInfo):
+def ligand_atom_array_to_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.Mol:
     """Build an RDKit Mol directly from a ligand AtomArray."""
     atom_array = ligand_info.atom_array
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
@@ -210,10 +210,10 @@ def ligand_atom_array_to_rdkit_mol(ligand_info: NonStandardResidueInfo):
 
 
 def protonate_ligand_mol(
-    mol,
+    mol: Chem.Mol,
     ph: float = 7.4,
     precision: float = 0.1,
-):
+) -> Chem.Mol:
     """Protonate an RDKit Mol at a target pH and return first variant."""
     try:
         variants = protonate_mol_variants(

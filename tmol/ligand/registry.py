@@ -32,6 +32,7 @@ CacheKey = tuple[str, float, tuple[str, ...], tuple[str, ...]]
 @dataclass
 class LigandPreparationCache:
     """Mutable cache keyed by (res_name, ph, atom_names, elements)."""
+
     ligands_by_key: dict[CacheKey, RawResidueType] = field(default_factory=dict)
     charges_by_key: dict[CacheKey, dict[str, float]] = field(default_factory=dict)
 
@@ -218,7 +219,7 @@ def _build_cartbonded_params(
     )
 
 
-def _collect_new_atom_types(
+def collect_new_atom_types(
     chem_db: PatchedChemicalDatabase,
     residue_type: RawResidueType,
     atom_type_elements: Optional[dict[str, str]] = None,
@@ -253,11 +254,7 @@ def _collect_new_atom_types(
             # with 'H' as hydrogen, everything else as carbon. The
             # params-file path always lands here because the file format
             # encodes atom types but not their elements.
-            element = (
-                "H"
-                if props.get("is_polarh") or name.startswith("H")
-                else "C"
-            )
+            element = "H" if props.get("is_polarh") or name.startswith("H") else "C"
         result.append(
             AtomType(
                 name=name,
@@ -350,7 +347,7 @@ def inject_ligand_preparations(
     new_atom_types: list[AtomType] = []
     seen_at: set[str] = set()
     for prep in new_preps:
-        for at in _collect_new_atom_types(
+        for at in collect_new_atom_types(
             param_db.chemical,
             prep.residue_type,
             atom_type_elements=prep.atom_type_elements,
@@ -374,9 +371,7 @@ def inject_ligand_preparations(
         residue_types=[p.residue_type for p in new_preps],
         atom_types=new_atom_types or None,
         partial_charges={p.residue_type.name: p.partial_charges for p in new_preps},
-        cartbonded_params={
-            p.residue_type.name: p.cartbonded_params for p in new_preps
-        },
+        cartbonded_params={p.residue_type.name: p.cartbonded_params for p in new_preps},
     )
 
 
