@@ -193,13 +193,12 @@ def prepare_single_ligand(
         ph: Target pH for protonation.
     """
     rdkit_mol = ligand_atom_array_to_rdkit_mol(ligand_info)
-    # When the caller supplies authoritative per-atom partial charges
-    # (e.g. AM1-BCC from a Tripos mol2 file) we treat that as evidence
-    # the input already encodes the desired protonation state, and skip
-    # Dimorphite-DL — otherwise it can flip ring nitrogens (imidazole-
-    # type) to their protonated form at pH 7.4, adding a hydrogen that
-    # the caller's reference deliberately omits.
-    if ligand_info.partial_charges:
+    # Skip protonation when:
+    # - The caller explicitly sets skip_protonation=True, OR
+    # - The caller supplies authoritative partial charges (e.g. AM1-BCC
+    #   from a Tripos mol2 file), which implies the input already encodes
+    #   the desired protonation state.
+    if ligand_info.skip_protonation or ligand_info.partial_charges:
         protonated = rdkit_mol
     else:
         protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
