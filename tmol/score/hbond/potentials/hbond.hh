@@ -566,6 +566,15 @@ void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared(
     int n_atoms_to_load2,
     HBondScoringData<Dev, Real, Int>& intra_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
+  // A prior same-tile hbond_load_intrares_data_from_shared call may have
+  // aliased r2's pointers to the "1" shared-memory arrays. Reset them to
+  // the "2" arrays so the load below writes to the correct destination.
+  intra_dat.r2.donH_tile_inds = shared_m.don_inds2;
+  intra_dat.r2.acc_tile_inds = shared_m.acc_inds2;
+  intra_dat.r2.donH_type = shared_m.don_type2;
+  intra_dat.r2.acc_type = shared_m.acc_type2;
+  intra_dat.r2.acc_hybridization = shared_m.acc_hybridization2;
+  intra_dat.r2.coords = shared_m.coords2;
   auto store_n_don_n_acc2 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[intra_dat.r2.block_type][tile_ind];
     int n_acc = block_type_tile_n_acc[intra_dat.r2.block_type][tile_ind];

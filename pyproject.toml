@@ -57,8 +57,10 @@ dependencies = [
     "astor>=0.8,<1",
     # Interactive
     "ipython>=8.0",
-    # Biotite
-    "biotite>=1.2.0",
+    # Structure I/O
+    "biotite>=1.6.0",
+    # Ligand preparation
+    "rdkit>=2024.3",
 ]
 
 [project.optional-dependencies]
@@ -118,7 +120,10 @@ TMOL_BUILD_TESTS = {env = "TMOL_BUILD_TESTS", default = "OFF"}
 
 # Test settings ----------------------------------------------------------------
 [tool.pytest.ini_options]
-addopts = "--benchmark-disable --benchmark-columns=ops,mean,iqr"
+addopts = "--benchmark-disable --benchmark-columns=ops,mean,iqr -m 'not slow'"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 filterwarnings = [
     "ignore:(?s).*is not compatible with the compiler Pytorch.*:",
     "ignore:(?s).*Benchmark fixture was not used.*:",

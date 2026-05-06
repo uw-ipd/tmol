@@ -42,6 +42,7 @@ def _non_memoized_beta2016(
     sfxn.set_weight(ScoreType.dunbrack_rotdev, 0.69)
     sfxn.set_weight(ScoreType.dunbrack_semirot, 0.78)
     sfxn.set_weight(ScoreType.ref, 1.0)
+    sfxn.set_weight(ScoreType.gen_torsions, 1.0)
 
     return sfxn
 

@@ -1,0 +1,157 @@
+chemical:
+  residues:
+  - name: LG1
+    base_name: LG1
+    name3: LG1
+    io_equiv_class: LG1
+    atoms:
+    - {name: C1, atom_type: CD1}
+    - {name: C2, atom_type: CD1}
+    - {name: C3, atom_type: CD1}
+    - {name: C4, atom_type: CDp}
+    - {name: C5, atom_type: CDp}
+    - {name: O1, atom_type: Oal}
+    - {name: C6, atom_type: CD1}
+    - {name: C7, atom_type: CD1}
+    - {name: O2, atom_type: Oal}
+    - {name: H1, atom_type: HC}
+    - {name: H2, atom_type: HC}
+    - {name: H3, atom_type: HC}
+    - {name: H4, atom_type: HC}
+    - {name: H5, atom_type: HC}
+    - {name: H6, atom_type: HO}
+    atom_aliases: []
+    bonds:
+    - [C1, C7, SINGLE, true]
+    - [C2, C3, SINGLE, true]
+    - [C4, C5, SINGLE, true]
+    - [C4, O2, SINGLE, false]
+    - [C5, C6, SINGLE, true]
+    - [C1, H1, SINGLE, false]
+    - [C2, H2, SINGLE, false]
+    - [C3, H3, SINGLE, false]
+    - [C6, H4, SINGLE, false]
+    - [C7, H5, SINGLE, false]
+    - [O2, H6, SINGLE, false]
+    - [C1, C2, DOUBLE, true]
+    - [C3, C4, DOUBLE, true]
+    - [C5, O1, DOUBLE, false]
+    - [C6, C7, DOUBLE, true]
+    connections: []
+    torsions:
+    - name: chi1
+      a: {atom: C5}
+      b: {atom: C4}
+      c: {atom: O2}
+      d: {atom: H6}
+    icoors:
+    - {name: C4, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: C4, grand_parent: C3,
+      great_grand_parent: C5}
+    - {name: C3, phi: 0.000000 deg, theta: 0.000000 deg, d: 1.381991, parent: C4,
+      grand_parent: C3, great_grand_parent: C5}
+    - {name: C5, phi: 0.000000 deg, theta: 51.773754 deg, d: 1.41807, parent: C4,
+      grand_parent: C3, great_grand_parent: C5}
+    - {name: O2, phi: -179.709056 deg, theta: 64.111305 deg, d: 1.354946, parent: C4,
+      grand_parent: C3, great_grand_parent: C5}
+    - {name: O1, phi: -179.728835 deg, theta: 64.067298 deg, d: 1.223566, parent: C5,
+      grand_parent: C4, great_grand_parent: C3}
+    - {name: C6, phi: 0.238428 deg, theta: 51.859012 deg, d: 1.406172, parent: C5,
+      grand_parent: C4, great_grand_parent: C3}
+    - {name: C7, phi: 0.032958 deg, theta: 51.631920 deg, d: 1.376999, parent: C6,
+      grand_parent: C5, great_grand_parent: C4}
+    - {name: C1, phi: 0.006483 deg, theta: 51.240528 deg, d: 1.392746, parent: C7,
+      grand_parent: C6, great_grand_parent: C5}
+    - {name: C2, phi: 0.001226 deg, theta: 50.982174 deg, d: 1.379369, parent: C1,
+      grand_parent: C7, great_grand_parent: C6}
+    - {name: H3, phi: -179.650894 deg, theta: 64.276760 deg, d: 1.079965, parent: C3,
+      grand_parent: C4, great_grand_parent: C2}
+    - {name: H6, phi: -90.254024 deg, theta: 65.999899 deg, d: 0.966962, parent: O2,
+      grand_parent: C4, great_grand_parent: C3}
+    - {name: H4, phi: 179.966091 deg, theta: 64.187799 deg, d: 1.080054, parent: C6,
+      grand_parent: C5, great_grand_parent: C7}
+    - {name: H5, phi: 179.976652 deg, theta: 64.382692 deg, d: 1.079977, parent: C7,
+      grand_parent: C6, great_grand_parent: C1}
+    - {name: H1, phi: 179.978270 deg, theta: 64.507483 deg, d: 1.079967, parent: C1,
+      grand_parent: C7, great_grand_parent: C2}
+    - {name: H2, phi: -179.676823 deg, theta: 64.460803 deg, d: 1.079937, parent: C2,
+      grand_parent: C1, great_grand_parent: C3}
+    properties:
+      is_canonical: false
+      polymer:
+        is_polymer: false
+        polymer_type: NA
+        backbone_type: NA
+        mainchain_atoms: null
+        sidechain_chirality: NA
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: C4
+elec:
+  atom_charge_parameters:
+  - {res: LG1, atom: C1, charge: -0.15}
+  - {res: LG1, atom: C2, charge: -0.15}
+  - {res: LG1, atom: C3, charge: -0.15}
+  - {res: LG1, atom: C4, charge: 0.091}
+  - {res: LG1, atom: C5, charge: 0.541}
+  - {res: LG1, atom: O1, charge: -0.57}
+  - {res: LG1, atom: C6, charge: -0.136}
+  - {res: LG1, atom: C7, charge: -0.15}
+  - {res: LG1, atom: O2, charge: -0.527}
+  - {res: LG1, atom: H1, charge: 0.15}
+  - {res: LG1, atom: H2, charge: 0.15}
+  - {res: LG1, atom: H3, charge: 0.15}
+  - {res: LG1, atom: H4, charge: 0.15}
+  - {res: LG1, atom: H5, charge: 0.15}
+  - {res: LG1, atom: H6, charge: 0.45}
+cartbonded:
+  residue_params:
+    LG1:
+      length_parameters:
+      - {atm1: C1, atm2: C7, x0: 1.39324, K: 300.0}
+      - {atm1: C2, atm2: C3, x0: 1.39202, K: 300.0}
+      - {atm1: C4, atm2: C5, x0: 1.41785, K: 300.0}
+      - {atm1: C4, atm2: O2, x0: 1.35514, K: 300.0}
+      - {atm1: C5, atm2: C6, x0: 1.40658, K: 300.0}
+      - {atm1: C1, atm2: H1, x0: 1.07961, K: 300.0}
+      - {atm1: C2, atm2: H2, x0: 1.0799, K: 300.0}
+      - {atm1: C3, atm2: H3, x0: 1.08013, K: 300.0}
+      - {atm1: C6, atm2: H4, x0: 1.08058, K: 300.0}
+      - {atm1: C7, atm2: H5, x0: 1.07985, K: 300.0}
+      - {atm1: O2, atm2: H6, x0: 0.96693, K: 300.0}
+      - {atm1: C1, atm2: C2, x0: 1.37988, K: 300.0}
+      - {atm1: C3, atm2: C4, x0: 1.38167, K: 300.0}
+      - {atm1: C5, atm2: O1, x0: 1.22358, K: 300.0}
+      - {atm1: C6, atm2: C7, x0: 1.37628, K: 300.0}
+      angle_parameters:
+      - {atm1: C7, atm2: C1, atm3: H1, x0: 2.01563, K: 80.0}
+      - {atm1: C7, atm2: C1, atm3: C2, x0: 2.25132, K: 80.0}
+      - {atm1: H1, atm2: C1, atm3: C2, x0: 2.01624, K: 80.0}
+      - {atm1: C5, atm2: C6, atm3: H4, x0: 2.02137, K: 80.0}
+      - {atm1: C5, atm2: C6, atm3: C7, x0: 2.24039, K: 80.0}
+      - {atm1: H4, atm2: C6, atm3: C7, x0: 2.02142, K: 80.0}
+      - {atm1: C2, atm2: C3, atm3: H3, x0: 2.01858, K: 80.0}
+      - {atm1: C2, atm2: C3, atm3: C4, x0: 2.24495, K: 80.0}
+      - {atm1: H3, atm2: C3, atm3: C4, x0: 2.01964, K: 80.0}
+      - {atm1: C4, atm2: O2, atm3: H6, x0: 1.98965, K: 80.0}
+      - {atm1: C1, atm2: C7, atm3: H5, x0: 2.0176, K: 80.0}
+      - {atm1: C1, atm2: C7, atm3: C6, x0: 2.24768, K: 80.0}
+      - {atm1: H5, atm2: C7, atm3: C6, x0: 2.0179, K: 80.0}
+      - {atm1: C5, atm2: C4, atm3: O2, x0: 2.02309, K: 80.0}
+      - {atm1: C5, atm2: C4, atm3: C3, x0: 2.23746, K: 80.0}
+      - {atm1: O2, atm2: C4, atm3: C3, x0: 2.02263, K: 80.0}
+      - {atm1: C3, atm2: C2, atm3: H2, x0: 2.01756, K: 80.0}
+      - {atm1: C3, atm2: C2, atm3: C1, x0: 2.24948, K: 80.0}
+      - {atm1: H2, atm2: C2, atm3: C1, x0: 2.01613, K: 80.0}
+      - {atm1: C4, atm2: C5, atm3: C6, x0: 2.23665, K: 80.0}
+      - {atm1: C4, atm2: C5, atm3: O1, x0: 2.02336, K: 80.0}
+      - {atm1: C6, atm2: C5, atm3: O1, x0: 2.02318, K: 80.0}
+      torsion_parameters: []
+      improper_parameters: []
+      hxltorsion_parameters: []

@@ -9,6 +9,8 @@ element_types:
   - {name: S, atomic_number: 16}
   - {name: Cl, atomic_number: 17}
   - {name: K, atomic_number: 19}
+  - {name: Br, atomic_number: 35}
+  - {name: I, atomic_number: 53}
   - {name: Vr, atomic_number: 0}
 
 atom_types:
@@ -63,6 +65,74 @@ atom_types:
   - { name: Hwat, element: H, is_polarh : true }
   - { name: Vrt, element: Vr}
 
+  # Generic potential atom types for ligands (from Rosetta generic_potential)
+  # Carbon
+  - { name: CD  , element: C }
+  - { name: CD1 , element: C }
+  - { name: CD2 , element: C }
+  - { name: CDp , element: C }
+  - { name: CR  , element: C }
+  - { name: CRp , element: C }
+  - { name: CS  , element: C }
+  - { name: CS1 , element: C }
+  - { name: CS2 , element: C }
+  - { name: CS3 , element: C }
+  - { name: CSp , element: C }
+  - { name: CSQ , element: C }
+  - { name: CT  , element: C }
+  - { name: CTp , element: C }
+  # Hydrogen
+  - { name: HC  , element: H }
+  - { name: HN  , element: H, is_polarh: true }
+  - { name: HO  , element: H, is_polarh: true }
+  - { name: HR  , element: H }
+  - { name: HG  , element: H, is_polarh: true }
+  # Nitrogen
+  - { name: Nad , element: N, is_donor: true, is_acceptor: true, acceptor_hybridization: ring }
+  - { name: Nad3, element: N, is_acceptor: true, acceptor_hybridization: sp3 }
+  - { name: Nam , element: N, is_donor: true, acceptor_hybridization: sp3 }
+  - { name: Nam2, element: N, is_donor: true, acceptor_hybridization: sp3 }
+  - { name: Ngu1, element: N, is_donor: true }
+  - { name: Ngu2, element: N, is_donor: true }
+  - { name: Nim , element: N, is_acceptor: true, acceptor_hybridization: ring }
+  - { name: Nin , element: N, is_donor: true, is_acceptor: true, acceptor_hybridization: ring }
+  - { name: NG1 , element: N, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: NG2 , element: N, is_acceptor: true, acceptor_hybridization: ring }
+  - { name: NG21, element: N, is_donor: true }
+  - { name: NG22, element: N, is_donor: true }
+  - { name: NG3 , element: N, is_donor: true }
+  # Oxygen
+  - { name: Oad , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: Oal , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: Oat , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: Oet , element: O, is_acceptor: true, acceptor_hybridization: sp3 }
+  - { name: Ofu , element: O, is_acceptor: true, acceptor_hybridization: ring }
+  - { name: Ohx , element: O, is_donor: true, is_acceptor: true, acceptor_hybridization: sp3, is_hydroxyl: true }
+  - { name: Ont , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: OG2 , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: OG3 , element: O, is_acceptor: true, acceptor_hybridization: sp3 }
+  - { name: OG31, element: O, is_acceptor: true, acceptor_hybridization: sp3 }
+  # Sulfur
+  - { name: SR  , element: S }
+  - { name: Ssl , element: S }
+  - { name: Sth , element: S, is_donor: true }
+  - { name: SG2 , element: S }
+  - { name: SG3 , element: S }
+  - { name: SG5 , element: S }
+  # Phosphorus
+  - { name: PG3 , element: P }
+  - { name: PG5 , element: P }
+  - { name: Phos, element: P }
+  # Halogens
+  - { name: F   , element: F, acceptor_hybridization: sp3 }
+  - { name: Cl  , element: Cl, acceptor_hybridization: sp3 }
+  - { name: Br  , element: Br, acceptor_hybridization: sp3 }
+  - { name: I   , element: I, acceptor_hybridization: sp3 }
+  - { name: FR  , element: F }
+  - { name: ClR , element: Cl }
+  - { name: BrR , element: Br }
+  - { name: IR  , element: I }
+
 residues:
   - name:  ALA
     base_name: ALA
@@ -84,18 +154,18 @@ residues:
     - { name: HB2 , alt_name: 2HB }
     - { name: HB3 , alt_name: 3HB }
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,  HB1]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,  HB1, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
     connections:
-    - { name: down, atom: N }
-    - { name: up, atom: C }
+    - { name: down, atom: N, type: AROMATIC }
+    - { name: up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -187,32 +257,32 @@ residues:
     - { name: HH21, alt_name: 1HH2 }
     - { name: HH22, alt_name: 2HH2 }
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,   CD]
-    - [  CG,  HG2]
-    - [  CG,  HG3]
-    - [  CD,   NE]
-    - [  CD,  HD2]
-    - [  CD,  HD3]
-    - [  NE,   CZ]
-    - [  NE,   HE]
-    - [  CZ,  NH1]
-    - [  CZ,  NH2]
-    - [ NH1, HH11]
-    - [ NH1, HH12]
-    - [ NH2, HH21]
-    - [ NH2, HH22]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,   CD, SINGLE, false]
+    - [  CG,  HG2, SINGLE, false]
+    - [  CG,  HG3, SINGLE, false]
+    - [  CD,   NE, SINGLE, false]
+    - [  CD,  HD2, SINGLE, false]
+    - [  CD,  HD3, SINGLE, false]
+    - [  NE,   CZ, SINGLE, false]
+    - [  NE,   HE, SINGLE, false]
+    - [  CZ,  NH1, AROMATIC, false]
+    - [  CZ,  NH2, AROMATIC, false]
+    - [ NH1, HH11, SINGLE, false]
+    - [ NH1, HH12, SINGLE, false]
+    - [ NH2, HH21, SINGLE, false]
+    - [ NH2, HH22, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -306,22 +376,22 @@ residues:
     - { name: HD21, alt_name: 1HD2}
     - { name: HD22, alt_name: 2HD2}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,  OD1]
-    - [  CG,  ND2]
-    - [ ND2, HD21]
-    - [ ND2, HD22]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,  OD1, DOUBLE, false]
+    - [  CG,  ND2, SINGLE, false]
+    - [ ND2, HD21, SINGLE, false]
+    - [ ND2, HD22, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -399,20 +469,20 @@ residues:
     - { name: HB2 , alt_name: 1HB }
     - { name: HB3 , alt_name: 2HB }
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,  OD1]
-    - [  CG,  OD2]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,  OD1, AROMATIC, false]
+    - [  CG,  OD2, AROMATIC, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -487,19 +557,19 @@ residues:
     - { name: HB2 , alt_name: 1HB}
     - { name: HB3 , alt_name: 2HB}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   HA]
-    - [  CA,   CB]
-    - [  CB,   SG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  SG,   HG]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CB,   SG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  SG,   HG, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -575,19 +645,19 @@ residues:
     - { name: HB2 , alt_name: 1HB }
     - { name: HB3 , alt_name: 2HB }
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   HA]
-    - [  CA,   CB]
-    - [  CB,   SG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CB,   SG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
-    - { name:  dslf, atom: SG }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
+    - { name:  dslf, atom: SG, type: SINGLE }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -669,25 +739,25 @@ residues:
     - { name: HE21, alt_name: 1HE2}
     - { name: HE22, alt_name: 2HE2}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,   CD]
-    - [  CG,  HG2]
-    - [  CG,  HG3]
-    - [  CD,  OE1]
-    - [  CD,  NE2]
-    - [ NE2, HE21]
-    - [ NE2, HE22]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,   CD, SINGLE, false]
+    - [  CG,  HG2, SINGLE, false]
+    - [  CG,  HG3, SINGLE, false]
+    - [  CD,  OE1, DOUBLE, false]
+    - [  CD,  NE2, SINGLE, false]
+    - [ NE2, HE21, SINGLE, false]
+    - [ NE2, HE22, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -774,23 +844,23 @@ residues:
     - { name: HG2 , alt_name: 1HG}
     - { name: HG3 , alt_name: 2HG}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,   CD]
-    - [  CD,  OE1]
-    - [  CD,  OE2]
-    - [  CG,  HG2]
-    - [  CG,  HG3]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,   CD, SINGLE, false]
+    - [  CD,  OE1, AROMATIC, false]
+    - [  CD,  OE2, AROMATIC, false]
+    - [  CG,  HG2, SINGLE, false]
+    - [  CG,  HG3, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -865,15 +935,15 @@ residues:
     - { name: HA2 , alt_name: 1HA }
     - { name: HA3 , alt_name: 2HA }
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,  HA2]
-    - [  CA,  HA3]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,  HA2, SINGLE, false]
+    - [  CA,  HA3, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -949,26 +1019,26 @@ residues:
     - { name: HB2 , alt_name: 1HB }
     - { name: HB3 , alt_name: 2HB }
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,  ND1]
-    - [  CG,  CD2]
-    - [ ND1,  CE1]
-    - [ CD2,  NE2]
-    - [ CD2,  HD2]
-    - [ CE1,  NE2]
-    - [ NE2,  HE2]
-    - [ CE1,  HE1]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,  ND1, AROMATIC, true]
+    - [  CG,  CD2, AROMATIC, true]
+    - [ ND1,  CE1, AROMATIC, true]
+    - [ CD2,  NE2, AROMATIC, true]
+    - [ CD2,  HD2, SINGLE, false]
+    - [ CE1,  NE2, AROMATIC, true]
+    - [ NE2,  HE2, SINGLE, false]
+    - [ CE1,  HE1, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -1055,26 +1125,26 @@ residues:
     - { name: HB2 , alt_name: 1HB}
     - { name: HB3 , alt_name: 2HB}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,  ND1]
-    - [  CG,  CD2]
-    - [ ND1,  CE1]
-    - [ CD2,  NE2]
-    - [ CD2,  HD2]
-    - [ CE1,  NE2]
-    - [ CE1,  HE1]
-    - [ ND1,  HD1]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,  ND1, AROMATIC, true]
+    - [  CG,  CD2, AROMATIC, true]
+    - [ ND1,  CE1, AROMATIC, true]
+    - [ CD2,  NE2, AROMATIC, true]
+    - [ CD2,  HD2, SINGLE, false]
+    - [ CE1,  NE2, AROMATIC, true]
+    - [ CE1,  HE1, SINGLE, false]
+    - [ ND1,  HD1, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -1161,27 +1231,27 @@ residues:
     - { name: HB2 , alt_name: 1HB}
     - { name: HB3 , alt_name: 2HB}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,  ND1]
-    - [  CG,  CD2]
-    - [ ND1,  CE1]
-    - [ CD2,  NE2]
-    - [ CD2,  HD2]
-    - [ CE1,  NE2]
-    - [ CE1,  HE1]
-    - [ ND1,  HD1]
-    - [ NE2,  HE2]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,  ND1, AROMATIC, true]
+    - [  CG,  CD2, AROMATIC, true]
+    - [ ND1,  CE1, AROMATIC, true]
+    - [ CD2,  NE2, AROMATIC, true]
+    - [ CD2,  HD2, SINGLE, false]
+    - [ CE1,  NE2, AROMATIC, true]
+    - [ CE1,  HE1, SINGLE, false]
+    - [ ND1,  HD1, SINGLE, false]
+    - [ NE2,  HE2, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -1276,27 +1346,27 @@ residues:
     - { name: HD12,  alt_name: 2HD1}
     - { name: HD13,  alt_name: 3HD1}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,  CG1]
-    - [  CB,  CG2]
-    - [  CB,   HB]
-    - [ CG1,  CD1]
-    - [ CG1, HG12]
-    - [ CG1, HG13]
-    - [ CG2, HG21]
-    - [ CG2, HG22]
-    - [ CG2, HG23]
-    - [ CD1, HD11]
-    - [ CD1, HD12]
-    - [ CD1, HD13]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,  CG1, SINGLE, false]
+    - [  CB,  CG2, SINGLE, false]
+    - [  CB,   HB, SINGLE, false]
+    - [ CG1,  CD1, SINGLE, false]
+    - [ CG1, HG12, SINGLE, false]
+    - [ CG1, HG13, SINGLE, false]
+    - [ CG2, HG21, SINGLE, false]
+    - [ CG2, HG22, SINGLE, false]
+    - [ CG2, HG23, SINGLE, false]
+    - [ CD1, HD11, SINGLE, false]
+    - [ CD1, HD12, SINGLE, false]
+    - [ CD1, HD13, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -1392,27 +1462,27 @@ residues:
     - { name: HD22, alt_name: 2HD2}
     - { name: HD23, alt_name: 3HD2}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,  CD1]
-    - [  CG,  CD2]
-    - [  CG,   HG]
-    - [ CD1, HD11]
-    - [ CD1, HD12]
-    - [ CD1, HD13]
-    - [ CD2, HD21]
-    - [ CD2, HD22]
-    - [ CD2, HD23]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,  CD1, SINGLE, false]
+    - [  CG,  CD2, SINGLE, false]
+    - [  CG,   HG, SINGLE, false]
+    - [ CD1, HD11, SINGLE, false]
+    - [ CD1, HD12, SINGLE, false]
+    - [ CD1, HD13, SINGLE, false]
+    - [ CD2, HD21, SINGLE, false]
+    - [ CD2, HD22, SINGLE, false]
+    - [ CD2, HD23, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -1514,30 +1584,30 @@ residues:
     - { name: HZ2 , alt_name: 2HZ}
     - { name: HZ3 , alt_name: 3HZ}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,   CD]
-    - [  CG,  HG2]
-    - [  CG,  HG3]
-    - [  CD,   CE]
-    - [  CD,  HD2]
-    - [  CD,  HD3]
-    - [  CE,   NZ]
-    - [  CE,  HE2]
-    - [  CE,  HE3]
-    - [  NZ,  HZ1]
-    - [  NZ,  HZ2]
-    - [  NZ,  HZ3]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,   CD, SINGLE, false]
+    - [  CG,  HG2, SINGLE, false]
+    - [  CG,  HG3, SINGLE, false]
+    - [  CD,   CE, SINGLE, false]
+    - [  CD,  HD2, SINGLE, false]
+    - [  CD,  HD3, SINGLE, false]
+    - [  CE,   NZ, SINGLE, false]
+    - [  CE,  HE2, SINGLE, false]
+    - [  CE,  HE3, SINGLE, false]
+    - [  NZ,  HZ1, SINGLE, false]
+    - [  NZ,  HZ2, SINGLE, false]
+    - [  NZ,  HZ3, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -1635,25 +1705,25 @@ residues:
     - { name: HE2 , alt_name: 2HE }
     - { name: HE3 , alt_name: 3HE }
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,   SD]
-    - [  CG,  HG2]
-    - [  CG,  HG3]
-    - [  SD,   CE]
-    - [  CE,  HE1]
-    - [  CE,  HE2]
-    - [  CE,  HE3]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,   SD, SINGLE, false]
+    - [  CG,  HG2, SINGLE, false]
+    - [  CG,  HG3, SINGLE, false]
+    - [  SD,   CE, SINGLE, false]
+    - [  CE,  HE1, SINGLE, false]
+    - [  CE,  HE2, SINGLE, false]
+    - [  CE,  HE3, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -1743,29 +1813,29 @@ residues:
     - { name: HB2 , alt_name: 1HB }
     - { name: HB3 , alt_name: 2HB }
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,  CD1]
-    - [  CG,  CD2]
-    - [ CD1,  CE1]
-    - [ CD2,  CE2]
-    - [ CE1,   CZ]
-    - [ CE2,   CZ]
-    - [ CD1,  HD1]
-    - [ CD2,  HD2]
-    - [ CE1,  HE1]
-    - [ CE2,  HE2]
-    - [  CZ,   HZ]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,  CD1, AROMATIC, true]
+    - [  CG,  CD2, AROMATIC, true]
+    - [ CD1,  CE1, AROMATIC, true]
+    - [ CD2,  CE2, AROMATIC, true]
+    - [ CE1,   CZ, AROMATIC, true]
+    - [ CE2,   CZ, AROMATIC, true]
+    - [ CD1,  HD1, SINGLE, false]
+    - [ CD2,  HD2, SINGLE, false]
+    - [ CE1,  HE1, SINGLE, false]
+    - [ CE2,  HE2, SINGLE, false]
+    - [  CZ,   HZ, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -1855,23 +1925,23 @@ residues:
     - { name: HD2 , alt_name: 1HD }
     - { name: HD3 , alt_name: 2HD }
     bonds:
-    - [   N,   CA]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,   CD]
-    - [  CG,  HG2]
-    - [  CG,  HG3]
-    - [  CD,  HD2]
-    - [  CD,  HD3]
-    - [  CD,    N]
+    - [   N,   CA, SINGLE, true]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, true]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, true]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,   CD, SINGLE, true]
+    - [  CG,  HG2, SINGLE, false]
+    - [  CG,  HG3, SINGLE, false]
+    - [  CD,  HD2, SINGLE, false]
+    - [  CD,  HD3, SINGLE, false]
+    - [  CD,    N, SINGLE, true]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -1949,19 +2019,19 @@ residues:
     - { name: HB2 , alt_name: 1HB }
     - { name: HB3 , alt_name: 2HB }
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   OG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  OG,   HG]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   OG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  OG,   HG, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -2042,22 +2112,22 @@ residues:
     - { name: HG22, alt_name: 2HG2}
     - { name: HG23, alt_name: 3HG2}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,  OG1]
-    - [  CB,  CG2]
-    - [  CB,   HB]
-    - [ OG1,  HG1]
-    - [ CG2, HG21]
-    - [ CG2, HG22]
-    - [ CG2, HG23]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,  OG1, SINGLE, false]
+    - [  CB,  CG2, SINGLE, false]
+    - [  CB,   HB, SINGLE, false]
+    - [ OG1,  HG1, SINGLE, false]
+    - [ CG2, HG21, SINGLE, false]
+    - [ CG2, HG22, SINGLE, false]
+    - [ CG2, HG23, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -2150,34 +2220,34 @@ residues:
     - { name: HB2 , alt_name: 1HB }
     - { name: HB3 , alt_name: 2HB }
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,  CD1]
-    - [  CG,  CD2]
-    - [ CD1,  NE1]
-    - [ CD2,  CE2]
-    - [ CD2,  CE3]
-    - [ NE1,  CE2]
-    - [ CE2,  CZ2]
-    - [ CE3,  CZ3]
-    - [ CZ2,  CH2]
-    - [ CZ3,  CH2]
-    - [ CD1,  HD1]
-    - [ NE1,  HE1]
-    - [ CE3,  HE3]
-    - [ CZ2,  HZ2]
-    - [ CZ3,  HZ3]
-    - [ CH2,  HH2]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,  CD1, AROMATIC, true]
+    - [  CG,  CD2, AROMATIC, true]
+    - [ CD1,  NE1, AROMATIC, true]
+    - [ CD2,  CE2, AROMATIC, true]
+    - [ CD2,  CE3, AROMATIC, true]
+    - [ NE1,  CE2, AROMATIC, true]
+    - [ CE2,  CZ2, AROMATIC, true]
+    - [ CE3,  CZ3, AROMATIC, true]
+    - [ CZ2,  CH2, AROMATIC, true]
+    - [ CZ3,  CH2, AROMATIC, true]
+    - [ CD1,  HD1, SINGLE, false]
+    - [ NE1,  HE1, SINGLE, false]
+    - [ CE3,  HE3, SINGLE, false]
+    - [ CZ2,  HZ2, SINGLE, false]
+    - [ CZ3,  HZ3, SINGLE, false]
+    - [ CH2,  HH2, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -2274,31 +2344,31 @@ residues:
     - { name: HB2 ,  atom_type: Hapo, alt_name: 1HB}
     - { name: HB3 ,  atom_type: Hapo, alt_name: 2HB}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [   C,    O]
-    - [  CB,   CG]
-    - [  CB,  HB2]
-    - [  CB,  HB3]
-    - [  CG,  CD1]
-    - [  CG,  CD2]
-    - [ CD1,  CE1]
-    - [ CD1,  HD1]
-    - [ CD2,  CE2]
-    - [ CD2,  HD2]
-    - [ CE1,   CZ]
-    - [ CE1,  HE1]
-    - [ CE2,   CZ]
-    - [ CE2,  HE2]
-    - [  CZ,   OH]
-    - [  OH,   HH]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [   C,    O, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,  CD1, AROMATIC, true]
+    - [  CG,  CD2, AROMATIC, true]
+    - [ CD1,  CE1, AROMATIC, true]
+    - [ CD1,  HD1, SINGLE, false]
+    - [ CD2,  CE2, AROMATIC, true]
+    - [ CD2,  HD2, SINGLE, false]
+    - [ CE1,   CZ, AROMATIC, true]
+    - [ CE1,  HE1, SINGLE, false]
+    - [ CE2,   CZ, AROMATIC, true]
+    - [ CE2,  HE2, SINGLE, false]
+    - [  CZ,   OH, SINGLE, false]
+    - [  OH,   HH, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -2395,25 +2465,25 @@ residues:
     - { name: HG22, alt_name: 2HG2}
     - { name: HG23, alt_name: 3HG2}
     bonds:
-    - [   N,   CA]
-    - [   N,    H]
-    - [  CA,    C]
-    - [   C,    O]
-    - [  CA,   CB]
-    - [  CA,   HA]
-    - [   C,    O]
-    - [  CB,  CG1]
-    - [  CB,  CG2]
-    - [  CB,   HB]
-    - [ CG1, HG11]
-    - [ CG1, HG12]
-    - [ CG1, HG13]
-    - [ CG2, HG21]
-    - [ CG2, HG22]
-    - [ CG2, HG23]
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [   C,    O, SINGLE, false]
+    - [  CB,  CG1, SINGLE, false]
+    - [  CB,  CG2, SINGLE, false]
+    - [  CB,   HB, SINGLE, false]
+    - [ CG1, HG11, SINGLE, false]
+    - [ CG1, HG12, SINGLE, false]
+    - [ CG1, HG13, SINGLE, false]
+    - [ CG2, HG21, SINGLE, false]
+    - [ CG2, HG22, SINGLE, false]
+    - [ CG2, HG23, SINGLE, false]
     connections:
-    - { name:  down, atom: N }
-    - { name:    up, atom: C }
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -2481,8 +2551,8 @@ residues:
     - { name: H2, atom_type: Hwat }
     atom_aliases: []
     bonds:
-    - [O, H1]
-    - [O, H2]
+    - [O, H1, SINGLE, false]
+    - [O, H2, SINGLE, false]
     connections: []
     torsions: []
     icoors:
@@ -2517,8 +2587,8 @@ residues:
     - { name: A3, atom_type: Vrt }
     atom_aliases: []
     bonds:
-    - [A1, A2]
-    - [A1, A3]
+    - [A1, A2, SINGLE, false]
+    - [A1, A3, SINGLE, false]
     connections: []
     torsions: []
     icoors:
@@ -2559,8 +2629,8 @@ variants:
     modify_atoms: []
     add_connections: []
     add_bonds:
-    - [   <C1>,    OXT ]
-    - [   <C1>,    O ]
+    - [   <C1>,    OXT, AROMATIC, false ]
+    - [   <C1>,    O  , AROMATIC, false ]
     icoors:
     - { name:     O, source: <O1>, phi:   80.0 deg, theta: 60.0 deg, d: 1.2, parent:  <C1>, grand_parent: <*2>, great_grand_parent: <*1>}
     - { name:   OXT, source: <O1>, phi: -180.0 deg, theta: 60.0 deg, d: 1.2, parent:  <C1>, grand_parent: <*2>, great_grand_parent: O }
@@ -2584,9 +2654,9 @@ variants:
     - { name: <N1> ,  atom_type: Nlys }
     add_connections: []
     add_bonds:
-    - [  <N1>,    H1   ]
-    - [  <N1>,    H2   ]
-    - [  <N1>,    H3   ]
+    - [  <N1>,    H1  , SINGLE, false ]
+    - [  <N1>,    H2  , SINGLE, false ]
+    - [  <N1>,    H3  , SINGLE, false ]
     icoors:
     - { name:   H1, source: <H1>, phi: 180.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: <*1> }
     - { name:   H2, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: H1 }
@@ -2606,8 +2676,8 @@ variants:
     modify_atoms: []
     add_connections: []
     add_bonds:
-    - [  <N1>,    H2  ]
-    - [  <N1>,    H3  ]
+    - [  <N1>,    H2 , SINGLE, false ]
+    - [  <N1>,    H3 , SINGLE, false ]
     icoors:
     - { name:   H2, phi:  120.0 deg, theta:   70.5 deg, d: 1.0, parent: <N1>, grand_parent: <C1>, great_grand_parent: <C2>}
     - { name:   H3, phi: -120.0 deg, theta:   70.5 deg, d: 1.0, parent: <N1>, grand_parent: <C1>, great_grand_parent: <C2>}

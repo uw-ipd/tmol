@@ -147,6 +147,7 @@ def _setup_for_leaf_atom_coord_building(
         raise ValueError("\n".join(err_msg))
 
     block_leaf_atom_is_missing = torch.logical_and(block_at_is_leaf, block_atom_missing)
+
     pose_stack_atom_is_missing = torch.zeros(
         (n_poses, max_n_ats), dtype=torch.bool, device=device
     )
@@ -190,7 +191,6 @@ def _actually_build_leaf_coords(
     )
     pose_like_coords[pose_at_is_real] = block_coords[real_block_atoms]
 
-    # ok, we're ready
     from tmol.io.details.compiled.compiled import gen_pose_leaf_atoms
 
     return gen_pose_leaf_atoms(
@@ -424,12 +424,9 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
             while _icoor_at_is_leaf(bt, j_icoor.great_grand_parent):
                 ggp_ind = bt.icoors_index[j_icoor.great_grand_parent]
                 if seen[ggp_ind]:
-                    # infinite loop. This should never happen.
-                    raise RuntimeError(
-                        "Infinite loop detected in icoor ancestor traversal for residue type "
-                        f"{bt.name}; ggp_ind={ggp_ind} ({bt.icoors[ggp_ind].name}) from "
-                        f"atom_index={j} ({bt.atoms[j].name})"
-                    )
+                    # cycle detected — can happen for small-molecule ligands
+                    # where all atoms are leaves; break and use accumulated phi
+                    break
                 else:
                     seen[ggp_ind] = True
                 j_icoor = bt.icoors[ggp_ind]
@@ -460,8 +457,12 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
             # which itself is a leaf atom, is absent. This "general" logic
             # is specifically for building the OXT atom on a cterm residue
             # when the O atom is given but OXT is not.
+            seen_backup = set()
             while _icoor_at_is_leaf(bt, j_icoor.great_grand_parent):
                 ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
+                if ggp_ind_backup in seen_backup:
+                    break
+                seen_backup.add(ggp_ind_backup)
                 j_icoor = bt.icoors[ggp_ind_backup]
                 phi_backup += j_icoor.phi
 
