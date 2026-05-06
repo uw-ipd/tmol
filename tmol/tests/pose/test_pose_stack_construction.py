@@ -21,6 +21,20 @@ def test_create_pose_from_sequence(fresh_default_packed_block_types, torch_devic
     PoseStackBuilder.pose_stack_from_monomer_polymer_sequences(pbt, seqs)
 
 
+def test_pose_stack_from_slice(ubq_pdb, torch_device):
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
+
+    mask = torch.zeros([2, p1.max_n_blocks], device=torch_device, dtype=torch.bool)
+    mask[0, 0:20] = True
+    mask[1, 20:40] = True
+    print(mask)
+
+    masked = PoseStackBuilder.slice_pose_stack(poses, mask)
+    # print(masked)
+
+
 def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
     torch_device,
 ):

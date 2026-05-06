@@ -127,6 +127,74 @@ class PoseStackBuilder:
         )
 
     @classmethod
+    def slice_pose_stack(cls, pose_stack: PoseStack, mask):
+        """Slice a PoseStack based on a boolean mask indicating which blocks to keep.
+
+        Args:
+            pose_stack: The source PoseStack to slice
+            mask: A boolean tensor of shape [n_poses, max_n_blocks] indicating which
+                  blocks to include in the sliced PoseStack
+
+        """
+        device = pose_stack.device
+        pbt = pose_stack.packed_block_types
+
+        n_blocks = torch.count_nonzero(mask, dim=1)
+        max_n_blocks = torch.max(n_blocks).item()
+        n_poses = torch.count_nonzero(n_blocks).item()
+
+        print("n_blocks:", n_blocks)
+        print("max_n_blocks:", max_n_blocks)
+        print("n_poses:", n_poses)
+
+        # Create tensor to hold the number of atoms for each block
+        n_atoms = torch.zeros(
+            (n_poses, max_n_blocks), dtype=torch.int32, device=pose_stack.device
+        )
+        n_atoms = pbt.n_atoms[pose_stack.block_type_ind]
+
+        # Fill with the number of atoms for each block from the source pose stack
+        # Using the pbt.n_atoms array indexed by block_type_ind
+        masked_n_atoms = torch.where(mask, n_atoms, torch.tensor([0], device=device))
+        max_n_atoms = torch.max(torch.sum(masked_n_atoms, dim=1)).item()
+
+        # orig_block_coord_offsets = pose_stack.block_coord_offset
+
+        #coords = torch.zeros(
+            #(n_poses, max_n_atoms, 3), dtype=torch.float32, device=device
+        #)
+        block_coord_offset = torch.zeros(
+            (n_poses, max_n_blocks), dtype=torch.int32, device=device
+        )
+
+        sorted_mask_indices = torch.argsort(
+            mask.int(), dim=1, descending=True, stable=True
+        )
+        left_justified_n_atoms = torch.gather(n_atoms, 1, sorted_mask_indices)
+        block_coord_offset_new = exclusive_cumsum1d(left_justified_n_atoms, dim=1)
+        print(block_coord_offset_new)
+
+        # Mask and left justify all the per-residue data
+        left_justified_block_coords = torch.gather(
+            pose_stack.block_coord_offset, 1, sorted_mask_indices
+        )
+        block_coord_offset = left_justified_block_coords[:, :max_n_blocks]
+
+        left_justified_block_type_ind = torch.gather(
+            pose_stack.block_type_ind, 1, sorted_mask_indices
+        )
+        block_type_ind = left_justified_block_type_ind[:, :max_n_blocks]
+
+        left_justified_chain_id = torch.gather(
+            pose_stack.chain_id, 1, sorted_mask_indices
+        )
+        chain_id = left_justified_chain_id[:, :max_n_blocks]
+
+        print(block_coord_offset)
+
+        return n_atoms
+
+    @classmethod
     @validate_args
     def pose_stack_from_monomer_polymer_sequences(
         cls,
