@@ -32,7 +32,9 @@ class TestPLIScoring:
             bt_struct = bt_struct[0]
 
         param_db = ParameterDatabase.get_default()
-        pose_stack = pose_stack_from_biotite(bt_struct, torch_device, param_db=param_db)
+        pose_stack = pose_stack_from_biotite(
+            bt_struct, torch_device, param_db=param_db, prepare_ligands=True
+        )
 
         sfxn = beta2016_score_function(torch_device, param_db=param_db)
 
@@ -45,15 +47,4 @@ class TestPLIScoring:
             float(weights[i]) * float(unweighted[i, 0]) for i in range(len(score_types))
         )
 
-        # --- Block-pair scoring ---
-        # scorer(coords) returns weighted, summed-over-terms tensor of shape
-        # [n_poses, max_n_blocks, max_n_blocks]; sum over block pairs for total.
-        bp_scorer = sfxn.render_block_pair_scoring_module(pose_stack)
-        bp_scores = bp_scorer(pose_stack.coords)  # [n_poses, n_blocks, n_blocks]
-        total_bp = float(bp_scores[0].sum())
-
-        print(
-            f"\n{pli_pdb.name}:"
-            f"  whole_pose = {total_whole:.4f}"
-            f"  block_pair = {total_bp:.4f}"
-        )
+        print(f"\n{pli_pdb.name}:" f"  whole_pose = {total_whole:.4f}")
