@@ -514,20 +514,19 @@ def select_best_block_type_candidate(
     real_candidate_n_canonical_atoms_not_provided = torch.sum(
         real_candidate_canonical_atom_was_not_provided, dim=1
     )
+    warning_threshold = 2 * (canonical_ordering.max_n_canonical_atoms + 1)
     real_candidate_misalignment_score = (
         2 * real_candidate_n_canonical_atoms_not_provided
-        + 10 * real_candidate_n_extraneous_atoms_provided
+        + warning_threshold * real_candidate_n_extraneous_atoms_provided
         + real_candidate_is_non_default_term
     )
-    failure_score = 2 * (canonical_ordering.max_n_canonical_atoms + 1)
-    # real_candidate_misalignment_score[real_candidate_should_be_excluded] = failure_score
     candidate_misalignment_score2 = torch.full(
         (
             n_poses,
             max_n_res,
             max_n_candidates,
         ),
-        failure_score,
+        warning_threshold,
         dtype=torch.int64,
         device=device,
     )
@@ -546,8 +545,7 @@ def select_best_block_type_candidate(
         nz_is_real_res[:, 1],
         best_candidate_ind2[is_real_res],
     ]
-
-    if torch.any(best_candidate_score >= 0):  # failure_score):
+    if torch.any(best_candidate_score >= warning_threshold):
 
         nz_is_real_candidate = torch.nonzero(is_real_candidate)
         err_msg = []
@@ -556,7 +554,7 @@ def select_best_block_type_candidate(
             j = nz_is_real_candidate[cand_ind, 1]
             k = nz_is_real_candidate[cand_ind, 2]
 
-            if best_candidate_score[i, j] == 0:  # < failure_score:
+            if best_candidate_score[i, j] < warning_threshold:
                 continue
             ij_equiv_class = canonical_ordering.restype_io_equiv_classes[
                 res_types64[i, j]
@@ -624,26 +622,19 @@ def select_best_block_type_candidate(
                                 )
                             ]
                         )
-            # should there be an `else:` here??
-            # No.
-            # If there is at least one canonical atom that does not
-            # belong to a given block type, then its score will be less than
-            # the failure-score cutoff. We would only arrive at this "else"
-            # condition if an block type had every single atom across all
-            # variants of that atom, and the largest number of atoms of all
-            # block types and it were not the default termini type and the
-            # user had provided not a single one of its atoms to us, but still
-            # claimed that there was a residue.
 
-        # raise RuntimeError(
-        logger.warning(
-            " ".join(
-                [
-                    "failed to resolve a block type from the candidates available\n",
-                    *err_msg,
-                ]
-            )
+        err_msg = " ".join(
+            [
+                "failed to resolve a block type from the candidates available\n",
+                *err_msg,
+            ]
         )
+
+        failure_threshold = 2 * warning_threshold
+        if torch.any(best_candidate_score >= failure_threshold):
+            raise RuntimeError(err_msg + "Best candidate exceeds failure threshold")
+        else:
+            logger.warning(err_msg)
 
     block_type_ind64_2 = torch.full_like(res_types64, -1)
     block_type_ind64_2[is_real_res] = block_type_candidates[
