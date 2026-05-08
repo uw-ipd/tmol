@@ -1089,11 +1089,17 @@ def test_select_best_block_type_candidate_error_impossible_combo(
  0 19 1 75 SER:phospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:phospho
   atom M provided but absent from candidate SER:phospho
+  atom OP1 missing but present in candidate SER:phospho
+  atom OP2 missing but present in candidate SER:phospho
+  atom OP3 missing but present in candidate SER:phospho
  Failed to resolve block type for 0 19 SER
  0 19 2 76 SER:mospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:mospho
   atom P provided but absent from candidate SER:mospho
-"""
+  atom OM1 missing but present in candidate SER:mospho
+  atom OM2 missing but present in candidate SER:mospho
+  atom OM3 missing but present in candidate SER:mospho
+Best candidate exceeds failure threshold"""
 
     try:
         (
