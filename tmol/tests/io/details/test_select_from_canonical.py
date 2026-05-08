@@ -1109,5 +1109,43 @@ Best candidate exceeds failure threshold"""
         ) = assign_block_types(
             co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
         )
+        assert False, "Call to assign_block_types should fail"
     except RuntimeError as err:
         assert str(err) == expected_err_msg
+
+
+def test_select_best_block_type_candidate_accept_one_extraneous(torch_device, pdb_1r21):
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+
+    cf = canonical_form_from_pdb(co, pdb_1r21, torch_device)
+    ch_id, can_rts, coords, ch_lab = (
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
+    )
+    at_is_pres = not_any_nancoord(coords)
+
+    (
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
+        res_type_variants,
+        his_taut,
+        resolved_coords,
+        resolved_atom_is_present,
+        ch_lab,
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
+
+    (
+        block_types,
+        inter_residue_connections64,
+        inter_block_bondsep64,
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
