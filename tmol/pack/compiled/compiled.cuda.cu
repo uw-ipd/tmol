@@ -532,6 +532,7 @@ struct Annealer {
   static auto run_simulated_annealing(
       ContextManager& mgr, IG ig, at::CUDAGeneratorImpl* gen)
       -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
+    printf("Run simulated annealing\n");
     int const n_poses = ig.n_poses_cpu();
     int const max_n_res = ig.max_n_res_cpu();
     int const n_rotamers_total = ig.n_rotamers_total_cpu();
@@ -904,9 +905,11 @@ struct Annealer {
 
     std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
+    printf("hitemp_simulated_annealing %d\n", n_hitemp_simA_threads);
     mgpu::transform<32, 1>(
         hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
 
+    printf("segmented_sort scores_hitemp\n");
     mgpu::segmented_sort(
         scores_hitemp.data(),
         sorted_hitemp_traj.data(),
@@ -916,9 +919,11 @@ struct Annealer {
         mgpu::less_t<float>(),
         *context);
 
+    printf("lotemp_simulated_annealing %d\n", n_lotemp_simA_threads);
     mgpu::transform<32, 1>(
         lotemp_simulated_annealing, n_lotemp_simA_threads, *context);
 
+    printf("segmented_sort scores_lotemp\n");
     mgpu::segmented_sort(
         scores_lotemp.data(),
         sorted_lotemp_traj.data(),
@@ -928,8 +933,10 @@ struct Annealer {
         mgpu::less_t<float>(),
         *context);
 
+    printf("fullquence\n");
     mgpu::transform<32, 1>(fullquench, n_fullquench_threads, *context);
 
+    printf("segmented_sort scores_fullquench\n");
     mgpu::segmented_sort(
         scores_fullquench.data(),
         sorted_fullquench_traj.data(),
@@ -939,8 +946,10 @@ struct Annealer {
         mgpu::less_t<float>(),
         *context);
 
+    printf("final_reindexing %d\n", n_fullquench_threads);
     mgpu::transform<32, 1>(final_reindexing, n_fullquench_threads, *context);
 
+    printf("Done!\n");
     return {scores_final_t, rotamer_assignments_final_t};
   }
 };
@@ -961,6 +970,7 @@ auto AnnealerDispatch<D>::forward(
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
     -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
+  printf("AnnealerDispatch<D>::forward\n");
   clock_t start = clock();
 
   int const n_poses_cpu = pose_n_res.size(0);
@@ -976,12 +986,16 @@ auto AnnealerDispatch<D>::forward(
 
   {
     int const count = n_poses_cpu * max_n_res_cpu;
+    printf("count num neighbors\n");
     mgpu::transform<128, 1>(
         [=] MGPU_DEVICE(int idx) {
           if (idx >= count) return;
           int pose = idx / max_n_res_cpu;
           int b = idx % max_n_res_cpu;
           int n = pose_n_res[pose];
+          if (b >= n) {
+            return;
+          }
           int cnt = 0;
           for (int b2 = 0; b2 < n; ++b2) {
             if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) ++cnt;
@@ -990,6 +1004,7 @@ auto AnnealerDispatch<D>::forward(
         },
         count,
         *context);
+    printf("counted num neighbors\n");
   }
 
   auto neighbor_starts_t =
@@ -997,6 +1012,10 @@ auto AnnealerDispatch<D>::forward(
   auto neighbor_starts = neighbor_starts_t.view;
   int total_neighbors;
   {
+    printf(
+        "scan neighbor starts; context %p stream %p \n",
+        context.get(),
+        context->stream());
     mgpu::mem_t<int> total(1, *context, mgpu::memory_space_host);
     mgpu::scan<mgpu::scan_type_exc>(
         n_neighbors.data(),
@@ -1005,8 +1024,9 @@ auto AnnealerDispatch<D>::forward(
         mgpu::plus_t<int>(),
         total.data(),
         *context);
-    cudaStreamSynchronize(0);
+    CUDA_CHECK(cudaStreamSynchronize(context->stream()));
     total_neighbors = total.data()[0];
+    printf("total neighbors %d\n", total_neighbors);
   }
 
   auto neighbor_list_t =
@@ -1014,6 +1034,7 @@ auto AnnealerDispatch<D>::forward(
   auto neighbor_list = neighbor_list_t.view;
 
   {
+    printf("Record neighbors\n");
     int const count = n_poses_cpu * max_n_res_cpu;
     mgpu::transform<128, 1>(
         [=] MGPU_DEVICE(int idx) {
@@ -1021,6 +1042,9 @@ auto AnnealerDispatch<D>::forward(
           int pose = idx / max_n_res_cpu;
           int b = idx % max_n_res_cpu;
           int n = pose_n_res[pose];
+          if (b >= n) {
+            return;
+          }
           int offset = neighbor_starts[pose][b];
           for (int b2 = 0; b2 < n; ++b2) {
             if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) {

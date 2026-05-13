@@ -98,7 +98,7 @@ std::vector<Tensor> build_interaction_graph(
         chunk_pair_offset = std::get<12>(result).tensor;
         energy2b = std::get<13>(result).tensor;
       }));
-
+  printf("Concluding build_interaction_graph\n");
   std::vector<torch::Tensor> result(
       {max_n_bump_checked_rotamers_per_pose,
        n_molten_blocks_per_pose,

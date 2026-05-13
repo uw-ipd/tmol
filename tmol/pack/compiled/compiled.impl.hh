@@ -1,8 +1,13 @@
 #pragma once
+#include <iostream>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/context_manager.hh>
+
+#ifdef __NVCC__
+#include <tmol/utility/tensor/torch_context.hh>
+#endif
 
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/tuple.hh>
@@ -19,10 +24,25 @@ namespace compiled {
 
 #ifdef __NVCC__
 #define CHECK_GPU
+//  CUDA_CHECK(cudaStreamSynchronize(current_context(mgr)->stream()))
 //  CUDA_CHECK(cudaDeviceSynchronize());
 #else
 #define CHECK_GPU
 #endif
+
+// #ifdef __NVCC__
+// #define CHECK_GPU                                                      \
+//   do {                                                                 \
+//     cudaError_t err = cudaDeviceSynchronize();			       \
+//     if (err != cudaSuccess) {                                          \
+//       std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at " \
+//                 << __FILE__ << ":" << __LINE__ << std::endl;           \
+//       std::exit(EXIT_FAILURE);                                         \
+//     }                                                                  \
+//   } while (0)
+// #else
+// #define CHECK_GPU
+// #endif
 
 template <
     template <tmol::Device> class DeviceDispatch,
@@ -74,6 +94,14 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       "n_sparse_entries %ld (vs int %d)\n",
       sparse_inds.size(1),
       n_sparse_entries);
+
+#ifdef __NVCC__
+  std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
+  printf(
+      "GPU InteractionGraphBuilder: context %p and stream %p\n",
+      context.get(),
+      context->stream());
+#endif
 
   assert(rot_offset_for_pose.size(0) == n_poses);
   assert(n_rots_for_block.size(0) == n_poses);
@@ -603,21 +631,30 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       if (block_n_rots == 0) {
         return;
       }
-      int n_kept_rotamers_for_block = 0;
+      int const block_rot_offset = rot_offset_for_block[pose][block];
       auto count_n_rots_for_block = ([&] TMOL_DEVICE_FUNC(int tid) {
+        // Threads will distribute work of looking at all the rotamers
+        // for this block; then we'll reduce on the number of kept rotamers
+        // and the index of the biggest kept rotamer
+        int tid_n_kept_rotamers_for_block = 0;
+        int tid_biggest_kept_rotamer = -1;
         for (int rot_in_block = tid; rot_in_block < block_n_rots;
              rot_in_block += nt) {
-          int const rot = rot_offset_for_block[pose][block] + rot_in_block;
+          int const rot = block_rot_offset + rot_in_block;
           if (keep_rotamer[rot]) {
-            n_kept_rotamers_for_block += 1;
-            if (n_kept_rotamers_for_block > 1) {
-              break;
+            tid_n_kept_rotamers_for_block += 1;
+            if (rot > tid_biggest_kept_rotamer) {
+              tid_biggest_kept_rotamer = rot;
             }
           }
         }
-        n_kept_rotamers_for_block =
+        int n_kept_rotamers_for_block =
             DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                n_kept_rotamers_for_block, mgpu::plus_t<int>());
+                tid_n_kept_rotamers_for_block, mgpu::plus_t<int>());
+        int biggest_kept_rotamer =
+            DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+                tid_biggest_kept_rotamer, mgpu::maximum_t<int>());
+
         if (tid == 0) {
           if (n_kept_rotamers_for_block > 1) {
             // printf("keeping block %d of pose %d with %d rotamers\n", block,
@@ -626,22 +663,18 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
             keep_block[pose][block] = 1;
           } else {
             // we are not keeping this block,
-            // so if it has 1 rotamer, then we have to also
+            // so if it has exactly 1 rotamer, then we have to also
             // note that we are not keeping that rotamer
-            // printf("Not keeping block %d of pose %d with only %d rotamers\n",
-            // block, pose,
-            //        n_kept_rotamers_for_block);
+            printf(
+                "Not keeping block %d of pose %d with only %d rotamers "
+                "(biggest_kept_rotamer %d)\n",
+                block,
+                pose,
+                n_kept_rotamers_for_block,
+                biggest_kept_rotamer);
             if (n_kept_rotamers_for_block == 1) {
-              for (int rot_in_block = 0; rot_in_block < block_n_rots;
-                   ++rot_in_block) {
-                int const rot =
-                    rot_offset_for_block[pose][block] + rot_in_block;
-                if (keep_rotamer[rot]) {
-                  rotamer_for_nonmolten_block[pose][block] = rot;
-                  keep_rotamer[rot] = 0;
-                  break;
-                }
-              }
+              keep_rotamer[biggest_kept_rotamer] = 0;
+              rotamer_for_nonmolten_block[pose][block] = biggest_kept_rotamer;
             }
           }
         }
@@ -1073,7 +1106,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1] =
             chunk1_size * chunk2_size;
   });
-  // printf("note_adjacent_chunk_pairs 2\n");
+  printf("note_adjacent_chunk_pairs 2\n");
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_sparse_entries, note_adjacent_chunk_pairs);
 
@@ -1160,7 +1193,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       if (rot1 == rotamer_for_nonmolten_block[pose][block1]) {
         // then we should put this two body energy into the one-body energy for
         // the other rotamer
-        // TO DO: make atomic add
         score::common::accumulate<D, Real>::add(energy1b[bc_rot2], energy);
       }
       return;
@@ -1174,7 +1206,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       if (rot2 == rotamer_for_nonmolten_block[pose][block2]) {
         // then we should put this two body energy into the one-body energy for
         // the other rotamer
-        // TO DO: make atomic add
         score::common::accumulate<D, Real>::add(energy1b[bc_rot1], energy);
       }
       return;
@@ -1192,7 +1223,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     }
 
     if (block1 == block2) {
-      // TO DO: make atomic add
       score::common::accumulate<D, Real>::add(energy1b[bc_rot1], energy);
     } else {
       int const block1_rot_offset =
@@ -1288,6 +1318,14 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_adjacent_chunk_pairs_total, sentinel_out_non_adjacent_chunk_pairs);
   CHECK_GPU;
+
+  // This is a load-bearing synchronize_device call, and I cannot explain why.
+  // In the absence of this call, then when packing proceeds immediately into
+  // simulated annealing, the device will throw an error as it creates the
+  // edge list for each node in the graph:
+  // "CUDA Error: an illegal memory access was encountered"
+  DeviceDispatch<D>::synchronize_device();
+  printf("Done\n");
 
   return std::make_tuple(
       max_n_bump_checked_rotamers_per_pose_tp,

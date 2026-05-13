@@ -76,19 +76,26 @@ def build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=16):
     )
 
     # what else??!
-    return bg_bg_energies, PackerEnergyTables(
-        max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),
-        pose_n_res=n_molten_blocks_per_pose,
-        pose_n_rotamers=n_bc_rots_per_pose,
-        pose_rotamer_offset=bc_rot_offset_for_pose,
-        nrotamers_for_res=n_bc_rots_for_molten_block,
-        oneb_offsets=bc_rot_offset_for_molten_block,
-        res_for_rot=molten_block_ind_for_bc_rot,
-        chunk_size=chunk_size,
-        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
-        chunk_offsets=chunk_pair_offset,
-        energy1b=energy1b,
-        energy2b=energy2b,
+    return (
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
+        PackerEnergyTables(
+            max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),
+            pose_n_res=n_molten_blocks_per_pose,
+            pose_n_rotamers=n_bc_rots_per_pose,
+            pose_rotamer_offset=bc_rot_offset_for_pose,
+            nrotamers_for_res=n_bc_rots_for_molten_block,
+            oneb_offsets=bc_rot_offset_for_molten_block,
+            res_for_rot=molten_block_ind_for_bc_rot,
+            chunk_size=chunk_size,
+            chunk_offset_offsets=chunk_pair_offset_for_block_pair,
+            chunk_offsets=chunk_pair_offset,
+            energy1b=energy1b,
+            energy2b=energy2b,
+        ),
     )
 
     # energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
@@ -122,7 +129,15 @@ def build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=16):
 
 
 def run_pack_and_assert_scores(
-    pose_stack, rotamer_set, packer_energy_tables, sfxn, bg_bg_energies
+    pose_stack,
+    rotamer_set,
+    packer_energy_tables,
+    sfxn,
+    rotamer_for_nonmolten_block,
+    n_molten_blocks_per_pose,
+    bc_rot_offset_for_molten_block,
+    bc_rot_to_orig_rot,
+    bg_bg_energies,
 ):
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
@@ -130,7 +145,13 @@ def run_pack_and_assert_scores(
     scores = scores + bg_bg_energies.unsqueeze(1)
 
     new_pose_stack = impose_top_rotamer_assignments(
-        pose_stack, rotamer_set, rotamer_assignments
+        pose_stack,
+        rotamer_set,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        rotamer_assignments,
     )
     wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
     new_scores = wpsm(new_pose_stack.coords)
@@ -184,9 +205,25 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
     pose_stack, rotamer_set = build_rotamers(
         pose_stack, task, pose_stack.packed_block_types.chem_db
     )
-    packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    (
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
+        packer_energy_tables,
+    ) = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+
     _, _ = run_pack_and_assert_scores(
-        pose_stack, rotamer_set, packer_energy_tables, sfxn
+        pose_stack,
+        rotamer_set,
+        packer_energy_tables,
+        sfxn,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
     )
 
 
@@ -236,11 +273,30 @@ def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
                 f"unexpected NHQ chi delta {delta:.2f} deg"
             )
 
-    bg_bg_energies, packer_energy_tables = build_packer_energy_tables(
-        pose_stack, rotamer_set, sfxn
-    )
+    (
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
+        packer_energy_tables,
+    ) = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    # bg_bg_energies, packer_energy_tables = build_packer_energy_tables(
+    #     pose_stack, rotamer_set, sfxn
+    # )
+    # _, _ = run_pack_and_assert_scores(
+    #     pose_stack, rotamer_set, packer_energy_tables, sfxn, bg_bg_energies
+    # )
     _, _ = run_pack_and_assert_scores(
-        pose_stack, rotamer_set, packer_energy_tables, sfxn, bg_bg_energies
+        pose_stack,
+        rotamer_set,
+        packer_energy_tables,
+        sfxn,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
     )
 
 
@@ -306,11 +362,30 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
     )
 
     pose_stack = attrs.evolve(pose_stack, constraint_set=constraints)
-    bg_bg_energies, packer_energy_tables = build_packer_energy_tables(
-        pose_stack, rotamer_set, sfxn
-    )
-    run_pack_and_assert_scores(
-        pose_stack, rotamer_set, packer_energy_tables, sfxn, bg_bg_energies
+    (
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
+        packer_energy_tables,
+    ) = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    # bg_bg_energies, packer_energy_tables = build_packer_energy_tables(
+    #     pose_stack, rotamer_set, sfxn
+    # )
+    # run_pack_and_assert_scores(
+    #     pose_stack, rotamer_set, packer_energy_tables, sfxn, bg_bg_energies
+    # )
+    _, _ = run_pack_and_assert_scores(
+        pose_stack,
+        rotamer_set,
+        packer_energy_tables,
+        sfxn,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
     )
     if torch_device == torch.device("cuda"):
         torch.cuda.synchronize()
@@ -328,12 +403,31 @@ def test_pack_rotamers_w_empty_interaction_graph(
     pose_stack, rotamer_set = build_rotamers(
         pose_stack, task, pose_stack.packed_block_types.chem_db
     )
-    bg_bg_energies, packer_energy_tables = build_packer_energy_tables(
-        pose_stack, rotamer_set, sfxn
+    (
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
+        packer_energy_tables,
+    ) = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    # bg_bg_energies, packer_energy_tables = build_packer_energy_tables(
+    #     pose_stack, rotamer_set, sfxn
+    # )
+    _, _ = run_pack_and_assert_scores(
+        pose_stack,
+        rotamer_set,
+        packer_energy_tables,
+        sfxn,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
     )
-    run_pack_and_assert_scores(
-        pose_stack, rotamer_set, packer_energy_tables, sfxn, bg_bg_energies
-    )
+    # run_pack_and_assert_scores(
+    #     pose_stack, rotamer_set, packer_energy_tables, sfxn, bg_bg_energies
+    # )
 
 
 def test_pack_rotamers_w_dslf(
@@ -348,11 +442,30 @@ def test_pack_rotamers_w_dslf(
     pose_stack, rotamer_set = build_rotamers(
         pose_stack, task, pose_stack.packed_block_types.chem_db
     )
-    bg_bg_energies, packer_energy_tables = build_packer_energy_tables(
-        pose_stack, rotamer_set, sfxn
-    )
-    run_pack_and_assert_scores(
-        pose_stack, rotamer_set, packer_energy_tables, sfxn, bg_bg_energies
+    (
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
+        packer_energy_tables,
+    ) = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    # bg_bg_energies, packer_energy_tables = build_packer_energy_tables(
+    #     pose_stack, rotamer_set, sfxn
+    # )
+    # run_pack_and_assert_scores(
+    #     pose_stack, rotamer_set, packer_energy_tables, sfxn, bg_bg_energies
+    # )
+    _, _ = run_pack_and_assert_scores(
+        pose_stack,
+        rotamer_set,
+        packer_energy_tables,
+        sfxn,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
     )
 
 

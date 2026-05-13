@@ -244,8 +244,8 @@ def test_fast_relax_pertuz(
 def test_fast_relax_for_different_shapes(
     ubq_pdb, erbb2_and_pertuzumab_pdb, default_database, dun_sampler, torch_device
 ):
-    if torch_device == torch.device("cpu"):
-        pytest.skip("CUDA only test")
+    # if torch_device == torch.device("cpu"):
+    #    pytest.skip("CUDA only test")
 
     res_not_connected = torch.zeros((1, 40, 2), dtype=torch.bool, device=torch_device)
     res_not_connected[0, 0, 0] = True
