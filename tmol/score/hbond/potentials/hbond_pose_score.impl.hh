@@ -418,6 +418,7 @@ template <
     typename Real,
     typename Int>
 auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 1, Dev> rot_coord_offset,
@@ -597,6 +598,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   score::common::sphere_overlap::
       compute_block_spheres<DeviceDispatch, Dev, Real, Int>::f(
+          mgr,
           rot_coords,
           rot_coord_offset,
           block_ind_for_rot,
@@ -607,6 +609,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   score::common::sphere_overlap::
       detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
+          mgr,
           first_rot_block_type,
           scratch_rot_spheres,
           scratch_rot_neighbors,
@@ -758,6 +761,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   // context(wrapped_stream.stream());
   score::common::sphere_overlap::
       compute_block_spheres<DeviceOperations, Dev, Real, Int>::f(
+          mgr,
           rot_coords,
           rot_coord_offset,
           block_ind_for_rot,
@@ -769,13 +773,14 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   score::common::sphere_overlap::
       detect_block_neighbors<DeviceOperations, Dev, Real, Int>::f(
+          mgr,
           first_rot_block_type,
           scratch_rot_spheres,
           scratch_rot_neighbors,
           Real(5.5));
 
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      n_poses * max_n_upper_triangle_inds, eval_energies);
+      mgr, n_poses * max_n_upper_triangle_inds, eval_energies);
 
   // DeviceDispatch<Dev>::synchronize_device();
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};
@@ -787,6 +792,7 @@ template <
     typename Real,
     typename Int>
 auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 1, Dev> rot_coord_offset,
@@ -1037,7 +1043,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   });
 
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      n_poses * max_n_upper_triangle_inds, eval_derivs);
+      mgr, n_poses * max_n_upper_triangle_inds, eval_derivs);
 
   return dV_dcoords_t;
 }
@@ -1048,6 +1054,7 @@ template <
     typename Real,
     typename Int>
 auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 1, Dev> rot_coord_offset,
@@ -1230,6 +1237,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   score::common::sphere_overlap::
       compute_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
+          mgr,
           rot_coords,
           rot_coord_offset,
           block_type_ind_for_rot,
@@ -1238,6 +1246,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   score::common::sphere_overlap::
       compute_block_spheres_from_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
+          mgr,
           scratch_rot_spheres,
           n_rots_for_block,
           rot_offset_for_block,
@@ -1245,6 +1254,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   score::common::sphere_overlap::
       detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
+          mgr,
           first_rot_block_type,
           scratch_block_spheres,
           scratch_block_neighbors,
@@ -1252,7 +1262,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   auto dispatch_indices_t = score::common::sphere_overlap::
       rot_neighbor_indices_from_block_neighbors<DeviceDispatch, Dev, Int>::f(
-          scratch_block_neighbors, n_rots_for_block, rot_offset_for_block);
+          mgr, scratch_block_neighbors, n_rots_for_block, rot_offset_for_block);
 
   auto dispatch_indices = dispatch_indices_t.view;
 
@@ -1387,7 +1397,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   // context(wrapped_stream.stream());
 
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      dispatch_indices.size(1), eval_energies);
+      mgr, dispatch_indices.size(1), eval_energies);
 
   // DeviceDispatch<Dev>::synchronize_device();
   return {output_t, dV_dcoords_t, dispatch_indices_t};
@@ -1399,6 +1409,7 @@ template <
     typename Real,
     typename Int>
 auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 1, Dev> rot_coord_offset,
@@ -1631,7 +1642,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   });
 
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      dispatch_indices.size(1), eval_derivs);
+      mgr, dispatch_indices.size(1), eval_derivs);
 
   return dV_dcoords_t;
 }

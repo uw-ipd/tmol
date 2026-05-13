@@ -6,6 +6,7 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/context_manager.hh>
 
 #include <ATen/Tensor.h>
 
@@ -24,6 +25,7 @@ template <
     typename Int>
 struct DunbrackChiSampler {
   static auto f(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, D> coords,
 
       TView<Real, 3, D> rotameric_prob_tables,
@@ -74,16 +76,19 @@ struct DunbrackChiSampler {
           TPack<Real, 2, D> >;
 
   static void determine_n_possible_rots(
+      ContextManager& mgr,
       TView<Int, 2, D> rottable_set_for_buildable_restype,
       TView<int64_t, 1, D> n_rotamers_for_tableset,
       TView<Int, 1, D> n_possible_rotamers_per_brt);
 
   static void fill_in_brt_for_possrots(
+      ContextManager& mgr,
       TView<Int, 1, D> possible_rotamer_offset_for_brt,
       TView<Int, 1, D> brt_for_possible_rotamer,
       TView<Int, 1, D> brt_for_possible_rotamer_boundaries);
 
   static void interpolate_probabilities_for_possible_rotamers(
+      ContextManager& mgr,
       TView<Real, 3, D> rotameric_prob_tables,
       TView<Vec<int64_t, 2>, 1, D> rotprob_table_sizes,
       TView<Vec<int64_t, 2>, 1, D> rotprob_table_strides,
@@ -99,6 +104,7 @@ struct DunbrackChiSampler {
       TView<Real, 1, D> rotamer_probability);
 
   static void determine_n_base_rotamers_to_build(
+      ContextManager& mgr,
       TView<Real, 1, D> prob_cumsum_limit_for_buildable_restype,
       TView<Int, 1, D> n_possible_rotamers_per_brt,
       TView<Int, 1, D> brt_for_possible_rotamer,
@@ -108,6 +114,7 @@ struct DunbrackChiSampler {
       TView<Int, 1, D> n_rotamers_to_build_per_brt);
 
   static Int count_expanded_rotamers(
+      ContextManager& mgr,
       TView<Int, 1, D> nchi_for_buildable_restype,
       TView<Int, 2, D> rottable_set_for_buildable_restype,
       TView<Int, 1, D> nchi_for_tableset,
@@ -119,10 +126,12 @@ struct DunbrackChiSampler {
       TView<Int, 1, D> n_rotamers_to_build_per_brt_offsets);
 
   static void map_from_rotamer_index_to_brt(
+      ContextManager& mgr,
       TView<Int, 1, D> n_rotamers_to_build_per_brt_offsets,
       TView<Int, 1, D> brt_for_rotamer);
 
   static void sample_chi_for_rotamers(
+      ContextManager& mgr,
       TView<Real, 3, D> rotameric_mean_tables,
       TView<Real, 3, D> rotameric_sdev_tables,
       TView<Vec<int64_t, 2>, 1, D> rotmean_table_sizes,

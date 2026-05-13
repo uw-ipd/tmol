@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -133,6 +134,7 @@ template <
     typename Real,
     typename Int>
 auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -519,22 +521,31 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
       if (tid == 0) {
         // straight assignment in the block-pair scoring case; atomic add
-        // otherwise
+        // otherwise;
         if (output_block_pair_energies) {
+          // We cannot just perform assignment here because it is possible that
+          // a residue may form more than one bond to another residue,
+          // e.g. i to i+1 disulfide
           if (cta_length_score != 0.0) {
-            V[0][pose_ind][block_ind1][block_ind2] = cta_length_score;
+            accumulate<D, Real>::add(
+                V[0][pose_ind][block_ind1][block_ind2], cta_length_score);
           }
           if (cta_angle_score != 0.0) {
-            V[1][pose_ind][block_ind1][block_ind2] = cta_angle_score;
+            accumulate<D, Real>::add(
+                V[1][pose_ind][block_ind1][block_ind2], cta_angle_score);
           }
           if (cta_torsion_score != 0.0) {
-            V[2][pose_ind][block_ind1][block_ind2] = cta_torsion_score;
+            accumulate<D, Real>::add(
+                V[2][pose_ind][block_ind1][block_ind2], cta_torsion_score);
           }
           if (cta_improper_torsion_score != 0.0) {
-            V[3][pose_ind][block_ind1][block_ind2] = cta_improper_torsion_score;
+            accumulate<D, Real>::add(
+                V[3][pose_ind][block_ind1][block_ind2],
+                cta_improper_torsion_score);
           }
           if (cta_hxyl_torsion_score != 0.0) {
-            V[4][pose_ind][block_ind1][block_ind2] = cta_hxyl_torsion_score;
+            accumulate<D, Real>::add(
+                V[4][pose_ind][block_ind1][block_ind2], cta_hxyl_torsion_score);
           }
         } else {
           if (cta_length_score != 0.0) {
@@ -560,6 +571,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
   });
   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+      mgr,
       n_poses * max_n_blocks * (max_n_conns + 1),
       eval_subgraphs_for_interaction);
 
@@ -572,6 +584,7 @@ template <
     typename Real,
     typename Int>
 auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -915,6 +928,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // a second time
   });
   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+      mgr,
       n_poses * max_n_blocks * (max_n_conns + 1),
       eval_subgraphs_for_interaction);
 
@@ -928,6 +942,7 @@ template <
     typename Real,
     typename Int>
 auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1081,18 +1096,20 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   });
 
   DeviceDispatch<D>::template forall<launch_t>(
-      max_n_interactions, count_intxns_for_rot_conn);
+      mgr, max_n_interactions, count_intxns_for_rot_conn);
 
   // Scan and LBS on n output intxns: figure out how many rotamer pair
   // interactions there are and which pair each work unit should be assigned to.
   int n_output_intxns_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           n_output_intxns_for_rot_conn.data(),
           n_output_intxns_for_rot_conn_offset.data(),
           max_n_interactions,
           mgpu::plus_t<Int>());
   TPack<Int, 1, D> rotconn_for_output_intxn_t =
       DeviceDispatch<D>::template load_balancing_search<launch_t>(
+          mgr,
           n_output_intxns_total,
           n_output_intxns_for_rot_conn_offset.data(),
           max_n_interactions);
@@ -1139,7 +1156,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // only use them downstream if we are in output_block_pair_energies mode
   // std::cout << "record_dispatch_indices_for_intxns" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
-      n_output_intxns_total, record_dispatch_indices_for_output_intxns);
+      mgr, n_output_intxns_total, record_dispatch_indices_for_output_intxns);
 
   auto eval_subgraphs_for_interaction = ([=] TMOL_DEVICE_FUNC(int cta) {
     // Only one element of this union: the shared memory array for
@@ -1421,7 +1438,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
   });
   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      dispatch_indices.size(1), eval_subgraphs_for_interaction);
+      mgr, dispatch_indices.size(1), eval_subgraphs_for_interaction);
 
   return {
       V_t,
@@ -1438,6 +1455,7 @@ template <
     typename Real,
     typename Int>
 auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1768,7 +1786,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   });
 
   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      dispatch_indices.size(1), eval_subgraphs_for_interaction);
+      mgr, dispatch_indices.size(1), eval_subgraphs_for_interaction);
 
   return dV_dx_t;
 

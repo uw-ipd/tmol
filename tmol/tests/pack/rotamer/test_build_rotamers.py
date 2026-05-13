@@ -365,7 +365,7 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     met_kt_frame_y = it(0, met_rt.rotamer_kinforest.frame_y + 1)
     met_kt_frame_z = it(0, met_rt.rotamer_kinforest.frame_z + 1)
 
-    from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
+    from tmol.kinematics.compiled import inverse_kin
 
     coords = torch.cat(
         (
@@ -1090,6 +1090,7 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
             atom_records[i_offset + j]["b"] = 0.0  # B-factor
 
     # uncomment if rotgen changes
+    # from tmol.io.pdb_parsing import to_pdb_lines
     # with open("test_build_rotamers.pdb", "w") as fid:
     #    fid.writelines(to_pdb_lines(atom_records))
 

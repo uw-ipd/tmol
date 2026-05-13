@@ -1,5 +1,6 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/context_manager.hh>
 
 #include <tmol/score/common/device_operations.cpu.impl.hh>
 
@@ -36,6 +37,7 @@ void set_quench_order(
 
 template <tmol::Device D>
 auto AnnealerDispatch<D>::forward(
+    ContextManager&,
     int max_n_rotamers_per_pose,
     TView<int, 1, D> pose_n_res,               // n-poses
     TView<int, 1, D> n_rotamers_for_pose,      // n-poses
@@ -50,7 +52,7 @@ auto AnnealerDispatch<D>::forward(
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
     -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> {
-  // No Frills Simulated Annealing!
+  printf(" No Frills Simulated Annealing!\n");
   int const n_poses = pose_n_res.size(0);
   int const max_n_res = n_rotamers_for_res.size(1);
   int const n_rotamers = res_for_rot.size(0);
@@ -76,9 +78,12 @@ auto AnnealerDispatch<D>::forward(
   float const low_temp = 0.3;  // matches Rosetta SimAnnealerBase::lowtemp
 
   for (int pose = 0; pose < n_poses; ++pose) {
+    // printf("Start simA for pose %d\n", pose);
     int const n_res = pose_n_res[pose];
     int const pose_n_rotamers = n_rotamers_for_pose[pose];
     int const pose_rotamer_offset = rotamer_offset_for_pose[pose];
+    // printf("Pose w n_res %d, n rotamers %d pose rotamer offset %d\n", n_res,
+    // pose_n_rotamers, pose_rotamer_offset);
 
     // Build per-residue neighbor list for this pose
     std::vector<std::vector<int>> neighbors(max_n_res);
@@ -93,8 +98,10 @@ auto AnnealerDispatch<D>::forward(
 
     for (int traj = 0; traj < n_traj; ++traj) {
       // Initial assignment: assign a rotamer to every residue
-      for (int i = 0; i < max_n_res; ++i) {
+      for (int i = 0; i < n_res; ++i) {
         int const i_n_rots = n_rotamers_for_res[pose][i];
+        // printf("assign random rotamer to %d with %d rotamers\n", i,
+        // i_n_rots);
         int rand_rot = rand() % i_n_rots;
         current_rotamer_assignments[pose][traj][i] = rand_rot;
         best_rotamer_assignments[pose][traj][i] = rand_rot;

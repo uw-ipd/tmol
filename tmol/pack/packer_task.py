@@ -173,6 +173,7 @@ class PackerTask:
             ]
             for i in range(systems.n_poses)
         ]
+        self._bump_check = False
 
     def restrict_to_repacking(self):
         for one_pose_blts in self.blts:
@@ -193,3 +194,30 @@ class PackerTask:
         for one_pose_blts in self.blts:
             for blt in one_pose_blts:
                 blt.or_expand_chi_to(chi_ind, sample_level)
+
+    def or_bump_check(self, setting=True):
+        self._bump_check |= setting
+
+    @property
+    def bump_check(self):
+        """bump_check eliminates rotamers from consideration if
+        they have a high interaction energy with "the background,"
+        which is computed by taking the best energy a rotamer has
+        with each neighbor across all the neighbor's rotamers.
+
+        bump_check removes ~40% of all rotamers and can significantly
+        improve running time, but, this comes at the expense of
+        eliminating rotamers that are sometimes the best option
+        when all others are bad in ways that bump-check's rosie
+        estimation cannot predict. In ~10% of tested crystal
+        structures packed with only the base rotamers (no ex flags),
+        bump_check increased the energy of the final rotamer
+        rotamer assignment by >20 kcal/mol.
+
+        bump_check's logic: eliminate a rotamer if it has a
+        best possible energy with its neighbors and itself
+        >5 kcal/mol and at least one other rotamer of the same
+        block type at that residue has an energy less than
+        5 kcal/mol.
+        """
+        return self._bump_check
