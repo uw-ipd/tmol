@@ -410,12 +410,14 @@ class TestCifToTmolEquivalence:
 
 
 # Terms in score.sc we compare against tmol (values are already weighted).
+# For a single isolated ligand, Rosetta's intra-residue terms correspond to
+# tmol's full pair terms (no inter-residue contributions exist).
 _ROS_TERMS = {
-    "fa_intra_atr_xover4",
-    "fa_intra_rep_xover4",
-    "fa_intra_sol_xover4",
-    "fa_intra_elec",
-    "gen_bonded",
+    "fa_intra_atr_xover4": "fa_ljatr",
+    "fa_intra_rep_xover4": "fa_ljrep",
+    "fa_intra_sol_xover4": "fa_lk",
+    "fa_intra_elec": "fa_elec",
+    "gen_bonded": "gen_torsions",
 }
 
 
@@ -484,17 +486,28 @@ class TestDUDScoring:
         weights = sfxn.weights_tensor()
 
         score_types = sfxn.all_score_types()
-        total = sum(
-            float(weights[i]) * float(unweighted[i, 0]) for i in range(len(score_types))
-        )
+        tmol_weighted = {
+            st.name: float(weights[i]) * float(unweighted[i, 0])
+            for i, st in enumerate(score_types)
+        }
 
         # --- Rosetta reference scores from pre-generated .sc file ---
         sc_path = (
             DUD_DIR / dud_scoring_data["target"] / f"{dud_scoring_data['name']}.sc"
         )
-        total_ros = _rosetta_score(sc_path).get("total_score", 0.0)
+        ros_scores = _rosetta_score(sc_path)
 
-        assert abs(total - total_ros) < 1.0, (
-            f"Total score mismatch for {dud_scoring_data['name']}: "
-            f"tmol={total:.4f}, ros={total_ros:.4f}, diff={total - total_ros:.4f}"
+        mismatches = []
+        for ros_term, tmol_term in _ROS_TERMS.items():
+            ros_val = float(ros_scores.get(ros_term, 0.0))
+            tmol_val = tmol_weighted.get(tmol_term, 0.0)
+            if abs(tmol_val - ros_val) >= 0.1:
+                mismatches.append(
+                    f"  {ros_term} (tmol {tmol_term}): "
+                    f"tmol={tmol_val:.4f}, ros={ros_val:.4f}, "
+                    f"diff={tmol_val - ros_val:+.4f}"
+                )
+        assert not mismatches, (
+            f"Per-term score mismatch (>0.1) for {dud_scoring_data['name']}:\n"
+            + "\n".join(mismatches)
         )
