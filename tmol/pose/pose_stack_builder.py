@@ -101,10 +101,6 @@ class PoseStackBuilder:
             ps_offset=ps_offset,
         )
 
-        # TO DO:
-        # Concatenate the constraint sets
-        constraint_set = None
-
         def i64(t):
             return t.to(torch.int64)
 
