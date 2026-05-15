@@ -68,7 +68,7 @@ def elec_delec_ddist(
 
   Real weight = connectivity_weight<Real>(bonded_path_length);
 
-  Real C1 = 332.0637;  // electrostatic energy constant
+  Real C1 = 322.0637;  // electrostatic energy constant (matches Rosetta C0_)
   Real C2 = C1 / (max_dis * eps(max_dis, D, D0, S));
 
   Real eiej = e_i * e_j;
@@ -148,7 +148,7 @@ def elec(
 
   Real weight = connectivity_weight<Real>(bonded_path_length);
 
-  Real C1 = 332.0637;  // electrostatic energy constant
+  Real C1 = 322.0637;  // electrostatic energy constant (matches Rosetta C0_)
   Real C2 = C1 / (max_dis * eps(max_dis, D, D0, S));
 
   Real eiej = e_i * e_j;

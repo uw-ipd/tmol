@@ -501,7 +501,7 @@ class TestDUDScoring:
         for ros_term, tmol_term in _ROS_TERMS.items():
             ros_val = float(ros_scores.get(ros_term, 0.0))
             tmol_val = tmol_weighted.get(tmol_term, 0.0)
-            if abs(tmol_val - ros_val) >= 0.1:
+            if abs(tmol_val - ros_val) >= 1e-3:
                 mismatches.append(
                     f"  {ros_term} (tmol {tmol_term}): "
                     f"tmol={tmol_val:.4f}, ros={ros_val:.4f}, "
