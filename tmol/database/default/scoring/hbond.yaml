@@ -18,11 +18,7 @@ donor_atom_types:
   - { d: OH,       donor_type: hbdon_HXL } #ex: Ser OG--HG; Thr OG1--HG1
   - { d: OHphenol, donor_type: hbdon_AHX } #ex: Tyr OH--HH
   - { d: Owat,     donor_type: hbdon_H2O } #ex: water O--H
-  # Generic ligand side-chain donors. Entries kept in 1:1 correspondence
-  # with chemical.yaml's `is_donor: true` flags so that all three terms
-  # (LJ, hbond, lk_ball) participate on the same atoms. Genpot types where
-  # Rosetta's atom_properties.txt does NOT mark DONOR (Nad3, NG1/2/3,
-  # Oet, Ofu, Ont, acceptor-side of Nad/Nin) are deliberately omitted.
+  # genpot
   - { d: Nad,      donor_type: hbdon_GENERIC_SC }
   - { d: Nam,      donor_type: hbdon_GENERIC_SC }
   - { d: Nam2,     donor_type: hbdon_GENERIC_SC }
@@ -60,9 +56,7 @@ acceptor_atom_types:
   # ring acceptors
   - { a: NhisDDepro, acceptor_type: hbacc_IMD } #ex: His(HIS res_type) ND1 -- tautomer state with hydrogen on nitrogen closer to backbone
   - { a: NhisEDepro, acceptor_type: hbacc_IME } #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
-  # Generic ligand side-chain acceptors. Entries kept in 1:1 correspondence
-  # with chemical.yaml's `is_acceptor: true` flags (see donor block above
-  # for the omitted genpot types).
+  # genpot
   - { a: Oad,       acceptor_type: hbacc_GENERIC_SP2SC }
   - { a: Oal,       acceptor_type: hbacc_GENERIC_SP2SC }
   - { a: Oat,       acceptor_type: hbacc_GENERIC_SP2SC }

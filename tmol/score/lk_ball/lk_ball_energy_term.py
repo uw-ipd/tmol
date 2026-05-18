@@ -174,10 +174,21 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             tiled_pols_and_occs[is_pol_or_occ]
         ]
 
+        # The kernel expects tile_pol_occ_inds to contain tile-local atom
+        # indices (0..tile_size-1) — it reconstructs the full block-atom
+        # index as `pol_start + pol_tile_ind`. Until here we have been
+        # tracking full block-atom indices so the per-atom params lookup
+        # above works; now convert to tile-local for the output tensor.
+        tile_pol_occ_inds = numpy.where(
+            tiled_pols_and_occs != -1,
+            tiled_pols_and_occs % tile_size,
+            -1,
+        ).astype(numpy.int32)
+
         bt_lk_ball_params = LKBallBlockTypeParams(
             tile_n_polar_atoms=tile_n_polar,
             tile_n_occluder_atoms=tile_n_occ,
-            tile_pol_occ_inds=tiled_pols_and_occs,
+            tile_pol_occ_inds=tile_pol_occ_inds,
             tile_lk_ball_params=tiled_bt_lk_ball_at_params,
         )
         setattr(block_type, "lk_ball_params", bt_lk_ball_params)

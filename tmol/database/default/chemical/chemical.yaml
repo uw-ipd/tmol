@@ -90,8 +90,8 @@ atom_types:
   # Nitrogen
   - { name: Nad , element: N, is_donor: true }
   - { name: Nad3, element: N }
-  - { name: Nam , element: N, is_donor: true, acceptor_hybridization: sp3 }
-  - { name: Nam2, element: N, is_donor: true, acceptor_hybridization: sp3 }
+  - { name: Nam , element: N, is_donor: true }
+  - { name: Nam2, element: N, is_donor: true }
   - { name: Ngu1, element: N, is_donor: true }
   - { name: Ngu2, element: N, is_donor: true }
   - { name: Nim , element: N, is_acceptor: true, acceptor_hybridization: ring }
