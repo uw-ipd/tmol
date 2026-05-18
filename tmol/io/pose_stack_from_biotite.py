@@ -206,6 +206,9 @@ def pose_stack_from_biotite(
     pose_stack, opt_return_vals = result
     block_has_missing_atoms = opt_return_vals["block_has_missing_atoms"]
 
+    if block_has_missing_atoms is not None and torch.any(block_has_missing_atoms):
+        _assert_no_ligand_with_missing_atoms(pose_stack, block_has_missing_atoms)
+
     needs_packing = block_has_missing_atoms is not None and (
         torch.any(block_has_missing_atoms) or not no_optH
     )
@@ -243,6 +246,60 @@ def pose_stack_from_biotite(
     if len(opt_return_vals) > (0 if return_block_has_missing_atoms else 1):
         return pose_stack, opt_return_vals
     return pose_stack
+
+
+def _assert_no_ligand_with_missing_atoms(
+    pose_stack: PoseStack, block_has_missing_atoms: "torch.Tensor"
+) -> None:
+    """Raise RuntimeError if a non-polymer block is flagged with missing atoms.
+
+    The sidechain-rebuild pipeline (DunbrackChiSampler + FixedAAChiSampler)
+    only handles polymer residues; if a ligand reaches it with missing heavy
+    atoms the sampler silently produces no rotamer and the block's coords
+    stay NaN.  Catch that here with a clear, actionable error.
+    """
+    pbt = pose_stack.packed_block_types
+    block_type_ind = pose_stack.block_type_ind
+    block_coord_offset = pose_stack.block_coord_offset
+    coords = pose_stack.coords
+    pdb_info = getattr(pose_stack, "pdb_info", None)
+
+    flagged = torch.nonzero(block_has_missing_atoms, as_tuple=False).cpu().tolist()
+    bad: list[str] = []
+    for pi, bi in flagged:
+        bt_ind = int(block_type_ind[pi, bi].item())
+        if bt_ind < 0:
+            continue
+        bt = pbt.active_block_types[bt_ind]
+        if bt.properties.polymer.is_polymer:
+            continue  # protein/nucleic — handled by sidechain rebuild
+
+        n_ats = len(bt.atoms)
+        atom_start = int(block_coord_offset[pi, bi].item())
+        block_coords = coords[pi, atom_start : atom_start + n_ats]
+        missing_mask = torch.isnan(block_coords).any(dim=-1)
+        missing_names = [
+            bt.atoms[ai].name
+            for ai in torch.nonzero(missing_mask, as_tuple=False).flatten().tolist()
+        ]
+
+        label = ""
+        if pdb_info is not None and pdb_info.residue_labels is not None:
+            chain = pdb_info.chain_labels[pi, bi]
+            resid = pdb_info.residue_labels[pi, bi]
+            label = f" chain={chain} resid={resid}"
+        bad.append(
+            f"pose={pi} block={bi} bt={bt.name}{label} "
+            f"missing_atoms={missing_names}"
+        )
+
+    if bad:
+        raise RuntimeError(
+            "Ligand (non-polymer) block(s) have missing heavy atoms; "
+            "tmol's sidechain rebuild only supports polymer residues. "
+            "Provide a complete ligand structure (or remove the ligand) "
+            "before calling pose_stack_from_biotite:\n  " + "\n  ".join(bad)
+        )
 
 
 def _assert_no_nan_coords(pose_stack: PoseStack) -> None:

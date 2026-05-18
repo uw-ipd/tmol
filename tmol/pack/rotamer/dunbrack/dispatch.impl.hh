@@ -151,6 +151,13 @@ struct DunbrackChiSampler {
     // The number of buildable residue types across all residues
     Int const n_brt(bubl_and_rottable_set_for_buildable_restype.size(0));
 
+    if (n_brt == 0) {
+      // No buildable Dunbrack residue types — nothing to sample.
+      auto empty_i1 = TPack<Int, 1, D>::zeros(0);
+      auto empty_r2 = TPack<Real, 2, D>::zeros({0, 0});
+      return {empty_i1, empty_i1, empty_i1, empty_r2};
+    }
+
     auto n_possible_rotamers_per_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
     auto n_possible_rotamers_per_brt = n_possible_rotamers_per_brt_tp.view;
 
