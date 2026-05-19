@@ -9,6 +9,11 @@ per-term comparison table (tmol vs rosetta).
 from pathlib import Path
 
 import pytest
+import csv
+import torch
+
+from tmol.score.score_utils import calculate_block_pair_ddg
+
 
 from tmol.tests.ligand.test_dud_ligands import _load_tmol_file, _rosetta_score
 
@@ -111,3 +116,140 @@ class TestPLIScoring:
             f"  {'TOTAL':<18} {tmol_total:12.4f} {ros_total:12.4f} "
             f"{tmol_total - ros_total:+12.4f}"
         )
+
+    def test_compare_dg_score_with_rosetta(self, pli_pdb, torch_device):
+        import biotite.structure
+        import biotite.structure.io
+
+        from tmol.database import ParameterDatabase, inject_residue_params
+        from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+        from tmol.score import beta2016_score_function
+
+        # from tmol.score.score_util import
+
+        target = _target_for_complex(pli_pdb.name)
+        tmol_path = PLI_DIR / f"{target}.xtal-lig.mmff94.tmol"
+        sc_path = PLI_DIR / f"{pli_pdb.stem}.sc"
+        # rosetta_score_file = PLI_DIR / f"{target}.eval.score.sc"
+
+        # df = pd.read_csv(rosetta_score_file, sep=r'\s+', skiprows=1)
+        # data = df.to_dict(orient='records')
+        # rosetta_dg = {key: val for key,val in data[0].items() }
+
+        residues, partial_charges, cartbonded = _load_tmol_file(tmol_path)
+        param_db = inject_residue_params(
+            ParameterDatabase.get_default(),
+            residue_types=residues,
+            partial_charges=partial_charges,
+            cartbonded_params=cartbonded,
+        )
+
+        bt_struct = biotite.structure.io.load_structure(str(pli_pdb))
+        if isinstance(bt_struct, biotite.structure.AtomArrayStack):
+            bt_struct = bt_struct[0]
+
+        pose_stack_converted = pose_stack_from_biotite(
+            bt_struct, torch_device, param_db=param_db
+        )
+        pose_stack_generated = pose_stack_from_biotite(
+            bt_struct,
+            torch_device,
+            param_db=ParameterDatabase.get_default(),
+            prepare_ligands=True,
+        )
+
+        sfxn = beta2016_score_function(torch_device, param_db=param_db)
+        scorer_converted = sfxn.render_whole_pose_scoring_module(pose_stack_converted)
+        scorer_generated = sfxn.render_whole_pose_scoring_module(pose_stack_generated)
+
+        scores_converted = scorer_converted(
+            pose_stack_converted.coords, sum_terms=False
+        )
+        scores_generated = scorer_generated(
+            pose_stack_generated.coords, sum_terms=False
+        )
+
+        score_types = sfxn.all_score_types()
+
+        mask = torch.zeros(
+            (1, pose_stack_generated.max_n_blocks),
+            dtype=torch.bool,
+            device=torch_device,
+        )
+        mask[0][-1] = True
+
+        dg_converted = calculate_block_pair_ddg(pose_stack_converted, mask)
+        dg_generated = calculate_block_pair_ddg(pose_stack_generated, mask)
+        dg_converted_total = torch.sum(dg_converted).item()
+        dg_generated_total = torch.sum(dg_generated).item()
+        dg_converted_dict = {
+            key.name: val.item()
+            for key, val in zip(score_types, dg_converted.squeeze(0))
+        }
+        dg_generated_dict = {
+            key.name: val.item()
+            for key, val in zip(score_types, dg_generated.squeeze(0))
+        }
+
+        ros_scores = _rosetta_score(sc_path) if sc_path.exists() else {}
+
+        converted_total = torch.sum(scores_converted).item()
+        generated_total = torch.sum(scores_generated).item()
+        ros_total = float(ros_scores.get("total_score", 0.0))
+
+        data = []
+        print(f"\n=== {pli_pdb.name}  (target={target}) ===")
+        if not sc_path.exists():
+            print(f"  (no Rosetta .sc at {sc_path.name} -- run run_rosetta_score.sh)")
+        print(f"  {'term':<18} {'tmol':>12} {'rosetta':>12} {'diff':>12}")
+        for label, ros_terms, tmol_terms in _PLI_TERM_ROWS:
+            converted = sum(dg_converted_dict.get(n, 0.0) for n in tmol_terms)
+            generated = sum(dg_generated_dict.get(n, 0.0) for n in tmol_terms)
+            rosetta = sum(float(ros_scores.get("dG_" + n, 0.0)) for n in ros_terms)
+            data += [
+                (
+                    target,
+                    ",".join(tmol_terms),
+                    ",".join(ros_terms),
+                    converted,
+                    generated,
+                    rosetta,
+                    abs(converted - rosetta),
+                )
+            ]
+            print(
+                f"  {label:<18} {converted:12.4f} {rosetta:12.4f} {converted - rosetta:+12.4f}"
+            )
+        data += [
+            (
+                target,
+                "full",
+                "full",
+                converted_total,
+                generated_total,
+                ros_scores.get("total_score"),
+                abs(converted_total - ros_scores.get("total_score")),
+            )
+        ]
+        data += [
+            (
+                target,
+                "full_dg",
+                "full_dg",
+                dg_converted_total,
+                dg_generated_total,
+                ros_scores.get("dG"),
+                abs(dg_converted_total - ros_scores.get("dG")),
+            )
+        ]
+        print(
+            f"  {'TOTAL':<18} {converted_total:12.4f} {ros_total:12.4f} "
+            f"{converted_total - ros_total:+12.4f}"
+        )
+
+        with open(target + ".table", "w") as f:
+            writer = csv.writer(
+                f, delimiter=" ", quotechar="|", quoting=csv.QUOTE_MINIMAL
+            )
+            for row in data:
+                writer.writerow(row)
