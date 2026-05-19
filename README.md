@@ -35,11 +35,11 @@ Pre-built wheels ship with **ahead-of-time (AOT) compiled** C++/CUDA extensions 
 | 2.9     | 13.0 | `+cu130torch2.9`       |
 | 2.10    | 13.1 | `+cu131torch2.10`      |
 
-**CPU-only (any platform):**
+**CPU-only (Linux x86_64):**
 
 | PyTorch | Wheel tag |
 |---------|-----------|
-| 2.10    | `+cpu`    |
+| >=2.5   | `+cpu`    |
 
 All wheels are Python 3.12 (`cp312`).
 
@@ -52,14 +52,24 @@ Check your environment:
 python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.version_info.minor}, PyTorch {torch.__version__}, CUDA {torch.version.cuda}')"
 ```
 
+Install PyTorch first, matching the wheel tag:
+
+```bash
+# Choose one that matches your wheel tag:
+pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu131   # for +cu131torch2.10
+pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu128   # for +cu128torch2.10
+pip install "torch==2.9.*"  --index-url https://download.pytorch.org/whl/cu130   # for +cu130torch2.9
+pip install "torch==2.8.*"  --index-url https://download.pytorch.org/whl/cu126   # for +cu126torch2.8
+```
+
 Install from [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
 
 ```bash
-# Direct URL (replace RELEASE_TAG and WHEEL_FILENAME):
+# Direct wheel URL (most reliable):
 pip install https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/WHEEL_FILENAME.whl
 
-# Or use --find-links to let pip resolve by version:
-pip install tmol --find-links https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/
+# Or pin an explicit local version when using --find-links:
+pip install "tmol==X.Y.Z+cu131torch2.10" --find-links https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/
 ```
 
 <details>
@@ -88,14 +98,23 @@ The CPU wheel works with any PyTorch installation (CPU or CUDA). CUDA operations
 
 </details>
 
-### From PyPI (source distribution)
+### From TestPyPI (source distribution)
 
 The source distribution compiles C++/CUDA extensions during installation. If `nvcc` is available, both CPU and CUDA extensions are built. Without `nvcc`, only CPU extensions are built.
 
 ```bash
-pip install tmol              # builds extensions (CUDA if nvcc available, CPU otherwise)
-pip install tmol[dev]         # includes development tools (black, flake8, pytest, etc.)
+pip install tmol \
+  --index-url https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/
+
+pip install tmol[dev] \
+  --index-url https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/
 ```
+
+> [!NOTE]
+> CI currently publishes the source distribution to **TestPyPI** and uploads wheels to **GitHub Releases**.
+> Production PyPI may not contain the latest release artifacts.
 
 ### From source
 
@@ -105,6 +124,12 @@ pip install -e ".[dev]"   # builds extensions via CMake (CUDA auto-detected)
 ```
 
 If you don't have a CUDA toolkit, the build automatically falls back to CPU-only extensions. You can also force a CPU-only build explicitly:
+
+```bash
+pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
+```
+
+For macOS, install from source (CPU-only build):
 
 ```bash
 pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF

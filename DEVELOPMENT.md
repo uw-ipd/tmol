@@ -20,7 +20,7 @@ git clone https://github.com/uw-ipd/tmol.git && cd tmol
 pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
 ```
 
-Requirements: Python 3.12+, PyTorch 2.8+, C++17 compiler, CMake 3.18+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built.
+Requirements: Python 3.10+, PyTorch 2.8+, C++17 compiler, CMake 3.18+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built. Pre-built wheels are currently Python 3.12 (`cp312`).
 
 ## Building Extensions
 
@@ -121,11 +121,14 @@ pytest --benchmark-enable --benchmark-only --benchmark-max-time=.1
 ### Testing a specific release
 
 ```bash
+# Install matching PyTorch first (example: cu131/torch2.10)
+pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu131
+
 # Install a release wheel from GitHub
-pip install https://github.com/uw-ipd/tmol/releases/download/v0.1.1/tmol-0.1.1+cu131torch2.10-cp312-cp312-linux_x86_64.whl
+pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu131torch2.10-cp312-cp312-linux_x86_64.whl
 
 # Or install a specific branch/tag from source
-pip install git+https://github.com/uw-ipd/tmol.git@v0.1.1
+pip install git+https://github.com/uw-ipd/tmol.git@vX.Y.Z
 
 # Run tests against it
 pytest --pyargs tmol.tests -v
@@ -156,8 +159,8 @@ tmol uses GitHub Actions for all CI:
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| `ci.yml` | Push to `master`/`kdidi/*`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
-| `publish.yml` | Push to `master`/`kdidi/*`, manual | Builds wheels (GPU + CPU) + sdist, uploads sdist to TestPyPI, uploads wheels to a GitHub Release. |
+| `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
+| `publish.yml` | Push to `master`/`kdidi/ligand_clean`, manual | Builds wheels (GPU + CPU) + sdist, uploads sdist to TestPyPI, uploads wheels to a GitHub Release. |
 
 ### CI architecture
 
@@ -190,11 +193,24 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
 
 ## Releasing
 
-1. Bump version in `pyproject.toml`
-2. Commit and push to `master` (or a `kdidi/**` branch)
-3. The `publish.yml` workflow triggers automatically, building all wheels (GPU + CPU) and sdist
-4. Sdist is uploaded to TestPyPI; wheels are attached to a GitHub Release
-5. Users install via: `pip install tmol --find-links https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/`
+1. Bump `project.version` in `pyproject.toml`.
+2. Commit and push to `master` or `kdidi/ligand_clean`:
+   - `publish.yml` auto-triggers on push for these two branches.
+   - You can also run `publish.yml` manually with `workflow_dispatch`.
+3. Wait for workflow completion:
+   - `build_wheels` (GPU matrix)
+   - `build_cpu_wheel`
+   - `build_sdist`
+   - `upload`
+4. Verify release artifacts:
+   - TestPyPI sdist upload succeeds.
+   - GitHub prerelease `vX.Y.Z` exists and contains all wheel files.
+5. Install using explicit wheel files (recommended):
+   - Install matching PyTorch/CUDA first.
+   - Install from GitHub release wheel URL (or pinned `tmol==X.Y.Z+...` with `--find-links`).
+6. TestPyPI install path (sdist):
+   - `pip install tmol --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/`
+   - This compiles extensions at install time.
 
 ## Code Style
 

@@ -228,8 +228,22 @@ def _get_hyb(atom: Chem.Atom) -> int:
     Aromatic is checked first via GetIsAromatic(); other hybridizations
     map through _HYB_MAP with sp3 (3) as the default for unknown types.
     """
+    from tmol.ligand.rdkit_mol import source_subtype
+
     if atom.GetIsAromatic():
         return HYB_AROMATIC
+
+    sub = source_subtype(atom)
+    if sub:
+        s = sub.lower()
+        if s == "ar":
+            return HYB_AROMATIC
+        if s == "1":
+            return HYB_SP
+        if s in {"2", "am", "cat", "pl3"}:
+            return HYB_SP2
+        if s in {"3", "4"}:
+            return HYB_SP3
     return _HYB_MAP.get(atom.GetHybridization(), HYB_SP3)
 
 
@@ -331,17 +345,9 @@ def _classify_N_hetero(atom, hyb, nC, nH, nO, nN, ntot):
         if nO >= 2:
             return "NG2"
         if nH == 0 and nN >= 1:
-            # Azole-style ring N (triazole / tetrazole): all ring Ns
-            # adjacent to another ring N get Nim regardless of degree.
-            # The aromatic flag is read from the saved-pre-kekulize
-            # snapshot since Kekulize clears the live one.
-            if was_aromatic(atom):
-                return "Nim"
-            # Acyclic R2-N=C-... amide-style → Nad3 only when 3-coord;
-            # 2-coord sp2 N with an N neighbor is an imine.
-            if ntot == 3:
-                return "Nad3"
-            return "Nim"
+            # Rosetta AtomTypeClassifier assigns Nad3 for hetero-connected
+            # sp2/aromatic N with no H and at least one N neighbor.
+            return "Nad3"
         if nH == 0:
             return "NG2"
         if nH == 1:
@@ -476,12 +482,8 @@ def _classify_O_no_carbon(atom, hyb, nH, nN, ntot):
 def _classify_O_sp2(atom, nC):
     """Classify sp2 oxygen bonded to at least one carbon."""
     if nC == 2:
-        # 2-carbon sp2 O is Ofu only when it sits in a furan-style
-        # aromatic 5-ring. Acyclic ester / lactone Os that RDKit
-        # aromatized via lone-pair conjugation get Oet.
-        ri = atom.GetOwningMol().GetRingInfo()
-        in_5ring = any(len(r) == 5 and atom.GetIdx() in r for r in ri.AtomRings())
-        return "Ofu" if in_5ring else "Oet"
+        # Rosetta classify_O: sp2 oxygen attached to two carbons => Ofu.
+        return "Ofu"
 
     c_nbr = None
     for nbr in atom.GetNeighbors():
@@ -540,20 +542,22 @@ def _classify_O(atom: Chem.Atom, mol: Chem.Mol) -> str:
     # When source says ``O.2``, route to the sp2 classifier directly.
     if sub == "2":
         return _classify_O_sp2(atom, nC)
+    # Source ``O.3`` should follow Rosetta's sp3 oxygen branch even when
+    # RDKit drifts toward sp2 due nearby conjugation.
+    if sub == "3":
+        if nH >= 1:
+            return "Ohx"
+        if ntot == 2 and nC == 2:
+            return "Ofu" if was_aromatic(atom) else "Oet"
+        return "OG31" if nH >= 1 else "OG3"
 
     if hyb == 3:
         if nH >= 1:
             return "Ohx"
         if ntot == 2 and nC == 2:
-            # Ofu = O sitting inside a furan-style aromatic 5-ring.
-            # ``was_aromatic`` on its own is too permissive: RDKit's
-            # sanitize also flags ester / lactone Os aromatic via lone-
-            # pair conjugation with an adjacent carboxyl. We require
-            # both the aromatic flag (pre-kekulize) AND membership in
-            # a 5-membered ring.
-            ri = mol.GetRingInfo()
-            in_5ring = any(len(r) == 5 and atom.GetIdx() in r for r in ri.AtomRings())
-            return "Ofu" if was_aromatic(atom) and in_5ring else "Oet"
+            # Rosetta classify_O: sp3 oxygen attached to two carbons is
+            # Ofu when aromatic, Oet otherwise.
+            return "Ofu" if was_aromatic(atom) else "Oet"
         return "OG3"
 
     if hyb == 2 or hyb == 9:
@@ -577,7 +581,10 @@ def _classify_S(atom: Chem.Atom, mol: Chem.Mol) -> str:
         return "SG2"
     else:
         hyb = _get_hyb(atom)
-        return "SG5" if hyb == 2 and ntot >= 4 else "SG3"
+        # Rosetta keys SG5 to sulfur(V/VI)-like environments. RDKit does
+        # not expose the same "hyb==5" code used in Rosetta's mol2 parser,
+        # so use connectivity to oxygens as the primary proxy.
+        return "SG5" if (ntot >= 4 and (nO >= 2 or hyb == 2)) else "SG3"
 
 
 def _classify_P(atom: Chem.Atom, mol: Chem.Mol) -> str:

@@ -24,6 +24,7 @@ _BOND_TOK_TO_TYPE = {
     "1": "SINGLE",
     "2": "DOUBLE",
     "3": "TRIPLE",
+    "4": "AROMATIC",
     "SINGLE": "SINGLE",
     "DOUBLE": "DOUBLE",
     "TRIPLE": "TRIPLE",

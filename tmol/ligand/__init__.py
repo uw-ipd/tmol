@@ -18,8 +18,9 @@ import logging
 from typing import Optional
 
 import biotite.structure as struc
+from biotite.interface.rdkit import to_mol
 from rdkit import Chem
-from rdkit.Chem import AllChem, rdDetermineBonds
+from rdkit.Chem import AllChem
 
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import RawResidueType  # noqa: F401  re-exported
@@ -45,7 +46,6 @@ from tmol.ligand.registry import (
 from tmol.ligand.mol3d import build_partial_charges
 from tmol.ligand.residue_builder import build_residue_type
 from tmol.ligand.rdkit_mol import (
-    ELEMENT_TO_ATOMIC_NUM,
     ligand_atom_array_to_rdkit_mol,
     protonate_ligand_mol,
 )
@@ -56,33 +56,18 @@ logger = logging.getLogger(__name__)
 def _build_cif_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.Mol:
     """Build a Chem.Mol from CIF atom names, elements, and coordinates.
 
-    Uses rdDetermineBonds.DetermineBonds to infer bonds from heavy-atom
-    coordinates, if necessary.
+    This helper is only used for fallback atom-name graph matching and
+    therefore follows the same explicit-bond contract as the main ligand
+    pipeline: no bond inference.
     """
-    rwmol = Chem.RWMol()
-    n = len(ligand_info.elements)
-    conf = Chem.Conformer(n)
-    for i, (elem, coord) in enumerate(zip(ligand_info.elements, ligand_info.coords)):
-        sym = elem.strip()
-        if sym in ELEMENT_TO_ATOMIC_NUM:
-            atom = Chem.Atom(sym)
-        else:
-            z = Chem.GetPeriodicTable().GetAtomicNumber(sym)
-            atom = Chem.Atom(z)
-        rwmol.AddAtom(atom)
-        conf.SetAtomPosition(i, (float(coord[0]), float(coord[1]), float(coord[2])))
-    rwmol.AddConformer(conf, assignId=True)
-    if rwmol.GetNumAtoms() > 1:
-        try:
-            rdDetermineBonds.DetermineBonds(rwmol)
-        except Exception:
-            logger.debug(
-                "DetermineBonds failed for CIF Mol of %s; using bondless Mol",
-                ligand_info.res_name,
-                exc_info=True,
-            )
-
-    return rwmol.GetMol()
+    atom_array = ligand_info.atom_array
+    has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
+    if not has_bonds:
+        raise ValueError(
+            f"{ligand_info.res_name}: explicit ligand bonds required for graph "
+            "matching; bond inference is unsupported."
+        )
+    return to_mol(atom_array)
 
 
 def _rename_atoms_to_cif(
@@ -230,6 +215,7 @@ def prepare_single_ligand(
         protonated,
         atom_types,
         input_charges=ligand_info.partial_charges,
+        ligand_name=ligand_info.res_name,
     )
 
     atom_type_elements: dict[str, str] = {}

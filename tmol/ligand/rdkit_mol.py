@@ -1,18 +1,11 @@
-"""RDKit molecule construction and protonation for ligands.
-
-Builds RDKit Mol objects from ligand AtomArrays and protonates them at a
-target pH using the vendored dimorphite_dl module (direct Mol path, no
-SMILES roundtrip in the main pipeline).
-"""
+"""RDKit molecule construction and protonation for ligands."""
 
 import logging
 
 import biotite.structure as struc
 from biotite.interface.rdkit import to_mol
 from rdkit import Chem
-from rdkit.Chem import rdDetermineBonds
 
-from tmol.ligand.atom_typing import sanitize_tolerant
 from tmol.ligand.detect import NonStandardResidueInfo, _strip_metals
 from tmol.ligand.dimorphite_dl import protonate_mol_variants
 
@@ -76,6 +69,44 @@ def _restore_kekule_bonds(mol: Chem.Mol, atom_array) -> None:
 _SOURCE_SUBTYPE_PROP = "_tmol_source_subtype"
 
 
+def _apply_source_subtypes(mol: Chem.Mol, atom_array) -> None:
+    """Stamp source subtype tags on atoms before H removal.
+
+    The source AtomArray and pre-RemoveHs RDKit mol share atom indices,
+    so this is the most reliable point to transfer subtype hints.
+    """
+    if not hasattr(atom_array, "tmol_source_subtype"):
+        return
+    subtypes = atom_array.tmol_source_subtype
+    for idx, atom in enumerate(mol.GetAtoms()):
+        if idx >= len(subtypes):
+            break
+        sub = str(subtypes[idx])
+        if sub and sub != "?":
+            atom.SetProp(_SOURCE_SUBTYPE_PROP, sub)
+
+
+def _kekulize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
+    """De-aromatize non-ring aromatic bonds to explicit singles.
+
+    Aromatic semantics are ring-based in RDKit/biotite. Non-ring aromatic
+    bonds are treated as delocalization placeholders and must be explicit
+    non-aromatic bonds for robust downstream handling.
+    """
+    changed = False
+    for bond in mol.GetBonds():
+        if bond.GetIsAromatic() and not bond.IsInRing():
+            bond.SetIsAromatic(False)
+            bond.SetBondType(Chem.BondType.SINGLE)
+            changed = True
+    if not changed:
+        return
+    for atom in mol.GetAtoms():
+        if atom.GetIsAromatic():
+            if not any(b.GetIsAromatic() for b in atom.GetBonds()):
+                atom.SetIsAromatic(False)
+
+
 def _apply_atom_aromatic_flags_post_removeh(
     mol: Chem.Mol, atom_array, heavy_arr_indices
 ) -> None:
@@ -96,20 +127,11 @@ def _apply_atom_aromatic_flags_post_removeh(
     if not hasattr(atom_array, "tmol_aromatic"):
         return
     flags = atom_array.tmol_aromatic
-    subtypes = (
-        atom_array.tmol_source_subtype
-        if hasattr(atom_array, "tmol_source_subtype")
-        else None
-    )
     if mol.GetNumAtoms() != len(heavy_arr_indices):
         return
     for mol_idx, arr_idx in enumerate(heavy_arr_indices):
         a = mol.GetAtomWithIdx(mol_idx)
         a.SetIsAromatic(bool(flags[arr_idx]))
-        if subtypes is not None:
-            sub = str(subtypes[arr_idx])
-            if sub and sub != "?":
-                a.SetProp(_SOURCE_SUBTYPE_PROP, sub)
     for bond in mol.GetBonds():
         if bond.GetBeginAtom().GetIsAromatic() and bond.GetEndAtom().GetIsAromatic():
             bond.SetIsAromatic(True)
@@ -166,7 +188,11 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
     """
     try:
         return Chem.RemoveHs(mol)
-    except (Chem.rdchem.KekulizeException, Chem.rdchem.AtomValenceException):
+    except (
+        Chem.rdchem.KekulizeException,
+        Chem.rdchem.AtomKekulizeException,
+        Chem.rdchem.AtomValenceException,
+    ):
         return Chem.RemoveHs(mol, sanitize=False)
 
 
@@ -174,35 +200,63 @@ def ligand_atom_array_to_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.
     """Build an RDKit Mol directly from a ligand AtomArray."""
     atom_array = ligand_info.atom_array
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
-    if has_bonds:
+    if len(atom_array) == 0:
+        raise ValueError(f"{ligand_info.res_name}: empty atom array")
+    if not has_bonds:
+        raise ValueError(
+            f"{ligand_info.res_name}: ligand bond inference is unsupported. "
+            "Input must provide explicit bond orders (CIF with "
+            "_chem_comp_bond.value_order / aromatic annotations). "
+            "PDB/topology-only ligand chemistry is not supported."
+        )
+
+    raw_types = [int(t) for _, _, t in atom_array.bonds.as_array()]
+    unsupported = sorted(
+        set(t for t in raw_types if t not in _BIOTITE_TO_RDKIT_BOND_ORDER)
+    )
+    if unsupported:
+        raise ValueError(
+            f"{ligand_info.res_name}: unsupported bond type codes {unsupported} in "
+            "ligand input. Provide CIF with explicit supported bond orders."
+        )
+
+    chemistry_orders = {
+        int(struc.BondType.DOUBLE),
+        int(struc.BondType.TRIPLE),
+        int(struc.BondType.QUADRUPLE),
+        int(struc.BondType.AROMATIC),
+        int(struc.BondType.AROMATIC_SINGLE),
+        int(struc.BondType.AROMATIC_DOUBLE),
+        int(struc.BondType.AROMATIC_TRIPLE),
+    }
+    has_chemistry_order_signal = any(t in chemistry_orders for t in raw_types)
+    has_custom_aromatic_flags = hasattr(atom_array, "tmol_aromatic")
+    if not has_chemistry_order_signal and not has_custom_aromatic_flags:
+        raise ValueError(
+            f"{ligand_info.res_name}: ligand has topology-only SINGLE bonds with no "
+            "chemistry-level bond-order/aromatic annotations. "
+            "PDB ligand chemistry inference is unsupported; provide ligand as CIF "
+            "with explicit bond orders."
+        )
+
+    try:
         mol = to_mol(atom_array)
-        _restore_kekule_bonds(mol, atom_array)
-    else:
-        if len(atom_array) == 0:
-            raise ValueError(f"{ligand_info.res_name}: empty atom array")
-        rwmol = Chem.RWMol()
-        conf = Chem.Conformer(len(atom_array))
-        for i, (elem, coord) in enumerate(zip(atom_array.element, atom_array.coord)):
-            rwmol.AddAtom(Chem.Atom(elem.strip().capitalize()))
-            conf.SetAtomPosition(i, (float(coord[0]), float(coord[1]), float(coord[2])))
-        rwmol.AddConformer(conf, assignId=True)
-        if rwmol.GetNumAtoms() > 1:
-            rdDetermineBonds.DetermineBonds(rwmol)
-        mol = rwmol.GetMol()
+    except Exception as exc:
+        raise ValueError(
+            f"{ligand_info.res_name}: failed to read explicit ligand bond chemistry "
+            f"from input ({exc}). Provide a CIF with explicit bond orders."
+        ) from exc
+    _restore_kekule_bonds(mol, atom_array)
+    _kekulize_non_ring_aromatic_bonds(mol)
+    _apply_source_subtypes(mol, atom_array)
 
     # Map heavy-atom indices from the source atom_array to the post-
     # ``RemoveHs`` mol so we can re-stamp the source-supplied aromatic
     # flag after RemoveHs's internal sanitize re-perceived aromaticity.
-    if has_bonds:
-        heavy_arr_indices = [
-            i for i, e in enumerate(atom_array.element) if str(e) != "H"
-        ]
-    else:
-        heavy_arr_indices = None
+    heavy_arr_indices = [i for i, e in enumerate(atom_array.element) if str(e) != "H"]
 
     mol = _remove_hs_tolerant(mol)
-    if has_bonds and heavy_arr_indices is not None:
-        _apply_atom_aromatic_flags_post_removeh(mol, atom_array, heavy_arr_indices)
+    _apply_atom_aromatic_flags_post_removeh(mol, atom_array, heavy_arr_indices)
     mol = _strip_metals(mol)
     if mol is None or mol.GetNumAtoms() == 0:
         raise ValueError(f"{ligand_info.res_name}: failed to build RDKit Mol")

@@ -1,12 +1,13 @@
 # Build wheels + sdist, upload sdist to TestPyPI, upload wheels to GitHub Release.
 #
-# Runs on push to master/kdidi/** or manual trigger.
+# Runs on push to master/kdidi/ligand_clean or manual trigger.
 # Safe to run on every push: TestPyPI rejects duplicate versions,
 # so the upload step is a no-op if the version already exists.
 #
 # PyPI/TestPyPI rejects wheel filenames with "+" local version segments
 # (e.g. +cu128torch2.10), so wheels are distributed via GitHub Releases
-# and installed with: pip install tmol --find-links <release-url>
+# and installed via explicit wheel URL (or pinned local version with
+# --find-links).
 #
 # Three separate jobs so you can RE-RUN just the upload if it fails
 # without rebuilding wheels/sdist.
@@ -15,7 +16,7 @@ name: Publish to TestPyPI
 
 on:
   push:
-    branches: [master, "kdidi/**"]
+    branches: [master, "kdidi/ligand_clean"]
   workflow_dispatch:
 
 jobs:
