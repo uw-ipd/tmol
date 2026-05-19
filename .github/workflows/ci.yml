@@ -90,6 +90,9 @@ jobs:
 
           uv pip install -r to_install.txt
           uv pip install torch
+          # TODO: previously we were pinning 2.11.0 for the test server because the environment CUDA version isn't high enough for a more recent version
+          # is this still necessary?
+          # uv pip install torch==2.11.0 
 
           GPU_ARCH=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}{c[1]}')")
           echo "=== Building for GPU architecture: sm_${GPU_ARCH} ==="
