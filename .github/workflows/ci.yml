@@ -19,6 +19,11 @@ concurrency:
 env:
   SIF: /home/bench/git_ci_apptainer/tmol.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
+  SLURM_PARTITION: gpu-train
+  SLURM_GRES: gpu:1
+  SLURM_CPUS_PER_TASK: 16
+  SLURM_MEM: 128G
+  SLURM_TIME: 06:00:00
   
 
 jobs:
@@ -70,8 +75,8 @@ jobs:
         id: build
         if: always()
         run: |
-          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
-                  -t 06:00:00 --cpus-per-task=16 --mem=128G \
+          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
+                  -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
                   apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                   --pwd $GITHUB_WORKSPACE \
                   --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
@@ -102,8 +107,8 @@ jobs:
         run: |
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
-          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
-                  -t 06:00:00 --cpus-per-task=16 --mem=128G \
+          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
+                  -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
                   apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                   --pwd $GITHUB_WORKSPACE \
                   --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
@@ -124,8 +129,8 @@ jobs:
         run: |
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
-          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
-                -t 06:00:00 --cpus-per-task=16 --mem=128G \
+          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
+                -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
                 apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                 --pwd $GITHUB_WORKSPACE \
                 --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
@@ -145,8 +150,8 @@ jobs:
         run: |
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
-          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
-                -t 06:00:00 --cpus-per-task=16 --mem=128G \
+          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
+                -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
                 apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                 --pwd $GITHUB_WORKSPACE \
                 --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
@@ -182,7 +187,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: $GITHUB_WORKSPACE/coverage.xml
+          files: ${{ github.workspace }}/coverage.xml
           fail_ci_if_error: true # fail the CI if upload fails
 
       

@@ -51,7 +51,7 @@ flowchart TD
 |------|---------|-----|
 | Mol construction from AtomArray | **RDKit** + Biotite | Direct coordinate + bond transfer, no SMILES roundtrip |
 | Protonation at target pH | **RDKit** via Dimorphite-DL | `protonate_mol_variants` operates on Mol objects directly |
-| Partial charges (MMFF94) | **RDKit** | `AllChem.MMFFGetMoleculeProperties` with Gasteiger fallback |
+| Partial charges (MMFF94) | **RDKit** | `AllChem.MMFFGetMoleculeProperties`; failures raise an error (no fallback) |
 | Atom typing | **RDKit** | Rosetta AtomTypeClassifier port operating on perceived RDKit hybridization, aromaticity, ring membership, and bond orders |
 | Residue type building | **RDKit** | Atom tree, internal coordinates, bond order from Chem.Mol |
 
@@ -75,13 +75,89 @@ The YAML format has three sections matching the existing database schemas:
 See `params_file.py` for `load_params_file`, `write_params_file`, and
 `inject_params_files`.
 
+## Reuse, Caching, and Persistence
+
+When processing many poses that share the same ligand topology, you can
+avoid repeating full ligand preparation.
+
+### 1) In-process reuse (automatic cache)
+
+`prepare_ligands()` uses a process-global in-memory cache
+(`LigandPreparationCache`) keyed by:
+
+- residue name
+- pH
+- atom names
+- element list
+
+Within one Python process, repeated calls with the same key reuse the
+prepared residue type and charges instead of recomputing them.
+
+```python
+from tmol.ligand import prepare_ligands
+
+param_db, co = prepare_ligands(atom_array, ph=7.4)
+# subsequent calls in this process with same ligand key reuse cache
+param_db2, co2 = prepare_ligands(atom_array, ph=7.4)
+```
+
+### 2) Persistent reuse across sessions (write/read `.tmol` params)
+
+The in-memory cache is not persisted across Python runs. For permanent
+reuse, write prepared ligands to a params file once, then load it later.
+
+```python
+from tmol.database import ParameterDatabase
+from tmol.ligand import prepare_ligands
+
+# One-time generation
+param_db = ParameterDatabase.get_default()
+param_db, co = prepare_ligands(
+    atom_array,
+    param_db=param_db,
+    ph=7.4,
+    params_output="my_ligands.tmol",
+)
+
+# Later runs: inject from file and skip re-prep for those residues
+param_db, co = prepare_ligands(
+    atom_array,
+    param_db=ParameterDatabase.get_default(),
+    params_files=["my_ligands.tmol"],
+)
+```
+
+You can also pass these files through IO helpers such as
+`pose_stack_from_biotite(..., prepare_ligands=True, ligand_params_files=[...])`.
+
+### 3) Reset behavior
+
+- **Reset ligand prep cache** (current process):
+
+```python
+from tmol.ligand.registry import clear_cache
+
+clear_cache()
+```
+
+- **Reset database to default**:
+
+```python
+from tmol.database import ParameterDatabase
+
+param_db = ParameterDatabase.get_default()
+```
+
+`ParameterDatabase` is immutable/frozen; injection returns a new instance.
+To "reset", just reacquire `get_default()` (or drop your extended instance).
+
 ## Library Responsibilities
 
 | Step | Library |
 |------|---------|
 | Mol construction from AtomArray | **RDKit** + Biotite |
 | Protonation at target pH | **RDKit** via Dimorphite-DL |
-| Partial charges (MMFF94) | **RDKit** (Gasteiger fallback) |
+| Partial charges (MMFF94) | **RDKit** (no fallback; fail loud on parameterization errors) |
 | Atom typing | **RDKit** (Rosetta AtomTypeClassifier port) |
 | Residue type building | **RDKit** (atom tree, icoors, bond order) |
 
