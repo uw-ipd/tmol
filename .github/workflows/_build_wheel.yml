@@ -14,6 +14,10 @@ on:
       torch-version:
         required: true
         type: string
+      python-version:
+        required: true
+        type: string
+        default: "3.12"
       label:
         required: true
         type: string
@@ -60,33 +64,70 @@ jobs:
             $CONTAINER_IMAGE sleep infinity
           docker start $BUILDER
 
-      - name: Reinstall PyTorch from pip
-        if: inputs.pip-torch-cuda-url != ''
+      - name: Prepare target Python runtime
         run: |
           docker exec $BUILDER bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
-            pip install --break-system-packages --force-reinstall \
-              torch==${{ inputs.torch-version }}.* \
-              --index-url ${{ inputs.pip-torch-cuda-url }}
-            python3 -c "import torch; print(f'"'"'Installed: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}'"'"')"
+            PYVER="${{ inputs.python-version }}"
+            if command -v "python${PYVER}" >/dev/null 2>&1; then
+              PYBIN=$(command -v "python${PYVER}")
+            else
+              python3 -m pip install --break-system-packages --upgrade uv
+              uv python install "${PYVER}"
+              PYBIN=$(uv python find "${PYVER}")
+            fi
+
+            VENV="/tmp/tmol-venv-${PYVER}"
+            "${PYBIN}" -m venv --system-site-packages "${VENV}"
+            "${VENV}/bin/pip" install --upgrade pip
+            echo "${VENV}" > /tmp/tmol_target_venv
           '
+
+          TARGET_VENV=$(docker exec $BUILDER cat /tmp/tmol_target_venv)
+          echo "TARGET_VENV=${TARGET_VENV}" >> $GITHUB_ENV
+
+      - name: Install PyTorch for target runtime
+        run: |
+          DEFAULT_CUDA_TAG=$(docker exec $BUILDER python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])")
+          TORCH_INDEX_URL="https://download.pytorch.org/whl/cu${DEFAULT_CUDA_TAG}"
+          if [ -n "${{ inputs.pip-torch-cuda-url }}" ]; then
+            TORCH_INDEX_URL="${{ inputs.pip-torch-cuda-url }}"
+          fi
+
+          docker exec $BUILDER bash -x -e -o pipefail -c "
+            NEED_INSTALL=1
+            if [ -z '${{ inputs.pip-torch-cuda-url }}' ]; then
+              if ${TARGET_VENV}/bin/python -c \"import torch, sys; v='.'.join(torch.__version__.split('.')[:2]); sys.exit(0 if v=='${{ inputs.torch-version }}' else 1)\"; then
+                NEED_INSTALL=0
+                echo 'Using bundled NGC torch for target runtime'
+              fi
+            fi
+
+            if [ \$NEED_INSTALL -eq 1 ]; then
+              ${TARGET_VENV}/bin/pip install --force-reinstall \
+                torch==${{ inputs.torch-version }}.* \
+                --index-url ${TORCH_INDEX_URL}
+            fi
+
+            ${TARGET_VENV}/bin/python -c \"import torch; print(f'Installed: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}')\"
+          "
 
       - name: Set version variables
         run: |
-          PYTHON_VERSION=$(docker exec $BUILDER python3 -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
-          TORCH_VERSION=$(docker exec $BUILDER python3 -c "import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')")
-          CUDA_VERSION=$(docker exec $BUILDER python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])")
+          PYTHON_VERSION=$(docker exec $BUILDER ${TARGET_VENV}/bin/python -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
+          TORCH_VERSION=$(docker exec $BUILDER ${TARGET_VENV}/bin/python -c "import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')")
+          CUDA_VERSION=$(docker exec $BUILDER ${TARGET_VENV}/bin/python -c "import torch; print(torch.version.cuda.replace('.','')[:3])")
 
           echo "MATRIX_PYTHON_VERSION=${PYTHON_VERSION}" >> $GITHUB_ENV
           echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> $GITHUB_ENV
           echo "WHEEL_CUDA_VERSION=${CUDA_VERSION}" >> $GITHUB_ENV
 
           docker exec $BUILDER nvcc --version
-          docker exec $BUILDER python3 -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
+          docker exec $BUILDER ${TARGET_VENV}/bin/python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
 
       - name: Install build dependencies
         run: |
-          docker exec $BUILDER pip install --break-system-packages \
+          docker exec $BUILDER ${TARGET_VENV}/bin/pip install \
             'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
 
       - name: Build wheel
@@ -95,14 +136,14 @@ jobs:
             -e MAX_JOBS=1 \
             $BUILDER bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
-            CUDA_MAJOR=$(python3 -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
+            CUDA_MAJOR=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
             if [ "$CUDA_MAJOR" -ge 13 ]; then
               CUDA_ARCHS="80;86;89;90;100"
             else
               CUDA_ARCHS="80;86;89;90"
             fi
-            export CMAKE_PREFIX_PATH=$(python3 -c "import torch; print(torch.utils.cmake_prefix_path)")
-            pip wheel . --no-build-isolation --no-deps -w dist \
+            export CMAKE_PREFIX_PATH=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.utils.cmake_prefix_path)")
+            '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
               -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
               -Ccmake.define.TMOL_NVCC_THREADS=1
           '
