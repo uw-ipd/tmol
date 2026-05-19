@@ -44,7 +44,7 @@ jobs:
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.10 x86_64 NGC"
           - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:26.03-py3
+            container-image: nvcr.io/nvidia/pytorch:26.02-py3
             torch-version: "2.11"
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.11 x86_64 NGC"
@@ -79,7 +79,7 @@ jobs:
             runs-on: ubuntu-24.04-arm
             label: "py3.12 pt2.10 aarch64 NGC"
           - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:26.03-py3
+            container-image: nvcr.io/nvidia/pytorch:26.02-py3
             torch-version: "2.11"
             runs-on: ubuntu-24.04-arm
             label: "py3.12 pt2.11 aarch64 NGC"
@@ -91,20 +91,10 @@ jobs:
 
           # ── py3.13 additions ──
           - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:26.03-py3
-            torch-version: "2.11"
-            runs-on: ubuntu-22.04
-            label: "py3.13 pt2.11 x86_64 NGC"
-          - python-version: "3.13"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
             runs-on: ubuntu-22.04
             label: "py3.13 pt2.12 x86_64 NGC"
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:26.03-py3
-            torch-version: "2.11"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.13 pt2.11 aarch64 NGC"
           - python-version: "3.13"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
@@ -150,7 +140,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Compute Python wheel tag
-        run: echo "CPU_PY_TAG=cp$(python -c \"import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')\")" >> "$GITHUB_ENV"
+        run: echo "CPU_PY_TAG=cp$(python -c 'import sys; print(f\"{sys.version_info.major}{sys.version_info.minor}\")')" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
         run: |

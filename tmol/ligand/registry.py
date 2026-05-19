@@ -91,7 +91,7 @@ def clear_cache(cache: Optional[LigandPreparationCache] = None) -> None:
     cache.charges_by_key.clear()
 
 
-def _build_cartbonded_params(
+def _build_cartbonded_params(  # noqa: C901
     residue_type: RawResidueType,
     coords: Optional[dict[str, "tuple[float, float, float]"]] = None,
 ) -> CartRes:
@@ -114,7 +114,6 @@ def _build_cartbonded_params(
     import numpy as np
 
     atom_names = {a.name for a in residue_type.atoms}
-    atom_type_by_name = {a.name: a.atom_type for a in residue_type.atoms}
     icoor_by_name = {ic.name: ic for ic in residue_type.icoors}
 
     np_coords = (

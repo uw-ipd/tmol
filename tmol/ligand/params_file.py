@@ -33,7 +33,7 @@ YAML so entries can be copy-pasted between params files and
 import logging
 import math
 from pathlib import Path
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 import cattr
 import yaml
@@ -44,6 +44,9 @@ from tmol.database.scoring.cartbonded import CartRes
 from tmol.database.scoring.elec import PartialCharges
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from tmol.ligand.registry import LigandPreparation
 
 
 _RAW_RESIDUE_DEFAULTS: dict[str, Any] = {
