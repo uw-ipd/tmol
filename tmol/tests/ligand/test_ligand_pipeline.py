@@ -296,7 +296,7 @@ class TestPoseStackWithLigand:
     """Build a PoseStack with ligands and verify scoring runs."""
 
     @staticmethod
-    def _sanity_check_pose_stack(pose_stack):
+    def _sanity_check_pose_stack(pose_stack):  # noqa: C901
         """Validate PoseStack invariants before handing it to scoring.
 
         Scoring kernels access coords via block_coord_offset + per-block atom
@@ -532,13 +532,11 @@ class TestPoseStackWithLigand:
         element). Verify the PoseStack builds but skip scoring — the
         remaining atoms don't have meaningful LJ/LK parameters.
         """
-        import torch
-
         from tmol.database import ParameterDatabase
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
 
         param_db = ParameterDatabase.get_default()
-        pose_stack = pose_stack_from_biotite(
+        pose_stack_from_biotite(
             cif_155c_with_hem, torch_device, prepare_ligands=True, param_db=param_db
         )
 

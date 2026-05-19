@@ -4,8 +4,8 @@ from typing import List, Optional, Mapping
 
 from .chemical import AtomType, ChemicalDatabase, RawResidueType
 from .scoring import ScoringDatabase
-from .scoring.elec import ElecDatabase, PartialCharges
-from .scoring.cartbonded import CartBondedDatabase, CartRes
+from .scoring.elec import PartialCharges
+from .scoring.cartbonded import CartRes
 
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
