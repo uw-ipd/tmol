@@ -208,8 +208,8 @@ class TestPLIScoring:
         for label, ros_terms, tmol_terms in _PLI_TERM_ROWS:
             converted = sum(dg_converted_dict.get(n, 0.0) for n in tmol_terms)
             # generated = sum(dg_generated_dict.get(n, 0.0) for n in tmol_terms)
-            rosetta = sum(float(ros_scores.get(n, 0.0)) for n in ros_terms)
-            # rosetta = sum(float(ros_scores.get("dG_" + n, 0.0)) for n in ros_terms)
+            # rosetta = sum(float(ros_scores.get(n, 0.0)) for n in ros_terms)
+            rosetta = sum(float(ros_scores.get("dG_" + n, 0.0)) for n in ros_terms)
             data += [
                 (
                     target,
