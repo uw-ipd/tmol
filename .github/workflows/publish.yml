@@ -133,103 +133,33 @@ jobs:
             runs-on: ubuntu-24.04-arm
             label: "py3.12 pt2.12 aarch64 NGC"
 
-          # ── x86_64 py3.13 (NGC native) ──
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.8"
-            runs-on: ubuntu-22.04
-            label: "py3.13 pt2.8 x86_64 NGC"
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:25.10-py3
-            torch-version: "2.9"
-            runs-on: ubuntu-22.04
-            label: "py3.13 pt2.9 x86_64 NGC"
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:26.01-py3
-            torch-version: "2.10"
-            runs-on: ubuntu-22.04
-            label: "py3.13 pt2.10 x86_64 NGC"
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:26.02-py3
-            torch-version: "2.11"
-            runs-on: ubuntu-22.04
-            label: "py3.13 pt2.11 x86_64 NGC"
+          # ── x86_64 py3.13/py3.14 (NGC native, torch 2.12 only) ──
           - python-version: "3.13"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
             runs-on: ubuntu-22.04
             label: "py3.13 pt2.12 x86_64 NGC"
-
-          # ── ARM64 py3.13 (NGC native) ──
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:25.06-py3
-            torch-version: "2.8"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.13 pt2.8 aarch64 NGC"
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:25.10-py3
-            torch-version: "2.9"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.13 pt2.9 aarch64 NGC"
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:26.01-py3
-            torch-version: "2.10"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.13 pt2.10 aarch64 NGC"
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:26.02-py3
-            torch-version: "2.11"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.13 pt2.11 aarch64 NGC"
-          - python-version: "3.13"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-            torch-version: "2.12"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.13 pt2.12 aarch64 NGC"
-
-          # ── x86_64 py3.14 (NGC native) ──
-          - python-version: "3.14"
-            container-image: nvcr.io/nvidia/pytorch:25.10-py3
-            torch-version: "2.9"
-            runs-on: ubuntu-22.04
-            label: "py3.14 pt2.9 x86_64 NGC"
-          - python-version: "3.14"
-            container-image: nvcr.io/nvidia/pytorch:26.01-py3
-            torch-version: "2.10"
-            runs-on: ubuntu-22.04
-            label: "py3.14 pt2.10 x86_64 NGC"
-          - python-version: "3.14"
-            container-image: nvcr.io/nvidia/pytorch:26.02-py3
-            torch-version: "2.11"
-            runs-on: ubuntu-22.04
-            label: "py3.14 pt2.11 x86_64 NGC"
           - python-version: "3.14"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
             runs-on: ubuntu-22.04
             label: "py3.14 pt2.12 x86_64 NGC"
 
-          # ── ARM64 py3.14 (NGC native) ──
-          - python-version: "3.14"
-            container-image: nvcr.io/nvidia/pytorch:25.10-py3
-            torch-version: "2.9"
+          # ── ARM64 py3.13/py3.14 (NGC native, torch 2.12 only) ──
+          - python-version: "3.13"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
             runs-on: ubuntu-24.04-arm
-            label: "py3.14 pt2.9 aarch64 NGC"
-          - python-version: "3.14"
-            container-image: nvcr.io/nvidia/pytorch:26.01-py3
-            torch-version: "2.10"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.14 pt2.10 aarch64 NGC"
-          - python-version: "3.14"
-            container-image: nvcr.io/nvidia/pytorch:26.02-py3
-            torch-version: "2.11"
-            runs-on: ubuntu-24.04-arm
-            label: "py3.14 pt2.11 aarch64 NGC"
+            label: "py3.13 pt2.12 aarch64 NGC"
           - python-version: "3.14"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
             runs-on: ubuntu-24.04-arm
             label: "py3.14 pt2.12 aarch64 NGC"
+
+          # ── Remaining py3.13/py3.14 GPU rows temporarily disabled ──
+          # Re-enable when matching CUDA PyTorch wheels are available for
+          # cp313/cp314 across the remaining torch/CUDA combinations.
 
     uses: ./.github/workflows/_build_wheel.yml
     with:
