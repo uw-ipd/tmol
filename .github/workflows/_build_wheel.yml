@@ -78,7 +78,13 @@ jobs:
             fi
 
             VENV="/tmp/tmol-venv-${PYVER}"
-            "${PYBIN}" -m venv --system-site-packages "${VENV}"
+            SYS_PYVER=$(python3 -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")")
+            TARGET_PYVER=$("${PYBIN}" -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")")
+            if [ "${TARGET_PYVER}" = "${SYS_PYVER}" ]; then
+              "${PYBIN}" -m venv --system-site-packages "${VENV}"
+            else
+              "${PYBIN}" -m venv "${VENV}"
+            fi
             "${VENV}/bin/pip" install --upgrade pip
             echo "${VENV}" > /tmp/tmol_target_venv
           '
@@ -95,6 +101,8 @@ jobs:
           fi
 
           docker exec $BUILDER bash -x -e -o pipefail -c "
+            unset PYTHONPATH
+            export PYTHONNOUSERSITE=1
             NEED_INSTALL=1
             if [ -z '${{ inputs.pip-torch-cuda-url }}' ]; then
               if ${TARGET_VENV}/bin/python -c \"import torch, sys; v='.'.join(torch.__version__.split('.')[:2]); sys.exit(0 if v=='${{ inputs.torch-version }}' else 1)\"; then
@@ -109,26 +117,39 @@ jobs:
                 --index-url ${TORCH_INDEX_URL}
             fi
 
+            TORCH_FILE=\$(${TARGET_VENV}/bin/python -c \"import os, torch; print(os.path.realpath(torch.__file__))\")
+            TARGET_PY=\$(${TARGET_VENV}/bin/python -c \"import sys; print(f'python{sys.version_info.major}.{sys.version_info.minor}')\")
+            if ! echo \"\${TORCH_FILE}\" | grep -q \"\${TARGET_PY}\"; then
+              echo \"ERROR: torch module path does not match target interpreter.\"
+              echo \"torch.__file__=\${TORCH_FILE}\"
+              echo \"target=\${TARGET_PY}\"
+              exit 1
+            fi
+
             ${TARGET_VENV}/bin/python -c \"import torch; print(f'Installed: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}')\"
           "
 
       - name: Set version variables
         run: |
-          PYTHON_VERSION=$(docker exec $BUILDER ${TARGET_VENV}/bin/python -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
-          TORCH_VERSION=$(docker exec $BUILDER ${TARGET_VENV}/bin/python -c "import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')")
-          CUDA_VERSION=$(docker exec $BUILDER ${TARGET_VENV}/bin/python -c "import torch; print(torch.version.cuda.replace('.','')[:3])")
+          PYTHON_VERSION=$(docker exec $BUILDER bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')\"")
+          TORCH_VERSION=$(docker exec $BUILDER bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')\"")
+          CUDA_VERSION=$(docker exec $BUILDER bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(torch.version.cuda.replace('.','')[:3])\"")
 
           echo "MATRIX_PYTHON_VERSION=${PYTHON_VERSION}" >> $GITHUB_ENV
           echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> $GITHUB_ENV
           echo "WHEEL_CUDA_VERSION=${CUDA_VERSION}" >> $GITHUB_ENV
 
           docker exec $BUILDER nvcc --version
-          docker exec $BUILDER ${TARGET_VENV}/bin/python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
+          docker exec $BUILDER bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')\""
 
       - name: Install build dependencies
         run: |
-          docker exec $BUILDER ${TARGET_VENV}/bin/pip install \
-            'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
+          docker exec $BUILDER bash -x -e -o pipefail -c "
+            unset PYTHONPATH
+            export PYTHONNOUSERSITE=1
+            ${TARGET_VENV}/bin/pip install \
+              'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
+          "
 
       - name: Build wheel
         run: |
@@ -136,6 +157,8 @@ jobs:
             -e MAX_JOBS=1 \
             $BUILDER bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
+            unset PYTHONPATH
+            export PYTHONNOUSERSITE=1
             CUDA_MAJOR=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
             if [ "$CUDA_MAJOR" -ge 13 ]; then
               CUDA_ARCHS="80;86;89;90;100"
