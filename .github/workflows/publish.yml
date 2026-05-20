@@ -28,8 +28,8 @@ jobs:
         run: |
           python - <<'PY'
           import os
-          import re
           import sys
+          import tomllib
           from pathlib import Path
 
           ref_type = os.environ.get("GITHUB_REF_TYPE", "")
@@ -46,13 +46,11 @@ jobs:
               sys.exit(1)
 
           tag_version = ref_name[1:]
-          pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
-          match = re.search(r'^version\\s*=\\s*"([^"]+)"\\s*$', pyproject, re.MULTILINE)
-          if not match:
+          pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          project_version = pyproject.get("project", {}).get("version")
+          if not project_version:
               print("Could not parse [project].version from pyproject.toml.")
               sys.exit(1)
-
-          project_version = match.group(1)
           if tag_version != project_version:
               print(
                   "Tag/version mismatch detected:\\n"
