@@ -1,10 +1,8 @@
-# Build wheels + sdist, upload sdist to TestPyPI, upload wheels to GitHub Release.
+# Build wheels + sdist, upload sdist to PyPI, upload wheels to GitHub Release.
 #
-# Runs on push to master/kdidi/ligand_clean or manual trigger.
-# Safe to run on every push: TestPyPI rejects duplicate versions,
-# so the upload step is a no-op if the version already exists.
+# Runs on version tag push or manual trigger.
 #
-# PyPI/TestPyPI rejects wheel filenames with "+" local version segments
+# PyPI rejects wheel filenames with "+" local version segments
 # (e.g. +cu128torch2.10), so wheels are distributed via GitHub Releases
 # and installed via explicit wheel URL (or pinned local version with
 # --find-links).
@@ -12,17 +10,65 @@
 # Three separate jobs so you can RE-RUN just the upload if it fails
 # without rebuilding wheels/sdist.
 
-name: Publish to TestPyPI
+name: Publish Release Artifacts
 
 on:
   push:
-    branches: [master, "kdidi/ligand_clean"]
+    tags: ["v*"]
   workflow_dispatch:
 
 jobs:
+  verify_release_version:
+    name: Verify release tag matches project version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Ensure tag and pyproject version are aligned
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          ref_type = os.environ.get("GITHUB_REF_TYPE", "")
+          ref_name = os.environ.get("GITHUB_REF_NAME", "")
+          if ref_type != "tag":
+              print(
+                  "This workflow must run on a tag ref (e.g. v0.1.15). "
+                  f"Got ref_type={ref_type!r}, ref_name={ref_name!r}."
+              )
+              sys.exit(1)
+
+          if not ref_name.startswith("v"):
+              print(f"Release tag must start with 'v'. Got: {ref_name!r}.")
+              sys.exit(1)
+
+          tag_version = ref_name[1:]
+          pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+          match = re.search(r'^version\\s*=\\s*"([^"]+)"\\s*$', pyproject, re.MULTILINE)
+          if not match:
+              print("Could not parse [project].version from pyproject.toml.")
+              sys.exit(1)
+
+          project_version = match.group(1)
+          if tag_version != project_version:
+              print(
+                  "Tag/version mismatch detected:\\n"
+                  f"  tag: v{tag_version}\\n"
+                  f"  pyproject.toml version: {project_version}\\n"
+                  "Update pyproject version or retag before publishing."
+              )
+              sys.exit(1)
+
+          print(f"Release version check passed: v{tag_version}")
+          PY
+
   # ── GPU wheels ───────────────────────────────────────────────────────
   build_wheels:
     name: "${{ matrix.label }}"
+    needs: verify_release_version
     strategy:
       fail-fast: false
       matrix:
@@ -209,6 +255,7 @@ jobs:
   # ── CPU-only wheel ─────────────────────────────────────────────────
   build_cpu_wheel:
     name: "py${{ matrix.python-version }} CPU-only"
+    needs: verify_release_version
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -257,6 +304,7 @@ jobs:
   # ── sdist ──────────────────────────────────────────────────────────
   build_sdist:
     name: Build sdist
+    needs: verify_release_version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -284,12 +332,12 @@ jobs:
 
   # ── Upload ─────────────────────────────────────────────────────────
   #
-  # sdist -> TestPyPI  (no local version segment, PyPI accepts it)
+  # sdist -> PyPI  (no local version segment, PyPI accepts it)
   # wheels -> GitHub Release  (local version +cu... is fine here)
   #
   # If this job fails you can RE-RUN just this job from the Actions UI.
   upload:
-    name: Upload sdist to TestPyPI + wheels to GitHub Release
+    name: Upload sdist to PyPI + wheels to GitHub Release
     needs: [build_wheels, build_cpu_wheel, build_sdist]
     runs-on: ubuntu-latest
     steps:
@@ -320,11 +368,11 @@ jobs:
           echo "=== wheels ==="
           ls -lh wheels/ || echo "(no wheels)"
 
-      - name: Upload sdist to TestPyPI
+      - name: Upload sdist to PyPI
         env:
           TWINE_USERNAME: "__token__"
-          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload --skip-existing --repository-url https://upload.pypi.org/legacy/ dist/*
 
       - name: Determine version from sdist filename
         id: version

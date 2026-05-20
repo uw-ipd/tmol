@@ -16,105 +16,156 @@ Full documentation: [tmol Wiki](https://github.com/uw-ipd/tmol/wiki/DevHome)
 
 ### Pre-built wheels (recommended)
 
-Pre-built wheels ship with **ahead-of-time (AOT) compiled** C++/CUDA extensions -- no `nvcc` or CUDA toolkit needed at install time. Pick the wheel matching your **PyTorch version** and **platform**:
+Pre-built wheels ship with **ahead-of-time (AOT) compiled** C++/CUDA extensions, so install does not require `nvcc`.
 
-**x86_64 GPU (Linux):**
+tmol uses two channels:
 
-| PyTorch | CUDA | Wheel tag              | Note |
-|---------|------|------------------------|------|
-| 2.8     | 12.6 | `+cu126torch2.8`       | NGC native |
-| 2.9     | 13.0 | `+cu130torch2.9`       | NGC native |
-| 2.10    | 13.1 | `+cu131torch2.10`      | NGC native |
-| 2.10    | 12.8 | `+cu128torch2.10`      | Google Colab compatible |
+- **PyPI**: source distribution (`sdist`) for `pip install tmol`
+- **GitHub Releases**: prebuilt CPU/GPU wheels
 
-**ARM64 / aarch64 GPU (Linux, e.g., Grace Hopper, Jetson):**
+Use the mode that fits your needs:
 
-| PyTorch | CUDA | Wheel tag              |
-|---------|------|------------------------|
-| 2.8     | 12.6 | `+cu126torch2.8`       |
-| 2.9     | 13.0 | `+cu130torch2.9`       |
-| 2.10    | 13.1 | `+cu131torch2.10`      |
+- **Deterministic binary install (canonical):** direct wheel URL or local `--find-links`.
+- **Convenience install:** `pip install tmol` (best-effort wheel auto-fetch, source-build fallback).
+- **Forced source build:** disable fetch and compile locally.
 
-**CPU-only (Linux x86_64):**
+CI currently uploads these wheel variants to [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
 
-| PyTorch | Wheel tag |
-|---------|-----------|
-| >=2.5   | `+cpu`    |
+- GPU wheels (Linux `x86_64` and `aarch64`) for:
+  - Python `cp312`, `cp313`, `cp314`
+  - Torch/CUDA tags:
+    - `+cu129torch2.8`
+    - `+cu130torch2.9`
+    - `+cu131torch2.10`
+    - `+cu131torch2.11`
+    - `+cu132torch2.12`
+  - plus Colab override wheel on `x86_64`: `+cu128torch2.10`
+- CPU wheels (Linux `x86_64`) for:
+  - Python `cp312`, `cp313`, `cp314`
+  - local version tag `+cpu`
 
-All wheels are Python 3.12 (`cp312`).
+Wheel filename format:
+
+```text
+tmol-{VERSION}+{LOCAL_TAG}-cp{PYTAG}-cp{PYTAG}-linux_{ARCH}.whl
+```
+
+Examples:
+
+- `tmol-0.1.14+cu132torch2.12-cp313-cp313-linux_x86_64.whl`
+- `tmol-0.1.14+cpu-cp314-cp314-linux_x86_64.whl`
 
 > [!TIP]
-> CUDA wheels are **forward-compatible** within a major version: a `cu126` wheel works on any CUDA 12.x driver >= 12.6. You do not need an exact CUDA version match.
+> CUDA wheels are forward-compatible within a major family (e.g. `cu132` wheels run on appropriate CUDA 13.x driver stacks).
 
 Check your environment:
 
 ```bash
-python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.version_info.minor}, PyTorch {torch.__version__}, CUDA {torch.version.cuda}')"
+python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.version_info.minor}, Torch {torch.__version__}, CUDA {torch.version.cuda}')"
 ```
 
-Install PyTorch first, matching the wheel tag:
+Install torch first so it matches your chosen wheel tag:
 
 ```bash
-# Choose one that matches your wheel tag:
-pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu131   # for +cu131torch2.10
-pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu128   # for +cu128torch2.10
-pip install "torch==2.9.*"  --index-url https://download.pytorch.org/whl/cu130   # for +cu130torch2.9
-pip install "torch==2.8.*"  --index-url https://download.pytorch.org/whl/cu126   # for +cu126torch2.8
+pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu132
+# or e.g. cu131/cu130/cu129/cu128 depending on the wheel you pick
 ```
 
-Install from [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
+#### Install by direct wheel URL (recommended)
 
 ```bash
-# Direct wheel URL (most reliable):
-pip install https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/WHEEL_FILENAME.whl
-
-# Or pin an explicit local version when using --find-links:
-pip install "tmol==X.Y.Z+cu131torch2.10" --find-links https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.12-cp313-cp313-linux_x86_64.whl"
 ```
 
-<details>
-<summary><b>Google Colab</b></summary>
+#### Auto-fetch matching wheel, fallback to source build
 
-Colab ships PyTorch 2.10 with CUDA 12.8. Install the Colab-specific wheel:
+tmol supports a FlashAttention-style bootstrap when installing from PyPI `sdist`:
+
+1. During wheel build, tmol tries to download a matching prebuilt wheel from GitHub Releases.
+2. If no match is found, tmol falls back to local source build.
+
+In pip's default PEP517 isolated build environment, tmol performs **best-effort auto-detection** of CUDA/Torch lane. For deterministic behavior, pin the lane explicitly.
+
+Simplest command (safe default):
 
 ```bash
-pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.10-cp312-cp312-linux_x86_64.whl
+pip install tmol
 ```
 
-Replace `vX.Y.Z` and `X.Y.Z` with the desired release version.
-
-</details>
-
-<details>
-<summary><b>CPU-only (no GPU)</b></summary>
-
-For machines without a GPU (laptops, CI servers, data preprocessing):
+For deterministic wheel auto-fetch in isolated builds, pin the lane:
 
 ```bash
-pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cpu-cp312-cp312-linux_x86_64.whl
+TMOL_WHEEL_LOCAL_TAG=cu132torch2.12 pip install "tmol==X.Y.Z"
 ```
 
-The CPU wheel works with any PyTorch installation (CPU or CUDA). CUDA operations will raise a runtime error; all CPU operations work normally.
-
-</details>
-
-### From TestPyPI (source distribution)
-
-The source distribution compiles C++/CUDA extensions during installation. If `nvcc` is available, both CPU and CUDA extensions are built. Without `nvcc`, only CPU extensions are built.
+If you want detection based on the currently active runtime environment instead, you can disable build isolation:
 
 ```bash
-pip install tmol \
-  --index-url https://test.pypi.org/simple/ \
-  --extra-index-url https://pypi.org/simple/
+pip install --no-build-isolation "tmol==X.Y.Z"
+```
 
-pip install tmol[dev] \
-  --index-url https://test.pypi.org/simple/ \
-  --extra-index-url https://pypi.org/simple/
+Install a specific release version:
+
+```bash
+pip install "tmol==X.Y.Z"
+```
+
+If auto-detection picks the wrong wheel variant, pin the exact local tag:
+
+```bash
+TMOL_WHEEL_LOCAL_TAG=cu132torch2.12 \
+pip install "tmol==X.Y.Z"
+```
+
+Useful toggles:
+
+- `TMOL_DISABLE_WHEEL_FETCH=1`: skip prebuilt lookup and always build locally.
+- `TMOL_FORCE_BUILD=1`: same as above (explicit force-local-build path).
+- `TMOL_ENABLE_LOCAL_FETCH=1`: allow fetch even from a git checkout (`pip install .`).
+- `TMOL_WHEEL_RELEASE_TAG=vX.Y.Z`: override GitHub release tag.
+- `TMOL_WHEEL_RELEASE_BASE_URL=...`: override release base URL (mirrors/internal hosting).
+- `TMOL_WHEEL_FETCH_RETRIES=2`: number of retry attempts after the first failed request.
+- `TMOL_WHEEL_FETCH_TIMEOUT_S=20`: HTTP timeout in seconds per request.
+- `TMOL_WHEEL_FETCH_BACKOFF_S=1.5`: linear backoff multiplier between retries.
+
+#### Install from a local wheel cache (`--find-links`)
+
+```bash
+# 1) Download wheel files for your environment into ./wheels
+mkdir -p wheels
+# e.g. use browser/curl/wget from the release page
+
+# 2) Install from local directory only
+pip install --no-index --find-links ./wheels "tmol==X.Y.Z+cu132torch2.12"
+```
+
+#### CPU-only install
+
+```bash
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cpu-cp313-cp313-linux_x86_64.whl"
+```
+
+The CPU wheel works with CPU-only or CUDA torch installs; CUDA ops in tmol are unavailable.
+
+### From PyPI sdist (source-build baseline)
+
+By default, `pip install tmol` installs from PyPI `sdist`. tmol applies the auto-fetch safety policy described above and otherwise builds locally.
+
+To force local source build explicitly:
+
+```bash
+TMOL_DISABLE_WHEEL_FETCH=1 pip install tmol
+```
+
+For dev extras:
+
+```bash
+TMOL_DISABLE_WHEEL_FETCH=1 pip install "tmol[dev]"
 ```
 
 > [!NOTE]
-> CI currently publishes the source distribution to **TestPyPI** and uploads wheels to **GitHub Releases**.
-> Production PyPI may not contain the latest release artifacts.
+> Current CI publishes `sdist` to PyPI and prebuilt wheels to GitHub Releases.
+> If you need deterministic binary selection, use direct wheel URL or local `--find-links`.
 
 ### From source
 
