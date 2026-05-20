@@ -243,6 +243,11 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
 
 
 def _empty_cartres() -> CartRes:
+    """Construct an empty ``CartRes`` container.
+
+    Returns:
+        ``CartRes`` with all parameter collections initialized empty.
+    """
     return CartRes(
         length_parameters=(),
         angle_parameters=(),
@@ -265,11 +270,29 @@ class _FlowList(list):
     """Marker subtype: yaml dumper emits this list in flow style ([...])."""
 
 
-def _flow_list_representer(dumper, data):
+def _flow_list_representer(dumper: Any, data: _FlowList) -> Any:
+    """Represent a list in compact flow-style YAML.
+
+    Args:
+        dumper: Active YAML dumper instance.
+        data: Flow-list marker object.
+
+    Returns:
+        YAML node configured for flow-style sequence emission.
+    """
     return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
 
 
-def _flow_dict_representer(dumper, data):
+def _flow_dict_representer(dumper: Any, data: dict[str, Any]) -> Any:
+    """Represent a dict in compact flow-style YAML.
+
+    Args:
+        dumper: Active YAML dumper instance.
+        data: Flow-dict marker object.
+
+    Returns:
+        YAML node configured for flow-style mapping emission.
+    """
     return dumper.represent_mapping("tag:yaml.org,2002:map", data, flow_style=True)
 
 

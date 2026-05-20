@@ -123,11 +123,30 @@ def _build_cartbonded_params(  # noqa: C901
     )
 
     def _dist_from_coords(a: str, b: str) -> Optional[float]:
+        """Measure distance between two atoms from coordinate annotations.
+
+        Args:
+            a: First atom name.
+            b: Second atom name.
+
+        Returns:
+            Distance in angstroms, or ``None`` if either atom is unavailable.
+        """
         if np_coords is None or a not in np_coords or b not in np_coords:
             return None
         return float(np.linalg.norm(np_coords[a] - np_coords[b]))
 
     def _angle_from_coords(a: str, b: str, c: str) -> Optional[float]:
+        """Measure the angle ``a-b-c`` from coordinate annotations.
+
+        Args:
+            a: First atom name.
+            b: Vertex atom name.
+            c: Third atom name.
+
+        Returns:
+            Angle in degrees, or ``None`` when coordinates are unavailable.
+        """
         if np_coords is None or any(x not in np_coords for x in (a, b, c)):
             return None
         v1 = np_coords[a] - np_coords[b]

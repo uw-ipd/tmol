@@ -103,6 +103,14 @@ class RosettaTypingState:
 
 
 def _elem_symbol(atomic_num: int) -> str:
+    """Return the element symbol for an atomic number.
+
+    Args:
+        atomic_num: Atomic number to convert.
+
+    Returns:
+        Element symbol string.
+    """
     sym = ELEMENT_SYMBOLS.get(atomic_num)
     if sym is not None:
         return sym
@@ -110,6 +118,14 @@ def _elem_symbol(atomic_num: int) -> str:
 
 
 def _is_hydrogen(atom: Chem.Atom) -> bool:
+    """Return whether an RDKit atom is hydrogen.
+
+    Args:
+        atom: Atom to inspect.
+
+    Returns:
+        ``True`` if the atom atomic number is 1.
+    """
     return atom.GetAtomicNum() == 1
 
 
@@ -206,6 +222,14 @@ def _annotate_strained_ring_atoms(mol: Chem.Mol) -> None:
 
 
 def _is_strained_ring_atom(atom: Chem.Atom) -> bool:
+    """Return whether an atom was annotated as a strained-ring member.
+
+    Args:
+        atom: Atom to inspect.
+
+    Returns:
+        ``True`` when the atom belongs to a 3/4-membered ring.
+    """
     return atom.HasProp(_IS_STRAINED_RING_ATOM_PROP) and (
         atom.GetIntProp(_IS_STRAINED_RING_ATOM_PROP) == 1
     )
@@ -307,6 +331,17 @@ def _assign_missing_hybridization(
     conf = mol.GetConformer() if mol.GetNumConformers() > 0 else None
 
     def _dihedral_deg(i: int, j: int, k: int, l: int) -> float:
+        """Compute dihedral angle for four atom indices.
+
+        Args:
+            i: First atom index.
+            j: Second atom index.
+            k: Third atom index.
+            l: Fourth atom index.
+
+        Returns:
+            Signed dihedral angle in degrees.
+        """
         if conf is None:
             return 180.0
         p1 = conf.GetAtomPosition(i)
@@ -318,17 +353,22 @@ def _assign_missing_hybridization(
         b1 = (float(p3.x - p2.x), float(p3.y - p2.y), float(p3.z - p2.z))
         b2 = (float(p4.x - p3.x), float(p4.y - p3.y), float(p4.z - p3.z))
 
-        def dot(u, v):
+        def dot(u: tuple[float, float, float], v: tuple[float, float, float]) -> float:
+            """Return dot product of two 3D vectors."""
             return u[0] * v[0] + u[1] * v[1] + u[2] * v[2]
 
-        def cross(u, v):
+        def cross(
+            u: tuple[float, float, float], v: tuple[float, float, float]
+        ) -> tuple[float, float, float]:
+            """Return cross product of two 3D vectors."""
             return (
                 u[1] * v[2] - u[2] * v[1],
                 u[2] * v[0] - u[0] * v[2],
                 u[0] * v[1] - u[1] * v[0],
             )
 
-        def norm(u):
+        def norm(u: tuple[float, float, float]) -> float:
+            """Return Euclidean norm of a 3D vector."""
             return math.sqrt(dot(u, u))
 
         b1n = norm(b1)
@@ -501,6 +541,15 @@ def _build_rosetta_typing_state(mol: Chem.Mol) -> RosettaTypingState:
 def _state_for_atom(
     atom: Chem.Atom, state: RosettaTypingState | None
 ) -> RosettaTypingState:
+    """Return typing state, lazily constructing one from atom ownership.
+
+    Args:
+        atom: Atom that anchors the owning molecule.
+        state: Optional precomputed typing state.
+
+    Returns:
+        A valid ``RosettaTypingState`` instance.
+    """
     if state is not None:
         return state
     return _build_rosetta_typing_state(atom.GetOwningMol())
@@ -640,6 +689,16 @@ def _has_sp2_oxygen_neighbor(
 def _classify_H(
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
+    """Classify hydrogen atom type from its bonded heavy atom.
+
+    Args:
+        atom: Hydrogen atom to classify.
+        mol: Molecule containing ``atom``.
+        state: Optional precomputed typing state.
+
+    Returns:
+        Rosetta generic-potential atom type for hydrogen.
+    """
     state = _state_for_atom(atom, state)
     for nbr in atom.GetNeighbors():
         z = nbr.GetAtomicNum()
@@ -659,6 +718,16 @@ def _classify_H(
 def _classify_C(
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
+    """Classify carbon atom type using Rosetta-like rules.
+
+    Args:
+        atom: Carbon atom to classify.
+        mol: Molecule containing ``atom``.
+        state: Optional precomputed typing state.
+
+    Returns:
+        Rosetta generic-potential carbon type.
+    """
     state = _state_for_atom(atom, state)
     hyb = _get_hyb(atom, state)
     nbonds = atom.GetDegree()
@@ -710,20 +779,21 @@ def _classify_C(
 
 
 def _classify_N_hetero(
-    atom,
-    hyb,
-    nC,
-    nH,
-    nO,
-    nN,
-    ntot,
+    atom: Chem.Atom,
+    hyb: int,
+    nC: int,
+    nH: int,
+    nO: int,
+    nN: int,
+    ntot: int,
     state: RosettaTypingState | None = None,
-):
+) -> str:
     """Classify nitrogen with non-C/H neighbors (lone pairs, heteroatoms)."""
     state = _state_for_atom(atom, state)
     sub = state.source_subtype_by_idx.get(atom.GetIdx(), "").lower()
 
     def _in_5_or_6_ring() -> bool:
+        """Return whether atom belongs to any 5/6-membered ring."""
         ring_ids = state.ring_membership_by_idx.get(atom.GetIdx(), set())
         for rid in ring_ids:
             if rid < len(state.rings):
@@ -812,7 +882,9 @@ def _n_sp2_context_flags(
     return is_amide, is_guanidinium, nCaro
 
 
-def _classify_N_sp2(atom, nC, nH, state: RosettaTypingState | None = None):
+def _classify_N_sp2(
+    atom: Chem.Atom, nC: int, nH: int, state: RosettaTypingState | None = None
+) -> str:
     """Classify sp2 nitrogen connected only to C/H."""
     state = _state_for_atom(atom, state)
     is_amide, is_guanidinium, nCaro = _n_sp2_context_flags(atom, state)
@@ -850,6 +922,16 @@ def _classify_N_sp2(atom, nC, nH, state: RosettaTypingState | None = None):
 def _classify_N(
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
+    """Classify nitrogen atom type using Rosetta-like rules.
+
+    Args:
+        atom: Nitrogen atom to classify.
+        mol: Molecule containing ``atom``.
+        state: Optional precomputed typing state.
+
+    Returns:
+        Rosetta generic-potential nitrogen type.
+    """
     state = _state_for_atom(atom, state)
     hyb = _get_hyb(atom, state)
     nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom, state)
@@ -898,8 +980,13 @@ def _classify_N(
 
 
 def _classify_O_no_carbon(
-    atom, hyb, nH, nN, ntot, state: RosettaTypingState | None = None
-):
+    atom: Chem.Atom,
+    hyb: int,
+    nH: int,
+    nN: int,
+    ntot: int,
+    state: RosettaTypingState | None = None,
+) -> str:
     """Classify oxygen not bonded to any carbon."""
     state = _state_for_atom(atom, state)
     if hyb == 3:
@@ -925,7 +1012,9 @@ def _classify_O_no_carbon(
     return "OG2"
 
 
-def _classify_O_sp2(atom, nC, state: RosettaTypingState | None = None):
+def _classify_O_sp2(
+    atom: Chem.Atom, nC: int, state: RosettaTypingState | None = None
+) -> str:
     """Classify sp2 oxygen bonded to at least one carbon."""
     state = _state_for_atom(atom, state)
     if nC == 2:
@@ -966,6 +1055,16 @@ def _classify_O_sp2(atom, nC, state: RosettaTypingState | None = None):
 def _classify_O(
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
+    """Classify oxygen atom type using Rosetta-like rules.
+
+    Args:
+        atom: Oxygen atom to classify.
+        mol: Molecule containing ``atom``.
+        state: Optional precomputed typing state.
+
+    Returns:
+        Rosetta generic-potential oxygen type.
+    """
     state = _state_for_atom(atom, state)
     hyb = _get_hyb(atom, state)
     nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom, state)
@@ -1031,6 +1130,16 @@ def _classify_O(
 def _classify_S(
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
+    """Classify sulfur atom type using Rosetta-like rules.
+
+    Args:
+        atom: Sulfur atom to classify.
+        mol: Molecule containing ``atom``.
+        state: Optional precomputed typing state.
+
+    Returns:
+        Rosetta generic-potential sulfur type.
+    """
     state = _state_for_atom(atom, state)
     nC, nH, _, _, nS, ntot = _neighbor_counts(atom, state)
     if nC == 1 and nH == 1 and ntot == 2:
@@ -1046,6 +1155,16 @@ def _classify_S(
 def _classify_P(
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
+    """Classify phosphorus atom type from Rosetta hybridization code.
+
+    Args:
+        atom: Phosphorus atom to classify.
+        mol: Molecule containing ``atom``.
+        state: Optional precomputed typing state.
+
+    Returns:
+        ``PG5`` when hypervalent, otherwise ``PG3``.
+    """
     state = _state_for_atom(atom, state)
     # Rosetta classify_P is keyed off hybridization: hyb==5 => PG5 else PG3.
     if _get_hyb(atom, state) == 5:
@@ -1056,6 +1175,16 @@ def _classify_P(
 def _classify_halogen(
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
+    """Classify halogen atom type.
+
+    Args:
+        atom: Halogen atom to classify.
+        mol: Molecule containing ``atom``.
+        state: Optional precomputed typing state.
+
+    Returns:
+        Halogen class label (``F``, ``Cl``, ``Br``, or ``I``).
+    """
     state = _state_for_atom(atom, state)
     z = atom.GetAtomicNum()
     base = {9: "F", 17: "Cl", 35: "Br", 53: "I"}[z]
@@ -1214,6 +1343,7 @@ def _bond_is_planar(mol: Chem.Mol, i: int, j: int, cutoff_deg: float = 40.0) -> 
         return True
 
     def _is_near_planar(phi: float) -> bool:
+        """Return whether a dihedral angle is within planar cutoff."""
         a = abs(phi)
         delta = min(abs(a), abs(180.0 - a))
         return delta <= cutoff_deg
@@ -1244,9 +1374,11 @@ def _correct_conjugated_single_bond_orders(  # noqa: C901
     type_by_idx = {a.index: a.atom_type for a in assignments}
 
     def _is_aromatic_ring(ring: tuple[int, ...]) -> bool:
+        """Return whether all atoms in a ring are aromatic-classified."""
         return all(idx in state.atms_aro for idx in ring)
 
     def _is_ring_ncnh(i: int, j: int) -> bool:
+        """Return whether a bond matches Rosetta's ring(N=C)-N-H exception."""
         # Rosetta special case: [ring N=C]-N-H.
         i_aro = i in state.atms_aro
         j_aro = j in state.atms_aro

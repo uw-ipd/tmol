@@ -8,14 +8,31 @@ normalization rules.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Iterable
 
 
 def _is_heavy(name: str) -> bool:
+    """Return whether an atom name is non-hydrogen.
+
+    Args:
+        name: Atom name.
+
+    Returns:
+        ``True`` when the atom is not a hydrogen.
+    """
     return not str(name).startswith("H")
 
 
-def _cartres_heavy_key_set(params, kind: str):
+def _cartres_heavy_key_set(params: Iterable[Any], kind: str) -> set[Any]:
+    """Build normalized heavy-atom keys for a cartbonded parameter group.
+
+    Args:
+        params: Iterable of cartbonded parameter entries.
+        kind: Parameter group kind (``length``, ``angle``, or ``improper``).
+
+    Returns:
+        Set of normalized keys suitable for equivalence comparison.
+    """
     keys = set()
     if kind == "length":
         for p in params:
@@ -46,8 +63,8 @@ class EquivalenceResult:
 
 
 def compare_ligand_preparations(  # noqa: C901
-    generated,
-    reference,
+    generated: Any,
+    reference: Any,
     *,
     charge_tolerance: float = 0.05,
 ) -> EquivalenceResult:
@@ -96,7 +113,17 @@ def compare_ligand_preparations(  # noqa: C901
     # Bonds (delocalized normalization)
     aromatic_equiv = frozenset({"AROMATIC", "SINGLE", "DOUBLE"})
 
-    def bond_keyset(bonds):
+    def bond_keyset(
+        bonds: Iterable[tuple[Any, Any, Any, Any]],
+    ) -> set[tuple[frozenset[str], str, bool]]:
+        """Normalize heavy-atom bond records into comparison keys.
+
+        Args:
+            bonds: Bond tuple records from a residue type.
+
+        Returns:
+            Set of normalized bond keys.
+        """
         out = set()
         for a, b, bond_type, *rest in bonds:
             a, b = str(a), str(b)
@@ -115,7 +142,17 @@ def compare_ligand_preparations(  # noqa: C901
         if btype == "AROMATIC":
             aromatic_atoms.update(pair)
 
-    def is_delocalized(pair, btype, ring):
+    def is_delocalized(pair: frozenset[str], btype: str, ring: bool) -> bool:
+        """Return whether a bond key should be treated as delocalized.
+
+        Args:
+            pair: Atom-name pair for the bond.
+            btype: Bond-type label.
+            ring: Whether the bond is ring-annotated.
+
+        Returns:
+            ``True`` when this bond should be normalized as delocalized.
+        """
         if btype == "AROMATIC":
             return True
         if ring and btype in aromatic_equiv:
@@ -129,7 +166,17 @@ def compare_ligand_preparations(  # noqa: C901
         if is_delocalized(pair, btype, ring):
             delocalized_pairs.add(pair)
 
-    def normalize(bond_set):
+    def normalize(
+        bond_set: set[tuple[frozenset[str], str, bool]],
+    ) -> set[tuple[frozenset[str], str, bool]]:
+        """Normalize resonance-equivalent bonds to a common label.
+
+        Args:
+            bond_set: Set of normalized bond keys.
+
+        Returns:
+            Bond-key set with delocalized bonds collapsed to one label.
+        """
         out = set()
         for pair, btype, ring in bond_set:
             if pair in delocalized_pairs and btype in aromatic_equiv:

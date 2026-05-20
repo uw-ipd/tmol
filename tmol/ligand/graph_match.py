@@ -8,7 +8,9 @@ graph isomorphism on the heavy-atom subgraph.
 from rdkit import Chem
 
 
-def _heavy_atom_graph(mol: Chem.Mol):
+def _heavy_atom_graph(
+    mol: Chem.Mol,
+) -> tuple[list[tuple[int, int]], dict[int, set[int]], dict[int, int]]:
     """Build a heavy-atom adjacency list with element labels.
 
     Returns:
@@ -36,7 +38,12 @@ def _heavy_atom_graph(mol: Chem.Mol):
     return atoms, adj, idx_to_pos
 
 
-def _vf2_match(atoms1, adj1, atoms2, adj2):
+def _vf2_match(
+    atoms1: list[tuple[int, int]],
+    adj1: dict[int, set[int]],
+    atoms2: list[tuple[int, int]],
+    adj2: dict[int, set[int]],
+) -> dict[int, int] | None:
     """Simple VF2-style subgraph isomorphism for same-size graphs.
 
     Both graphs must have the same number of nodes. Returns a mapping
@@ -49,7 +56,16 @@ def _vf2_match(atoms1, adj1, atoms2, adj2):
     mapping: dict[int, int] = {}
     reverse: dict[int, int] = {}
 
-    def is_feasible(p1, p2):
+    def is_feasible(p1: int, p2: int) -> bool:
+        """Check whether assigning a node pair is graph-consistent.
+
+        Args:
+            p1: Candidate node index in graph 1.
+            p2: Candidate node index in graph 2.
+
+        Returns:
+            ``True`` if the partial mapping remains feasible.
+        """
         if atoms1[p1][1] != atoms2[p2][1]:
             return False
         for nbr1 in adj1[p1]:
@@ -62,7 +78,15 @@ def _vf2_match(atoms1, adj1, atoms2, adj2):
                     return False
         return True
 
-    def backtrack(depth):
+    def backtrack(depth: int) -> bool:
+        """Depth-first search for a full node mapping.
+
+        Args:
+            depth: Current mapping depth.
+
+        Returns:
+            ``True`` if a complete isomorphism mapping is found.
+        """
         if depth == n:
             return True
 

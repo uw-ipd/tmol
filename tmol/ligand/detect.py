@@ -137,7 +137,7 @@ _METAL_SYMBOLS = frozenset(
 )
 
 
-def _strip_metals(mol):
+def _strip_metals(mol: Chem.Mol) -> Chem.Mol:
     """Remove metal atoms from an RDKit Mol.
 
     OpenBabel downstream cannot parse CCD coordination-bond SMILES, and
@@ -299,6 +299,12 @@ def _residue_names_with_cross_residue_bonds(
     linked: set[str] = set()
 
     def _record(a: int, b: int) -> None:
+        """Record a covalent connection spanning different residues.
+
+        Args:
+            a: Atom index for the first endpoint.
+            b: Atom index for the second endpoint.
+        """
         same_chain = chain_ids is None or chain_ids[a] == chain_ids[b]
         if same_chain and res_ids[a] == res_ids[b] and res_names[a] == res_names[b]:
             return

@@ -14,6 +14,14 @@ from tmol.ligand.atom_typing import AtomTypeAssignment
 
 
 def _name_sort_key(name: str) -> tuple[str, int]:
+    """Create a natural sort key for atom names with numeric suffixes.
+
+    Args:
+        name: Atom name such as ``C12``.
+
+    Returns:
+        Tuple of alphabetic prefix and numeric suffix for stable sorting.
+    """
     i = len(name)
     while i > 0 and name[i - 1].isdigit():
         i -= 1

@@ -143,11 +143,29 @@ def _build_atom_tree(
     bfs_position = {idx: i for i, idx in enumerate(order)}
 
     def _is_heavy(i: int) -> bool:
+        """Return whether an atom index points to a heavy atom.
+
+        Args:
+            i: Atom index in ``mol``.
+
+        Returns:
+            ``True`` if the atom is not hydrogen.
+        """
         return mol.GetAtomWithIdx(i).GetAtomicNum() != 1
 
     def _pick_neighbor(
         of: int, exclude: set[int], heavy_only: bool = False
     ) -> int | None:
+        """Pick a preferred neighbor index for internal-coordinate parents.
+
+        Args:
+            of: Source atom index.
+            exclude: Neighbor indices to skip.
+            heavy_only: Whether to restrict candidates to heavy atoms.
+
+        Returns:
+            Chosen neighbor index, or ``None`` if no candidate exists.
+        """
         candidates = [n for n in adj[of] if n not in exclude]
         if heavy_only:
             candidates = [n for n in candidates if _is_heavy(n)]
@@ -178,6 +196,15 @@ def _build_atom_tree(
 
 
 def _distance(a: np.ndarray, b: np.ndarray) -> float:
+    """Compute Euclidean distance between two points.
+
+    Args:
+        a: First coordinate vector.
+        b: Second coordinate vector.
+
+    Returns:
+        Distance between ``a`` and ``b``.
+    """
     return float(np.linalg.norm(a - b))
 
 

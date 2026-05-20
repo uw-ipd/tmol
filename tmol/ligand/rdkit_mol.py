@@ -31,7 +31,7 @@ _BIOTITE_TO_RDKIT_BOND_ORDER = {
 _SOURCE_KEKULE_PROP = "_tmol_source_kekule"
 
 
-def _restore_kekule_bonds(mol: Chem.Mol, atom_array) -> None:
+def _restore_kekule_bonds(mol: Chem.Mol, atom_array: struc.AtomArray) -> None:
     """Overwrite ``mol`` bond orders from the source biotite bond table.
 
     Sets the ``_SOURCE_KEKULE_PROP`` molecule property to ``"1"`` when
@@ -68,7 +68,7 @@ def _restore_kekule_bonds(mol: Chem.Mol, atom_array) -> None:
 _SOURCE_SUBTYPE_PROP = "_tmol_source_subtype"
 
 
-def _apply_source_subtypes(mol: Chem.Mol, atom_array) -> None:
+def _apply_source_subtypes(mol: Chem.Mol, atom_array: struc.AtomArray) -> None:
     """Stamp source subtype tags on atoms before H removal.
 
     The source AtomArray and pre-RemoveHs RDKit mol share atom indices,
@@ -112,7 +112,7 @@ def normalize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
 
 
 def _apply_atom_aromatic_flags_post_removeh(
-    mol: Chem.Mol, atom_array, heavy_arr_indices
+    mol: Chem.Mol, atom_array: struc.AtomArray, heavy_arr_indices: list[int]
 ) -> None:
     """Apply ``atom_array.tmol_aromatic`` (custom CIF flag) to the RDKit
     mol after Hs were removed.
