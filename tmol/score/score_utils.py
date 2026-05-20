@@ -542,9 +542,6 @@ def build_coord_mask_for_mask_and_nearby_blocks(pose_stack, mask):
         pose_stack
     )
 
-    torch.set_printoptions(profile='full')
-    print(block_centroids, block_furthest_dist)
-
     # ---------------------------------------------------------------
     # 4.  Block-block adjacency matrix.
     # ---------------------------------------------------------------
