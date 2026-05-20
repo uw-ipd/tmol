@@ -1,13 +1,12 @@
 import torch
 import biotite.structure as struc
 
-from tmol.score.score_utils import build_coord_mask_for_mask_and_interacting_atoms
+from tmol.score.score_utils import build_coord_mask_for_mask_and_nearby_blocks
 from tmol.io.pose_stack_from_biotite import (
     pose_stack_from_biotite,
     biotite_from_pose_stack,
 )
 from tmol import run_cart_min, beta2016_score_function
-
 
 def test_build_coord_mask_and_minimize_for_first_residue(
     biotite_1ubq: struc.AtomArray, torch_device
@@ -33,7 +32,8 @@ def test_build_coord_mask_and_minimize_for_first_residue(
     mask[:, 0] = True
 
     # Generate the coord_mask from the block mask
-    coord_mask = build_coord_mask_for_mask_and_interacting_atoms(pose_stack, mask)
+    #coord_mask = build_coord_mask_for_mask_and_interacting_atoms(pose_stack, mask)
+    coord_mask = build_coord_mask_for_mask_and_nearby_blocks(pose_stack, mask)
 
     # Verify the coord_mask has been produced
     assert coord_mask.shape == pose_stack.coords.shape[:2], (

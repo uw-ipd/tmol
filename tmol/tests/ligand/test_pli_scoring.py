@@ -151,12 +151,12 @@ class TestPLIScoring:
         pose_stack_converted = pose_stack_from_biotite(
             bt_struct, torch_device, param_db=param_db
         )
-        # pose_stack_generated = pose_stack_from_biotite(
-        # bt_struct,
-        # torch_device,
-        # param_db=ParameterDatabase.get_default(),
-        # prepare_ligands=True,
-        # )
+        pose_stack_generated = pose_stack_from_biotite(
+        bt_struct,
+        torch_device,
+        param_db=ParameterDatabase.get_default(),
+        prepare_ligands=True,
+        )
 
         sfxn = beta2016_score_function(torch_device, param_db=param_db)
         # scorer_converted = sfxn.render_whole_pose_scoring_module(pose_stack_converted)
@@ -189,10 +189,10 @@ class TestPLIScoring:
             key.name: val.item()
             for key, val in zip(score_types, dg_converted.squeeze(0))
         }
-        # dg_generated_dict = {
-        # key.name: val.item()
-        # for key, val in zip(score_types, dg_generated.squeeze(0))
-        # }
+        dg_generated_dict = {
+        key.name: val.item()
+        for key, val in zip(score_types, dg_generated.squeeze(0))
+        }
 
         ros_scores = _rosetta_score(sc_path) if sc_path.exists() else {}
 
@@ -207,7 +207,7 @@ class TestPLIScoring:
         print(f"  {'term':<18} {'tmol':>12} {'rosetta':>12} {'diff':>12}")
         for label, ros_terms, tmol_terms in _PLI_TERM_ROWS:
             converted = sum(dg_converted_dict.get(n, 0.0) for n in tmol_terms)
-            # generated = sum(dg_generated_dict.get(n, 0.0) for n in tmol_terms)
+            generated = sum(dg_generated_dict.get(n, 0.0) for n in tmol_terms)
             # rosetta = sum(float(ros_scores.get(n, 0.0)) for n in ros_terms)
             rosetta = sum(float(ros_scores.get("dG_" + n, 0.0)) for n in ros_terms)
             data += [
@@ -216,13 +216,13 @@ class TestPLIScoring:
                     ",".join(tmol_terms),
                     ",".join(ros_terms),
                     converted,
-                    # generated,
+                    generated,
                     rosetta,
                     abs(converted - rosetta),
                 )
             ]
             print(
-                f"  {label:<18} {converted:12.4f} {rosetta:12.4f} {converted - rosetta:+12.4f}"
+                f"  {label:<18} {converted:12.4f} {generated:12.4f} {rosetta:12.4f} {converted - rosetta:+12.4f}"
             )
         # data += [
         # (
