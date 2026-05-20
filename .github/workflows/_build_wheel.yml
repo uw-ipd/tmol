@@ -112,7 +112,10 @@ jobs:
             fi
 
             if [ \$NEED_INSTALL -eq 1 ]; then
-              ${TARGET_VENV}/bin/pip install --force-reinstall \
+              unset PIP_CONSTRAINT
+              echo \"PIP_CONSTRAINT=\${PIP_CONSTRAINT:-<unset>}\"
+              echo \"PIP_CONFIG_FILE=/dev/null\"
+              PIP_CONFIG_FILE=/dev/null env -u PIP_CONSTRAINT ${TARGET_VENV}/bin/pip install --force-reinstall \
                 torch==${{ inputs.torch-version }}.* \
                 --index-url ${TORCH_INDEX_URL}
             fi
