@@ -28,7 +28,6 @@ _BIOTITE_TO_RDKIT_BOND_ORDER = {
     int(struc.BondType.AROMATIC): Chem.BondType.AROMATIC,
 }
 
-
 _SOURCE_KEKULE_PROP = "_tmol_source_kekule"
 
 
@@ -107,6 +106,11 @@ def _kekulize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
                 atom.SetIsAromatic(False)
 
 
+def normalize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
+    """Normalize non-ring aromatic placeholders before RDKit sanitize."""
+    _kekulize_non_ring_aromatic_bonds(mol)
+
+
 def _apply_atom_aromatic_flags_post_removeh(
     mol: Chem.Mol, atom_array, heavy_arr_indices
 ) -> None:
@@ -124,11 +128,24 @@ def _apply_atom_aromatic_flags_post_removeh(
     an atom prop so the carbon classifier can pick CR vs CD without
     re-deriving it from RDKit's perception.
     """
+    if mol.GetNumAtoms() != len(heavy_arr_indices):
+        return
+
+    # Re-stamp source subtype hints on heavy atoms after RemoveHs.
+    # This keeps Rosetta-style subtype-driven typing stable even if
+    # RDKit dropped custom atom props during H removal.
+    if hasattr(atom_array, "tmol_source_subtype"):
+        subtypes = atom_array.tmol_source_subtype
+        for mol_idx, arr_idx in enumerate(heavy_arr_indices):
+            if arr_idx >= len(subtypes):
+                continue
+            sub = str(subtypes[arr_idx])
+            if sub and sub != "?":
+                mol.GetAtomWithIdx(mol_idx).SetProp(_SOURCE_SUBTYPE_PROP, sub)
+
     if not hasattr(atom_array, "tmol_aromatic"):
         return
     flags = atom_array.tmol_aromatic
-    if mol.GetNumAtoms() != len(heavy_arr_indices):
-        return
     for mol_idx, arr_idx in enumerate(heavy_arr_indices):
         a = mol.GetAtomWithIdx(mol_idx)
         a.SetIsAromatic(bool(flags[arr_idx]))
@@ -215,9 +232,11 @@ def ligand_atom_array_to_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.
         set(t for t in raw_types if t not in _BIOTITE_TO_RDKIT_BOND_ORDER)
     )
     if unsupported:
-        raise ValueError(
-            f"{ligand_info.res_name}: unsupported bond type codes {unsupported} in "
-            "ligand input. Provide CIF with explicit supported bond orders."
+        logger.warning(
+            "%s: unsupported bond type codes %s in ligand input; "
+            "preserving original to_mol bond typing for those edges.",
+            ligand_info.res_name,
+            unsupported,
         )
 
     chemistry_orders = {
@@ -247,7 +266,7 @@ def ligand_atom_array_to_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.
             f"from input ({exc}). Provide a CIF with explicit bond orders."
         ) from exc
     _restore_kekule_bonds(mol, atom_array)
-    _kekulize_non_ring_aromatic_bonds(mol)
+    normalize_non_ring_aromatic_bonds(mol)
     _apply_source_subtypes(mol, atom_array)
 
     # Map heavy-atom indices from the source atom_array to the post-

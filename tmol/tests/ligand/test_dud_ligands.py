@@ -90,6 +90,32 @@ def _load_tmol_file(path):
 # ---------------------------------------------------------------------------
 
 
+def _cif_value_order_to_biotite_bond_type(value_order: str, aromatic_flag: str) -> int:
+    import biotite.structure as struc
+
+    order = str(value_order).strip().upper()
+    is_aromatic = str(aromatic_flag).strip().upper() == "Y"
+
+    if is_aromatic:
+        if order == "SING":
+            return int(struc.BondType.AROMATIC_SINGLE)
+        if order == "DOUB":
+            return int(struc.BondType.AROMATIC_DOUBLE)
+        if order == "TRIP":
+            return int(struc.BondType.AROMATIC_TRIPLE)
+        return int(struc.BondType.AROMATIC)
+
+    if order == "SING":
+        return int(struc.BondType.SINGLE)
+    if order == "DOUB":
+        return int(struc.BondType.DOUBLE)
+    if order == "TRIP":
+        return int(struc.BondType.TRIPLE)
+    if order == "AROM":
+        return int(struc.BondType.AROMATIC)
+    return int(struc.BondType.SINGLE)
+
+
 def _cif_to_nonstandard_residue_info(cif_path: Path, res_name: str):
     """Build a ``NonStandardResidueInfo`` from a DUD CIF.
 
@@ -137,6 +163,36 @@ def _cif_to_nonstandard_residue_info(cif_path: Path, res_name: str):
             "tmol_source_subtype",
             np.array([str(v) for v in atom_site["tmol_source_subtype"].as_array()]),
         )
+
+    # Rebuild bonds from _chem_comp_bond to avoid parser fallback bond code 0.
+    if "chem_comp_bond" in cif.block:
+        bond_site = cif.block["chem_comp_bond"]
+        atom_id_1 = [str(v) for v in bond_site["atom_id_1"].as_array()]
+        atom_id_2 = [str(v) for v in bond_site["atom_id_2"].as_array()]
+        value_order = [str(v) for v in bond_site["value_order"].as_array()]
+        if "pdbx_aromatic_flag" in bond_site:
+            aromatic_flags = [
+                str(v) for v in bond_site["pdbx_aromatic_flag"].as_array()
+            ]
+        else:
+            aromatic_flags = ["N"] * len(value_order)
+
+        name_to_idx = {name: i for i, name in enumerate(atom_names)}
+        bonds = []
+        for a1, a2, order, aromatic_flag in zip(
+            atom_id_1, atom_id_2, value_order, aromatic_flags
+        ):
+            if a1 not in name_to_idx or a2 not in name_to_idx:
+                continue
+            bonds.append(
+                (
+                    name_to_idx[a1],
+                    name_to_idx[a2],
+                    _cif_value_order_to_biotite_bond_type(order, aromatic_flag),
+                )
+            )
+        if bonds:
+            arr.bonds = struc.BondList(len(arr), np.asarray(bonds, dtype=np.int32))
 
     return NonStandardResidueInfo(
         res_name=res_name,
