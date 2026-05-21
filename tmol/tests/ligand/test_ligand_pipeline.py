@@ -22,6 +22,10 @@ from tmol.ligand.registry import clear_cache
 from tmol.ligand.registry import get_cached_charges_for_key, get_cached_ligand_for_key
 from tmol.ligand.registry import inject_ligand_preparations
 
+PLI_CIF_INPUT_DIR = (
+    Path(__file__).parent.parent / "data" / "protein_ligand_test" / "cif_inputs"
+)
+
 
 @pytest.fixture(autouse=True)
 def _clear_ligand_cache():
@@ -52,6 +56,28 @@ class TestDetectFromCIF:
     ):
         ligands = detect_nonstandard_residues(cif_1a25_with_pse, canonical_ordering)
         assert any(lig.res_name == "PSE" for lig in ligands)
+
+    def test_detects_authoritative_partial_charges_from_load_structure(
+        self, canonical_ordering
+    ):
+        import biotite.structure
+        import biotite.structure.io
+
+        cif_path = PLI_CIF_INPUT_DIR / "ada.ligand.cif"
+        bt_struct = biotite.structure.io.load_structure(
+            str(cif_path),
+            model=1,
+            include_bonds=True,
+            extra_fields=["partial_charge"],
+        )
+        if isinstance(bt_struct, biotite.structure.AtomArrayStack):
+            bt_struct = bt_struct[0]
+
+        ligands = detect_nonstandard_residues(bt_struct, canonical_ordering)
+        lg1 = next(lig for lig in ligands if lig.res_name == "LG1")
+        assert lg1.partial_charges is not None
+        assert len(lg1.partial_charges) == len(lg1.atom_names)
+        assert lg1.skip_protonation is True
 
 
 class TestFullPipeline:
@@ -569,6 +595,45 @@ class TestPoseStackWithLigand:
             expected_ligand_name3="ATP",
         )
 
+    def test_ada_load_structure_uses_authoritative_charges(
+        self, torch_device, monkeypatch
+    ):
+        import biotite.structure
+        import biotite.structure.io
+        import tmol.ligand.mol3d as mol3d
+
+        from tmol.database import ParameterDatabase
+        from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+
+        def _fail_mmff(_mol):
+            raise AssertionError(
+                "MMFF should not run when authoritative partial charges are present"
+            )
+
+        monkeypatch.setattr(mol3d, "compute_mmff94_charges", _fail_mmff)
+
+        cif_path = PLI_CIF_INPUT_DIR / "ada.ligand.cif"
+        bt_struct = biotite.structure.io.load_structure(
+            str(cif_path),
+            model=1,
+            include_bonds=True,
+            extra_fields=["partial_charge"],
+        )
+        if isinstance(bt_struct, biotite.structure.AtomArrayStack):
+            bt_struct = bt_struct[0]
+
+        pose_stack, context = pose_stack_from_biotite(
+            bt_struct,
+            torch_device,
+            prepare_ligands=True,
+            param_db=ParameterDatabase.get_default(),
+            return_context=True,
+        )
+        assert pose_stack.n_poses == 1
+        assert any(
+            rt.name == "LG1" for rt in context.parameter_database.chemical.residues
+        )
+
     def test_i4b_minimize_and_cif_roundtrip(self, cif_184l_with_i4b, tmp_path):
         """Build with ligands, minimize briefly, and write back to CIF."""
         import biotite.structure
@@ -713,6 +778,50 @@ def test_prepare_single_ligand_uses_index_mapping_before_graph(
     assert "C4'" in atom_names
     assert "C2'" in atom_names
     assert "C3'" in prep.partial_charges
+
+
+def test_missing_authoritative_charges_reports_cif_loading_guidance(
+    monkeypatch, torch_device
+):
+    import biotite.structure
+    import biotite.structure.io
+    import numpy
+    import tmol.ligand.mol3d as mol3d
+
+    from tmol.database import ParameterDatabase
+    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+
+    def _force_mmff_failure(_mol):
+        raise RuntimeError("forced-mmff-failure")
+
+    monkeypatch.setattr(mol3d, "compute_mmff94_charges", _force_mmff_failure)
+
+    cif_path = PLI_CIF_INPUT_DIR / "ada.ligand.cif"
+    bt_struct = biotite.structure.io.load_structure(
+        str(cif_path),
+        model=1,
+        include_bonds=True,
+    )
+    if isinstance(bt_struct, biotite.structure.AtomArrayStack):
+        bt_struct = bt_struct[0]
+
+    bt_struct.set_annotation(
+        "partial_charge",
+        numpy.full(bt_struct.array_length(), numpy.nan, dtype=numpy.float64),
+    )
+
+    with pytest.raises(RuntimeError) as exc:
+        pose_stack_from_biotite(
+            bt_struct,
+            torch_device,
+            prepare_ligands=True,
+            param_db=ParameterDatabase.get_default(),
+        )
+
+    msg = str(exc.value)
+    assert "include_bonds=True" in msg
+    assert "extra_fields=['partial_charge']" in msg
+    assert "ligand_params_files" in msg
 
 
 def _parse_reference_params(path):

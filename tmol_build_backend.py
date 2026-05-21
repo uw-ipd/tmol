@@ -19,7 +19,46 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from scikit_build_core import build as _skbuild_backend
+_skbuild_import_error: ModuleNotFoundError | None = None
+
+try:
+    from scikit_build_core import build as _skbuild_backend
+except ModuleNotFoundError as _import_error:
+    _skbuild_import_error = _import_error
+
+    class _MissingSkbuildBackend:
+        @staticmethod
+        def _raise() -> None:
+            raise ModuleNotFoundError(
+                "scikit_build_core is required for tmol build backend operations. "
+                "Install it with `pip install scikit-build-core`."
+            ) from _skbuild_import_error
+
+        def build_wheel(self, *args, **kwargs):
+            self._raise()
+
+        def build_editable(self, *args, **kwargs):
+            self._raise()
+
+        def build_sdist(self, *args, **kwargs):
+            self._raise()
+
+        def get_requires_for_build_wheel(self, *args, **kwargs):
+            self._raise()
+
+        def get_requires_for_build_editable(self, *args, **kwargs):
+            self._raise()
+
+        def get_requires_for_build_sdist(self, *args, **kwargs):
+            self._raise()
+
+        def prepare_metadata_for_build_wheel(self, *args, **kwargs):
+            self._raise()
+
+        def prepare_metadata_for_build_editable(self, *args, **kwargs):
+            self._raise()
+
+    _skbuild_backend = _MissingSkbuildBackend()
 
 _PROJECT_ROOT = Path(__file__).resolve().parent
 _DEFAULT_RELEASE_BASE_URL = "https://github.com/uw-ipd/tmol/releases/download"

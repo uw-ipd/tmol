@@ -137,6 +137,61 @@ _METAL_SYMBOLS = frozenset(
 )
 
 
+def _extract_authoritative_partial_charges(
+    atom_array: struc.AtomArray,
+) -> Optional[dict[str, float]]:
+    """Extract authoritative per-atom partial charges from annotations.
+
+    The ligand pipeline should only skip MMFF when we have a complete charge
+    map keyed by atom name. We therefore require:
+    - one value per atom,
+    - finite numeric values, and
+    - unique atom names.
+
+    The `partial_charge` annotation is preferred. A generic `charge`
+    annotation is accepted only when it does not look like integer formal
+    charges.
+    """
+    atom_names = [str(name).strip() for name in atom_array.atom_name]
+    if len(set(atom_names)) != len(atom_names):
+        return None
+
+    candidates = [
+        ("partial_charge", True),
+        ("tmol_partial_charge", True),
+        ("charge", False),
+    ]
+
+    for field_name, is_explicit_partial in candidates:
+        if not hasattr(atom_array, field_name):
+            continue
+
+        raw = np.asarray(getattr(atom_array, field_name))
+        if raw.ndim != 1 or raw.shape[0] != len(atom_array):
+            continue
+
+        try:
+            vals = raw.astype(np.float64)
+        except (TypeError, ValueError):
+            continue
+
+        if not np.isfinite(vals).all():
+            continue
+
+        # Heuristic guardrail: integer-valued "charge" from biotite is often
+        # formal charge (e.g., +1/-1/0), not authoritative partial charges.
+        if not is_explicit_partial and np.all(np.isclose(vals, np.round(vals))):
+            continue
+
+        by_name = {name: float(q) for name, q in zip(atom_names, vals)}
+        if len(by_name) != len(atom_names):
+            continue
+
+        return by_name
+
+    return None
+
+
 def _strip_metals(mol: Chem.Mol) -> Chem.Mol:
     """Remove metal atoms from an RDKit Mol.
 
@@ -257,6 +312,14 @@ def detect_nonstandard_residues(
             ccd_type,
             len(sub),
         )
+        partial_charges = _extract_authoritative_partial_charges(sub)
+        skip_protonation = partial_charges is not None
+        if partial_charges is not None:
+            logger.info(
+                "Using %d authoritative partial charges for %s",
+                len(partial_charges),
+                res_name,
+            )
 
         results.append(
             NonStandardResidueInfo(
@@ -268,6 +331,8 @@ def detect_nonstandard_residues(
                 atom_array=sub,
                 ccd_smiles=ccd_smiles,
                 covalently_linked=res_name in covalently_linked_names,
+                partial_charges=partial_charges,
+                skip_protonation=skip_protonation,
             )
         )
 

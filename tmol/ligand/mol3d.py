@@ -130,6 +130,10 @@ def build_partial_charges(
             f"{prefix}partial-charge generation failed. "
             "No Gasteiger fallback is used; provide authoritative input "
             "charges or fix MMFF94 parameterization. "
+            "For CIF inputs, load with biotite using include_bonds=True and "
+            "include per-atom partial charges when available "
+            "(e.g. extra_fields=['partial_charge']). "
+            "Alternatively, provide pre-parameterized ligand_params_files. "
             f"Atoms requiring MMFF charges: [{missing_names}]. "
             f"Details: {exc}"
         ) from exc
