@@ -14,7 +14,6 @@ import torch
 
 from tmol.score.score_utils import calculate_block_pair_ddg
 
-
 from tmol.tests.ligand.test_dud_ligands import _load_tmol_file, _rosetta_score
 
 PLI_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
@@ -120,21 +119,20 @@ class TestPLIScoring:
     def test_compare_dg_score_with_rosetta(self, pli_pdb, torch_device):
         import biotite.structure
         import biotite.structure.io
+        import biotite.structure.io.pdbx as pdbx
 
         from tmol.database import ParameterDatabase, inject_residue_params
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+        from tmol.ligand import prepare_ligands
         from tmol.score import beta2016_score_function
-
-        # from tmol.score.score_util import
 
         target = _target_for_complex(pli_pdb.name)
         tmol_path = PLI_DIR / f"{target}.xtal-lig.mmff94.tmol"
         sc_path = PLI_DIR / f"{pli_pdb.stem}.sc"
-        # rosetta_score_file = PLI_DIR / f"{target}.eval.score.sc"
+        ligand_cif = PLI_DIR / "cif_inputs" / f"{target}.ligand.cif"
 
-        # df = pd.read_csv(rosetta_score_file, sep=r'\s+', skiprows=1)
-        # data = df.to_dict(orient='records')
-        # rosetta_dg = {key: val for key,val in data[0].items() }
+        # if target in ["ace","ada"]:
+            # return
 
         residues, partial_charges, cartbonded = _load_tmol_file(tmol_path)
         param_db = inject_residue_params(
@@ -144,6 +142,12 @@ class TestPLIScoring:
             cartbonded_params=cartbonded,
         )
 
+        ligand_pdbx = pdbx.CIFFile.read(str(ligand_cif))
+        bt_ligand = pdbx.get_structure(
+            ligand_pdbx, model=1, include_bonds=True, extra_fields=["charge"]
+        )
+        extended_db, _ = prepare_ligands(bt_ligand)
+
         bt_struct = biotite.structure.io.load_structure(str(pli_pdb))
         if isinstance(bt_struct, biotite.structure.AtomArrayStack):
             bt_struct = bt_struct[0]
@@ -152,23 +156,10 @@ class TestPLIScoring:
             bt_struct, torch_device, param_db=param_db
         )
         pose_stack_generated = pose_stack_from_biotite(
-        bt_struct,
-        torch_device,
-        param_db=ParameterDatabase.get_default(),
-        prepare_ligands=True,
+            bt_struct, torch_device, param_db=extended_db
         )
 
         sfxn = beta2016_score_function(torch_device, param_db=param_db)
-        # scorer_converted = sfxn.render_whole_pose_scoring_module(pose_stack_converted)
-        # scorer_generated = sfxn.render_whole_pose_scoring_module(pose_stack_generated)
-
-        # scores_converted = scorer_converted(
-        # pose_stack_converted.coords, sum_terms=False
-        # )
-        # scores_generated = scorer_generated(
-        # pose_stack_generated.coords, sum_terms=False
-        # )
-
         score_types = sfxn.all_score_types()
 
         mask = torch.zeros(
@@ -179,26 +170,36 @@ class TestPLIScoring:
         mask[0][-1] = True
 
         dg_converted = calculate_block_pair_ddg(
-            pose_stack_converted, mask, sum_terms=False
+            pose_stack_converted, mask, sum_terms=False, minimize=False
         )
-        # dg_converted = scores_converted # TODO
-        # dg_generated = calculate_block_pair_ddg(pose_stack_generated, mask, sum_terms=False)
-        # dg_converted_total = torch.sum(dg_converted).item()
-        # dg_generated_total = torch.sum(dg_generated).item()
+        dg_generated = calculate_block_pair_ddg(
+            pose_stack_generated, mask, sum_terms=False, minimize=False
+        )
+        dg_converted_minimized = calculate_block_pair_ddg(
+            pose_stack_converted, mask, sum_terms=False, minimize=True
+        )
+        dg_generated_minimized = calculate_block_pair_ddg(
+            pose_stack_generated, mask, sum_terms=False, minimize=True
+        )
+
         dg_converted_dict = {
             key.name: val.item()
             for key, val in zip(score_types, dg_converted.squeeze(0))
         }
         dg_generated_dict = {
-        key.name: val.item()
-        for key, val in zip(score_types, dg_generated.squeeze(0))
+            key.name: val.item()
+            for key, val in zip(score_types, dg_generated.squeeze(0))
+        }
+        dg_converted_dict_minimized = {
+            key.name: val.item()
+            for key, val in zip(score_types, dg_converted_minimized.squeeze(0))
+        }
+        dg_generated_dict_minimized = {
+            key.name: val.item()
+            for key, val in zip(score_types, dg_generated_minimized.squeeze(0))
         }
 
         ros_scores = _rosetta_score(sc_path) if sc_path.exists() else {}
-
-        # converted_total = torch.sum(scores_converted).item()
-        # generated_total = torch.sum(scores_generated).item()
-        # ros_total = float(ros_scores.get("total_score", 0.0))
 
         data = []
         print(f"\n=== {pli_pdb.name}  (target={target}) ===")
@@ -208,6 +209,8 @@ class TestPLIScoring:
         for label, ros_terms, tmol_terms in _PLI_TERM_ROWS:
             converted = sum(dg_converted_dict.get(n, 0.0) for n in tmol_terms)
             generated = sum(dg_generated_dict.get(n, 0.0) for n in tmol_terms)
+            converted_min = sum(dg_converted_dict_minimized.get(n, 0.0) for n in tmol_terms)
+            generated_min = sum(dg_generated_dict_minimized.get(n, 0.0) for n in tmol_terms)
             # rosetta = sum(float(ros_scores.get(n, 0.0)) for n in ros_terms)
             rosetta = sum(float(ros_scores.get("dG_" + n, 0.0)) for n in ros_terms)
             data += [
@@ -217,39 +220,16 @@ class TestPLIScoring:
                     ",".join(ros_terms),
                     converted,
                     generated,
+                    converted_min,
+                    generated_min,
                     rosetta,
                     abs(converted - rosetta),
+                    abs(generated - generated_min),
                 )
             ]
             print(
                 f"  {label:<18} {converted:12.4f} {generated:12.4f} {rosetta:12.4f} {converted - rosetta:+12.4f}"
             )
-        # data += [
-        # (
-        # target,
-        # "full",
-        # "full",
-        # converted_total,
-        # generated_total,
-        # ros_scores.get("total_score"),
-        # abs(converted_total - ros_scores.get("total_score")),
-        # )
-        # ]
-        # data += [
-        # (
-        # target,
-        # "full_dg",
-        # "full_dg",
-        # dg_converted_total,
-        # dg_generated_total,
-        # ros_scores.get("dG"),
-        # abs(dg_converted_total - ros_scores.get("dG")),
-        # )
-        # ]
-        # print(
-        # f"  {'TOTAL':<18} {converted_total:12.4f} {ros_total:12.4f} "
-        # f"{converted_total - ros_total:+12.4f}"
-        # )
 
         with open(target + ".table", "w") as f:
             writer = csv.writer(
