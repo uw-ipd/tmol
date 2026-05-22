@@ -262,7 +262,8 @@ class LJLKPoseScoreOp
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor()};
   }
 };
 
@@ -505,7 +506,8 @@ class LJLKRotamerScoreOp
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor()};
   }
 };
 

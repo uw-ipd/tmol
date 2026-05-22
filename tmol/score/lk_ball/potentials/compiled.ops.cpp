@@ -585,14 +585,13 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
         }));
 
     return {
-        dV_d_pose_coords, torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  dV_d_water_coords, torch::Tensor(),
-
+        dV_d_pose_coords, torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), dV_d_water_coords, torch::Tensor(),
     };
   }
 };
@@ -820,14 +819,13 @@ class LKBallRotamerScoreOp
         }));
 
     return {
-        dV_d_pose_coords, torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  dV_d_water_coords, torch::Tensor(),
-
+        dV_d_pose_coords, torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), dV_d_water_coords, torch::Tensor(),
     };
   }
 };

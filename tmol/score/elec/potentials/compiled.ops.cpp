@@ -258,7 +258,7 @@ class ElecPoseScoreOp
         torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
         torch::Tensor(),
 
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
     };
   }
 };
@@ -501,7 +501,7 @@ class ElecRotamerScoreOp
         torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
         torch::Tensor(),
 
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
     };
   }
 };
