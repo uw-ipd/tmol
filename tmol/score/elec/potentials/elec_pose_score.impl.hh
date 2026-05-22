@@ -520,7 +520,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           first_rot_block_type,
           scratch_rot_spheres,
           scratch_rot_neighbors,
-          Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
+          global_params[0].max_dis);
 
   TPack<Real, 4, D> output_t;
   if (output_block_pair_energies) {
@@ -1268,7 +1268,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           first_rot_block_type,
           scratch_block_spheres,
           scratch_block_neighbors,
-          Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
+          global_params[0].max_dis);
 
   auto dispatch_indices_t = score::common::sphere_overlap::
       rot_neighbor_indices_from_block_neighbors<DeviceDispatch, D, Int>::f(

@@ -666,7 +666,7 @@ class LKBallPoseScoreDispatch {
             first_rot_block_type,
             scratch_rot_spheres,
             scratch_rot_neighbors,
-            Real(5.5));
+            global_params[0].distance_threshold);
     // 3 Only the forward pass in this calculation
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
@@ -1166,7 +1166,7 @@ class LKBallRotamerScoreDispatch {
             first_rot_block_type,
             scratch_block_spheres,
             scratch_block_neighbors,
-            Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
+            global_params[0].distance_threshold);
 
     auto dispatch_indices_t = score::common::sphere_overlap::
         rot_neighbor_indices_from_block_neighbors<DeviceDispatch, Dev, Int>::f(

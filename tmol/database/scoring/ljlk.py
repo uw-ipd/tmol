@@ -11,7 +11,6 @@ from tmol.utility.units import Angle
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class LJLKGlobalParameters:
     max_dis: float
-    spline_start: float
     lj_hbond_OH_donor_dis: float
     lj_hbond_dis: float
     lj_hbond_hdis: float
