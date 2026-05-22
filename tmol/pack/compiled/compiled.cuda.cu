@@ -989,6 +989,9 @@ auto AnnealerDispatch<D>::forward(
     printf("count num neighbors\n");
     mgpu::transform<128, 1>(
         [=] MGPU_DEVICE(int idx) {
+          if (idx == 0) {
+            printf("inside count num neighbors\n");
+          }
           if (idx >= count) return;
           int pose = idx / max_n_res_cpu;
           int b = idx % max_n_res_cpu;
@@ -1012,10 +1015,17 @@ auto AnnealerDispatch<D>::forward(
   auto neighbor_starts = neighbor_starts_t.view;
   int total_neighbors;
   {
+    printf("cuda stream %p\n", context->stream());
+    CUDA_CHECK(cudaStreamSynchronize(context->stream()));
     printf(
         "scan neighbor starts; context %p stream %p \n",
         context.get(),
         context->stream());
+    printf(
+        "%d * %d = %d\n",
+        n_poses_cpu,
+        max_n_res_cpu,
+        n_poses_cpu * max_n_res_cpu);
     mgpu::mem_t<int> total(1, *context, mgpu::memory_space_host);
     mgpu::scan<mgpu::scan_type_exc>(
         n_neighbors.data(),

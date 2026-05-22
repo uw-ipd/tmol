@@ -11,6 +11,7 @@ namespace tmol {
 
 struct ContextDeleter {
   inline void operator()(void* ctxt) {
+    printf("context deleter for %p\n", ctxt);
     mgpu::standard_context_t* std_ctxt =
         static_cast<mgpu::standard_context_t*>(ctxt);
     delete std_ctxt;
@@ -28,6 +29,9 @@ inline std::shared_ptr<mgpu::standard_context_t> current_context(
   int device_index = c10_stream.device_index();
   std::pair<int, void*> device_index_and_stream_address(
       std::make_pair(device_index, cuda_stream_address));
+
+  // printf("Returning current context for device %d stream %p\n", device_index,
+  // cuda_stream_address);
 
   // We lock the mutex because writing to a std::map changes it.
   // This code is overly safe; a more complex strategy of obtaining
@@ -54,6 +58,11 @@ inline std::shared_ptr<mgpu::standard_context_t> current_context(
   if (mgr.has(device_index_and_stream_address)) {
     std::shared_ptr<void> context_ptr =
         mgr.get(device_index_and_stream_address);
+    printf(
+        "Returning context pointer %p for for device %d stream %p\n",
+        context_ptr.get(),
+        device_index,
+        cuda_stream_address);
     return std::static_pointer_cast<mgpu::standard_context_t>(context_ptr);
   }
   // okay, we need to create a new standard_context_t and that
@@ -63,7 +72,13 @@ inline std::shared_ptr<mgpu::standard_context_t> current_context(
   // 2. the cuda stream we're sending this to
   ContextDeleter dstor_functor_instance;
   std::shared_ptr<mgpu::standard_context_t> new_context(
-      new mgpu::standard_context_t(false, cuda_stream), dstor_functor_instance);
+      new mgpu::standard_context_t(false, 0), dstor_functor_instance);
+  printf(
+      "Instantiating new context pointer %p for for device %d stream %p\n",
+      new_context.get(),
+      device_index,
+      cuda_stream_address);
+
   mgr.set(
       device_index_and_stream_address,
       std::static_pointer_cast<void>(new_context));
