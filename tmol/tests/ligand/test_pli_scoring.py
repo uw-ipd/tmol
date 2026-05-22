@@ -83,8 +83,9 @@ class TestPLIScoring:
         if isinstance(bt_struct, biotite.structure.AtomArrayStack):
             bt_struct = bt_struct[0]
 
+        # Ligand params are already injected from tmol_path.
         pose_stack = pose_stack_from_biotite(
-            bt_struct, torch_device, param_db=param_db, prepare_ligands=True
+            bt_struct, torch_device, param_db=param_db, prepare_ligands=False
         )
 
         sfxn = beta2016_score_function(torch_device, param_db=param_db)
@@ -144,9 +145,15 @@ class TestPLIScoring:
 
         ligand_pdbx = pdbx.CIFFile.read(str(ligand_cif))
         bt_ligand = pdbx.get_structure(
-            ligand_pdbx, model=1, include_bonds=True, extra_fields=["charge"]
+            ligand_pdbx,
+            model=1,
+            include_bonds=True,
+            # partial_charge drives authoritative-charge ingestion; charge carries
+            # formal charges useful for some RDKit aromaticity/perception cases.
+            extra_fields=["partial_charge", "charge"],
         )
-        extended_db, _ = prepare_ligands(bt_ligand)
+        # Extend the already-injected DB so known residues remain available.
+        extended_db, _ = prepare_ligands(bt_ligand, param_db=param_db)
 
         bt_struct = biotite.structure.io.load_structure(str(pli_pdb))
         if isinstance(bt_struct, biotite.structure.AtomArrayStack):
@@ -156,11 +163,17 @@ class TestPLIScoring:
             bt_struct, torch_device, param_db=param_db
         )
         pose_stack_generated = pose_stack_from_biotite(
-            bt_struct, torch_device, param_db=extended_db
+            # Ligand params are already in extended_db from the ligand-only CIF;
+            # avoid a second prep pass that can pick up unrelated additives.
+            bt_struct,
+            torch_device,
+            param_db=extended_db,
+            prepare_ligands=False,
         )
 
-        sfxn = beta2016_score_function(torch_device, param_db=param_db)
-        score_types = sfxn.all_score_types()
+        sfxn_converted = beta2016_score_function(torch_device, param_db=param_db)
+        # sfxn_generated = beta2016_score_function(torch_device, param_db=extended_db)
+        score_types = sfxn_converted.all_score_types()
 
         mask = torch.zeros(
             (1, pose_stack_converted.max_n_blocks),
