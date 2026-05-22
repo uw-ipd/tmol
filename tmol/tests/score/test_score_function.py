@@ -212,7 +212,7 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.fa_ljatr: n([-417.9582]),
         ScoreType.fa_ljrep: n([240.7147]),
         ScoreType.fa_lk: n([298.27637]),
-        ScoreType.fa_elec: n([-136.2924]),
+        ScoreType.fa_elec: n([-134.02109]),
         ScoreType.hbond: n([-55.675613]),
         ScoreType.lk_ball_iso: n([422.03955]),
         ScoreType.lk_ball: n([172.19647]),
@@ -224,6 +224,7 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.dunbrack_rot: n([70.64968]),
         ScoreType.dunbrack_rotdev: n([240.31009]),
         ScoreType.dunbrack_semirot: n([99.660904]),
+        ScoreType.gen_torsions: n([0.0]),
     }
     for st in score_types:
         numpy.testing.assert_allclose(
@@ -259,6 +260,7 @@ def test_score_function_two_body_terms_getter():
     from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
     from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
     from tmol.score.elec.elec_energy_term import ElecEnergyTerm
+    from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
     from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
     from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
     from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
@@ -275,6 +277,7 @@ def test_score_function_two_body_terms_getter():
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
         ElecEnergyTerm,
+        GenBondedEnergyTerm,
         HBondEnergyTerm,
         LJLKEnergyTerm,
         LKBallEnergyTerm,
@@ -296,6 +299,7 @@ def test_score_function_all_terms_getter():
     from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
     from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
     from tmol.score.elec.elec_energy_term import ElecEnergyTerm
+    from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
     from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
     from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
     from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
@@ -315,6 +319,7 @@ def test_score_function_all_terms_getter():
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
         ElecEnergyTerm,
+        GenBondedEnergyTerm,
         HBondEnergyTerm,
         LJLKEnergyTerm,
         LKBallEnergyTerm,

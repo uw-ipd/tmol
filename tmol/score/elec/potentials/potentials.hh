@@ -104,7 +104,7 @@ def elec_delec_ddist(
         0.0,
         low_poly_end,
         dmax_elec,
-        deps_elec_d_dist);
+        dmax_elec_d_dist);
 
   } else if (dist < hi_poly_start) {
     // Coulombic part

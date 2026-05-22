@@ -521,9 +521,9 @@ def build_coord_mask_for_mask_and_nearby_blocks(pose_stack, mask):
         Boolean tensor of shape ``[n_poses, max_n_atoms]`` suitable for
         use as a ``coord_mask`` argument to ``run_cart_min``.
     """
-    n_poses, max_n_atoms, _ = pose_stack.coords.shape
-    n_blocks = pose_stack.max_n_blocks
-    max_n_block_atoms = pose_stack.max_n_block_atoms
+    # n_poses, max_n_atoms, _ = pose_stack.coords.shape
+    # n_blocks = pose_stack.max_n_blocks
+    # max_n_block_atoms = pose_stack.max_n_block_atoms
 
     # ---------------------------------------------------------------
     # 1.  All atoms from the masked blocks themselves.
@@ -613,15 +613,15 @@ def compute_block_adjacency(block_centroids, block_furthest_dist, constant=5.0):
     centroid_dists = torch.sqrt((diff**2).sum(dim=3))
 
     # Sum of furthest distances [n_poses, n_blocks, n_blocks]
-    dist_sum = (
-        block_furthest_dist.unsqueeze(2) + block_furthest_dist.unsqueeze(1)
-    )
+    dist_sum = block_furthest_dist.unsqueeze(2) + block_furthest_dist.unsqueeze(1)
 
     # Adjacent if centroid distance < furthest distance sum + constant
     adjacency = centroid_dists < (dist_sum + constant)
 
     # Exclude self (diagonal)
-    adjacency = adjacency & ~torch.eye(n_blocks, dtype=torch.bool, device=block_centroids.device).unsqueeze(0)
+    adjacency = adjacency & ~torch.eye(
+        n_blocks, dtype=torch.bool, device=block_centroids.device
+    ).unsqueeze(0)
 
     # Exclude NaN blocks (padding / zero-atom blocks)
     has_nan = torch.isnan(block_furthest_dist)  # [n_poses, n_blocks]
