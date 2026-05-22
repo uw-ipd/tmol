@@ -132,7 +132,7 @@ class TestPLIScoring:
         ligand_cif = PLI_DIR / "cif_inputs" / f"{target}.ligand.cif"
 
         # if target in ["ace","ada"]:
-            # return
+        # return
 
         residues, partial_charges, cartbonded = _load_tmol_file(tmol_path)
         param_db = inject_residue_params(
@@ -169,35 +169,23 @@ class TestPLIScoring:
         )
         mask[0][-1] = True
 
-        dg_converted = calculate_block_pair_ddg(
-            pose_stack_converted, mask, sum_terms=False, minimize=False
-        )
-        dg_generated = calculate_block_pair_ddg(
-            pose_stack_generated, mask, sum_terms=False, minimize=False
-        )
-        dg_converted_minimized = calculate_block_pair_ddg(
-            pose_stack_converted, mask, sum_terms=False, minimize=True
-        )
-        dg_generated_minimized = calculate_block_pair_ddg(
-            pose_stack_generated, mask, sum_terms=False, minimize=True
-        )
-
-        dg_converted_dict = {
-            key.name: val.item()
-            for key, val in zip(score_types, dg_converted.squeeze(0))
-        }
-        dg_generated_dict = {
-            key.name: val.item()
-            for key, val in zip(score_types, dg_generated.squeeze(0))
-        }
-        dg_converted_dict_minimized = {
-            key.name: val.item()
-            for key, val in zip(score_types, dg_converted_minimized.squeeze(0))
-        }
-        dg_generated_dict_minimized = {
-            key.name: val.item()
-            for key, val in zip(score_types, dg_generated_minimized.squeeze(0))
-        }
+        # Parameterized: run calculate_block_pair_ddg for each (label, pose_stack, minimize)
+        # and directly encode the per-term dictionaries.
+        _configs = [
+            ("converted", pose_stack_converted, False),
+            ("generated", pose_stack_generated, False),
+            ("converted_minimized", pose_stack_converted, True),
+            ("generated_minimized", pose_stack_generated, True),
+        ]
+        ddg_results = {}
+        for label, pstack, do_minimize in _configs:
+            print("Calculating dg for", label)
+            raw = calculate_block_pair_ddg(
+                pstack, mask, sum_terms=False, minimize=do_minimize
+            )
+            ddg_results[label] = {
+                key.name: val.item() for key, val in zip(score_types, raw.squeeze(0))
+            }
 
         ros_scores = _rosetta_score(sc_path) if sc_path.exists() else {}
 
@@ -207,10 +195,14 @@ class TestPLIScoring:
             print(f"  (no Rosetta .sc at {sc_path.name} -- run run_rosetta_score.sh)")
         print(f"  {'term':<18} {'tmol':>12} {'rosetta':>12} {'diff':>12}")
         for label, ros_terms, tmol_terms in _PLI_TERM_ROWS:
-            converted = sum(dg_converted_dict.get(n, 0.0) for n in tmol_terms)
-            generated = sum(dg_generated_dict.get(n, 0.0) for n in tmol_terms)
-            converted_min = sum(dg_converted_dict_minimized.get(n, 0.0) for n in tmol_terms)
-            generated_min = sum(dg_generated_dict_minimized.get(n, 0.0) for n in tmol_terms)
+            converted = sum(ddg_results["converted"].get(n, 0.0) for n in tmol_terms)
+            generated = sum(ddg_results["generated"].get(n, 0.0) for n in tmol_terms)
+            converted_min = sum(
+                ddg_results["converted_minimized"].get(n, 0.0) for n in tmol_terms
+            )
+            generated_min = sum(
+                ddg_results["generated_minimized"].get(n, 0.0) for n in tmol_terms
+            )
             # rosetta = sum(float(ros_scores.get(n, 0.0)) for n in ros_terms)
             rosetta = sum(float(ros_scores.get("dG_" + n, 0.0)) for n in ros_terms)
             data += [
