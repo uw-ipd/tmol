@@ -56,6 +56,7 @@ class LJLKPoseScoreOp
 
       Tensor type_params,
       Tensor global_params,
+      double max_dis,  // host scalar; needed by detect-neighbors call
       bool output_block_pair_energies) {
     at::Tensor score, dscore_dcoords, block_neighbors;
 
@@ -96,6 +97,7 @@ class LJLKPoseScoreOp
 
                   TCAST(type_params),
                   TCAST(global_params),
+                  (Real)max_dis,
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
@@ -298,6 +300,7 @@ class LJLKRotamerScoreOp
 
       Tensor type_params,
       Tensor global_params,
+      double max_dis,  // host scalar; needed by detect-neighbors call
       bool output_block_pair_energies) {
     at::Tensor score, dscore_dcoords, dispatch_indices;
 
@@ -338,6 +341,7 @@ class LJLKRotamerScoreOp
 
                   TCAST(type_params),
                   TCAST(global_params),
+                  (Real)max_dis,
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
@@ -535,6 +539,7 @@ std::vector<Tensor> ljlk_pose_scores_op(
 
     Tensor ljlk_type_params,
     Tensor global_params,
+    double max_dis,
     bool output_block_pair_energies) {
   return LJLKPoseScoreOp<DispatchMethod>::apply(
       // common params
@@ -565,6 +570,7 @@ std::vector<Tensor> ljlk_pose_scores_op(
 
       ljlk_type_params,
       global_params,
+      max_dis,
       output_block_pair_energies);
 }
 
@@ -598,6 +604,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
 
     Tensor ljlk_type_params,
     Tensor global_params,
+    double max_dis,
     bool output_block_pair_energies) {
   return LJLKRotamerScoreOp<DispatchMethod>::apply(
       // common params
@@ -628,6 +635,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
 
       ljlk_type_params,
       global_params,
+      max_dis,
       output_block_pair_energies);
 }
 

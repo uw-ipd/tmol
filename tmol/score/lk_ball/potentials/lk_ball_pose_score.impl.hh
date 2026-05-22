@@ -420,6 +420,7 @@ class LKBallPoseScoreDispatch {
 
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
+      Real max_dis,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
       bool output_block_pair_energies)
       -> std::tuple<TPack<Real, 4, Dev>, TPack<Int, 3, Dev>> {
@@ -666,7 +667,7 @@ class LKBallPoseScoreDispatch {
             first_rot_block_type,
             scratch_rot_spheres,
             scratch_rot_neighbors,
-            global_params[0].distance_threshold);
+            max_dis);
     // 3 Only the forward pass in this calculation
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
@@ -1065,6 +1066,7 @@ class LKBallRotamerScoreDispatch {
 
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
+      Real max_dis,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
       bool output_block_pair_energies)
       -> std::tuple<TPack<Real, 2, Dev>, TPack<Int, 2, Dev>> {

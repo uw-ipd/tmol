@@ -389,6 +389,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
       Tensor block_type_path_distance,
 
       Tensor global_params,
+      double max_dis,  // host scalar; needed by detect-neighbors call
       Tensor water_coords,
       bool output_block_pair_energies) {
     at::Tensor score;
@@ -435,6 +436,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
                   TCAST(block_type_path_distance),
 
                   TCAST(global_params),
+                  (Real)max_dis,
                   TCAST(water_coords),
                   output_block_pair_energies);
 
@@ -630,6 +632,7 @@ class LKBallRotamerScoreOp
       Tensor block_type_path_distance,
 
       Tensor global_params,
+      double max_dis,  // host scalar; needed by detect-neighbors call
       Tensor water_coords,
       bool output_block_pair_energies) {
     at::Tensor score;
@@ -676,6 +679,7 @@ class LKBallRotamerScoreOp
                   TCAST(block_type_path_distance),
 
                   TCAST(global_params),
+                  (Real)max_dis,
                   TCAST(water_coords),
                   output_block_pair_energies);
 
@@ -859,6 +863,7 @@ std::vector<Tensor> lkball_pose_score(
     Tensor block_type_path_distance,
 
     Tensor global_params,
+    double max_dis,
     Tensor water_coords,
     bool output_block_pair_energies) {
   return LKBallPoseScoreOp::apply(
@@ -891,6 +896,7 @@ std::vector<Tensor> lkball_pose_score(
       block_type_path_distance,
 
       global_params,
+      max_dis,
       water_coords,
       output_block_pair_energies);
 }
@@ -926,6 +932,7 @@ std::vector<Tensor> lkball_rotamer_score(
     Tensor block_type_path_distance,
 
     Tensor global_params,
+    double max_dis,
     Tensor water_coords,
     bool output_block_pair_energies) {
   return LKBallRotamerScoreOp::apply(
@@ -958,6 +965,7 @@ std::vector<Tensor> lkball_rotamer_score(
       block_type_path_distance,
 
       global_params,
+      max_dis,
       water_coords,
       output_block_pair_energies);
 }

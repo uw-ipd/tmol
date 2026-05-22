@@ -139,4 +139,6 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack.packed_block_types.bond_separation,
             type_params,
             global_params,
+            # max_dis as host scalar for detect-neighbors call
+            float(self.global_params.max_dis.item()),
         ]

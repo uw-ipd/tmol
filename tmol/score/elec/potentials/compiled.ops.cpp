@@ -53,6 +53,7 @@ class ElecPoseScoreOp
 
       Tensor block_type_intra_repr_path_distance,
       Tensor global_params,
+      double max_dis,  // host scalar; needed by detect-neighbors call
       bool output_block_pair_energies) {
     at::Tensor score;
     at::Tensor dscore_dcoords;
@@ -93,6 +94,7 @@ class ElecPoseScoreOp
 
                   TCAST(block_type_intra_repr_path_distance),
                   TCAST(global_params),
+                  (Real)max_dis,
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
@@ -294,6 +296,7 @@ class ElecRotamerScoreOp
 
       Tensor block_type_intra_repr_path_distance,
       Tensor global_params,
+      double max_dis,  // host scalar; needed by detect-neighbors call
       bool output_block_pair_energies) {
     assert(output_block_pair_energies);
     at::Tensor score;
@@ -335,6 +338,7 @@ class ElecRotamerScoreOp
 
                   TCAST(block_type_intra_repr_path_distance),
                   TCAST(global_params),
+                  (Real)max_dis,
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
@@ -530,6 +534,7 @@ std::vector<Tensor> elec_pose_scores_op(
 
     Tensor block_type_intra_repr_path_distance,
     Tensor global_params,
+    double max_dis,
     bool output_block_pair_energies) {
   return ElecPoseScoreOp<DispatchMethod>::apply(
       rot_coords,
@@ -557,6 +562,7 @@ std::vector<Tensor> elec_pose_scores_op(
 
       block_type_intra_repr_path_distance,
       global_params,
+      max_dis,
       output_block_pair_energies);
 }
 
@@ -588,6 +594,7 @@ std::vector<Tensor> elec_rotamer_scores_op(
 
     Tensor block_type_intra_repr_path_distance,
     Tensor global_params,
+    double max_dis,
     bool output_block_pair_energies) {
   return ElecRotamerScoreOp<DispatchMethod>::apply(
       rot_coords,
@@ -615,6 +622,7 @@ std::vector<Tensor> elec_rotamer_scores_op(
 
       block_type_intra_repr_path_distance,
       global_params,
+      max_dis,
       output_block_pair_energies);
 }
 

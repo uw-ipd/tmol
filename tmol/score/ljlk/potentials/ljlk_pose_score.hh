@@ -89,6 +89,9 @@ struct LJLKPoseScoreDispatch {
       TView<LJLKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
 
+      // host-side copy of LJGlobalParams::max_dis
+      Real max_dis,
+
       // should the output be per-pose (npose x nterms x 1 x 1)
       //   or per block-pair (npose x nterms x len x len)
       bool output_block_pair_energies,
@@ -225,6 +228,9 @@ struct LJLKRotamerScoreDispatch {
       // LJ parameters
       TView<LJLKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
+
+      // host-side copy of LJGlobalParams::max_dis
+      Real max_dis,
 
       // should the output be per-pose (npose x nterms x 1 x 1)
       //   or per block-pair (npose x nterms x len x len)

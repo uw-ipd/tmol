@@ -92,6 +92,7 @@ struct LKBallPoseScoreDispatch {
 
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
+      Real max_dis,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
       bool output_block_pair_energies)
       -> std::tuple<TPack<Real, 4, Dev>, TPack<Int, 3, Dev>>;
@@ -232,6 +233,7 @@ struct LKBallRotamerScoreDispatch {
 
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
+      Real max_dis,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
       bool output_block_pair_energies)
       -> std::tuple<TPack<Real, 2, Dev>, TPack<Int, 2, Dev>>;

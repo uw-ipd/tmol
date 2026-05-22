@@ -678,6 +678,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
 
+    Real max_dis,
+
     // should the output be per-pose (npose x nterms x 1 x 1)
     //   or per block-pair (npose x nterms x len x len)
     bool output_block_pair_energies,
@@ -1127,7 +1129,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
           first_rot_block_type,
           scratch_rot_spheres,
           scratch_rot_neighbors,
-          global_params[0].max_dis);
+          max_dis);
 
   if (output_block_pair_energies) {
     DeviceOperations<D>::template foreach_workgroup<launch_t>(
@@ -1521,6 +1523,8 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
 
+    Real max_dis,
+
     // should the output be per-pose (npose x nterms x 1 x 1)
     //   or per block-pair (npose x nterms x len x len)
     bool output_block_pair_energies,
@@ -1610,6 +1614,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   score::common::sphere_overlap::
       compute_block_spheres_from_rot_spheres<DeviceOperations, D, Real, Int>::f(
           scratch_rot_spheres,
+<<<<<<< HEAD
           n_rots_for_block,
           rot_offset_for_block,
           scratch_block_spheres);
@@ -1620,6 +1625,10 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
           scratch_block_spheres,
           scratch_block_neighbors,
           global_params[0].max_dis);
+=======
+          scratch_rot_neighbors,
+          max_dis);
+>>>>>>> 160b7889b (Small refactor: for neighbor check, the max_dis parameter has to be on CPU as well as on device ... pass in this parameter on host as well.)
 
   auto dispatch_indices_t = score::common::sphere_overlap::
       rot_neighbor_indices_from_block_neighbors<DeviceOperations, D, Int>::f(
