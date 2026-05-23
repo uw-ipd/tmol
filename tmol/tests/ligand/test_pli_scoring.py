@@ -9,7 +9,6 @@ per-term comparison table (tmol vs rosetta).
 from pathlib import Path
 
 import pytest
-import csv
 import torch
 
 from tmol.score.score_utils import calculate_block_pair_ddg
@@ -117,99 +116,78 @@ class TestPLIScoring:
             f"{tmol_total - ros_total:+12.4f}"
         )
 
-    def test_compare_dg_score_with_rosetta(self, pli_pdb, torch_device):
+    def _dg_vs_rosetta(self, pli_pdb, param_db, torch_device, label_prefix=""):
+        """Score the complex using the given param_db and compare with Rosetta.
+
+        Returns a list of rows for CSV output:
+        (target, tmol_terms_str, ros_terms_str, tmol_dg, rosetta_dg, abs_diff)
+        """
         import biotite.structure
         import biotite.structure.io
-        import biotite.structure.io.pdbx as pdbx
 
-        from tmol.database import ParameterDatabase, inject_residue_params
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
-        from tmol.ligand import prepare_ligands
         from tmol.score import beta2016_score_function
 
         target = _target_for_complex(pli_pdb.name)
-        tmol_path = PLI_DIR / f"{target}.xtal-lig.mmff94.tmol"
         sc_path = PLI_DIR / f"{pli_pdb.stem}.sc"
-        ligand_cif = PLI_DIR / "cif_inputs" / f"{target}.ligand.cif"
-        ligand_mol2 = PLI_DIR / f"{target}.lig.mol2"
 
-        # if target in ["ace","ada"]:
-        # return
+        print(f"\n=== {pli_pdb.name}  (target={target}) [{label_prefix}] ===")
 
-        import biotite.interface.rdkit as rdkit
-        from rdkit import Chem
+        bt_struct = biotite.structure.io.load_structure(str(pli_pdb))
+        if isinstance(bt_struct, biotite.structure.AtomArrayStack):
+            bt_struct = bt_struct[0]
 
-        rdkit_mol = Chem.MolFromMol2File(str(ligand_mol2), False, False, False)
-        bt_ligand = rdkit.from_mol(rdkit_mol)
-        extended_db, _ = prepare_ligands(
-            bt_ligand, param_db=ParameterDatabase.get_default()
+        pose_stack = pose_stack_from_biotite(
+            bt_struct, torch_device, param_db=param_db, prepare_ligands=False
         )
 
-        # ligand_pdbx = pdbx.CIFFile.read(str(ligand_cif))
-        # bt_ligand = pdbx.get_structure(
-        # ligand_pdbx,
-        # model=1,
-        # include_bonds=True,
-        ## partial_charge drives authoritative-charge ingestion; charge carries
-        ## formal charges useful for some RDKit aromaticity/perception cases.
-        # extra_fields=["partial_charge", "charge"],
-        # )
-        ## Extend the already-injected DB so known residues remain available.
-        # extended_db, _ = prepare_ligands(bt_ligand, param_db=ParameterDatabase.get_default())
+        sfxn = beta2016_score_function(torch_device, param_db=param_db)
+        score_types = sfxn.all_score_types()
 
-        # print("=== rdkit_mol info ===")
-        # print(f"  type: {type(rdkit_mol)}")
-        # print(f"  NumAtoms: {rdkit_mol.GetNumAtoms()}")
-        # print(f"  NumBonds: {rdkit_mol.GetNumBonds()}")
-        # print(f"  NumConformers: {rdkit_mol.GetNumConformers()}")
-        # print(f"  NumHeavyAtoms: {rdkit_mol.GetNumHeavyAtoms()}")
-        # print(f"  NumRotatableBonds (RDKit): {Chem.rdMolDescriptors.CalcNumRotatableBonds(rdkit_mol)}")
-        # print(f"  Formula: {Chem.rdMolDescriptors.CalcMolFormula(rdkit_mol)}")
-        # print(f"  Molecular weight: {Chem.rdMolDescriptors.CalcExactMolWt(rdkit_mol):.4f}")
-        # print(f"  logP: {Chem.rdMolDescriptors.CalcCrippenDescriptors(rdkit_mol)[0]:.4f}")
-        # print(f"  TPSA: {Chem.rdMolDescriptors.CalcTPSA(rdkit_mol):.4f}")
-        # print()
-        # from rdkit.Chem import rdmolops
-        # rdkit_mol.UpdatePropertyCache()
-        # print("  Atoms:")
-        # for atom in rdkit_mol.GetAtoms():
-        # idx = atom.GetIdx()
-        # symbol = atom.GetSymbol()
-        # formal_charge = atom.GetFormalCharge()
-        # implicit_valence = atom.GetImplicitValence()
-        # explicit_valence = atom.GetExplicitValence()
-        # total_degree = atom.GetTotalDegree()
-        # num_hs = atom.GetTotalNumHs()
-        # is_aromatic = atom.GetIsAromatic()
-        # hybrid = str(atom.GetHybridization())
-        # chiral_tag = str(atom.GetChiralTag())
-        # print(f"    atom {idx:>3d}: {symbol:<3s}  charge={formal_charge:>+3d}  imp_val={implicit_valence}  exp_val={explicit_valence}  degree={total_degree}  Hs={num_hs}  arom={is_aromatic}  hyb={hybrid:<10s}  chiral={chiral_tag}")
-        # print()
-        # print("  Bonds:")
-        # for bond in rdkit_mol.GetBonds():
-        # i = bond.GetBeginAtomIdx()
-        # j = bond.GetEndAtomIdx()
-        # btype = str(bond.GetBondType())
-        # is_arom = bond.GetIsAromatic()
-        # stereo = str(bond.GetStereo())
-        # print(f"    bond {i:>3d} -- {j:>3d}:  type={btype:<8s}  arom={is_arom}  stereo={stereo}")
-        # print()
-        # print("  Conformer positions (conformer 0):")
-        # conf = rdkit_mol.GetConformer(0)
-        # for idx in range(rdkit_mol.GetNumAtoms()):
-        # pos = conf.GetAtomPosition(idx)
-        # print(f"    atom {idx:>3d}:  ({pos.x:10.4f}, {pos.y:10.4f}, {pos.z:10.4f})")
-        # print()
-        # print("  Ring info:")
-        # ri = rdkit_mol.GetRingInfo()
-        # print(f"    NumRings: {ri.NumRings()}")
-        # for ring in ri.AtomRings():
-        # print(f"    ring atoms: {ring}")
-        # print()
-        # print("  Property keys:", rdkit_mol.GetPropNames())
-        # for key in rdkit_mol.GetPropNames():
-        # print(f"    {key}: {rdkit_mol.GetProp(key)}")
-        # print("=== end rdkit_mol info ===")
+        mask = torch.zeros(
+            (1, pose_stack.max_n_blocks),
+            dtype=torch.bool,
+            device=torch_device,
+        )
+        mask[0][-1] = True
+
+        ddg = calculate_block_pair_ddg(
+            pose_stack, mask, sfxn=sfxn, sum_terms=False, minimize=False
+        )
+        ddg_min = calculate_block_pair_ddg(
+            pose_stack, mask, sfxn=sfxn, sum_terms=False, minimize=True
+        )
+
+        tmol_scores = {
+            key.name: val.item() for key, val in zip(score_types, ddg.squeeze(0))
+        }
+        tmol_scores_min = {
+            key.name: val.item() for key, val in zip(score_types, ddg_min.squeeze(0))
+        }
+
+        ros_scores = _rosetta_score(sc_path) if sc_path.exists() else {}
+
+        data = []
+        if not sc_path.exists():
+            print(f"  (no Rosetta .sc at {sc_path.name} -- run run_rosetta_score.sh)")
+        print(
+            f"  {'term':<18} {'tmol':>12} {'tmol_min':>12} {'rosetta':>12} {'diff':>12}"
+        )
+        for label, ros_terms, tmol_terms in _PLI_TERM_ROWS:
+            t = sum(tmol_scores.get(n, 0.0) for n in tmol_terms)
+            tmin = sum(tmol_scores_min.get(n, 0.0) for n in tmol_terms)
+            rosetta = sum(float(ros_scores.get("dG_" + n, 0.0)) for n in ros_terms)
+            print(
+                f"  {label:<18} {t:12.4f} {tmin:12.4f} {rosetta:12.4f} {t - rosetta:+12.4f}"
+            )
+        return data
+
+    def test_compare_dg_score_with_rosetta_tmol(self, pli_pdb, torch_device):
+        """Compare Rosetta dG scores with tmol scores using .tmol file params."""
+        from tmol.database import ParameterDatabase, inject_residue_params
+
+        target = _target_for_complex(pli_pdb.name)
+        tmol_path = PLI_DIR / f"{target}.xtal-lig.mmff94.tmol"
 
         residues, partial_charges, cartbonded = _load_tmol_file(tmol_path)
         param_db = inject_residue_params(
@@ -219,6 +197,19 @@ class TestPLIScoring:
             cartbonded_params=cartbonded,
         )
 
+        self._dg_vs_rosetta(pli_pdb, param_db, torch_device, label_prefix=".tmol")
+
+    def test_compare_dg_score_with_rosetta_cif(self, pli_pdb, torch_device):
+        """Compare Rosetta dG scores with tmol scores using .cif file params."""
+        import biotite.structure.io.pdbx as pdbx
+
+        from tmol.database import ParameterDatabase
+        from tmol.ligand import prepare_ligands
+
+        target = _target_for_complex(pli_pdb.name)
+        ligand_cif = PLI_DIR / "cif_inputs" / f"{target}.ligand.cif"
+
+        # Load ligand params from CIF.
         ligand_pdbx = pdbx.CIFFile.read(str(ligand_cif))
         bt_ligand = pdbx.get_structure(
             ligand_pdbx,
@@ -228,95 +219,28 @@ class TestPLIScoring:
             # formal charges useful for some RDKit aromaticity/perception cases.
             # extra_fields=["partial_charge", "charge"],
         )
-        # Extend the already-injected DB so known residues remain available.
         extended_db, _ = prepare_ligands(
-            bt_ligand, param_db=param_db, allow_gasteiger_fallback=False
+            bt_ligand, param_db=ParameterDatabase.get_default()
         )
 
-        bt_struct = biotite.structure.io.load_structure(str(pli_pdb))
-        if isinstance(bt_struct, biotite.structure.AtomArrayStack):
-            bt_struct = bt_struct[0]
+        self._dg_vs_rosetta(pli_pdb, extended_db, torch_device, label_prefix=".cif")
 
-        pose_stack_converted = pose_stack_from_biotite(
-            bt_struct, torch_device, param_db=param_db
+    def test_compare_dg_score_with_rosetta_mol2(self, pli_pdb, torch_device):
+        """Compare Rosetta dG scores with tmol scores using .mol2 file params."""
+        import biotite.interface.rdkit as rdkit
+        from rdkit import Chem
+
+        from tmol.database import ParameterDatabase
+        from tmol.ligand import prepare_ligands
+
+        target = _target_for_complex(pli_pdb.name)
+        ligand_mol2 = PLI_DIR / f"{target}.lig.mol2"
+
+        # Load ligand params from MOL2 via RDKit.
+        rdkit_mol = Chem.MolFromMol2File(str(ligand_mol2), False, False, False)
+        bt_ligand = rdkit.from_mol(rdkit_mol)
+        extended_db, _ = prepare_ligands(
+            bt_ligand, param_db=ParameterDatabase.get_default()
         )
-        pose_stack_generated = pose_stack_from_biotite(
-            # Ligand params are already in extended_db from the ligand-only CIF;
-            # avoid a second prep pass that can pick up unrelated additives.
-            bt_struct,
-            torch_device,
-            param_db=extended_db,
-            prepare_ligands=False,
-        )
 
-        sfxn_converted = beta2016_score_function(torch_device, param_db=param_db)
-        sfxn_generated = beta2016_score_function(torch_device, param_db=extended_db)
-        score_types = sfxn_converted.all_score_types()
-
-        mask = torch.zeros(
-            (1, pose_stack_converted.max_n_blocks),
-            dtype=torch.bool,
-            device=torch_device,
-        )
-        mask[0][-1] = True
-
-        # Parameterized: run calculate_block_pair_ddg for each (label, pose_stack, minimize)
-        # and directly encode the per-term dictionaries.
-        _configs = [
-            ("converted", pose_stack_converted, sfxn_converted, False),
-            ("generated", pose_stack_generated, sfxn_generated, False),
-            ("converted_minimized", pose_stack_converted, sfxn_converted, True),
-            ("generated_minimized", pose_stack_generated, sfxn_generated, True),
-        ]
-        ddg_results = {}
-        for label, pstack, sfxn, do_minimize in _configs:
-            print("Calculating dg for", label)
-            raw = calculate_block_pair_ddg(
-                pstack, mask, sfxn=sfxn, sum_terms=False, minimize=do_minimize
-            )
-            ddg_results[label] = {
-                key.name: val.item() for key, val in zip(score_types, raw.squeeze(0))
-            }
-
-        ros_scores = _rosetta_score(sc_path) if sc_path.exists() else {}
-
-        data = []
-        print(f"\n=== {pli_pdb.name}  (target={target}) ===")
-        if not sc_path.exists():
-            print(f"  (no Rosetta .sc at {sc_path.name} -- run run_rosetta_score.sh)")
-        print(f"  {'term':<18} {'tmol':>12} {'rosetta':>12} {'diff':>12}")
-        for label, ros_terms, tmol_terms in _PLI_TERM_ROWS:
-            converted = sum(ddg_results["converted"].get(n, 0.0) for n in tmol_terms)
-            generated = sum(ddg_results["generated"].get(n, 0.0) for n in tmol_terms)
-            converted_min = sum(
-                ddg_results["converted_minimized"].get(n, 0.0) for n in tmol_terms
-            )
-            generated_min = sum(
-                ddg_results["generated_minimized"].get(n, 0.0) for n in tmol_terms
-            )
-            # rosetta = sum(float(ros_scores.get(n, 0.0)) for n in ros_terms)
-            rosetta = sum(float(ros_scores.get("dG_" + n, 0.0)) for n in ros_terms)
-            data += [
-                (
-                    target,
-                    ",".join(tmol_terms),
-                    ",".join(ros_terms),
-                    converted,
-                    generated,
-                    converted_min,
-                    generated_min,
-                    rosetta,
-                    abs(converted - rosetta),
-                    abs(generated - generated_min),
-                )
-            ]
-            print(
-                f"  {label:<18} {converted:12.4f} {generated:12.4f} {rosetta:12.4f} {converted - rosetta:+12.4f}"
-            )
-
-        with open(target + ".table", "w") as f:
-            writer = csv.writer(
-                f, delimiter=" ", quotechar="|", quoting=csv.QUOTE_MINIMAL
-            )
-            for row in data:
-                writer.writerow(row)
+        self._dg_vs_rosetta(pli_pdb, extended_db, torch_device, label_prefix=".mol2")
