@@ -131,9 +131,85 @@ class TestPLIScoring:
         tmol_path = PLI_DIR / f"{target}.xtal-lig.mmff94.tmol"
         sc_path = PLI_DIR / f"{pli_pdb.stem}.sc"
         ligand_cif = PLI_DIR / "cif_inputs" / f"{target}.ligand.cif"
+        ligand_mol2 = PLI_DIR / f"{target}.lig.mol2"
 
         # if target in ["ace","ada"]:
         # return
+
+        import biotite.interface.rdkit as rdkit
+        from rdkit import Chem
+
+        rdkit_mol = Chem.MolFromMol2File(str(ligand_mol2), False, False, False)
+        bt_ligand = rdkit.from_mol(rdkit_mol)
+        extended_db, _ = prepare_ligands(
+            bt_ligand, param_db=ParameterDatabase.get_default()
+        )
+
+        # ligand_pdbx = pdbx.CIFFile.read(str(ligand_cif))
+        # bt_ligand = pdbx.get_structure(
+        # ligand_pdbx,
+        # model=1,
+        # include_bonds=True,
+        ## partial_charge drives authoritative-charge ingestion; charge carries
+        ## formal charges useful for some RDKit aromaticity/perception cases.
+        # extra_fields=["partial_charge", "charge"],
+        # )
+        ## Extend the already-injected DB so known residues remain available.
+        # extended_db, _ = prepare_ligands(bt_ligand, param_db=ParameterDatabase.get_default())
+
+        # print("=== rdkit_mol info ===")
+        # print(f"  type: {type(rdkit_mol)}")
+        # print(f"  NumAtoms: {rdkit_mol.GetNumAtoms()}")
+        # print(f"  NumBonds: {rdkit_mol.GetNumBonds()}")
+        # print(f"  NumConformers: {rdkit_mol.GetNumConformers()}")
+        # print(f"  NumHeavyAtoms: {rdkit_mol.GetNumHeavyAtoms()}")
+        # print(f"  NumRotatableBonds (RDKit): {Chem.rdMolDescriptors.CalcNumRotatableBonds(rdkit_mol)}")
+        # print(f"  Formula: {Chem.rdMolDescriptors.CalcMolFormula(rdkit_mol)}")
+        # print(f"  Molecular weight: {Chem.rdMolDescriptors.CalcExactMolWt(rdkit_mol):.4f}")
+        # print(f"  logP: {Chem.rdMolDescriptors.CalcCrippenDescriptors(rdkit_mol)[0]:.4f}")
+        # print(f"  TPSA: {Chem.rdMolDescriptors.CalcTPSA(rdkit_mol):.4f}")
+        # print()
+        # from rdkit.Chem import rdmolops
+        # rdkit_mol.UpdatePropertyCache()
+        # print("  Atoms:")
+        # for atom in rdkit_mol.GetAtoms():
+        # idx = atom.GetIdx()
+        # symbol = atom.GetSymbol()
+        # formal_charge = atom.GetFormalCharge()
+        # implicit_valence = atom.GetImplicitValence()
+        # explicit_valence = atom.GetExplicitValence()
+        # total_degree = atom.GetTotalDegree()
+        # num_hs = atom.GetTotalNumHs()
+        # is_aromatic = atom.GetIsAromatic()
+        # hybrid = str(atom.GetHybridization())
+        # chiral_tag = str(atom.GetChiralTag())
+        # print(f"    atom {idx:>3d}: {symbol:<3s}  charge={formal_charge:>+3d}  imp_val={implicit_valence}  exp_val={explicit_valence}  degree={total_degree}  Hs={num_hs}  arom={is_aromatic}  hyb={hybrid:<10s}  chiral={chiral_tag}")
+        # print()
+        # print("  Bonds:")
+        # for bond in rdkit_mol.GetBonds():
+        # i = bond.GetBeginAtomIdx()
+        # j = bond.GetEndAtomIdx()
+        # btype = str(bond.GetBondType())
+        # is_arom = bond.GetIsAromatic()
+        # stereo = str(bond.GetStereo())
+        # print(f"    bond {i:>3d} -- {j:>3d}:  type={btype:<8s}  arom={is_arom}  stereo={stereo}")
+        # print()
+        # print("  Conformer positions (conformer 0):")
+        # conf = rdkit_mol.GetConformer(0)
+        # for idx in range(rdkit_mol.GetNumAtoms()):
+        # pos = conf.GetAtomPosition(idx)
+        # print(f"    atom {idx:>3d}:  ({pos.x:10.4f}, {pos.y:10.4f}, {pos.z:10.4f})")
+        # print()
+        # print("  Ring info:")
+        # ri = rdkit_mol.GetRingInfo()
+        # print(f"    NumRings: {ri.NumRings()}")
+        # for ring in ri.AtomRings():
+        # print(f"    ring atoms: {ring}")
+        # print()
+        # print("  Property keys:", rdkit_mol.GetPropNames())
+        # for key in rdkit_mol.GetPropNames():
+        # print(f"    {key}: {rdkit_mol.GetProp(key)}")
+        # print("=== end rdkit_mol info ===")
 
         residues, partial_charges, cartbonded = _load_tmol_file(tmol_path)
         param_db = inject_residue_params(
@@ -150,10 +226,12 @@ class TestPLIScoring:
             include_bonds=True,
             # partial_charge drives authoritative-charge ingestion; charge carries
             # formal charges useful for some RDKit aromaticity/perception cases.
-            extra_fields=["partial_charge", "charge"],
+            # extra_fields=["partial_charge", "charge"],
         )
         # Extend the already-injected DB so known residues remain available.
-        extended_db, _ = prepare_ligands(bt_ligand, param_db=param_db)
+        extended_db, _ = prepare_ligands(
+            bt_ligand, param_db=param_db, allow_gasteiger_fallback=False
+        )
 
         bt_struct = biotite.structure.io.load_structure(str(pli_pdb))
         if isinstance(bt_struct, biotite.structure.AtomArrayStack):
@@ -172,7 +250,7 @@ class TestPLIScoring:
         )
 
         sfxn_converted = beta2016_score_function(torch_device, param_db=param_db)
-        # sfxn_generated = beta2016_score_function(torch_device, param_db=extended_db)
+        sfxn_generated = beta2016_score_function(torch_device, param_db=extended_db)
         score_types = sfxn_converted.all_score_types()
 
         mask = torch.zeros(
@@ -185,16 +263,16 @@ class TestPLIScoring:
         # Parameterized: run calculate_block_pair_ddg for each (label, pose_stack, minimize)
         # and directly encode the per-term dictionaries.
         _configs = [
-            ("converted", pose_stack_converted, False),
-            ("generated", pose_stack_generated, False),
-            ("converted_minimized", pose_stack_converted, True),
-            ("generated_minimized", pose_stack_generated, True),
+            ("converted", pose_stack_converted, sfxn_converted, False),
+            ("generated", pose_stack_generated, sfxn_generated, False),
+            ("converted_minimized", pose_stack_converted, sfxn_converted, True),
+            ("generated_minimized", pose_stack_generated, sfxn_generated, True),
         ]
         ddg_results = {}
-        for label, pstack, do_minimize in _configs:
+        for label, pstack, sfxn, do_minimize in _configs:
             print("Calculating dg for", label)
             raw = calculate_block_pair_ddg(
-                pstack, mask, sum_terms=False, minimize=do_minimize
+                pstack, mask, sfxn=sfxn, sum_terms=False, minimize=do_minimize
             )
             ddg_results[label] = {
                 key.name: val.item() for key, val in zip(score_types, raw.squeeze(0))
