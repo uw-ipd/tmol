@@ -208,6 +208,52 @@ class PoseStack:
         n_ats_per_pose = torch.sum(self.n_ats_per_block, dim=1).unsqueeze(1)
         return n_ats_per_pose_arange_expanded < n_ats_per_pose
 
+    def split(self, index: int) -> "PoseStack":
+        """Return a single-pose PoseStack extracted from a batch.
+
+        The returned PoseStack retains the full padded shape of the batch
+        (same max_n_blocks, max_n_atoms) and shares packed_block_types.
+        """
+        return PoseStack(
+            packed_block_types=self.packed_block_types,
+            coords=self.coords[index : index + 1].detach().clone(),
+            block_coord_offset=self.block_coord_offset[index : index + 1]
+            .detach()
+            .clone(),
+            block_coord_offset64=self.block_coord_offset64[index : index + 1]
+            .detach()
+            .clone(),
+            inter_residue_connections=self.inter_residue_connections[
+                index : index + 1
+            ]
+            .detach()
+            .clone(),
+            inter_residue_connections64=self.inter_residue_connections64[
+                index : index + 1
+            ]
+            .detach()
+            .clone(),
+            inter_block_bondsep=self.inter_block_bondsep[index : index + 1]
+            .detach()
+            .clone(),
+            inter_block_bondsep64=self.inter_block_bondsep64[index : index + 1]
+            .detach()
+            .clone(),
+            block_type_ind=self.block_type_ind[index : index + 1].detach().clone(),
+            block_type_ind64=self.block_type_ind64[index : index + 1]
+            .detach()
+            .clone(),
+            chain_id=self.chain_id[index : index + 1].detach().clone(),
+            chain_id64=self.chain_id64[index : index + 1].detach().clone(),
+            pdb_info=self.pdb_info.split(index),
+            constraint_set=(
+                None
+                if self.constraint_set is None
+                else self.constraint_set.split(index)
+            ),
+            device=self.device,
+        )
+
     def clone(self) -> "PoseStack":
         """Deep-copy clone of this PoseStack"""
         new_constraint_set = (
