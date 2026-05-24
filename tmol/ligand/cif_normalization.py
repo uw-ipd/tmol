@@ -15,6 +15,7 @@ import biotite.structure.io.pdbx as pdbx
 from rdkit import Chem
 
 from tmol.ligand.atom_typing import sanitize_tolerant
+from tmol.ligand.mol2_names import apply_disambiguated_mol2_names
 
 _BOND_ORDER_TO_CIF = {
     "SINGLE": "SING",
@@ -58,6 +59,7 @@ def _load_mol2(path: Path) -> Chem.Mol:
     sanitize_tolerant(mol)
     if mol.GetNumConformers() == 0:
         raise ValueError(f"MOL2 has no 3D coordinates: {path}")
+    apply_disambiguated_mol2_names(mol)
     return mol
 
 

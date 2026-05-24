@@ -1,8 +1,10 @@
 """Generate protein_ligand_test ligand CIF fixtures from reference .tmol data.
 
 This script builds ligand-only CIFs that carry explicit bond orders and
-reference partial charges, using coordinates copied by atom name from the
-existing ``*_complex*.pdb`` inputs.
+reference partial charges. Coordinates are taken from ``*_complex*.pdb`` when
+atom names match the reference (Rosetta/LG1 naming); otherwise from the paired
+``.lig.mol2`` (mol2gen uses the same names as the mol2 file, with duplicate
+names disambiguated as ``C2'2``, etc.).
 """
 
 from __future__ import annotations
@@ -12,6 +14,7 @@ from pathlib import Path
 import biotite.structure as struc
 import biotite.structure.io as struc_io
 
+from tmol.ligand.mol2_names import disambiguate_mol2_atom_name
 from tmol.ligand.params_file import load_params_file
 
 PLI_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
@@ -67,6 +70,77 @@ def _load_ligand_coords_by_name(
             (float(coord[0]), float(coord[1]), float(coord[2])),
         )
     return coords_by_name
+
+
+def _element_from_tripos_type(tripos_type: str) -> str:
+    tripos_type = tripos_type.strip()
+    if not tripos_type:
+        return "X"
+    if len(tripos_type) >= 2 and tripos_type[1].islower():
+        return tripos_type[:2]
+    return tripos_type[0]
+
+
+def _load_ligand_coords_from_mol2(
+    mol2_path: Path,
+) -> dict[str, tuple[str, tuple[float, float, float]]]:
+    coords_by_name: dict[str, tuple[str, tuple[float, float, float]]] = {}
+    seen: dict[str, int] = {}
+    in_atoms = False
+    for line in mol2_path.read_text().splitlines():
+        if line.startswith("@<TRIPOS>ATOM"):
+            in_atoms = True
+            continue
+        if line.startswith("@<TRIPOS>"):
+            in_atoms = False
+            continue
+        if not in_atoms or not line.strip():
+            continue
+        parts = line.split()
+        if len(parts) < 6:
+            continue
+        raw_name = parts[1]
+        seen[raw_name] = seen.get(raw_name, 0) + 1
+        name = disambiguate_mol2_atom_name(raw_name, seen[raw_name])
+        if name in coords_by_name:
+            raise ValueError(f"{mol2_path.name}: duplicate mol2 atom name {name}")
+        element = _element_from_tripos_type(parts[5])
+        coord = (float(parts[2]), float(parts[3]), float(parts[4]))
+        coords_by_name[name] = (element, coord)
+    if not coords_by_name:
+        raise ValueError(f"{mol2_path.name}: no atoms found in @<TRIPOS>ATOM block")
+    return coords_by_name
+
+
+def _load_ligand_coords_for_target(
+    target: str,
+    restype,
+    complex_path: Path,
+) -> dict[str, tuple[str, tuple[float, float, float]]]:
+    """Load coordinates for every atom in ``restype``."""
+    atom_names = {str(atom.name) for atom in restype.atoms}
+    res_name = str(restype.name)
+
+    pdb_coords = _load_ligand_coords_by_name(complex_path, res_name)
+    if atom_names <= set(pdb_coords):
+        return {name: pdb_coords[name] for name in atom_names}
+
+    mol2_path = PLI_DIR / f"{target}.lig.mol2"
+    if not mol2_path.is_file():
+        missing = sorted(atom_names - set(pdb_coords))
+        raise ValueError(
+            f"{target}: atoms {missing} missing from {complex_path.name} "
+            f"and no {mol2_path.name} fallback"
+        )
+
+    mol2_coords = _load_ligand_coords_from_mol2(mol2_path)
+    missing = sorted(atom_names - set(mol2_coords))
+    if missing:
+        raise ValueError(
+            f"{target}: atoms {missing} missing from {mol2_path.name} "
+            f"(PDB names also differ: examples pdb-only={sorted(set(pdb_coords) - atom_names)[:5]})"
+        )
+    return {name: mol2_coords[name] for name in atom_names}
 
 
 def _aromatic_atom_set(restype) -> set[str]:
@@ -240,7 +314,7 @@ def ensure_pli_ligand_cifs(output_dir: Path = CIF_OUT_DIR) -> list[Path]:
         prep = preps[0]
         restype = prep.residue_type
         complex_path = _find_complex_path(target)
-        coords_by_name = _load_ligand_coords_by_name(complex_path, restype.name)
+        coords_by_name = _load_ligand_coords_for_target(target, restype, complex_path)
         cif_text = _render_ligand_cif(prep, coords_by_name)
 
         out_path = output_dir / f"{target}.ligand.cif"

@@ -1,29 +1,23 @@
 """Regression tests for DUD benchmark ligands.
 
-Two regression layers:
+1. ``TestDudCifGoldenEquivalence`` — CIF input, Dimorphite @ pH 7.4,
+   ``charge_mode="mmff94"``, full equivalence vs golden ``.tmol``.
 
-1. ``TestCifToTmolEquivalence`` — drives the AtomArray pipeline from each
-   ligand's ``.cif`` and asserts the resulting ``LigandPreparation``
-   matches Frank's reference ``.tmol`` (loaded via ``load_params_file``)
-   on atoms, atom types, bonds (including the 4-tuple ring flag),
-   partial charges, and cartbonded parameters.
-
-2. ``TestDUDScoring`` — loads the ``.tmol`` directly into a
-   ``ParameterDatabase`` and confirms scoring the matching ``_in.pdb``
-   pose reproduces the pre-generated Rosetta total in the ``.sc`` file.
+2. ``TestDUDScoring`` — same CIF pipeline as (1), score vs Rosetta ``.sc``.
 """
 
 from pathlib import Path
 
-import cattr
+import attr
+
 import numpy as np
 import pytest
 import torch  # noqa: F401  (used via torch_device fixture)
-import yaml
 
 from tmol.ligand.equivalence import compare_ligand_preparations
 
 DUD_DIR = Path(__file__).parent.parent / "data" / "dud_ligands"
+CHARGE_TOLERANCE = 0.05
 DUD_CASES = [
     ("ada", name)
     for name in [
@@ -48,43 +42,6 @@ DUD_CASES = [
         "ZINC03814480",
     ]
 ]
-
-
-# ---------------------------------------------------------------------------
-# .tmol file loader
-# ---------------------------------------------------------------------------
-
-
-def _load_tmol_file(path):
-    """Load a .tmol YAML and return data ready for inject_residue_params.
-
-    Returns:
-        (residues, partial_charges, cartbonded) where
-        - residues: list[RawResidueType]
-        - partial_charges: {res_name: {atom: charge}}
-        - cartbonded: {res_name: CartRes}
-    """
-    from tmol.database.chemical import RawResidueType, normalize_bond_tuples
-    from tmol.database.scoring.cartbonded import CartRes
-
-    with open(path) as f:
-        raw = yaml.safe_load(f)
-
-    res_list = raw.get("chemical", {}).get("residues", [])
-    normalize_bond_tuples({"residues": res_list})
-    residues = [cattr.structure(r, RawResidueType) for r in res_list]
-
-    ec_raw = raw.get("elec", {}).get("atom_charge_parameters", [])
-    partial_charges: dict[str, dict[str, float]] = {}
-    for entry in ec_raw:
-        partial_charges.setdefault(entry["res"], {})[entry["atom"]] = entry["charge"]
-
-    cb_raw = raw.get("cartbonded", {}).get("residue_params", {})
-    cartbonded = {
-        name: cattr.structure(params, CartRes) for name, params in cb_raw.items()
-    }
-
-    return residues, partial_charges, cartbonded
 
 
 # ---------------------------------------------------------------------------
@@ -209,25 +166,40 @@ def _cif_to_nonstandard_residue_info(cif_path: Path, res_name: str):
     )
 
 
-class TestCifToTmolEquivalence:
-    """CIF-derived prep must match checked-in `.tmol` references.
+def _cif_input_for_golden_pipeline(cif_path: Path, res_name: str):
+    """CIF geometry/bonds only; Dimorphite + MMFF run in ``prepare_single_ligand``."""
+    info = _cif_to_nonstandard_residue_info(cif_path, res_name)
+    return attr.evolve(info, partial_charges=None, skip_protonation=False)
 
-    Uses the same shared comparison helper as the PLI equivalence tests.
-    """
 
-    CHARGE_TOLERANCE = 0.05
+def prepare_dud_ligand_mmff94_from_cif(cif_path: Path, res_name: str = "LG1"):
+    """CIF → Dimorphite @ pH 7.4 → MMFF94 (shared by equivalence and scoring tests)."""
+    from tmol.ligand import prepare_single_ligand
+
+    info = _cif_input_for_golden_pipeline(cif_path, res_name)
+    return prepare_single_ligand(info, ph=7.4, charge_mode="mmff94")
+
+
+def _param_db_with_ligand_prep(prep):
+    from tmol.database import ParameterDatabase
+    from tmol.ligand.registry import inject_ligand_preparations
+
+    return inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
+
+
+@pytest.mark.slow
+class TestDudCifGoldenEquivalence:
+    """CIF → Dimorphite @ pH 7.4 → MMFF94 → golden ``.tmol``."""
 
     @pytest.fixture(params=DUD_CASES, ids=[f"{t}_{n}" for t, n in DUD_CASES])
     def prep_pair(self, request):
-        from tmol.ligand import prepare_single_ligand
         from tmol.ligand.params_file import load_params_file
 
         target, name = request.param
         cif_path = DUD_DIR / target / f"{name}.cif"
         tmol_path = DUD_DIR / target / f"{name}.tmol"
 
-        info = _cif_to_nonstandard_residue_info(cif_path, "LG1")
-        prep_cif = prepare_single_ligand(info, ph=7.4)
+        prep_cif = prepare_dud_ligand_mmff94_from_cif(cif_path, "LG1")
 
         preps_tmol = load_params_file(tmol_path)
         assert (
@@ -238,14 +210,14 @@ class TestCifToTmolEquivalence:
         equivalence = compare_ligand_preparations(
             prep_cif,
             prep_tmol,
-            charge_tolerance=self.CHARGE_TOLERANCE,
+            charge_tolerance=CHARGE_TOLERANCE,
         )
         return {"name": name, "equivalence": equivalence}
 
     @staticmethod
     def _format_check_error(prep_pair, check: str) -> str:
         details = prep_pair["equivalence"].details.get(check)
-        return f"{check} mismatch for {prep_pair['name']} (dud_cif -> .tmol): {details}"
+        return f"{check} mismatch for {prep_pair['name']} (CIF pipeline vs .tmol): {details}"
 
     def test_atom_set(self, prep_pair):
         assert prep_pair["equivalence"].checks["atom_set"], self._format_check_error(
@@ -306,18 +278,18 @@ def _rosetta_score(sc_path: Path) -> dict[str, float]:
 
 
 class TestDUDScoring:
-    """Load Rosetta-reference .tmol params into tmol and score each ligand."""
+    """Score each DUD ligand using the CIF → Dimorphite → MMFF94 pipeline."""
 
     @pytest.fixture(params=DUD_CASES, ids=[f"{t}_{n}" for t, n in DUD_CASES])
     def dud_scoring_data(self, request):
         target, name = request.param
-        tmol_path = DUD_DIR / target / f"{name}.tmol"
+        cif_path = DUD_DIR / target / f"{name}.cif"
         in_pdb = DUD_DIR / target / f"{name}_in.pdb"
 
         return {
             "name": name,
             "target": target,
-            "tmol_path": tmol_path,
+            "cif_path": cif_path,
             "in_pdb": in_pdb,
         }
 
@@ -325,19 +297,11 @@ class TestDUDScoring:
         import biotite.structure
         import biotite.structure.io
 
-        from tmol.database import ParameterDatabase, inject_residue_params
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
         from tmol.score import beta2016_score_function
 
-        residues, partial_charges, cartbonded = _load_tmol_file(
-            dud_scoring_data["tmol_path"]
-        )
-        param_db = inject_residue_params(
-            ParameterDatabase.get_default(),
-            residue_types=residues,
-            partial_charges=partial_charges,
-            cartbonded_params=cartbonded,
-        )
+        prep = prepare_dud_ligand_mmff94_from_cif(dud_scoring_data["cif_path"], "LG1")
+        param_db = _param_db_with_ligand_prep(prep)
 
         bt_struct = biotite.structure.io.load_structure(str(dud_scoring_data["in_pdb"]))
         if isinstance(bt_struct, biotite.structure.AtomArrayStack):

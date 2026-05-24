@@ -25,6 +25,7 @@ from tmol.ligand.cif_normalization import (
     infer_paired_mol2_path,
     repaired_cif_path_from_mol2,
 )
+from tmol.ligand.mol2_names import apply_disambiguated_mol2_names
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +249,41 @@ def _source_subtype_from_mol2_atom_type(mol2_type: str) -> str:
     return parts[1] or "?"
 
 
+def _mol2_charge_model(mol2_path: Path) -> str:
+    """Return the Tripos charge model line from a mol2 file (e.g. ``GASTEIGER``)."""
+    in_molecule = False
+    lines_after_molecule = 0
+    with mol2_path.open() as handle:
+        for line in handle:
+            stripped = line.strip()
+            if stripped.startswith("@<TRIPOS>MOLECULE"):
+                in_molecule = True
+                lines_after_molecule = 0
+                continue
+            if not in_molecule:
+                continue
+            if stripped.startswith("@<TRIPOS>"):
+                break
+            if not stripped:
+                continue
+            lines_after_molecule += 1
+            # MOLECULE block: name, counts, comment, type, charge_type, ...
+            if lines_after_molecule == 5:
+                return stripped.upper()
+    return ""
+
+
+def _mol2_partial_charges_are_authoritative(mol2_path: Path) -> bool:
+    """True only when mol2 partial charges are a trusted force-field model."""
+    model = _mol2_charge_model(mol2_path)
+    if not model:
+        return False
+    if model == "GASTEIGER":
+        return False
+    # PLI fixtures and legacy mol2s use Gasteiger; MMFF94/AM1-BCC/etc. are OK.
+    return True
+
+
 def nonstandard_residue_info_from_mol2(
     mol2_path: str | Path,
     res_name: str | None = None,
@@ -272,6 +308,7 @@ def nonstandard_residue_info_from_mol2(
     sanitize_tolerant(mol)
     if mol.GetNumConformers() == 0:
         raise ValueError(f"Mol2 file has no 3D coordinates: {path}")
+    disambiguated_names = apply_disambiguated_mol2_names(mol)
     conf = mol.GetConformer()
     n_atoms = mol.GetNumAtoms()
 
@@ -284,20 +321,17 @@ def nonstandard_residue_info_from_mol2(
     partial_charges: dict[str, float] = {}
 
     for i, atom in enumerate(mol.GetAtoms()):
-        name = (
-            atom.GetProp("_TriposAtomName")
-            if atom.HasProp("_TriposAtomName")
-            else f"{atom.GetSymbol()}{i + 1}"
-        )
+        name = disambiguated_names[i]
         atom_names.append(name)
         elements.append(atom.GetSymbol())
         p = conf.GetAtomPosition(i)
         coords[i] = [float(p.x), float(p.y), float(p.z)]
-        aromatic_flags[i] = atom.GetIsAromatic()
         mol2_type = (
             atom.GetProp("_TriposAtomType") if atom.HasProp("_TriposAtomType") else ""
         )
-        source_subtypes.append(_source_subtype_from_mol2_atom_type(mol2_type))
+        subtype = _source_subtype_from_mol2_atom_type(mol2_type)
+        source_subtypes.append(subtype)
+        aromatic_flags[i] = subtype == "ar" or atom.GetIsAromatic()
         if atom.HasProp("_TriposPartialCharge"):
             partial_charges[name] = float(atom.GetProp("_TriposPartialCharge"))
         else:
@@ -332,7 +366,10 @@ def nonstandard_residue_info_from_mol2(
     )
     atom_array.bonds = struc.BondList(n_atoms, bond_array)
 
-    authoritative_q = partial_charges if has_full_partial_charges else None
+    use_input_charges = (
+        has_full_partial_charges and _mol2_partial_charges_are_authoritative(path)
+    )
+    authoritative_q = partial_charges if use_input_charges else None
     return NonStandardResidueInfo(
         res_name=inferred_res_name,
         ccd_type="UNKNOWN",

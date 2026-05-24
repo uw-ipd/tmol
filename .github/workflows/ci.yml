@@ -110,10 +110,18 @@ jobs:
           # is this still necessary?
           # uv pip install torch==2.11.0 
 
-          GPU_ARCH=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}{c[1]}')")
-          echo "=== Building for GPU architecture: sm_${GPU_ARCH} ==="
+          # PyTorch reports the *runtime* GPU (e.g. sm_120 on Blackwell), but Apptainer
+          # nvcc is often older (e.g. CUDA 12.4) and cannot compile compute_120.
+          # Use a portable arch list for AOT; JIT tests still use the local GPU at runtime.
+          RUN_GPU=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')" 2>/dev/null || echo "n/a")
+          CUDA_ARCHS="${TMOL_CI_CUDA_ARCHITECTURES:-80;86;89;90;100}"
+          NVCC_VER=$(nvcc --version 2>&1 | sed -n 's/.*release \([0-9.]*\).*/\1/p' | head -1)
+          case "${NVCC_VER}" in
+            11.*|12.[0-7]*) CUDA_ARCHS="80;86;89;90" ;;
+          esac
+          echo "=== Runner GPU sm_${RUN_GPU} | nvcc ${NVCC_VER} | CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS} ==="
           MAX_JOBS=12 pip install -v --no-deps \
-                  -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${GPU_ARCH}" \
+                  -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
                   -Ccmake.define.TMOL_BUILD_TESTS=ON \
                   -Ccmake.define.TMOL_NVCC_THREADS=2 \
                   -e .

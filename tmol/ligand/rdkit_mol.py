@@ -1,6 +1,7 @@
 """RDKit molecule construction and protonation for ligands."""
 
 import logging
+from typing import Optional
 
 import biotite.structure as struc
 from biotite.interface.rdkit import to_mol
@@ -30,6 +31,100 @@ _BIOTITE_TO_RDKIT_BOND_ORDER = {
 
 _SOURCE_KEKULE_PROP = "_tmol_source_kekule"
 _SOURCE_AROMATIC_PROP = "_tmol_source_aromatic"
+
+
+def clear_source_chemistry_props(mol: Chem.Mol) -> None:
+    """Drop source Kekulé/aromatic marker props so RDKit can re-perceive chemistry.
+
+    Used after Dimorphite protonation when CIF/mol2 aromatic stamps no longer
+    match the protonated graph (common for charged N-heterocycles).
+    """
+    for key in (_SOURCE_KEKULE_PROP, _SOURCE_AROMATIC_PROP):
+        if mol.HasProp(key):
+            mol.ClearProp(key)
+
+
+def clear_aromatic_perception_flags(mol: Chem.Mol) -> None:
+    """Clear per-atom/bond aromatic flags (CIF ``tmol_aromatic`` stamps on the mol)."""
+    for bond in mol.GetBonds():
+        bond.SetIsAromatic(False)
+        if bond.GetBondType() == Chem.BondType.AROMATIC:
+            bond.SetBondType(Chem.BondType.SINGLE)
+    for atom in mol.GetAtoms():
+        atom.SetIsAromatic(False)
+
+
+def _rebuild_mol_via_smiles_preserving_coords(heavy: Chem.Mol) -> Optional[Chem.Mol]:
+    """Rebuild heavy-atom topology from SMILES; copy formal charges and coordinates.
+
+    MolToSmiles requires initialized ring perception on the input mol; without it
+    canonical SMILES generation can fail and MolFromSmiles may not recover.
+    """
+    try:
+        Chem.GetSSSR(heavy)
+        smiles = Chem.MolToSmiles(heavy, isomericSmiles=True)
+    except Exception:
+        return None
+
+    fresh = Chem.MolFromSmiles(smiles)
+    if fresh is None:
+        return None
+
+    match = fresh.GetSubstructMatch(heavy)
+    if len(match) != heavy.GetNumAtoms():
+        return None
+
+    conf = Chem.Conformer(fresh.GetNumAtoms())
+    has_coords = heavy.GetNumConformers() > 0
+    for proto_idx, fresh_idx in enumerate(match):
+        if has_coords:
+            conf.SetAtomPosition(
+                fresh_idx, heavy.GetConformer().GetAtomPosition(proto_idx)
+            )
+        fresh.GetAtomWithIdx(fresh_idx).SetFormalCharge(
+            heavy.GetAtomWithIdx(proto_idx).GetFormalCharge()
+        )
+    if has_coords:
+        fresh.AddConformer(conf, assignId=True)
+    else:
+        from rdkit.Chem import AllChem as _AllChem
+
+        _AllChem.Compute2DCoords(fresh)
+
+    Chem.SanitizeMol(fresh)
+    clear_source_chemistry_props(fresh)
+    return fresh
+
+
+def normalize_protonated_mol_for_mmff94(mol: Chem.Mol) -> Chem.Mol:
+    """Make a Dimorphite-protonated mol sanitizable and MMFF-ready.
+
+    Clears CIF/mol2 marker props **and** per-atom aromatic flags left by
+    :func:`_apply_atom_aromatic_flags_post_removeh`. If full sanitization still
+    fails, rebuilds the heavy-atom graph from SMILES while preserving 3D
+    coordinates and formal charges.
+    """
+    clear_source_chemistry_props(mol)
+    clear_aromatic_perception_flags(mol)
+    try:
+        Chem.SanitizeMol(mol)
+        return mol
+    except (
+        Chem.rdchem.KekulizeException,
+        Chem.rdchem.AtomKekulizeException,
+        Chem.rdchem.AtomValenceException,
+    ):
+        logger.debug(
+            "Sanitize failed after clearing aromatic flags; trying SMILES rebuild",
+            exc_info=True,
+        )
+
+    heavy = Chem.RemoveHs(mol, sanitize=False)
+    rebuilt = _rebuild_mol_via_smiles_preserving_coords(heavy)
+    if rebuilt is None:
+        return mol
+
+    return Chem.AddHs(rebuilt, addCoords=True)
 
 
 def _restore_kekule_bonds(mol: Chem.Mol, atom_array: struc.AtomArray) -> None:

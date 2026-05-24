@@ -39,6 +39,7 @@ from tmol.ligand.mol3d import build_partial_charges
 from tmol.ligand.residue_builder import build_residue_type
 from tmol.ligand.rdkit_mol import (
     ligand_atom_array_to_rdkit_mol,
+    normalize_protonated_mol_for_mmff94,
     protonate_ligand_mol,
 )
 
@@ -172,6 +173,7 @@ def prepare_single_ligand(
         charge_mode: Partial-charge source policy passed to
             :func:`tmol.ligand.mol3d.build_partial_charges`.
     """
+    mode = charge_mode.lower().strip()
     rdkit_mol = ligand_atom_array_to_rdkit_mol(ligand_info)
     # Skip protonation when:
     # - The caller explicitly sets skip_protonation=True, OR
@@ -182,20 +184,29 @@ def prepare_single_ligand(
         protonated = rdkit_mol
     else:
         protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
-        try:
-            protonated = AllChem.AssignBondOrdersFromTemplate(protonated, rdkit_mol)
-        except Exception:
-            logger.debug(
-                "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
-                ligand_info.res_name,
-            )
-    # Use the smart sanitize so source-supplied aromatic flags
-    # (CIF ``_atom_site.tmol_aromatic``) are not blown away by RDKit's
-    # default aromaticity perception.
+        if mode != "mmff94":
+            try:
+                # Apply source bond orders onto the protonated topology.
+                # RDKit API: AssignBondOrdersFromTemplate(template, mol)
+                # where `template` has trusted bond orders.
+                protonated = AllChem.AssignBondOrdersFromTemplate(rdkit_mol, protonated)
+            except Exception:
+                logger.debug(
+                    "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
+                    ligand_info.res_name,
+                )
+        else:
+            protonated = normalize_protonated_mol_for_mmff94(protonated)
+    # Always use tolerant sanitize before typing so CIF/mol2 aromatic flags and
+    # subtype hints survive (mmff94 charge recomputation must not skip this).
     from tmol.ligand.atom_typing import sanitize_tolerant
 
     sanitize_tolerant(protonated)
-    protonated = Chem.AddHs(protonated, addCoords=True)
+    # Inputs with authoritative partial charges already carry explicit
+    # hydrogens at the desired protonation state; AddHs would duplicate them
+    # and force a full MMFF94 fallback in build_partial_charges.
+    if not ligand_info.skip_protonation:
+        protonated = Chem.AddHs(protonated, addCoords=True)
 
     atom_types = assign_tmol_atom_types(protonated)
     atom_types = _rename_atoms_to_cif(protonated, atom_types, ligand_info)

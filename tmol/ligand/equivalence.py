@@ -222,8 +222,16 @@ def compare_ligand_preparations(  # noqa: C901
     reference: Any,
     *,
     charge_tolerance: float = 0.05,
+    skip_checks: frozenset[str] | None = None,
 ) -> EquivalenceResult:
-    """Compare two ``LigandPreparation`` objects with DUD test semantics."""
+    """Compare two ``LigandPreparation`` objects with DUD test semantics.
+
+    Args:
+        skip_checks: Check names to omit from pass/fail (e.g. ``partial_charges``
+            when comparing MMFF-derived prep to an AM1-BCC reference ``.tmol``).
+            Skipped checks are recorded as passed and noted in ``details``.
+    """
+    skipped = skip_checks or frozenset()
     checks: dict[str, bool] = {}
     details: dict[str, Any] = {}
 
@@ -367,8 +375,13 @@ def compare_ligand_preparations(  # noqa: C901
     if not checks["cartbonded_params"]:
         details["cartbonded_params"] = cb_diffs
 
+    for name in skipped:
+        checks[name] = True
+        details[name] = "skipped"
+
+    active = {k: v for k, v in checks.items() if k not in skipped}
     return EquivalenceResult(
-        is_equivalent=all(checks.values()),
+        is_equivalent=all(active.values()),
         checks=checks,
         details=details,
     )

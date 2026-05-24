@@ -124,6 +124,27 @@ pytest tmol/tests/ --cov=./tmol --junitxml=results.xml
 pytest --benchmark-enable --benchmark-only --benchmark-max-time=.1
 ```
 
+### PLI ligands vs Rosetta `mol2genparams`
+
+Checked-in `tmol/tests/data/protein_ligand_test/*.xtal-lig.mmff94.tmol` files are Rosetta
+exports. Regenerate reference `.params` from the same mol2 inputs with:
+
+```bash
+export ROSETTA_ROOT=/net/scratch/kdidi/rosetta   # default in scripts
+cd /path/to/tmol
+./scripts/pli_rosetta_workflow.sh --all          # mol2gen + audit CSV (no torch)
+```
+
+Inside the Apptainer / dev env (torch required), compare tmol prep to Rosetta:
+
+```bash
+python scripts/compare_pli_to_rosetta_params.py egfr
+pytest tmol/tests/ligand/test_pli_tmol_equivalence.py -k mol2_ace -v
+```
+
+PLI equivalence tests use `charge_mode=mmff94` for both mol2 and CIF (source partial
+charges are cleared before prep) and compare MMFF94 partial charges to the reference `.tmol`.
+
 ### Testing a specific release
 
 ```bash
