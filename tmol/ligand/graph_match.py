@@ -10,11 +10,11 @@ from rdkit import Chem
 
 def _heavy_atom_graph(
     mol: Chem.Mol,
-) -> tuple[list[tuple[int, int]], dict[int, set[int]], dict[int, int]]:
+) -> tuple[list[tuple[int, int, int]], dict[int, set[int]], dict[int, int]]:
     """Build a heavy-atom adjacency list with element labels.
 
     Returns:
-        atoms: list of (rdkit_index, atomic_num) for heavy atoms
+        atoms: list of (rdkit_index, atomic_num, heavy_degree) for heavy atoms
         adj: dict mapping heavy atom position -> set of neighbor positions
         idx_to_pos: dict mapping rdkit_index -> position in atoms list
     """
@@ -25,7 +25,8 @@ def _heavy_atom_graph(
             continue
         pos = len(atoms)
         idx_to_pos[atom.GetIdx()] = pos
-        atoms.append((atom.GetIdx(), atom.GetAtomicNum()))
+        heavy_degree = sum(1 for nbr in atom.GetNeighbors() if nbr.GetAtomicNum() != 1)
+        atoms.append((atom.GetIdx(), atom.GetAtomicNum(), heavy_degree))
 
     adj: dict[int, set[int]] = {i: set() for i in range(len(atoms))}
     for bond in mol.GetBonds():
@@ -38,10 +39,74 @@ def _heavy_atom_graph(
     return atoms, adj, idx_to_pos
 
 
-def _vf2_match(
-    atoms1: list[tuple[int, int]],
+def _vf2_node_order_key(atoms: list[tuple[int, int, int]], index: int) -> tuple:
+    return (-atoms[index][2], atoms[index][1], index)
+
+
+def _vf2_is_feasible(
+    atoms1: list[tuple[int, int, int]],
+    atoms2: list[tuple[int, int, int]],
     adj1: dict[int, set[int]],
-    atoms2: list[tuple[int, int]],
+    adj2: dict[int, set[int]],
+    mapping: dict[int, int],
+    reverse: dict[int, int],
+    p1: int,
+    p2: int,
+) -> bool:
+    if atoms1[p1][1] != atoms2[p2][1]:
+        return False
+    if atoms1[p1][2] != atoms2[p2][2]:
+        return False
+    for nbr1 in adj1[p1]:
+        if nbr1 in mapping and mapping[nbr1] not in adj2[p2]:
+            return False
+    for nbr2 in adj2[p2]:
+        if nbr2 in reverse and reverse[nbr2] not in adj1[p1]:
+            return False
+    return True
+
+
+def _vf2_backtrack(
+    n: int,
+    depth: int,
+    atoms1: list[tuple[int, int, int]],
+    atoms2: list[tuple[int, int, int]],
+    adj1: dict[int, set[int]],
+    adj2: dict[int, set[int]],
+    mapping: dict[int, int],
+    reverse: dict[int, int],
+) -> bool:
+    if depth == n:
+        return True
+
+    unmapped_g1 = [i for i in range(n) if i not in mapping]
+    p1 = min(unmapped_g1, key=lambda i: _vf2_node_order_key(atoms1, i))
+    elem = atoms1[p1][1]
+    degree = atoms1[p1][2]
+    candidates = sorted(
+        (i for i in range(n) if i not in reverse),
+        key=lambda i: _vf2_node_order_key(atoms2, i),
+    )
+    for p2 in candidates:
+        if p2 in reverse:
+            continue
+        if atoms2[p2][1] != elem or atoms2[p2][2] != degree:
+            continue
+        if not _vf2_is_feasible(atoms1, atoms2, adj1, adj2, mapping, reverse, p1, p2):
+            continue
+        mapping[p1] = p2
+        reverse[p2] = p1
+        if _vf2_backtrack(n, depth + 1, atoms1, atoms2, adj1, adj2, mapping, reverse):
+            return True
+        del mapping[p1]
+        del reverse[p2]
+    return False
+
+
+def _vf2_match(
+    atoms1: list[tuple[int, int, int]],
+    adj1: dict[int, set[int]],
+    atoms2: list[tuple[int, int, int]],
     adj2: dict[int, set[int]],
 ) -> dict[int, int] | None:
     """Simple VF2-style subgraph isomorphism for same-size graphs.
@@ -55,58 +120,7 @@ def _vf2_match(
 
     mapping: dict[int, int] = {}
     reverse: dict[int, int] = {}
-
-    def is_feasible(p1: int, p2: int) -> bool:
-        """Check whether assigning a node pair is graph-consistent.
-
-        Args:
-            p1: Candidate node index in graph 1.
-            p2: Candidate node index in graph 2.
-
-        Returns:
-            ``True`` if the partial mapping remains feasible.
-        """
-        if atoms1[p1][1] != atoms2[p2][1]:
-            return False
-        for nbr1 in adj1[p1]:
-            if nbr1 in mapping:
-                if mapping[nbr1] not in adj2[p2]:
-                    return False
-        for nbr2 in adj2[p2]:
-            if nbr2 in reverse:
-                if reverse[nbr2] not in adj1[p1]:
-                    return False
-        return True
-
-    def backtrack(depth: int) -> bool:
-        """Depth-first search for a full node mapping.
-
-        Args:
-            depth: Current mapping depth.
-
-        Returns:
-            ``True`` if a complete isomorphism mapping is found.
-        """
-        if depth == n:
-            return True
-
-        p1 = depth
-        elem = atoms1[p1][1]
-        for p2 in range(n):
-            if p2 in reverse:
-                continue
-            if atoms2[p2][1] != elem:
-                continue
-            if is_feasible(p1, p2):
-                mapping[p1] = p2
-                reverse[p2] = p1
-                if backtrack(depth + 1):
-                    return True
-                del mapping[p1]
-                del reverse[p2]
-        return False
-
-    if backtrack(0):
+    if _vf2_backtrack(n, 0, atoms1, atoms2, adj1, adj2, mapping, reverse):
         return dict(mapping)
     return None
 

@@ -47,16 +47,34 @@ CI currently uploads these wheel variants to [GitHub Releases](https://github.co
 Wheel filename format:
 
 ```text
-tmol-{VERSION}+{LOCAL_TAG}-cp{PYTAG}-cp{PYTAG}-linux_{ARCH}.whl
+tmol-{VERSION}+{LOCAL_TAG}-cp{PYTAG}-cp{PYTAG}-manylinux_2_28_{ARCH}.whl
 ```
 
 Examples:
 
-- `tmol-0.1.14+cu132torch2.12-cp313-cp313-linux_x86_64.whl`
-- `tmol-0.1.14+cpu-cp314-cp314-linux_x86_64.whl`
+- `tmol-0.1.22+cu132torch2.12-cp313-cp313-manylinux_2_28_x86_64.whl`
+- `tmol-0.1.22+cpu-cp314-cp314-manylinux_2_28_x86_64.whl`
 
 > [!TIP]
 > CUDA wheels are forward-compatible within a major family (e.g. `cu132` wheels run on appropriate CUDA 13.x driver stacks).
+
+### System requirements (Linux wheels)
+
+Pre-built Linux wheels are built for **manylinux_2_28** (glibc ≥ 2.28, typical minimum: **Ubuntu 20.04**, RHEL/CentOS 8+, or equivalent).
+
+Wheel tags such as `cp312` and `+cu130torch2.9` select **Python**, **PyTorch**, and **CUDA** — they do not override your system's C++ runtime (`libstdc++`). If `import tmol` fails with `GLIBCXX_3.4.xx not found`, your **libstdc++ is older than the wheel was built for** (not a wrong CUDA wheel tag).
+
+**On older HPC clusters or minimal Linux images:**
+
+```bash
+# Build against your system libraries (recommended)
+TMOL_DISABLE_WHEEL_FETCH=1 pip install -e .
+
+# Or allow JIT compile at import if nvcc is available
+export TMOL_JIT_FALLBACK=1
+```
+
+Other workarounds: load a newer GCC module, `conda install -c conda-forge libstdcxx-ng` and set `LD_LIBRARY_PATH`, or use a recent container image.
 
 Check your environment:
 
@@ -74,7 +92,7 @@ pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu132
 #### Install by direct wheel URL (recommended)
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.12-cp313-cp313-linux_x86_64.whl"
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.12-cp313-cp313-manylinux_2_28_x86_64.whl"
 ```
 
 #### Auto-fetch matching wheel, fallback to source build
@@ -142,7 +160,7 @@ pip install --no-index --find-links ./wheels "tmol==X.Y.Z+cu132torch2.12"
 #### CPU-only install
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cpu-cp313-cp313-linux_x86_64.whl"
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cpu-cp313-cp313-manylinux_2_28_x86_64.whl"
 ```
 
 The CPU wheel works with CPU-only or CUDA torch installs; CUDA ops in tmol are unavailable.

@@ -4,6 +4,19 @@ Detects non-standard residues in Biotite AtomArrays, builds protonated
 3D molecules with partial charges, assigns Rosetta-compatible atom types,
 and returns a new `ParameterDatabase` with the residue data injected.
 
+For file-based single-ligand preparation, prefer:
+
+```python
+from tmol.ligand import prepare_ligand_from_cif, prepare_ligand_from_mol2
+
+param_db, co = prepare_ligand_from_cif("ligand.cif")
+param_db, co = prepare_ligand_from_mol2("ligand.mol2")
+```
+
+These helpers preserve chemistry metadata (`tmol_aromatic`,
+`tmol_source_subtype`, and per-atom partial charges) that can be lost in
+generic rdkit<->biotite round-trips.
+
 ## Pipeline Overview
 
 ```mermaid
@@ -19,7 +32,7 @@ flowchart TD
 
         E --> F["compute_mmff94_charges\n(mol3d.py — RDKit MMFF94)"]
         E --> H["assign_tmol_atom_types\n(atom_typing.py — RDKit)"]
-        H --> I["rename atoms to CIF names\n(__init__.py)"]
+        H --> I["rename atoms to CIF names\n(preparation.py)"]
         I --> J["build_residue_type\n(residue_builder.py — RDKit)"]
     end
 
@@ -165,14 +178,15 @@ To "reset", just reacquire `get_default()` (or drop your extended instance).
 
 | File | Lines | Role |
 |------|------:|------|
-| `__init__.py` | 349 | `prepare_single_ligand`, `prepare_ligands`, CIF atom renaming |
-| `detect.py` | 279 | `NonStandardResidueInfo`, `detect_nonstandard_residues` |
-| `rdkit_mol.py` | 81 | `ligand_atom_array_to_rdkit_mol`, `protonate_ligand_mol` |
-| `mol3d.py` | 30 | `compute_mmff94_charges` |
-| `atom_typing.py` | 520 | Rosetta-style atom type assignment from Chem.Mol |
-| `residue_builder.py` | 330 | `build_residue_type` — RawResidueType from Chem.Mol |
-| `registry.py` | 390 | `inject_ligand_preparations`, `LigandPreparation`, `LigandPreparationCache` |
-| `graph_match.py` | 114 | VF2 heavy-atom isomorphism for CIF name mapping |
-| `params_io.py` | 178 | Rosetta `.params` file read/write (backward compat) |
-| `chemistry_tables.py` | 67 | H-bond/polar/sp2 atom-type sets from default DB |
+| `__init__.py` | 32 | Thin public API / re-export layer |
+| `preparation.py` | 434 | `prepare_single_ligand`, `prepare_ligands`, CIF atom renaming |
+| `detect.py` | 641 | `NonStandardResidueInfo`, `detect_nonstandard_residues` |
+| `rdkit_mol.py` | 307 | `ligand_atom_array_to_rdkit_mol`, `protonate_ligand_mol` |
+| `mol3d.py` | 146 | `compute_mmff94_charges` |
+| `atom_typing.py` | 1577 | Rosetta-style atom type assignment from Chem.Mol |
+| `residue_builder.py` | 504 | `build_residue_type` — RawResidueType from Chem.Mol |
+| `registry.py` | 400 | `inject_ligand_preparations`, `LigandPreparation`, `LigandPreparationCache` |
+| `graph_match.py` | 138 | VF2 heavy-atom isomorphism for CIF name mapping |
+| `params_io.py` | 180 | Rosetta `.params` file read/write (backward compat) |
+| `chemistry_tables.py` | 89 | H-bond/polar/sp2 atom-type sets from default DB |
 | `dimorphite_dl.py` | 1407 | Vendored Dimorphite-DL (Apache-2.0) |

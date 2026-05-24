@@ -146,10 +146,11 @@ def sanitize_tolerant(mol: Chem.Mol) -> None:
     """
     from tmol.ligand.rdkit_mol import (
         normalize_non_ring_aromatic_bonds,
+        source_has_aromatic_annotations,
         source_carried_kekule,
     )
 
-    if source_carried_kekule(mol):
+    if source_carried_kekule(mol) or source_has_aromatic_annotations(mol):
         ops = Chem.SANITIZE_ALL ^ Chem.SANITIZE_KEKULIZE ^ Chem.SANITIZE_SETAROMATICITY
         try:
             Chem.SanitizeMol(mol, sanitizeOps=ops)
@@ -599,6 +600,11 @@ def _prepare_mol_for_typing(mol: Chem.Mol) -> Chem.Mol:
         mol = Chem.AddHs(mol, addCoords=mol.GetNumConformers() > 0)
 
     sanitize_tolerant(mol)
+
+    if should_kekulize_for_typing(mol):
+        # Rosetta's atom-type pipeline for non-.ar sources expects explicit
+        # single/double bond orders during classification.
+        kekulize_tolerant(mol)
 
     # Perceive rings
     Chem.GetSSSR(mol)

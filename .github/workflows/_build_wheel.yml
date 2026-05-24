@@ -30,13 +30,19 @@ on:
           When non-empty, reinstall PyTorch from pip using this --index-url.
           Used when the target torch version or CUDA variant differs from
           what the NGC container ships (e.g. Colab cu128 build).
+      use-manylinux-build:
+        required: false
+        type: boolean
+        default: false
+        description: >
+          Build x86_64 wheels in manylinux_2_28 with devtoolset and auditwheel
+          repair for broad glibc/libstdc++ compatibility.
 
 jobs:
   build-wheel:
     runs-on: ${{ inputs.runs-on }}
     name: "${{ inputs.label }}"
     env:
-      CONTAINER_IMAGE: ${{ inputs.container-image }}
       BUILDER: builder-${{ github.run_id }}-${{ strategy.job-index }}
     steps:
       - name: Free disk space
@@ -56,55 +62,100 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Select builder image
+        run: |
+          if [ "${{ inputs.use-manylinux-build }}" = "true" ]; then
+            echo "CONTAINER_IMAGE=quay.io/pypa/manylinux_2_28_x86_64" >> "$GITHUB_ENV"
+            echo "USE_MANYLINUX_BUILD=true" >> "$GITHUB_ENV"
+          else
+            echo "CONTAINER_IMAGE=${{ inputs.container-image }}" >> "$GITHUB_ENV"
+            echo "USE_MANYLINUX_BUILD=false" >> "$GITHUB_ENV"
+          fi
+
       - name: Pull container and start builder
         run: |
-          docker pull $CONTAINER_IMAGE
-          docker create --name $BUILDER \
-            -v $GITHUB_WORKSPACE:/workspace -w /workspace \
-            $CONTAINER_IMAGE sleep infinity
-          docker start $BUILDER
+          docker pull "$CONTAINER_IMAGE"
+          docker create --name "$BUILDER" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            "$CONTAINER_IMAGE" sleep infinity
+          docker start "$BUILDER"
 
       - name: Prepare target Python runtime
         run: |
-          docker exec $BUILDER bash -x -e -o pipefail -c '
-            source /etc/bash.bashrc 2>/dev/null || true
+          docker exec "$BUILDER" bash -x -e -o pipefail -c '
             PYVER="${{ inputs.python-version }}"
-            if command -v "python${PYVER}" >/dev/null 2>&1; then
-              PYBIN=$(command -v "python${PYVER}")
+            USE_MANYLINUX="${{ inputs.use-manylinux-build }}"
+            if [ "$USE_MANYLINUX" = "true" ]; then
+              PYTAG=$(echo "$PYVER" | tr -d ".")
+              PYBIN="/opt/python/cp${PYTAG}-cp${PYTAG}/bin/python"
+              if [ ! -x "$PYBIN" ]; then
+                echo "ERROR: manylinux Python not found: $PYBIN"
+                ls -la /opt/python/ || true
+                exit 1
+              fi
+              VENV="/tmp/tmol-venv-${PYVER}"
+              "$PYBIN" -m venv "$VENV"
             else
-              python3 -m pip install --break-system-packages --upgrade uv
-              uv python install "${PYVER}"
-              PYBIN=$(uv python find "${PYVER}")
-            fi
-
-            VENV="/tmp/tmol-venv-${PYVER}"
-            SYS_PYVER=$(python3 -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")")
-            TARGET_PYVER=$("${PYBIN}" -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")")
-            if [ "${TARGET_PYVER}" = "${SYS_PYVER}" ]; then
-              "${PYBIN}" -m venv --system-site-packages "${VENV}"
-            else
-              "${PYBIN}" -m venv "${VENV}"
+              source /etc/bash.bashrc 2>/dev/null || true
+              if command -v "python${PYVER}" >/dev/null 2>&1; then
+                PYBIN=$(command -v "python${PYVER}")
+              else
+                python3 -m pip install --break-system-packages --upgrade uv
+                uv python install "${PYVER}"
+                PYBIN=$(uv python find "${PYVER}")
+              fi
+              VENV="/tmp/tmol-venv-${PYVER}"
+              SYS_PYVER=$(python3 -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")")
+              TARGET_PYVER=$("${PYBIN}" -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")")
+              if [ "${TARGET_PYVER}" = "${SYS_PYVER}" ]; then
+                "${PYBIN}" -m venv --system-site-packages "${VENV}"
+              else
+                "${PYBIN}" -m venv "${VENV}"
+              fi
             fi
             "${VENV}/bin/pip" install --upgrade pip
             echo "${VENV}" > /tmp/tmol_target_venv
           '
 
-          TARGET_VENV=$(docker exec $BUILDER cat /tmp/tmol_target_venv)
-          echo "TARGET_VENV=${TARGET_VENV}" >> $GITHUB_ENV
+          TARGET_VENV=$(docker exec "$BUILDER" cat /tmp/tmol_target_venv)
+          echo "TARGET_VENV=${TARGET_VENV}" >> "$GITHUB_ENV"
 
       - name: Install PyTorch for target runtime
         run: |
-          DEFAULT_CUDA_TAG=$(docker exec $BUILDER python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])")
-          TORCH_INDEX_URL="https://download.pytorch.org/whl/cu${DEFAULT_CUDA_TAG}"
-          if [ -n "${{ inputs.pip-torch-cuda-url }}" ]; then
+          if [ "${{ inputs.use-manylinux-build }}" = "true" ]; then
             TORCH_INDEX_URL="${{ inputs.pip-torch-cuda-url }}"
+            if [ -z "$TORCH_INDEX_URL" ]; then
+              case "${{ inputs.torch-version }}" in
+                2.8) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu128" ;;
+                2.9) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu130" ;;
+                2.10) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu131" ;;
+                2.11) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu131" ;;
+                2.12) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu132" ;;
+                *)
+                  echo "ERROR: set pip-torch-cuda-url for torch ${{ inputs.torch-version }}"
+                  exit 1
+                  ;;
+              esac
+            fi
+            NEED_INSTALL=1
+          else
+            DEFAULT_CUDA_TAG=$(docker exec "$BUILDER" python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])" 2>/dev/null || echo "")
+            if [ -n "$DEFAULT_CUDA_TAG" ]; then
+              TORCH_INDEX_URL="https://download.pytorch.org/whl/cu${DEFAULT_CUDA_TAG}"
+            else
+              TORCH_INDEX_URL="https://download.pytorch.org/whl/cu130"
+            fi
+            if [ -n "${{ inputs.pip-torch-cuda-url }}" ]; then
+              TORCH_INDEX_URL="${{ inputs.pip-torch-cuda-url }}"
+            fi
+            NEED_INSTALL=1
           fi
 
-          docker exec $BUILDER bash -x -e -o pipefail -c "
+          docker exec "$BUILDER" bash -x -e -o pipefail -c "
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
-            NEED_INSTALL=1
-            if [ -z '${{ inputs.pip-torch-cuda-url }}' ]; then
+            NEED_INSTALL=${NEED_INSTALL}
+            if [ '${{ inputs.use-manylinux-build }}' != 'true' ] && [ -z '${{ inputs.pip-torch-cuda-url }}' ]; then
               if ${TARGET_VENV}/bin/python -c \"import torch, sys; v='.'.join(torch.__version__.split('.')[:2]); sys.exit(0 if v=='${{ inputs.torch-version }}' else 1)\"; then
                 NEED_INSTALL=0
                 echo 'Using bundled NGC torch for target runtime'
@@ -113,11 +164,13 @@ jobs:
 
             if [ \$NEED_INSTALL -eq 1 ]; then
               unset PIP_CONSTRAINT
-              echo \"PIP_CONSTRAINT=\${PIP_CONSTRAINT:-<unset>}\"
-              echo \"PIP_CONFIG_FILE=/dev/null\"
               PIP_CONFIG_FILE=/dev/null env -u PIP_CONSTRAINT ${TARGET_VENV}/bin/pip install --force-reinstall \
                 torch==${{ inputs.torch-version }}.* \
                 --index-url ${TORCH_INDEX_URL}
+            fi
+
+            if [ '${{ inputs.use-manylinux-build }}' = 'true' ]; then
+              ${TARGET_VENV}/bin/pip install 'nvidia-cuda-nvcc>=13,<14' 'nvidia-cuda-cccl>=13,<14'
             fi
 
             TORCH_FILE=\$(${TARGET_VENV}/bin/python -c \"import os, torch; print(os.path.realpath(torch.__file__))\")
@@ -134,20 +187,24 @@ jobs:
 
       - name: Set version variables
         run: |
-          PYTHON_VERSION=$(docker exec $BUILDER bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')\"")
-          TORCH_VERSION=$(docker exec $BUILDER bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')\"")
-          CUDA_VERSION=$(docker exec $BUILDER bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(torch.version.cuda.replace('.','')[:3])\"")
+          PYTHON_VERSION=$(docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')\"")
+          TORCH_VERSION=$(docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')\"")
+          CUDA_VERSION=$(docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(torch.version.cuda.replace('.','')[:3])\"")
 
-          echo "MATRIX_PYTHON_VERSION=${PYTHON_VERSION}" >> $GITHUB_ENV
-          echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> $GITHUB_ENV
-          echo "WHEEL_CUDA_VERSION=${CUDA_VERSION}" >> $GITHUB_ENV
+          echo "MATRIX_PYTHON_VERSION=${PYTHON_VERSION}" >> "$GITHUB_ENV"
+          echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> "$GITHUB_ENV"
+          echo "WHEEL_CUDA_VERSION=${CUDA_VERSION}" >> "$GITHUB_ENV"
 
-          docker exec $BUILDER nvcc --version
-          docker exec $BUILDER bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')\""
+          if [ "${{ inputs.use-manylinux-build }}" != "true" ]; then
+            docker exec "$BUILDER" nvcc --version
+          else
+            docker exec "$BUILDER" bash -e -o pipefail -c "${TARGET_VENV}/bin/python -c \"import shutil; print(shutil.which('nvcc') or 'nvcc from pip package')\""
+          fi
+          docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')\""
 
       - name: Install build dependencies
         run: |
-          docker exec $BUILDER bash -x -e -o pipefail -c "
+          docker exec "$BUILDER" bash -x -e -o pipefail -c "
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             ${TARGET_VENV}/bin/pip install \
@@ -158,8 +215,13 @@ jobs:
         run: |
           docker exec \
             -e MAX_JOBS=1 \
-            $BUILDER bash -x -e -o pipefail -c '
+            "$BUILDER" bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
+            if [ -f /opt/rh/devtoolset-10/enable ]; then
+              source /opt/rh/devtoolset-10/enable
+            elif [ -f /opt/rh/devtoolset-11/enable ]; then
+              source /opt/rh/devtoolset-11/enable
+            fi
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             CUDA_MAJOR=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
@@ -174,22 +236,30 @@ jobs:
               -Ccmake.define.TMOL_NVCC_THREADS=1
           '
 
+      - name: Repair wheel (auditwheel / manylinux)
+        if: inputs.use-manylinux-build
+        run: |
+          chmod +x scripts/repair_linux_wheel.sh
+          ./scripts/repair_linux_wheel.sh dist
+
+      - name: Rename wheel with CUDA/Torch tag
+        run: |
           tmpname=cu${WHEEL_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}
-          docker exec $BUILDER bash -c "
+          docker exec "$BUILDER" bash -c "
             cd /workspace
             wheel_name=\$(ls dist/*whl | xargs -n 1 basename | sed \"s/-/+${tmpname}-/2\")
             ls dist/*whl | xargs -I {} mv {} dist/\${wheel_name}
             echo \${wheel_name}
           " | tail -1 > /tmp/wheel_name.txt
           wheel_name=$(cat /tmp/wheel_name.txt)
-          echo "wheel_name=${wheel_name}" >> $GITHUB_ENV
+          echo "wheel_name=${wheel_name}" >> "$GITHUB_ENV"
 
       - name: Log built wheels
         run: ls -lh dist/
 
       - name: Detect arch
         id: arch
-        run: echo "arch=$(docker exec $BUILDER uname -m)" >> $GITHUB_OUTPUT
+        run: echo "arch=$(docker exec "$BUILDER" uname -m)" >> "$GITHUB_OUTPUT"
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
@@ -199,4 +269,4 @@ jobs:
 
       - name: Cleanup container
         if: always()
-        run: docker rm -f $BUILDER 2>/dev/null || true
+        run: docker rm -f "$BUILDER" 2>/dev/null || true

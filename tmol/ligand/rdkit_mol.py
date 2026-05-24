@@ -29,6 +29,7 @@ _BIOTITE_TO_RDKIT_BOND_ORDER = {
 }
 
 _SOURCE_KEKULE_PROP = "_tmol_source_kekule"
+_SOURCE_AROMATIC_PROP = "_tmol_source_aromatic"
 
 
 def _restore_kekule_bonds(mol: Chem.Mol, atom_array: struc.AtomArray) -> None:
@@ -122,8 +123,9 @@ def _apply_atom_aromatic_flags_post_removeh(
     flags we previously set. We re-stamp here, mapping the post-RemoveHs
     heavy-atom indices back to the source AtomArray indices via
     ``heavy_arr_indices`` (which was captured before Hs were stripped).
-    Sets ``_SOURCE_KEKULE_PROP`` so downstream sanitize_tolerant skips
-    its own aromaticity perception, and stamps each atom's source-mol2
+    Sets ``_SOURCE_AROMATIC_PROP`` so downstream sanitize_tolerant skips
+    aromaticity re-perception when source annotations are present, and
+    stamps each atom's source-mol2
     subtype hint (``ar`` / ``2`` / ``cat`` / ``3`` / ``pl3`` / …) onto
     an atom prop so the carbon classifier can pick CR vs CD without
     re-deriving it from RDKit's perception.
@@ -154,7 +156,7 @@ def _apply_atom_aromatic_flags_post_removeh(
             bond.SetIsAromatic(True)
         else:
             bond.SetIsAromatic(False)
-    mol.SetProp(_SOURCE_KEKULE_PROP, "1")
+    mol.SetProp(_SOURCE_AROMATIC_PROP, "1")
 
 
 def source_subtype(atom: Chem.Atom) -> str:
@@ -175,6 +177,13 @@ def source_carried_kekule(mol: Chem.Mol) -> bool:
     ``AROMATIC`` bonds and leave this flag unset.
     """
     return mol.HasProp(_SOURCE_KEKULE_PROP) and mol.GetProp(_SOURCE_KEKULE_PROP) == "1"
+
+
+def source_has_aromatic_annotations(mol: Chem.Mol) -> bool:
+    """True iff aromatic atom flags were provided by the source input."""
+    return (
+        mol.HasProp(_SOURCE_AROMATIC_PROP) and mol.GetProp(_SOURCE_AROMATIC_PROP) == "1"
+    )
 
 
 ELEMENT_TO_ATOMIC_NUM = {

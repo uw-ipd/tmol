@@ -119,6 +119,13 @@ editable.mode = "inplace"
 CMAKE_CUDA_ARCHITECTURES = {env = "CMAKE_CUDA_ARCHITECTURES", default = "80;86;89;90"}
 TMOL_BUILD_TESTS = {env = "TMOL_BUILD_TESTS", default = "OFF"}
 
+# Linux wheel policy (CI builds x86_64 GPU wheels in manylinux_2_28 + auditwheel)
+[tool.cibuildwheel]
+build = "cp3{11,12,13,14}-*"
+skip = "*-musllinux_*"
+manylinux-x86_64-image = "quay.io/pypa/manylinux_2_28_x86_64"
+manylinux-aarch64-image = "quay.io/pypa/manylinux_2_34_aarch64"
+
 # Test settings ----------------------------------------------------------------
 [tool.pytest.ini_options]
 addopts = "--benchmark-disable --benchmark-columns=ops,mean,iqr -m 'not slow'"

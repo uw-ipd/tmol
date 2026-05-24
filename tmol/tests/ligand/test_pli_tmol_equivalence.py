@@ -1,198 +1,197 @@
-"""Regression tests for protein_ligand_test ligand `.tmol` equivalence.
+"""Regression tests for protein_ligand_test file-to-.tmol equivalence.
 
-For each generated ligand CIF in `tests/data/protein_ligand_test/cif_inputs`,
-this test:
-1) builds `NonStandardResidueInfo` from explicit-bond CIF data,
-2) runs the RDKit atom-typing pipeline (`prepare_single_ligand`), and
-3) compares against the target `<name>.xtal-lig.mmff94.tmol` reference.
+For each PLI target, this suite checks both ligand-source formats:
+
+1. ``cif_inputs/<target>.ligand.cif`` -> ``prepare_single_ligand``
+2. ``<target>.lig.mol2``             -> ``prepare_single_ligand``
+
+Each generated ``LigandPreparation`` must match the checked-in reference
+``<target>.xtal-lig.mmff94.tmol`` under the same normalization semantics used
+for DUD regression tests.
 """
 
 from pathlib import Path
 
+import attr
 import pytest
 
-from tmol.tests.ligand.build_pli_ligand_cifs import ensure_pli_ligand_cifs
-from tmol.tests.ligand.test_dud_ligands import (
-    _cartres_heavy_key_set,
-    _cif_to_nonstandard_residue_info,
-    _is_heavy,
+from tmol.ligand.cif_normalization import (
+    audit_cif_bonds_vs_mol2,
+    repaired_cif_path_from_mol2,
 )
+from tmol.ligand.equivalence import compare_ligand_preparations
 
 PLI_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 PLI_CIF_DIR = PLI_DIR / "cif_inputs"
-_TMOL_SUFFIX = ".xtal-lig.mmff94.tmol"
-PLI_CASES = sorted(
-    p.name[: -len(_TMOL_SUFFIX)] for p in PLI_DIR.glob(f"*{_TMOL_SUFFIX}")
+TMOL_SUFFIX = ".xtal-lig.mmff94.tmol"
+
+TMOL_TARGETS = {
+    p.name[: -len(TMOL_SUFFIX)] for p in PLI_DIR.glob(f"*{TMOL_SUFFIX}") if p.is_file()
+}
+CIF_TARGETS = {
+    p.name[: -len(".ligand.cif")]
+    for p in PLI_CIF_DIR.glob("*.ligand.cif")
+    if p.is_file()
+}
+MOL2_TARGETS = {
+    p.name[: -len(".lig.mol2")] for p in PLI_DIR.glob("*.lig.mol2") if p.is_file()
+}
+
+PLI_FORMAT_CASES = sorted(
+    [("cif", target) for target in (TMOL_TARGETS & CIF_TARGETS)]
+    + [("mol2", target) for target in (TMOL_TARGETS & MOL2_TARGETS)],
+    key=lambda x: (x[0], x[1]),
 )
 
+CASE_IDS = [f"{source}_{target}" for source, target in PLI_FORMAT_CASES]
 
-class TestPLITmolEquivalence:
-    """CIF-derived ligand prep must match reference `.tmol` ligand prep."""
 
-    CHARGE_TOLERANCE = 0.05
+def _source_path(source: str, target: str) -> Path:
+    if source == "cif":
+        return PLI_CIF_DIR / f"{target}.ligand.cif"
+    if source == "mol2":
+        return PLI_DIR / f"{target}.lig.mol2"
+    raise ValueError(f"Unsupported source format: {source}")
 
-    @pytest.fixture(params=PLI_CASES)
-    def prep_pair(self, request):
-        from tmol.ligand import prepare_single_ligand
-        from tmol.ligand.params_file import load_params_file
 
-        target = request.param
-        tmol_path = PLI_DIR / f"{target}.xtal-lig.mmff94.tmol"
-        ensure_pli_ligand_cifs(PLI_CIF_DIR)
+def _format_check_error(prep_pair: dict, check: str) -> str:
+    details = prep_pair["equivalence"].details.get(check)
+    return (
+        f"{check} mismatch for {prep_pair['target']} ({prep_pair['source']} -> .tmol): "
+        f"{details}"
+    )
+
+
+def test_pli_reference_inputs_are_complete():
+    """Guardrail: every reference .tmol target should have both CIF and MOL2 inputs."""
+    missing_cif = sorted(TMOL_TARGETS - CIF_TARGETS)
+    missing_mol2 = sorted(TMOL_TARGETS - MOL2_TARGETS)
+    assert not missing_cif, f"Missing PLI CIF inputs for targets: {missing_cif}"
+    assert not missing_mol2, f"Missing PLI MOL2 inputs for targets: {missing_mol2}"
+
+
+def test_pli_cif_bond_tables_audit_and_regeneration():
+    """Every paired CIF/MOL2 must be auditable and repairable."""
+    shared = sorted(TMOL_TARGETS & CIF_TARGETS & MOL2_TARGETS)
+    assert shared, "No shared PLI CIF/MOL2 targets found"
+    for target in shared:
         cif_path = PLI_CIF_DIR / f"{target}.ligand.cif"
+        mol2_path = PLI_DIR / f"{target}.lig.mol2"
+        audit = audit_cif_bonds_vs_mol2(cif_path, mol2_path)
+        if audit.consistent:
+            continue
+        repaired_path, _, regenerated = repaired_cif_path_from_mol2(
+            cif_path,
+            mol2_path,
+            res_name="LG1",
+        )
+        try:
+            repaired_audit = audit_cif_bonds_vs_mol2(repaired_path, mol2_path)
+            assert repaired_audit.consistent, (
+                f"Regenerated CIF for {target} still mismatches paired MOL2; "
+                f"missing={repaired_audit.missing_in_cif} extra={repaired_audit.extra_in_cif}"
+            )
+        finally:
+            if regenerated:
+                repaired_path.unlink(missing_ok=True)
 
-        preps_tmol = load_params_file(tmol_path)
-        assert (
-            len(preps_tmol) == 1
-        ), f"{tmol_path.name}: expected one residue, got {len(preps_tmol)}"
-        prep_tmol = preps_tmol[0]
 
-        info = _cif_to_nonstandard_residue_info(cif_path, prep_tmol.residue_type.name)
-        prep_cif = prepare_single_ligand(info, ph=7.4)
+@pytest.fixture(scope="class", params=PLI_FORMAT_CASES, ids=CASE_IDS)
+def prep_pair(request):
+    from tmol.ligand import prepare_single_ligand
+    from tmol.ligand.detect import (
+        nonstandard_residue_info_from_cif,
+        nonstandard_residue_info_from_mol2,
+    )
+    from tmol.ligand.params_file import load_params_file
 
-        return {
-            "name": target,
-            "case_name": target,
-            "cif": prep_cif,
-            "tmol": prep_tmol,
-        }
+    source, target = request.param
+    source_path = _source_path(source, target)
+    tmol_path = PLI_DIR / f"{target}{TMOL_SUFFIX}"
+
+    preps_tmol = load_params_file(tmol_path)
+    assert (
+        len(preps_tmol) == 1
+    ), f"{tmol_path.name}: expected one residue, got {len(preps_tmol)}"
+    prep_tmol = preps_tmol[0]
+    ref_res_name = prep_tmol.residue_type.name
+
+    if source == "cif":
+        source_info = nonstandard_residue_info_from_cif(
+            source_path,
+            res_name=ref_res_name,
+            paired_mol2_path=PLI_DIR / f"{target}.lig.mol2",
+            repair_invalid_bonds=True,
+        )
+    else:
+        source_info = nonstandard_residue_info_from_mol2(
+            source_path, res_name=ref_res_name
+        )
+
+    prep_source = prepare_single_ligand(source_info, ph=7.4, charge_mode="mmff94")
+    equivalence = compare_ligand_preparations(
+        prep_source, prep_tmol, charge_tolerance=0.05
+    )
+
+    return {
+        "source": source,
+        "target": target,
+        "source_path": source_path,
+        "tmol_path": tmol_path,
+        "equivalence": equivalence,
+    }
+
+
+class TestPLIFileToTmolEquivalence:
+    """File-derived ligand prep must match checked-in `.tmol` references."""
 
     def test_atom_set(self, prep_pair):
-        cif_atoms = {
-            (str(a.name), a.atom_type)
-            for a in prep_pair["cif"].residue_type.atoms
-            if _is_heavy(a.name)
-        }
-        tmol_atoms = {
-            (str(a.name), a.atom_type)
-            for a in prep_pair["tmol"].residue_type.atoms
-            if _is_heavy(a.name)
-        }
-        only_cif = sorted(cif_atoms - tmol_atoms)
-        only_tmol = sorted(tmol_atoms - cif_atoms)
-        assert cif_atoms == tmol_atoms, (
-            f"Heavy atom set mismatch for {prep_pair['case_name']}:\n"
-            f"  only in cif-pipeline: {only_cif}\n"
-            f"  only in tmol-ref:     {only_tmol}"
+        assert prep_pair["equivalence"].checks["atom_set"], _format_check_error(
+            prep_pair, "atom_set"
         )
 
     def test_atom_types(self, prep_pair):
-        cif_types = {
-            str(a.name): a.atom_type
-            for a in prep_pair["cif"].residue_type.atoms
-            if _is_heavy(a.name)
-        }
-        tmol_types = {
-            str(a.name): a.atom_type
-            for a in prep_pair["tmol"].residue_type.atoms
-            if _is_heavy(a.name)
-        }
-        mismatches = [
-            (n, cif_types[n], tmol_types[n])
-            for n in cif_types.keys() & tmol_types.keys()
-            if cif_types[n] != tmol_types[n]
-        ]
-        assert (
-            not mismatches
-        ), f"Atom type mismatches for {prep_pair['case_name']}:\n" + "\n".join(
-            f"  {n}: cif={c}, tmol={t}" for n, c, t in mismatches
+        assert prep_pair["equivalence"].checks["atom_types"], _format_check_error(
+            prep_pair, "atom_types"
         )
 
     def test_bonds(self, prep_pair):
-        aromatic_equiv = frozenset({"AROMATIC", "SINGLE", "DOUBLE"})
-
-        def keyset(bonds):
-            out = set()
-            for a, b, bond_type, *rest in bonds:
-                a, b = str(a), str(b)
-                if not (_is_heavy(a) and _is_heavy(b)):
-                    continue
-                ring = bool(rest[0]) if rest else False
-                out.add((frozenset([a, b]), bond_type, ring))
-            return out
-
-        def is_delocalized(pair, btype, ring, aromatic_atoms):
-            if btype == "AROMATIC":
-                return True
-            if ring and btype in aromatic_equiv:
-                return True
-            if pair & aromatic_atoms and btype in aromatic_equiv:
-                return True
-            return False
-
-        cif_bonds = keyset(prep_pair["cif"].residue_type.bonds)
-        tmol_bonds = keyset(prep_pair["tmol"].residue_type.bonds)
-        all_bonds = cif_bonds | tmol_bonds
-
-        aromatic_atoms: set[str] = set()
-        for pair, btype, _ring in all_bonds:
-            if btype == "AROMATIC":
-                aromatic_atoms.update(pair)
-
-        delocalized_pairs: set[frozenset] = set()
-        for pair, btype, ring in all_bonds:
-            if is_delocalized(pair, btype, ring, aromatic_atoms):
-                delocalized_pairs.add(pair)
-
-        def normalize(bond_set):
-            out = set()
-            for pair, btype, ring in bond_set:
-                if pair in delocalized_pairs and btype in aromatic_equiv:
-                    out.add((pair, "DELOCALIZED", ring))
-                else:
-                    out.add((pair, btype, ring))
-            return out
-
-        cif_norm = normalize(cif_bonds)
-        tmol_norm = normalize(tmol_bonds)
-        only_cif = sorted(cif_norm - tmol_norm)
-        only_tmol = sorted(tmol_norm - cif_norm)
-        assert cif_norm == tmol_norm, (
-            f"Heavy bond set mismatch for {prep_pair['case_name']}:\n"
-            f"  only in cif-pipeline: {set(only_cif)}\n"
-            f"  only in tmol-ref:     {set(only_tmol)}"
+        assert prep_pair["equivalence"].checks["bonds"], _format_check_error(
+            prep_pair, "bonds"
         )
 
     def test_partial_charges(self, prep_pair):
-        cif_q = prep_pair["cif"].partial_charges
-        tmol_q = prep_pair["tmol"].partial_charges
-        shared = cif_q.keys() & tmol_q.keys()
-        assert shared, f"No shared atom names for {prep_pair['case_name']}"
-        bad = [
-            (n, cif_q[n], tmol_q[n])
-            for n in shared
-            if abs(cif_q[n] - tmol_q[n]) >= self.CHARGE_TOLERANCE
-        ]
-        assert not bad, (
-            f"Partial-charge mismatch (>{self.CHARGE_TOLERANCE}) for "
-            f"{prep_pair['case_name']}:\n"
-            + "\n".join(
-                f"  {n}: cif={c:+.4f}, tmol={t:+.4f}, diff={c - t:+.4f}"
-                for n, c, t in bad
-            )
+        assert prep_pair["equivalence"].checks["partial_charges"], _format_check_error(
+            prep_pair, "partial_charges"
         )
 
     def test_cartbonded_params(self, prep_pair):
-        cif_cb = prep_pair["cif"].cartbonded_params
-        tmol_cb = prep_pair["tmol"].cartbonded_params
-        groups = [
-            ("length_parameters", "length"),
-            ("angle_parameters", "angle"),
-            ("improper_parameters", "improper"),
-        ]
-        diffs = []
-        for attr_name, kind in groups:
-            cif_keys = _cartres_heavy_key_set(getattr(cif_cb, attr_name), kind)
-            tmol_keys = _cartres_heavy_key_set(getattr(tmol_cb, attr_name), kind)
-            if cif_keys != tmol_keys:
-                diffs.append(
-                    f"  {attr_name}: only in cif {cif_keys - tmol_keys}, "
-                    f"only in tmol {tmol_keys - cif_keys}"
-                )
-        assert not diffs, (
-            f"Cartbonded parameter set mismatch for {prep_pair['case_name']}:\n"
-            + "\n".join(diffs)
-        )
+        assert prep_pair["equivalence"].checks[
+            "cartbonded_params"
+        ], _format_check_error(prep_pair, "cartbonded_params")
+
+
+def test_pli_prepare_is_deterministic_when_ccd_smiles_missing():
+    """CIF setup should remain stable when optional CCD SMILES is unavailable."""
+    from tmol.ligand import prepare_single_ligand
+    from tmol.ligand.detect import nonstandard_residue_info_from_cif
+
+    target = "ace"
+    cif_path = PLI_CIF_DIR / f"{target}.ligand.cif"
+    mol2_path = PLI_DIR / f"{target}.lig.mol2"
+    info = nonstandard_residue_info_from_cif(
+        cif_path,
+        res_name="LG1",
+        paired_mol2_path=mol2_path,
+        repair_invalid_bonds=True,
+    )
+    info_without_smiles = attr.evolve(info, ccd_smiles=None)
+    prep_with_smiles = prepare_single_ligand(info, ph=7.4, charge_mode="mmff94")
+    prep_without_smiles = prepare_single_ligand(
+        info_without_smiles, ph=7.4, charge_mode="mmff94"
+    )
+    comp = compare_ligand_preparations(prep_with_smiles, prep_without_smiles)
+    assert comp.is_equivalent, f"Prep changed when ccd_smiles missing: {comp.details}"
 
 
 def test_prepare_single_ligand_rejects_topology_only_single_bonds():

@@ -201,46 +201,32 @@ class TestPLIScoring:
 
     def test_compare_dg_score_with_rosetta_cif(self, pli_pdb, torch_device):
         """Compare Rosetta dG scores with tmol scores using .cif file params."""
-        import biotite.structure.io.pdbx as pdbx
-
         from tmol.database import ParameterDatabase
-        from tmol.ligand import prepare_ligands
+        from tmol.ligand import prepare_ligand_from_cif
 
         target = _target_for_complex(pli_pdb.name)
         ligand_cif = PLI_DIR / "cif_inputs" / f"{target}.ligand.cif"
 
-        # Load ligand params from CIF.
-        ligand_pdbx = pdbx.CIFFile.read(str(ligand_cif))
-        bt_ligand = pdbx.get_structure(
-            ligand_pdbx,
-            model=1,
-            include_bonds=True,
-            # partial_charge drives authoritative-charge ingestion; charge carries
-            # formal charges useful for some RDKit aromaticity/perception cases.
-            # extra_fields=["partial_charge", "charge"],
-        )
-        extended_db, _ = prepare_ligands(
-            bt_ligand, param_db=ParameterDatabase.get_default()
+        extended_db, _ = prepare_ligand_from_cif(
+            str(ligand_cif),
+            param_db=ParameterDatabase.get_default(),
+            ph=7.4,
         )
 
         self._dg_vs_rosetta(pli_pdb, extended_db, torch_device, label_prefix=".cif")
 
     def test_compare_dg_score_with_rosetta_mol2(self, pli_pdb, torch_device):
         """Compare Rosetta dG scores with tmol scores using .mol2 file params."""
-        import biotite.interface.rdkit as rdkit
-        from rdkit import Chem
-
         from tmol.database import ParameterDatabase
-        from tmol.ligand import prepare_ligands
+        from tmol.ligand import prepare_ligand_from_mol2
 
         target = _target_for_complex(pli_pdb.name)
         ligand_mol2 = PLI_DIR / f"{target}.lig.mol2"
 
-        # Load ligand params from MOL2 via RDKit.
-        rdkit_mol = Chem.MolFromMol2File(str(ligand_mol2), False, False, False)
-        bt_ligand = rdkit.from_mol(rdkit_mol)
-        extended_db, _ = prepare_ligands(
-            bt_ligand, param_db=ParameterDatabase.get_default()
+        extended_db, _ = prepare_ligand_from_mol2(
+            str(ligand_mol2),
+            param_db=ParameterDatabase.get_default(),
+            ph=7.4,
         )
 
         self._dg_vs_rosetta(pli_pdb, extended_db, torch_device, label_prefix=".mol2")

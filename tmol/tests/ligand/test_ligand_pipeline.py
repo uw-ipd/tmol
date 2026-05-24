@@ -13,7 +13,6 @@ import pytest
 
 from tmol.io.pose_stack_from_biotite import canonical_ordering_for_biotite
 from tmol.ligand import prepare_ligands, prepare_single_ligand
-import tmol.ligand as ligand_module
 from tmol.ligand.detect import detect_nonstandard_residues
 from tmol.ligand.dimorphite_dl import protonate_mol_variants
 from tmol.ligand.params_io import read_params_file, write_params_file
@@ -25,6 +24,7 @@ from tmol.ligand.registry import inject_ligand_preparations
 PLI_CIF_INPUT_DIR = (
     Path(__file__).parent.parent / "data" / "protein_ligand_test" / "cif_inputs"
 )
+PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 
 
 @pytest.fixture(autouse=True)
@@ -761,6 +761,8 @@ def test_protonate_mol_variants_produces_valid_mol():
 def test_prepare_single_ligand_uses_index_mapping_before_graph(
     cif_184l_with_i4b, monkeypatch
 ):
+    import tmol.ligand.preparation as ligand_preparation
+
     ligands = detect_nonstandard_residues(
         cif_184l_with_i4b, canonical_ordering_for_biotite()
     )
@@ -770,7 +772,7 @@ def test_prepare_single_ligand_uses_index_mapping_before_graph(
         raise AssertionError("Graph matching should not be called in direct Mol path")
 
     monkeypatch.setattr(
-        ligand_module, "_rename_atoms_to_cif_by_graph", _fail_graph_match
+        ligand_preparation, "_rename_atoms_to_cif_by_graph", _fail_graph_match
     )
     prep = prepare_single_ligand(i4b, ph=7.4)
     atom_names = {a.name for a in prep.residue_type.atoms}
@@ -778,6 +780,30 @@ def test_prepare_single_ligand_uses_index_mapping_before_graph(
     assert "C4'" in atom_names
     assert "C2'" in atom_names
     assert "C3'" in prep.partial_charges
+
+
+def test_prepare_ligand_from_cif_helper_loads_reference_fixture():
+    from tmol.database import ParameterDatabase
+    from tmol.ligand import prepare_ligand_from_cif
+
+    cif_path = PLI_CIF_INPUT_DIR / "ada.ligand.cif"
+    param_db, _ = prepare_ligand_from_cif(
+        str(cif_path),
+        param_db=ParameterDatabase.get_default(),
+    )
+    assert any(rt.name == "LG1" for rt in param_db.chemical.residues)
+
+
+def test_prepare_ligand_from_mol2_helper_loads_reference_fixture():
+    from tmol.database import ParameterDatabase
+    from tmol.ligand import prepare_ligand_from_mol2
+
+    mol2_path = PLI_DATA_DIR / "ace.lig.mol2"
+    param_db, _ = prepare_ligand_from_mol2(
+        str(mol2_path),
+        param_db=ParameterDatabase.get_default(),
+    )
+    assert any(rt.name == "LG1" for rt in param_db.chemical.residues)
 
 
 def test_missing_authoritative_charges_reports_cif_loading_guidance(

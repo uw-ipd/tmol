@@ -85,14 +85,22 @@ def build_partial_charges(
     atom_types: list[AtomTypeAssignment],
     input_charges: Optional[Mapping[str, float]] = None,
     ligand_name: Optional[str] = None,
+    charge_mode: str = "auto",
 ) -> dict[str, float]:
     """Return ``{atom_name: partial_charge}`` for every atom in ``atom_types``.
 
     Authoritative caller-supplied charges (e.g. AM1-BCC from mol2/CIF) win
-    when present. Remaining atoms fall back to MMFF94, and failures are
-    surfaced to the caller.
+    when present in ``charge_mode="auto"``. Remaining atoms fall back to MMFF94,
+    and failures are surfaced to the caller.
     """
-    by_name = dict(input_charges or {})
+    mode = charge_mode.lower().strip()
+    if mode not in {"auto", "input", "mmff94"}:
+        raise ValueError(
+            f"Unsupported charge_mode={charge_mode!r}. "
+            "Expected one of: 'auto', 'input', 'mmff94'."
+        )
+
+    by_name = {} if mode == "mmff94" else dict(input_charges or {})
     if by_name:
         missing_from_input = [at for at in atom_types if at.atom_name not in by_name]
         if missing_from_input:
@@ -121,6 +129,14 @@ def build_partial_charges(
             return {at.atom_name: by_name[at.atom_name] for at in atom_types}
     else:
         missing_from_input = list(atom_types)
+
+    if mode == "input":
+        prefix = f"{ligand_name}: " if ligand_name else ""
+        missing_names = ", ".join(at.atom_name for at in missing_from_input)
+        raise RuntimeError(
+            f"{prefix}authoritative input charges are required (charge_mode='input') "
+            f"but missing for atoms: [{missing_names}]"
+        )
     try:
         by_index = compute_mmff94_charges(mol)
     except RuntimeError as exc:

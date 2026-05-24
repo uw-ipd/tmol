@@ -67,6 +67,12 @@ Two environment variables control which path is taken:
 
 When neither variable is set, tmol tries to load the precompiled library and raises an error if it is not found.
 
+### Pre-built wheel compatibility
+
+Linux x86_64 release wheels are built in **manylinux_2_28** with **auditwheel** repair so they depend only on glibc/libstdc++ symbols allowed by that policy. Extensions are compiled with the same **`_GLIBCXX_USE_CXX11_ABI`** flag as the target PyTorch build (`TORCH_CXX_FLAGS` from CMake).
+
+If `import tmol` fails with `GLIBCXX_* not found`, the host `libstdc++` is too old for the wheel — use a newer GCC module, conda `libstdcxx-ng`, a container, `TMOL_DISABLE_WHEEL_FETCH=1 pip install -e .`, or `TMOL_JIT_FALLBACK=1`.
+
 ```mermaid
 flowchart TD
     A["import tmol"] --> B{"TMOL_USE_JIT=1?"}

@@ -8,6 +8,7 @@ nucleotides (polymer-linked).
 
 import functools
 import logging
+from pathlib import Path
 from typing import Optional
 
 import attr
@@ -20,6 +21,10 @@ from rdkit import Chem
 from rdkit.Chem import RWMol, rdDetermineBonds
 
 from tmol.io.canonical_ordering import CanonicalOrdering
+from tmol.ligand.cif_normalization import (
+    infer_paired_mol2_path,
+    repaired_cif_path_from_mol2,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -207,7 +212,353 @@ def _strip_metals(mol: Chem.Mol) -> Chem.Mol:
     return mol
 
 
-def _atom_array_to_smiles(atom_array: struc.AtomArray) -> Optional[str]:
+def _rdkit_bond_to_biotite_type(bond: Chem.Bond) -> int:
+    """Map an RDKit bond to a Biotite ``BondType`` integer."""
+    if bond.GetIsAromatic():
+        return int(struc.BondType.AROMATIC)
+    btype = bond.GetBondType()
+    if btype == Chem.BondType.SINGLE:
+        return int(struc.BondType.SINGLE)
+    if btype == Chem.BondType.DOUBLE:
+        return int(struc.BondType.DOUBLE)
+    if btype == Chem.BondType.TRIPLE:
+        return int(struc.BondType.TRIPLE)
+    if btype == Chem.BondType.QUADRUPLE:
+        return int(struc.BondType.QUADRUPLE)
+    return int(struc.BondType.SINGLE)
+
+
+def _infer_res_name_from_mol2(mol: Chem.Mol, fallback: str) -> str:
+    """Best-effort residue-name extraction from a Mol2-loaded RDKit Mol."""
+    for atom in mol.GetAtoms():
+        if atom.HasProp("_TriposSubstName"):
+            subst = atom.GetProp("_TriposSubstName").strip()
+            if subst:
+                return subst
+    return fallback
+
+
+def _source_subtype_from_mol2_atom_type(mol2_type: str) -> str:
+    """Return the subtype suffix from Tripos atom type (e.g. ``C.ar`` -> ``ar``)."""
+    if not mol2_type:
+        return "?"
+    parts = mol2_type.split(".")
+    if len(parts) < 2:
+        return "?"
+    return parts[1] or "?"
+
+
+def nonstandard_residue_info_from_mol2(
+    mol2_path: str | Path,
+    res_name: str | None = None,
+) -> NonStandardResidueInfo:
+    """Construct ``NonStandardResidueInfo`` from a ligand Mol2 file.
+
+    This path preserves Tripos aromatic flags, atom-type subtypes, and
+    per-atom partial charges when present, avoiding lossy rdkit<->biotite
+    round-trips.
+    """
+    from tmol.ligand.atom_typing import sanitize_tolerant
+
+    path = Path(mol2_path)
+    mol = Chem.MolFromMol2File(
+        str(path),
+        sanitize=False,
+        removeHs=False,
+        cleanupSubstructures=False,
+    )
+    if mol is None:
+        raise ValueError(f"Could not parse Mol2 file: {path}")
+    sanitize_tolerant(mol)
+    if mol.GetNumConformers() == 0:
+        raise ValueError(f"Mol2 file has no 3D coordinates: {path}")
+    conf = mol.GetConformer()
+    n_atoms = mol.GetNumAtoms()
+
+    atom_names: list[str] = []
+    elements: list[str] = []
+    coords = np.zeros((n_atoms, 3), dtype=np.float64)
+    aromatic_flags = np.zeros(n_atoms, dtype=bool)
+    source_subtypes: list[str] = []
+    has_full_partial_charges = True
+    partial_charges: dict[str, float] = {}
+
+    for i, atom in enumerate(mol.GetAtoms()):
+        name = (
+            atom.GetProp("_TriposAtomName")
+            if atom.HasProp("_TriposAtomName")
+            else f"{atom.GetSymbol()}{i + 1}"
+        )
+        atom_names.append(name)
+        elements.append(atom.GetSymbol())
+        p = conf.GetAtomPosition(i)
+        coords[i] = [float(p.x), float(p.y), float(p.z)]
+        aromatic_flags[i] = atom.GetIsAromatic()
+        mol2_type = (
+            atom.GetProp("_TriposAtomType") if atom.HasProp("_TriposAtomType") else ""
+        )
+        source_subtypes.append(_source_subtype_from_mol2_atom_type(mol2_type))
+        if atom.HasProp("_TriposPartialCharge"):
+            partial_charges[name] = float(atom.GetProp("_TriposPartialCharge"))
+        else:
+            has_full_partial_charges = False
+
+    atom_array = struc.AtomArray(n_atoms)
+    atom_array.coord = coords
+    atom_array.atom_name = np.array(atom_names, dtype="U16")
+    atom_array.element = np.array(elements, dtype="U4")
+    inferred_res_name = _infer_res_name_from_mol2(
+        mol, fallback="LG1" if res_name is None else res_name
+    )
+    atom_array.res_name = np.array([inferred_res_name] * n_atoms, dtype="U8")
+    atom_array.chain_id = np.array(["A"] * n_atoms, dtype="U4")
+    atom_array.res_id = np.array([1] * n_atoms, dtype=np.int32)
+    atom_array.hetero = np.array([True] * n_atoms, dtype=bool)
+    atom_array.set_annotation("tmol_aromatic", aromatic_flags.astype(bool))
+    atom_array.set_annotation(
+        "tmol_source_subtype", np.array(source_subtypes, dtype="U8")
+    )
+
+    bond_array = np.array(
+        [
+            (
+                bond.GetBeginAtomIdx(),
+                bond.GetEndAtomIdx(),
+                _rdkit_bond_to_biotite_type(bond),
+            )
+            for bond in mol.GetBonds()
+        ],
+        dtype=np.int32,
+    )
+    atom_array.bonds = struc.BondList(n_atoms, bond_array)
+
+    authoritative_q = partial_charges if has_full_partial_charges else None
+    return NonStandardResidueInfo(
+        res_name=inferred_res_name,
+        ccd_type="UNKNOWN",
+        atom_names=tuple(atom_names),
+        elements=tuple(elements),
+        coords=coords,
+        atom_array=atom_array,
+        ccd_smiles=None,
+        covalently_linked=False,
+        partial_charges=authoritative_q,
+        skip_protonation=authoritative_q is not None,
+    )
+
+
+def _cif_value_order_to_biotite_bond_type(value_order: str, aromatic_flag: str) -> int:
+    """Map CIF ``chem_comp_bond`` order/aromatic fields to ``BondType``."""
+    order = str(value_order).strip().upper()
+    is_aromatic = str(aromatic_flag).strip().upper() == "Y"
+
+    if is_aromatic:
+        if order == "SING":
+            return int(struc.BondType.AROMATIC_SINGLE)
+        if order == "DOUB":
+            return int(struc.BondType.AROMATIC_DOUBLE)
+        if order == "TRIP":
+            return int(struc.BondType.AROMATIC_TRIPLE)
+        return int(struc.BondType.AROMATIC)
+
+    if order == "SING":
+        return int(struc.BondType.SINGLE)
+    if order == "DOUB":
+        return int(struc.BondType.DOUBLE)
+    if order == "TRIP":
+        return int(struc.BondType.TRIPLE)
+    if order == "AROM":
+        return int(struc.BondType.AROMATIC)
+    return int(struc.BondType.SINGLE)
+
+
+def _cif_read_path_with_optional_mol2_repair(
+    path: Path,
+    *,
+    paired_mol2_path: str | Path | None,
+    res_name: str | None,
+    repair_invalid_bonds: bool,
+) -> tuple[Path, Path | None]:
+    """Return the CIF path to read and an optional temp file to delete."""
+    cif_path_to_read = path
+    temporary_regenerated_path: Path | None = None
+    if not repair_invalid_bonds:
+        return cif_path_to_read, temporary_regenerated_path
+
+    inferred_mol2 = (
+        Path(paired_mol2_path)
+        if paired_mol2_path is not None
+        else infer_paired_mol2_path(path)
+    )
+    if inferred_mol2 is None or not inferred_mol2.is_file():
+        return cif_path_to_read, temporary_regenerated_path
+
+    regen_res_name = res_name or "LG1"
+    cif_path_to_read, audit, regenerated = repaired_cif_path_from_mol2(
+        path,
+        inferred_mol2,
+        res_name=regen_res_name,
+    )
+    if regenerated:
+        temporary_regenerated_path = cif_path_to_read
+        logger.warning(
+            "Regenerated CIF bonds from paired MOL2 before loading %s; "
+            "missing=%d extra=%d note=%s",
+            path,
+            len(audit.missing_in_cif),
+            len(audit.extra_in_cif),
+            audit.note or "none",
+        )
+    return cif_path_to_read, temporary_regenerated_path
+
+
+def _partial_charges_from_atom_site(
+    atom_site,
+    atom_names: list[str],
+) -> Optional[dict[str, float]]:
+    if "partial_charge" not in atom_site:
+        return None
+    try:
+        vals = atom_site["partial_charge"].as_array(float)
+        vals = np.asarray(vals, dtype=np.float64)
+        if vals.shape[0] == len(atom_names) and np.isfinite(vals).all():
+            return {name: float(q) for name, q in zip(atom_names, vals, strict=False)}
+    except (TypeError, ValueError):
+        return None
+    return None
+
+
+def _apply_cif_atom_array_annotations(arr: struc.AtomArray, atom_site) -> None:
+    if "tmol_aromatic" in atom_site:
+        aromatic_vals = atom_site["tmol_aromatic"].as_array()
+        arr.set_annotation(
+            "tmol_aromatic",
+            np.array(
+                [str(v).strip().upper() == "Y" for v in aromatic_vals], dtype=bool
+            ),
+        )
+    if "tmol_source_subtype" in atom_site:
+        arr.set_annotation(
+            "tmol_source_subtype",
+            np.array([str(v) for v in atom_site["tmol_source_subtype"].as_array()]),
+        )
+
+
+def _attach_chem_comp_bonds(arr: struc.AtomArray, cif, atom_names: list[str]) -> None:
+    if "chem_comp_bond" not in cif.block:
+        return
+    bond_site = cif.block["chem_comp_bond"]
+    atom_id_1 = [str(v) for v in bond_site["atom_id_1"].as_array()]
+    atom_id_2 = [str(v) for v in bond_site["atom_id_2"].as_array()]
+    value_order = [str(v) for v in bond_site["value_order"].as_array()]
+    if "pdbx_aromatic_flag" in bond_site:
+        aromatic_flags = [str(v) for v in bond_site["pdbx_aromatic_flag"].as_array()]
+    else:
+        aromatic_flags = ["N"] * len(value_order)
+    name_to_idx = {name: i for i, name in enumerate(atom_names)}
+    bonds = []
+    for a1, a2, order, aromatic_flag in zip(
+        atom_id_1, atom_id_2, value_order, aromatic_flags, strict=False
+    ):
+        if a1 not in name_to_idx or a2 not in name_to_idx:
+            continue
+        bonds.append(
+            (
+                name_to_idx[a1],
+                name_to_idx[a2],
+                _cif_value_order_to_biotite_bond_type(order, aromatic_flag),
+            )
+        )
+    if bonds:
+        arr.bonds = struc.BondList(len(arr), np.asarray(bonds, dtype=np.int32))
+
+
+def _resolve_cif_res_name(atom_site, arr: struc.AtomArray, res_name: str | None) -> str:
+    if res_name is not None:
+        return res_name
+    if "label_comp_id" in atom_site:
+        comp_ids = [str(v).strip() for v in atom_site["label_comp_id"].as_array()]
+        nonempty = [c for c in comp_ids if c and c != "?"]
+        if nonempty:
+            return nonempty[0]
+    return str(arr.res_name[0]).strip() if len(arr) else "LG1"
+
+
+def nonstandard_residue_info_from_cif(
+    cif_path: str | Path,
+    res_name: str | None = None,
+    *,
+    paired_mol2_path: str | Path | None = None,
+    repair_invalid_bonds: bool = True,
+) -> NonStandardResidueInfo:
+    """Construct ``NonStandardResidueInfo`` from a ligand CIF file.
+
+    Preserves custom per-atom fields (``partial_charge``, ``tmol_aromatic``,
+    ``tmol_source_subtype``) and rebuilds the bond table directly from
+    ``_chem_comp_bond`` when present.
+    """
+    import biotite.structure.io.pdbx as pdbx
+
+    path = Path(cif_path)
+    cif_path_to_read, temporary_regenerated_path = (
+        _cif_read_path_with_optional_mol2_repair(
+            path,
+            paired_mol2_path=paired_mol2_path,
+            res_name=res_name,
+            repair_invalid_bonds=repair_invalid_bonds,
+        )
+    )
+    try:
+        cif = pdbx.CIFFile.read(str(cif_path_to_read))
+        arr = pdbx.get_structure(
+            cif, model=1, include_bonds=True, extra_fields=["charge"]
+        )
+        if isinstance(arr, struc.AtomArrayStack):
+            arr = arr[0]
+
+        atom_site = cif.block["atom_site"]
+        atom_names = [str(v) for v in atom_site["label_atom_id"].as_array()]
+        res_name = _resolve_cif_res_name(atom_site, arr, res_name)
+        arr.res_name = np.array([res_name] * len(arr), dtype=arr.res_name.dtype)
+
+        partial_charges = _partial_charges_from_atom_site(atom_site, atom_names)
+        _apply_cif_atom_array_annotations(arr, atom_site)
+        _attach_chem_comp_bonds(arr, cif, atom_names)
+
+        return NonStandardResidueInfo(
+            res_name=res_name,
+            ccd_type=get_chem_comp_type(res_name) or "UNKNOWN",
+            atom_names=tuple(atom_names),
+            elements=tuple(str(e) for e in arr.element),
+            coords=arr.coord.copy(),
+            atom_array=arr,
+            ccd_smiles=_atom_array_to_smiles(
+                arr,
+                source=str(path),
+                res_name=res_name,
+            ),
+            covalently_linked=False,
+            partial_charges=partial_charges,
+            skip_protonation=partial_charges is not None,
+        )
+    finally:
+        if temporary_regenerated_path is not None:
+            try:
+                temporary_regenerated_path.unlink(missing_ok=True)
+            except OSError:
+                logger.debug(
+                    "Failed to clean temporary regenerated CIF %s",
+                    temporary_regenerated_path,
+                    exc_info=True,
+                )
+
+
+def _atom_array_to_smiles(
+    atom_array: struc.AtomArray,
+    *,
+    source: str | None = None,
+    res_name: str | None = None,
+) -> Optional[str]:
     """Convert an AtomArray to a canonical SMILES string via RDKit.
 
     Uses biotite.interface.rdkit.to_mol() for arrays with bonds.
@@ -216,6 +567,15 @@ def _atom_array_to_smiles(atom_array: struc.AtomArray) -> Optional[str]:
     bond SMILES downstream.
     """
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
+
+    context = ", ".join(
+        x
+        for x in (
+            f"res={res_name}" if res_name else "",
+            f"source={source}" if source else "",
+        )
+        if x
+    )
 
     try:
         if has_bonds:
@@ -237,13 +597,25 @@ def _atom_array_to_smiles(atom_array: struc.AtomArray) -> Optional[str]:
                 rdDetermineBonds.DetermineBonds(rwmol)
             mol = rwmol.GetMol()
     except Exception:
-        logger.debug("Failed to convert AtomArray to SMILES", exc_info=True)
+        logger.debug(
+            "Failed to convert AtomArray to RDKit Mol for SMILES (%s)",
+            context or "unknown",
+            exc_info=True,
+        )
         return None
 
-    mol = Chem.RemoveHs(mol)
-    mol = _strip_metals(mol)
-    smi = Chem.MolToSmiles(mol)
-    return smi if smi else None
+    try:
+        mol = Chem.RemoveHs(mol)
+        mol = _strip_metals(mol)
+        smi = Chem.MolToSmiles(mol)
+        return smi if smi else None
+    except Exception:
+        logger.debug(
+            "Failed to finalize SMILES conversion after RDKit Mol construction (%s)",
+            context or "unknown",
+            exc_info=True,
+        )
+        return None
 
 
 def _get_ccd_smiles(res_name: str) -> Optional[str]:

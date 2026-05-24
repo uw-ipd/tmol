@@ -169,6 +169,7 @@ jobs:
       python-version: ${{ matrix.python-version }}
       label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.pip-torch-cuda-url || '' }}
+      use-manylinux-build: ${{ !endsWith(matrix.runs-on, '-arm') }}
 
   # ── CPU-only wheel ─────────────────────────────────────────────────
   build_cpu_wheel:
@@ -201,6 +202,11 @@ jobs:
         run: |
           pip wheel . --no-build-isolation --no-deps -w dist \
             -Ccmake.define.TMOL_ENABLE_CUDA=OFF
+
+      - name: Repair wheel (auditwheel / manylinux)
+        run: |
+          chmod +x scripts/repair_linux_wheel.sh
+          ./scripts/repair_linux_wheel.sh dist
 
       - name: Rename wheel with CPU tag
         run: |

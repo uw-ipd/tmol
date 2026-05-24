@@ -26,12 +26,12 @@ from tmol.ligand.chemistry_tables import get_hbond_properties
 
 logger = logging.getLogger(__name__)
 
-CacheKey = tuple[str, float, tuple[str, ...], tuple[str, ...]]
+CacheKey = tuple[str, float, str, tuple[str, ...], tuple[str, ...]]
 
 
 @dataclass
 class LigandPreparationCache:
-    """Mutable cache keyed by (res_name, ph, atom_names, elements)."""
+    """Mutable cache keyed by (res_name, ph, charge_mode, atom_names, elements)."""
 
     ligands_by_key: dict[CacheKey, RawResidueType] = field(default_factory=dict)
     charges_by_key: dict[CacheKey, dict[str, float]] = field(default_factory=dict)

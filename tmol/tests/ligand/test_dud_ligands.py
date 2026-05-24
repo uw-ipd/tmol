@@ -21,6 +21,8 @@ import pytest
 import torch  # noqa: F401  (used via torch_device fixture)
 import yaml
 
+from tmol.ligand.equivalence import compare_ligand_preparations
+
 DUD_DIR = Path(__file__).parent.parent / "data" / "dud_ligands"
 DUD_CASES = [
     ("ada", name)
@@ -207,63 +209,11 @@ def _cif_to_nonstandard_residue_info(cif_path: Path, res_name: str):
     )
 
 
-# ---------------------------------------------------------------------------
-# CIF -> LigandPreparation == .tmol -> LigandPreparation
-# ---------------------------------------------------------------------------
-
-
-def _is_heavy(name: str) -> bool:
-    """True iff this atom name belongs to a heavy atom (not a hydrogen).
-
-    H-naming convention diverges between the two paths (the AtomArray
-    pipeline produces ``HC1``/``HN1``/``HO1`` from ``_classify_H`` while
-    Frank's ``.tmol`` uses sequential ``H1``..``Hn``). The chemistry
-    we're regressing on is the heavy-atom skeleton + atom types + bond
-    schema + cartbonded geometry, so we filter Hs out of the structural
-    comparisons. Names are compared as plain ``str`` to neutralise
-    ``numpy.str_`` artifacts from the CIF-load path.
-    """
-    return not str(name).startswith("H")
-
-
-def _cartres_heavy_key_set(params, kind):
-    """Canonical, order-normalised key set for a CartRes parameter list.
-
-    The two paths can emit the same physical bond/angle/improper with
-    different atom orderings. Each kind has its own normalisation:
-
-    - ``"length"`` — frozenset of the two endpoints.
-    - ``"angle"``  — center atom (atm2) fixed; endpoints sorted.
-    - ``"improper"`` — sorted 4-tuple of atom names. The central sp2
-      atom isn't always at the same position in the two
-      representations, so we sort everything and rely on the per-group
-      uniqueness in both sources.
-    """
-    keys = set()
-    if kind == "length":
-        for p in params:
-            a, b = str(p.atm1), str(p.atm2)
-            if _is_heavy(a) and _is_heavy(b):
-                keys.add(frozenset([a, b]))
-    elif kind == "angle":
-        for p in params:
-            a1, c, a3 = str(p.atm1), str(p.atm2), str(p.atm3)
-            if all(_is_heavy(n) for n in (a1, c, a3)):
-                lo, hi = sorted([a1, a3])
-                keys.add((lo, c, hi))
-    elif kind == "improper":
-        for p in params:
-            names = [str(p.atm1), str(p.atm2), str(p.atm3), str(p.atm4)]
-            if all(_is_heavy(n) for n in names):
-                keys.add(tuple(sorted(names)))
-    else:
-        raise ValueError(f"Unknown cartbonded group kind: {kind}")
-    return keys
-
-
 class TestCifToTmolEquivalence:
-    """The AtomArray pipeline must produce the same LigandPreparation
-    that ``load_params_file`` produces from Frank's reference ``.tmol``."""
+    """CIF-derived prep must match checked-in `.tmol` references.
+
+    Uses the same shared comparison helper as the PLI equivalence tests.
+    """
 
     CHARGE_TOLERANCE = 0.05
 
@@ -285,179 +235,42 @@ class TestCifToTmolEquivalence:
         ), f"{tmol_path}: expected one residue, got {len(preps_tmol)}"
         prep_tmol = preps_tmol[0]
 
-        return {"name": name, "cif": prep_cif, "tmol": prep_tmol}
+        equivalence = compare_ligand_preparations(
+            prep_cif,
+            prep_tmol,
+            charge_tolerance=self.CHARGE_TOLERANCE,
+        )
+        return {"name": name, "equivalence": equivalence}
+
+    @staticmethod
+    def _format_check_error(prep_pair, check: str) -> str:
+        details = prep_pair["equivalence"].details.get(check)
+        return f"{check} mismatch for {prep_pair['name']} (dud_cif -> .tmol): {details}"
 
     def test_atom_set(self, prep_pair):
-        """Same set of (heavy_atom_name, atom_type) pairs."""
-        cif_atoms = {
-            (str(a.name), a.atom_type)
-            for a in prep_pair["cif"].residue_type.atoms
-            if _is_heavy(a.name)
-        }
-        tmol_atoms = {
-            (str(a.name), a.atom_type)
-            for a in prep_pair["tmol"].residue_type.atoms
-            if _is_heavy(a.name)
-        }
-        assert cif_atoms == tmol_atoms, (
-            f"Heavy atom set mismatch for {prep_pair['name']}:\n"
-            f"  only in cif:  {sorted(cif_atoms - tmol_atoms)}\n"
-            f"  only in tmol: {sorted(tmol_atoms - cif_atoms)}"
+        assert prep_pair["equivalence"].checks["atom_set"], self._format_check_error(
+            prep_pair, "atom_set"
         )
 
     def test_atom_types(self, prep_pair):
-        """For heavy atoms shared by name, atom_type must match."""
-        cif_types = {
-            str(a.name): a.atom_type
-            for a in prep_pair["cif"].residue_type.atoms
-            if _is_heavy(a.name)
-        }
-        tmol_types = {
-            str(a.name): a.atom_type
-            for a in prep_pair["tmol"].residue_type.atoms
-            if _is_heavy(a.name)
-        }
-        mismatches = [
-            (n, cif_types[n], tmol_types[n])
-            for n in cif_types.keys() & tmol_types.keys()
-            if cif_types[n] != tmol_types[n]
-        ]
-        assert (
-            not mismatches
-        ), f"Atom type mismatches for {prep_pair['name']}:\n" + "\n".join(
-            f"  {n}: cif={c}, tmol={t}" for n, c, t in mismatches
+        assert prep_pair["equivalence"].checks["atom_types"], self._format_check_error(
+            prep_pair, "atom_types"
         )
 
     def test_bonds(self, prep_pair):
-        """Heavy-atom bonds with bond_type and is_in_ring (4-tuple).
-
-        For ring bonds in aromatic systems, AROMATIC/SINGLE/DOUBLE are
-        treated as equivalent since mol2-derived references and RDKit use
-        different representations for the same chemistry.
-        """
-        _AROMATIC_EQUIV = frozenset({"AROMATIC", "SINGLE", "DOUBLE"})
-
-        def keyset(bonds):
-            out = set()
-            for a, b, bond_type, *rest in bonds:
-                a, b = str(a), str(b)
-                if not (_is_heavy(a) and _is_heavy(b)):
-                    continue
-                ring = bool(rest[0]) if rest else False
-                out.add((frozenset([a, b]), bond_type, ring))
-            return out
-
-        def normalize_aromatic_ring_bonds(bond_set):
-            """Normalize ring bonds: if either side has AROMATIC for a
-            ring bond, treat SINGLE/DOUBLE/AROMATIC as equivalent by
-            mapping all to 'RING_AROMATIC'."""
-            aromatic_pairs = {
-                pair
-                for pair, btype, ring in bond_set
-                if ring and btype in _AROMATIC_EQUIV
-            }
-            out = set()
-            for pair, btype, ring in bond_set:
-                if ring and pair in aromatic_pairs and btype in _AROMATIC_EQUIV:
-                    out.add((pair, "RING_AROMATIC", ring))
-                else:
-                    out.add((pair, btype, ring))
-            return out
-
-        cif_bonds = keyset(prep_pair["cif"].residue_type.bonds)
-        tmol_bonds = keyset(prep_pair["tmol"].residue_type.bonds)
-
-        # Identify bonds where the two representations disagree on
-        # bond order.  For ring bonds and bonds adjacent to aromatic
-        # systems (resonance groups), SINGLE/DOUBLE/AROMATIC differences
-        # are representation artifacts, not chemistry differences.
-        all_bonds = cif_bonds | tmol_bonds
-
-        # Atoms that participate in any AROMATIC bond on either side
-        aromatic_atoms: set[str] = set()
-        for pair, btype, ring in all_bonds:
-            if btype == "AROMATIC":
-                aromatic_atoms.update(pair)
-
-        # A bond is "delocalized" if:
-        # - it is AROMATIC on either side, OR
-        # - it is in a ring and typed SINGLE/DOUBLE/AROMATIC, OR
-        # - at least one of its atoms is aromatic (exocyclic resonance)
-        def is_delocalized(pair, btype, ring):
-            if btype == "AROMATIC":
-                return True
-            if ring and btype in _AROMATIC_EQUIV:
-                return True
-            if pair & aromatic_atoms and btype in _AROMATIC_EQUIV:
-                return True
-            return False
-
-        # Find all bond pairs that are delocalized on EITHER side
-        delocalized_pairs: set[frozenset] = set()
-        for pair, btype, ring in all_bonds:
-            if is_delocalized(pair, btype, ring):
-                delocalized_pairs.add(pair)
-
-        def normalize(bond_set):
-            out = set()
-            for pair, btype, ring in bond_set:
-                if pair in delocalized_pairs and btype in _AROMATIC_EQUIV:
-                    out.add((pair, "DELOCALIZED", ring))
-                else:
-                    out.add((pair, btype, ring))
-            return out
-
-        cif_norm = normalize(cif_bonds)
-        tmol_norm = normalize(tmol_bonds)
-        assert cif_norm == tmol_norm, (
-            f"Heavy bond set mismatch for {prep_pair['name']}:\n"
-            f"  only in cif:  {cif_norm - tmol_norm}\n"
-            f"  only in tmol: {tmol_norm - cif_norm}"
+        assert prep_pair["equivalence"].checks["bonds"], self._format_check_error(
+            prep_pair, "bonds"
         )
 
     def test_partial_charges(self, prep_pair):
-        """Per-atom partial charges agree within tolerance for shared names."""
-        cif_q = prep_pair["cif"].partial_charges
-        tmol_q = prep_pair["tmol"].partial_charges
-        shared = cif_q.keys() & tmol_q.keys()
-        assert shared, f"No shared atom names for {prep_pair['name']}"
-        bad = [
-            (n, cif_q[n], tmol_q[n])
-            for n in shared
-            if abs(cif_q[n] - tmol_q[n]) >= self.CHARGE_TOLERANCE
-        ]
-        assert not bad, (
-            f"Partial-charge mismatch (>{self.CHARGE_TOLERANCE}) for "
-            f"{prep_pair['name']}:\n"
-            + "\n".join(
-                f"  {n}: cif={c:+.4f}, tmol={t:+.4f}, diff={c - t:+.4f}"
-                for n, c, t in bad
-            )
-        )
+        assert prep_pair["equivalence"].checks[
+            "partial_charges"
+        ], self._format_check_error(prep_pair, "partial_charges")
 
     def test_cartbonded_params(self, prep_pair):
-        """Heavy-atom length / angle / improper atom-tuples (order-normalised)."""
-        cif_cb = prep_pair["cif"].cartbonded_params
-        tmol_cb = prep_pair["tmol"].cartbonded_params
-        groups = [
-            ("length_parameters", "length"),
-            ("angle_parameters", "angle"),
-            ("improper_parameters", "improper"),
-        ]
-        diffs = []
-        for attr_name, kind in groups:
-            cif_keys = _cartres_heavy_key_set(getattr(cif_cb, attr_name), kind)
-            tmol_keys = _cartres_heavy_key_set(getattr(tmol_cb, attr_name), kind)
-            if cif_keys != tmol_keys:
-                diffs.append(
-                    f"  {attr_name}: only in cif {cif_keys - tmol_keys}, "
-                    f"only in tmol {tmol_keys - cif_keys}"
-                )
-        assert (
-            not diffs
-        ), f"Cartbonded parameter set mismatch for {prep_pair['name']}:\n" + "\n".join(
-            diffs
-        )
+        assert prep_pair["equivalence"].checks[
+            "cartbonded_params"
+        ], self._format_check_error(prep_pair, "cartbonded_params")
 
 
 # ---------------------------------------------------------------------------
