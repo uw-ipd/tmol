@@ -171,32 +171,6 @@ jobs:
                 --index-url ${TORCH_INDEX_URL}
             fi
 
-            if [ '${{ inputs.use-manylinux-build }}' = 'true' ]; then
-              ${TARGET_VENV}/bin/pip install 'cuda-toolkit>=13,<14' 'nvidia-cuda-nvcc>=13,<14' 'nvidia-cuda-cccl>=13,<14'
-              CUDA_SITE=$(${TARGET_VENV}/bin/python -c "import site; print(site.getsitepackages()[0])")
-              CUDA_RUNTIME_DIR="${CUDA_SITE}/nvidia/cuda_runtime"
-              CUDA_NVCC_DIR="${CUDA_SITE}/nvidia/cuda_nvcc"
-              CUDA_NVCC_BIN=$(${TARGET_VENV}/bin/python -c "import pathlib, shutil; p=shutil.which('nvcc'); print(pathlib.Path(p).resolve().parent if p else '')")
-              CUDA_PATH_PARTS=""
-              for d in "${CUDA_NVCC_BIN}" "${CUDA_NVCC_DIR}/bin" "${CUDA_RUNTIME_DIR}/bin"; do
-                if [ -n "$d" ] && [ -d "$d" ]; then
-                  CUDA_PATH_PARTS="${CUDA_PATH_PARTS}${d}:"
-                fi
-              done
-              CUDA_LIB_PARTS=""
-              for d in "${CUDA_RUNTIME_DIR}/lib64" "${CUDA_RUNTIME_DIR}/lib" "${CUDA_NVCC_DIR}/lib64" "${CUDA_NVCC_DIR}/lib"; do
-                if [ -d "$d" ]; then
-                  CUDA_LIB_PARTS="${CUDA_LIB_PARTS}${d}:"
-                fi
-              done
-              : > /tmp/tmol_cuda_env.sh
-              echo "export CUDA_HOME=\"${CUDA_RUNTIME_DIR}\"" >> /tmp/tmol_cuda_env.sh
-              echo "export CUDAToolkit_ROOT=\"${CUDA_RUNTIME_DIR}\"" >> /tmp/tmol_cuda_env.sh
-              echo "export CUDA_TOOLKIT_ROOT_DIR=\"${CUDA_RUNTIME_DIR}\"" >> /tmp/tmol_cuda_env.sh
-              echo "export PATH=\"${CUDA_PATH_PARTS}\$PATH\"" >> /tmp/tmol_cuda_env.sh
-              echo "export LD_LIBRARY_PATH=\"${CUDA_LIB_PARTS}\${LD_LIBRARY_PATH:-}\"" >> /tmp/tmol_cuda_env.sh
-            fi
-
             TORCH_FILE=\$(${TARGET_VENV}/bin/python -c \"import os, torch; print(os.path.realpath(torch.__file__))\")
             TARGET_PY=\$(${TARGET_VENV}/bin/python -c \"import sys; print(f'python{sys.version_info.major}.{sys.version_info.minor}')\")
             if ! echo \"\${TORCH_FILE}\" | grep -q \"\${TARGET_PY}\"; then
@@ -248,9 +222,6 @@ jobs:
             fi
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
-            if [ -f /tmp/tmol_cuda_env.sh ]; then
-              source /tmp/tmol_cuda_env.sh
-            fi
             CUDA_MAJOR=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
             if [ "$CUDA_MAJOR" -ge 13 ]; then
               CUDA_ARCHS="80;86;89;90;100"
