@@ -128,7 +128,9 @@ jobs:
               case "${{ inputs.torch-version }}" in
                 2.8) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu128" ;;
                 2.9) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu130" ;;
-                2.10) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu131" ;;
+                # Torch 2.10 wheels are no longer consistently available on cu131
+                # for our manylinux target runtime; cu128 remains available.
+                2.10) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu128" ;;
                 2.11) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu131" ;;
                 2.12) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu132" ;;
                 *)

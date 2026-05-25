@@ -20,7 +20,7 @@ git clone https://github.com/uw-ipd/tmol.git && cd tmol
 pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
 ```
 
-Requirements: Python 3.10+, PyTorch 2.8+, C++17 compiler, CMake 3.18+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built. Pre-built wheels are currently Python 3.12 (`cp312`).
+Requirements: Python 3.11+, PyTorch 2.8+, C++17 compiler, CMake 3.18+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built. Pre-built wheels are published for Python `cp311`-`cp314`.
 
 ## Building Extensions
 
@@ -148,11 +148,11 @@ charges are cleared before prep) and compare MMFF94 partial charges to the refer
 ### Testing a specific release
 
 ```bash
-# Install matching PyTorch first (example: cu131/torch2.10)
-pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu131
+# Install matching PyTorch first (example: x86_64 manylinux cu128/torch2.10)
+pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu128
 
 # Install a release wheel from GitHub
-pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu131torch2.10-cp312-cp312-linux_x86_64.whl
+pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.10-cp312-cp312-manylinux_2_28_x86_64.whl
 
 # Or install a specific branch/tag from source
 pip install git+https://github.com/uw-ipd/tmol.git@vX.Y.Z

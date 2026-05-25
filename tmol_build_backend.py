@@ -170,9 +170,14 @@ def _candidate_local_tags() -> list[str]:
     candidates: list[str] = []
     if torch_mm and cuda_tag:
         candidates.append(f"{cuda_tag}torch{torch_mm}")
+        if torch_mm == "2.8":
+            # x86_64 manylinux builds use cu128 for torch 2.8; keep cu129 as
+            # fallback for older/aarch64 release lanes.
+            candidates.extend(["cu128torch2.8", "cu129torch2.8"])
         if torch_mm == "2.10":
-            # CI publishes both default cu131 and Colab-compatible cu128 wheels.
-            candidates.extend(["cu131torch2.10", "cu128torch2.10"])
+            # x86_64 manylinux uses cu128 for torch 2.10; some aarch64/legacy
+            # release lanes may still publish cu131.
+            candidates.extend(["cu128torch2.10", "cu131torch2.10"])
     elif torch_mm and not cuda_tag:
         candidates.append("cpu")
     elif _env_true(_ALLOW_CPU_FALLBACK_ENV):
@@ -190,10 +195,22 @@ def _candidate_wheel_filenames() -> list[str]:
 
     version = _read_project_version()
     py_tag = _python_tag()
-    return [
-        f"tmol-{version}+{local_tag}-{py_tag}-{py_tag}-linux_{arch}.whl"
-        for local_tag in _candidate_local_tags()
-    ]
+    platform_tags: list[str]
+    if arch == "x86_64":
+        # Current published x86_64 wheels are auditwheel-repaired manylinux.
+        platform_tags = ["manylinux_2_28_x86_64", "linux_x86_64"]
+    else:
+        # aarch64 releases are currently native Linux; keep manylinux fallback
+        # for forward compatibility if ARM auditwheel lanes are enabled.
+        platform_tags = ["linux_aarch64", "manylinux_2_34_aarch64"]
+
+    candidates: list[str] = []
+    for local_tag in _candidate_local_tags():
+        for platform_tag in platform_tags:
+            candidates.append(
+                f"tmol-{version}+{local_tag}-{py_tag}-{py_tag}-{platform_tag}.whl"
+            )
+    return _dedupe_keep_order(candidates)
 
 
 def _release_download_base() -> str:

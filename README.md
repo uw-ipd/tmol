@@ -32,16 +32,16 @@ Use the mode that fits your needs:
 CI currently uploads these wheel variants to [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
 
 - GPU wheels (Linux `x86_64` and `aarch64`) for:
-  - Python `cp312`, `cp313`, `cp314`
+  - Python `cp311`, `cp312`, `cp313`, `cp314`
   - Torch/CUDA tags:
-    - `+cu129torch2.8`
+    - `+cu128torch2.8`
     - `+cu130torch2.9`
-    - `+cu131torch2.10`
+    - `+cu128torch2.10` (x86_64 manylinux default)
     - `+cu131torch2.11`
     - `+cu132torch2.12`
-  - plus Colab override wheel on `x86_64`: `+cu128torch2.10`
+  - some `aarch64` lanes may additionally publish `+cu131torch2.10` depending on NGC base image CUDA
 - CPU wheels (Linux `x86_64`) for:
-  - Python `cp312`, `cp313`, `cp314`
+  - Python `cp311`, `cp312`, `cp313`, `cp314`
   - local version tag `+cpu`
 
 Wheel filename format:
@@ -86,7 +86,7 @@ Install torch first so it matches your chosen wheel tag:
 
 ```bash
 pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu132
-# or e.g. cu131/cu130/cu129/cu128 depending on the wheel you pick
+# or e.g. cu131/cu130/cu128 depending on the wheel you pick
 ```
 
 #### Install by direct wheel URL (recommended)

@@ -71,6 +71,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # ── x86_64 py3.11 (manylinux build path) ──
+          - python-version: "3.11"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            runs-on: ubuntu-22.04
+            label: "py3.11 pt2.12 x86_64 manylinux"
+
           # ── x86_64 py3.12 (NGC native) ──
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:25.06-py3
@@ -104,7 +111,14 @@ jobs:
             torch-version: "2.10"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
             runs-on: ubuntu-22.04
-            label: "py3.12 pt2.10 x86_64 Colab cu128"
+            label: "py3.12 pt2.10 x86_64 manylinux cu128"
+
+          # ── ARM64 py3.11 (NGC native) ──
+          - python-version: "3.11"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.11 pt2.12 aarch64 NGC"
 
           # ── ARM64 py3.12 (NGC native) ──
           - python-version: "3.12"
@@ -179,7 +193,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v5
         with:
