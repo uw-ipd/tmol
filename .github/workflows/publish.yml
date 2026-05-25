@@ -217,11 +217,6 @@ jobs:
           pip wheel . --no-build-isolation --no-deps -w dist \
             -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 
-      - name: Repair wheel (auditwheel / manylinux)
-        run: |
-          chmod +x scripts/repair_linux_wheel.sh
-          ./scripts/repair_linux_wheel.sh dist
-
       - name: Rename wheel with CPU tag
         run: |
           cd dist
