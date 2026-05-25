@@ -172,7 +172,59 @@ jobs:
             fi
 
             if [ '${{ inputs.use-manylinux-build }}' = 'true' ]; then
-              ${TARGET_VENV}/bin/pip install 'nvidia-cuda-nvcc>=13,<14' 'nvidia-cuda-cccl>=13,<14'
+              ${TARGET_VENV}/bin/pip install 'cuda-toolkit>=13,<14' 'nvidia-cuda-nvcc>=13,<14' 'nvidia-cuda-cccl>=13,<14'
+              ${TARGET_VENV}/bin/python - <<'PY'
+import importlib
+import pathlib
+import shutil
+import site
+
+def _pkg_path(name: str):
+    try:
+        mod = importlib.import_module(name)
+    except Exception:
+        return None
+    path = getattr(mod, "__path__", None)
+    if not path:
+        return None
+    return pathlib.Path(list(path)[0]).resolve()
+
+cuda_runtime = _pkg_path("nvidia.cuda_runtime")
+cuda_nvcc = _pkg_path("nvidia.cuda_nvcc")
+site_pkgs = pathlib.Path(site.getsitepackages()[0]).resolve()
+
+cuda_roots = []
+if cuda_runtime:
+    cuda_roots.append(str(cuda_runtime))
+if cuda_nvcc:
+    cuda_roots.append(str(cuda_nvcc))
+
+bin_parts = []
+lib_parts = []
+for root in cuda_roots:
+    r = pathlib.Path(root)
+    for cand in (r / "bin", r.parent / "cuda_nvcc" / "bin"):
+        if cand.exists():
+            bin_parts.append(str(cand))
+    for cand in (r / "lib64", r / "lib"):
+        if cand.exists():
+            lib_parts.append(str(cand))
+
+nvcc = shutil.which("nvcc")
+if nvcc:
+    bin_parts.append(str(pathlib.Path(nvcc).resolve().parent))
+
+env_file = pathlib.Path("/tmp/tmol_cuda_env.sh")
+with env_file.open("w", encoding="utf-8") as f:
+    f.write("export CUDA_HOME=\"{}\"\n".format(cuda_runtime if cuda_runtime else site_pkgs))
+    f.write("export CUDAToolkit_ROOT=\"{}\"\n".format(cuda_runtime if cuda_runtime else site_pkgs))
+    f.write("export CUDA_TOOLKIT_ROOT_DIR=\"{}\"\n".format(cuda_runtime if cuda_runtime else site_pkgs))
+    if bin_parts:
+        f.write("export PATH=\"{}:$PATH\"\n".format(":".join(dict.fromkeys(bin_parts))))
+    if lib_parts:
+        f.write("export LD_LIBRARY_PATH=\"{}:${{LD_LIBRARY_PATH:-}}\"\n".format(":".join(dict.fromkeys(lib_parts))))
+print(f"Wrote {env_file}")
+PY
             fi
 
             TORCH_FILE=\$(${TARGET_VENV}/bin/python -c \"import os, torch; print(os.path.realpath(torch.__file__))\")
@@ -226,6 +278,9 @@ jobs:
             fi
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
+            if [ -f /tmp/tmol_cuda_env.sh ]; then
+              source /tmp/tmol_cuda_env.sh
+            fi
             CUDA_MAJOR=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
             if [ "$CUDA_MAJOR" -ge 13 ]; then
               CUDA_ARCHS="80;86;89;90;100"
