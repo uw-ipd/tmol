@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.18...3.31)
 
 option(TMOL_ENABLE_CUDA "Build CUDA extensions (disable for CPU-only)" ON)
 
@@ -16,8 +16,21 @@ if(CMAKE_CUDA_COMPILER AND TMOL_ENABLE_CUDA)
   #   -DCMAKE_CUDA_ARCHITECTURES="80;86;89;90"  (from scikit-build-core -C flags)
   #   TORCH_CUDA_ARCH_LIST env var (PyTorch format: "7.0 8.0 9.0+PTX")
   #   or falls back to a sensible default.
+  #
+  # CMake 4.x may leave CMAKE_CUDA_ARCHITECTURES at "native" (build-node GPU).
+  # On Blackwell that becomes sm_120 while Apptainer nvcc is often CUDA 12.x
+  # and fails with "Unsupported gpu architecture 'compute_120'".
+  if(DEFINED CMAKE_CUDA_ARCHITECTURES)
+    if(CMAKE_CUDA_ARCHITECTURES STREQUAL "native"
+        OR CMAKE_CUDA_ARCHITECTURES STREQUAL "all-major"
+        OR CMAKE_CUDA_ARCHITECTURES STREQUAL "all")
+      unset(CMAKE_CUDA_ARCHITECTURES CACHE)
+    endif()
+  endif()
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    if(DEFINED ENV{TORCH_CUDA_ARCH_LIST})
+    if(DEFINED ENV{CMAKE_CUDA_ARCHITECTURES})
+      set(CMAKE_CUDA_ARCHITECTURES "$ENV{CMAKE_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures")
+    elseif(DEFINED ENV{TORCH_CUDA_ARCH_LIST})
       set(_ARCH_STR "$ENV{TORCH_CUDA_ARCH_LIST}")
       string(REPLACE " " ";" _ARCH_LIST "${_ARCH_STR}")
       set(_CLEAN_ARCHS "")
@@ -36,6 +49,36 @@ if(CMAKE_CUDA_COMPILER AND TMOL_ENABLE_CUDA)
       set(CMAKE_CUDA_ARCHITECTURES "80;86;89;90" CACHE STRING "CUDA architectures")
     endif()
   endif()
+
+  # Clamp requested arches to what this nvcc can actually compile.
+  execute_process(
+    COMMAND ${CMAKE_CUDA_COMPILER} --version
+    OUTPUT_VARIABLE _TMOL_NVCC_VERSION_OUTPUT
+    ERROR_VARIABLE _TMOL_NVCC_VERSION_OUTPUT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  set(_TMOL_NVCC_MAX_ARCH 90)
+  if(_TMOL_NVCC_VERSION_OUTPUT MATCHES "release ([0-9]+)\\.([0-9]+)")
+    set(_TMOL_NVCC_MAJOR "${CMAKE_MATCH_1}")
+    set(_TMOL_NVCC_MINOR "${CMAKE_MATCH_2}")
+    if(_TMOL_NVCC_MAJOR GREATER_EQUAL 13)
+      set(_TMOL_NVCC_MAX_ARCH 120)
+    elseif(_TMOL_NVCC_MAJOR EQUAL 12 AND _TMOL_NVCC_MINOR GREATER_EQUAL 8)
+      set(_TMOL_NVCC_MAX_ARCH 100)
+    endif()
+  endif()
+  set(_TMOL_FILTERED_ARCHS "")
+  foreach(_A ${CMAKE_CUDA_ARCHITECTURES})
+    string(REPLACE "-real" "" _A_NUM "${_A}")
+    if(_A_NUM MATCHES "^[0-9]+$" AND _A_NUM LESS_EQUAL _TMOL_NVCC_MAX_ARCH)
+      list(APPEND _TMOL_FILTERED_ARCHS "${_A}")
+    endif()
+  endforeach()
+  if(NOT _TMOL_FILTERED_ARCHS)
+    set(_TMOL_FILTERED_ARCHS "80;86;89;90")
+  endif()
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_FILTERED_ARCHS}" CACHE STRING "CUDA architectures" FORCE)
+  message(STATUS "tmol: nvcc max arch ${_TMOL_NVCC_MAX_ARCH}, using CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
 
   project(tmol LANGUAGES CXX CUDA)
   set(TMOL_HAS_CUDA TRUE)
@@ -97,6 +140,11 @@ find_library(TORCH_PYTHON_LIBRARY torch_python PATHS "${TORCH_INSTALL_PREFIX}/li
 message(STATUS "tmol: TORCH_PYTHON_LIBRARY = ${TORCH_PYTHON_LIBRARY}")
 
 if(TMOL_HAS_CUDA)
+  # Caffe2's TorchConfig.cmake can set CMAKE_CUDA_ARCHITECTURES=OFF or inherit
+  # PyTorch's full -gencode list (including arches this nvcc cannot compile).
+  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures" FORCE)
+  message(STATUS "tmol: Restored CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
+
   # Caffe2's TorchConfig.cmake unconditionally appends the -gencode flags that
   # PyTorch was originally built with. Replace them with our architectures.
   string(REGEX REPLACE "-gencode[;= ]arch=compute_[0-9]+,code=sm_[0-9]+" "" CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")

@@ -40,6 +40,7 @@ from tmol.ligand.residue_builder import build_residue_type
 from tmol.ligand.rdkit_mol import (
     ligand_atom_array_to_rdkit_mol,
     normalize_protonated_mol_for_mmff94,
+    prepare_input_protonation_mol_for_mmff94,
     protonate_ligand_mol,
 )
 
@@ -75,10 +76,9 @@ def _rename_atoms_to_cif(
     the common mol2 / CCD case) and falls back to graph isomorphism only
     if the index path can't be applied safely.
 
-    Hydrogens keep their pipeline-assigned names regardless — the input
-    rarely names them, and Frank's reference uses a sequential
-    convention that doesn't survive a Chem.RemoveHs / Chem.AddHs
-    round-trip anyway.
+    When the pipeline preserved input explicit hydrogens (``skip_protonation``),
+    all atoms including H are renamed by index. Otherwise hydrogens keep
+    pipeline-assigned names (Dimorphite / ``AddHs`` round-trip).
     """
     by_index = _rename_atoms_to_cif_by_index(atom_types, ligand_info)
     if by_index is not None:
@@ -98,11 +98,13 @@ def _rename_atoms_to_cif_by_index(
     if len(ligand_info.atom_names) != len(ligand_info.elements):
         return None
 
+    preserve_input_atoms = len(atom_types) == len(ligand_info.atom_names)
+
     renamed: list[AtomTypeAssignment] = []
     seen_names: set[str] = set()
     for at in atom_types:
         new_name = at.atom_name
-        if at.element != "H":
+        if preserve_input_atoms or at.element != "H":
             if at.index >= len(ligand_info.atom_names):
                 return None
             cif_elem = ligand_info.elements[at.index].strip().upper()
@@ -174,14 +176,19 @@ def prepare_single_ligand(
             :func:`tmol.ligand.mol3d.build_partial_charges`.
     """
     mode = charge_mode.lower().strip()
-    rdkit_mol = ligand_atom_array_to_rdkit_mol(ligand_info)
+    rdkit_mol = ligand_atom_array_to_rdkit_mol(
+        ligand_info, keep_hydrogens=ligand_info.skip_protonation
+    )
     # Skip protonation when:
-    # - The caller explicitly sets skip_protonation=True, OR
+    # - The caller explicitly sets skip_protonation=True (keeps input explicit
+    #   H and protonation from mol2/CIF), OR
     # - The caller supplies authoritative partial charges (e.g. AM1-BCC
     #   from a Tripos mol2 file), which implies the input already encodes
-    #   the desired protonation state.
+    #   the desired protonation state (heavy-only RDKit mol; AddHs below).
     if ligand_info.skip_protonation or ligand_info.partial_charges:
         protonated = rdkit_mol
+        if ligand_info.skip_protonation and mode == "mmff94":
+            protonated = prepare_input_protonation_mol_for_mmff94(protonated)
     else:
         protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
         if mode != "mmff94":

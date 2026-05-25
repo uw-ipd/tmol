@@ -88,6 +88,66 @@ The YAML format has three sections matching the existing database schemas:
 See `params_file.py` for `load_params_file`, `write_params_file`, and
 `inject_params_files`.
 
+## Quickstart: Score Protein-Ligand ddg with Existing `.tmol`
+
+If you already have a ligand `.tmol` file, the simplest path is:
+
+1. Inject the params file into a `ParameterDatabase`
+2. Build a pose from the protein-ligand structure
+3. Score block-pair interaction energy with `calculate_block_pair_ddg`
+
+```python
+import biotite.structure.io
+import torch
+
+from tmol.database import ParameterDatabase
+from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+from tmol.ligand.params_file import inject_params_file
+from tmol.score import beta2016_score_function
+from tmol.score.score_utils import calculate_block_pair_ddg
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+tmol_path = "ligand.mmff94.tmol"
+complex_pdb = "complex.pdb"
+
+# 1) Extend default DB with your prebuilt ligand params.
+param_db = inject_params_file(ParameterDatabase.get_default(), tmol_path)
+
+# 2) Build pose using that same DB.
+atom_array = biotite.structure.io.load_structure(complex_pdb)
+if hasattr(atom_array, "__len__") and len(atom_array) > 1:
+    atom_array = atom_array[0]
+
+pose_stack = pose_stack_from_biotite(
+    atom_array,
+    device,
+    param_db=param_db,
+    prepare_ligands=False,
+)
+
+# 3) Build scorefxn with the same DB and compute ligand-vs-rest ddg.
+sfxn = beta2016_score_function(device, param_db=param_db)
+
+mask = torch.zeros((1, pose_stack.max_n_blocks), dtype=torch.bool, device=device)
+mask[0, -1] = True  # common case: ligand is the last block
+
+ddg = calculate_block_pair_ddg(
+    pose_stack,
+    mask,
+    sfxn=sfxn,
+    sum_terms=True,
+    minimize=False,
+)
+print("ddg:", ddg)
+```
+
+Notes:
+
+- `calculate_block_pair_ddg` is a Python API in `tmol.score.score_utils` (no separate CLI wrapper).
+- The structure residue/atom naming must match the residue definition in your `.tmol`.
+- For multi-ligand systems, build an explicit mask instead of assuming the ligand is the last block.
+
 ## Reuse, Caching, and Persistence
 
 When processing many poses that share the same ligand topology, you can

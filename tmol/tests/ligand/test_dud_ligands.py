@@ -3,7 +3,10 @@
 1. ``TestDudCifGoldenEquivalence`` — CIF input, Dimorphite @ pH 7.4,
    ``charge_mode="mmff94"``, full equivalence vs golden ``.tmol``.
 
-2. ``TestDUDScoring`` — same CIF pipeline as (1), score vs Rosetta ``.sc``.
+2. ``TestDudCifSkipProtonationGoldenEquivalence`` — CIF input protonation
+   (explicit H, no Dimorphite) + ``charge_mode="mmff94"`` vs golden ``.tmol``.
+
+3. ``TestDUDScoring`` — same CIF pipeline as (1), score vs Rosetta ``.sc``.
 """
 
 from pathlib import Path
@@ -180,6 +183,35 @@ def prepare_dud_ligand_mmff94_from_cif(cif_path: Path, res_name: str = "LG1"):
     return prepare_single_ligand(info, ph=7.4, charge_mode="mmff94")
 
 
+def prepare_dud_ligand_input_protonation_mmff94_from_cif(
+    cif_path: Path, res_name: str = "LG1"
+):
+    """CIF mol2 protonation (explicit H) → MMFF94 charges, no Dimorphite."""
+    from tmol.ligand import prepare_single_ligand
+
+    info = _cif_to_nonstandard_residue_info(cif_path, res_name)
+    info = attr.evolve(info, partial_charges=None, skip_protonation=True)
+    return prepare_single_ligand(info, charge_mode="mmff94")
+
+
+class TestSkipProtonationPreservesInput:
+    def test_explicit_hydrogens_and_names(self):
+        from tmol.ligand import prepare_single_ligand
+
+        cif_path = DUD_DIR / "ada" / "ZINC01614355.cif"
+        info = _cif_to_nonstandard_residue_info(cif_path, "LG1")
+        info = attr.evolve(info, partial_charges=None, skip_protonation=True)
+
+        prep = prepare_single_ligand(info, charge_mode="mmff94")
+        out_names = {a.name for a in prep.residue_type.atoms}
+        in_names = set(info.atom_names)
+
+        assert len(out_names) == len(in_names)
+        assert out_names == in_names
+        assert "H19" in out_names
+        assert len(prep.partial_charges) == len(in_names)
+
+
 def _param_db_with_ligand_prep(prep):
     from tmol.database import ParameterDatabase
     from tmol.ligand.registry import inject_ligand_preparations
@@ -218,6 +250,74 @@ class TestDudCifGoldenEquivalence:
     def _format_check_error(prep_pair, check: str) -> str:
         details = prep_pair["equivalence"].details.get(check)
         return f"{check} mismatch for {prep_pair['name']} (CIF pipeline vs .tmol): {details}"
+
+    def test_atom_set(self, prep_pair):
+        assert prep_pair["equivalence"].checks["atom_set"], self._format_check_error(
+            prep_pair, "atom_set"
+        )
+
+    def test_atom_types(self, prep_pair):
+        assert prep_pair["equivalence"].checks["atom_types"], self._format_check_error(
+            prep_pair, "atom_types"
+        )
+
+    def test_bonds(self, prep_pair):
+        assert prep_pair["equivalence"].checks["bonds"], self._format_check_error(
+            prep_pair, "bonds"
+        )
+
+    def test_partial_charges(self, prep_pair):
+        assert prep_pair["equivalence"].checks[
+            "partial_charges"
+        ], self._format_check_error(prep_pair, "partial_charges")
+
+    def test_cartbonded_params(self, prep_pair):
+        assert prep_pair["equivalence"].checks[
+            "cartbonded_params"
+        ], self._format_check_error(prep_pair, "cartbonded_params")
+
+
+@pytest.mark.slow
+class TestDudCifSkipProtonationGoldenEquivalence:
+    """CIF mol2 protonation (``skip_protonation``) + MMFF94 vs golden ``.tmol``.
+
+    Topology tests (atom set, types, bonds, cartbonded) compare against the
+    checked-in reference files. ``test_partial_charges`` compares MMFF94 to
+    those references too; they still store mol2 AM1-BCC charges, so charge
+    mismatches are expected unless you regenerate goldens with
+    ``prepare_dud_ligand_input_protonation_mmff94_from_cif``.
+    """
+
+    @pytest.fixture(params=DUD_CASES, ids=[f"{t}_{n}" for t, n in DUD_CASES])
+    def prep_pair(self, request):
+        from tmol.ligand.params_file import load_params_file
+
+        target, name = request.param
+        cif_path = DUD_DIR / target / f"{name}.cif"
+        tmol_path = DUD_DIR / target / f"{name}.tmol"
+
+        prep_cif = prepare_dud_ligand_input_protonation_mmff94_from_cif(cif_path, "LG1")
+
+        preps_tmol = load_params_file(tmol_path)
+        assert (
+            len(preps_tmol) == 1
+        ), f"{tmol_path}: expected one residue, got {len(preps_tmol)}"
+        prep_tmol = preps_tmol[0]
+
+        equivalence = compare_ligand_preparations(
+            prep_cif,
+            prep_tmol,
+            charge_tolerance=CHARGE_TOLERANCE,
+        )
+        return {"name": name, "equivalence": equivalence}
+
+    @staticmethod
+    def _format_check_error(prep_pair, check: str) -> str:
+        details = prep_pair["equivalence"].details.get(check)
+        return (
+            f"{check} mismatch for {prep_pair['name']} "
+            f"(skip-protonation CIF pipeline vs .tmol): {details}"
+        )
 
     def test_atom_set(self, prep_pair):
         assert prep_pair["equivalence"].checks["atom_set"], self._format_check_error(

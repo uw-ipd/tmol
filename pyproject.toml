@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-version = "0.1.22"
+version = "0.1.23"
 
 dependencies = [
     # Core ML framework
@@ -109,7 +109,7 @@ backend-path = ["."]
 minimum-version = "0.10"
 build-dir = "build/{wheel_tag}"
 cmake.build-type = "Release"
-cmake.version = ">=3.18"
+cmake.version = ">=3.18,<4"
 wheel.packages = ["tmol"]
 wheel.install-dir = "."
 sdist.cmake = false

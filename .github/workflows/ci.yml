@@ -117,9 +117,22 @@ jobs:
           CUDA_ARCHS="${TMOL_CI_CUDA_ARCHITECTURES:-80;86;89;90;100}"
           NVCC_VER=$(nvcc --version 2>&1 | sed -n 's/.*release \([0-9.]*\).*/\1/p' | head -1)
           case "${NVCC_VER}" in
-            11.*|12.[0-7]*) CUDA_ARCHS="80;86;89;90" ;;
+            11.*|12.*) CUDA_ARCHS="80;86;89;90" ;;
           esac
-          echo "=== Runner GPU sm_${RUN_GPU} | nvcc ${NVCC_VER} | CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS} ==="
+          # Do not inherit CMake 4 "native" (sm_120 on Blackwell) or Torch defaults.
+          unset CMAKE_CUDA_ARCHITECTURES
+          export CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}"
+          TORCH_ARCH_LIST=""
+          IFS=';' read -ra _CUDA_ARCH_ARR <<< "${CUDA_ARCHS}"
+          for _A in "${_CUDA_ARCH_ARR[@]}"; do
+            if [ "${#_A}" -eq 3 ]; then
+              TORCH_ARCH_LIST+=" ${_A:0:2}.${_A:2:1}"
+            elif [ "${#_A}" -eq 2 ]; then
+              TORCH_ARCH_LIST+=" ${_A:0:1}.${_A:1:1}"
+            fi
+          done
+          export TORCH_CUDA_ARCH_LIST="${TORCH_ARCH_LIST# }"
+          echo "=== Runner GPU sm_${RUN_GPU} | nvcc ${NVCC_VER} | CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS} | TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST} ==="
           MAX_JOBS=12 pip install -v --no-deps \
                   -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
                   -Ccmake.define.TMOL_BUILD_TESTS=ON \

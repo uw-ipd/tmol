@@ -76,8 +76,8 @@ class NonStandardResidueInfo:
         partial_charges: Optional ``{atom_name: charge}`` map. When
             provided, ``prepare_single_ligand`` uses these directly instead of
             recomputing MMFF94 charges.
-        skip_protonation: If True, Dimorphite-DL protonation is skipped
-            and the input protonation state is preserved as-is.
+        skip_protonation: If True, Dimorphite-DL protonation is skipped and
+            explicit hydrogens from the input (mol2/CIF) are preserved.
     """
 
     res_name: str

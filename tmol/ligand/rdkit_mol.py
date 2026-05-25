@@ -96,6 +96,28 @@ def _rebuild_mol_via_smiles_preserving_coords(heavy: Chem.Mol) -> Optional[Chem.
     return fresh
 
 
+def prepare_input_protonation_mol_for_mmff94(mol: Chem.Mol) -> Chem.Mol:
+    """Sanitize an input-protonation mol for MMFF without rebuilding hydrogens.
+
+    Unlike :func:`normalize_protonated_mol_for_mmff94`, this never runs the
+    heavy-only SMILES rebuild path, so explicit H from mol2/CIF are preserved.
+    """
+    clear_source_chemistry_props(mol)
+    clear_aromatic_perception_flags(mol)
+    try:
+        Chem.SanitizeMol(mol)
+    except (
+        Chem.rdchem.KekulizeException,
+        Chem.rdchem.AtomKekulizeException,
+        Chem.rdchem.AtomValenceException,
+    ):
+        logger.debug(
+            "Sanitize after clearing aromatic flags failed; MMFF may retry",
+            exc_info=True,
+        )
+    return mol
+
+
 def normalize_protonated_mol_for_mmff94(mol: Chem.Mol) -> Chem.Mol:
     """Make a Dimorphite-protonated mol sanitizable and MMFF-ready.
 
@@ -207,33 +229,21 @@ def normalize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
     _kekulize_non_ring_aromatic_bonds(mol)
 
 
-def _apply_atom_aromatic_flags_post_removeh(
-    mol: Chem.Mol, atom_array: struc.AtomArray, heavy_arr_indices: list[int]
+def _apply_atom_array_annotations(
+    mol: Chem.Mol, atom_array: struc.AtomArray, arr_indices: list[int]
 ) -> None:
-    """Apply ``atom_array.tmol_aromatic`` (custom CIF flag) to the RDKit
-    mol after Hs were removed.
+    """Apply source CIF/mol2 annotations onto ``mol`` at ``arr_indices``.
 
-    ``RemoveHs`` runs ``Chem.SanitizeMol`` internally, which re-perceives
-    aromaticity from the ring-system topology and overwrites whatever
-    flags we previously set. We re-stamp here, mapping the post-RemoveHs
-    heavy-atom indices back to the source AtomArray indices via
-    ``heavy_arr_indices`` (which was captured before Hs were stripped).
-    Sets ``_SOURCE_AROMATIC_PROP`` so downstream sanitize_tolerant skips
-    aromaticity re-perception when source annotations are present, and
-    stamps each atom's source-mol2
-    subtype hint (``ar`` / ``2`` / ``cat`` / ``3`` / ``pl3`` / …) onto
-    an atom prop so the carbon classifier can pick CR vs CD without
-    re-deriving it from RDKit's perception.
+    Each ``arr_indices[i]`` is the AtomArray index for RDKit atom index ``i``.
+    After ``RemoveHs``, ``arr_indices`` lists only heavy-atom source indices;
+    when explicit hydrogens are kept, it is ``range(n_atoms)``.
     """
-    if mol.GetNumAtoms() != len(heavy_arr_indices):
+    if mol.GetNumAtoms() != len(arr_indices):
         return
 
-    # Re-stamp source subtype hints on heavy atoms after RemoveHs.
-    # This keeps Rosetta-style subtype-driven typing stable even if
-    # RDKit dropped custom atom props during H removal.
     if hasattr(atom_array, "tmol_source_subtype"):
         subtypes = atom_array.tmol_source_subtype
-        for mol_idx, arr_idx in enumerate(heavy_arr_indices):
+        for mol_idx, arr_idx in enumerate(arr_indices):
             if arr_idx >= len(subtypes):
                 continue
             sub = str(subtypes[arr_idx])
@@ -243,7 +253,7 @@ def _apply_atom_aromatic_flags_post_removeh(
     if not hasattr(atom_array, "tmol_aromatic"):
         return
     flags = atom_array.tmol_aromatic
-    for mol_idx, arr_idx in enumerate(heavy_arr_indices):
+    for mol_idx, arr_idx in enumerate(arr_indices):
         a = mol.GetAtomWithIdx(mol_idx)
         a.SetIsAromatic(bool(flags[arr_idx]))
     for bond in mol.GetBonds():
@@ -252,6 +262,13 @@ def _apply_atom_aromatic_flags_post_removeh(
         else:
             bond.SetIsAromatic(False)
     mol.SetProp(_SOURCE_AROMATIC_PROP, "1")
+
+
+def _apply_atom_aromatic_flags_post_removeh(
+    mol: Chem.Mol, atom_array: struc.AtomArray, heavy_arr_indices: list[int]
+) -> None:
+    """Re-stamp source annotations after ``RemoveHs`` (see :func:`_apply_atom_array_annotations`)."""
+    _apply_atom_array_annotations(mol, atom_array, heavy_arr_indices)
 
 
 def source_subtype(atom: Chem.Atom) -> str:
@@ -317,8 +334,17 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
         return Chem.RemoveHs(mol, sanitize=False)
 
 
-def ligand_atom_array_to_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.Mol:
-    """Build an RDKit Mol directly from a ligand AtomArray."""
+def ligand_atom_array_to_rdkit_mol(
+    ligand_info: NonStandardResidueInfo,
+    *,
+    keep_hydrogens: bool = False,
+) -> Chem.Mol:
+    """Build an RDKit Mol directly from a ligand AtomArray.
+
+    Args:
+        keep_hydrogens: When True, retain explicit hydrogens from the input
+            (used for ``skip_protonation`` — preserve mol2/CIF protonation).
+    """
     atom_array = ligand_info.atom_array
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
     if len(atom_array) == 0:
@@ -373,13 +399,16 @@ def ligand_atom_array_to_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.
     normalize_non_ring_aromatic_bonds(mol)
     _apply_source_subtypes(mol, atom_array)
 
-    # Map heavy-atom indices from the source atom_array to the post-
-    # ``RemoveHs`` mol so we can re-stamp the source-supplied aromatic
-    # flag after RemoveHs's internal sanitize re-perceived aromaticity.
-    heavy_arr_indices = [i for i, e in enumerate(atom_array.element) if str(e) != "H"]
+    if keep_hydrogens:
+        arr_indices = list(range(len(atom_array)))
+    else:
+        heavy_arr_indices = [
+            i for i, e in enumerate(atom_array.element) if str(e) != "H"
+        ]
+        mol = _remove_hs_tolerant(mol)
+        arr_indices = heavy_arr_indices
 
-    mol = _remove_hs_tolerant(mol)
-    _apply_atom_aromatic_flags_post_removeh(mol, atom_array, heavy_arr_indices)
+    _apply_atom_array_annotations(mol, atom_array, arr_indices)
     mol = _strip_metals(mol)
     if mol is None or mol.GetNumAtoms() == 0:
         raise ValueError(f"{ligand_info.res_name}: failed to build RDKit Mol")
