@@ -1614,7 +1614,6 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   score::common::sphere_overlap::
       compute_block_spheres_from_rot_spheres<DeviceOperations, D, Real, Int>::f(
           scratch_rot_spheres,
-<<<<<<< HEAD
           n_rots_for_block,
           rot_offset_for_block,
           scratch_block_spheres);
@@ -1624,11 +1623,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
           first_rot_block_type,
           scratch_block_spheres,
           scratch_block_neighbors,
-          global_params[0].max_dis);
-=======
-          scratch_rot_neighbors,
           max_dis);
->>>>>>> 160b7889b (Small refactor: for neighbor check, the max_dis parameter has to be on CPU as well as on device ... pass in this parameter on host as well.)
 
   auto dispatch_indices_t = score::common::sphere_overlap::
       rot_neighbor_indices_from_block_neighbors<DeviceOperations, D, Int>::f(
