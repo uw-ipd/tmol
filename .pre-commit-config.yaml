@@ -3,9 +3,7 @@ repos:
     hooks:
       - id: clang-format
         name: clang-format
-        args: ['-i']
-        description: 'Format files with ClangFormat.'
-        entry: clang-format
+        entry: clang-format -i
         language: system
         files: \.(c|cc|cpp|h|hh|cu|cuh)$
         exclude: >
@@ -13,14 +11,20 @@ repos:
                 tmol/extern/.* |
                 dev/.* 
             )$
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
       - id: black
-        name: black
-        description: 'Black: The uncompromising Python code formatter'
-        entry: black
-        language: python
-        language_version: python3.11
-        require_serial: true
-        types: [python]
+        exclude: >
+            (?x)^(
+                tmol/extern/.* |
+                dev/.* 
+                \.conda/.*
+            )$
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
         exclude: >
             (?x)^(
                 tmol/extern/.* |

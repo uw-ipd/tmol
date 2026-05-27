@@ -1,9 +1,11 @@
 import os
 import attr
-from typing import List
+from typing import Optional
 
-from .chemical import ChemicalDatabase
+from .chemical import AtomType, ChemicalDatabase, RawResidueType
 from .scoring import ScoringDatabase
+from .scoring.elec import PartialCharges
+from .scoring.cartbonded import CartRes
 
 # maybe this should live in the database?
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
@@ -11,24 +13,103 @@ from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 @attr.s
 class ParameterDatabase:
-    """The parameters describing the available chemical types and the scoring terms"""
+    """Chemical and scoring parameter container used by tmol.
+
+    This class owns a patched chemical database and the scoring databases
+    used to build score functions. The process-global accessor
+    `get_current()` returns a shared mutable instance. Use
+    `get_fresh_default()` when caller isolation is required.
+    """
 
     __default = None
 
     @classmethod
-    def get_default(cls) -> "ParameterDatabase":
-        """Load and return default parameter database."""
+    def get_current(cls) -> "ParameterDatabase":
+        """Return the process-global cached parameter database."""
         if cls.__default is None:
             cls.__default = ParameterDatabase.from_file(
                 os.path.join(os.path.dirname(__file__), "default")
             )
         return cls.__default
 
+    @classmethod
+    def get_fresh_default(cls) -> "ParameterDatabase":
+        """Load a new default parameter database instance from disk."""
+        return ParameterDatabase.from_file(
+            os.path.join(os.path.dirname(__file__), "default")
+        )
+
     scoring: ScoringDatabase = attr.ib()
     chemical: PatchedChemicalDatabase = attr.ib()
 
+    def add_residue_scoring_params(
+        self,
+        res_name: str,
+        partial_charges: Optional[dict[str, float]] = None,
+        cartbonded_params: Optional[CartRes] = None,
+    ) -> None:
+        """Add temporary scoring parameters for a residue type.
+
+        Routes to the appropriate sub-databases internally.
+        For permanent additions, edit the YAML files in tmol/database/default/scoring/.
+
+        Args:
+            res_name: Residue name (e.g. "I4B", "ATP").
+            partial_charges: Per-atom partial charges {atom_name: charge}.
+            cartbonded_params: CartRes with bond lengths, angles, and impropers.
+        """
+        if partial_charges is not None:
+            new_entries = tuple(
+                PartialCharges(res=res_name, atom=atom, charge=charge)
+                for atom, charge in partial_charges.items()
+            )
+            self.scoring.elec.atom_charge_parameters = (
+                self.scoring.elec.atom_charge_parameters + new_entries
+            )
+        if cartbonded_params is not None:
+            self.scoring.cartbonded.residue_params[res_name] = cartbonded_params
+
+    def remove_residue_scoring_params(self, res_name: str):
+        """Remove all temporary scoring parameters for a residue type.
+
+        Args:
+            res_name: Residue name to remove.
+        """
+        self.scoring.elec.atom_charge_parameters = tuple(
+            p for p in self.scoring.elec.atom_charge_parameters if p.res != res_name
+        )
+        self.scoring.cartbonded.residue_params.pop(res_name, None)
+
+    def add_residue_type(
+        self,
+        residue_type: RawResidueType,
+        new_atom_types: Optional[list[AtomType]] = None,
+    ) -> None:
+        """Add a residue type to the chemical database.
+
+        Args:
+            residue_type: The RawResidueType to add.
+            new_atom_types: Optional list of new AtomType entries to register.
+
+        Returns:
+            None.
+        """
+        if new_atom_types:
+            self.chemical.atom_types = (*self.chemical.atom_types, *new_atom_types)
+        self.chemical.residues = (*self.chemical.residues, residue_type)
+
+    def remove_residue_type(self, res_name: str) -> None:
+        """Remove a residue type from the chemical database.
+
+        Args:
+            res_name: Residue name to remove.
+        """
+        self.chemical.residues = [
+            r for r in self.chemical.residues if r.name != res_name
+        ]
+
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, path: str) -> "ParameterDatabase":
         chemdb = ChemicalDatabase.from_file(os.path.join(path, "chemical"))
         patched_chemdb = PatchedChemicalDatabase.from_chem_db(chemdb)  # apply patches
         return cls(
@@ -37,8 +118,8 @@ class ParameterDatabase:
         )
 
     def create_stable_subset(
-        self, desired_names: List[str], desired_variants: List[str]
-    ):
+        self, desired_names: list[str], desired_variants: list[str]
+    ) -> "ParameterDatabase":
         """Create a ParameterDatabase representing a subset of the
         RefinedResidueTypes in this PD's PatchedChemicalDatabase from a list
         of RRT names and patched with the given variants (identified by their

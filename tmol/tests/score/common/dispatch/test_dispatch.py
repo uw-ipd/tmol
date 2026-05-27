@@ -1,16 +1,10 @@
 import numpy
 import torch
 
-from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
-
 
 def test_complex_dispatch():
-    compiled = load(
-        modulename(__name__),
-        cuda_if_available(
-            relpaths(__file__, ["test.cpp", "test.pybind.cpp", "test.cu"])
-        ),
-    )
+    from tmol.tests.score.common.dispatch import _ext as compiled
+
     vals = torch.arange(20, dtype=torch.int32)
     boundaries = torch.zeros(2, dtype=torch.int32)
     boundaries[0] = 0

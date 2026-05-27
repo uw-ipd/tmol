@@ -22,6 +22,7 @@ def test_annotate_residue_type_smoke(default_database):
     sampler = IncludeCurrentSampler()
     sampler.annotate_residue_type(ala_restype)
     # this is a no-op
+    assert sampler.requires_mainchain_fingerprint() is False
 
 
 def test_annotate_packed_block_types_smoke(default_database, torch_device):

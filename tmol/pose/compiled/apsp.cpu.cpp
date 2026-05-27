@@ -122,9 +122,9 @@ struct AllPairsShortestPathsDispatch {
               }
 
             }  // for node jj
-          }    // for node ii
-        }      // for intermediate node kk
-      }        // for graph gg
+          }  // for node ii
+        }  // for intermediate node kk
+      }  // for graph gg
     }
   }
 };

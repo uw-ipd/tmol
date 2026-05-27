@@ -227,9 +227,9 @@ class TView : public TViewBase<T, N, D, P> {
 
   AT_HOST_DEVICE TView(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
-      : TViewBase<T, N, D, P>(data_, sizes_, strides_){};
+      : TViewBase<T, N, D, P>(data_, sizes_, strides_) {};
 
-  AT_HOST_DEVICE TView() : TViewBase<T, N, D, P>(){};
+  AT_HOST_DEVICE TView() : TViewBase<T, N, D, P>() {};
 
   AT_HOST_DEVICE TensorAccessor<T, N - 1, D, P> operator[](int64_t i) {
     BOUNDARY_ASSERT(this, i);
@@ -272,9 +272,9 @@ class TView<T, 1, D, P> : public TViewBase<T, 1, D, P> {
 
   AT_HOST_DEVICE TView(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
-      : TViewBase<T, 1, D, P>(data_, sizes_, strides_){};
+      : TViewBase<T, 1, D, P>(data_, sizes_, strides_) {};
 
-  AT_HOST_DEVICE TView() : TViewBase<T, 1, D, P>(){};
+  AT_HOST_DEVICE TView() : TViewBase<T, 1, D, P>() {};
 
   AT_HOST_DEVICE T& operator[](int64_t i) {
     BOUNDARY_ASSERT(this, i);

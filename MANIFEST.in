@@ -1,0 +1,17 @@
+# Include C++/CUDA source files for building from source distribution
+recursive-include tmol *.cpp *.cu *.cuh *.hh *.h *.hpp *.hxx *.cc
+recursive-include tmol/extern *
+
+# Include database YAML files
+recursive-include tmol/database *.yaml
+
+# Include test fixture data
+recursive-include tmol/tests/data *.pdb *.pickle *.fa *.npz
+
+# Include project metadata and build files
+include LICENSE
+include README.md
+include pyproject.toml
+include CMakeLists.txt
+
+

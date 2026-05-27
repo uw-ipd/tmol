@@ -1,6 +1,5 @@
 import numpy
 
-
 # Utility functions for constructing a hash table from a tuple of ints to a tuple of floats
 # The implementation of the hash function here must match the corresponding function in
 # hash_util.hh in this same directory.
@@ -34,7 +33,7 @@ def add_to_hashtable(hash_keys, hash_values, cur_value_index, key, values):
         index = (index + 1) % hash_keys.shape[0]
     for i, k in enumerate(key):
         hash_keys[index][i] = k
-    hash_keys[index][4] = cur_value_index
+    hash_keys[index][len(key)] = cur_value_index
 
     for i, value in enumerate(values):
         hash_values[cur_value_index][i] = value

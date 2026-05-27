@@ -26,8 +26,7 @@ namespace potentials {
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
 template <
-    template <tmol::Device>
-    class DeviceOps,
+    template <tmol::Device> class DeviceOps,
     tmol::Device Dev,
     typename Real,
     typename Int>

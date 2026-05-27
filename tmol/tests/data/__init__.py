@@ -1,6 +1,7 @@
 import pytest
 import os
 import torch
+import biotite.structure.io
 
 from . import pdb
 
@@ -22,7 +23,11 @@ def ubq_pdb():
 
 @pytest.fixture(scope="session")
 def pdb_1r21():
-    return pdb.data["1r21"]
+    # Two files exist in the repo (`1r21.pdb` and `1R21.pdb`) with different
+    # protonation at residue 1. The lazy loader key normalization can pick
+    # either one depending on directory order. Pin this fixture explicitly.
+    with open(os.path.join(os.path.dirname(__file__), "pdb", "1r21.pdb")) as f:
+        return f.read()
 
 
 @pytest.fixture(scope="session")
@@ -143,6 +148,68 @@ def rosettafold2_ubq_pred(torch_device):
 def rosettafold2_sumo_pred(torch_device):
     fname = os.path.join(__file__.rpartition("/")[0], "rosettafold2", "sumo.pt")
     return torch.load(fname, map_location=torch_device)
+
+
+@pytest.fixture()
+def biotite_1ubq():
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1ubq.pdb")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
+def biotite_1r21():
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1R21.pdb")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
+def biotite_1bl8():
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1BL8.pdb")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
+def biotite_4tlm(tmp_path):
+    """4TLM structure fetched from RCSB (large, 581 missing sidechains)."""
+    from biotite.database import rcsb
+
+    path = rcsb.fetch("4TLM", "cif", target_path=tmp_path)
+    return biotite.structure.io.load_structure(
+        path, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
+def cif_184l_with_i4b():
+    """Lysozyme with I4B ligand (10 atoms, small drug-like)."""
+    fname = os.path.join(__file__.rpartition("/")[0], "cif", "184l__1__1.A__1.E.cif")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"], include_bonds=True
+    )
+
+
+@pytest.fixture()
+def cif_155c_with_hem():
+    """Cytochrome c with HEM ligand (43 atoms) and ACE caps."""
+    fname = os.path.join(__file__.rpartition("/")[0], "cif", "155c__1__1.A__1.B.cif")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"], include_bonds=True
+    )
+
+
+@pytest.fixture()
+def cif_1a25_with_pse():
+    """Structure with PSE ligand at partial occupancy (0.56)."""
+    fname = os.path.join(__file__.rpartition("/")[0], "cif", "1a25__1__1.B__1.I.cif")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"], include_bonds=True
+    )
 
 
 def no_termini_pose_stack_from_pdb(pdb, torch_device, residue_start, residue_end):

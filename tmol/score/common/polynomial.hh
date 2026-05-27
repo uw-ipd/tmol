@@ -22,7 +22,7 @@ struct poly {
     auto astuple() { return make_tuple(V, dV_dX); }
   };
 
-  static def V(Real X, Vec<Real, POrd> const& coeffs)->Real {
+  static def V(Real X, Vec<Real, POrd> const& coeffs) -> Real {
     static_assert(POrd >= 2, "");
     EvalReal v = coeffs(0);
 
@@ -34,7 +34,7 @@ struct poly {
     return (Real)v;
   }
 
-  static def V_dV(Real X, Vec<Real, POrd> const& coeffs)->V_dV_T {
+  static def V_dV(Real X, Vec<Real, POrd> const& coeffs) -> V_dV_T {
     static_assert(POrd >= 2, "");
     EvalReal v = coeffs(0);
     EvalReal d = coeffs(0);
@@ -59,8 +59,7 @@ struct bound_poly {
       const Real& x,
       const Vec<Real, PDim>& coeffs,
       const Vec<Real, 2>& range,
-      const Vec<Real, 2>& bound)
-      ->Real {
+      const Vec<Real, 2>& bound) -> Real {
     if (x < range[0]) {
       return bound[0];
     } else if (x > range[1]) {
@@ -74,8 +73,7 @@ struct bound_poly {
       Real x,
       Vec<Real, PDim> const& coeffs,
       Vec<Real, 2> const& range,
-      Vec<Real, 2> const& bound)
-      ->V_dV_T {
+      Vec<Real, 2> const& bound) -> V_dV_T {
     if (x < range[0]) {
       return {bound[0], 0};
     } else if (x > range[1]) {

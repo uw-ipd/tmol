@@ -58,7 +58,7 @@ class CartRes:
     hxltorsion_parameters: Tuple[HxlTorsionGroup, ...]
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True)
+@attr.s(auto_attribs=True, slots=True)
 class CartBondedDatabase:
     residue_params: dict[str, CartRes]
 

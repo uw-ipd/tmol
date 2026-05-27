@@ -259,41 +259,42 @@ class BackboneTorsionPoseScoreOp
           }));
     }
 
-    return {// common: rot_coords + 12 more arguments
-            dV_d_rot_coords,
+    return {
+        // common: rot_coords + 12 more arguments
+        dV_d_rot_coords,
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            // 14 more arguments
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        // 14 more arguments
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor()};
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor()};
   }
 };
 
@@ -540,41 +541,42 @@ class BackboneTorsionRotamerScoreOp
           }));
     }
 
-    return {// common: rot_coords + 12 more arguments
-            dV_d_rot_coords,
+    return {
+        // common: rot_coords + 12 more arguments
+        dV_d_rot_coords,
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            // 14 more arguments
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        // 14 more arguments
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor()};
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor()};
   }
 };
 
@@ -706,10 +708,8 @@ std::vector<Tensor> backbone_torsion_rotamer_score_op(
       output_block_pair_energies);
 }
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_bb_torsion, m) {
   m.def(
       "backbone_torsion_pose_score",
       &backbone_torsion_pose_score_op<DeviceOperations>);

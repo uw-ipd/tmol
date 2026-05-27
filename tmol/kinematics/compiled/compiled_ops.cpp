@@ -590,11 +590,9 @@ auto minimizer_map_from_movemap(
   return minimizer_map;
 }
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_kin, m) {
   m.def("forward_kin_op", &kinematic_op);
   m.def("forward_only_op", &forward_only_op);
   m.def("get_kfo_indices_for_atoms", &get_kfo_indices_for_atoms);

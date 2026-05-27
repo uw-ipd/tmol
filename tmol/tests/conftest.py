@@ -1,5 +1,3 @@
-import subprocess
-
 from .database import (  # noqa: F401
     default_database,
     default_unpatched_chemical_database,
@@ -23,6 +21,13 @@ from .data import (  # noqa: F401
     openfold_ubq_and_sumo_pred,
     rosettafold2_ubq_pred,
     rosettafold2_sumo_pred,
+    biotite_1ubq,
+    biotite_1r21,
+    biotite_1bl8,
+    biotite_4tlm,
+    cif_184l_with_i4b,
+    cif_155c_with_hem,
+    cif_1a25_with_pse,
 )
 
 from .chemical import (  # noqa: F401
@@ -62,7 +67,6 @@ def pytest_collection_modifyitems(session, config, items):
 
 def pytest_benchmark_update_machine_info(config, machine_info):
     import torch
-    import json
     import cpuinfo
     import psutil
 
@@ -82,9 +86,7 @@ def pytest_benchmark_update_machine_info(config, machine_info):
     machine_info["cpu"]["logical"] = psutil.cpu_count(logical=True)
     machine_info["cpu"]["physical"] = psutil.cpu_count(logical=False)
 
-    machine_info["conda"] = {
-        "list": json.loads(subprocess.getoutput("conda list --json"))
-    }
+    machine_info["conda"] = {"list": []}
 
 
 def pytest_addoption(parser):

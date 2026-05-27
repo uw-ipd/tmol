@@ -1,30 +1,26 @@
 import numpy
-from tmol.utility.cpp_extension import load, relpaths, modulename
 
-_compiled = load(modulename(__name__), relpaths(__file__, ["compiled.pybind.cpp"]))
-
-
-hbond_score_V_dV = numpy.vectorize(
-    _compiled.hbond_score_V_dV,
-    signature="(3),(3),(3),(3),(3),"  # D,H,A,B,B0
-    "(3),"  # pair params: acceptor_type, accwt, donwt
-    "(48),"  # 3 polynomials
-    "(4)"  # global params
-    "->"
-    "(),"  # E
-    "(3),(3),(3),(3),(3)",  # dE_d[D,H,A,B,B0]
+from tmol.tests.score.hbond.potentials._ext import (
+    hbond_score_V_dV as _hbond_score_V_dV,
+    AH_dist_V_dV as _AH_dist_V_dV,
+    AHD_angle_V_dV as _AHD_angle_V_dV,
+    BAH_angle_V_dV as _BAH_angle_V_dV,
+    sp2chi_energy_V_dV as _sp2chi_energy_V_dV,
 )
 
-AH_dist_V_dV = numpy.vectorize(
-    _compiled.AH_dist_V_dV, signature="(3),(3),(16)->(),(3),(3)"
-)
+# hbond_score_V_dV takes struct arguments — export raw (used with kwargs).
+hbond_score_V_dV = _hbond_score_V_dV
+
+# The remaining functions take simple array/scalar args and are used
+# through VectorizedOp in gradcheck tests, so wrap with numpy.vectorize.
+AH_dist_V_dV = numpy.vectorize(_AH_dist_V_dV, signature="(3),(3),(n)->(),(3),(3)")
 AHD_angle_V_dV = numpy.vectorize(
-    _compiled.AHD_angle_V_dV, signature="(3),(3),(3),(16)->(),(3),(3),(3)"
+    _AHD_angle_V_dV, signature="(3),(3),(3),(n)->(),(3),(3),(3)"
 )
 BAH_angle_V_dV = numpy.vectorize(
-    _compiled.BAH_angle_V_dV, signature="(3),(3),(3),(3),(),(16),()->(),(3),(3),(3),(3)"
+    _BAH_angle_V_dV,
+    signature="(3),(3),(3),(3),(),(n),()->(),(3),(3),(3),(3)",
 )
-
 sp2chi_energy_V_dV = numpy.vectorize(
-    _compiled.sp2chi_energy_V_dV, signature="(),(),(),(),()->(),(),()"
+    _sp2chi_energy_V_dV, signature="(),(),(),(),()->(),(),()"
 )

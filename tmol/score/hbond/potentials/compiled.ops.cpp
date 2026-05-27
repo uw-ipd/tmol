@@ -142,52 +142,53 @@ class HBondPoseScoresOp
       // save inputs for deriv call in backwards
       auto max_n_rots_per_pose_tp =
           TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
-      ctx->save_for_backward({// common params
-                              rot_coords,
-                              rot_coord_offset,
-                              pose_ind_for_atom,
-                              first_rot_for_block,
-                              first_rot_block_type,
-                              block_ind_for_rot,
-                              pose_ind_for_rot,
-                              block_type_ind_for_rot,
-                              n_rots_for_pose,
-                              rot_offset_for_pose,
-                              n_rots_for_block,
-                              rot_offset_for_block,
-                              max_n_rots_per_pose_tp.tensor,
+      ctx->save_for_backward(
+          {// common params
+           rot_coords,
+           rot_coord_offset,
+           pose_ind_for_atom,
+           first_rot_for_block,
+           first_rot_block_type,
+           block_ind_for_rot,
+           pose_ind_for_rot,
+           block_type_ind_for_rot,
+           n_rots_for_pose,
+           rot_offset_for_pose,
+           n_rots_for_block,
+           rot_offset_for_block,
+           max_n_rots_per_pose_tp.tensor,
 
-                              // term specific params
-                              pose_stack_inter_residue_connections,
-                              pose_stack_min_bond_separation,
-                              pose_stack_inter_block_bondsep,
+           // term specific params
+           pose_stack_inter_residue_connections,
+           pose_stack_min_bond_separation,
+           pose_stack_inter_block_bondsep,
 
-                              // packed block type params
-                              block_type_n_atoms,
-                              block_type_n_interblock_bonds,
-                              block_type_atoms_forming_chemical_bonds,
-                              block_type_n_all_bonds,
-                              block_type_all_bonds,
-                              block_type_atom_all_bond_ranges,
-                              block_type_path_distance,
+           // packed block type params
+           block_type_n_atoms,
+           block_type_n_interblock_bonds,
+           block_type_atoms_forming_chemical_bonds,
+           block_type_n_all_bonds,
+           block_type_all_bonds,
+           block_type_atom_all_bond_ranges,
+           block_type_path_distance,
 
-                              // hbpbt params
-                              block_type_tile_n_donH,
-                              block_type_tile_n_acc,
-                              block_type_tile_donH_inds,
-                              block_type_tile_acc_inds,
-                              block_type_tile_donor_type,
-                              block_type_tile_acceptor_type,
-                              block_type_tile_hybridization,
-                              block_type_atom_is_hydrogen,
+           // hbpbt params
+           block_type_tile_n_donH,
+           block_type_tile_n_acc,
+           block_type_tile_donH_inds,
+           block_type_tile_acc_inds,
+           block_type_tile_donor_type,
+           block_type_tile_acceptor_type,
+           block_type_tile_hybridization,
+           block_type_atom_is_hydrogen,
 
-                              // hb_param_db params
-                              pair_params,
-                              pair_polynomials,
-                              global_params,
-                              block_neighbors
+           // hb_param_db params
+           pair_params,
+           pair_polynomials,
+           global_params,
+           block_neighbors
 
-      });
+          });
     } else {
       score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
@@ -464,52 +465,53 @@ class HBondRotamerScoresOp
       // save inputs for deriv call in backwards
       auto max_n_rots_per_pose_tp =
           TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
-      ctx->save_for_backward({// common params
-                              rot_coords,
-                              rot_coord_offset,
-                              pose_ind_for_atom,
-                              first_rot_for_block,
-                              first_rot_block_type,
-                              block_ind_for_rot,
-                              pose_ind_for_rot,
-                              block_type_ind_for_rot,
-                              n_rots_for_pose,
-                              rot_offset_for_pose,
-                              n_rots_for_block,
-                              rot_offset_for_block,
-                              max_n_rots_per_pose_tp.tensor,
+      ctx->save_for_backward(
+          {// common params
+           rot_coords,
+           rot_coord_offset,
+           pose_ind_for_atom,
+           first_rot_for_block,
+           first_rot_block_type,
+           block_ind_for_rot,
+           pose_ind_for_rot,
+           block_type_ind_for_rot,
+           n_rots_for_pose,
+           rot_offset_for_pose,
+           n_rots_for_block,
+           rot_offset_for_block,
+           max_n_rots_per_pose_tp.tensor,
 
-                              // term specific params
-                              pose_stack_inter_residue_connections,
-                              pose_stack_min_bond_separation,
-                              pose_stack_inter_block_bondsep,
+           // term specific params
+           pose_stack_inter_residue_connections,
+           pose_stack_min_bond_separation,
+           pose_stack_inter_block_bondsep,
 
-                              // packed block type params
-                              block_type_n_atoms,
-                              block_type_n_interblock_bonds,
-                              block_type_atoms_forming_chemical_bonds,
-                              block_type_n_all_bonds,
-                              block_type_all_bonds,
-                              block_type_atom_all_bond_ranges,
-                              block_type_path_distance,
+           // packed block type params
+           block_type_n_atoms,
+           block_type_n_interblock_bonds,
+           block_type_atoms_forming_chemical_bonds,
+           block_type_n_all_bonds,
+           block_type_all_bonds,
+           block_type_atom_all_bond_ranges,
+           block_type_path_distance,
 
-                              // hbpbt params
-                              block_type_tile_n_donH,
-                              block_type_tile_n_acc,
-                              block_type_tile_donH_inds,
-                              block_type_tile_acc_inds,
-                              block_type_tile_donor_type,
-                              block_type_tile_acceptor_type,
-                              block_type_tile_hybridization,
-                              block_type_atom_is_hydrogen,
+           // hbpbt params
+           block_type_tile_n_donH,
+           block_type_tile_n_acc,
+           block_type_tile_donH_inds,
+           block_type_tile_acc_inds,
+           block_type_tile_donor_type,
+           block_type_tile_acceptor_type,
+           block_type_tile_hybridization,
+           block_type_atom_is_hydrogen,
 
-                              // hb_param_db params
-                              pair_params,
-                              pair_polynomials,
-                              global_params,
-                              block_neighbors
+           // hb_param_db params
+           pair_params,
+           pair_polynomials,
+           global_params,
+           block_neighbors
 
-      });
+          });
     } else {
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
@@ -851,10 +853,8 @@ std::vector<Tensor> hbond_rotamer_scores_op(
       output_block_pair_energies);
 }
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_hbond, m) {
   m.def("hbond_pose_scores", &hbond_pose_scores_op<common::DeviceOperations>);
   m.def(
       "hbond_rotamer_scores",

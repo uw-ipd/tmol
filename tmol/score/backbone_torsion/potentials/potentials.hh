@@ -36,8 +36,7 @@ def rama_V_dV(
     CoordQuad psi,
     TensorAccessor<Real, 2, D> coeffs,
     Real2 bbstart,
-    Real2 bbstep)
-    ->tuple<Real, CoordQuad, CoordQuad> {
+    Real2 bbstep) -> tuple<Real, CoordQuad, CoordQuad> {
   Real V = 0.0;
   Real2 dVdphipsi = {0.0, 0.0};
   CoordQuad dV_dphiatm;
@@ -68,7 +67,7 @@ def rama_V_dV(
 }
 
 template <tmol::Device D, typename Real, typename Int>
-def omega_V_dV(CoordQuad omega, Real K)->tuple<Real, CoordQuad> {
+def omega_V_dV(CoordQuad omega, Real K) -> tuple<Real, CoordQuad> {
   Real V;
   Real dVdomega;
   CoordQuad dV_domegaatm;
@@ -105,8 +104,7 @@ def omega_bbdep_V_dV(
     TensorAccessor<Real, 2, D> coeffs_sig,
     Real2 bbstart,
     Real2 bbstep,
-    Real K)
-    ->tuple<Real, CoordQuad, CoordQuad, CoordQuad> {
+    Real K) -> tuple<Real, CoordQuad, CoordQuad, CoordQuad> {
   const Real pi = EIGEN_PI;
   Real V;
   Real dVdomega, dVdphi = 0.0, dVdpsi = 0.0;

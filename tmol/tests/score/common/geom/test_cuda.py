@@ -4,14 +4,14 @@ import pytest
 import torch
 import torch.testing
 
-from tmol.utility.cpp_extension import load, relpaths, modulename
 from tmol.tests.torch import requires_cuda
 
 
-@requires_cuda
 @pytest.fixture
 def geom():
-    return load(modulename(__name__) + ".geom", relpaths(__file__, "geom.cu"))
+    from tmol.tests.score.common.geom import _ext_cuda
+
+    return _ext_cuda
 
 
 @requires_cuda

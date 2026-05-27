@@ -25,11 +25,9 @@ void apsp_op(Tensor stacked_distances, int64_t cutoff) {
       }));
 };
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) { m.def("apsp_op", &apsp_op); }
+TORCH_LIBRARY(tmol_apsp, m) { m.def("apsp_op", &apsp_op); }
 
 }  // namespace pose
 }  // namespace tmol

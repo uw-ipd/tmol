@@ -141,11 +141,9 @@ std::vector<Tensor> dun_sample_chi(
       chi_for_rotamers};
 };
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_dun_sampler, m) {
   m.def("dun_sample_chi", &dun_sample_chi<score::common::ComplexDispatch>);
 }
 

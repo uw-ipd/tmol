@@ -11,4 +11,4 @@ def default_unpatched_chemical_database():
 
 @pytest.fixture
 def default_database():
-    return tmol.database.ParameterDatabase.get_default()
+    return tmol.database.ParameterDatabase.get_current()

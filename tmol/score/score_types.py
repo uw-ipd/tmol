@@ -24,5 +24,6 @@ class ScoreType(AutoNumber):
     lk_bridge = ()
     lk_bridge_uncpl = ()
     ref = ()
+    gen_torsions = ()
     # keep this one last
     n_score_types = ()

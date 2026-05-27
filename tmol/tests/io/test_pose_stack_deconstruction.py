@@ -21,7 +21,7 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     # unpack
-    (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels) = tuple(
+    cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels = tuple(
         (
             getattr(canonical_form, x).clone()
             if isinstance(getattr(canonical_form, x), torch.Tensor)
@@ -245,7 +245,7 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
     co = default_canonical_ordering()
     canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
     # unpack and copy before pose stack construction
-    (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels) = tuple(
+    cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels = tuple(
         (
             getattr(canonical_form, x).clone()
             if isinstance(getattr(canonical_form, x), torch.Tensor)
@@ -275,7 +275,7 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
         for x in ["chain_id", "res_types", "coords", "chain_labels"]
     )
 
-    (chain_id, cf_res_types, cf_coords, disulfides, res_not_connected, chain_labels) = (
+    chain_id, cf_res_types, cf_coords, disulfides, res_not_connected, chain_labels = (
         tuple(
             getattr(restored_canonical_form, x)
             for x in [
@@ -345,7 +345,7 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
     )
     canonical_form.res_not_connected = res_not_connected_orig
     # unpack and copy before pose stack construction
-    (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels) = tuple(
+    cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels = tuple(
         (
             getattr(canonical_form, x).clone()
             if isinstance(getattr(canonical_form, x), torch.Tensor)

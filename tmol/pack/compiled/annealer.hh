@@ -10,8 +10,7 @@ namespace pack {
 namespace compiled {
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>

@@ -30,6 +30,14 @@ class ConformerSampler:
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         raise NotImplementedError()
 
+    def requires_mainchain_fingerprint(self) -> bool:
+        """Whether this sampler depends on mainchain fingerprint mapping.
+
+        Samplers that only copy current coordinates (e.g. include-current) do
+        not need this mapping and should return False.
+        """
+        return False
+
     @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         raise NotImplementedError()

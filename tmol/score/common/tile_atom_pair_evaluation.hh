@@ -61,10 +61,8 @@ TMOL_DEVICE_FUNC void for_(F func) {
 // across only the heavy-atom pairs. The AllAtomPairSelector or
 // HeavyAtomPairSelectors defined above can be used for this purpose.
 template <
-    template <typename>
-    typename InterEnergyData,
-    template <template <typename> typename, typename>
-    typename PairSelector,
+    template <typename> typename InterEnergyData,
+    template <template <typename> typename, typename> typename PairSelector,
     tmol::Device D,
     int TILE,
     int nt,
@@ -107,10 +105,8 @@ class InterResBlockEvaluation {
 // so if the atom1 index is >= the atom2 index, the work is skipped.
 // TO DO: replace with upper-triangle indexing to reduce idle threads
 template <
-    template <typename>
-    typename IntraEnergyData,
-    template <template <typename> typename, typename>
-    typename PairSelector,
+    template <typename> typename IntraEnergyData,
+    template <template <typename> typename, typename> typename PairSelector,
     tmol::Device D,
     int TILE,
     int nt,
@@ -197,8 +193,7 @@ class IntraResBlockEvaluation {
 // "block1" data in the "LoadInterDataFunc1" or in the
 // "LoadIntraSharedDatFunc."
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename InterResScoringData,
     typename IntraResScoringData,
@@ -265,9 +260,12 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
 
       int const i_n_atoms_to_load1 =
           max(0, min(int(TILE), int((n_atoms1 - TILE * i))));
+      if (i_n_atoms_to_load1 == 0) break;
       load_interres1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, interres_data, shared_data);
       for (int j = 0; j < n_iterations2; ++j) {
+        int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
+        if (j_n_atoms_to_load2 == 0) break;
         if (j != 0) {
           // We can safely move into the loading of tile data for j == 0
           // because we synchronized at the top of the "for i" loop above
@@ -276,7 +274,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
           // in shared memory
           DeviceDispatch<D>::synchronize_workgroup();
         }
-        int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
         load_interres2_tile_data_to_shared(
             j, TILE * j, j_n_atoms_to_load2, interres_data, shared_data);
 
@@ -312,11 +309,13 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
       // we overwrite the contents of shared memory
       DeviceDispatch<D>::synchronize_workgroup();
       int const i_n_atoms_to_load1 = min(int(TILE), int((n_atoms1 - TILE * i)));
+      if (i_n_atoms_to_load1 == 0) break;
       load_intrares1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, intrares_data, shared_data);
       for (int j = i; j < n_iterations; ++j) {
         int const j_n_atoms_to_load2 =
             min(int(TILE), int((n_atoms1 - TILE * j)));
+        if (j_n_atoms_to_load2 == 0) break;
 
         if (j != i) {
           // make sure calculations from the previous iteration have
@@ -339,8 +338,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename InterResScoringData,
     typename IntraResScoringData,
@@ -414,9 +412,12 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
 
       int const i_n_atoms_to_load1 =
           max(0, min(int(TILE), int((n_atoms1 - TILE * i))));
+      if (i_n_atoms_to_load1 == 0) break;
       load_interres1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, interres_data, shared_data);
       for (int j = 0; j < n_iterations2; ++j) {
+        int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
+        if (j_n_atoms_to_load2 == 0) break;
         if (j != 0) {
           // We can safely move into the loading of tile data for j == 0
           // because we synchronized at the top of the "for i" loop above
@@ -425,7 +426,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
           // in shared memory
           DeviceDispatch<D>::synchronize_workgroup();
         }
-        int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
         load_interres2_tile_data_to_shared(
             j, TILE * j, j_n_atoms_to_load2, interres_data, shared_data);
 
@@ -462,11 +462,13 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
       // we overwrite the contents of shared memory
       DeviceDispatch<D>::synchronize_workgroup();
       int const i_n_atoms_to_load1 = min(int(TILE), int((n_atoms1 - TILE * i)));
+      if (i_n_atoms_to_load1 == 0) break;
       load_intrares1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, intrares_data, shared_data);
       for (int j = i; j < n_iterations; ++j) {
         int const j_n_atoms_to_load2 =
             min(int(TILE), int((n_atoms1 - TILE * j)));
+        if (j_n_atoms_to_load2 == 0) break;
 
         if (j != i) {
           // make sure calculations from the previous iteration have

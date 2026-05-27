@@ -166,7 +166,7 @@ def _paramdb_for_rosettafold2() -> ParameterDatabase:
     # hard coding
     desired_variants_display_names = ["nterm", "cterm"]
 
-    return ParameterDatabase.get_default().create_stable_subset(
+    return ParameterDatabase.get_current().create_stable_subset(
         desired_rt_names, desired_variants_display_names
     )
 
@@ -227,7 +227,7 @@ def _get_rf2_2_tmol_mappings(device: torch.device):
         for x, y in zip(num2aa, aa2long)
     }
 
-    (rt_map, atname_map, at_is_real) = co.create_src_2_tmol_mappings(
+    rt_map, atname_map, at_is_real = co.create_src_2_tmol_mappings(
         num2aa, rf2_atom_names_for_name3s, device
     )
 

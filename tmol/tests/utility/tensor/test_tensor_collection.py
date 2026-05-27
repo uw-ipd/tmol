@@ -1,15 +1,12 @@
 import pytest
 import torch
 
-import tmol.utility.cpp_extension as cpp_extension
-from tmol.utility.cpp_extension import relpaths, modulename
 
-
-@pytest.fixture
+@pytest.fixture(scope="session")
 def tensor_collection():
-    return cpp_extension.load(
-        modulename(__name__), relpaths(__file__, "tensor_collection.cpp"), verbose=True
-    )
+    from tmol.tests.utility.tensor import _tensor_collection
+
+    return _tensor_collection
 
 
 def test_tensor_collection(tensor_collection):

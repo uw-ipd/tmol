@@ -54,6 +54,44 @@ class PackedRotamerKintree:
     dofs_ideal: NDArray[numpy.int32][:, :]
 
 
+def _set_minimal_rotamer_kinforest(restype: RefinedResidueType) -> None:
+    """Set a minimal rotamer_kinforest for non-Dunbrack-eligible restypes (e.g. ligands).
+
+    Avoids calling the kinematic builder for small topologies that would trigger
+    "Bonded ktree must have at least three entries". The packer will not build
+    rotamers for these block types (Dunbrack/FixedAA samplers mark them disabled).
+    """
+    n_atoms = restype.n_atoms
+    id_arr = numpy.arange(n_atoms, dtype=numpy.int32)
+    kinforest_idx = numpy.arange(n_atoms, dtype=numpy.int32)
+    doftype = numpy.zeros(n_atoms, dtype=numpy.int32)
+    parent = numpy.zeros(n_atoms, dtype=numpy.int32)
+    frame_x = numpy.arange(n_atoms, dtype=numpy.int32)
+    frame_y = numpy.zeros(n_atoms, dtype=numpy.int32)
+    frame_z = numpy.zeros(n_atoms, dtype=numpy.int32)
+    nodes = numpy.array([0], dtype=numpy.int32)
+    scans = numpy.array([], dtype=numpy.int32).reshape(0)
+    gens = numpy.array([[0, 0]], dtype=numpy.int32)
+    n_scans_per_gen = numpy.array([], dtype=numpy.int32)
+    dofs_ideal = numpy.zeros((n_atoms, 9), dtype=numpy.float32)
+
+    stub = RotamerKintree(
+        kinforest_idx=kinforest_idx,
+        id=id_arr,
+        doftype=doftype,
+        parent=parent,
+        frame_x=frame_x,
+        frame_y=frame_y,
+        frame_z=frame_z,
+        nodes=nodes,
+        scans=scans,
+        gens=gens,
+        n_scans_per_gen=n_scans_per_gen,
+        dofs_ideal=dofs_ideal,
+    )
+    setattr(restype, "rotamer_kinforest", stub)
+
+
 @validate_args
 def construct_single_residue_kinforest(restype: RefinedResidueType):
     """Create a kinforest for a single residue and its associated
@@ -66,8 +104,27 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     by the "root" atom
 
     Also create the backbone fingerprint
+
+    Non-Dunbrack-eligible restypes (e.g. ligands, non-polymer) get a minimal
+    stub kinforest so that pack_rotamers/coalesce never touch them and the
+    kinematic builder is never invoked for small topologies (< 3 atoms).
     """
     if hasattr(restype, "rotamer_kinforest"):
+        return
+
+    def _is_dunbrack_kinforest_eligible(rt: RefinedResidueType) -> bool:
+        """True if this restype can be built with the full kinematic builder."""
+        p = getattr(rt.properties, "polymer", None)
+        if p is None:
+            return False
+        return (
+            getattr(p, "is_polymer", False)
+            and getattr(p, "polymer_type", "") == "amino_acid"
+            and getattr(p, "backbone_type", "") == "alpha"
+        )
+
+    if not _is_dunbrack_kinforest_eligible(restype):
+        _set_minimal_rotamer_kinforest(restype)
         return
 
     torsion_pairs = numpy.array(

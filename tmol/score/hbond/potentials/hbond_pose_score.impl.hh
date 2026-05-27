@@ -427,8 +427,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
   }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -807,8 +806,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -1064,8 +1062,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -1413,8 +1410,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
