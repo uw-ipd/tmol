@@ -23,8 +23,8 @@ namespace pack {
 namespace compiled {
 
 #ifdef __NVCC__
-#define CHECK_GPU
-//  CUDA_CHECK(cudaStreamSynchronize(current_context(mgr)->stream()))
+#define CHECK_GPU \
+  CUDA_CHECK(cudaStreamSynchronize(current_context(mgr)->stream()))
 //  CUDA_CHECK(cudaDeviceSynchronize());
 #else
 #define CHECK_GPU
@@ -737,19 +737,19 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         old_to_new_rotamer_index.data(),
         sizeof(int64_t) * n_rotamers,
         cudaMemcpyDeviceToHost);
-    for (int i = 0; i < n_rotamers; ++i) {
-      if (old_to_new_rotamer_index_cpu[i] < 0) {
-        printf(
-            "Weird! old_to_new_rotamer_index_cpu[%d] = %ld\n",
-            i,
-            old_to_new_rotamer_index_cpu[i]);
-      } else {
-        printf(
-            "       old_to_new_rotamer_index_cpu[%d] = %ld\n",
-            i,
-            old_to_new_rotamer_index_cpu[i]);
-      }
-    }
+    // for (int i = 0; i < n_rotamers; ++i) {
+    //   if (old_to_new_rotamer_index_cpu[i] < 0) {
+    //     printf(
+    //         "Weird! old_to_new_rotamer_index_cpu[%d] = %ld\n",
+    //         i,
+    //         old_to_new_rotamer_index_cpu[i]);
+    //   } else {
+    //     printf(
+    //         "       old_to_new_rotamer_index_cpu[%d] = %ld\n",
+    //         i,
+    //         old_to_new_rotamer_index_cpu[i]);
+    //   }
+    // }
   }  // scope
 #endif
 
