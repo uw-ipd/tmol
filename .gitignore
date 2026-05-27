@@ -1,5 +1,8 @@
 .torch_extensions
 
+# Local example scripts (not yet ready to publish)
+tmol/ligand/examples/
+
 # Conda environment
 .conda
 # Rendered environment definitions

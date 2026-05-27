@@ -26,6 +26,12 @@ from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.ligand.atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand.detect import LigandInfo, detect_nonstandard_residues
 from tmol.ligand.graph_match import match_heavy_atoms
+from tmol.ligand.mol2_io import (
+    atom_array_from_mol2,
+    prepare_ligand_from_mol2,
+    read_mol2,
+    write_params_from_mol2,
+)
 from tmol.ligand.mol3d import (
     get_partial_charges_by_index,
     rdkit_mol_to_obmol,
