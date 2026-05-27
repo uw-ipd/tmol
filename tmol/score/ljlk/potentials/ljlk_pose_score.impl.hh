@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/count_pair.hh>
@@ -620,6 +621,7 @@ template <
     typename Real,
     typename Int>
 auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1114,6 +1116,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   // within striking distance
   score::common::sphere_overlap::
       compute_block_spheres<DeviceOperations, D, Real, Int>::f(
+          mgr,
           rot_coords,
           rot_coord_offset,
           block_ind_for_rot,
@@ -1124,6 +1127,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
   score::common::sphere_overlap::
       detect_block_neighbors<DeviceOperations, D, Real, Int>::f(
+          mgr,
           first_rot_block_type,
           scratch_rot_spheres,
           scratch_rot_neighbors,
@@ -1131,10 +1135,10 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
   if (output_block_pair_energies) {
     DeviceOperations<D>::template foreach_workgroup<launch_t>(
-        n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
+        mgr, n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
   } else {
     DeviceOperations<D>::template foreach_workgroup<launch_t>(
-        n_poses * max_n_upper_triangle_inds, eval_energies);
+        mgr, n_poses * max_n_upper_triangle_inds, eval_energies);
   }
 
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};
@@ -1146,6 +1150,7 @@ template <
     typename Real,
     typename Int>
 auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1452,7 +1457,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
   // within striking distance
 
   DeviceOperations<D>::template foreach_workgroup<launch_t>(
-      n_poses * max_n_upper_triangle_inds, eval_derivs);
+      mgr, n_poses * max_n_upper_triangle_inds, eval_derivs);
 
   return dV_dcoords_t;
 }
@@ -1463,6 +1468,7 @@ template <
     typename Real,
     typename Int>
 auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1601,6 +1607,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
   score::common::sphere_overlap::
       compute_rot_spheres<DeviceOperations, D, Real, Int>::f(
+          mgr,
           rot_coords,
           rot_coord_offset,
           block_type_ind_for_rot,
@@ -1609,6 +1616,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
   score::common::sphere_overlap::
       compute_block_spheres_from_rot_spheres<DeviceOperations, D, Real, Int>::f(
+          mgr,
           scratch_rot_spheres,
           n_rots_for_block,
           rot_offset_for_block,
@@ -1616,6 +1624,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
   score::common::sphere_overlap::
       detect_block_neighbors<DeviceOperations, D, Real, Int>::f(
+          mgr,
           first_rot_block_type,
           scratch_block_spheres,
           scratch_block_neighbors,
@@ -1623,7 +1632,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
   auto dispatch_indices_t = score::common::sphere_overlap::
       rot_neighbor_indices_from_block_neighbors<DeviceOperations, D, Int>::f(
-          scratch_block_neighbors, n_rots_for_block, rot_offset_for_block);
+          mgr, scratch_block_neighbors, n_rots_for_block, rot_offset_for_block);
 
   auto dispatch_indices = dispatch_indices_t.view;
 
@@ -1787,7 +1796,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
   assert(output_block_pair_energies);
   DeviceOperations<D>::template foreach_workgroup<launch_t>(
-      dispatch_indices.size(1), eval_energies_by_block);
+      mgr, dispatch_indices.size(1), eval_energies_by_block);
 
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // LJLKRotamerScoreDispatch::forward
@@ -1798,6 +1807,7 @@ template <
     typename Real,
     typename Int>
 auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -2092,7 +2102,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
   // within striking distance
 
   DeviceOperations<D>::template foreach_workgroup<launch_t>(
-      dispatch_indices.size(1), eval_derivs);
+      mgr, dispatch_indices.size(1), eval_derivs);
 
   return dV_dcoords_t;
 }

@@ -5,6 +5,7 @@ error_this_should_not_be_compiled();  // nvcc should not include this file
 #endif
 
 #include "device_operations.hh"
+#include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
 namespace score {
@@ -13,14 +14,14 @@ namespace common {
 template <>
 struct DeviceOperations<tmol::Device::CPU> {
   template <typename launch_t, typename Func>
-  static void forall(int N, Func f) {
+  static void forall(ContextManager&, int N, Func f) {
     for (int i = 0; i < N; ++i) {
       f(i);
     }
   }
 
   template <typename Int, typename Func>
-  static void forall_stacks(Int Nstacks, Int N, Func f) {
+  static void forall_stacks(ContextManager&, Int Nstacks, Int N, Func f) {
     for (int stack = 0; stack < Nstacks; ++stack) {
       for (Int i = 0; i < N; ++i) {
         f(stack, i);
@@ -29,7 +30,8 @@ struct DeviceOperations<tmol::Device::CPU> {
   }
 
   template <typename Int, typename Func>
-  static void foreach_combination_triple(Int dim1, Int dim2, Int dim3, Func f) {
+  static void foreach_combination_triple(
+      ContextManager&, Int dim1, Int dim2, Int dim3, Func f) {
     for (Int i = 0; i < dim1; ++i) {
       for (Int j = 0; j < dim2; ++j) {
         for (Int k = 0; k < dim3; ++k) {
@@ -40,14 +42,14 @@ struct DeviceOperations<tmol::Device::CPU> {
   }
 
   template <typename launch_t, typename Func>
-  static void foreach_workgroup(int n_workgroups, Func f) {
+  static void foreach_workgroup(ContextManager&, int n_workgroups, Func f) {
     for (int i = 0; i < n_workgroups; ++i) {
       f(i);
     }
   }
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
-  static void scan(T* src, T* dst, int n, OP op) {
+  static void scan(ContextManager&, T* src, T* dst, int n, OP op) {
     if (n <= 0) {
       return;
     }
@@ -64,7 +66,8 @@ struct DeviceOperations<tmol::Device::CPU> {
   }
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
-  static T scan_and_return_total(T* src, T* dst, int n, OP op) {
+  static T scan_and_return_total(
+      ContextManager&, T* src, T* dst, int n, OP op) {
     if (n == 0) {
       return T(0);
     }
@@ -91,6 +94,7 @@ struct DeviceOperations<tmol::Device::CPU> {
   //.  - n_generators: the number of generators / length of exc_scan_offset
   template <typename launch_t, typename Int>
   static TPack<Int, 1, tmol::Device::CPU> load_balancing_search(
+      ContextManager&,
       int n_work_units_total,  // The count of the total number of work units
       Int* exc_scan_offsets,
       int n_generators) {
@@ -111,7 +115,7 @@ struct DeviceOperations<tmol::Device::CPU> {
   }
 
   template <typename T, typename OP>
-  static T reduce(T* src, int n, OP op) {
+  static T reduce(ContextManager&, T* src, int n, OP op) {
     assert(n > 0);
     T val = src[0];
     for (int i = 1; i < n; ++i) {
@@ -131,8 +135,13 @@ struct DeviceOperations<tmol::Device::CPU> {
       typename Int,
       typename OP>
   static auto segmented_scan(
-      T* src, Int* seg_start_inds, int n, int n_segs, OP op, T identity)
-      -> TPack<T, 1, tmol::Device::CPU> {
+      ContextManager&,
+      T* src,
+      Int* seg_start_inds,
+      int n,
+      int n_segs,
+      OP op,
+      T identity) -> TPack<T, 1, tmol::Device::CPU> {
     auto dst_t = TPack<T, 1, Device::CPU>::empty({n});
     auto dst = dst_t.view;
     T last_val = identity;  // position 0 is always the start of a segment
