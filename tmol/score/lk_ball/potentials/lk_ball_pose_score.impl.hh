@@ -1168,7 +1168,7 @@ class LKBallRotamerScoreDispatch {
             first_rot_block_type,
             scratch_block_spheres,
             scratch_block_neighbors,
-            global_params[0].distance_threshold);
+            max_dis);
 
     auto dispatch_indices_t = score::common::sphere_overlap::
         rot_neighbor_indices_from_block_neighbors<DeviceDispatch, Dev, Int>::f(

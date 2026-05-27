@@ -223,6 +223,7 @@ struct GeneratePoseWaters {
     int const n_blocks = n_poses * max_n_blocks;
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_rots, f_watergen);
 
+    DeviceOps<Dev>::synchronize_device();
     return water_coords_t;
   };
 
