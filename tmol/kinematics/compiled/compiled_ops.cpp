@@ -608,6 +608,37 @@ auto minimizer_map_from_movemap(
   return minimizer_map;
 }
 
+auto inv_kin_dispatch(
+    Tensor coords,
+    Tensor parent,
+    Tensor frame_x,
+    Tensor frame_y,
+    Tensor frame_z,
+    Tensor doftype) -> Tensor {
+  at::Tensor dofs;
+
+  using Int = int32_t;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(coords.options(), "inverse_kin_op", ([&] {
+                                  using Real = scalar_t;
+                                  constexpr tmol::Device Dev = device_t;
+
+                                  auto result =
+                                      InverseKinDispatch<Dev, Real, Int>::f(
+                                          mgr,
+                                          TCAST(coords),
+                                          TCAST(parent),
+                                          TCAST(frame_x),
+                                          TCAST(frame_y),
+                                          TCAST(frame_z),
+                                          TCAST(doftype));
+
+                                  dofs = result.tensor;
+                                }));
+
+  return dofs;
+}
+
 // See https://stackoverflow.com/a/3221914
 
 TORCH_LIBRARY(tmol_kin, m) {
@@ -625,6 +656,7 @@ TORCH_LIBRARY(tmol_kin, m) {
   m.def("get_kinforest_scans_from_stencils", &get_scans2);
   m.def("get_kinforest_scans_from_stencils2", &get_scans2);
   m.def("minimizer_map_from_movemap", &minimizer_map_from_movemap);
+  m.def("inverse_kin", &inv_kin_dispatch);
 }
 
 }  // namespace kinematics

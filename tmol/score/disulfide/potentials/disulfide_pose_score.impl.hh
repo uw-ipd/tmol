@@ -61,6 +61,7 @@ template <
     typename Real,
     typename Int>
 auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -215,7 +216,7 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   });
 
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_blocks, eval_energies);
+      mgr, n_poses * max_n_blocks, eval_energies);
 
   return {V_t, dV_dx_t};
 }
@@ -226,6 +227,7 @@ template <
     typename Real,
     typename Int>
 auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -368,7 +370,7 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   });
 
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_blocks, eval_derivs);
+      mgr, n_poses * max_n_blocks, eval_derivs);
 
   return dV_dcoords_t;
 }
@@ -379,6 +381,7 @@ template <
     typename Real,
     typename Int>
 auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -474,11 +477,13 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       n_energies_for_rot[rot_ind] = n_energies;
     }
   });
-  DeviceDispatch<D>::template forall<launch_t>(n_rots, count_dispatch_indices);
+  DeviceDispatch<D>::template forall<launch_t>(
+      mgr, n_rots, count_dispatch_indices);
   auto n_energies_for_rot_offset_t = TPack<Int, 1, D>::zeros({n_rots});
   auto n_energies_for_rot_offset = n_energies_for_rot_offset_t.view;
   int n_dispatch_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           n_energies_for_rot.data(),
           n_energies_for_rot_offset.data(),
           n_rots,
@@ -505,7 +510,7 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto conns_for_dispatch_indices = conns_for_dispatch_indices_t.view;
 
   int const max_n_energies_for_rot = DeviceDispatch<D>::reduce(
-      n_energies_for_rot.data(), n_rots, mgpu::maximum_t<Int>());
+      mgr, n_energies_for_rot.data(), n_rots, mgpu::maximum_t<Int>());
 
   auto mark_dispatch_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const rot_ind1 = ind / max_n_energies_for_rot;
@@ -574,7 +579,7 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_rots * max_n_energies_for_rot, mark_dispatch_indices);
+      mgr, n_rots * max_n_energies_for_rot, mark_dispatch_indices);
 
   auto eval_energies = ([=] TMOL_DEVICE_FUNC(int dispatch_ind) {
     int const pose_ind = dispatch_indices[0][dispatch_ind];
@@ -641,7 +646,8 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         V[0][dispatch_ind],
         dV_dx);
   });
-  DeviceDispatch<D>::template forall<launch_t>(n_dispatch_total, eval_energies);
+  DeviceDispatch<D>::template forall<launch_t>(
+      mgr, n_dispatch_total, eval_energies);
 
   return {V_t, dV_dx_t, dispatch_indices_t, conns_for_dispatch_indices_t};
 }
@@ -652,6 +658,7 @@ template <
     typename Real,
     typename Int>
 auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -777,7 +784,8 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
         dTdV[0][dispatch_ind]);
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(n_dispatch_total, eval_derivs);
+  DeviceDispatch<D>::template forall<launch_t>(
+      mgr, n_dispatch_total, eval_derivs);
 
   return dV_dcoords_t;
 }

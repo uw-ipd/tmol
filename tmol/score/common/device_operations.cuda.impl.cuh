@@ -22,6 +22,16 @@ namespace tmol {
 namespace score {
 namespace common {
 
+#define CUDA_CHECK(call)                                               \
+  do {                                                                 \
+    cudaError_t err = call;                                            \
+    if (err != cudaSuccess) {                                          \
+      std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at " \
+                << __FILE__ << ":" << __LINE__ << std::endl;           \
+      std::exit(EXIT_FAILURE);                                         \
+    }                                                                  \
+  } while (0)
+
 template <>
 struct DeviceOperations<tmol::Device::CUDA> {
   template <typename launch_t, typename Func>
@@ -58,7 +68,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
           f(i, j, k);
         },
         dim1 * dim2 * dim3,
-        context);
+        *context);
   }
 
   template <typename launch_t, typename Func>
@@ -84,7 +94,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
     std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
     mgpu::mem_t<T> total(1, *context, mgpu::memory_space_host);
     mgpu::scan<scan_type>(src, n, dst, op, total.data(), *context);
-    cudaStreamSynchronize(context->stream());
+    CUDA_CHECK(cudaStreamSynchronize(context->stream()));
     return total.data()[0];
   }
 
@@ -124,7 +134,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
     // mgpu::standard_context_t context;
     mgpu::mem_t<T> total(1, *context, mgpu::memory_space_host);
     mgpu::reduce(src, n, total.data(), op, *context);
-    cudaStreamSynchronize(context->stream());
+    CUDA_CHECK(cudaStreamSynchronize(context->stream()));
     return total.data()[0];
   }
 
@@ -246,7 +256,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
   __device__ static void synchronize_workgroup() { __syncthreads(); }
 
   // No op on 1-core CPU
-  static void synchronize_device() { cudaStreamSynchronize(0); }
+  static void synchronize_device() { CUDA_CHECK(cudaStreamSynchronize(0)); }
 
  private:
   static std::shared_ptr<mgpu::standard_context_t> _get_context(

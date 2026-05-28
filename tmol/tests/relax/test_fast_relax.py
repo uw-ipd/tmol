@@ -50,7 +50,7 @@ def get_relax_sfxn(default_database, torch_device):
 @pytest.mark.parametrize("n_poses", [1])
 def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_poses):
     # if torch_device == torch.device("cpu"):
-    #    return
+    #     return
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
@@ -75,6 +75,7 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 
     start_time = time.perf_counter()
 
+    # Now let's run fast_relax
     verbose = True
     new_pose_stack = fast_relax(
         pose_stack,

@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/forall_dispatch.hh>
@@ -14,6 +15,7 @@ namespace score {
 namespace dunbrack {
 namespace potentials {
 
+ContextManager mgr;
 using namespace tmol::score::common;
 
 using torch::Tensor;
@@ -91,6 +93,7 @@ class DunbrackPoseScoreOp
           auto result =
               DunbrackPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   forward(
+                      mgr,
                       // common params
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
@@ -311,6 +314,7 @@ class DunbrackPoseScoreOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
@@ -502,6 +506,7 @@ class DunbrackRotamerScoreOp
           auto result =
               DunbrackRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   forward(
+                      mgr,
                       // common params
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
@@ -720,6 +725,7 @@ class DunbrackRotamerScoreOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),

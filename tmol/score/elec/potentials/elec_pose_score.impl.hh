@@ -377,6 +377,7 @@ template <
     typename Real,
     typename Int>
 auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -507,6 +508,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   score::common::sphere_overlap::
       compute_block_spheres<DeviceDispatch, D, Real, Int>::f(
+          mgr,
           rot_coords,
           rot_coord_offset,
           block_ind_for_rot,
@@ -517,6 +519,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   score::common::sphere_overlap::
       detect_block_neighbors<DeviceDispatch, D, Real, Int>::f(
+          mgr,
           first_rot_block_type,
           scratch_rot_spheres,
           scratch_rot_neighbors,
@@ -835,10 +838,10 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // 3
   if (output_block_pair_energies) {
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
+        mgr, n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
   } else {
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        n_poses * max_n_upper_triangle_inds, eval_energies);
+        mgr, n_poses * max_n_upper_triangle_inds, eval_energies);
   }
 
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};
@@ -850,6 +853,7 @@ template <
     typename Real,
     typename Int>
 auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1106,7 +1110,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   // Since we have the sphere overlap results from the forward pass,
   // there's only a single kernel launch here
   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      n_poses * max_n_upper_triangle_inds, eval_derivs);
+      mgr, n_poses * max_n_upper_triangle_inds, eval_derivs);
 
   return dV_dcoords_t;
 }
@@ -1117,6 +1121,7 @@ template <
     typename Real,
     typename Int>
 auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1250,6 +1255,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   score::common::sphere_overlap::
       compute_rot_spheres<DeviceDispatch, D, Real, Int>::f(
+          mgr,
           rot_coords,
           rot_coord_offset,
           block_type_ind_for_rot,
@@ -1258,6 +1264,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   score::common::sphere_overlap::
       compute_block_spheres_from_rot_spheres<DeviceDispatch, D, Real, Int>::f(
+          mgr,
           scratch_rot_spheres,
           n_rots_for_block,
           rot_offset_for_block,
@@ -1265,6 +1272,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   score::common::sphere_overlap::
       detect_block_neighbors<DeviceDispatch, D, Real, Int>::f(
+          mgr,
           first_rot_block_type,
           scratch_block_spheres,
           scratch_block_neighbors,
@@ -1272,7 +1280,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   auto dispatch_indices_t = score::common::sphere_overlap::
       rot_neighbor_indices_from_block_neighbors<DeviceDispatch, D, Int>::f(
-          scratch_block_neighbors, n_rots_for_block, rot_offset_for_block);
+          mgr, scratch_block_neighbors, n_rots_for_block, rot_offset_for_block);
 
   auto dispatch_indices = dispatch_indices_t.view;
 
@@ -1411,7 +1419,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   // 2
   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      dispatch_indices.size(1), eval_energies_by_block);
+      mgr, dispatch_indices.size(1), eval_energies_by_block);
 
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // namespace potentials
@@ -1422,6 +1430,7 @@ template <
     typename Real,
     typename Int>
 auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1669,7 +1678,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   // Since we have the sphere overlap results from the forward pass,
   // there's only a single kernel launch here
   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      dispatch_indices.size(1), eval_derivs);
+      mgr, dispatch_indices.size(1), eval_derivs);
 
   return dV_dcoords_t;
 }

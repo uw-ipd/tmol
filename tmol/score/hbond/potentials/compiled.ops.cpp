@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
@@ -17,6 +18,8 @@ namespace tmol {
 namespace score {
 namespace hbond {
 namespace potentials {
+
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -93,6 +96,7 @@ class HBondPoseScoresOp
 
           auto result =
               HBondPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
+                  mgr,
                   // common params
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
@@ -302,6 +306,7 @@ class HBondPoseScoresOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
@@ -441,6 +446,7 @@ class HBondRotamerScoresOp
           auto result =
               HBondRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   forward(
+                      mgr,
                       // common params
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
@@ -646,6 +652,7 @@ class HBondRotamerScoresOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
@@ -959,6 +966,7 @@ std::vector<Tensor> gen_hbond_bases_op(
         auto result =
             GenerateHBondBases<common::DeviceOperations, Dev, Real, Int>::
                 forward(
+                    mgr,
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
                     TCAST(first_rot_for_block),
