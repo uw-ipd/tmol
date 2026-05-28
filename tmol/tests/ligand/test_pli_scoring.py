@@ -116,7 +116,7 @@ class TestPLIScoring:
             f"{tmol_total - ros_total:+12.4f}"
         )
 
-    def _dg_vs_rosetta(self, pli_pdb, param_db, torch_device):
+    def _dg_vs_rosetta(self, pli_pdb, param_db, torch_device, label_prefix=""):
         """Score the complex and compare block-pair dG with Rosetta."""
         import biotite.structure
         import biotite.structure.io
@@ -127,7 +127,7 @@ class TestPLIScoring:
         target = _target_for_complex(pli_pdb.name)
         sc_path = PLI_DIR / f"{pli_pdb.stem}.sc"
 
-        print(f"\n=== {pli_pdb.name}  (target={target}) [cif+mmff94] ===")
+        print(f"\n=== {pli_pdb.name}  (target={target}) [{label_prefix}] ===")
 
         bt_struct = biotite.structure.io.load_structure(str(pli_pdb))
         if isinstance(bt_struct, biotite.structure.AtomArrayStack):
@@ -176,8 +176,46 @@ class TestPLIScoring:
                 f"  {label:<18} {t:12.4f} {tmin:12.4f} {rosetta:12.4f} {t - rosetta:+12.4f}"
             )
 
-    def test_compare_dg_score_with_rosetta(self, pli_pdb, torch_device):
-        """Compare Rosetta dG scores with tmol using the CIF MMFF94 pipeline."""
+    def test_compare_dg_score_with_rosetta_tmol(self, pli_pdb, torch_device):
+        """Compare Rosetta dG scores with tmol scores using .tmol file params."""
+        from tmol.database import ParameterDatabase
+        from tmol.ligand.params_file import inject_params_file
+
         target = _target_for_complex(pli_pdb.name)
-        param_db = _pli_param_db_from_pipeline(target)
-        self._dg_vs_rosetta(pli_pdb, param_db, torch_device)
+        tmol_path = PLI_DIR / f"{target}.xtal-lig.mmff94.tmol"
+
+        param_db = inject_params_file(ParameterDatabase.get_default(), tmol_path)
+
+        self._dg_vs_rosetta(pli_pdb, param_db, torch_device, label_prefix=".tmol")
+
+    def test_compare_dg_score_with_rosetta_cif(self, pli_pdb, torch_device):
+        """Compare Rosetta dG scores with tmol scores using .cif file params."""
+        from tmol.database import ParameterDatabase
+        from tmol.ligand import prepare_ligand_from_cif
+
+        target = _target_for_complex(pli_pdb.name)
+        ligand_cif = PLI_DIR / "cif_inputs" / f"{target}.ligand.cif"
+
+        extended_db, _ = prepare_ligand_from_cif(
+            str(ligand_cif),
+            param_db=ParameterDatabase.get_default(),
+            ph=7.4,
+        )
+
+        self._dg_vs_rosetta(pli_pdb, extended_db, torch_device, label_prefix=".cif")
+
+    def test_compare_dg_score_with_rosetta_mol2(self, pli_pdb, torch_device):
+        """Compare Rosetta dG scores with tmol scores using .mol2 file params."""
+        from tmol.database import ParameterDatabase
+        from tmol.ligand import prepare_ligand_from_mol2
+
+        target = _target_for_complex(pli_pdb.name)
+        ligand_mol2 = PLI_DIR / f"{target}.lig.mol2"
+
+        extended_db, _ = prepare_ligand_from_mol2(
+            str(ligand_mol2),
+            param_db=ParameterDatabase.get_default(),
+            ph=7.4,
+        )
+
+        self._dg_vs_rosetta(pli_pdb, extended_db, torch_device, label_prefix=".mol2")
