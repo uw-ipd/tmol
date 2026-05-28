@@ -4,6 +4,37 @@ from types import SimpleNamespace
 from torch.optim import Optimizer
 
 
+def lbfgs_two_loop(grad, dirs, stps):
+    """L-BFGS search direction H_k @ grad via the compact
+    representation of Byrd, Nocedal & Schnabel, (Math. Prog. 63 (1994)):
+        H_0 = I
+        M = [[ R^-T (D + Y^T Y) R^-1, -R^-T ], [ -R^-1, 0 ]]
+        H_k g = g + [S Y] M [S^T g ; Y^T g]
+
+    Algebraically identical to the classic two-loop recursion, but all O(N*m)
+    ops are parallelized.
+    """
+    S, Y = stps, dirs
+    g = -grad
+    a = S.mv(g)  # (m,)  a_i = s_i . g
+    b = Y.mv(g)  # (m,)  b_i = y_i . g
+    SY = S @ Y.t()  # (m,m) SY_ij = s_i . y_j
+    YY = Y @ Y.t()  # (m,m) YY_ij = y_i . y_j
+    R = torch.triu(SY)  # upper-triangular incl. diagonal
+    D = SY.diagonal()  # (m,)  D_i = s_i . y_i
+
+    # u = R^-1 a
+    u = torch.linalg.solve_triangular(R, a.unsqueeze(-1), upper=True).squeeze(-1)
+    # v = (D + Y^T Y) u - b
+    v = YY.mv(u) + D * u - b
+    # p1 = R^-T v
+    p1 = torch.linalg.solve_triangular(R.t(), v.unsqueeze(-1), upper=False).squeeze(-1)
+    p2 = -u
+
+    # result = g + S p1 + Y p2
+    return g + p1 @ S + p2 @ Y
+
+
 def armijo_linesearch(
     func,
     derphi0,
@@ -303,8 +334,6 @@ class LBFGS_Armijo(Optimizer):
 
     def _compute_search_direction(self, ctx):
         """L-BFGS update + two-loop recursion."""
-        from tmol.optimization.compiled import lbfgs_two_loop as _lbfgs_two_loop_op
-
         flat_grad = ctx.flat_grad
         d = ctx.d
         x = ctx.x
@@ -355,7 +384,7 @@ class LBFGS_Armijo(Optimizer):
             old_dirs_view = ctx.old_dirs_mat[indices]
             old_stps_view = ctx.old_stps_mat[indices]
 
-        d.copy_(_lbfgs_two_loop_op(flat_grad, old_dirs_view, old_stps_view))
+        d.copy_(lbfgs_two_loop(flat_grad, old_dirs_view, old_stps_view))
 
     def _rescue_failed_linesearch(self, ctx, linefn, n_iter):
         """Handle t==0.0 failure: reset L-BFGS history and retry with
