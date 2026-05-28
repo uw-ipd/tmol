@@ -150,8 +150,15 @@ class TestPLIScoring:
         ddg = calculate_block_pair_ddg(
             pose_stack, mask, sfxn=sfxn, sum_terms=False, minimize=False
         )
+
         ddg_min = calculate_block_pair_ddg(
-            pose_stack, mask, sfxn=sfxn, sum_terms=False, minimize=True
+            pose_stack,
+            mask,
+            sfxn=sfxn,
+            sum_terms=False,
+            minimize=True,
+            pack=True,
+            database=param_db,
         )
 
         tmol_scores = {

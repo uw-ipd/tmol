@@ -1,10 +1,24 @@
 import torch
 
 from tmol import run_cart_min
+from tmol.pack.pack_rotamers import pack_rotamers
+from tmol.pack.packer_task import PackerTask, PackerPalette
+from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
+from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+    create_dunbrack_sampler_from_database,
+)
 
 
 def calculate_block_pair_ddg(
-    pose_stack, mask, mask2=None, sfxn=None, sum_terms=True, minimize=True
+    pose_stack,
+    mask,
+    mask2=None,
+    sfxn=None,
+    sum_terms=True,
+    minimize=True,
+    pack=False,
+    database=None,
 ):
     """Calculate DDG score between two subsets of blocks within each pose, defined by 2 masks.
     If only one mask is provided, it will use the inverse of the first mask for the second.
@@ -19,6 +33,8 @@ def calculate_block_pair_ddg(
             return per-term scores.
         minimize: If True (default), run cartesian minimization on the masked atoms before
             computing the DDG score.
+        pack: If True, pack (repack) rotamers of residues in the mask and residues adjacent
+            to the mask (computed via ``compute_block_adjacency``) before the minimization step.
 
     Returns:
         Tensor of shape [n_poses] or [n_terms, n_poses] containing the ddg score for each pose,
@@ -30,6 +46,49 @@ def calculate_block_pair_ddg(
         from tmol.score import beta2016_score_function
 
         sfxn = beta2016_score_function(torch_device)
+
+    if pack:
+        # Compute block-level centroids and furthest-atom distances.
+        block_centroids, block_furthest_dist = (
+            compute_block_centroids_and_furthest_dist(pose_stack)
+        )
+
+        # Compute adjacency matrix: blocks i and j are adjacent when the
+        # distance between their centroids is less than the sum of their
+        # furthest-atom distances plus a constant (default 5.0 A).
+        adjacency = compute_block_adjacency(
+            block_centroids, block_furthest_dist
+        )  # [n_poses, n_blocks, n_blocks]
+
+        # Find blocks adjacent to any masked block.
+        # adjacency[i, j, k] True -> block j (masked) and block k are adjacent.
+        # nearby_mask[i, k] = any masked block j is adjacent to block k.
+        nearby_mask = (mask.unsqueeze(2) & adjacency).any(dim=1)  # [n_poses, n_blocks]
+
+        # Combine: pack residues in the original mask AND adjacent residues.
+        pack_mask = mask | nearby_mask  # [n_poses, n_blocks]
+
+        # Build a PackerTask restricted to repacking only the selected residues.
+        restype_set = pose_stack.packed_block_types.restype_set
+        palette = PackerPalette(restype_set)
+
+        dun_sampler = create_dunbrack_sampler_from_database(database, pose_stack.device)
+
+        task = PackerTask(pose_stack, palette)
+        fixed_sampler = FixedAAChiSampler()
+        task.add_conformer_sampler(dun_sampler)
+        task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
+        task.restrict_to_repacking()
+
+        # Disable packing for blocks that are not in the pack_mask.
+        n_poses = pose_stack.n_poses
+        for i in range(n_poses):
+            for blt in task.blts[i]:
+                if not pack_mask[i, blt.seqpos]:
+                    blt.disable_packing()
+
+        pose_stack = pack_rotamers(pose_stack, sfxn, task)
 
     if minimize:
         coord_mask = build_coord_mask_for_mask_and_interacting_atoms(pose_stack, mask)
