@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SIF: /home/bench/git_ci_apptainer/tmol_py10.sif
+  SIF: /home/bench/git_ci_apptainer/tmol_py11.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
   
 
@@ -45,7 +45,7 @@ jobs:
             $SIF bash << 'SETUP'
           set -ex
           
-          python3.10 -m venv .venv
+          python3.11 -m venv .venv
           source .venv/bin/activate
 
           pip install pip --upgrade
