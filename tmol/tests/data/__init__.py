@@ -33,7 +33,7 @@ def ubq_pdb():
 
 @pytest.fixture(scope="session")
 def pdb_1r21():
-    return pdb.data["1r21"]
+    return pdb.data["1R21"]
 
 
 @pytest.fixture(scope="session")
