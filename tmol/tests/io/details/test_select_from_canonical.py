@@ -152,7 +152,7 @@ def test_assign_block_types(torch_device, ubq_pdb):
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
     ubq_bt_inds = numpy.expand_dims(
         pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
-    )
+    ).copy()
     ubq_bt_inds[0, 0] = next(
         i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
     )
@@ -280,7 +280,7 @@ def test_assign_block_types_w_exotic_termini_options(
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
     ubq_bt_inds = numpy.expand_dims(
         pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
-    )
+    ).copy()
     ubq_bt_inds[0, 0] = next(
         i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
     )
@@ -371,7 +371,7 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
     ubq_bt_inds = numpy.expand_dims(
         pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
-    )
+    ).copy()
 
     jagged_gold_bt_inds = numpy.full((2, 6), -1, dtype=numpy.int64)
     jagged_gold_bt_inds[0, :4] = ubq_bt_inds[0, :4]
@@ -1013,7 +1013,7 @@ def test_select_best_block_type_candidate_w_mult_opts(
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
     ubq_bt_inds = numpy.expand_dims(
         pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
-    )
+    ).copy()
     ubq_bt_inds[0, 0] = next(
         i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
     )
@@ -1089,11 +1089,17 @@ def test_select_best_block_type_candidate_error_impossible_combo(
  0 19 1 75 SER:phospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:phospho
   atom M provided but absent from candidate SER:phospho
+  atom OP1 missing but present in candidate SER:phospho
+  atom OP2 missing but present in candidate SER:phospho
+  atom OP3 missing but present in candidate SER:phospho
  Failed to resolve block type for 0 19 SER
  0 19 2 76 SER:mospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:mospho
   atom P provided but absent from candidate SER:mospho
-"""
+  atom OM1 missing but present in candidate SER:mospho
+  atom OM2 missing but present in candidate SER:mospho
+  atom OM3 missing but present in candidate SER:mospho
+Best candidate exceeds failure threshold"""
 
     try:
         (
@@ -1103,5 +1109,43 @@ def test_select_best_block_type_candidate_error_impossible_combo(
         ) = assign_block_types(
             co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
         )
+        assert False, "Call to assign_block_types should fail"
     except RuntimeError as err:
         assert str(err) == expected_err_msg
+
+
+def test_select_best_block_type_candidate_accept_one_extraneous(torch_device, pdb_1r21):
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+
+    cf = canonical_form_from_pdb(co, pdb_1r21, torch_device)
+    ch_id, can_rts, coords, ch_lab = (
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
+    )
+    at_is_pres = not_any_nancoord(coords)
+
+    (
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
+        res_type_variants,
+        his_taut,
+        resolved_coords,
+        resolved_atom_is_present,
+        ch_lab,
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
+    )
+
+    (
+        block_types,
+        inter_residue_connections64,
+        inter_block_bondsep64,
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )

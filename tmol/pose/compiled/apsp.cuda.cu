@@ -1,10 +1,17 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/context_manager.hh>
+#include <tmol/utility/tensor/torch_context.hh>
+
+#include <tmol/score/common/device_operations.cuda.impl.cuh>  // for CUDA_CHECK
+
 #include <cassert>
 
 #define TILE_SIZE 32
 
 namespace tmol {
 namespace pose {
+
+ContextManager mgr;
 
 template <class F>
 __global__ void launch(F f, int i) {
@@ -28,6 +35,7 @@ struct AllPairsShortestPathsDispatch {
     int max_n_nodes = weights.size(1);
 
     assert(weights.size(2) == max_n_nodes);
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
     auto phase1 = ([=] __device__(int block) {
       int graph_ind = blockIdx.x;
@@ -235,13 +243,19 @@ struct AllPairsShortestPathsDispatch {
     dim3 n_threads(TILE_SIZE, TILE_SIZE, 1);
 
     for (int i = 0; i < n_blocks; ++i) {
-      launch<<<n_graphs, n_threads>>>(phase1, i);
+      int const p1_smem_size = sizeof(int) * TILE_SIZE * TILE_SIZE;
+
+      launch<<<n_graphs, n_threads, 0, context->stream()>>>(phase1, i);
+      CUDA_CHECK(cudaGetLastError());
+
       if (n_blocks > 1) {
         dim3 p2_dim(n_graphs, n_blocks - 1, 2);
-        launch<<<p2_dim, n_threads>>>(phase2, i);
+        launch<<<p2_dim, n_threads, 0, context->stream()>>>(phase2, i);
+        CUDA_CHECK(cudaGetLastError());
 
         dim3 p3_dim(n_graphs, n_blocks - 1, n_blocks - 1);
-        launch<<<p3_dim, n_threads>>>(phase3, i);
+        launch<<<p3_dim, n_threads, 0, context->stream()>>>(phase3, i);
+        CUDA_CHECK(cudaGetLastError());
       }
     }
   }

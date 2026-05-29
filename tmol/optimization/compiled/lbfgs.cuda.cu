@@ -2,11 +2,18 @@
 #include <moderngpu/cta_reduce.hxx>
 #include <moderngpu/transform.hxx>
 
+#include <tmol/utility/tensor/context_manager.hh>
+#include <tmol/utility/tensor/torch_context.hh>
 #include "lbfgs.hh"
 
 namespace tmol {
 namespace optimization {
 namespace compiled {
+
+// Cache the mgpu::standard_context_t objects
+// so as to avoid re-initializing them at each
+// kernel launch
+ContextManager mgr;
 
 template <tmol::Device D, typename Real>
 auto LbfgsTwoLoop<D, Real>::f(
@@ -22,8 +29,8 @@ auto LbfgsTwoLoop<D, Real>::f(
   auto al = al_tp.view;
   auto result = result_tp.view;
 
-  auto stream = at::cuda::getCurrentCUDAStream();
-  mgpu::standard_context_t context(false, stream);
+  // auto stream = at::cuda::getCurrentCUDAStream();
+  std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
   constexpr int NT = 256;
   typedef mgpu::cta_reduce_t<NT, Real> reduce_t;
@@ -56,7 +63,7 @@ auto LbfgsTwoLoop<D, Real>::f(
         }
       },
       1,
-      context);
+      *context);
 
   return result_tp;
 }
