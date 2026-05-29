@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -31,6 +32,7 @@ template <
     typename Int>
 struct LJLKPoseScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
@@ -98,6 +100,7 @@ struct LJLKPoseScoreDispatch {
       tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 3, D> >;
 
   static auto backward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
@@ -168,6 +171,7 @@ template <
     typename Int>
 struct LJLKRotamerScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
@@ -235,6 +239,7 @@ struct LJLKRotamerScoreDispatch {
       tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D> >;
 
   static auto backward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,

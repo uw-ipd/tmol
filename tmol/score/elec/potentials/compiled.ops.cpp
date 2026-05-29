@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
@@ -14,6 +15,8 @@ namespace tmol {
 namespace score {
 namespace elec {
 namespace potentials {
+
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -67,6 +70,7 @@ class ElecPoseScoreOp
 
           auto result =
               ElecPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
+                  mgr,
                   // common params
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
@@ -212,6 +216,7 @@ class ElecPoseScoreOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
@@ -309,6 +314,7 @@ class ElecRotamerScoreOp
 
           auto result =
               ElecRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
+                  mgr,
                   // common params
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
@@ -453,6 +459,7 @@ class ElecRotamerScoreOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),

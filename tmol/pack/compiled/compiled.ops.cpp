@@ -7,6 +7,7 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/forall_dispatch.hh>
@@ -19,6 +20,7 @@ namespace tmol {
 namespace pack {
 namespace compiled {
 
+ContextManager mgr;
 using torch::Tensor;
 
 std::vector<Tensor> build_interaction_graph(
@@ -50,7 +52,8 @@ std::vector<Tensor> build_interaction_graph(
             Dev,
             Real,
             Int>::
-            f(chunk_size,
+            f(mgr,
+              chunk_size,
               TCAST(n_rots_for_pose),
               TCAST(rot_offset_for_pose),
               TCAST(n_rots_for_block),
@@ -95,6 +98,7 @@ std::vector<Tensor> anneal(
                                   constexpr tmol::Device Dev = device_t;
 
                                   auto result = AnnealerDispatch<Dev>::forward(
+                                      mgr,
                                       max_n_rotamers_per_pose,
                                       TCAST(pose_n_res),
                                       TCAST(pose_n_rotamers),
