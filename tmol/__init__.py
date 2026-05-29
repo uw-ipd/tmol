@@ -37,6 +37,12 @@ from tmol.io.pose_stack_from_rosettafold2 import (
     packed_block_types_for_rosettafold2,
     pose_stack_from_rosettafold2,
 )
+from tmol.io.pose_stack_from_backbone_coords import (
+    canonical_form_from_backbone_coords,
+    canonical_ordering_for_backbone_coords,
+    packed_block_types_for_backbone_coords,
+    pose_stack_from_backbone_coords,
+)
 from tmol.io.write_pose_stack_pdb import (
     atom_records_from_pose_stack,
     write_pose_stack_pdb,
