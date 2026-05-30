@@ -233,7 +233,14 @@ class HBondDependentTerm(BondDependentTerm):
             )
         tile_donH_inds[is_tiled_donH] = H_idx % tile_size
         tile_don_hvy_inds[is_tiled_don_hvy] = D_idx % tile_size
-        tile_donH_hvy_inds[is_tiled_donH] = D_for_H % tile_size
+        # NB: store the donor heavy atom's *block-local* (global-within-block)
+        # index, NOT a tile-local one. This array is tiled by the donor
+        # HYDROGEN (lk_ball water generation processes each donH in its H's
+        # tile), but the heavy atom may live in a different tile -- so a
+        # %tile_size value would be unrecoverable. lk_ball's load_coord/write
+        # paths consume this as a block-centric atom index (it handles the
+        # out-of-tile fetch). hbond scoring does not use this array.
+        tile_donH_hvy_inds[is_tiled_donH] = D_for_H
         tile_donorH_type[is_tiled_donH] = donH_type
         tile_which_donH_of_donH_hvy[is_tiled_donH] = which_H_for_Hs_D
         hbbt_params = HBondBlockTypeParams(

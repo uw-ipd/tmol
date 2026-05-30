@@ -115,7 +115,7 @@ atom_types:
   # Sulfur
   - { name: SR  , element: S }
   - { name: Ssl , element: S }
-  - { name: Sth , element: S, is_donor: true }
+  - { name: Sth , element: S }
   - { name: SG2 , element: S }
   - { name: SG3 , element: S }
   - { name: SG5 , element: S }
