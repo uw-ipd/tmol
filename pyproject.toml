@@ -25,36 +25,36 @@ version = "0.1.29"
 
 dependencies = [
     # Core ML framework
-    "torch>=2.5,<3",
-    "numpy>=1.24,<3",
-    "scipy>=1.11,<2",
+    "torch>=2.5",
+    "numpy>=1.24",
+    "scipy>=1.11",
     # Data structures & serialization
-    "attrs>=21.0,<26",
+    "attrs>=21.0",
     "attrs_strict>=1.0,<2",
-    "cattrs>=22.0,<25",
-    "frozendict>=2.4,<3",
+    "cattrs>=22.0",
+    "frozendict>=2.4",
     "pandas>=2.0,<3",
-    "pyarrow>=12,<23",
-    "pyyaml>=6.0,<7",
+    "pyarrow>=12",
+    "pyyaml>=6.0",
     # Graphs & algorithms
-    "networkx>=3.0,<4",
+    "networkx>=3.0",
     # Utilities
-    "toolz>=0.12,<1",
-    "decorator>=5.1,<6",
+    "toolz>=0.12.0,<2",
+    "decorator>=5.1",
     "typing_extensions>=4.0,<5",
-    "typing_inspect>=0.9,<1",
+    "typing_inspect>=0.9",
     "pint>=0.23,<1",
-    "psutil>=5.9,<8",
+    "psutil>=5.9",
     "requests>=2.28,<3",
     # Sparse arrays (requires SPARSE_AUTO_DENSIFY=1 for sparse>0.3.1)
-    "sparse>=0.13,<1",
+    "sparse>=0.13",
     # numba/llvmlite
-    "numba>=0.56,<1",
-    "llvmlite>=0.39,<1",
+    "numba>=0.56",
+    "llvmlite>=0.39",
     # Testing (hypothesis is used at runtime for property-based data generation)
-    "hypothesis>=5.35,<7",
+    "hypothesis>=5.35",
     # AST manipulation (used by tmol.utility.args)
-    "astor>=0.8,<1",
+    "astor>=0.8",
     # Interactive
     "ipython>=8.0",
     # Structure I/O
@@ -68,26 +68,26 @@ dev = [
     # Linters & formatters
     "black==24.1.1",
     "flake8==7.3.0",
-    "pre-commit>=4.0,<5",
+    "pre-commit>=4.0",
     "clang-format==21.1.8",
     # Testing
-    "pytest>=8.0,<9",
-    "pytest-cov>=4.1,<7",
-    "pytest-benchmark>=5.1,<6",
-    "pytest-forked>=1.6,<2",
-    "pytest-instafail>=0.5,<1",
-    "pytest-repeat>=0.9,<1",
-    "pytest-watch>=4.2,<5",
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "pytest-benchmark>=5.1",
+    "pytest-forked>=1.6",
+    "pytest-instafail>=0.5",
+    "pytest-repeat>=0.9",
+    "pytest-watch>=4.2",
     # Visualization
-    "seaborn>=0.13,<1",
+    "seaborn>=0.13",
 ]
 cuda = [
     # CUDA nvcc compiler for JIT compilation of custom kernels.
     # Only the unsuffixed (cu13) package ships the full nvcc binary;
     # nvidia-cuda-nvcc-cu12 only contains ptxas.
-    "nvidia-cuda-nvcc>=13,<14",
+    "nvidia-cuda-nvcc>=13",
     # CCCL headers (nv/target, cub/, thrust/) needed by nvcc
-    "nvidia-cuda-cccl>=13,<14",
+    "nvidia-cuda-cccl>=13",
 ]
 
 [project.urls]
