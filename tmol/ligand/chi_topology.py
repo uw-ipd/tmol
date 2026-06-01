@@ -120,6 +120,12 @@ def build_chi_topology(
         nbrs.sort(key=lambda n: (mol.GetAtomWithIdx(n).GetAtomicNum() == 1, n))
         return nbrs[0] if nbrs else None
 
+    def _trace(c, b, msg):
+        if logger is not None:
+            nb = atom_names[b] if b is not None else "?"
+            nc = atom_names[c] if c is not None else "?"
+            logger.debug("chi-edge %s-%s: %s", nb, nc, msg)
+
     # Pass 1: collect candidate chis (after the RosettaVS default-flag skips).
     # Each candidate: (b, c, a, d, is_proton, hetero_hyb)
     candidates: list[tuple[int, int, int, int, bool, int]] = []
@@ -129,8 +135,10 @@ def build_chi_topology(
             continue  # root has no parent bond
         bond = mol.GetBondBetweenAtoms(b, c)
         if bond is None:
+            _trace(c, b, "skip: no rdkit bond")
             continue
         if atom_names[b] is None or atom_names[c] is None:
+            _trace(c, b, "skip: dropped atom name")
             continue
 
         # Determine the tip atom d (on c's side) and the chi kind.
@@ -148,12 +156,28 @@ def build_chi_topology(
         else:
             # Terminal heavy atom (no rotatable tip) or apolar-H-only rotation.
             # report_Hapol_chi=False -> apolar-H chis are not emitted.
+            _trace(
+                c,
+                b,
+                f"skip: no tip (c_children={[atom_names[x] for x in c_children]})",
+            )
             continue
 
         if atom_names[d] is None:
+            _trace(c, b, "skip: tip dropped")
             continue
         a = pick_a(b, c)
         if a is None:
+            _trace(c, b, "skip: no 'a' atom on b's side")
+            continue
+        # If the only reference atom on b's side is an apolar hydrogen, every
+        # torsion across this bond has an apolar-H endpoint (e.g. a methyl
+        # carbon's bond to a ring). RosettaVS classifies these as apolar-H
+        # (hapol) torsions and skips them with report_Hapol_chi=False.
+        if mol.GetAtomWithIdx(a).GetAtomicNum() == 1 and not _is_polar_hydrogen(
+            mol, a
+        ):
+            _trace(c, b, "skip: apolar-H reference atom (hapol)")
             continue
 
         # --- RosettaVS define_rotable_torsions skip rules (default flags) ---
@@ -165,41 +189,46 @@ def build_chi_topology(
             and b in atms_strained
             and c in atms_strained
         ):
+            _trace(c, b, "skip: strained ring")
             continue
 
         if b in atms_aro and c in atms_aro:
             if border > 1:
                 # biaryl border>1 chi: requires biaryl_pivot detection (gap).
+                _trace(c, b, "skip: aromatic border>1 (biaryl gap)")
                 continue
             if _share_ring(ring_membership, b, c):
-                continue  # same aromatic ring
+                _trace(c, b, "skip: same aromatic ring")
+                continue
             # ring-ring single bond: report_ringring_chi=True -> keep
         elif _share_ring(ring_membership, b, c):
-            continue  # non-aromatic ring-internal bond
+            _trace(c, b, "skip: non-aromatic ring-internal")
+            continue
 
         if border > 1:
             # amide/nbonded/biaryl border>1: default flags skip these
             # (report_amide_chi=False, report_nbonded_chi=False); kept biaryl
             # pivots are a documented gap.
+            _trace(c, b, "skip: border>1 (amide/nbonded/biaryl default off)")
             continue
 
         if is_proton and bond.GetIsConjugated():
             # conjugated polar-H chi skipped (approximation of Rosetta's
             # per-atom hydrogen-count test)
+            _trace(c, b, "skip: conjugated polar-H")
             continue
 
         # quad validity (AC-9): four distinct, bonded atoms
         if len({a, b, c, d}) != 4:
-            if logger is not None:
-                logger.debug(
-                    "chi skipped: non-distinct quad (%s,%s,%s,%s)",
-                    atom_names[a],
-                    atom_names[b],
-                    atom_names[c],
-                    atom_names[d],
-                )
+            _trace(c, b, "skip: non-distinct quad")
             continue
 
+        _trace(
+            c,
+            b,
+            f"EMIT {'proton' if is_proton else 'heavy'} "
+            f"a={atom_names[a]} d={atom_names[d]}",
+        )
         candidates.append((b, c, a, d, is_proton, hyb_by_idx.get(c, 3)))
 
     # Pass 2: EXTRA expansion factor (RosettaVS num_H_confs vs max_confs).
