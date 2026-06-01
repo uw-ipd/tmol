@@ -22,6 +22,8 @@ from tmol.ligand.detect import (
     detect_nonstandard_residues,
     nonstandard_residue_info_from_cif,
     nonstandard_residue_info_from_mol2,
+    nonstandard_residue_info_from_pdb,
+    nonstandard_residue_info_from_smiles,
 )
 from tmol.ligand.graph_match import match_heavy_atoms
 from tmol.ligand.registry import (
@@ -468,6 +470,68 @@ def prepare_ligand_from_mol2(
         res_name=res_name,
         charge_mode=charge_mode,
     )
+
+
+def prepare_ligand_from_pdb(
+    pdb_path: str,
+    *,
+    param_db: Optional[ParameterDatabase] = None,
+    ph: float = 7.4,
+    strict_atom_types: bool = False,
+    res_name: str | None = None,
+    charge_mode: str = "mmff94",
+    perceive_bond_orders: bool = True,
+) -> tuple[ParameterDatabase, CanonicalOrdering]:
+    """Prepare a single ligand from a PDB file and inject it into a database.
+
+    PDB files do not carry bond orders, so this entry point requires the
+    optional ``openbabel`` Python package — OpenBabel's ``PerceiveBondOrders``
+    is used to derive chemistry from geometry. ``charge_mode`` defaults to
+    ``"mmff94"`` since PDB carries no partial-charge column.
+    """
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
+
+    lig = nonstandard_residue_info_from_pdb(
+        pdb_path, res_name=res_name, perceive_bond_orders=perceive_bond_orders
+    )
+    prep = prepare_single_ligand(lig, ph=ph, charge_mode=charge_mode)
+    param_db = inject_ligand_preparations(
+        param_db, [prep], strict_atom_types=strict_atom_types
+    )
+    return param_db, rebuild_canonical_ordering(param_db)
+
+
+def prepare_ligand_from_smiles(
+    smiles: str,
+    *,
+    param_db: Optional[ParameterDatabase] = None,
+    ph: float = 7.4,
+    strict_atom_types: bool = False,
+    res_name: str | None = None,
+    charge_mode: str = "mmff94",
+    embed_seed: int = 0xC0FFEE,
+) -> tuple[ParameterDatabase, CanonicalOrdering]:
+    """Prepare a single ligand from a SMILES string and inject it into a database.
+
+    RDKit handles the SMILES parse and 3D embedding by default. If RDKit
+    rejects the SMILES and the optional ``openbabel`` Python package is
+    installed, OB is used as a fallback parser / 3D generator. Atom names
+    are synthesized as ``<element><1-based-index>`` since SMILES carries
+    no atom labels. ``charge_mode`` defaults to ``"mmff94"`` since SMILES
+    carries no partial-charge column.
+    """
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
+
+    lig = nonstandard_residue_info_from_smiles(
+        smiles, res_name=res_name, seed=embed_seed
+    )
+    prep = prepare_single_ligand(lig, ph=ph, charge_mode=charge_mode)
+    param_db = inject_ligand_preparations(
+        param_db, [prep], strict_atom_types=strict_atom_types
+    )
+    return param_db, rebuild_canonical_ordering(param_db)
 
 
 def _prepare_ligand_from_file(

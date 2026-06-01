@@ -10,10 +10,14 @@ from tmol.ligand.detect import (
     detect_nonstandard_residues,
     nonstandard_residue_info_from_cif,
     nonstandard_residue_info_from_mol2,
+    nonstandard_residue_info_from_pdb,
+    nonstandard_residue_info_from_smiles,
 )
 from tmol.ligand.preparation import (
     prepare_ligand_from_cif,
     prepare_ligand_from_mol2,
+    prepare_ligand_from_pdb,
+    prepare_ligand_from_smiles,
     prepare_ligands,
     prepare_single_ligand,
 )
@@ -26,7 +30,11 @@ __all__ = [
     "prepare_single_ligand",
     "prepare_ligand_from_cif",
     "prepare_ligand_from_mol2",
+    "prepare_ligand_from_pdb",
+    "prepare_ligand_from_smiles",
     "detect_nonstandard_residues",
     "nonstandard_residue_info_from_cif",
     "nonstandard_residue_info_from_mol2",
+    "nonstandard_residue_info_from_pdb",
+    "nonstandard_residue_info_from_smiles",
 ]

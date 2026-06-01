@@ -304,7 +304,22 @@ def nonstandard_residue_info_from_mol2(
         cleanupSubstructures=False,
     )
     if mol is None:
-        raise ValueError(f"Could not parse Mol2 file: {path}")
+        from tmol.ligand.openbabel_compat import (
+            OpenBabelUnavailableError,
+            obabel_read_mol2,
+        )
+
+        try:
+            mol = obabel_read_mol2(path)
+        except OpenBabelUnavailableError:
+            mol = None
+        if mol is None:
+            raise ValueError(
+                f"Could not parse Mol2 file: {path} "
+                "(RDKit MolFromMol2File failed; OpenBabel fallback also "
+                "failed or is not installed)"
+            )
+        logger.info("Used OpenBabel fallback to parse mol2 %s", path)
     sanitize_tolerant(mol)
     if mol.GetNumConformers() == 0:
         raise ValueError(f"Mol2 file has no 3D coordinates: {path}")
@@ -381,6 +396,266 @@ def nonstandard_residue_info_from_mol2(
         covalently_linked=False,
         partial_charges=authoritative_q,
         skip_protonation=authoritative_q is not None,
+    )
+
+
+def nonstandard_residue_info_from_pdb(
+    pdb_path: str | Path,
+    res_name: str | None = None,
+    *,
+    perceive_bond_orders: bool = True,
+) -> NonStandardResidueInfo:
+    """Construct ``NonStandardResidueInfo`` from a ligand PDB file via OpenBabel.
+
+    PDB does not carry bond orders. OpenBabel's ``ConnectTheDots`` +
+    ``PerceiveBondOrders`` are used to derive chemistry from geometry,
+    matching the standard ligand-prep practice in Rosetta/AMBER. The
+    original PDB atom names are preserved.
+
+    Args:
+        pdb_path: Path to a PDB file containing a single ligand. ATOM
+            and HETATM records are read; other records are ignored.
+        res_name: Override for the 3-letter residue name. Falls back to
+            the PDB residue name if present, else ``"LG1"``.
+        perceive_bond_orders: If True (default), OB infers bond orders
+            from geometry. If False, all bonds are emitted as single.
+
+    Returns:
+        A :class:`NonStandardResidueInfo` ready for
+        :func:`prepare_single_ligand`.
+    """
+    from tmol.ligand.atom_typing import sanitize_tolerant
+    from tmol.ligand.openbabel_compat import (
+        OpenBabelUnavailableError,
+        _import_openbabel,
+        _obmol_to_rdkit_mol,
+    )
+
+    path = Path(pdb_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"PDB file not found: {path}")
+
+    try:
+        openbabel, pybel = _import_openbabel()
+    except OpenBabelUnavailableError as exc:
+        raise OpenBabelUnavailableError(
+            "prepare_ligand_from_pdb requires the optional 'openbabel' "
+            "Python package because PDB files lack explicit bond orders "
+            "and need geometry-based bond perception. "
+            "Install with `pip install openbabel-wheel`."
+        ) from exc
+
+    try:
+        pymol = next(pybel.readfile("pdb", str(path)))
+    except StopIteration:
+        raise ValueError(f"No molecules in PDB file: {path}")
+    obmol = pymol.OBMol
+    if perceive_bond_orders:
+        obmol.ConnectTheDots()
+        obmol.PerceiveBondOrders()
+
+    residue = obmol.GetResidue(0) if obmol.NumResidues() > 0 else None
+
+    n_atoms = obmol.NumAtoms()
+    atom_names: list[str] = []
+    elements: list[str] = []
+    coords = np.zeros((n_atoms, 3), dtype=np.float64)
+    for i, atom in enumerate(openbabel.OBMolAtomIter(obmol)):
+        name = ""
+        if residue is not None:
+            name = (residue.GetAtomID(atom) or "").strip()
+        symbol = openbabel.GetSymbol(atom.GetAtomicNum()) or "X"
+        if not name:
+            name = f"{symbol}{i + 1}"
+        atom_names.append(name)
+        elements.append(symbol)
+        coords[i] = (atom.GetX(), atom.GetY(), atom.GetZ())
+
+    mol = _obmol_to_rdkit_mol(obmol, sanitize=False)
+    if mol is None:
+        raise ValueError(
+            f"Could not convert OpenBabel-parsed PDB to RDKit Mol: {path}"
+        )
+    sanitize_tolerant(mol)
+    if mol.GetNumAtoms() != n_atoms:
+        raise ValueError(
+            f"Atom count mismatch reading PDB {path}: "
+            f"OBMol={n_atoms} RDKit={mol.GetNumAtoms()}"
+        )
+
+    inferred_res_name = res_name
+    if inferred_res_name is None and residue is not None:
+        candidate = (residue.GetName() or "").strip()
+        if candidate:
+            inferred_res_name = candidate
+    if inferred_res_name is None:
+        inferred_res_name = "LG1"
+
+    atom_array = struc.AtomArray(n_atoms)
+    atom_array.coord = coords
+    atom_array.atom_name = np.array(atom_names, dtype="U16")
+    atom_array.element = np.array(elements, dtype="U4")
+    atom_array.res_name = np.array([inferred_res_name] * n_atoms, dtype="U8")
+    atom_array.chain_id = np.array(["A"] * n_atoms, dtype="U4")
+    atom_array.res_id = np.array([1] * n_atoms, dtype=np.int32)
+    atom_array.hetero = np.array([True] * n_atoms, dtype=bool)
+
+    bond_array = np.array(
+        [
+            (
+                bond.GetBeginAtomIdx(),
+                bond.GetEndAtomIdx(),
+                _rdkit_bond_to_biotite_type(bond),
+            )
+            for bond in mol.GetBonds()
+        ],
+        dtype=np.int32,
+    )
+    atom_array.bonds = struc.BondList(n_atoms, bond_array)
+
+    return NonStandardResidueInfo(
+        res_name=inferred_res_name,
+        ccd_type="UNKNOWN",
+        atom_names=tuple(atom_names),
+        elements=tuple(elements),
+        coords=coords,
+        atom_array=atom_array,
+        ccd_smiles=None,
+        covalently_linked=False,
+        partial_charges=None,
+        skip_protonation=False,
+    )
+
+
+def nonstandard_residue_info_from_smiles(
+    smiles: str,
+    res_name: str | None = None,
+    *,
+    add_hydrogens: bool = True,
+    seed: int = 0xC0FFEE,
+) -> NonStandardResidueInfo:
+    """Construct ``NonStandardResidueInfo`` from a SMILES string.
+
+    RDKit parses the SMILES, adds explicit hydrogens, and embeds a 3D
+    conformer (UFF-optimized). If RDKit's SMILES parser returns ``None``
+    on input that OpenBabel can read, the parse step falls back to OB.
+
+    Atom names are synthesized as ``<element><1-based-index>`` since
+    SMILES carries no atom labels.
+
+    Args:
+        smiles: SMILES string for the ligand.
+        res_name: Three-letter residue name (default ``"LG1"``).
+        add_hydrogens: If True (default), explicit Hs are added before
+            embedding so 3D geometry is chemically sensible.
+        seed: RNG seed for RDKit ``EmbedMolecule`` (deterministic by
+            default).
+    """
+    from rdkit.Chem import AllChem as _AllChem
+
+    from tmol.ligand.atom_typing import sanitize_tolerant
+    from tmol.ligand.openbabel_compat import (
+        OpenBabelUnavailableError,
+        obabel_read_smiles,
+    )
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        try:
+            mol = obabel_read_smiles(smiles)
+        except OpenBabelUnavailableError:
+            mol = None
+        if mol is None:
+            raise ValueError(
+                f"Could not parse SMILES: {smiles!r} "
+                "(RDKit MolFromSmiles failed; OpenBabel fallback also "
+                "failed or is not installed)"
+            )
+        logger.info("Used OpenBabel fallback to parse SMILES %r", smiles)
+
+    if add_hydrogens:
+        mol = Chem.AddHs(mol)
+
+    if mol.GetNumConformers() == 0:
+        embed_result = _AllChem.EmbedMolecule(mol, randomSeed=seed)
+        if embed_result < 0:
+            # RDKit embedding failed; try OB-based 3D generation.
+            try:
+                mol = obabel_read_smiles(
+                    smiles, generate_3d=True, minimize=True
+                )
+            except OpenBabelUnavailableError:
+                mol = None
+            if mol is None:
+                raise ValueError(
+                    f"Could not embed 3D coordinates for SMILES {smiles!r}"
+                )
+        else:
+            try:
+                _AllChem.UFFOptimizeMolecule(mol, maxIters=200)
+            except Exception:
+                logger.debug(
+                    "UFF optimization failed for SMILES %r; using raw embed",
+                    smiles,
+                    exc_info=True,
+                )
+
+    sanitize_tolerant(mol)
+
+    if mol.GetNumConformers() == 0:
+        raise ValueError(
+            f"3D generation produced no conformer for SMILES {smiles!r}"
+        )
+
+    conf = mol.GetConformer()
+    n_atoms = mol.GetNumAtoms()
+    inferred_res_name = res_name or "LG1"
+
+    atom_names: list[str] = []
+    elements: list[str] = []
+    elem_counts: dict[str, int] = {}
+    coords = np.zeros((n_atoms, 3), dtype=np.float64)
+    for i, atom in enumerate(mol.GetAtoms()):
+        symbol = atom.GetSymbol()
+        elem_counts[symbol] = elem_counts.get(symbol, 0) + 1
+        atom_names.append(f"{symbol}{elem_counts[symbol]}")
+        elements.append(symbol)
+        p = conf.GetAtomPosition(i)
+        coords[i] = (float(p.x), float(p.y), float(p.z))
+
+    atom_array = struc.AtomArray(n_atoms)
+    atom_array.coord = coords
+    atom_array.atom_name = np.array(atom_names, dtype="U16")
+    atom_array.element = np.array(elements, dtype="U4")
+    atom_array.res_name = np.array([inferred_res_name] * n_atoms, dtype="U8")
+    atom_array.chain_id = np.array(["A"] * n_atoms, dtype="U4")
+    atom_array.res_id = np.array([1] * n_atoms, dtype=np.int32)
+    atom_array.hetero = np.array([True] * n_atoms, dtype=bool)
+
+    bond_array = np.array(
+        [
+            (
+                bond.GetBeginAtomIdx(),
+                bond.GetEndAtomIdx(),
+                _rdkit_bond_to_biotite_type(bond),
+            )
+            for bond in mol.GetBonds()
+        ],
+        dtype=np.int32,
+    )
+    atom_array.bonds = struc.BondList(n_atoms, bond_array)
+
+    return NonStandardResidueInfo(
+        res_name=inferred_res_name,
+        ccd_type="UNKNOWN",
+        atom_names=tuple(atom_names),
+        elements=tuple(elements),
+        coords=coords,
+        atom_array=atom_array,
+        ccd_smiles=smiles,
+        covalently_linked=False,
+        partial_charges=None,
+        skip_protonation=False,
     )
 
 
