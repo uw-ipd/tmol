@@ -81,6 +81,40 @@ _PLI_TERM_ROWS = [
 ]
 
 
+# Targets whose ligand contains an sp2 acceptor.
+# tmol and rosetta differ in B0 definitions:
+#   - tmol uses the base's first bonded heavy neighbor
+#   - Rosetta uses the base's ICOOR parent
+# Loosen tolerance in these cases for hbond geom dependant terms
+_SP2_ACCEPTOR_TARGETS = {
+    "ace",
+    "ache",
+    "ada",
+    "ampc",
+    "ar",
+    "cox1",
+    "cox2",
+    "fgfr1",
+    "fxa",
+    "gr",
+    "hivrt",
+    "hmga",
+    "mr",
+    "na",
+    "p38",
+    "parp",
+    "pde5",
+    "pdgfrb",
+    "pr",
+    "rxr",
+    "src",
+    "tk",
+    "trypsin",
+    "vegfr2",
+}
+_SP2_RELAXED_TERMS = {"lk_ball", "lk_bridge", "lk_bridge_uncpl", "hbond"}
+
+
 def _target_for_complex(pdb_name: str) -> str:
     stem = pdb_name[: -len(".pdb")]
     for suf in ("_complex_nometals", "_complex"):
@@ -253,6 +287,7 @@ class TestPLIScoring:
         torch_device,
         label_prefix="",
         threshold=None,
+        threshold_sp2_acc=None,
     ):
         """Score the raw complex and compare block-pair dG with Rosetta.
 
@@ -326,13 +361,30 @@ class TestPLIScoring:
         failing_terms = []
         if not sc_path.exists():
             print(f"  (no Rosetta .sc at {sc_path.name} -- run run_rosetta_score.sh)")
+
+        # sp2 acceptors have a different B0 resolution strategy in tmol than in Rosetta
+        # by design.  Relax the tolerance for these cases
+        relax_sp2 = target in _SP2_ACCEPTOR_TARGETS
+
+        def _term_threshold(label):
+            if threshold is None:
+                return None
+            if (
+                threshold_sp2_acc is not None
+                and relax_sp2
+                and label in _SP2_RELAXED_TERMS
+            ):
+                return threshold_sp2_acc
+            return threshold
+
         print(f"  {'term':<18} {'tmol':>12} {'rosetta':>12} {'diff':>12}")
         for label, ros_terms, tmol_terms in _PLI_TERM_ROWS:
             t = sum(tmol_scores.get(n, 0.0) for n in tmol_terms)
             rosetta = sum(float(ros_scores.get("dG_" + n, 0.0)) for n in ros_terms)
             delta = abs(t - rosetta)
-            # With a tolerance set, only print the offending rows; otherwise all.
-            if threshold is None or delta > threshold:
+            term_thresh = _term_threshold(label)
+            # With a tolerance set print the offending rows only
+            if term_thresh is None or delta > term_thresh:
                 print(f"  {label:<18} {t:12.4f} {rosetta:12.4f} {delta:+12.4f}")
             data += [
                 (
@@ -345,7 +397,7 @@ class TestPLIScoring:
                     delta,
                 )
             ]
-            if threshold is not None and delta > threshold:
+            if term_thresh is not None and delta > term_thresh:
                 failing_terms.append((label, t, rosetta, delta))
 
         # import csv
@@ -386,6 +438,7 @@ class TestPLIScoring:
             torch_device,
             label_prefix=".tmol",
             threshold=1e-2,
+            threshold_sp2_acc=0.2,
         )
 
     def test_compare_dg_score_with_rosetta_cif(self, cif_pli_pdb, torch_device):
