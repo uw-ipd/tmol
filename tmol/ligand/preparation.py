@@ -39,8 +39,6 @@ from tmol.ligand.mol3d import build_partial_charges
 from tmol.ligand.residue_builder import build_residue_type
 from tmol.ligand.rdkit_mol import (
     ligand_atom_array_to_rdkit_mol,
-    normalize_protonated_mol_for_mmff94,
-    prepare_input_protonation_mol_for_mmff94,
     protonate_ligand_mol,
 )
 
@@ -175,7 +173,6 @@ def prepare_single_ligand(
         charge_mode: Partial-charge source policy passed to
             :func:`tmol.ligand.mol3d.build_partial_charges`.
     """
-    mode = charge_mode.lower().strip()
     rdkit_mol = ligand_atom_array_to_rdkit_mol(
         ligand_info, keep_hydrogens=ligand_info.skip_protonation
     )
@@ -187,33 +184,29 @@ def prepare_single_ligand(
     #   the desired protonation state (heavy-only RDKit mol; AddHs below).
     if ligand_info.skip_protonation or ligand_info.partial_charges:
         protonated = rdkit_mol
-        if ligand_info.skip_protonation and mode == "mmff94":
-            protonated = prepare_input_protonation_mol_for_mmff94(protonated)
     else:
         protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
-        if mode != "mmff94":
-            try:
-                # Apply source bond orders onto the protonated topology.
-                # RDKit API: AssignBondOrdersFromTemplate(template, mol)
-                # where `template` has trusted bond orders.
-                protonated = AllChem.AssignBondOrdersFromTemplate(rdkit_mol, protonated)
-            except Exception:
-                logger.debug(
-                    "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
-                    ligand_info.res_name,
-                )
-        else:
-            protonated = normalize_protonated_mol_for_mmff94(protonated)
-    # Always use tolerant sanitize before typing so CIF/mol2 aromatic flags and
-    # subtype hints survive (mmff94 charge recomputation must not skip this).
+        try:
+            # Apply source bond orders onto the protonated topology.
+            # RDKit API: AssignBondOrdersFromTemplate(template, mol)
+            # where `template` has trusted bond orders.
+            protonated = AllChem.AssignBondOrdersFromTemplate(rdkit_mol, protonated)
+        except Exception:
+            logger.debug(
+                "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
+                ligand_info.res_name,
+            )
+    # Tolerant sanitize before typing so CIF/mol2 aromatic/subtype hints survive.
     from tmol.ligand.atom_typing import sanitize_tolerant
 
     sanitize_tolerant(protonated)
-    # Inputs with authoritative partial charges already carry explicit
-    # hydrogens at the desired protonation state; AddHs would duplicate them
-    # and force a full MMFF94 fallback in build_partial_charges.
+    # Authoritative-charge inputs already carry explicit H at the right state.
     if not ligand_info.skip_protonation:
         protonated = Chem.AddHs(protonated, addCoords=True)
+
+    # Atom typing rewrites bond orders in place; charge from a snapshot so MMFF94
+    # sees the un-mutated graph (typing preserves indices).
+    charge_mol = Chem.Mol(protonated)
 
     atom_types = assign_tmol_atom_types(protonated)
     atom_types = _rename_atoms_to_cif(protonated, atom_types, ligand_info)
@@ -225,7 +218,7 @@ def prepare_single_ligand(
     )
 
     charges = build_partial_charges(
-        protonated,
+        charge_mol,
         atom_types,
         input_charges=ligand_info.partial_charges,
         ligand_name=ligand_info.res_name,
@@ -256,6 +249,28 @@ def prepare_single_ligand(
             if at.atom_name in restype_atom_names:
                 p = conf.GetAtomPosition(at.index)
                 coords[at.atom_name] = (float(p.x), float(p.y), float(p.z))
+
+    # Register coords so pose construction can remap differently-named complex-PDB
+    # ligand atoms onto this residue type by coordinate. Source AtomArray coords
+    # are preferred (always present; the pipeline conformer can be lost).
+    from tmol.ligand.coord_name_registry import register_ligand_coords
+
+    registry_coords: dict[str, tuple[float, float, float]] = {}
+    src_names = ligand_info.atom_names
+    src_coords = ligand_info.coords
+    if src_coords is not None and len(src_coords) == len(src_names):
+        for name, xyz in zip(src_names, src_coords):
+            if name in restype_atom_names:
+                registry_coords[name] = (
+                    float(xyz[0]),
+                    float(xyz[1]),
+                    float(xyz[2]),
+                )
+    # Fill atoms missing from source coords (e.g. renamed H) from the conformer.
+    for name, xyz in coords.items():
+        registry_coords.setdefault(name, xyz)
+
+    register_ligand_coords(restype.name, registry_coords)
 
     return LigandPreparation(
         residue_type=restype,

@@ -236,9 +236,36 @@ def _is_strained_ring_atom(atom: Chem.Atom) -> bool:
     )
 
 
+def _is_amide_like_nitrogen(atom: Chem.Atom) -> bool:
+    """True if a nitrogen is bonded to a carbonyl carbon (amide / carbamate / urea)."""
+    if atom.GetAtomicNum() != 7:
+        return False
+
+    for bond in atom.GetBonds():
+        c = bond.GetOtherAtom(atom)
+        if c.GetAtomicNum() != 6:
+            continue
+        if any(
+            cb.GetBondTypeAsDouble() == 2.0 and cb.GetOtherAtom(c).GetAtomicNum() == 8
+            for cb in c.GetBonds()
+        ):
+            return True
+
+    return False
+
+
 def _hyb_from_atom_and_subtype(atom: Chem.Atom, subtype: str) -> int:
     """Map subtype + atom perception to Rosetta-style hybridization code."""
     s = subtype.lower()
+
+    # Trust RDkit for aromaticity perception (if in a ring)
+    if was_aromatic(atom) and atom.IsInRing():
+        return HYB_AROMATIC
+
+    # Handle amide perceptions (as those bonds are often kekulization-sensitive)
+    if _is_amide_like_nitrogen(atom):
+        return HYB_AMIDE
+
     # Rosetta Types.SPECIAL_HYBRIDS + observed Tripos/GAFF suffixes.
     subtype_hyb_map = {
         # Tripos/mol2
@@ -740,17 +767,9 @@ def _classify_C(
     nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom, state)
 
     sub = state.source_subtype_by_idx.get(atom.GetIdx(), "")
-    # mol2genparams takes the CR-vs-CD decision straight from the mol2
-    # atom-type column. Only ``C.ar`` → ``CR``; everything else
-    # (``C.2``, ``C.cat``, ``C.3`` even when RDKit aromatized the ring)
-    # picks the Kekulé branch and gets ``CD``-flavoured types via the
-    # degree-based rules below.
-    if sub == "ar":
+    if sub == "ar" or hyb == HYB_AROMATIC:
         prefix = "CR"
     elif sub:
-        # Source explicit non-``.ar`` subtype — never treat as aromatic
-        # for typing purposes, even if RDKit perceived the ring as
-        # aromatic.
         if atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED:
             prefix = "CS"
         elif nbonds == 4:

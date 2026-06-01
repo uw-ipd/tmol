@@ -199,6 +199,14 @@ def _source_subtype_from_atom_type(element: str, atom_type: str) -> str:
             return "am"
         if t in {"Nin", "Nim"}:
             return "ar"
+    if e == "S":
+        if t == "SG5":
+            return "o2"  # hyb-5 sulfonyl/sulfone -> SG5 (mol2 S.o2 analog)
+        if t == "SG2":
+            return "2"
+        if t == "SR":
+            return "ar"
+        return "3"  # SG3 / Ssl / Sth thioether-like
     return "?"
 
 

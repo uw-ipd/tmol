@@ -1,7 +1,6 @@
 """RDKit molecule construction and protonation for ligands."""
 
 import logging
-from typing import Optional
 
 import biotite.structure as struc
 from biotite.interface.rdkit import to_mol
@@ -52,101 +51,6 @@ def clear_aromatic_perception_flags(mol: Chem.Mol) -> None:
             bond.SetBondType(Chem.BondType.SINGLE)
     for atom in mol.GetAtoms():
         atom.SetIsAromatic(False)
-
-
-def _rebuild_mol_via_smiles_preserving_coords(heavy: Chem.Mol) -> Optional[Chem.Mol]:
-    """Rebuild heavy-atom topology from SMILES; copy formal charges and coordinates.
-
-    MolToSmiles requires initialized ring perception on the input mol; without it
-    canonical SMILES generation can fail and MolFromSmiles may not recover.
-    """
-    try:
-        Chem.GetSSSR(heavy)
-        smiles = Chem.MolToSmiles(heavy, isomericSmiles=True)
-    except Exception:
-        return None
-
-    fresh = Chem.MolFromSmiles(smiles)
-    if fresh is None:
-        return None
-
-    match = fresh.GetSubstructMatch(heavy)
-    if len(match) != heavy.GetNumAtoms():
-        return None
-
-    conf = Chem.Conformer(fresh.GetNumAtoms())
-    has_coords = heavy.GetNumConformers() > 0
-    for proto_idx, fresh_idx in enumerate(match):
-        if has_coords:
-            conf.SetAtomPosition(
-                fresh_idx, heavy.GetConformer().GetAtomPosition(proto_idx)
-            )
-        fresh.GetAtomWithIdx(fresh_idx).SetFormalCharge(
-            heavy.GetAtomWithIdx(proto_idx).GetFormalCharge()
-        )
-    if has_coords:
-        fresh.AddConformer(conf, assignId=True)
-    else:
-        from rdkit.Chem import AllChem as _AllChem
-
-        _AllChem.Compute2DCoords(fresh)
-
-    Chem.SanitizeMol(fresh)
-    clear_source_chemistry_props(fresh)
-    return fresh
-
-
-def prepare_input_protonation_mol_for_mmff94(mol: Chem.Mol) -> Chem.Mol:
-    """Sanitize an input-protonation mol for MMFF without rebuilding hydrogens.
-
-    Unlike :func:`normalize_protonated_mol_for_mmff94`, this never runs the
-    heavy-only SMILES rebuild path, so explicit H from mol2/CIF are preserved.
-    """
-    clear_source_chemistry_props(mol)
-    clear_aromatic_perception_flags(mol)
-    try:
-        Chem.SanitizeMol(mol)
-    except (
-        Chem.rdchem.KekulizeException,
-        Chem.rdchem.AtomKekulizeException,
-        Chem.rdchem.AtomValenceException,
-    ):
-        logger.debug(
-            "Sanitize after clearing aromatic flags failed; MMFF may retry",
-            exc_info=True,
-        )
-    return mol
-
-
-def normalize_protonated_mol_for_mmff94(mol: Chem.Mol) -> Chem.Mol:
-    """Make a Dimorphite-protonated mol sanitizable and MMFF-ready.
-
-    Clears CIF/mol2 marker props **and** per-atom aromatic flags left by
-    :func:`_apply_atom_aromatic_flags_post_removeh`. If full sanitization still
-    fails, rebuilds the heavy-atom graph from SMILES while preserving 3D
-    coordinates and formal charges.
-    """
-    clear_source_chemistry_props(mol)
-    clear_aromatic_perception_flags(mol)
-    try:
-        Chem.SanitizeMol(mol)
-        return mol
-    except (
-        Chem.rdchem.KekulizeException,
-        Chem.rdchem.AtomKekulizeException,
-        Chem.rdchem.AtomValenceException,
-    ):
-        logger.debug(
-            "Sanitize failed after clearing aromatic flags; trying SMILES rebuild",
-            exc_info=True,
-        )
-
-    heavy = Chem.RemoveHs(mol, sanitize=False)
-    rebuilt = _rebuild_mol_via_smiles_preserving_coords(heavy)
-    if rebuilt is None:
-        return mol
-
-    return Chem.AddHs(rebuilt, addCoords=True)
 
 
 def _restore_kekule_bonds(mol: Chem.Mol, atom_array: struc.AtomArray) -> None:
@@ -420,7 +324,13 @@ def protonate_ligand_mol(
     ph: float = 7.4,
     precision: float = 0.1,
 ) -> Chem.Mol:
-    """Protonate an RDKit Mol at a target pH and return first variant."""
+    """Protonate an RDKit Mol at a target pH and return first variant.
+
+    Dimorphite-DL sometimes rebuilds the molecule from SMILES, which drops the
+    3D conformer and can yield an invalid valence. Such a result is untrusted:
+    when the input carried coordinates and the variant lost them, we keep the
+    input protonation (already chemically valid and placed in 3D).
+    """
     try:
         variants = protonate_mol_variants(
             mol,
@@ -431,7 +341,10 @@ def protonate_ligand_mol(
             silent=True,
         )
         if variants:
-            return variants[0]
+            variant = variants[0]
+            if mol.GetNumConformers() and not variant.GetNumConformers():
+                return mol
+            return variant
     except Exception:
         logger.warning(
             "Dimorphite-DL direct-Mol protonation failed; keeping input mol",

@@ -21,10 +21,6 @@ from rdkit import Chem
 from rdkit.Chem import RWMol, rdDetermineBonds
 
 from tmol.io.canonical_ordering import CanonicalOrdering
-from tmol.ligand.cif_normalization import (
-    infer_paired_mol2_path,
-    repaired_cif_path_from_mol2,
-)
 from tmol.ligand.mol2_names import apply_disambiguated_mol2_names
 
 logger = logging.getLogger(__name__)
@@ -284,6 +280,21 @@ def _mol2_partial_charges_are_authoritative(mol2_path: Path) -> bool:
     return True
 
 
+def _charges_are_plausible(charges: dict[str, float]) -> bool:
+    """True if ``charges`` look like real partial charges.
+
+    Guards against mol2 files whose charge column holds garbage (e.g. a
+    ``USER_CHARGES``/``INVALID_CHARGES`` block with coordinate-like values):
+    partial charges have small magnitudes and a near-integer net charge.
+    """
+    if not charges:
+        return False
+    if any(abs(q) > 2.0 for q in charges.values()):
+        return False
+    net = sum(charges.values())
+    return abs(net - round(net)) < 0.1
+
+
 def nonstandard_residue_info_from_mol2(
     mol2_path: str | Path,
     res_name: str | None = None,
@@ -367,7 +378,9 @@ def nonstandard_residue_info_from_mol2(
     atom_array.bonds = struc.BondList(n_atoms, bond_array)
 
     use_input_charges = (
-        has_full_partial_charges and _mol2_partial_charges_are_authoritative(path)
+        has_full_partial_charges
+        and _mol2_partial_charges_are_authoritative(path)
+        and _charges_are_plausible(partial_charges)
     )
     authoritative_q = partial_charges if use_input_charges else None
     return NonStandardResidueInfo(
@@ -407,46 +420,6 @@ def _cif_value_order_to_biotite_bond_type(value_order: str, aromatic_flag: str) 
     if order == "AROM":
         return int(struc.BondType.AROMATIC)
     return int(struc.BondType.SINGLE)
-
-
-def _cif_read_path_with_optional_mol2_repair(
-    path: Path,
-    *,
-    paired_mol2_path: str | Path | None,
-    res_name: str | None,
-    repair_invalid_bonds: bool,
-) -> tuple[Path, Path | None]:
-    """Return the CIF path to read and an optional temp file to delete."""
-    cif_path_to_read = path
-    temporary_regenerated_path: Path | None = None
-    if not repair_invalid_bonds:
-        return cif_path_to_read, temporary_regenerated_path
-
-    inferred_mol2 = (
-        Path(paired_mol2_path)
-        if paired_mol2_path is not None
-        else infer_paired_mol2_path(path)
-    )
-    if inferred_mol2 is None or not inferred_mol2.is_file():
-        return cif_path_to_read, temporary_regenerated_path
-
-    regen_res_name = res_name or "LG1"
-    cif_path_to_read, audit, regenerated = repaired_cif_path_from_mol2(
-        path,
-        inferred_mol2,
-        res_name=regen_res_name,
-    )
-    if regenerated:
-        temporary_regenerated_path = cif_path_to_read
-        logger.warning(
-            "Regenerated CIF bonds from paired MOL2 before loading %s; "
-            "missing=%d extra=%d note=%s",
-            path,
-            len(audit.missing_in_cif),
-            len(audit.extra_in_cif),
-            audit.note or "none",
-        )
-    return cif_path_to_read, temporary_regenerated_path
 
 
 def _partial_charges_from_atom_site(
@@ -524,70 +497,42 @@ def _resolve_cif_res_name(atom_site, arr: struc.AtomArray, res_name: str | None)
 def nonstandard_residue_info_from_cif(
     cif_path: str | Path,
     res_name: str | None = None,
-    *,
-    paired_mol2_path: str | Path | None = None,
-    repair_invalid_bonds: bool = True,
 ) -> NonStandardResidueInfo:
     """Construct ``NonStandardResidueInfo`` from a ligand CIF file.
 
-    Preserves custom per-atom fields (``partial_charge``, ``tmol_aromatic``,
-    ``tmol_source_subtype``) and rebuilds the bond table directly from
-    ``_chem_comp_bond`` when present.
+    The CIF is read as-is: bonds come directly from ``_chem_comp_bond`` and
+    custom per-atom fields (``partial_charge``, ``tmol_aromatic``,
+    ``tmol_source_subtype``) are preserved. 
     """
     import biotite.structure.io.pdbx as pdbx
 
     path = Path(cif_path)
-    cif_path_to_read, temporary_regenerated_path = (
-        _cif_read_path_with_optional_mol2_repair(
-            path,
-            paired_mol2_path=paired_mol2_path,
-            res_name=res_name,
-            repair_invalid_bonds=repair_invalid_bonds,
-        )
+    cif = pdbx.CIFFile.read(str(path))
+    arr = pdbx.get_structure(cif, model=1, include_bonds=True, extra_fields=["charge"])
+    if isinstance(arr, struc.AtomArrayStack):
+        arr = arr[0]
+
+    atom_site = cif.block["atom_site"]
+    atom_names = [str(v) for v in atom_site["label_atom_id"].as_array()]
+    res_name = _resolve_cif_res_name(atom_site, arr, res_name)
+    arr.res_name = np.array([res_name] * len(arr), dtype=arr.res_name.dtype)
+
+    partial_charges = _partial_charges_from_atom_site(atom_site, atom_names)
+    _apply_cif_atom_array_annotations(arr, atom_site)
+    _attach_chem_comp_bonds(arr, cif, atom_names)
+
+    return NonStandardResidueInfo(
+        res_name=res_name,
+        ccd_type=get_chem_comp_type(res_name) or "UNKNOWN",
+        atom_names=tuple(atom_names),
+        elements=tuple(str(e) for e in arr.element),
+        coords=arr.coord.copy(),
+        atom_array=arr,
+        ccd_smiles=_atom_array_to_smiles(arr, source=str(path), res_name=res_name),
+        covalently_linked=False,
+        partial_charges=partial_charges,
+        skip_protonation=partial_charges is not None,
     )
-    try:
-        cif = pdbx.CIFFile.read(str(cif_path_to_read))
-        arr = pdbx.get_structure(
-            cif, model=1, include_bonds=True, extra_fields=["charge"]
-        )
-        if isinstance(arr, struc.AtomArrayStack):
-            arr = arr[0]
-
-        atom_site = cif.block["atom_site"]
-        atom_names = [str(v) for v in atom_site["label_atom_id"].as_array()]
-        res_name = _resolve_cif_res_name(atom_site, arr, res_name)
-        arr.res_name = np.array([res_name] * len(arr), dtype=arr.res_name.dtype)
-
-        partial_charges = _partial_charges_from_atom_site(atom_site, atom_names)
-        _apply_cif_atom_array_annotations(arr, atom_site)
-        _attach_chem_comp_bonds(arr, cif, atom_names)
-
-        return NonStandardResidueInfo(
-            res_name=res_name,
-            ccd_type=get_chem_comp_type(res_name) or "UNKNOWN",
-            atom_names=tuple(atom_names),
-            elements=tuple(str(e) for e in arr.element),
-            coords=arr.coord.copy(),
-            atom_array=arr,
-            ccd_smiles=_atom_array_to_smiles(
-                arr,
-                source=str(path),
-                res_name=res_name,
-            ),
-            covalently_linked=False,
-            partial_charges=partial_charges,
-            skip_protonation=partial_charges is not None,
-        )
-    finally:
-        if temporary_regenerated_path is not None:
-            try:
-                temporary_regenerated_path.unlink(missing_ok=True)
-            except OSError:
-                logger.debug(
-                    "Failed to clean temporary regenerated CIF %s",
-                    temporary_regenerated_path,
-                    exc_info=True,
-                )
 
 
 def _atom_array_to_smiles(

@@ -17,7 +17,7 @@ from tmol.tests.ligand.test_dud_ligands import (
     _rosetta_score,
 )
 from tmol.tests.ligand.test_pli_tmol_equivalence import (
-    prepare_pli_ligand_mmff94_from_cif,
+    prepare_pli_ligand_from_cif,
 )
 
 PLI_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
@@ -57,7 +57,7 @@ def _target_for_complex(pdb_name: str) -> str:
 
 
 def _pli_param_db_from_pipeline(target: str):
-    prep = prepare_pli_ligand_mmff94_from_cif(target)
+    prep = prepare_pli_ligand_from_cif(target)
     return _param_db_with_ligand_prep(prep)
 
 
