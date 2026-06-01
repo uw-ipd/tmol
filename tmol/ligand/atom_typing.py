@@ -1476,7 +1476,9 @@ def _correct_conjugated_single_bond_orders(  # noqa: C901
 # ---------------------------------------------------------------------------
 
 
-def assign_tmol_atom_types(mol: Chem.Mol) -> list[AtomTypeAssignment]:
+def assign_tmol_atom_types(
+    mol: Chem.Mol, return_state: bool = False
+) -> "list[AtomTypeAssignment] | tuple[list[AtomTypeAssignment], RosettaTypingState]":
     """Assign Rosetta generic_potential atom types to each atom in a Mol.
 
     Follows the exact classification logic from Rosetta's AtomTypeClassifier
@@ -1580,4 +1582,10 @@ def assign_tmol_atom_types(mol: Chem.Mol) -> list[AtomTypeAssignment]:
     # Pass 6: Rosetta conjugation bond-order output correction
     _correct_conjugated_single_bond_orders(assignments, mol, state)
 
+    if return_state:
+        # `state` (rings / hybridization / aromatic / strained sets) is keyed by
+        # the same atom indices as `assignments`, which callers already align to
+        # the molecule passed in here. Exposing it lets the chi-topology
+        # classifier reuse this perception instead of recomputing it.
+        return assignments, state
     return assignments

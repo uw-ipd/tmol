@@ -363,6 +363,8 @@ def build_residue_type(
     res_name: str,
     atom_types: list[AtomTypeAssignment],
     atom_aliases: tuple = (),
+    *,
+    typing_state=None,
 ) -> RawResidueType:
     """Build a complete RawResidueType from a Chem.Mol.
 
@@ -466,6 +468,24 @@ def build_residue_type(
 
     icoors = _compute_icoors(mol, order, parent, grandparents, atom_names, coords)
 
+    # Rotatable-bond (CHI / PROTON_CHI) topology. Requires the perception state
+    # from atom typing; when absent (callers that don't thread it), torsions and
+    # chi_samples stay empty (the historical behavior).
+    if typing_state is not None:
+        from tmol.ligand.chi_topology import build_chi_topology
+
+        torsions, chi_samples = build_chi_topology(
+            mol,
+            order,
+            parent,
+            grandparents,
+            atom_names,
+            typing_state,
+            logger=logger,
+        )
+    else:
+        torsions, chi_samples = (), ()
+
     properties = ChemicalProperties(
         is_canonical=False,
         polymer=PolymerProperties(
@@ -495,10 +515,9 @@ def build_residue_type(
         atom_aliases=atom_aliases,
         bonds=tuple(bonds),
         connections=(),
-        # NOTE: Ligand torsions are intentionally empty
-        torsions=(),
+        torsions=torsions,
         icoors=tuple(icoors),
         properties=properties,
-        chi_samples=(),
+        chi_samples=chi_samples,
         default_jump_connection_atom=atom_names[nbr_idx],
     )

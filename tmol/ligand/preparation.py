@@ -217,13 +217,14 @@ def prepare_single_ligand(
     if not ligand_info.skip_protonation:
         protonated = Chem.AddHs(protonated, addCoords=True)
 
-    atom_types = assign_tmol_atom_types(protonated)
+    atom_types, typing_state = assign_tmol_atom_types(protonated, return_state=True)
     atom_types = _rename_atoms_to_cif(protonated, atom_types, ligand_info)
 
     restype = build_residue_type(
         protonated,
         ligand_info.res_name,
         atom_types,
+        typing_state=typing_state,
     )
 
     charges = build_partial_charges(
