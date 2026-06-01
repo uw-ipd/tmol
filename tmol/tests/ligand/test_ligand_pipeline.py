@@ -965,13 +965,17 @@ class TestGroundTruthRegression:
         protonated = Chem.AddHs(protonated, addCoords=False)
         prot_smi = Chem.MolToSmiles(Chem.RemoveHs(protonated), isomericSmiles=True)
         charges_by_idx = compute_mmff94_charges(protonated)
-        atom_types = assign_tmol_atom_types(protonated)
+        atom_types, typing_state = assign_tmol_atom_types(
+            protonated, return_state=True
+        )
         charges = {
             at.atom_name: charges_by_idx[at.index]
             for at in atom_types
             if at.index in charges_by_idx
         }
-        restype = build_residue_type(protonated, name, atom_types)
+        restype = build_residue_type(
+            protonated, name, atom_types, typing_state=typing_state
+        )
 
         return {
             "name": name,
@@ -983,6 +987,74 @@ class TestGroundTruthRegression:
             "charges": charges,
             "restype": restype,
         }
+
+    def test_chi_axes_match(self, ref_data):
+        """Emitted CHI torsions cover the same rotatable axes as ref .params.
+
+        Semantic parity: compare the unordered set of central {b, c} heavy-atom
+        name pairs (CHI numbering / quad text are not asserted).
+        """
+        ref_axes = {
+            frozenset((quad[1], quad[2]))
+            for (_num, quad, _biaryl) in ref_data["ref"]["chis"]
+        }
+        emit_axes = {
+            frozenset((t.b.atom, t.c.atom)) for t in ref_data["restype"].torsions
+        }
+        assert emit_axes == ref_axes, (
+            f"CHI axis mismatch for {ref_data['name']}: "
+            f"only-in-ref={sorted(tuple(sorted(s)) for s in ref_axes - emit_axes)}, "
+            f"only-in-emit={sorted(tuple(sorted(s)) for s in emit_axes - ref_axes)}"
+        )
+
+    def test_proton_chi_samples_match(self, ref_data):
+        """PROTON_CHI sample sets and EXTRA expansions match ref .params."""
+        ref = ref_data["ref"]
+        restype = ref_data["restype"]
+
+        chi_axis_by_num = {
+            num: frozenset((quad[1], quad[2])) for (num, quad, _b) in ref["chis"]
+        }
+        ref_by_axis = {}
+        for line in ref["proton_chis"]:
+            toks = line.split()
+            num = int(toks[1])
+            si = toks.index("SAMPLES")
+            k = int(toks[si + 1])
+            samples = tuple(float(x) for x in toks[si + 2 : si + 2 + k])
+            extra = (
+                tuple(float(x) for x in toks[toks.index("EXTRA") + 1 :])
+                if "EXTRA" in toks
+                else ()
+            )
+            ref_by_axis[chi_axis_by_num[num]] = (samples, extra)
+
+        axis_by_chiname = {
+            t.name: frozenset((t.b.atom, t.c.atom)) for t in restype.torsions
+        }
+        emit_by_axis = {
+            axis_by_chiname[cs.chi_dihedral]: (cs.samples, cs.expansions)
+            for cs in restype.chi_samples
+        }
+
+        assert set(emit_by_axis) == set(ref_by_axis), (
+            f"PROTON_CHI axis-set mismatch for {ref_data['name']}: "
+            f"ref={sorted(tuple(sorted(s)) for s in ref_by_axis)}, "
+            f"emit={sorted(tuple(sorted(s)) for s in emit_by_axis)}"
+        )
+        for axis, (r_samples, r_extra) in ref_by_axis.items():
+            e_samples, e_expansions = emit_by_axis[axis]
+            assert sorted(e_samples) == sorted(r_samples), (
+                f"{ref_data['name']} samples mismatch on {tuple(sorted(axis))}: "
+                f"ref={r_samples} emit={e_samples}"
+            )
+            # Rosetta EXTRA "1 20" -> one expansion of 20 deg -> (20.0,);
+            # EXTRA "0" -> no expansion -> ().
+            expected = (r_extra[1],) if (r_extra and r_extra[0] >= 1) else ()
+            assert tuple(e_expansions) == expected, (
+                f"{ref_data['name']} EXTRA mismatch on {tuple(sorted(axis))}: "
+                f"ref EXTRA={r_extra} -> expected {expected}, emit={e_expansions}"
+            )
 
     def test_protonation_matches(self, ref_data):
         """dimorphite_dl protonation must produce the expected SMILES."""
