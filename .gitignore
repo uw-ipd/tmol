@@ -140,3 +140,9 @@ build.ninja
 detect_cuda_version.cc
 
 # End of https://www.gitignore.io/api/python,jupyternotebook
+
+# humanize plugin workspace (idea drafts, plans, codex run logs) — local only
+.humanize/
+
+# local-only AI behavioral guidelines (not part of the repo)
+CLAUDE.md
