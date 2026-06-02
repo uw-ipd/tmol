@@ -375,6 +375,75 @@ def test_default_prep_gates_chi_samples_off():
     assert rt_on.chi_samples  # opt-in -> proton chi_samples present
 
 
+@pytest.mark.parametrize(
+    "loader_attr, func_attr, arg",
+    [
+        ("nonstandard_residue_info_from_cif", "prepare_ligand_from_cif", "x.cif"),
+        ("nonstandard_residue_info_from_mol2", "prepare_ligand_from_mol2", "x.mol2"),
+        ("nonstandard_residue_info_from_pdb", "prepare_ligand_from_pdb", "x.pdb"),
+    ],
+)
+def test_sample_proton_chi_forwarded_file_paths(monkeypatch, loader_attr, func_attr, arg):
+    # AC-4: the option must reach prepare_single_ligand from every file-based
+    # public entry point, not just the SMILES path. Spy on the call kwargs.
+    import tmol.ligand.preparation as prep
+
+    captured: dict = {}
+
+    def fake_prepare_single_ligand(ligand_info, **kwargs):
+        captured.update(kwargs)
+        return "PREP"
+
+    monkeypatch.setattr(prep, loader_attr, lambda *a, **k: "LIG")
+    monkeypatch.setattr(prep, "prepare_single_ligand", fake_prepare_single_ligand)
+    monkeypatch.setattr(prep, "inject_ligand_preparations", lambda db, preps, **k: db)
+    monkeypatch.setattr(prep, "rebuild_canonical_ordering", lambda db: "CO")
+
+    getattr(prep, func_attr)(arg, param_db="DB", sample_proton_chi=True)
+    assert captured.get("sample_proton_chi") is True
+
+    captured.clear()
+    getattr(prep, func_attr)(arg, param_db="DB")  # default
+    assert captured.get("sample_proton_chi") is False
+
+
+def test_sample_proton_chi_forwarded_prepare_ligands(monkeypatch):
+    # AC-4: the multi-ligand entry point forwards the option too.
+    from types import SimpleNamespace
+
+    import tmol.ligand.preparation as prep
+
+    captured: dict = {}
+    fake_lig = SimpleNamespace(
+        res_name="LG1",
+        ccd_type="UNKNOWN",
+        covalently_linked=False,
+        atom_names=("C1",),
+        elements=("C",),
+        partial_charges=None,
+    )
+
+    def fake_prepare_single_ligand(ligand_info, **kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(
+            residue_type=SimpleNamespace(name="LG1"),
+            partial_charges={},
+            cartbonded_params=None,
+            atom_type_elements=None,
+        )
+
+    monkeypatch.setattr(prep, "detect_nonstandard_residues", lambda *a, **k: [fake_lig])
+    monkeypatch.setattr(prep, "get_cached_ligand_for_key", lambda *a, **k: None)
+    monkeypatch.setattr(prep, "get_cached_charges_for_key", lambda *a, **k: None)
+    monkeypatch.setattr(prep, "cache_ligand", lambda *a, **k: None)
+    monkeypatch.setattr(prep, "prepare_single_ligand", fake_prepare_single_ligand)
+    monkeypatch.setattr(prep, "inject_ligand_preparations", lambda db, preps, **k: db)
+    monkeypatch.setattr(prep, "rebuild_canonical_ordering", lambda db: "CO")
+
+    prep.prepare_ligands("AA", param_db="DB", cache="CACHE", sample_proton_chi=True)
+    assert captured.get("sample_proton_chi") is True
+
+
 def test_opth_inactive_for_heavy_only_chi_ligand():
     # AC-4 negative: biphenyl has a heavy CHI but NO proton chi_samples ->
     # OptHSampler must NOT define rotamers for it.
