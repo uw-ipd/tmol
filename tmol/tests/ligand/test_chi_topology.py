@@ -6,6 +6,7 @@ cases, sp3 sample / EXTRA-expansion checks, quad validity, NU-unsupported
 confirmation, and the ``params_io`` CHI/PROTON_CHI round-trip.
 """
 
+import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
@@ -252,3 +253,141 @@ def test_biaryl_single_bond_is_heavy_chi():
     rt = _restype_from_smiles("c1ccccc1-c2ccccc2", "BPH")
     assert len(rt.chi_samples) == 0
     assert len(rt.torsions) == 1  # the single inter-ring axis
+
+
+# --- Round 2: strained ring negative; heavy-only OptHSampler negative -------
+
+
+def test_strained_ring_emits_no_chi():
+    # 3-membered ring: all ring bonds are strained ring-internal -> no chi.
+    rt = _restype_from_smiles("C1CC1", "CPR")
+    assert rt.torsions == ()
+    assert rt.chi_samples == ()
+
+
+def test_opth_inactive_for_heavy_only_chi_ligand():
+    # AC-4 negative: biphenyl has a heavy CHI but NO proton chi_samples ->
+    # OptHSampler must NOT define rotamers for it.
+    from tmol.pack.rotamer.opth_sampler import OptHSampler
+
+    _rt, refined = _refined("c1ccccc1-c2ccccc2", "BPH")
+    assert refined.torsions and not refined.chi_samples
+    assert OptHSampler(flip_NHQ=False).defines_rotamers_for_rt(refined) is False
+
+
+# --- Round 2: AC-8 params_io read->write->read + tmol YAML round-trip -------
+
+
+def _proton_by_axis(restype):
+    axis = {t.name: frozenset((t.b.atom, t.c.atom)) for t in restype.torsions}
+    return {
+        axis[cs.chi_dihedral]: (tuple(cs.samples), tuple(cs.expansions))
+        for cs in restype.chi_samples
+    }
+
+
+def test_params_io_read_write_read_roundtrip(tmp_path):
+    # Start from a hand-written .params with CHI + PROTON_CHI, write it back,
+    # read again; the semantic content (axes, samples, expansions) is stable.
+    from tmol.ligand.params_io import read_params_file, write_params_file
+
+    src = tmp_path / "src.params"
+    src.write_text(
+        "NAME LIG\nIO_STRING LIG Z\nTYPE LIGAND\nAA UNK\n"
+        "ATOM  C1  CS  X 0.0\nATOM  C2  CS  X 0.0\nATOM  C3  CS  X 0.0\n"
+        "ATOM  O1  Ohx X 0.0\nATOM  HO1 HO  X 0.0\n"
+        "CHI 1  C3 C2 C1 O1\n"
+        "CHI 2  C2 C1 O1 HO1\nPROTON_CHI 2 SAMPLES 3 60 -60 180 EXTRA 1 20\n"
+        "NBR_ATOM C1\nNBR_RADIUS 999.0\n"
+    )
+    rt1 = read_params_file(src)
+    assert len(rt1.torsions) == 2 and len(rt1.chi_samples) == 1
+    out = tmp_path / "out.params"
+    write_params_file(rt1, out)
+    rt2 = read_params_file(out)
+    assert _axes(rt2) == _axes(rt1)
+    assert _proton_by_axis(rt2) == _proton_by_axis(rt1)
+    # the proton-chi expansion survived (EXTRA 1 20 -> (20.0,))
+    assert rt2.chi_samples[0].expansions == (20.0,)
+
+
+def test_tmol_yaml_roundtrip_preserves_chi(tmp_path):
+    # tmol .tmol YAML path (params_file.py) round-trips non-empty torsions and
+    # chi_samples. cartbonded is built with the same helper the prep pipeline
+    # uses; charges are dummy (orthogonal to chi topology).
+    from tmol.ligand.params_file import load_params_file, write_params_file
+    from tmol.ligand.registry import _build_cartbonded_params
+
+    rt = _restype_from_smiles("OCCO", "EDO")
+    assert rt.torsions and rt.chi_samples
+    charges = {a.name: 0.0 for a in rt.atoms}
+    cart = _build_cartbonded_params(rt)
+
+    out = tmp_path / "edo.tmol"
+    write_params_file(out, [rt], {"EDO": charges}, {"EDO": cart})
+    rt2 = load_params_file(out)[0].residue_type
+    assert _axes(rt2) == _axes(rt)
+    assert _proton_by_axis(rt2) == _proton_by_axis(rt)
+
+
+# --- Round 2: AC-3 ref1/ref2 inject -> ParameterDatabase -> CanonicalOrdering
+
+
+REF_SMILES = {
+    "ref1": "Cc1cn([C@@H]2C[C@@H](O)[C@H](CO)O2)c(=O)[nH]c1=O",
+    "ref2": "Cc1cc2nc3c(=O)[nH]c(=O)nc-3n(C[C@H](O)[C@H](O)[C@H](O)CO)c2cc1C",
+}
+
+
+@pytest.mark.parametrize("name", ["ref1", "ref2"])
+def test_ref_ligand_injects_and_builds_canonical_ordering(name):
+    import cattr
+
+    from tmol.chemical.restypes import RefinedResidueType
+    from tmol.ligand.preparation import prepare_ligand_from_smiles
+
+    # Full pipeline: parse -> protonate -> embed -> charges -> type -> build
+    # -> inject into a fresh ParameterDatabase -> rebuild CanonicalOrdering.
+    param_db, co = prepare_ligand_from_smiles(REF_SMILES[name], res_name=name)
+    assert co is not None  # CanonicalOrdering built without error
+
+    injected = next(r for r in param_db.chemical.residues if r.name == name)
+    assert injected.torsions and injected.chi_samples
+    refined = cattr.structure(cattr.unstructure(injected), RefinedResidueType)
+    for t in injected.torsions:
+        assert t.name in refined.torsion_to_uaids
+    for cs in injected.chi_samples:
+        assert cs.chi_dihedral in {t.name for t in injected.torsions}
+
+
+# --- Round 2: mol2-path smoke (prepares + emits non-empty topology) ---------
+
+
+def test_mol2_path_emits_topology(monkeypatch):
+    # mol2 prep path produces a residue type with rotatable-bond DOFs. (We do
+    # NOT compare to ref1.params: ref1.mol2 is a different molecule than the
+    # SMILES-derived ref1.params; this is a topology-emission smoke test.)
+    # Charges are orthogonal to chi topology and the host rdkit cannot MMFF
+    # this aromatic ref mol2, so stub the charge step.
+    from pathlib import Path
+
+    import tmol.ligand.preparation as prep_mod
+    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand.preparation import prepare_single_ligand
+
+    monkeypatch.setattr(
+        prep_mod,
+        "build_partial_charges",
+        lambda mol, atom_types, **kw: {at.atom_name: 0.0 for at in atom_types},
+    )
+
+    mol2 = (
+        Path(__file__).parent.parent / "data" / "ligand_ground_truth" / "ref1.mol2"
+    )
+    info = nonstandard_residue_info_from_mol2(str(mol2))
+    rt = prepare_single_ligand(info).residue_type
+    assert len(rt.torsions) > 0  # mol2 path emits CHI topology
+    # invariant: every proton chi references a named torsion
+    names = {t.name for t in rt.torsions}
+    for cs in rt.chi_samples:
+        assert cs.chi_dihedral in names
