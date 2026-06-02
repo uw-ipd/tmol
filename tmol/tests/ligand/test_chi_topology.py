@@ -162,3 +162,62 @@ def test_params_io_ignores_biaryl_comment(tmp_path):
     t = rt.torsions[0]
     assert t.name == "chi1"
     assert (t.a.atom, t.b.atom, t.c.atom, t.d.atom) == ("C3", "N1", "C2", "C1")
+
+
+# --- AC-3: refine resolves chi torsions; AC-4: sampler activation ----------
+
+
+def _refined(smi: str, name: str):
+    import cattr
+
+    from tmol.chemical.restypes import RefinedResidueType
+
+    rt = _restype_from_smiles(smi, name)
+    refined = cattr.structure(cattr.unstructure(rt), RefinedResidueType)
+    return rt, refined
+
+
+def test_refine_resolves_chi_torsion_uaids():
+    # AC-3: every chi_samples.chi_dihedral references a named torsion, and the
+    # RefinedResidueType exposes a resolvable torsion_to_uaids for chi1..chiN.
+    rt, refined = _refined("OCCO", "EDO")
+    torsion_names = {t.name for t in rt.torsions}
+    for cs in rt.chi_samples:
+        assert cs.chi_dihedral in torsion_names
+    for t in rt.torsions:
+        assert t.name in refined.torsion_to_uaids
+        assert len(refined.torsion_to_uaids[t.name]) == 4
+
+
+def test_opth_sampler_activates_for_polar_h_ligand():
+    # AC-4: a hydroxyl ligand carries proton chi_samples -> OptHSampler active.
+    from tmol.pack.rotamer.opth_sampler import OptHSampler
+
+    rt, refined = _refined("OCCO", "EDO")
+    assert rt.torsions and rt.chi_samples
+    assert OptHSampler().defines_rotamers_for_rt(refined) is True
+
+
+def test_opth_sampler_inactive_without_polar_h():
+    # AC-4 negative: benzene has no chi_samples -> OptHSampler inactive.
+    from tmol.pack.rotamer.opth_sampler import OptHSampler
+
+    _rt, refined = _refined("c1ccccc1", "BNZ")
+    assert not refined.chi_samples
+    assert OptHSampler(flip_NHQ=False).defines_rotamers_for_rt(refined) is False
+
+
+def test_polymer_samplers_skip_ligands(default_database, torch_device):
+    # AC-4: heavy-chi rotamer samplers are polymer-guarded -> never fire on
+    # non-polymer ligands, regardless of emitted torsions/chi_samples.
+    from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
+    from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
+    from tmol.score.dunbrack.params import DunbrackParamResolver
+
+    _rt, refined = _refined("OCCO", "EDO")
+    assert FixedAAChiSampler().defines_rotamers_for_rt(refined) is False
+
+    resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    assert DunbrackChiSampler(resolver).defines_rotamers_for_rt(refined) is False
