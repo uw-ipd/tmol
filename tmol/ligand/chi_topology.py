@@ -18,15 +18,21 @@ Hard-coded RosettaVS default flags (see ``BasicClasses.py``):
 ``report_nbonded_chi=False``, ``report_ringring_chi=True``,
 ``report_puckering_chi=False``, ``max_confs=5000``.
 
-KNOWN GAPS pending ground-truth (ref1/ref2) validation in the container:
-- ``border > 1`` biaryl-pivot CHIs (e.g. ref1 ``CHI 1 ... #biaryl``) are not
-  yet emitted; full ``biaryl_pivots`` detection (``is_biaryl_ring`` /
-  ``search_special_biaryl_ring``) is not ported yet.
-- Conjugated-polar-H skipping approximates Rosetta's per-atom H-count test with
-  RDKit ``bond.GetIsConjugated()``.
-- The float encoding of the PROTON_CHI ``EXTRA`` field into
-  ``ChiSamples.expansions`` follows the convention below and must be confirmed
-  against how tmol consumes ``ChiSamples`` downstream.
+Validated against the RosettaVS ground truth (``ref1``/``ref2`` via the SMILES
+path in ``TestGroundTruthRegression``): emitted CHI axes and PROTON_CHI
+samples/expansions match. The ``EXTRA`` encoding (``EXTRA 1 20`` ->
+``expansions=(20.0,)``, ``EXTRA 0`` -> ``()``) is consistent with
+``OptHSampler``'s ``len(samples) * (1 + 2 * len(expansions))`` expansion.
+
+Scope notes / latitude:
+- ``border > 1`` biaryl-pivot CHIs are intentionally not emitted; faithful
+  ``biaryl_pivots`` detection (``is_biaryl_ring`` / ``search_special_biaryl_ring``)
+  is out of scope for this stage and does not affect ref1/ref2 (ref1's
+  ``#biaryl`` CHI is a single bond, handled correctly).
+- Conjugated-polar-H skipping uses RDKit ``bond.GetIsConjugated()`` as a close
+  approximation of Rosetta's per-atom H-count test.
+- NU / ring-pucker DOFs are unsupported (RosettaVS default
+  ``report_puckering_chi=False``); none are emitted by any preparation path.
 """
 
 from __future__ import annotations
