@@ -279,6 +279,7 @@ def prepare_ligands(
     params_files: list[str] | None = None,
     params_output: str | None = None,
     charge_mode: str = "auto",
+    sample_proton_chi: bool = False,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Detect, prepare, and register all non-standard residues.
 
@@ -371,6 +372,7 @@ def prepare_ligands(
             lig.res_name,
             round(ph, 3),
             charge_mode,
+            sample_proton_chi,
             tuple(lig.atom_names),
             tuple(lig.elements),
         )
@@ -392,7 +394,9 @@ def prepare_ligands(
             continue
 
         logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)
-        prep = prepare_single_ligand(lig, ph=ph, charge_mode=charge_mode)
+        prep = prepare_single_ligand(
+            lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
+        )
         cache_ligand(
             lig.res_name,
             prep.residue_type,
@@ -430,6 +434,7 @@ def prepare_ligand_from_cif(
     strict_atom_types: bool = False,
     res_name: str | None = None,
     charge_mode: str = "auto",
+    sample_proton_chi: bool = False,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a CIF file and inject it into a database.
 
@@ -446,6 +451,7 @@ def prepare_ligand_from_cif(
         strict_atom_types=strict_atom_types,
         res_name=res_name,
         charge_mode=charge_mode,
+        sample_proton_chi=sample_proton_chi,
     )
 
 
@@ -457,6 +463,7 @@ def prepare_ligand_from_mol2(
     strict_atom_types: bool = False,
     res_name: str | None = None,
     charge_mode: str = "auto",
+    sample_proton_chi: bool = False,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a Mol2 file and inject it into a database.
 
@@ -472,6 +479,7 @@ def prepare_ligand_from_mol2(
         strict_atom_types=strict_atom_types,
         res_name=res_name,
         charge_mode=charge_mode,
+        sample_proton_chi=sample_proton_chi,
     )
 
 
@@ -484,6 +492,7 @@ def prepare_ligand_from_pdb(
     res_name: str | None = None,
     charge_mode: str = "mmff94",
     perceive_bond_orders: bool = True,
+    sample_proton_chi: bool = False,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a PDB file and inject it into a database.
 
@@ -498,7 +507,9 @@ def prepare_ligand_from_pdb(
     lig = nonstandard_residue_info_from_pdb(
         pdb_path, res_name=res_name, perceive_bond_orders=perceive_bond_orders
     )
-    prep = prepare_single_ligand(lig, ph=ph, charge_mode=charge_mode)
+    prep = prepare_single_ligand(
+        lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
+    )
     param_db = inject_ligand_preparations(
         param_db, [prep], strict_atom_types=strict_atom_types
     )
@@ -549,6 +560,7 @@ def _prepare_ligand_from_file(
     strict_atom_types: bool,
     res_name: str | None,
     charge_mode: str,
+    sample_proton_chi: bool = False,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Load one ligand from file, prepare it, and inject it.
 
@@ -559,7 +571,9 @@ def _prepare_ligand_from_file(
         param_db = ParameterDatabase.get_default()
 
     lig = loader(path, res_name)
-    prep = prepare_single_ligand(lig, ph=ph, charge_mode=charge_mode)
+    prep = prepare_single_ligand(
+        lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
+    )
     param_db = inject_ligand_preparations(
         param_db, [prep], strict_atom_types=strict_atom_types
     )

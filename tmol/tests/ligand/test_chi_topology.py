@@ -353,6 +353,28 @@ def test_strained_ring_emits_no_chi():
     assert rt.chi_samples == ()
 
 
+def test_default_prep_gates_chi_samples_off():
+    # AC-4 (gated): the DEFAULT preparation path emits heavy + proton-chi
+    # torsions but NO proton chi_samples (so pose construction stays NaN-free);
+    # sample_proton_chi=True opts into the proton samples that drive OptHSampler.
+    from tmol.ligand.preparation import prepare_ligand_from_smiles
+
+    # Allyl alcohol: one aliphatic hydroxyl (-> proton chi) plus a C=C double
+    # bond, so it carries a chemistry-level bond-order signal and is accepted
+    # by the full preparation path (an all-single-bond SMILES like "OCCO" is
+    # rejected by the topology-only guard in rdkit_mol).
+    db_default, _ = prepare_ligand_from_smiles("OCC=C", res_name="EDG")
+    rt_default = next(r for r in db_default.chemical.residues if r.name == "EDG")
+    assert rt_default.torsions  # torsions always emitted
+    assert rt_default.chi_samples == ()  # samples gated off by default
+
+    db_on, _ = prepare_ligand_from_smiles(
+        "OCC=C", res_name="EDN", sample_proton_chi=True
+    )
+    rt_on = next(r for r in db_on.chemical.residues if r.name == "EDN")
+    assert rt_on.chi_samples  # opt-in -> proton chi_samples present
+
+
 def test_opth_inactive_for_heavy_only_chi_ligand():
     # AC-4 negative: biphenyl has a heavy CHI but NO proton chi_samples ->
     # OptHSampler must NOT define rotamers for it.
