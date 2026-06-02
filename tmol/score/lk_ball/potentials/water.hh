@@ -300,26 +300,31 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
     WaterGenPoseContextData<Dev, Real, Int> const& context_dat,
     int tile_start) {
   Eigen::Matrix<Real, 3, 1> xyz{Real(0), Real(0), Real(0)};
-  if (bcat.atom != -1) {
-    bool in_smem = false;
-    if (bcat.block == single_res_dat.block_ind) {
-      int bcat_tile_ind = bcat.atom - tile_start;
-      if (bcat_tile_ind >= 0 && bcat_tile_ind < TILE_SIZE) {
-        in_smem = true;
-        xyz = common::coord_from_shared(single_res_dat.coords, bcat_tile_ind);
-      }
-    }
-    if (!in_smem) {
-      // outside of tile or on other res, retrieve from global coords
-      int coord_offset =
-          (bcat.block == single_res_dat.block_ind
-               ? single_res_dat.rot_coord_offset
-               : context_dat
-                     .rot_coord_offset[context_dat.first_rot_for_block
-                                           [context_dat.pose_ind][bcat.block]]);
+  bool atom_exists = bcat.atom != -1;
+  if (!atom_exists)
+    printf(
+        "Error: tried to load coordinate data from non-existent atom. This can "
+        "happen in situations such as an SP3 without any bonded hydrogens.\n");
+  assert(atom_exists);
 
-      xyz = context_dat.rot_coords[bcat.atom + coord_offset];
+  bool in_smem = false;
+  if (bcat.block == single_res_dat.block_ind) {
+    int bcat_tile_ind = bcat.atom - tile_start;
+    if (bcat_tile_ind >= 0 && bcat_tile_ind < TILE_SIZE) {
+      in_smem = true;
+      xyz = common::coord_from_shared(single_res_dat.coords, bcat_tile_ind);
     }
+  }
+  if (!in_smem) {
+    // outside of tile or on other res, retrieve from global coords
+    int coord_offset =
+        (bcat.block == single_res_dat.block_ind
+             ? single_res_dat.rot_coord_offset
+             : context_dat
+                   .rot_coord_offset[context_dat.first_rot_for_block
+                                         [context_dat.pose_ind][bcat.block]]);
+
+    xyz = context_dat.rot_coords[bcat.atom + coord_offset];
   }
   return xyz;
 }
