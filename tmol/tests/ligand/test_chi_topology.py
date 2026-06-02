@@ -221,3 +221,34 @@ def test_polymer_samplers_skip_ligands(default_database, torch_device):
         default_database.scoring.dun, torch_device
     )
     assert DunbrackChiSampler(resolver).defines_rotamers_for_rt(refined) is False
+
+
+# --- AC-1 conjugation / biaryl edge cases (negative + positive matrix) -----
+
+
+def test_conjugated_polar_h_not_emitted():
+    # Conjugated polar hydrogens (aromatic-attached N-H/O-H, carbonyl O-H/N-H)
+    # are skipped, matching RosettaVS's conjugated-polar-H rule.
+    for smi, name in [
+        ("Nc1ccccc1", "ANI"),  # aniline
+        ("Oc1ccccc1", "PHN"),  # phenol
+        ("CC(=O)O", "ACD"),  # acetic acid
+        ("CC(=O)N", "AMD"),  # primary amide
+    ]:
+        rt = _restype_from_smiles(smi, name)
+        assert rt.chi_samples == (), f"{name}: conjugated polar-H should be skipped"
+
+
+def test_aliphatic_polar_h_emitted():
+    # Non-conjugated aliphatic O-H / N-H ARE emitted as proton chis.
+    for smi, name in [("CCO", "EOH"), ("CCN", "EAM")]:
+        rt = _restype_from_smiles(smi, name)
+        assert len(rt.chi_samples) == 1, f"{name}: aliphatic polar-H expected"
+
+
+def test_biaryl_single_bond_is_heavy_chi():
+    # report_ringring_chi=True (default): an aromatic-aromatic single bond
+    # (biphenyl pivot) is emitted as a heavy CHI, not skipped.
+    rt = _restype_from_smiles("c1ccccc1-c2ccccc2", "BPH")
+    assert len(rt.chi_samples) == 0
+    assert len(rt.torsions) == 1  # the single inter-ring axis
