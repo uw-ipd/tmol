@@ -33,6 +33,67 @@ def _axes(restype):
     return {frozenset((t.b.atom, t.c.atom)) for t in restype.torsions}
 
 
+def _chi_signature(restype):
+    """Name-independent CHI signature: (n_heavy, n_proton, sorted proton samples)."""
+    n_proton = len(restype.chi_samples)
+    n_heavy = len(restype.torsions) - n_proton
+    proton = sorted(tuple(cs.samples) for cs in restype.chi_samples)
+    return (n_heavy, n_proton, proton)
+
+
+def _smiles_to_mol2(smi: str, name: str) -> str:
+    """Write a TRIPOS .mol2 (3D + explicit bond orders) for a SMILES molecule.
+
+    Used to exercise the mol2 prep path on a molecule whose SMILES-path CHI
+    topology is known (openbabel is unavailable to generate one otherwise).
+    """
+    _HYB = {
+        Chem.HybridizationType.SP3: "3",
+        Chem.HybridizationType.SP2: "2",
+        Chem.HybridizationType.SP: "1",
+    }
+    _ORDER = {
+        Chem.BondType.SINGLE: "1",
+        Chem.BondType.DOUBLE: "2",
+        Chem.BondType.TRIPLE: "3",
+        Chem.BondType.AROMATIC: "ar",
+    }
+    mol = Chem.AddHs(Chem.MolFromSmiles(smi))
+    assert AllChem.EmbedMolecule(mol, randomSeed=0xC0FFEE) == 0
+    conf = mol.GetConformer()
+    lines = [
+        "@<TRIPOS>MOLECULE",
+        name,
+        f"{mol.GetNumAtoms()} {mol.GetNumBonds()} 1 0 0",
+        "SMALL",
+        "USER_CHARGES",
+        "",
+        "@<TRIPOS>ATOM",
+    ]
+    counts: dict[str, int] = {}
+    for a in mol.GetAtoms():
+        el = a.GetSymbol()
+        counts[el] = counts.get(el, 0) + 1
+        p = conf.GetAtomPosition(a.GetIdx())
+        if a.GetAtomicNum() == 1:
+            sybyl = "H"
+        elif a.GetIsAromatic():
+            sybyl = f"{el}.ar"
+        else:
+            sybyl = f"{el}.{_HYB.get(a.GetHybridization(), '3')}"
+        lines.append(
+            f"{a.GetIdx() + 1} {el}{counts[el]} {p.x:.4f} {p.y:.4f} {p.z:.4f} "
+            f"{sybyl} 1 {name} 0.0000"
+        )
+    lines.append("@<TRIPOS>BOND")
+    for i, b in enumerate(mol.GetBonds(), start=1):
+        lines.append(
+            f"{i} {b.GetBeginAtomIdx() + 1} {b.GetEndAtomIdx() + 1} "
+            f"{_ORDER.get(b.GetBondType(), '1')}"
+        )
+    return "\n".join(lines) + "\n"
+
+
 def _adjacency(restype):
     adj = set()
     for a, b, *_rest in restype.bonds:
@@ -96,6 +157,28 @@ def test_tetraol_extra_expansion_overflow():
     for cs in rt.chi_samples:
         assert sorted(cs.samples) == sorted((60.0, -60.0, 180.0))
         assert cs.expansions == ()
+
+
+def test_extra_counts_skipped_conjugated_polar_h():
+    # num_H_confs is computed over the PRE-skip polar-H set (RosettaVS parity).
+    # This triol-diacid has 3 emitted aliphatic hydroxyl chis (sp3, 9 each) plus
+    # TWO conjugated carboxylic O-H that are skipped from emission but STILL
+    # counted: 9^3 * (>=6)^2 = at least 26244 > MAX_CONFS(5000) -> EXTRA 0.
+    # If the skipped acids were not counted, 9^3 = 729 <= 5000 would wrongly
+    # give EXTRA 1 20.
+    rt = _restype_from_smiles("OCC(O)C(O)C(C(=O)O)C(=O)O", "TDA")
+    assert len(rt.chi_samples) == 3  # only the 3 aliphatic O-H emitted
+    for cs in rt.chi_samples:
+        assert cs.expansions == ()  # the 2 skipped acid O-H are counted
+
+
+def test_fused_ring_emits_no_ring_internal_chi():
+    # Ring-closure bonds are never atom-tree edges, so they are never CHI
+    # candidates (implicit handling of RosettaVS ring_cuts / FT_connected).
+    # Decalin and naphthalene have only ring-internal bonds -> no chi.
+    for smi, name in [("C1CCC2CCCCC2C1", "DEC"), ("c1ccc2ccccc2c1", "NAP")]:
+        rt = _restype_from_smiles(smi, name)
+        assert rt.torsions == (), f"{name} should emit no ring-internal chi"
 
 
 # --- AC-9: torsion-quad validity ------------------------------------------
@@ -391,3 +474,31 @@ def test_mol2_path_emits_topology(monkeypatch):
     names = {t.name for t in rt.torsions}
     for cs in rt.chi_samples:
         assert cs.chi_dihedral in names
+
+
+def test_mol2_path_matches_smiles_path_topology(tmp_path, monkeypatch):
+    # Matching-molecule mol2-path parity: generate a mol2 from the SAME molecule
+    # used on the SMILES path, prepare via the mol2 path, and assert the emitted
+    # CHI topology (heavy/proton counts + proton samples) matches. Charges are
+    # stubbed (orthogonal to chi topology).
+    import tmol.ligand.preparation as prep_mod
+    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand.preparation import prepare_single_ligand
+
+    monkeypatch.setattr(
+        prep_mod,
+        "build_partial_charges",
+        lambda mol, atom_types, **kw: {at.atom_name: 0.0 for at in atom_types},
+    )
+
+    smi = "OCC(O)CO"  # glycerol: 2 heavy + 3 proton chis
+    rt_smiles = _restype_from_smiles(smi, "GOL")
+
+    mol2_path = tmp_path / "gol.mol2"
+    mol2_path.write_text(_smiles_to_mol2(smi, "GOL"))
+    rt_mol2 = prepare_single_ligand(
+        nonstandard_residue_info_from_mol2(str(mol2_path))
+    ).residue_type
+
+    assert _chi_signature(rt_mol2) == _chi_signature(rt_smiles)
+    assert _chi_signature(rt_mol2)[1] == 3  # 3 hydroxyl proton chis

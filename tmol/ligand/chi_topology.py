@@ -33,6 +33,18 @@ Scope notes / latitude:
   approximation of Rosetta's per-atom H-count test.
 - NU / ring-pucker DOFs are unsupported (RosettaVS default
   ``report_puckering_chi=False``); none are emitted by any preparation path.
+
+RosettaVS rules that are handled *implicitly* by emitting CHIs only for
+atom-tree edges (each non-root atom ``c`` with parent ``b``), rather than over
+a separately-enumerated torsion list:
+- ``ring_cuts``: a ring's closure bond is a non-tree (back) edge, so it is never
+  a parent->child edge and never a CHI candidate.
+- ``FT_connected``: fold-tree-disconnected torsions cannot arise — every emitted
+  axis is a tree edge by construction.
+- ``atms_puckering`` (default-off): puckering-ring internal bonds are
+  ring-internal and are already skipped by ``_share_ring``.
+num_H_confs is computed over the pre-skip polar-H set (so EXTRA matches
+RosettaVS even when a polar-H chi is counted but later skipped).
 """
 
 from __future__ import annotations
@@ -133,8 +145,13 @@ def build_chi_topology(
             logger.debug("chi-edge %s-%s: %s", nb, nc, msg)
 
     # Pass 1: collect candidate chis (after the RosettaVS default-flag skips).
-    # Each candidate: (b, c, a, d, is_proton, hetero_hyb)
-    candidates: list[tuple[int, int, int, int, bool, int]] = []
+    # Each candidate: (b, c, a, d, is_proton, is_sp2).
+    # polar_h_factors keys every polar-H rotatable bond to its H-conformer
+    # factor (6 for sp2, 9 for sp3) BEFORE the later CHI skip filters, matching
+    # RosettaVS num_H_confs (SetupTopology.py:862-873 counts the hpol torsion
+    # set before applying ring-cut/conjugation/puckering skips).
+    candidates: list[tuple[int, int, int, int, bool, bool]] = []
+    polar_h_factors: dict[frozenset, int] = {}
     for c in order:
         b = parent.get(c, c)
         if b == c or b not in valid:
@@ -186,6 +203,17 @@ def build_chi_topology(
             _trace(c, b, "skip: apolar-H reference atom (hapol)")
             continue
 
+        # RosettaVS sp2 proton-chi requires the heteroatom (stem) be 2-coordinate
+        # sp2 (`stem.hyb == 2 and len(stem.bonds) < 3`); otherwise it is sp3.
+        is_sp2 = is_proton and (
+            hyb_by_idx.get(c, 3) == 2 and mol.GetAtomWithIdx(c).GetDegree() < 3
+        )
+        # Record this polar-H stem's conformer factor for num_H_confs BEFORE the
+        # later skip filters, so EXTRA matches RosettaVS even when a polar-H chi
+        # is present but later skipped (e.g. conjugated).
+        if is_proton:
+            polar_h_factors[frozenset((b, c))] = 6 if is_sp2 else 9
+
         # --- RosettaVS define_rotable_torsions skip rules (default flags) ---
         border = _bond_order(bond)
 
@@ -235,13 +263,13 @@ def build_chi_topology(
             f"EMIT {'proton' if is_proton else 'heavy'} "
             f"a={atom_names[a]} d={atom_names[d]}",
         )
-        candidates.append((b, c, a, d, is_proton, hyb_by_idx.get(c, 3)))
+        candidates.append((b, c, a, d, is_proton, is_sp2))
 
-    # Pass 2: EXTRA expansion factor (RosettaVS num_H_confs vs max_confs).
+    # Pass 2: EXTRA expansion factor. num_H_confs is the product over every
+    # (pre-skip) polar-H rotatable bond of its conformer factor (sp2->6, sp3->9).
     num_h_confs = 1
-    for _b, _c, _a, _d, is_proton, hetero_hyb in candidates:
-        if is_proton:
-            num_h_confs *= 6 if hetero_hyb == 2 else 9
+    for factor in polar_h_factors.values():
+        num_h_confs *= factor
     # "1 20" => one extra sample expanded by +/-20 degrees; "0" => none.
     extra_expansions: tuple[float, ...] = (
         (20.0,) if num_h_confs <= MAX_CONFS else ()
@@ -250,7 +278,7 @@ def build_chi_topology(
     # Pass 3: build torsions + proton-chi samples.
     torsions: list[Torsion] = []
     chi_samples: list[ChiSamples] = []
-    for n, (b, c, a, d, is_proton, hetero_hyb) in enumerate(candidates, start=1):
+    for n, (b, c, a, d, is_proton, is_sp2) in enumerate(candidates, start=1):
         name = f"chi{n}"
         torsions.append(
             Torsion(
@@ -262,8 +290,8 @@ def build_chi_topology(
             )
         )
         if is_proton:
-            # sp2 heteroatom -> samples 0/180; sp3 -> 60/-60/180.
-            samples = (0.0, 180.0) if hetero_hyb == 2 else (60.0, -60.0, 180.0)
+            # sp2 (2-coordinate) heteroatom -> samples 0/180; sp3 -> 60/-60/180.
+            samples = (0.0, 180.0) if is_sp2 else (60.0, -60.0, 180.0)
             chi_samples.append(
                 ChiSamples(
                     chi_dihedral=name,
