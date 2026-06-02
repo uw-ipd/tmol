@@ -974,7 +974,11 @@ class TestGroundTruthRegression:
             if at.index in charges_by_idx
         }
         restype = build_residue_type(
-            protonated, name, atom_types, typing_state=typing_state
+            protonated,
+            name,
+            atom_types,
+            typing_state=typing_state,
+            sample_proton_chi=True,
         )
 
         return {

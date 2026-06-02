@@ -162,6 +162,7 @@ def prepare_single_ligand(
     ligand_info: NonStandardResidueInfo,
     ph: float = 7.4,
     charge_mode: str = "auto",
+    sample_proton_chi: bool = False,
 ) -> LigandPreparation:
     """Run the full RDKit preparation pipeline for a single ligand.
 
@@ -225,6 +226,7 @@ def prepare_single_ligand(
         ligand_info.res_name,
         atom_types,
         typing_state=typing_state,
+        sample_proton_chi=sample_proton_chi,
     )
 
     charges = build_partial_charges(
@@ -512,6 +514,7 @@ def prepare_ligand_from_smiles(
     res_name: str | None = None,
     charge_mode: str = "mmff94",
     embed_seed: int = 0xC0FFEE,
+    sample_proton_chi: bool = False,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a SMILES string and inject it into a database.
 
@@ -528,7 +531,9 @@ def prepare_ligand_from_smiles(
     lig = nonstandard_residue_info_from_smiles(
         smiles, res_name=res_name, seed=embed_seed
     )
-    prep = prepare_single_ligand(lig, ph=ph, charge_mode=charge_mode)
+    prep = prepare_single_ligand(
+        lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
+    )
     param_db = inject_ligand_preparations(
         param_db, [prep], strict_atom_types=strict_atom_types
     )

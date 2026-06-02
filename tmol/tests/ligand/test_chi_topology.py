@@ -26,7 +26,12 @@ def _restype_from_smiles(smi: str, name: str = "LIG"):
     mol = Chem.AddHs(mol)
     assert AllChem.EmbedMolecule(mol, randomSeed=0xC0FFEE) == 0, f"embed failed: {smi}"
     atom_types, state = assign_tmol_atom_types(mol, return_state=True)
-    return build_residue_type(mol, name, atom_types, typing_state=state)
+    # sample_proton_chi=True so proton chi_samples are emitted for these
+    # classifier tests (the prep pipeline defaults this off — see
+    # test_chi_topology's gating coverage / round-3 NaN fix).
+    return build_residue_type(
+        mol, name, atom_types, typing_state=state, sample_proton_chi=True
+    )
 
 
 def _axes(restype):
@@ -431,7 +436,9 @@ def test_ref_ligand_injects_and_builds_canonical_ordering(name):
 
     # Full pipeline: parse -> protonate -> embed -> charges -> type -> build
     # -> inject into a fresh ParameterDatabase -> rebuild CanonicalOrdering.
-    param_db, co = prepare_ligand_from_smiles(REF_SMILES[name], res_name=name)
+    param_db, co = prepare_ligand_from_smiles(
+        REF_SMILES[name], res_name=name, sample_proton_chi=True
+    )
     assert co is not None  # CanonicalOrdering built without error
 
     injected = next(r for r in param_db.chemical.residues if r.name == name)
@@ -468,7 +475,7 @@ def test_mol2_path_emits_topology(monkeypatch):
         Path(__file__).parent.parent / "data" / "ligand_ground_truth" / "ref1.mol2"
     )
     info = nonstandard_residue_info_from_mol2(str(mol2))
-    rt = prepare_single_ligand(info).residue_type
+    rt = prepare_single_ligand(info, sample_proton_chi=True).residue_type
     assert len(rt.torsions) > 0  # mol2 path emits CHI topology
     # invariant: every proton chi references a named torsion
     names = {t.name for t in rt.torsions}
@@ -497,7 +504,7 @@ def test_mol2_path_matches_smiles_path_topology(tmp_path, monkeypatch):
     mol2_path = tmp_path / "gol.mol2"
     mol2_path.write_text(_smiles_to_mol2(smi, "GOL"))
     rt_mol2 = prepare_single_ligand(
-        nonstandard_residue_info_from_mol2(str(mol2_path))
+        nonstandard_residue_info_from_mol2(str(mol2_path)), sample_proton_chi=True
     ).residue_type
 
     assert _chi_signature(rt_mol2) == _chi_signature(rt_smiles)

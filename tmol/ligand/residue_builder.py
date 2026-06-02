@@ -365,6 +365,7 @@ def build_residue_type(
     atom_aliases: tuple = (),
     *,
     typing_state=None,
+    sample_proton_chi: bool = False,
 ) -> RawResidueType:
     """Build a complete RawResidueType from a Chem.Mol.
 
@@ -483,6 +484,15 @@ def build_residue_type(
             typing_state,
             logger=logger,
         )
+        # Heavy + proton-chi torsions are always emitted (inert for scoring /
+        # cartesian build; groundwork for ligand torsional potential + .params
+        # interop). Proton-chi SAMPLES are gated off by default: emitting them
+        # makes pose_stack_from_biotite treat the sampled hydrogens as
+        # DOF-controlled and produce NaN coordinates at build time. Enable
+        # `sample_proton_chi` only when OptHSampler proton-chi rotamer sampling
+        # is wanted (and the consumer drives those DOFs).
+        if not sample_proton_chi:
+            chi_samples = ()
     else:
         torsions, chi_samples = (), ()
 
