@@ -399,13 +399,22 @@ tmol_add_pybind_cpp_ext(
   tmol/numeric/bspline_compiled/bspline.pybind.cpp
 )
 
-# inverse kinematics (requires CUDA)
+# inverse kinematics (CPU always; CUDA dispatch added when available).
+# The pybind module binds CPU dispatch unconditionally and
+# tmol/kinematics/compiled/__init__.py imports it unconditionally, so the CPU
+# variant must be built even in CPU-only (TMOL_HAS_CUDA=OFF) wheels.
 if(TMOL_HAS_CUDA)
   tmol_add_pybind_cuda_ext(
     compiled_inverse_kin "tmol/kinematics/compiled" "_compiled_inverse_kin"
     tmol/kinematics/compiled/compiled_inverse_kin.cpp
     tmol/kinematics/compiled/compiled.cpu.cpp
     tmol/kinematics/compiled/compiled.cuda.cu
+  )
+else()
+  tmol_add_pybind_cpp_ext(
+    compiled_inverse_kin "tmol/kinematics/compiled" "_compiled_inverse_kin"
+    tmol/kinematics/compiled/compiled_inverse_kin.cpp
+    tmol/kinematics/compiled/compiled.cpu.cpp
   )
 endif()
 
