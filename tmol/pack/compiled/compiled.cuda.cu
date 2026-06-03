@@ -861,7 +861,7 @@ struct Annealer {
         best_rotamer_assignments_fullquench[pose][traj_id][i] = i_rot;
       }
 
-      float after_full_quench_totalE = warp_wide_sim_annealing(
+      warp_wide_sim_annealing(
           pose,
           traj_id,
           &state,
@@ -877,8 +877,11 @@ struct Annealer {
           n_rotamers,
           true,
           false);
+      // rescore best assignment
+      float best_totalE = ig.total_energy_for_assignment_parallel(
+          pose, g, best_rotamer_assignments_fullquench[pose][traj_id]);
       if (g.thread_rank() == 0) {
-        scores_fullquench[pose][traj_id] = after_full_quench_totalE;
+        scores_fullquench[pose][traj_id] = best_totalE;
       }
     });
 

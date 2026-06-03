@@ -19,6 +19,7 @@ def calculate_block_pair_ddg(
     minimize=True,
     pack=False,
     database=None,
+    return_pose_stack=False,
 ):
     """Calculate DDG score between two subsets of blocks within each pose, defined by 2 masks.
     If only one mask is provided, it will use the inverse of the first mask for the second.
@@ -35,10 +36,13 @@ def calculate_block_pair_ddg(
             computing the DDG score.
         pack: If True, pack (repack) rotamers of residues in the mask and residues adjacent
             to the mask (computed via ``compute_block_adjacency``) before the minimization step.
+        return_pose_stack: If True, also return the (possibly packed/minimized) pose stack
+            that was actually scored, as ``(ddg_scores, pose_stack)``.
 
     Returns:
         Tensor of shape [n_poses] or [n_terms, n_poses] containing the ddg score for each pose,
-        separated by terms if requested.
+        separated by terms if requested. If ``return_pose_stack`` is True, returns a tuple
+        ``(ddg_scores, pose_stack)``.
     """
     torch_device = pose_stack.device
 
@@ -128,6 +132,9 @@ def calculate_block_pair_ddg(
 
     if sum_terms:
         ddg_scores = ddg_scores.sum(dim=0)
+
+    if return_pose_stack:
+        return ddg_scores, pose_stack
 
     return ddg_scores
 

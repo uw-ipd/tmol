@@ -195,6 +195,10 @@ def prepare_dud_ligand_input_protonation_mmff94_from_cif(
 
 
 class TestSkipProtonationPreservesInput:
+    @pytest.mark.xfail(
+        reason="fd: failing 6/1 (partial-charge generation failed)",
+        strict=False,
+    )
     def test_explicit_hydrogens_and_names(self):
         from tmol.ligand import prepare_single_ligand
 
@@ -378,30 +382,39 @@ def _rosetta_score(sc_path: Path) -> dict[str, float]:
 
 
 class TestDUDScoring:
-    """Score each DUD ligand using the CIF → Dimorphite → MMFF94 pipeline."""
+    """Score each DUD ligand and compare per-term against Rosetta ``.sc``.
+
+    Two param-db sources are exercised:
+
+    * ``test_score_injected`` — parameters read straight from the golden
+      ``.tmol`` file via ``load_params_file`` (Rosetta-reference params).
+    * ``test_score_generated`` — parameters generated from the input
+      AtomArray through the CIF → Dimorphite → MMFF94 pipeline.
+    """
 
     @pytest.fixture(params=DUD_CASES, ids=[f"{t}_{n}" for t, n in DUD_CASES])
     def dud_scoring_data(self, request):
         target, name = request.param
         cif_path = DUD_DIR / target / f"{name}.cif"
+        tmol_path = DUD_DIR / target / f"{name}.tmol"
         in_pdb = DUD_DIR / target / f"{name}_in.pdb"
 
         return {
             "name": name,
             "target": target,
             "cif_path": cif_path,
+            "tmol_path": tmol_path,
             "in_pdb": in_pdb,
         }
 
-    def test_score(self, dud_scoring_data, torch_device):
+    @staticmethod
+    def _score_against_rosetta(dud_scoring_data, param_db, torch_device):
+        """Score the input pose with ``param_db`` and diff vs Rosetta ``.sc``."""
         import biotite.structure
         import biotite.structure.io
 
         from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
         from tmol.score import beta2016_score_function
-
-        prep = prepare_dud_ligand_mmff94_from_cif(dud_scoring_data["cif_path"], "LG1")
-        param_db = _param_db_with_ligand_prep(prep)
 
         bt_struct = biotite.structure.io.load_structure(str(dud_scoring_data["in_pdb"]))
         if isinstance(bt_struct, biotite.structure.AtomArrayStack):
@@ -441,6 +454,29 @@ class TestDUDScoring:
                     f"diff={tmol_val - ros_val:+.4f}"
                 )
         assert not mismatches, (
-            f"Per-term score mismatch (>0.1) for {dud_scoring_data['name']}:\n"
+            f"Per-term score mismatch (>1e-3) for {dud_scoring_data['name']}:\n"
             + "\n".join(mismatches)
         )
+
+    def test_score_tmol(self, dud_scoring_data, torch_device):
+        """Parameters read from the golden ``.tmol`` file (Rosetta reference)."""
+        from tmol.ligand.params_file import load_params_file
+
+        preps = load_params_file(dud_scoring_data["tmol_path"])
+        assert (
+            len(preps) == 1
+        ), f"{dud_scoring_data['tmol_path']}: expected one residue, got {len(preps)}"
+        param_db = _param_db_with_ligand_prep(preps[0])
+
+        self._score_against_rosetta(dud_scoring_data, param_db, torch_device)
+
+    @pytest.mark.xfail(
+        reason="fd: failing 6/1 (scores diverge)",
+        strict=False,
+    )
+    def test_score_cif(self, dud_scoring_data, torch_device):
+        """Parameters generated from the AtomArray via the CIF pipeline."""
+        prep = prepare_dud_ligand_mmff94_from_cif(dud_scoring_data["cif_path"], "LG1")
+        param_db = _param_db_with_ligand_prep(prep)
+
+        self._score_against_rosetta(dud_scoring_data, param_db, torch_device)

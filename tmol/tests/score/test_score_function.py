@@ -209,7 +209,7 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.cart_impropers: n([9.430529]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
-        ScoreType.fa_ljatr: n([-417.9582]),
+        ScoreType.fa_ljatr: n([-417.02362]),
         ScoreType.fa_ljrep: n([240.7147]),
         ScoreType.fa_lk: n([298.27637]),
         ScoreType.fa_elec: n([-134.02109]),

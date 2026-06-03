@@ -28,7 +28,6 @@ donor_atom_types:
   - { d: Ngu1,     donor_type: hbdon_GENERIC_SC }
   - { d: Ngu2,     donor_type: hbdon_GENERIC_SC }
   - { d: Ohx,      donor_type: hbdon_GENERIC_SC }
-  - { d: Sth,      donor_type: hbdon_GENERIC_SC }
 
 donor_type_params:
   - {name: hbdon_IND, weight: 1.15 }
@@ -41,8 +40,8 @@ donor_type_params:
   - {name: hbdon_HXL, weight: 0.99 }
   - {name: hbdon_AHX, weight: 1.00 }
   - {name: hbdon_PBA, weight: 1.45 }
-  - {name: hbdon_H2O, weight: 1.15 }
-  - {name: hbdon_GENERIC_SC, weight: 1.15 }
+  - {name: hbdon_H2O, weight: 1.26 }
+  - {name: hbdon_GENERIC_SC, weight: 1.45 }
 
 acceptor_atom_types:
   # sp2 acceptors
@@ -72,12 +71,12 @@ acceptor_type_params:
   - {name: hbacc_CXL, weight: 1.10 }
   - {name: hbacc_AHX, weight: 1.15 }
   - {name: hbacc_HXL, weight: 1.15 }
-  - {name: hbacc_H2O, weight: 1.15 }
+  - {name: hbacc_H2O, weight: 1.23 }
   - {name: hbacc_IMD, weight: 1.13 }
   - {name: hbacc_IME, weight: 1.17 }
-  - {name: hbacc_GENERIC_SP2SC,  weight: 1.15 }
-  - {name: hbacc_GENERIC_SP3SC,  weight: 1.15 }
-  - {name: hbacc_GENERIC_RINGSC, weight: 1.15 }
+  - {name: hbacc_GENERIC_SP2SC,  weight: 1.19 }
+  - {name: hbacc_GENERIC_SP3SC,  weight: 1.19 }
+  - {name: hbacc_GENERIC_RINGSC, weight: 1.19 }
 
 polynomial_parameters: # Parameters imported from rosetta sp2_elec_params @v2017.48-dev59886
   # Generic ligand AHdist polynomials (from Rosetta sp2_params/HBPoly1D.csv)
