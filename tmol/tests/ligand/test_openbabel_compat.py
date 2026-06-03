@@ -16,13 +16,11 @@ import pytest
 from rdkit import Chem
 
 from tmol.ligand.openbabel_compat import (
-    OpenBabelUnavailableError,
     is_available as ob_is_available,
     obabel_read_mol2,
     obabel_read_pdb,
     obabel_read_smiles,
 )
-
 
 PLI_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 ACE_MOL2 = PLI_DIR / "ace.lig.mol2"
@@ -215,9 +213,7 @@ def test_smiles_fallback_inside_rebuild_path(monkeypatch):
             return original_obabel_read_smiles(*args, **kwargs)
 
         monkeypatch.setattr(ob_compat, "obabel_read_smiles", counting_ob_smiles)
-        monkeypatch.setattr(
-            rdkit_mol_mod.Chem, "MolFromSmiles", lambda *a, **k: None
-        )
+        monkeypatch.setattr(rdkit_mol_mod.Chem, "MolFromSmiles", lambda *a, **k: None)
 
         fresh = rdkit_mol_mod._rebuild_mol_via_smiles_preserving_coords(proto)
         # OB returns ethanol via SDF round-trip; the subgraph match against

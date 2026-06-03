@@ -965,9 +965,7 @@ class TestGroundTruthRegression:
         protonated = Chem.AddHs(protonated, addCoords=False)
         prot_smi = Chem.MolToSmiles(Chem.RemoveHs(protonated), isomericSmiles=True)
         charges_by_idx = compute_mmff94_charges(protonated)
-        atom_types, typing_state = assign_tmol_atom_types(
-            protonated, return_state=True
-        )
+        atom_types, typing_state = assign_tmol_atom_types(protonated, return_state=True)
         charges = {
             at.atom_name: charges_by_idx[at.index]
             for at in atom_types

@@ -473,9 +473,7 @@ def nonstandard_residue_info_from_pdb(
 
     mol = _obmol_to_rdkit_mol(obmol, sanitize=False)
     if mol is None:
-        raise ValueError(
-            f"Could not convert OpenBabel-parsed PDB to RDKit Mol: {path}"
-        )
+        raise ValueError(f"Could not convert OpenBabel-parsed PDB to RDKit Mol: {path}")
     sanitize_tolerant(mol)
     if mol.GetNumAtoms() != n_atoms:
         raise ValueError(
@@ -581,9 +579,7 @@ def nonstandard_residue_info_from_smiles(
         if embed_result < 0:
             # RDKit embedding failed; try OB-based 3D generation.
             try:
-                mol = obabel_read_smiles(
-                    smiles, generate_3d=True, minimize=True
-                )
+                mol = obabel_read_smiles(smiles, generate_3d=True, minimize=True)
             except OpenBabelUnavailableError:
                 mol = None
             if mol is None:
@@ -603,9 +599,7 @@ def nonstandard_residue_info_from_smiles(
     sanitize_tolerant(mol)
 
     if mol.GetNumConformers() == 0:
-        raise ValueError(
-            f"3D generation produced no conformer for SMILES {smiles!r}"
-        )
+        raise ValueError(f"3D generation produced no conformer for SMILES {smiles!r}")
 
     conf = mol.GetConformer()
     n_atoms = mol.GetNumAtoms()

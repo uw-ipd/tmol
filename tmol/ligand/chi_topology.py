@@ -91,7 +91,7 @@ def _share_ring(ring_membership: dict[int, set[int]], a: int, b: int) -> bool:
     return bool(ring_membership.get(a, set()) & ring_membership.get(b, set()))
 
 
-def build_chi_topology(
+def build_chi_topology(  # noqa: C901
     mol: Chem.Mol,
     order: list[int],
     parent: dict[int, int],
@@ -171,9 +171,7 @@ def build_chi_topology(
         if heavy_children:
             is_proton = False
             d = heavy_children[0]
-        elif (
-            mol.GetAtomWithIdx(c).GetAtomicNum() in _POLAR_HEAVY and polar_h_children
-        ):
+        elif mol.GetAtomWithIdx(c).GetAtomicNum() in _POLAR_HEAVY and polar_h_children:
             is_proton = True
             d = polar_h_children[0]
         else:
@@ -197,9 +195,7 @@ def build_chi_topology(
         # torsion across this bond has an apolar-H endpoint (e.g. a methyl
         # carbon's bond to a ring). RosettaVS classifies these as apolar-H
         # (hapol) torsions and skips them with report_Hapol_chi=False.
-        if mol.GetAtomWithIdx(a).GetAtomicNum() == 1 and not _is_polar_hydrogen(
-            mol, a
-        ):
+        if mol.GetAtomWithIdx(a).GetAtomicNum() == 1 and not _is_polar_hydrogen(mol, a):
             _trace(c, b, "skip: apolar-H reference atom (hapol)")
             continue
 
@@ -271,9 +267,7 @@ def build_chi_topology(
     for factor in polar_h_factors.values():
         num_h_confs *= factor
     # "1 20" => one extra sample expanded by +/-20 degrees; "0" => none.
-    extra_expansions: tuple[float, ...] = (
-        (20.0,) if num_h_confs <= MAX_CONFS else ()
-    )
+    extra_expansions: tuple[float, ...] = (20.0,) if num_h_confs <= MAX_CONFS else ()
 
     # Pass 3: build torsions + proton-chi samples.
     torsions: list[Torsion] = []

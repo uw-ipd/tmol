@@ -60,16 +60,10 @@ from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
 from tmol.ligand import atom_array_from_mol2, prepare_ligand_from_mol2
 from tmol.ligand.registry import register_ligand
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_PROTEIN = REPO_ROOT / "tmol" / "tests" / "data" / "pdb" / "1ubq.pdb"
 DEFAULT_LIGAND = (
-    REPO_ROOT
-    / "tmol"
-    / "tests"
-    / "data"
-    / "ligand_ground_truth"
-    / "ref1.mol2"
+    REPO_ROOT / "tmol" / "tests" / "data" / "ligand_ground_truth" / "ref1.mol2"
 )
 
 
@@ -147,9 +141,7 @@ def main() -> int:
             file=sys.stderr,
         )
     elec_entries = sum(
-        1
-        for p in param_db.scoring.elec.atom_charge_parameters
-        if p.res == restype.name
+        1 for p in param_db.scoring.elec.atom_charge_parameters if p.res == restype.name
     )
     cart_entry = param_db.scoring.cartbonded.residue_params.get(restype.name)
     print(

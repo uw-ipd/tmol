@@ -224,6 +224,7 @@ def test_params_io_chi_proton_chi_roundtrip(tmp_path):
     rt2 = read_params_file(out)
     # semantic axis set preserved
     assert _axes(rt2) == _axes(rt)
+
     # proton chi samples + expansions preserved (keyed by axis)
     def proton_by_axis(r):
         axis = {t.name: frozenset((t.b.atom, t.c.atom)) for t in r.torsions}
@@ -383,7 +384,9 @@ def test_default_prep_gates_chi_samples_off():
         ("nonstandard_residue_info_from_pdb", "prepare_ligand_from_pdb", "x.pdb"),
     ],
 )
-def test_sample_proton_chi_forwarded_file_paths(monkeypatch, loader_attr, func_attr, arg):
+def test_sample_proton_chi_forwarded_file_paths(
+    monkeypatch, loader_attr, func_attr, arg
+):
     # the option must reach prepare_single_ligand from every file-based
     # public entry point, not just the SMILES path. Spy on the call kwargs.
     import tmol.ligand.preparation as prep
@@ -562,9 +565,7 @@ def test_mol2_path_emits_topology(monkeypatch):
         lambda mol, atom_types, **kw: {at.atom_name: 0.0 for at in atom_types},
     )
 
-    mol2 = (
-        Path(__file__).parent.parent / "data" / "ligand_ground_truth" / "ref1.mol2"
-    )
+    mol2 = Path(__file__).parent.parent / "data" / "ligand_ground_truth" / "ref1.mol2"
     info = nonstandard_residue_info_from_mol2(str(mol2))
     rt = prepare_single_ligand(info, sample_proton_chi=True).residue_type
     assert len(rt.torsions) > 0  # mol2 path emits CHI topology

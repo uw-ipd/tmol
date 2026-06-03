@@ -143,7 +143,9 @@ def _mol_from_atom_array(atom_array) -> Chem.Mol:
     return rw.GetMol()
 
 
-def read_structure(structure_path: str | Path, *, fmt: Optional[str] = None) -> Chem.Mol:
+def read_structure(
+    structure_path: str | Path, *, fmt: Optional[str] = None
+) -> Chem.Mol:
     """Read a 3D ligand structure, preserving atom names and coordinates.
 
     Bond *orders* from the input are intentionally ignored downstream (only the
@@ -316,7 +318,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "coordinates. Writes an SDF/MOL with the corrected chemistry."
         ),
     )
-    parser.add_argument("structure", help="Input structure file (cif/mol2/sdf/mol/pdb).")
+    parser.add_argument(
+        "structure", help="Input structure file (cif/mol2/sdf/mol/pdb)."
+    )
     parser.add_argument("smiles", help="SMILES for the same molecule (bond orders).")
     parser.add_argument(
         "-o",

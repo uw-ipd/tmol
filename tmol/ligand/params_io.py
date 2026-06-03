@@ -86,9 +86,7 @@ def write_params_file(
     proton_by_chi = {cs.chi_dihedral: cs for cs in restype.chi_samples}
     for tor in sorted(restype.torsions, key=lambda t: _chi_number(t.name)):
         n = _chi_number(tor.name)
-        quad = " ".join(
-            f"{(ua.atom or ''):>4s}" for ua in (tor.a, tor.b, tor.c, tor.d)
-        )
+        quad = " ".join(f"{(ua.atom or ''):>4s}" for ua in (tor.a, tor.b, tor.c, tor.d))
         lines.append(f"CHI {n:>2d} {quad}")
         cs = proton_by_chi.get(tor.name)
         if cs is not None:
@@ -99,9 +97,7 @@ def write_params_file(
                 )
             else:
                 extra = "EXTRA 0"
-            lines.append(
-                f"PROTON_CHI {n} SAMPLES {len(cs.samples)} {samples} {extra}"
-            )
+            lines.append(f"PROTON_CHI {n} SAMPLES {len(cs.samples)} {samples} {extra}")
 
     for ic in restype.icoors:
         phi_deg = math.degrees(ic.phi)

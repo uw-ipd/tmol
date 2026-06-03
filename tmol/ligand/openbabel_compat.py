@@ -154,9 +154,7 @@ def obabel_read_smiles(
     try:
         pymol = pybel.readstring("smi", smiles)
     except Exception:
-        logger.warning(
-            "OpenBabel failed to parse SMILES %r", smiles, exc_info=True
-        )
+        logger.warning("OpenBabel failed to parse SMILES %r", smiles, exc_info=True)
         return None
 
     if generate_3d:

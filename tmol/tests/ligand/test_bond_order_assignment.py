@@ -36,7 +36,9 @@ def _embed(smiles: str, *, with_hs: bool = True) -> Chem.Mol:
     assert mol is not None, smiles
     if with_hs:
         mol = Chem.AddHs(mol)
-    assert AllChem.EmbedMolecule(mol, randomSeed=0xC0FFEE) == 0, f"embed failed: {smiles}"
+    assert (
+        AllChem.EmbedMolecule(mol, randomSeed=0xC0FFEE) == 0
+    ), f"embed failed: {smiles}"
     return mol
 
 
@@ -261,9 +263,7 @@ def test_missing_file_raises():
 
 
 def test_write_rejects_lossy_pdb(tmp_path):
-    mol = assign_bond_orders_from_smiles(
-        _make_sdf("c1ccccc1", tmp_path), "c1ccccc1"
-    )
+    mol = assign_bond_orders_from_smiles(_make_sdf("c1ccccc1", tmp_path), "c1ccccc1")
     with pytest.raises(ValueError, match="Unsupported output format"):
         write_structure(mol, tmp_path / "out.pdb")
 
