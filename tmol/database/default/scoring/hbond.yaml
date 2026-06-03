@@ -28,7 +28,6 @@ donor_atom_types:
   - { d: Ngu1,     donor_type: hbdon_GENERIC_SC }
   - { d: Ngu2,     donor_type: hbdon_GENERIC_SC }
   - { d: Ohx,      donor_type: hbdon_GENERIC_SC }
-  - { d: Sth,      donor_type: hbdon_GENERIC_SC }
 
 donor_type_params:
   - {name: hbdon_IND, weight: 1.15 }
