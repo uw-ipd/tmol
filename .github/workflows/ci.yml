@@ -8,7 +8,7 @@ name: CI
 
 on:
   push:
-    branches: [master, "kdidi/**"]
+    branches: [master, "kdidi/**", "ncorley/**"]
   pull_request:
     branches: [master]
 

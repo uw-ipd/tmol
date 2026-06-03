@@ -150,6 +150,10 @@ def sanitize_tolerant(mol: Chem.Mol) -> None:
         source_carried_kekule,
     )
 
+    # Non-ring aromatic bonds are source placeholders; normalize before sanitize
+    # so RDKit does not preserve impossible acyclic aromaticity.
+    normalize_non_ring_aromatic_bonds(mol)
+
     if source_carried_kekule(mol) or source_has_aromatic_annotations(mol):
         ops = Chem.SANITIZE_ALL ^ Chem.SANITIZE_KEKULIZE ^ Chem.SANITIZE_SETAROMATICITY
         try:
@@ -610,11 +614,38 @@ def should_kekulize_for_typing(mol: Chem.Mol) -> bool:
     Kekulé / ``CD`` typing; SMILES sources and mol2 files with ``C.ar``
     want aromatic / ``CR``. We can't recover the column itself, but we
     can read a flag set when the source AtomArray carried explicit
-    Kekulé bond orders (see ``rdkit_mol.source_carried_kekule``).
+    Kekulé bond orders (see ``rdkit_mol.source_carried_kekule``), or
+    when the source stamped sp2 subtypes on ring atoms.
     """
-    from tmol.ligand.rdkit_mol import source_carried_kekule
+    from tmol.ligand.rdkit_mol import source_carried_kekule, source_subtype
 
-    return source_carried_kekule(mol)
+    if source_carried_kekule(mol):
+        return True
+    _SP2_SUBTYPES = frozenset(
+        {
+            "2",
+            "cd",
+            "ce",
+            "cf",
+            "cc",
+            "cp",
+            "cx",
+            "cz",
+            "nb",
+            "nc",
+            "nd",
+            "ne",
+            "nf",
+            "no",
+        }
+    )
+    for atom in mol.GetAtoms():
+        if not atom.IsInRing():
+            continue
+        sub = source_subtype(atom).lower()
+        if sub in _SP2_SUBTYPES:
+            return True
+    return False
 
 
 def _prepare_mol_for_typing(mol: Chem.Mol) -> Chem.Mol:
@@ -767,8 +798,9 @@ def _classify_C(
     nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom, state)
 
     sub = state.source_subtype_by_idx.get(atom.GetIdx(), "")
+    in_aro_ring = atom.GetIdx() in state.atms_aro
     if sub == "ar" or hyb == HYB_AROMATIC:
-        prefix = "CR"
+        prefix = "CR" if in_aro_ring else "CD"
     elif sub:
         if atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED:
             prefix = "CS"
@@ -844,7 +876,7 @@ def _classify_N_hetero(
             and nC <= 2
             and _in_5_or_6_ring()
         ):
-            return "Nim"
+            return "Nad3"
         # Reference parity: aromatic 5/6-ring tertiary N(=C)-N motifs with
         # subtype ``N.2`` are Nim-like rather than Nad3.
         if (
@@ -912,6 +944,19 @@ def _classify_N_sp2(
 ) -> str:
     """Classify sp2 nitrogen connected only to C/H."""
     state = _state_for_atom(atom, state)
+    # Bridgehead / imine N-H doubly bonded to two carbons (e.g. pdgfrb N4 -> Ngu1).
+    if nH == 1 and nC == 2:
+        mol = atom.GetOwningMol()
+        double_to_c = 0
+        for nbr in atom.GetNeighbors():
+            if nbr.GetAtomicNum() != 6:
+                continue
+            bond = mol.GetBondBetweenAtoms(atom.GetIdx(), nbr.GetIdx())
+            if bond is not None and bond.GetBondTypeAsDouble() >= 2.0 - 1e-3:
+                double_to_c += 1
+        if double_to_c == 2:
+            return "Ngu1"
+
     is_amide, is_guanidinium, nCaro = _n_sp2_context_flags(atom, state)
 
     if is_amide:
@@ -944,7 +989,7 @@ def _classify_N_sp2(
     return "NG21" if nH == 1 else "NG22"
 
 
-def _classify_N(
+def _classify_N(  # noqa: C901
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
     """Classify nitrogen atom type using Rosetta-like rules.
@@ -960,6 +1005,14 @@ def _classify_N(
     state = _state_for_atom(atom, state)
     hyb = _get_hyb(atom, state)
     nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom, state)
+    sub = state.source_subtype_by_idx.get(atom.GetIdx(), "").lower()
+
+    # Tripos N.4: protonated sp2 nitrogen (e.g. trypsin active-site N).
+    if sub == "4":
+        if nH == 2:
+            return "NG22"
+        if nH == 1:
+            return "NG21"
 
     if hyb == 1:
         return "NG1"
@@ -997,6 +1050,8 @@ def _classify_N(
         return "NG21" if nH == 1 else "NG22"
 
     if hyb == 3:
+        if nH == 1 and _is_amide_like_nitrogen(atom):
+            return "NG21"
         if nH == 0:
             return "NG3"
         return "Nam2" if ntot <= 3 else "Nam"
@@ -1077,7 +1132,7 @@ def _classify_O_sp2(
     return "OG2"
 
 
-def _classify_O(
+def _classify_O(  # noqa: C901
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
     """Classify oxygen atom type using Rosetta-like rules.
@@ -1129,7 +1184,9 @@ def _classify_O(
         if nH >= 1:
             return "Ohx"
         if ntot == 2 and nC == 2:
-            return "Ofu" if atom.GetIdx() in state.atms_aro else "Oet"
+            if atom.GetIdx() in state.atms_aro or was_aromatic(atom):
+                return "Ofu"
+            return "Oet"
         return "OG31" if nH >= 1 else "OG3"
 
     if hyb == 3:
@@ -1138,7 +1195,9 @@ def _classify_O(
         if ntot == 2 and nC == 2:
             # Rosetta classify_O: sp3 oxygen attached to two carbons is
             # Ofu when aromatic, Oet otherwise.
-            return "Ofu" if atom.GetIdx() in state.atms_aro else "Oet"
+            if atom.GetIdx() in state.atms_aro or was_aromatic(atom):
+                return "Ofu"
+            return "Oet"
         return "OG3"
 
     if hyb == 2 or hyb == 9:
@@ -1309,6 +1368,8 @@ def _correct_ring_nitrogen(
 
             nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom, state)
             if ntot < 3 and nH == 0 and nN >= 1:
+                if a.atom_type in {"Nad", "Nad3"}:
+                    continue
                 result[i] = a._replace(atom_type="Nim")
 
     return result
@@ -1590,13 +1651,16 @@ def assign_tmol_atom_types(mol: Chem.Mol) -> list[AtomTypeAssignment]:
     # Pass 3: modify polar carbons
     assignments = _modify_polar_c(assignments, mol)
 
-    # Pass 4: Rosetta amide bond order correction (Nad/Nad3-CDp)
-    _correct_amide_bond_orders(assignments, mol)
+    # Bond-order post-passes apply only to Kekulé / sp2-subtyped inputs.
+    # Pure aromatic (.ar / AROMATIC bond) mols must keep ring bond orders.
+    if should_kekulize_for_typing(mol):
+        # Pass 4: Rosetta amide bond order correction (Nad/Nad3-CDp)
+        _correct_amide_bond_orders(assignments, mol)
+
+        # Pass 6: Rosetta conjugation bond-order output correction
+        _correct_conjugated_single_bond_orders(assignments, mol, state)
 
     # Pass 5: ring nitrogen corrections
     assignments = _correct_ring_nitrogen(assignments, mol, state)
-
-    # Pass 6: Rosetta conjugation bond-order output correction
-    _correct_conjugated_single_bond_orders(assignments, mol, state)
 
     return assignments

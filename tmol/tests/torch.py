@@ -36,6 +36,18 @@ def torch_device(request):
     return device
 
 
+@pytest.fixture(params=[pytest.param("cuda", marks=requires_cuda)])
+def torch_device_gpu(request):
+    """CUDA-only device for scoring / GPU-kernel integration tests.
+
+    Parametrized with id ``cuda`` so CI's ``pytest -k cuda`` / ``-k 'not cuda'``
+    filters stay aligned with the dual cpu/cuda ``torch_device`` fixture.
+    """
+    device = torch.device("cuda", torch.cuda.current_device())
+    torch.arange(100, device=device).sum()
+    return device
+
+
 def cuda_not_implemented(f):
     """Parametrize 'torch_device' as an xfail via NotImplementedError."""
     return pytest.mark.parametrize(

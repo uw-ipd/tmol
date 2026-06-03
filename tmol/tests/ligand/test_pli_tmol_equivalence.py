@@ -37,10 +37,7 @@ MOL2_TARGETS = {
 _CIF_CASES = sorted(("cif", t) for t in (TMOL_TARGETS & CIF_TARGETS))
 _MOL2_CASES = sorted(("mol2", t) for t in (TMOL_TARGETS & MOL2_TARGETS))
 
-PLI_FORMAT_CASES = [
-    pytest.param(c, marks=pytest.mark.xfail(reason="fd: failing 6/01"))
-    for c in _CIF_CASES
-] + list(_MOL2_CASES)
+PLI_FORMAT_CASES = list(_CIF_CASES + _MOL2_CASES)
 
 CASE_IDS = [f"{s}_{t}" for s, t in (_CIF_CASES + _MOL2_CASES)]
 
@@ -72,7 +69,7 @@ def prepare_pli_ligand_from_cif(target: str):
     source_info = nonstandard_residue_info_from_cif(
         PLI_CIF_DIR / f"{target}.ligand.cif", res_name=ref_res_name
     )
-    return prepare_single_ligand(source_info, ph=7.4)
+    return prepare_single_ligand(source_info, ph=7.4, charge_mode="mmff94")
 
 
 def test_pli_reference_inputs_are_complete():
@@ -107,7 +104,7 @@ def prep_pair(request):
         source_info = nonstandard_residue_info_from_mol2(
             source_path, res_name=ref_res_name
         )
-        prep_source = prepare_single_ligand(source_info, ph=7.4)
+        prep_source = prepare_single_ligand(source_info, ph=7.4, charge_mode="mmff94")
     equivalence = compare_ligand_preparations(
         prep_source,
         prep_tmol,
@@ -127,25 +124,21 @@ def prep_pair(request):
 class TestPLIFileToTmolEquivalence:
     """File-derived ligand prep must match checked-in `.tmol` references."""
 
-    @pytest.mark.xfail(reason="fd: failing 6/01")
     def test_atom_set(self, prep_pair):
         assert prep_pair["equivalence"].checks["atom_set"], _format_check_error(
             prep_pair, "atom_set"
         )
 
-    @pytest.mark.xfail(reason="fd: failing 6/01")
     def test_atom_types(self, prep_pair):
         assert prep_pair["equivalence"].checks["atom_types"], _format_check_error(
             prep_pair, "atom_types"
         )
 
-    @pytest.mark.xfail(reason="fd: failing 6/01")
     def test_bonds(self, prep_pair):
         assert prep_pair["equivalence"].checks["bonds"], _format_check_error(
             prep_pair, "bonds"
         )
 
-    @pytest.mark.xfail(reason="fd: failing 6/01")
     def test_partial_charges(self, prep_pair):
         assert prep_pair["equivalence"].checks["partial_charges"], _format_check_error(
             prep_pair, "partial_charges"
@@ -159,7 +152,6 @@ class TestPLIFileToTmolEquivalence:
                 q
             ), f"{prep_pair['target']}: non-finite charge on {atom_name}: {q}"
 
-    @pytest.mark.xfail(reason="fd: failing 6/01")
     def test_cartbonded_params(self, prep_pair):
         assert prep_pair["equivalence"].checks[
             "cartbonded_params"
