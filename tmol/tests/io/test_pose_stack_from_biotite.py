@@ -137,3 +137,42 @@ def test_pose_stack_from_biotite_missing_single_sidechain_smoke(
     bt = biotite_1bl8[starts[0] : starts[6]]
     pose_stack = pose_stack_from_biotite(bt, torch_device=torch_device)
     biotite_from_pose_stack(pose_stack)
+
+
+@pytest.mark.parametrize("entry", ["build_context", "pose_stack"])
+@pytest.mark.parametrize("sample_proton_chi", [True, False])
+def test_sample_proton_chi_forwarded_to_prepare_ligands(
+    entry, sample_proton_chi, torch_device, monkeypatch
+):
+    # The sample_proton_chi opt-in (default False, matching the ligand-prep
+    # gate) must reach tmol.ligand.prepare_ligands from the integrated
+    # pose-build path. Spy on prepare_ligands to capture the kwarg, then
+    # short-circuit before the heavy canonical-form build.
+    import tmol.ligand
+
+    captured: dict = {}
+
+    class _Stop(Exception):
+        pass
+
+    def fake_prepare_ligands(structure, **kwargs):
+        captured.update(kwargs)
+        raise _Stop
+
+    monkeypatch.setattr(tmol.ligand, "prepare_ligands", fake_prepare_ligands)
+
+    structure = biotite.structure.AtomArray(1)
+    func = (
+        build_context_from_biotite
+        if entry == "build_context"
+        else pose_stack_from_biotite
+    )
+
+    with pytest.raises(_Stop):
+        func(
+            structure,
+            torch_device,
+            prepare_ligands=True,
+            sample_proton_chi=sample_proton_chi,
+        )
+    assert captured.get("sample_proton_chi") is sample_proton_chi

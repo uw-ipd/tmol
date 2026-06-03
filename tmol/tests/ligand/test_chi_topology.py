@@ -27,8 +27,8 @@ def _restype_from_smiles(smi: str, name: str = "LIG"):
     assert AllChem.EmbedMolecule(mol, randomSeed=0xC0FFEE) == 0, f"embed failed: {smi}"
     atom_types, state = assign_tmol_atom_types(mol, return_state=True)
     # sample_proton_chi=True so proton chi_samples are emitted for these
-    # classifier tests (the prep pipeline defaults this off — see
-    # test_chi_topology's gating coverage / round-3 NaN fix).
+    # classifier tests (the prep pipeline defaults this off to avoid the
+    # pose-build NaN for sampled polar hydrogens; see the gating test below).
     return build_residue_type(
         mol, name, atom_types, typing_state=state, sample_proton_chi=True
     )
@@ -106,7 +106,7 @@ def _adjacency(restype):
     return adj
 
 
-# --- AC-1 negative cases: no spurious rotatable bonds ---------------------
+# --- negative cases: no spurious rotatable bonds ---------------------
 
 
 def test_benzene_emits_no_chi():
@@ -126,7 +126,7 @@ def test_ethane_apolar_skipped():
     assert rt.torsions == ()
 
 
-# --- AC-7: ring-pucker (NU) is unsupported / not emitted ------------------
+# --- ring-pucker (NU) is unsupported / not emitted ------------------
 
 
 def test_saturated_ring_no_chi_and_no_nu():
@@ -137,7 +137,7 @@ def test_saturated_ring_no_chi_and_no_nu():
     assert rt.chi_samples == ()
 
 
-# --- AC-1 / AC-2: heavy + proton chis, sp3 samples + EXTRA ----------------
+# --- heavy + proton chis, sp3 samples + EXTRA ----------------
 
 
 def test_ethylene_glycol_heavy_and_proton_chis():
@@ -186,7 +186,7 @@ def test_fused_ring_emits_no_ring_internal_chi():
         assert rt.torsions == (), f"{name} should emit no ring-internal chi"
 
 
-# --- AC-9: torsion-quad validity ------------------------------------------
+# --- torsion-quad validity ------------------------------------------
 
 
 def test_torsion_quads_are_valid_bonded_paths():
@@ -206,7 +206,7 @@ def test_torsion_quads_are_valid_bonded_paths():
             assert t.d.atom in h_names, f"{t.name} proton tip {t.d.atom} not H"
 
 
-# --- AC-8: params_io CHI / PROTON_CHI round-trip --------------------------
+# --- params_io CHI / PROTON_CHI round-trip --------------------------
 
 
 def test_params_io_chi_proton_chi_roundtrip(tmp_path):
@@ -253,7 +253,7 @@ def test_params_io_ignores_biaryl_comment(tmp_path):
     assert (t.a.atom, t.b.atom, t.c.atom, t.d.atom) == ("C3", "N1", "C2", "C1")
 
 
-# --- AC-3: refine resolves chi torsions; AC-4: sampler activation ----------
+# --- refine resolves chi torsions; sampler activation ----------
 
 
 def _refined(smi: str, name: str):
@@ -267,7 +267,7 @@ def _refined(smi: str, name: str):
 
 
 def test_refine_resolves_chi_torsion_uaids():
-    # AC-3: every chi_samples.chi_dihedral references a named torsion, and the
+    # every chi_samples.chi_dihedral references a named torsion, and the
     # RefinedResidueType exposes a resolvable torsion_to_uaids for chi1..chiN.
     rt, refined = _refined("OCCO", "EDO")
     torsion_names = {t.name for t in rt.torsions}
@@ -279,7 +279,7 @@ def test_refine_resolves_chi_torsion_uaids():
 
 
 def test_opth_sampler_activates_for_polar_h_ligand():
-    # AC-4: a hydroxyl ligand carries proton chi_samples -> OptHSampler active.
+    # a hydroxyl ligand carries proton chi_samples -> OptHSampler active.
     from tmol.pack.rotamer.opth_sampler import OptHSampler
 
     rt, refined = _refined("OCCO", "EDO")
@@ -288,7 +288,7 @@ def test_opth_sampler_activates_for_polar_h_ligand():
 
 
 def test_opth_sampler_inactive_without_polar_h():
-    # AC-4 negative: benzene has no chi_samples -> OptHSampler inactive.
+    # benzene has no chi_samples -> OptHSampler inactive.
     from tmol.pack.rotamer.opth_sampler import OptHSampler
 
     _rt, refined = _refined("c1ccccc1", "BNZ")
@@ -297,7 +297,7 @@ def test_opth_sampler_inactive_without_polar_h():
 
 
 def test_polymer_samplers_skip_ligands(default_database, torch_device):
-    # AC-4: heavy-chi rotamer samplers are polymer-guarded -> never fire on
+    # heavy-chi rotamer samplers are polymer-guarded -> never fire on
     # non-polymer ligands, regardless of emitted torsions/chi_samples.
     from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
     from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
@@ -312,7 +312,7 @@ def test_polymer_samplers_skip_ligands(default_database, torch_device):
     assert DunbrackChiSampler(resolver).defines_rotamers_for_rt(refined) is False
 
 
-# --- AC-1 conjugation / biaryl edge cases (negative + positive matrix) -----
+# --- conjugation / biaryl edge cases (negative + positive matrix) -----
 
 
 def test_conjugated_polar_h_not_emitted():
@@ -343,7 +343,7 @@ def test_biaryl_single_bond_is_heavy_chi():
     assert len(rt.torsions) == 1  # the single inter-ring axis
 
 
-# --- Round 2: strained ring negative; heavy-only OptHSampler negative -------
+# --- strained ring negative; heavy-only OptHSampler negative -------
 
 
 def test_strained_ring_emits_no_chi():
@@ -354,7 +354,7 @@ def test_strained_ring_emits_no_chi():
 
 
 def test_default_prep_gates_chi_samples_off():
-    # AC-4 (gated): the DEFAULT preparation path emits heavy + proton-chi
+    # gated: the DEFAULT preparation path emits heavy + proton-chi
     # torsions but NO proton chi_samples (so pose construction stays NaN-free);
     # sample_proton_chi=True opts into the proton samples that drive OptHSampler.
     from tmol.ligand.preparation import prepare_ligand_from_smiles
@@ -384,7 +384,7 @@ def test_default_prep_gates_chi_samples_off():
     ],
 )
 def test_sample_proton_chi_forwarded_file_paths(monkeypatch, loader_attr, func_attr, arg):
-    # AC-4: the option must reach prepare_single_ligand from every file-based
+    # the option must reach prepare_single_ligand from every file-based
     # public entry point, not just the SMILES path. Spy on the call kwargs.
     import tmol.ligand.preparation as prep
 
@@ -408,7 +408,7 @@ def test_sample_proton_chi_forwarded_file_paths(monkeypatch, loader_attr, func_a
 
 
 def test_sample_proton_chi_forwarded_prepare_ligands(monkeypatch):
-    # AC-4: the multi-ligand entry point forwards the option too.
+    # the multi-ligand entry point forwards the option too.
     from types import SimpleNamespace
 
     import tmol.ligand.preparation as prep
@@ -445,7 +445,7 @@ def test_sample_proton_chi_forwarded_prepare_ligands(monkeypatch):
 
 
 def test_opth_inactive_for_heavy_only_chi_ligand():
-    # AC-4 negative: biphenyl has a heavy CHI but NO proton chi_samples ->
+    # biphenyl has a heavy CHI but NO proton chi_samples ->
     # OptHSampler must NOT define rotamers for it.
     from tmol.pack.rotamer.opth_sampler import OptHSampler
 
@@ -454,7 +454,7 @@ def test_opth_inactive_for_heavy_only_chi_ligand():
     assert OptHSampler(flip_NHQ=False).defines_rotamers_for_rt(refined) is False
 
 
-# --- Round 2: AC-8 params_io read->write->read + tmol YAML round-trip -------
+# --- params_io read->write->read + tmol YAML round-trip -------
 
 
 def _proton_by_axis(restype):
@@ -509,7 +509,7 @@ def test_tmol_yaml_roundtrip_preserves_chi(tmp_path):
     assert _proton_by_axis(rt2) == _proton_by_axis(rt)
 
 
-# --- Round 2: AC-3 ref1/ref2 inject -> ParameterDatabase -> CanonicalOrdering
+# --- ref1/ref2 inject -> ParameterDatabase -> CanonicalOrdering
 
 
 REF_SMILES = {
@@ -541,7 +541,7 @@ def test_ref_ligand_injects_and_builds_canonical_ordering(name):
         assert cs.chi_dihedral in {t.name for t in injected.torsions}
 
 
-# --- Round 2: mol2-path smoke (prepares + emits non-empty topology) ---------
+# --- mol2-path smoke (prepares + emits non-empty topology) ---------
 
 
 def test_mol2_path_emits_topology(monkeypatch):
