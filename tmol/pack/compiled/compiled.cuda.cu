@@ -855,6 +855,10 @@ struct Annealer {
       int const n_res = ig.n_res(pose);
       int const n_rotamers = ig.n_rotamers(pose);
 
+      if (g.thread_rank() == 0) {
+        sorted_fullquench_traj[pose][traj_id] = traj_id;
+      }
+
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         int i_rot = current_rotamer_assignments_lotemp[pose][source_traj][i];
         current_rotamer_assignments_fullquench[pose][traj_id][i] = i_rot;
@@ -895,7 +899,7 @@ struct Annealer {
       int const source_traj = sorted_fullquench_traj[pose][traj_id];
       int const n_res = ig.n_res(pose);
       if (g.thread_rank() == 0) {
-        scores_final[pose][traj_id] = scores_fullquench[pose][source_traj];
+        scores_final[pose][traj_id] = scores_fullquench[pose][traj_id];
       }
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         rotamer_assignments_final[pose][traj_id][i] =
