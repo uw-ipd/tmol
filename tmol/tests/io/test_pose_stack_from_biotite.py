@@ -176,3 +176,71 @@ def test_sample_proton_chi_forwarded_to_prepare_ligands(
             sample_proton_chi=sample_proton_chi,
         )
     assert captured.get("sample_proton_chi") is sample_proton_chi
+
+
+def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
+    # End-to-end behavior of the gate through the integrated pose-build path
+    # (forwarding alone cannot prove this):
+    #   - default (sample_proton_chi=False): the pose builds with finite ligand
+    #     coordinates, and the prepared LG1 residue carries torsions but no
+    #     chi_samples;
+    #   - opt-in (sample_proton_chi=True): the prepared LG1 residue gains
+    #     proton chi_samples. The opt-in is checked via build_context_from_biotite
+    #     (which stops before pose construction), since sampled polar hydrogens
+    #     would otherwise hit the known pose-build NaN.
+    import pathlib
+
+    import biotite.structure
+    import biotite.structure.io
+
+    from tmol.database import ParameterDatabase
+    from tmol.ligand.registry import clear_cache
+
+    cif_path = (
+        pathlib.Path(__file__).resolve().parents[1]
+        / "data"
+        / "protein_ligand_test"
+        / "cif_inputs"
+        / "ace.ligand.cif"
+    )
+    bt_struct = biotite.structure.io.load_structure(
+        str(cif_path), model=1, include_bonds=True, extra_fields=["partial_charge"]
+    )
+    if isinstance(bt_struct, biotite.structure.AtomArrayStack):
+        bt_struct = bt_struct[0]
+
+    def _lg1(context):
+        return next(
+            rt
+            for rt in context.parameter_database.chemical.residues
+            if rt.name == "LG1"
+        )
+
+    # Default gate: a full pose builds NaN-free; LG1 has torsions, no chi_samples.
+    clear_cache()
+    pose_stack, context = pose_stack_from_biotite(
+        bt_struct,
+        torch_device,
+        prepare_ligands=True,
+        sample_proton_chi=False,
+        param_db=ParameterDatabase.get_default(),
+        return_context=True,
+    )
+    assert torch.isfinite(pose_stack.coords[pose_stack.real_atoms]).all()
+    lg1_default = _lg1(context)
+    assert lg1_default.torsions  # heavy + proton-chi torsions always emitted
+    assert lg1_default.chi_samples == ()  # samples gated off by default
+
+    # Opt-in: the prepared LG1 residue carries proton chi_samples.
+    clear_cache()
+    context_on = build_context_from_biotite(
+        bt_struct,
+        torch_device,
+        prepare_ligands=True,
+        sample_proton_chi=True,
+        param_db=ParameterDatabase.get_default(),
+    )
+    lg1_on = _lg1(context_on)
+    assert lg1_on.torsions
+    assert lg1_on.chi_samples  # opt-in -> proton chi_samples present
+    clear_cache()

@@ -252,7 +252,7 @@ def build_chi_topology(
             _trace(c, b, "skip: conjugated polar-H")
             continue
 
-        # quad validity (AC-9): four distinct, bonded atoms
+        # Enforce four distinct atoms in the bonded torsion path.
         if len({a, b, c, d}) != 4:
             _trace(c, b, "skip: non-distinct quad")
             continue
