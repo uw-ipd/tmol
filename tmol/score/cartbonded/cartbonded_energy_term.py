@@ -370,7 +370,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))
 
-        print("Cart bonded get_score_term_attributes:", self.hash)
         pbt_cb_ann = pbt.cartbonded_annotations[self.hash]
         return [
             pose_stack.inter_residue_connections,
