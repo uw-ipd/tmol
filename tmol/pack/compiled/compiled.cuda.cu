@@ -915,7 +915,7 @@ struct Annealer {
     mgpu::segmented_sort(
         scores_hitemp.data(),
         sorted_hitemp_traj.data(),
-        n_hitemp_simA_traj,
+        n_poses * n_hitemp_simA_traj,
         segment_heads_hitemp.data(),
         n_poses,
         mgpu::less_t<float>(),
@@ -927,7 +927,7 @@ struct Annealer {
     mgpu::segmented_sort(
         scores_lotemp.data(),
         sorted_lotemp_traj.data(),
-        n_lotemp_simA_traj,
+        n_poses * n_lotemp_simA_traj,
         segment_heads_lotemp.data(),
         n_poses,
         mgpu::less_t<float>(),
@@ -938,7 +938,7 @@ struct Annealer {
     mgpu::segmented_sort(
         scores_fullquench.data(),
         sorted_fullquench_traj.data(),
-        n_fullquench_traj,
+        n_poses * n_fullquench_traj,
         segment_heads_fullquench.data(),
         n_poses,
         mgpu::less_t<float>(),
