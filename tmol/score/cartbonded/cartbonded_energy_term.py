@@ -1,5 +1,6 @@
 import torch
 import numpy
+import attrs
 
 from itertools import permutations
 
@@ -13,6 +14,26 @@ from tmol.pose.pose_stack import PoseStack
 from tmol.score.common.hash_util import make_hashtable_keys_values, add_to_hashtable
 
 debug = False
+
+
+@attrs.define(auto_attribs=True, slots=True, frozen=True)
+class CartBondedBlockAnnotations:
+    cartbonded_subgraphs: torch.Tensor
+    cartbonded_subgraph_type_counts: torch.Tensor
+    cartbonded_subgraph_type_offsets: torch.Tensor
+    cartbonded_params: dict
+
+
+@attrs.define(auto_attribs=True, slots=True, frozen=True)
+class CartBondedPackedBlockTypesAnnotations:
+    cartbonded_subgraphs: torch.Tensor
+    cartbonded_subgraph_offsets: torch.Tensor
+    cartbonded_subgraph_type_counts: torch.Tensor
+    cartbonded_subgraph_type_offsets: torch.Tensor
+    cartbonded_max_subgraphs_per_block: int
+    cartbonded_atom_unique_id_index: dict
+    cartbonded_params_hash_keys: torch.Tensor
+    cartbonded_params_hash_values: torch.Tensor
 
 
 class CartBondedEnergyTerm(AtomTypeDependentTerm):
@@ -33,6 +54,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         self.improper_roots = find_improper_roots(param_db.scoring.cartbonded)
 
         self.cart_database = param_db.scoring.cartbonded
+        self.hash = self.cart_database.hash
         self.device = device
 
     @classmethod
@@ -168,11 +190,17 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(CartBondedEnergyTerm, self).setup_block_type(block_type)
-        if hasattr(block_type, "cartbonded_subgraphs"):
-            assert hasattr(block_type, "cartbonded_subgraph_type_counts")
-            assert hasattr(block_type, "cartbonded_subgraph_type_offsets")
-            assert hasattr(block_type, "cartbonded_params")
+        if (
+            hasattr(block_type, "cartbonded_annotations")
+            and self.hash in block_type.cartbonded_annotations
+        ):
             return
+
+        # if hasattr(block_type, "cartbonded_subgraphs"):
+        #     assert hasattr(block_type, "cartbonded_subgraph_type_counts")
+        #     assert hasattr(block_type, "cartbonded_subgraph_type_offsets")
+        #     assert hasattr(block_type, "cartbonded_params")
+        #     return
 
         # Get the subgraphs for this block type
         lengths, angles, torsions, improper = self.find_subgraphs(
@@ -195,28 +223,36 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             block_type.base_name if block_type.base_name != "CYD" else "CYS"
         )
         cartbonded_params = self.get_params_for_res(temp_hack_base_name)
-        setattr(block_type, "cartbonded_subgraphs", cart_subgraphs)
-        setattr(
-            block_type, "cartbonded_subgraph_type_counts", cart_subgraph_type_counts
+        cb_block_ann = CartBondedBlockAnnotations(
+            cartbonded_subgraphs=cart_subgraphs,
+            cartbonded_subgraph_type_counts=cart_subgraph_type_counts,
+            cartbonded_subgraph_type_offsets=cart_subgraph_type_offsets,
+            cartbonded_params=cartbonded_params,
         )
-        setattr(
-            block_type, "cartbonded_subgraph_type_offsets", cart_subgraph_type_offsets
-        )
-        setattr(block_type, "cartbonded_params", cartbonded_params)
+        if not hasattr(block_type, "cartbonded_annotations"):
+            setattr(block_type, "cartbonded_annotations", {})
+        block_type.cartbonded_annotations[self.hash] = cb_block_ann
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
-        if hasattr(packed_block_types, "cartbonded_subgraphs"):
-            assert hasattr(packed_block_types, "cartbonded_subgraph_offsets")
-            assert hasattr(packed_block_types, "cartbonded_max_subgraphs_per_block")
-            assert hasattr(packed_block_types, "cartbonded_atom_unique_id_index")
-            assert hasattr(packed_block_types, "cartbonded_params_hash_keys")
-            assert hasattr(packed_block_types, "cartbonded_params_hash_values")
+
+        if (
+            hasattr(packed_block_types, "cartbonded_annotations")
+            and self.hash in packed_block_types.cartbonded_annotations
+        ):
             return
+
+        # if hasattr(packed_block_types, "cartbonded_subgraphs"):
+        #     assert hasattr(packed_block_types, "cartbonded_subgraph_offsets")
+        #     assert hasattr(packed_block_types, "cartbonded_max_subgraphs_per_block")
+        #     assert hasattr(packed_block_types, "cartbonded_atom_unique_id_index")
+        #     assert hasattr(packed_block_types, "cartbonded_params_hash_keys")
+        #     assert hasattr(packed_block_types, "cartbonded_params_hash_values")
+        #     return
 
         # Aggregate the subgraphs and collect metadata
         total_subgraphs = sum(
-            bt.cartbonded_subgraphs.shape[0]
+            bt.cartbonded_annotations[self.hash].cartbonded_subgraphs.shape[0]
             for bt in packed_block_types.active_block_types
         )
         subgraphs = numpy.full((total_subgraphs, 4), -1, dtype=numpy.int32)
@@ -227,11 +263,11 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         max_subgraphs_per_block = 0
         for block_type in packed_block_types.active_block_types:
             subgraph_offsets.append(offset)
-
-            n_subgraphs = block_type.cartbonded_subgraphs.shape[0]
-            subgraph_type_counts.append(block_type.cartbonded_subgraph_type_counts)
-            subgraph_type_offsets.append(block_type.cartbonded_subgraph_type_offsets)
-            subgraphs[offset : offset + n_subgraphs] = block_type.cartbonded_subgraphs
+            bt_params = block_type.cartbonded_annotations[self.hash]
+            n_subgraphs = bt_params.cartbonded_subgraphs.shape[0]
+            subgraph_type_counts.append(bt_params.cartbonded_subgraph_type_counts)
+            subgraph_type_offsets.append(bt_params.cartbonded_subgraph_type_offsets)
+            subgraphs[offset : offset + n_subgraphs] = bt_params.cartbonded_subgraphs
             offset += n_subgraphs
 
             max_subgraphs_per_block = max(
@@ -247,21 +283,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
         subgraph_type_offsets = torch.from_numpy(subgraph_type_offsets).to(
             device=self.device
-        )
-        setattr(packed_block_types, "cartbonded_subgraphs", subgraphs)
-        setattr(packed_block_types, "cartbonded_subgraph_offsets", subgraph_offsets)
-        setattr(
-            packed_block_types, "cartbonded_subgraph_type_counts", subgraph_type_counts
-        )
-        setattr(
-            packed_block_types,
-            "cartbonded_subgraph_type_offsets",
-            subgraph_type_offsets,
-        )
-        setattr(
-            packed_block_types,
-            "cartbonded_max_subgraphs_per_block",
-            max_subgraphs_per_block,
         )
 
         # Aggregate the params
@@ -280,14 +301,19 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                     cbet_atom_unique_id_index[at] = len(cbet_atom_unique_id_index)
 
         for bt in packed_block_types.active_block_types:
-            for key in bt.cartbonded_params:
+            bt_params = bt.cartbonded_annotations[self.hash]
+
+            for key in bt_params.cartbonded_params:
                 for at in key:
                     if at not in cbet_atom_unique_id_index:
                         cbet_atom_unique_id_index[at] = len(cbet_atom_unique_id_index)
 
         # Calculate the total number of params
         n_total_params = sum(
-            [len(bt.cartbonded_params) for bt in packed_block_types.active_block_types]
+            [
+                len(bt.cartbonded_annotations[self.hash].cartbonded_params)
+                for bt in packed_block_types.active_block_types
+            ]
         ) + len(wildcard_params)
 
         # Construct the params hash with the given scaling factor
@@ -296,7 +322,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         # Fill the hash table
         cur_val = 0
         for bt in packed_block_types.active_block_types:
-            for key_w_str, value in bt.cartbonded_params.items():
+
+            bt_params = bt.cartbonded_annotations[self.hash]
+            for key_w_str, value in bt_params.cartbonded_params.items():
                 key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)
                 add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
                 cur_val += 1
@@ -308,13 +336,20 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
         hash_keys_tensor = torch.from_numpy(hash_keys).to(device=self.device)
         hash_values_tensor = torch.from_numpy(hash_values).to(device=self.device)
-        setattr(
-            packed_block_types,
-            "cartbonded_atom_unique_id_index",
-            cbet_atom_unique_id_index,
+
+        cb_pbt_ann = CartBondedPackedBlockTypesAnnotations(
+            cartbonded_subgraphs=subgraphs,
+            cartbonded_subgraph_offsets=subgraph_offsets,
+            cartbonded_subgraph_type_counts=subgraph_type_counts,
+            cartbonded_subgraph_type_offsets=subgraph_type_offsets,
+            cartbonded_max_subgraphs_per_block=max_subgraphs_per_block,
+            cartbonded_atom_unique_id_index=cbet_atom_unique_id_index,
+            cartbonded_params_hash_keys=hash_keys_tensor,
+            cartbonded_params_hash_values=hash_values_tensor,
         )
-        setattr(packed_block_types, "cartbonded_params_hash_keys", hash_keys_tensor)
-        setattr(packed_block_types, "cartbonded_params_hash_values", hash_values_tensor)
+        if not hasattr(packed_block_types, "cartbonded_annotations"):
+            setattr(packed_block_types, "cartbonded_annotations", {})
+        packed_block_types.cartbonded_annotations[self.hash] = cb_pbt_ann
 
     def setup_poses(self, poses: PoseStack):
         super(CartBondedEnergyTerm, self).setup_poses(poses)
@@ -335,15 +370,17 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))
 
+        print("Cart bonded get_score_term_attributes:", self.hash)
+        pbt_cb_ann = pbt.cartbonded_annotations[self.hash]
         return [
             pose_stack.inter_residue_connections,
             pbt.atom_paths_from_conn,
             pbt.atom_unique_ids,
             pbt.atom_wildcard_ids,
-            pbt.cartbonded_params_hash_keys,
-            pbt.cartbonded_params_hash_values,
-            pbt.cartbonded_subgraphs,
-            pbt.cartbonded_subgraph_offsets,
-            pbt.cartbonded_subgraph_type_counts,
-            pbt.cartbonded_subgraph_type_offsets,
+            pbt_cb_ann.cartbonded_params_hash_keys,
+            pbt_cb_ann.cartbonded_params_hash_values,
+            pbt_cb_ann.cartbonded_subgraphs,
+            pbt_cb_ann.cartbonded_subgraph_offsets,
+            pbt_cb_ann.cartbonded_subgraph_type_counts,
+            pbt_cb_ann.cartbonded_subgraph_type_offsets,
         ]

@@ -46,8 +46,8 @@ def test_annotate_twice(fresh_default_restype_set, default_database, torch_devic
         cartbonded_energy_device.setup_block_type(bt)
     cartbonded_energy_device.setup_packed_block_types(pbt_device)
 
-    assert hasattr(pbt_cpu, "cartbonded_params_hash_keys")
-    assert hasattr(pbt_device, "cartbonded_params_hash_keys")
+    assert hasattr(pbt_cpu, "cartbonded_annotations")
+    assert hasattr(pbt_device, "cartbonded_annotations")
 
 
 def test_annotate_restypes(
@@ -64,20 +64,21 @@ def test_annotate_restypes(
         cartbonded_energy.setup_block_type(bt)
     cartbonded_energy.setup_packed_block_types(pbt)
 
-    assert hasattr(pbt, "cartbonded_subgraphs")
-    assert hasattr(pbt, "cartbonded_subgraph_offsets")
-    assert hasattr(pbt, "cartbonded_max_subgraphs_per_block")
-    assert hasattr(pbt, "cartbonded_params_hash_keys")
-    assert hasattr(pbt, "cartbonded_params_hash_values")
+    assert hasattr(pbt, "cartbonded_annotations")
+    assert cartbonded_energy.hash in pbt.cartbonded_annotations
+    cb_pbt_ann = pbt.cartbonded_annotations[cartbonded_energy.hash]
 
-    assert pbt.cartbonded_subgraphs.device == torch_device
-    assert pbt.cartbonded_subgraph_offsets.device == torch_device
-    assert pbt.cartbonded_params_hash_keys.device == torch_device
-    assert pbt.cartbonded_params_hash_values.device == torch_device
+    assert cb_pbt_ann.cartbonded_subgraphs.device == torch_device
+    assert cb_pbt_ann.cartbonded_subgraph_offsets.device == torch_device
+    assert cb_pbt_ann.cartbonded_params_hash_keys.device == torch_device
+    assert cb_pbt_ann.cartbonded_params_hash_values.device == torch_device
 
-    cartbonded_subgraphs = pbt.cartbonded_subgraphs
+    cartbonded_subgraphs = cb_pbt_ann.cartbonded_subgraphs
     cartbonded_energy.setup_packed_block_types(pbt)
-    assert cartbonded_subgraphs is pbt.cartbonded_subgraphs
+    assert (
+        cartbonded_subgraphs
+        is pbt.cartbonded_annotations[cartbonded_energy.hash].cartbonded_subgraphs
+    )
 
 
 class TestCartBondedEnergyTerm(EnergyTermTestBase):
