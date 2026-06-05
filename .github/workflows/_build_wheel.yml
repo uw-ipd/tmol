@@ -236,9 +236,9 @@ jobs:
             if [ -n "${CUDA_ARCHS_OVERRIDE}" ]; then
               CUDA_ARCHS="${CUDA_ARCHS_OVERRIDE}"
             elif [ "$CUDA_MAJOR" -ge 13 ]; then
-              CUDA_ARCHS="80;86;89;90;100"
+              CUDA_ARCHS="75;80;86;89;90;100"
             else
-              CUDA_ARCHS="80;86;89;90"
+              CUDA_ARCHS="75;80;86;89;90"
             fi
             export CMAKE_PREFIX_PATH=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.utils.cmake_prefix_path)")
             '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
