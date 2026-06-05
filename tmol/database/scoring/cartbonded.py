@@ -69,12 +69,18 @@ class CartBondedDatabase:
     def from_file(cls, path):
         with open(path, "r") as infile:
             resparam_dict = yaml.safe_load(infile)
-            resparam_dict["hash"] = cls.generate_hash(resparam_dict)
+            resparam_dict["hash"] = cls._generate_hash(resparam_dict)
 
         return cattr.structure(resparam_dict, cls)
 
     @classmethod
-    def generate_hash(cls, resparam_dict):
+    def from_cartres_dict(cls, cartres_dict: dict[str, CartRes]):
+        resparam_dict = cattr.unstructure(cartres_dict)
+        hash = cls._generate_hash(resparam_dict)
+        return cls(residue_params=cartres_dict, hash=hash)
+
+    @classmethod
+    def _generate_hash(cls, resparam_dict):
         serialized = json.dumps(resparam_dict, sort_keys=True)
         hash_value = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
         return hash_value
