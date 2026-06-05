@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-version = "0.1.29"
+version = "0.1.30"
 
 dependencies = [
     # Core ML framework
@@ -55,8 +55,6 @@ dependencies = [
     "hypothesis>=5.35",
     # AST manipulation (used by tmol.utility.args)
     "astor>=0.8",
-    # Interactive
-    "ipython>=8.0",
     # Structure I/O
     "biotite>=1.6.0",
     # Ligand preparation
@@ -78,6 +76,8 @@ dev = [
     "pytest-instafail>=0.5",
     "pytest-repeat>=0.9",
     "pytest-watch>=4.2",
+    # Interactive
+    "ipython>=8.0",
     # Visualization
     "seaborn>=0.13",
 ]
