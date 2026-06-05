@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-version = "0.1.31"
+version = "0.1.32"
 
 dependencies = [
     # Core ML framework
@@ -40,7 +40,7 @@ dependencies = [
     "networkx>=3.0",
     # Utilities
     "toolz>=0.12.0,<2",
-    "decorator>=5.1",
+    "decorator>=4.0",
     "typing_extensions>=4.0,<5",
     "typing_inspect>=0.9",
     "pint>=0.23,<1",
