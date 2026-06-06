@@ -20,6 +20,10 @@ env:
   # Rebuild with containers/apptainer/build-tmol-sif.sh --deploy-ci when deps change.
   # Image includes X11 runtime libs for openbabel-wheel (see tmol-dev.def).
   SIF: /home/bench/git_ci_apptainer/tmol.sif
+  # openbabel-wheel format plugins need libXrender.so.1. Baked into tmol.sif via
+  # containers/scripts/install-openbabel-runtime-deps.sh; bind host libs as a
+  # fallback until CI redeploys a rebuilt image (--containall hides host paths).
+  APPTAINER_BIND: /usr/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:ro
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
   SLURM_PARTITION: gpu-train
   SLURM_GRES: gpu:1
@@ -74,6 +78,18 @@ jobs:
           pip install pip --upgrade
           pip install uv
           SETUP
+
+      - name: Verify Open Babel runtime
+        run: |
+          apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
+            --pwd $GITHUB_WORKSPACE \
+            --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
+            $SIF bash << 'VERIFY'
+          set -ex
+          source .venv/bin/activate
+          uv pip install openbabel-wheel
+          bash "${GITHUB_WORKSPACE}/containers/scripts/verify-openbabel-formats.sh"
+          VERIFY
 
       - name: Lint
         run: |

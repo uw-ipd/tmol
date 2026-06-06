@@ -24,6 +24,8 @@ IncludeCmd: yes
     /etc/localtime
     /etc/hosts
     pyproject.toml /opt/tmol_pyproject.toml
+    containers/scripts/install-openbabel-runtime-deps.sh /opt/install-openbabel-runtime-deps.sh
+    containers/scripts/verify-openbabel-formats.sh /opt/verify-openbabel-formats.sh
 
 %post
     ## GENERAL SETUP
@@ -36,9 +38,8 @@ IncludeCmd: yes
     apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         git \
-        libxrender1 \
-        libxext6 \
         && rm -rf /var/lib/apt/lists/*
+    bash /opt/install-openbabel-runtime-deps.sh
 
     # Fix CUDA compat warning in Apptainer (read-only filesystem)
     # The base image's shinit_v2 tries to rm a symlink which fails in Apptainer
@@ -70,6 +71,7 @@ IncludeCmd: yes
 
     # Install the cleaned requirements
     uv pip install --system --break-system-packages -r /opt/combined_requirements.txt
+    bash /opt/verify-openbabel-formats.sh
 
     # Clean up to minimize container size
     uv cache clean

@@ -18,12 +18,11 @@ RUN mkdir -p /tmol_host /projects /net /squash
 
 # Copy pyproject.toml to extract dependencies
 COPY pyproject.toml /opt/tmol_pyproject.toml
+COPY containers/scripts/install-openbabel-runtime-deps.sh /opt/install-openbabel-runtime-deps.sh
+COPY containers/scripts/verify-openbabel-formats.sh /opt/verify-openbabel-formats.sh
 
 # X11 runtime libs required by openbabel-wheel format plugins (MMFF94 charges).
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        libxrender1 \
-        libxext6 \
-    && rm -rf /var/lib/apt/lists/*
+RUN bash /opt/install-openbabel-runtime-deps.sh
 
 # Python dependency installation (separate layer for better caching)
 # Note: Starting from PyTorch 25.03, the container includes /etc/pip/constraint.txt
@@ -54,6 +53,8 @@ RUN \
     \
     # Install the cleaned requirements
     uv pip install --system --break-system-packages -r /opt/combined_requirements.txt --constraint /etc/pip/constraint.txt && \
+    \
+    bash /opt/verify-openbabel-formats.sh && \
     \
     # Clean up to minimize image size
     uv cache clean && \

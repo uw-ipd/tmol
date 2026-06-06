@@ -165,7 +165,13 @@ pytest --pyargs tmol.tests -v
 
 Container definitions install all dependencies into an NVIDIA NGC PyTorch base image that provides `torch`, `numpy`, `nvcc`, and CUDA libraries. Bind-mount your tmol checkout at runtime.
 
-Both Docker and Apptainer images install X11 runtime libraries (`libxrender1`, `libxext6`, and their dependencies) so `openbabel-wheel` format plugins load correctly for MMFF94 partial charges.
+Both Docker and Apptainer images run `containers/scripts/install-openbabel-runtime-deps.sh`, which installs `libx11-6`, `libxext6`, and `libxrender1` so `openbabel-wheel` format plugins load correctly for MMFF94 partial charges and mol2 I/O. Image builds fail if `containers/scripts/verify-openbabel-formats.sh` does not see >100 input formats.
+
+If CI logs `libXrender.so.1: cannot open shared object file`, redeploy the Apptainer image:
+
+```bash
+containers/apptainer/build-tmol-sif.sh --deploy-ci
+```
 
 **Docker:**
 

@@ -30,22 +30,22 @@ dependencies = [
     "scipy>=1.11",
     # Data structures & serialization
     "attrs>=21.0",
-    "attrs_strict>=1.0,<2",
+    "attrs_strict>=1.0",
     "cattrs>=22.0",
     "frozendict>=2.4",
-    "pandas>=2.0,<3",
+    "pandas>=2.0",
     "pyarrow>=12",
     "pyyaml>=6.0",
     # Graphs & algorithms
     "networkx>=3.0",
     # Utilities
-    "toolz>=0.12.0,<2",
+    "toolz>=0.12.0",
     "decorator>=5.1",
-    "typing_extensions>=4.0,<5",
+    "typing_extensions>=4.0",
     "typing_inspect>=0.9",
-    "pint>=0.23,<1",
+    "pint>=0.23",
     "psutil>=5.9",
-    "requests>=2.28,<3",
+    "requests>=2.28",
     # Sparse arrays (requires SPARSE_AUTO_DENSIFY=1 for sparse>0.3.1)
     "sparse>=0.13",
     # numba/llvmlite

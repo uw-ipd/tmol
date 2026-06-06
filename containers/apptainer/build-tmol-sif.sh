@@ -76,14 +76,7 @@ apptainer build --fakeroot "${TMP_OUT}" "${DEF}"
 echo
 echo "=== Verifying X11 libs and Open Babel ==="
 unset APPTAINER_BIND SINGULARITY_BIND
-apptainer exec "${TMP_OUT}" bash -lc '
-  set -e
-  for lib in libXrender.so.1 libX11.so.6 libXext.so.6; do
-    ldconfig -p | grep -q "${lib}" || { echo "missing ${lib}"; exit 1; }
-  done
-  python -c "from openbabel import pybel; assert len(pybel.informats) > 100"
-  echo "Open Babel OK ($(python -c "from openbabel import pybel; print(len(pybel.informats))") input formats)"
-'
+apptainer exec "${TMP_OUT}" bash /opt/verify-openbabel-formats.sh
 
 mv "${TMP_OUT}" "${OUTPUT}"
 trap - EXIT
