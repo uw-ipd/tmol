@@ -173,6 +173,8 @@ If CI logs `libXrender.so.1: cannot open shared object file`, redeploy the Appta
 containers/apptainer/build-tmol-sif.sh --deploy-ci
 ```
 
+Do **not** bind the host's `/usr/lib/x86_64-linux-gnu` into CI (`APPTAINER_BIND`); cluster hosts often ship a newer glibc than the NGC base image, which breaks `cut`, `fakeroot`, and other container tools before tests even start.
+
 **Docker:**
 
 ```bash

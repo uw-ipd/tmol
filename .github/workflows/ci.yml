@@ -19,11 +19,9 @@ concurrency:
 env:
   # Rebuild with containers/apptainer/build-tmol-sif.sh --deploy-ci when deps change.
   # Image includes X11 runtime libs for openbabel-wheel (see tmol-dev.def).
+  # Do NOT bind host /usr/lib into the container: fela's glibc is newer than the
+  # NGC base image and breaks coreutils/fakeroot (GLIBC_2.43 errors on cut, etc.).
   SIF: /home/bench/git_ci_apptainer/tmol.sif
-  # openbabel-wheel format plugins need libXrender.so.1. Baked into tmol.sif via
-  # containers/scripts/install-openbabel-runtime-deps.sh; bind host libs as a
-  # fallback until CI redeploys a rebuilt image (--containall hides host paths).
-  APPTAINER_BIND: /usr/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:ro
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
   SLURM_PARTITION: gpu-train
   SLURM_GRES: gpu:1
@@ -44,6 +42,7 @@ jobs:
           submodules: recursive
 
       - name: Setup
+        id: setup
         run: |
           # Restore source timestamps
           git ls-files -- '*.cpp' '*.cu' '*.cuh' '*.h' '*.hh' '*.cc' | \
@@ -55,6 +54,12 @@ jobs:
             --pwd $GITHUB_WORKSPACE \
             $SIF bash << 'SETUP'
           set -ex
+
+          if ! ldconfig -p 2>/dev/null | grep -q libXrender.so.1; then
+            echo "ERROR: ${SIF:-tmol.sif} is missing libXrender.so.1 (Open Babel will not work)."
+            echo "Rebuild on digs: containers/apptainer/build-tmol-sif.sh --deploy-ci"
+            exit 1
+          fi
 
           PYTHON_BIN=""
           for cand in python3.12 python3.11 python3; do
@@ -107,7 +112,8 @@ jobs:
 
       - name: Build
         id: build
-        if: always()
+        # Run even when Lint fails, but not when Setup failed (no .venv yet).
+        if: steps.setup.outcome == 'success'
         run: |
           srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
                   -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
@@ -117,6 +123,10 @@ jobs:
                   $SIF bash << 'BUILD'
           set -ex
 
+          if [ ! -f .venv/bin/activate ]; then
+            echo "ERROR: .venv/bin/activate not found — the Setup step did not complete."
+            exit 1
+          fi
           source .venv/bin/activate
 
           uv pip compile pyproject.toml --all-extras --output-file requirements.txt
