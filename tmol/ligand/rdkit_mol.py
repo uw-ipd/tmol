@@ -133,6 +133,15 @@ def normalize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
     _kekulize_non_ring_aromatic_bonds(mol)
 
 
+def _ligand_arr_indices(
+    atom_array: struc.AtomArray, *, keep_hydrogens: bool
+) -> list[int]:
+    """Map RDKit atom indices to AtomArray indices for annotation transfer."""
+    if keep_hydrogens:
+        return list(range(len(atom_array)))
+    return [i for i, e in enumerate(atom_array.element) if str(e) != "H"]
+
+
 def _apply_atom_array_annotations(
     mol: Chem.Mol, atom_array: struc.AtomArray, arr_indices: list[int]
 ) -> None:
@@ -142,7 +151,7 @@ def _apply_atom_array_annotations(
     After ``RemoveHs``, ``arr_indices`` lists only heavy-atom source indices;
     when explicit hydrogens are kept, it is ``range(n_atoms)``.
     """
-    if mol.GetNumAtoms() != len(arr_indices):
+    if mol.GetNumAtoms() < len(arr_indices):
         return
 
     if hasattr(atom_array, "tmol_source_subtype"):
@@ -179,8 +188,29 @@ def source_subtype(atom: Chem.Atom) -> str:
     """Return the source mol2 atom-type subtype tag (e.g. ``ar``, ``2``,
     ``cat``, ``pl3``, ``3``) when known, else ``""``."""
     if atom.HasProp(_SOURCE_SUBTYPE_PROP):
-        return atom.GetProp(_SOURCE_SUBTYPE_PROP)
+        return atom.GetProp(_SOURCE_SUBTYPE_PROP).strip()
     return ""
+
+
+def reapply_ligand_source_annotations(
+    mol: Chem.Mol,
+    ligand_info: NonStandardResidueInfo,
+    *,
+    keep_hydrogens: bool | None = None,
+) -> None:
+    """Re-stamp source bond orders and per-atom hints after RDKit rebuilds.
+
+    Dimorphite protonation and ``AssignBondOrdersFromTemplate`` can return a
+    fresh Mol that drops ``_tmol_source_subtype`` props and Kekulé bond orders.
+    Re-apply from the original AtomArray before atom typing.
+    """
+    atom_array = ligand_info.atom_array
+    if keep_hydrogens is None:
+        keep_hydrogens = ligand_info.skip_protonation
+    arr_indices = _ligand_arr_indices(atom_array, keep_hydrogens=keep_hydrogens)
+    _restore_kekule_bonds(mol, atom_array)
+    normalize_non_ring_aromatic_bonds(mol)
+    _apply_atom_array_annotations(mol, atom_array, arr_indices)
 
 
 def source_carried_kekule(mol: Chem.Mol) -> bool:
@@ -304,13 +334,10 @@ def ligand_atom_array_to_rdkit_mol(
     _apply_source_subtypes(mol, atom_array)
 
     if keep_hydrogens:
-        arr_indices = list(range(len(atom_array)))
+        arr_indices = _ligand_arr_indices(atom_array, keep_hydrogens=True)
     else:
-        heavy_arr_indices = [
-            i for i, e in enumerate(atom_array.element) if str(e) != "H"
-        ]
         mol = _remove_hs_tolerant(mol)
-        arr_indices = heavy_arr_indices
+        arr_indices = _ligand_arr_indices(atom_array, keep_hydrogens=False)
 
     _apply_atom_array_annotations(mol, atom_array, arr_indices)
     mol = _strip_metals(mol)

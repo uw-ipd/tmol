@@ -42,7 +42,10 @@ def test_validate_attrs(example):
             func(*args, **kwargs)
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(
+    reason="attrs validators run on __init__ only; setattr is not type-checked",
+    strict=False,
+)
 def test_set_post_init():
     """Object validation does not function on setattr, only on init."""
     v = ValidateObj(1, "abc")

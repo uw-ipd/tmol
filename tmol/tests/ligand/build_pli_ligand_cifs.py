@@ -167,7 +167,7 @@ def _aromatic_atom_set(restype) -> set[str]:
     return aromatic_atoms
 
 
-def _source_subtype_from_atom_type(element: str, atom_type: str) -> str:
+def _source_subtype_from_atom_type(element: str, atom_type: str) -> str:  # noqa: C901
     """Best-effort source subtype hint for atom typing compatibility.
 
     The PLI reference `.tmol` files do not carry original mol2 subtype tags.
@@ -195,10 +195,14 @@ def _source_subtype_from_atom_type(element: str, atom_type: str) -> str:
     if e == "N":
         if t in {"Ngu1", "Ngu2"}:
             return "pl3"
+        if t in {"Nam", "Nam2"}:
+            return "pl3"
         if t in {"Nad", "Nad3"}:
             return "am"
         if t in {"Nin", "Nim"}:
             return "ar"
+        if t in {"NG21", "NG22"}:
+            return "2"
     if e == "S":
         if t == "SG5":
             return "o2"  # hyb-5 sulfonyl/sulfone -> SG5 (mol2 S.o2 analog)

@@ -104,7 +104,13 @@ def prep_pair(request):
         source_info = nonstandard_residue_info_from_mol2(
             source_path, res_name=ref_res_name
         )
-        prep_source = prepare_single_ligand(source_info, ph=7.4, charge_mode="mmff94")
+        prepare_mode = "passthrough" if source == "mol2" else "rebuild"
+        prep_source = prepare_single_ligand(
+            source_info,
+            ph=7.4,
+            charge_mode="mmff94",
+            prepare_mode=prepare_mode,
+        )
     equivalence = compare_ligand_preparations(
         prep_source,
         prep_tmol,

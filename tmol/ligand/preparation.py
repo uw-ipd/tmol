@@ -40,6 +40,7 @@ from tmol.ligand.residue_builder import build_residue_type
 from tmol.ligand.rdkit_mol import (
     ligand_atom_array_to_rdkit_mol,
     protonate_ligand_mol,
+    reapply_ligand_source_annotations,
 )
 
 logger = logging.getLogger(__name__)
@@ -154,10 +155,12 @@ def _rename_atoms_to_cif_by_graph(
     ]
 
 
-def prepare_single_ligand(
+def prepare_single_ligand(  # noqa: C901
     ligand_info: NonStandardResidueInfo,
     ph: float = 7.4,
     charge_mode: str = "auto",
+    *,
+    prepare_mode: str = "rebuild",
 ) -> LigandPreparation:
     """Run the full RDKit preparation pipeline for a single ligand.
 
@@ -172,17 +175,51 @@ def prepare_single_ligand(
         ph: Target pH for protonation.
         charge_mode: Partial-charge source policy passed to
             :func:`tmol.ligand.mol3d.build_partial_charges`.
+        prepare_mode: ``"rebuild"`` runs Dimorphite protonation (default).
+            ``"passthrough"`` preserves input H, coordinates, and bond orders
+            (crystallographic / pre-prepared mol2).
     """
+    if prepare_mode not in {"rebuild", "passthrough"}:
+        raise ValueError(
+            f"Unsupported prepare_mode={prepare_mode!r}; use 'rebuild' or 'passthrough'"
+        )
+
+    if (
+        prepare_mode == "passthrough"
+        and ligand_info.source_path is not None
+        and str(ligand_info.source_path).lower().endswith(".mol2")
+    ):
+        from tmol.ligand.mol2_io import prepare_ligand_from_mol2_passthrough
+
+        passthrough_charge_mode = charge_mode
+        if passthrough_charge_mode == "auto":
+            passthrough_charge_mode = (
+                "input" if ligand_info.partial_charges is not None else "mmff94"
+            )
+        if passthrough_charge_mode not in {"input", "mmff94"}:
+            passthrough_charge_mode = "mmff94"
+        return prepare_ligand_from_mol2_passthrough(
+            ligand_info.source_path,
+            res_name=ligand_info.res_name,
+            charge_mode=passthrough_charge_mode,
+        )
+
+    skip_protonation = (
+        prepare_mode == "passthrough"
+        or ligand_info.skip_protonation
+        or ligand_info.partial_charges is not None
+    )
     rdkit_mol = ligand_atom_array_to_rdkit_mol(
-        ligand_info, keep_hydrogens=ligand_info.skip_protonation
+        ligand_info, keep_hydrogens=skip_protonation
     )
     # Skip protonation when:
+    # - prepare_mode is passthrough,
     # - The caller explicitly sets skip_protonation=True (keeps input explicit
     #   H and protonation from mol2/CIF), OR
     # - The caller supplies authoritative partial charges (e.g. AM1-BCC
     #   from a Tripos mol2 file), which implies the input already encodes
     #   the desired protonation state (heavy-only RDKit mol; AddHs below).
-    if ligand_info.skip_protonation or ligand_info.partial_charges:
+    if skip_protonation:
         protonated = rdkit_mol
     else:
         protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
@@ -201,8 +238,14 @@ def prepare_single_ligand(
 
     sanitize_tolerant(protonated)
     # Authoritative-charge inputs already carry explicit H at the right state.
-    if not ligand_info.skip_protonation:
+    if not skip_protonation:
         protonated = Chem.AddHs(protonated, addCoords=True)
+
+    reapply_ligand_source_annotations(
+        protonated,
+        ligand_info,
+        keep_hydrogens=skip_protonation,
+    )
 
     # Atom typing rewrites bond orders in place; charge from a snapshot so MMFF94
     # sees the un-mutated graph (typing preserves indices).
@@ -467,12 +510,16 @@ def prepare_ligand_from_mol2(
     strict_atom_types: bool = False,
     res_name: str | None = None,
     charge_mode: str = "auto",
+    prepare_mode: str = "rebuild",
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a Mol2 file and inject it into a database.
 
-    This helper preserves Tripos bond/aromaticity/subtype metadata and uses
-    Tripos partial charges when they are present on all atoms unless
-    ``charge_mode="mmff94"`` forces recomputation.
+      This helper preserves Tripos bond/aromaticity/subtype metadata and uses
+      Tripos partial charges when they are present on all atoms unless
+      ``charge_mode="mmff94"`` forces recomputation.
+
+    ``prepare_mode="passthrough"`` skips Dimorphite protonation and preserves
+      the mol2 hydrogen/bond state (Rosetta mol2genparams-style).
     """
     return _prepare_ligand_from_file(
         mol2_path,
@@ -482,6 +529,7 @@ def prepare_ligand_from_mol2(
         strict_atom_types=strict_atom_types,
         res_name=res_name,
         charge_mode=charge_mode,
+        prepare_mode=prepare_mode,
     )
 
 
@@ -494,6 +542,7 @@ def _prepare_ligand_from_file(
     strict_atom_types: bool,
     res_name: str | None,
     charge_mode: str,
+    prepare_mode: str = "rebuild",
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Load one ligand from file, prepare it, and inject it.
 
@@ -504,7 +553,9 @@ def _prepare_ligand_from_file(
         param_db = ParameterDatabase.get_default()
 
     lig = loader(path, res_name)
-    prep = prepare_single_ligand(lig, ph=ph, charge_mode=charge_mode)
+    prep = prepare_single_ligand(
+        lig, ph=ph, charge_mode=charge_mode, prepare_mode=prepare_mode
+    )
     param_db = inject_ligand_preparations(
         param_db, [prep], strict_atom_types=strict_atom_types
     )

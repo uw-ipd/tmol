@@ -10,16 +10,18 @@ naming convention (H<bonded_element><count>).
 import logging
 import math
 from dataclasses import dataclass, field
-from typing import NamedTuple
-
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdMolTransforms
 
+from tmol.ligand.assignments import AtomTypeAssignment
 from tmol.ligand.chemistry_tables import get_polar_classes
 
 logger = logging.getLogger(__name__)
 
+
+# Rosetta mol2genparams runs with ``--infer_atomtypes`` off by default.
+_INFER_ATOMTYPES = False
 
 # Rosetta hybridization convention (matches mol2genparams)
 HYB_SP = 1
@@ -42,6 +44,37 @@ ELEMENT_SYMBOLS = {
 }
 
 # Rosetta Types.CONJUGATING_ACLASSES
+# Tripos subtypes that carry explicit Kekulé/sp2 intent from the source mol2
+# column. These must win over stale ``was_aromatic`` flags left from a prior
+# aromatic perception pass when we selectively kekulize mixed systems.
+_EXPLICIT_KEKULE_SUBTYPES = frozenset(
+    {
+        "2",
+        "aro",
+        "am",
+        "pl3",
+        "cat",
+        "co2",
+        "cd",
+        "ce",
+        "cf",
+        "cc",
+        "cp",
+        "cx",
+        "cz",
+        "nb",
+        "nc",
+        "nd",
+        "ne",
+        "nf",
+        "no",
+        "c2",
+        "n2",
+    }
+)
+
+_N_AMIDE_BOND_TYPES = frozenset({"Nad", "Nad3", "NG21", "NG22"})
+
 _CONJUGATING_ATOM_CLASSES = frozenset(
     {
         "CD",
@@ -78,13 +111,6 @@ _HYB_MAP = {
     Chem.HybridizationType.UNSPECIFIED: 3,
     Chem.HybridizationType.OTHER: 3,
 }
-
-
-class AtomTypeAssignment(NamedTuple):
-    atom_name: str
-    atom_type: str
-    element: str
-    index: int
 
 
 @dataclass
@@ -258,17 +284,23 @@ def _is_amide_like_nitrogen(atom: Chem.Atom) -> bool:
     return False
 
 
+def _is_sulfonamide_like_nitrogen(atom: Chem.Atom) -> bool:
+    """True when nitrogen is bonded to a sulfonyl/sulfur-dioxide sulfur."""
+    if atom.GetAtomicNum() != 7:
+        return False
+    for nbr in atom.GetNeighbors():
+        if nbr.GetAtomicNum() != 16:
+            continue
+        for bond in nbr.GetBonds():
+            other = bond.GetOtherAtom(nbr)
+            if other.GetAtomicNum() == 8 and bond.GetBondTypeAsDouble() == 2.0:
+                return True
+    return False
+
+
 def _hyb_from_atom_and_subtype(atom: Chem.Atom, subtype: str) -> int:
     """Map subtype + atom perception to Rosetta-style hybridization code."""
-    s = subtype.lower()
-
-    # Trust RDkit for aromaticity perception (if in a ring)
-    if was_aromatic(atom) and atom.IsInRing():
-        return HYB_AROMATIC
-
-    # Handle amide perceptions (as those bonds are often kekulization-sensitive)
-    if _is_amide_like_nitrogen(atom):
-        return HYB_AMIDE
+    s = subtype.strip().lower()
 
     # Rosetta Types.SPECIAL_HYBRIDS + observed Tripos/GAFF suffixes.
     subtype_hyb_map = {
@@ -327,6 +359,13 @@ def _hyb_from_atom_and_subtype(atom: Chem.Atom, subtype: str) -> int:
         "s6": 5,
         "sy": 5,
     }
+    if s in subtype_hyb_map and s in _EXPLICIT_KEKULE_SUBTYPES:
+        return subtype_hyb_map[s]
+
+    # Trust pre-kekulize aromatic perception for source ``.ar``/``.ca`` atoms.
+    if was_aromatic(atom) and atom.IsInRing():
+        return HYB_AROMATIC
+
     if s in subtype_hyb_map:
         return subtype_hyb_map[s]
     if atom.GetIsAromatic():
@@ -505,40 +544,62 @@ def _build_rosetta_typing_state(mol: Chem.Mol) -> RosettaTypingState:
     from tmol.ligand.rdkit_mol import source_subtype
 
     source_subtype_by_idx: dict[int, str] = {}
-    hyb_by_idx: dict[int, int] = {}
     for atom in mol.GetAtoms():
-        idx = atom.GetIdx()
-        subtype = source_subtype(atom)
-        source_subtype_by_idx[idx] = subtype
-        hyb_by_idx[idx] = _hyb_from_atom_and_subtype(atom, subtype)
+        source_subtype_by_idx[atom.GetIdx()] = source_subtype(atom)
 
-    # Rosetta's ring construction is conservative (cycle-edge based),
-    # closer to RDKit's canonical SSSR than SymmSSSR's expanded set.
-    # Using AtomRings here avoids over-marking aromatic ring membership
-    # on bridged/fused systems, which directly affects Nin/Ofu typing.
-    rings = [tuple(int(i) for i in ring) for ring in mol.GetRingInfo().AtomRings()]
+    use_rosetta_topology = mol.HasProp("_tmol_use_rosetta_topology") and any(
+        source_subtype_by_idx.get(atom.GetIdx(), "") for atom in mol.GetAtoms()
+    )
+
+    if use_rosetta_topology:
+        from tmol.ligand.rosetta_topology import (
+            build_hyb_by_idx_from_subtypes,
+            detect_rosetta_rings,
+        )
+
+        hyb_by_idx = build_hyb_by_idx_from_subtypes(mol, source_subtype_by_idx)
+
+        coords = None
+        if mol.GetNumConformers() > 0:
+            conf = mol.GetConformer()
+            coords = np.array(
+                [
+                    [
+                        float(conf.GetAtomPosition(i).x),
+                        float(conf.GetAtomPosition(i).y),
+                        float(conf.GetAtomPosition(i).z),
+                    ]
+                    for i in range(mol.GetNumAtoms())
+                ],
+                dtype=np.float64,
+            )
+        ring_state = detect_rosetta_rings(mol, hyb_by_idx, coords=coords)
+        rings = ring_state.rings
+        atms_aro = set(ring_state.atms_aro)
+        atms_strained = set(ring_state.atms_strained)
+    else:
+        hyb_by_idx = {}
+        for atom in mol.GetAtoms():
+            idx = atom.GetIdx()
+            subtype = source_subtype_by_idx[idx]
+            hyb_by_idx[idx] = _hyb_from_atom_and_subtype(atom, subtype)
+
+        rings = [tuple(int(i) for i in ring) for ring in mol.GetRingInfo().AtomRings()]
+        atms_strained = set()
+        atms_aro = set()
+        for ring in rings:
+            if len(ring) <= 4:
+                atms_strained.update(ring)
+        _assign_missing_hybridization(mol, hyb_by_idx, atms_aro)
+        atms_aro = set()
+        for ring in rings:
+            if _is_rosetta_aromatic_ring(mol, ring, hyb_by_idx):
+                atms_aro.update(ring)
 
     ring_membership_by_idx: dict[int, set[int]] = {}
-    atms_strained: set[int] = set()
-    atms_aro: set[int] = set()
     for ring_id, ring in enumerate(rings):
-        ring_size = len(ring)
         for idx in ring:
             ring_membership_by_idx.setdefault(idx, set()).add(ring_id)
-        if ring_size <= 4:
-            atms_strained.update(ring)
-        if _is_rosetta_aromatic_ring(mol, ring, hyb_by_idx):
-            atms_aro.update(ring)
-
-    # Fill missing hybs (e.g. nh) after initial ring aromatic assignment.
-    _assign_missing_hybridization(mol, hyb_by_idx, atms_aro)
-
-    # Recompute aromatic atom-set with finalized hyb codes.
-    atms_aro = set()
-    for ring in rings:
-        if _is_rosetta_aromatic_ring(mol, ring, hyb_by_idx):
-            atms_aro.update(ring)
-
     neighbor_counts_by_idx: dict[int, tuple[int, int, int, int, int, int]] = {}
     for atom in mol.GetAtoms():
         idx = atom.GetIdx()
@@ -621,29 +682,30 @@ def should_kekulize_for_typing(mol: Chem.Mol) -> bool:
 
     if source_carried_kekule(mol):
         return True
-    _SP2_SUBTYPES = frozenset(
-        {
-            "2",
-            "cd",
-            "ce",
-            "cf",
-            "cc",
-            "cp",
-            "cx",
-            "cz",
-            "nb",
-            "nc",
-            "nd",
-            "ne",
-            "nf",
-            "no",
-        }
-    )
+    has_sp2_ring = False
+    has_ar_ring = False
     for atom in mol.GetAtoms():
         if not atom.IsInRing():
             continue
-        sub = source_subtype(atom).lower()
-        if sub in _SP2_SUBTYPES:
+        sub = source_subtype(atom).strip().lower()
+        if sub == "ar":
+            has_ar_ring = True
+        elif sub in _EXPLICIT_KEKULE_SUBTYPES:
+            has_sp2_ring = True
+    # Kekulize only when sp2 subtypes appear without competing ``C.ar`` typing.
+    # Mixed systems (e.g. hsp90) keep aromatic ``CR`` rings and ``CD`` elsewhere.
+    return has_sp2_ring and not has_ar_ring
+
+
+def needs_bond_order_postpasses(mol: Chem.Mol) -> bool:
+    """True when Rosetta amide/conjugation bond-order fixes should run."""
+    from tmol.ligand.rdkit_mol import source_carried_kekule, source_subtype
+
+    if source_carried_kekule(mol) or should_kekulize_for_typing(mol):
+        return True
+    for atom in mol.GetAtoms():
+        sub = source_subtype(atom).strip().lower()
+        if sub in _EXPLICIT_KEKULE_SUBTYPES:
             return True
     return False
 
@@ -794,28 +856,22 @@ def _classify_C(
     """
     state = _state_for_atom(atom, state)
     hyb = _get_hyb(atom, state)
-    nbonds = atom.GetDegree()
     nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom, state)
+    # Rosetta classify_C counts all bonds, including explicit hydrogens.
+    nbonds = ntot
 
-    sub = state.source_subtype_by_idx.get(atom.GetIdx(), "")
-    in_aro_ring = atom.GetIdx() in state.atms_aro
-    if sub == "ar" or hyb == HYB_AROMATIC:
-        prefix = "CR" if in_aro_ring else "CD"
-    elif sub:
-        if atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED:
-            prefix = "CS"
-        elif nbonds == 4:
-            prefix = "CS"
-        elif nbonds == 3:
-            prefix = "CD"
-        elif nbonds <= 2:
-            prefix = "CT"
-        else:
-            return "CS"
-    elif hyb == 9:
+    sub = state.source_subtype_by_idx.get(atom.GetIdx(), "").strip().lower()
+    # Explicit Kekulé/sp2 subtypes win over stale aromatic perception.
+    if (
+        sub in _EXPLICIT_KEKULE_SUBTYPES
+        and sub not in ("ar", "aro")
+        and hyb == HYB_AROMATIC
+    ):
+        hyb = HYB_SP2
+
+    # Rosetta AtomTypeClassifier.classify_C: hyb==9 -> CR; else use bond count.
+    if hyb == HYB_AROMATIC:
         prefix = "CR"
-    elif atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED:
-        prefix = "CS"
     elif nbonds == 4:
         prefix = "CS"
     elif nbonds == 3:
@@ -847,18 +903,6 @@ def _classify_N_hetero(
 ) -> str:
     """Classify nitrogen with non-C/H neighbors (lone pairs, heteroatoms)."""
     state = _state_for_atom(atom, state)
-    sub = state.source_subtype_by_idx.get(atom.GetIdx(), "").lower()
-
-    def _in_5_or_6_ring() -> bool:
-        """Return whether atom belongs to any 5/6-membered ring."""
-        ring_ids = state.ring_membership_by_idx.get(atom.GetIdx(), set())
-        for rid in ring_ids:
-            if rid < len(state.rings):
-                n = len(state.rings[rid])
-                if n in (5, 6):
-                    return True
-        return False
-
     if hyb == 3:
         if ntot <= 3 and nH >= 1:
             return "Nam2"
@@ -867,27 +911,6 @@ def _classify_N_hetero(
         return "NG3"
 
     if hyb in (2, 8, 9):
-        # DUD/reference parity: ring-conjugated tertiary N.pl3/N.am sites
-        # with one+ N neighbor and no hydrogens are Nim-like.
-        if (
-            sub in {"pl3", "am"}
-            and nH == 0
-            and nN >= 1
-            and nC <= 2
-            and _in_5_or_6_ring()
-        ):
-            return "Nad3"
-        # Reference parity: aromatic 5/6-ring tertiary N(=C)-N motifs with
-        # subtype ``N.2`` are Nim-like rather than Nad3.
-        if (
-            sub in {"2", "ar"}
-            and nH == 0
-            and nN >= 1
-            and nC == 2
-            and atom.GetIdx() in state.atms_aro
-            and _in_5_or_6_ring()
-        ):
-            return "Nim"
         if nO >= 2:
             return "NG2"
         if nH == 0 and nN >= 1:
@@ -922,6 +945,7 @@ def _n_sp2_context_flags(
         nbr_hyb = _get_hyb(nbr, state)
         if nbr_hyb in (2, 9):
             nCaro += 1
+        if nbr_hyb in (2, 8, 9):
             nOsp2_j = 0
             nNsp2_j = 0
             for nbr_k in nbr.GetNeighbors():
@@ -962,18 +986,17 @@ def _classify_N_sp2(
     if is_amide:
         if nC == 3:
             return "Nad3"
-        return "Nad" if nH >= 1 else "NG2"
+        if nH >= 1:
+            return "Nad"
+        return "NG2"
 
     if is_guanidinium:
         if nH == 2:
             return "Ngu2"
         return "Ngu1" if nH == 1 else "NG2"
 
-    if nC == 2 and nCaro >= 1:
-        # Pyrrole-type N-H sits in a Hückel-aromatic 5-ring. We must
-        # use Rosetta-like aromatic ring membership from typing state.
-        is_aro_ring_n = atom.GetIdx() in state.atms_aro
-        if nH == 1 and is_aro_ring_n:
+    if nC == 2 and nCaro in (1, 2):
+        if nH == 1 and atom.GetIdx() in state.atms_aro:
             return "Nin"
         if nH == 1:
             return "NG21"
@@ -1012,20 +1035,20 @@ def _classify_N(  # noqa: C901
         if nH == 2:
             return "NG22"
         if nH == 1:
+            if nC >= 2:
+                return "Nam"
             return "NG21"
 
     if hyb == 1:
         return "NG1"
 
-    # Rosetta infer_atomtypes anomaly path:
-    # hyb==2, ntot==4, nH==3 => Nam; otherwise protonated sp2 N => Nam2.
-    if hyb == 2 and ntot == 4 and nH == 3:
-        return "Nam"
-    if hyb == 2 and ntot == 4 and 1 <= nH < 3:
-        return "Nam2"
-    # Protonated amide tertiary N follows the same Nam2 assignment in Rosetta.
-    if hyb == 8 and nC == 3 and nH == 1:
-        return "Nam2"
+    if _INFER_ATOMTYPES:
+        if hyb == 2 and ntot == 4 and nH == 3:
+            return "Nam"
+        if hyb == 2 and ntot == 4 and 1 <= nH < 3:
+            return "Nam2"
+        if hyb == 8 and nC == 3 and nH == 1:
+            return "Nam2"
 
     if nC + nH < ntot:
         return _classify_N_hetero(atom, hyb, nC, nH, nO, nN, ntot, state)
@@ -1050,9 +1073,13 @@ def _classify_N(  # noqa: C901
         return "NG21" if nH == 1 else "NG22"
 
     if hyb == 3:
-        if nH == 1 and _is_amide_like_nitrogen(atom):
-            return "NG21"
         if nH == 0:
+            ring_ids = state.ring_membership_by_idx.get(atom.GetIdx(), set())
+            for rid in ring_ids:
+                if rid < len(state.rings) and len(state.rings[rid]) in (5, 6):
+                    if nC == 3:
+                        return "Nad3"
+                    break
             return "NG3"
         return "Nam2" if ntot <= 3 else "Nam"
 
@@ -1080,8 +1107,7 @@ def _classify_O_no_carbon(
             return "Ohx" if is_PO4H else "OG31"
         return "OG3"
     if hyb == 2:
-        # Rosetta infer_atomtypes oxime rescue: O(sp2)-N(sp2)-H.
-        if nH >= 1 and nN >= 1:
+        if _INFER_ATOMTYPES and nH >= 1 and nN >= 1:
             n_sp2_n = 0
             for nbr in atom.GetNeighbors():
                 if nbr.GetAtomicNum() == 7 and _get_hyb(nbr, state) == 2:
@@ -1168,9 +1194,7 @@ def _classify_O(  # noqa: C901
 
     # When source says ``O.2``, route to the sp2 classifier directly.
     if sub == "2":
-        # Rosetta infer_atomtypes special-case: oxime-like O (N(sp2)-O-H)
-        # can map to OG31 despite source O.2.
-        if nH >= 1 and nN >= 1:
+        if _INFER_ATOMTYPES and nH >= 1 and nN >= 1:
             n_sp2_n = 0
             for nbr in atom.GetNeighbors():
                 if nbr.GetAtomicNum() == 7 and _get_hyb(nbr, state) == 2:
@@ -1184,7 +1208,7 @@ def _classify_O(  # noqa: C901
         if nH >= 1:
             return "Ohx"
         if ntot == 2 and nC == 2:
-            if atom.GetIdx() in state.atms_aro or was_aromatic(atom):
+            if atom.GetIdx() in state.atms_aro:
                 return "Ofu"
             return "Oet"
         return "OG31" if nH >= 1 else "OG3"
@@ -1193,9 +1217,7 @@ def _classify_O(  # noqa: C901
         if nH >= 1:
             return "Ohx"
         if ntot == 2 and nC == 2:
-            # Rosetta classify_O: sp3 oxygen attached to two carbons is
-            # Ofu when aromatic, Oet otherwise.
-            if atom.GetIdx() in state.atms_aro or was_aromatic(atom):
+            if atom.GetIdx() in state.atms_aro:
                 return "Ofu"
             return "Oet"
         return "OG3"
@@ -1368,8 +1390,6 @@ def _correct_ring_nitrogen(
 
             nC, nH, nO, nN, nS, ntot = _neighbor_counts(atom, state)
             if ntot < 3 and nH == 0 and nN >= 1:
-                if a.atom_type in {"Nad", "Nad3"}:
-                    continue
                 result[i] = a._replace(atom_type="Nim")
 
     return result
@@ -1396,8 +1416,8 @@ def _correct_amide_bond_orders(
         j = bond.GetEndAtomIdx()
         ti = type_by_idx.get(i, "")
         tj = type_by_idx.get(j, "")
-        is_amide = (ti in {"Nad", "Nad3"} and tj == "CDp") or (
-            tj in {"Nad", "Nad3"} and ti == "CDp"
+        is_amide = (ti in _N_AMIDE_BOND_TYPES and tj == "CDp") or (
+            tj in _N_AMIDE_BOND_TYPES and ti == "CDp"
         )
         if is_amide:
             bond.SetBondType(Chem.BondType.DOUBLE)
@@ -1651,9 +1671,9 @@ def assign_tmol_atom_types(mol: Chem.Mol) -> list[AtomTypeAssignment]:
     # Pass 3: modify polar carbons
     assignments = _modify_polar_c(assignments, mol)
 
-    # Bond-order post-passes apply only to Kekulé / sp2-subtyped inputs.
-    # Pure aromatic (.ar / AROMATIC bond) mols must keep ring bond orders.
-    if should_kekulize_for_typing(mol):
+    # Bond-order post-passes apply to Kekulé / sp2-subtyped inputs, including
+    # mixed C.ar + C.2 systems where global kekulization is skipped.
+    if needs_bond_order_postpasses(mol):
         # Pass 4: Rosetta amide bond order correction (Nad/Nad3-CDp)
         _correct_amide_bond_orders(assignments, mol)
 

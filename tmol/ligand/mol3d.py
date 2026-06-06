@@ -13,7 +13,7 @@ from typing import Mapping, Optional
 from openbabel import openbabel, pybel
 from rdkit import Chem
 
-from tmol.ligand.atom_typing import AtomTypeAssignment
+from tmol.ligand.assignments import AtomTypeAssignment
 
 # OpenBabel's Mol-block reader logs benign kekulization/valence warnings (it
 # re-perceives chemistry itself); silence them so they don't flood test output.
@@ -38,6 +38,26 @@ def _name_sort_key(name: str) -> tuple[str, int]:
     prefix = name[:i]
     suffix = name[i:]
     return (prefix, int(suffix) if suffix else -1)
+
+
+def get_partial_charges_by_index(mol: pybel.Molecule) -> dict[int, float]:
+    """Return mol2 partial charges keyed by OpenBabel atom index (0-based)."""
+    return {
+        int(atom.GetIndex()): float(atom.GetPartialCharge())
+        for atom in openbabel.OBMolAtomIter(mol.OBMol)
+    }
+
+
+def compute_mmff94_charges_obmol(obmol: openbabel.OBMol) -> dict[int, float]:
+    """Compute MMFF94 partial charges directly on an OpenBabel molecule."""
+    working = openbabel.OBMol(obmol)
+    charge_model = openbabel.OBChargeModel.FindType("mmff94")
+    if charge_model is None or not charge_model.ComputeCharges(working):
+        raise RuntimeError("OpenBabel MMFF94 parameterization failed")
+    return {
+        atom.GetIndex(): float(atom.GetPartialCharge())
+        for atom in openbabel.OBMolAtomIter(working)
+    }
 
 
 def compute_mmff94_charges(mol: Chem.Mol) -> dict[int, float]:

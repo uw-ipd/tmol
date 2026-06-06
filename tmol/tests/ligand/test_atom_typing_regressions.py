@@ -263,14 +263,37 @@ def test_long_ring_aromatic_planarity_gate():
     assert len(non_planar.atms_aro) == 0
 
 
-def test_classify_n_pl3_ring_hetero_tertiary_maps_to_nim():
+def test_classify_n_pl3_ring_hetero_tertiary_maps_to_nad3():
     mol = Chem.MolFromSmiles("CN1N=CC=CC1")
     atom = next(
         a for a in mol.GetAtoms() if a.GetAtomicNum() == 7 and a.GetDegree() == 3
     )
     atom.SetProp("_tmol_source_subtype", "pl3")
     state = _build_rosetta_typing_state(mol)
+    assert _classify_N(atom, mol, state) == "Nad3"
+
+
+def test_classify_n2_bridge_in_pyrazole_maps_to_nim_not_nad3():
+    """cox2/p38: N.2 bridge N between N and C is Nim, not Nad3."""
+    mol = Chem.MolFromSmiles("CN1N=CC=CC1")
+    atom = next(
+        a
+        for a in mol.GetAtoms()
+        if a.GetAtomicNum() == 7
+        and a.GetDegree() == 2
+        and any(n.GetAtomicNum() == 7 for n in a.GetNeighbors())
+    )
+    atom.SetProp("_tmol_source_subtype", "2")
+    state = _build_rosetta_typing_state(mol)
     assert _classify_N(atom, mol, state) == "Nim"
+
+
+def test_protonated_pl3_with_hetero_neighbor_maps_to_nam2():
+    mol = Chem.AddHs(Chem.MolFromSmiles("CS[NH2+]C"))
+    n_atom = next(a for a in mol.GetAtoms() if a.GetAtomicNum() == 7)
+    n_atom.SetProp("_tmol_source_subtype", "pl3")
+    state = _build_rosetta_typing_state(mol)
+    assert _classify_N(n_atom, mol, state) == "Nam2"
 
 
 def test_conjugated_single_bond_promotion_for_conjugating_classes():

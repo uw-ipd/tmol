@@ -74,6 +74,8 @@ class NonStandardResidueInfo:
             recomputing MMFF94 charges.
         skip_protonation: If True, Dimorphite-DL protonation is skipped and
             explicit hydrogens from the input (mol2/CIF) are preserved.
+        source_path: Optional path to the originating mol2/CIF file (mol2 only
+            today), used for Rosetta-style passthrough preparation.
     """
 
     res_name: str
@@ -86,6 +88,7 @@ class NonStandardResidueInfo:
     covalently_linked: bool = False
     partial_charges: Optional[dict[str, float]] = None
     skip_protonation: bool = False
+    source_path: Optional[Path] = None
 
 
 LigandInfo = NonStandardResidueInfo
@@ -394,6 +397,7 @@ def nonstandard_residue_info_from_mol2(
         covalently_linked=False,
         partial_charges=authoritative_q,
         skip_protonation=authoritative_q is not None,
+        source_path=path,
     )
 
 
@@ -429,29 +433,47 @@ def _partial_charges_from_atom_site(
     if "partial_charge" not in atom_site:
         return None
     try:
-        vals = atom_site["partial_charge"].as_array(float)
-        vals = np.asarray(vals, dtype=np.float64)
-        if vals.shape[0] == len(atom_names) and np.isfinite(vals).all():
-            return {name: float(q) for name, q in zip(atom_names, vals, strict=False)}
-    except (TypeError, ValueError):
+        site_names = [str(v).strip() for v in atom_site["label_atom_id"].as_array()]
+        vals = np.asarray(atom_site["partial_charge"].as_array(float), dtype=np.float64)
+        if not np.isfinite(vals).all():
+            return None
+        charge_by_name = {
+            name: float(q) for name, q in zip(site_names, vals, strict=False)
+        }
+        out = {
+            name: charge_by_name[name] for name in atom_names if name in charge_by_name
+        }
+        if len(out) != len(atom_names):
+            return None
+        return out
+    except (TypeError, ValueError, KeyError):
         return None
     return None
 
 
 def _apply_cif_atom_array_annotations(arr: struc.AtomArray, atom_site) -> None:
+    """Stamp per-atom CIF fields onto ``arr``, keyed by ``label_atom_id``."""
+    site_names = [str(v).strip() for v in atom_site["label_atom_id"].as_array()]
+    arr_names = [str(v).strip() for v in arr.atom_name]
+    site_by_name = {name: i for i, name in enumerate(site_names)}
+
     if "tmol_aromatic" in atom_site:
         aromatic_vals = atom_site["tmol_aromatic"].as_array()
-        arr.set_annotation(
-            "tmol_aromatic",
-            np.array(
-                [str(v).strip().upper() == "Y" for v in aromatic_vals], dtype=bool
-            ),
-        )
+        aromatic = np.zeros(len(arr), dtype=bool)
+        for i, name in enumerate(arr_names):
+            j = site_by_name.get(name)
+            if j is not None:
+                aromatic[i] = str(aromatic_vals[j]).strip().upper() == "Y"
+        arr.set_annotation("tmol_aromatic", aromatic)
+
     if "tmol_source_subtype" in atom_site:
-        arr.set_annotation(
-            "tmol_source_subtype",
-            np.array([str(v) for v in atom_site["tmol_source_subtype"].as_array()]),
-        )
+        subtype_vals = atom_site["tmol_source_subtype"].as_array()
+        subtypes = np.array(["?"] * len(arr), dtype="U8")
+        for i, name in enumerate(arr_names):
+            j = site_by_name.get(name)
+            if j is not None:
+                subtypes[i] = str(subtype_vals[j])
+        arr.set_annotation("tmol_source_subtype", subtypes)
 
 
 def _attach_chem_comp_bonds(arr: struc.AtomArray, cif, atom_names: list[str]) -> None:
@@ -502,7 +524,7 @@ def nonstandard_residue_info_from_cif(
 
     The CIF is read as-is: bonds come directly from ``_chem_comp_bond`` and
     custom per-atom fields (``partial_charge``, ``tmol_aromatic``,
-    ``tmol_source_subtype``) are preserved. 
+    ``tmol_source_subtype``) are preserved.
     """
     import biotite.structure.io.pdbx as pdbx
 
@@ -513,10 +535,10 @@ def nonstandard_residue_info_from_cif(
         arr = arr[0]
 
     atom_site = cif.block["atom_site"]
-    atom_names = [str(v) for v in atom_site["label_atom_id"].as_array()]
     res_name = _resolve_cif_res_name(atom_site, arr, res_name)
     arr.res_name = np.array([res_name] * len(arr), dtype=arr.res_name.dtype)
 
+    atom_names = [str(v).strip() for v in arr.atom_name]
     partial_charges = _partial_charges_from_atom_site(atom_site, atom_names)
     _apply_cif_atom_array_annotations(arr, atom_site)
     _attach_chem_comp_bonds(arr, cif, atom_names)
