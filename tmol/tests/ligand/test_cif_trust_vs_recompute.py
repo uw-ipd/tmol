@@ -32,11 +32,12 @@ def _heavy_types(prep) -> dict[str, str]:
 @pytest.mark.parametrize("target", TARGETS)
 def test_types_independent_of_charge_source(target):
     info = nonstandard_residue_info_from_cif(
-        PLI_CIF / f"{target}.ligand.cif", res_name="LG1"
+        PLI_CIF / f"{target}.ligand.cif",
+        res_name="LG1",
     )
     trust = prepare_single_ligand(info, ph=7.4)  # CIF charges trusted
-    recompute = prepare_single_ligand(  # charges dropped -> recomputed
-        attr.evolve(info, partial_charges=None, skip_protonation=True),
+    recompute = prepare_single_ligand(
+        attr.evolve(info, partial_charges=None, skip_protonation=False),
         ph=7.4,
         charge_mode="mmff94",
     )

@@ -206,6 +206,19 @@ jobs:
           set -ex
           
           source .venv/bin/activate
+
+          # CPU test step exports CUDA_VISIBLE_DEVICES=""; do not inherit that here.
+          unset CUDA_VISIBLE_DEVICES
+
+          python - <<'PY'
+          import torch
+          if not torch.cuda.is_available():
+              raise SystemExit(
+                  "CUDA not visible in GPU test step (torch.cuda.is_available() is False).\n"
+                  "Check: srun --gres=gpu:1, apptainer exec --nv, and venv torch is CUDA-enabled."
+              )
+          print(f"CUDA OK: {torch.cuda.device_count()} device(s), {torch.cuda.get_device_name(0)}")
+          PY
           
           pytest -p no:rerunfailures -s -v --durations=25 \
             --cov=$GITHUB_WORKSPACE/tmol --cov-report=xml \

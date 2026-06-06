@@ -1,7 +1,8 @@
 """Protein-ligand interface scoring tests.
 
 For each ``*_complex*.pdb`` in ``protein_ligand_test``, prepare the ligand via
-``cif_inputs/<target>.ligand.cif`` (Dimorphite @ pH 7.4, ``charge_mode="mmff94"``),
+``cif_inputs/<target>.ligand.cif`` (self-contained CIF; Dimorphite @ pH 7.4,
+``charge_mode="mmff94"``),
 inject params, score with tmol, and compare to Rosetta ``<stem>.sc``.
 """
 
@@ -16,9 +17,7 @@ from tmol.tests.ligand.test_dud_ligands import (
     _param_db_with_ligand_prep,
     _rosetta_score,
 )
-from tmol.tests.ligand.test_pli_tmol_equivalence import (
-    prepare_pli_ligand_from_cif,
-)
+from tmol.tests.ligand.test_pli_tmol_equivalence import prepare_pli_ligand_from_cif
 
 PLI_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 PLI_CASES = [
@@ -311,21 +310,13 @@ class TestPLIScoring:
 
     def test_compare_dg_score_with_rosetta_cif(self, pli_pdb, torch_device_gpu):
         """Compare Rosetta dG scores with tmol scores using .cif file params."""
-        from tmol.database import ParameterDatabase
-        from tmol.ligand import prepare_ligand_from_cif
-
         target = _target_for_complex(pli_pdb.name)
-        ligand_cif = PLI_DIR / "cif_inputs" / f"{target}.ligand.cif"
-
-        extended_db, _ = prepare_ligand_from_cif(
-            str(ligand_cif),
-            param_db=ParameterDatabase.get_default(),
-            ph=7.4,
-        )
+        prep = prepare_pli_ligand_from_cif(target)
+        param_db = _param_db_with_ligand_prep(prep)
 
         self._dg_vs_rosetta(
             pli_pdb,
-            extended_db,
+            param_db,
             torch_device_gpu,
             label_prefix=".cif",
             threshold=1e-2,
@@ -334,7 +325,6 @@ class TestPLIScoring:
 
     def test_compare_dg_score_with_rosetta_mol2(self, pli_pdb, torch_device_gpu):
         """Compare Rosetta dG scores with tmol scores using .mol2 file params."""
-        from tmol.database import ParameterDatabase
         from tmol.ligand import prepare_ligand_from_mol2
 
         target = _target_for_complex(pli_pdb.name)
@@ -342,8 +332,10 @@ class TestPLIScoring:
 
         extended_db, _ = prepare_ligand_from_mol2(
             str(ligand_mol2),
-            param_db=ParameterDatabase.get_default(),
+            param_db=None,
             ph=7.4,
+            charge_mode="mmff94",
+            prepare_mode="passthrough",
         )
 
         self._dg_vs_rosetta(

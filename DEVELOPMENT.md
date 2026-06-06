@@ -175,6 +175,26 @@ containers/apptainer/build-tmol-sif.sh --deploy-ci
 
 Do **not** bind the host's `/usr/lib/x86_64-linux-gnu` into CI (`APPTAINER_BIND`); cluster hosts often ship a newer glibc than the NGC base image, which breaks `cut`, `fakeroot`, and other container tools before tests even start.
 
+### Ligand regression checks
+
+After changing the mol2 passthrough pipeline (`ob_atom_typing.py`, `mol2_io.py`, etc.):
+
+```bash
+export PYTHONPATH=/net/scratch/kdidi/tmol
+python3 scripts/check_pli_mol2_equivalence.py   # fast; expect 29/29
+python3 scripts/update_pli_mol2_references.py     # regen .tmol refs if intentional
+pytest tmol/tests/ligand/test_pli_tmol_equivalence.py -q -k "mol2_"  # full pytest
+```
+
+Regenerate ground-truth params fixtures after typing changes:
+
+```bash
+python3 scripts/update_ligand_ground_truth_params.py
+```
+
+Expected: all ligand regression tests pass with no ``xfail`` markers; PLI
+``.xtal-lig.mmff94.tmol`` references are the source of truth for mol2 passthrough.
+
 **Docker:**
 
 ```bash

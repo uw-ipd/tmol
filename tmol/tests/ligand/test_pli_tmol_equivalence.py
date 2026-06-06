@@ -2,12 +2,15 @@
 
 For each PLI target, this suite checks both ligand-source formats:
 
-1. ``cif_inputs/<target>.ligand.cif`` -> ``prepare_single_ligand``
-2. ``<target>.lig.mol2``             -> ``prepare_single_ligand``
+1. ``cif_inputs/<target>.ligand.cif`` -> Dimorphite @ pH 7.4 + ``charge_mode="mmff94"``
+2. ``<target>.lig.mol2``             -> ``prepare_mode="passthrough"`` + MMFF94
 
-Each generated ``LigandPreparation`` is compared to the checked-in reference
-``<target>.xtal-lig.mmff94.tmol`` for topology, typing, bonds, partial charges,
-and cartbonded parameters.
+CIF inputs are self-contained (bonds, subtypes, coordinates from mol2 at fixture
+generation time). Mol2 cases preserve input protonation (Rosetta mol2genparams-style).
+References ``*.xtal-lig.mmff94.tmol`` were generated from the mol2 passthrough path.
+
+Each generated ``LigandPreparation`` is compared to the checked-in reference for
+topology, typing, bonds, partial charges, and cartbonded parameters.
 """
 
 import math
@@ -58,17 +61,25 @@ def _format_check_error(prep_pair: dict, check: str) -> str:
     )
 
 
+def _pli_cif_info_for_pipeline(target: str, res_name: str):
+    """Load a self-contained PLI CIF; Dimorphite + MMFF run in preparation."""
+    from tmol.ligand.detect import nonstandard_residue_info_from_cif
+
+    info = nonstandard_residue_info_from_cif(
+        PLI_CIF_DIR / f"{target}.ligand.cif",
+        res_name=res_name,
+    )
+    return attr.evolve(info, partial_charges=None, skip_protonation=False)
+
+
 def prepare_pli_ligand_from_cif(target: str):
     """Prepare a PLI ligand from its CIF exactly as the scoring pipeline does."""
     from tmol.ligand import prepare_single_ligand
-    from tmol.ligand.detect import nonstandard_residue_info_from_cif
     from tmol.ligand.params_file import load_params_file
 
     tmol_path = PLI_DIR / f"{target}{TMOL_SUFFIX}"
     ref_res_name = load_params_file(tmol_path)[0].residue_type.name
-    source_info = nonstandard_residue_info_from_cif(
-        PLI_CIF_DIR / f"{target}.ligand.cif", res_name=ref_res_name
-    )
+    source_info = _pli_cif_info_for_pipeline(target, ref_res_name)
     return prepare_single_ligand(source_info, ph=7.4, charge_mode="mmff94")
 
 
@@ -101,16 +112,18 @@ def prep_pair(request):
     if source == "cif":
         prep_source = prepare_pli_ligand_from_cif(target)
     else:
-        source_info = nonstandard_residue_info_from_mol2(
-            source_path, res_name=ref_res_name
-        )
-        prepare_mode = "passthrough" if source == "mol2" else "rebuild"
-        prep_source = prepare_single_ligand(
-            source_info,
-            ph=7.4,
-            charge_mode="mmff94",
-            prepare_mode=prepare_mode,
-        )
+        if source == "mol2":
+            source_info = nonstandard_residue_info_from_mol2(
+                source_path, res_name=ref_res_name
+            )
+            prep_source = prepare_single_ligand(
+                source_info,
+                ph=7.4,
+                charge_mode="mmff94",
+                prepare_mode="passthrough",
+            )
+        else:
+            prep_source = prepare_pli_ligand_from_cif(target)
     equivalence = compare_ligand_preparations(
         prep_source,
         prep_tmol,
@@ -167,15 +180,9 @@ class TestPLIFileToTmolEquivalence:
 def test_pli_prepare_is_deterministic_when_ccd_smiles_missing():
     """CIF setup should remain stable when optional CCD SMILES is unavailable."""
     from tmol.ligand import prepare_single_ligand
-    from tmol.ligand.detect import nonstandard_residue_info_from_cif
 
     target = "ace"
-    cif_path = PLI_CIF_DIR / f"{target}.ligand.cif"
-    info = attr.evolve(
-        nonstandard_residue_info_from_cif(cif_path, res_name="LG1"),
-        partial_charges=None,
-        skip_protonation=False,
-    )
+    info = _pli_cif_info_for_pipeline(target, "LG1")
     info_without_smiles = attr.evolve(info, ccd_smiles=None)
     prep_with_smiles = prepare_single_ligand(info, ph=7.4, charge_mode="mmff94")
     prep_without_smiles = prepare_single_ligand(

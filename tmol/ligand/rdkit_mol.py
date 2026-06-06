@@ -1,15 +1,19 @@
 """RDKit molecule construction and protonation for ligands."""
 
 import logging
+from typing import Optional
 
 import biotite.structure as struc
 from biotite.interface.rdkit import to_mol
 from rdkit import Chem
+from rdkit.Chem import AllChem
 
 from tmol.ligand.detect import NonStandardResidueInfo, _strip_metals
 from tmol.ligand.dimorphite_dl import protonate_mol_variants
 
 logger = logging.getLogger(__name__)
+
+_ROSETTA_TOPOLOGY_PROP = "_tmol_use_rosetta_topology"
 
 
 # Map biotite BondType -> the RDKit bond order we want on the round-tripped
@@ -41,6 +45,85 @@ def clear_source_chemistry_props(mol: Chem.Mol) -> None:
     for key in (_SOURCE_KEKULE_PROP, _SOURCE_AROMATIC_PROP):
         if mol.HasProp(key):
             mol.ClearProp(key)
+
+
+def _rebuild_mol_via_smiles_preserving_coords(heavy: Chem.Mol) -> Optional[Chem.Mol]:
+    """Rebuild heavy-atom topology from SMILES; copy formal charges and coordinates."""
+    try:
+        Chem.GetSSSR(heavy)
+        smiles = Chem.MolToSmiles(heavy, isomericSmiles=True)
+    except Exception:
+        return None
+
+    fresh = Chem.MolFromSmiles(smiles)
+    if fresh is None:
+        return None
+
+    match = fresh.GetSubstructMatch(heavy)
+    if len(match) != heavy.GetNumAtoms():
+        return None
+
+    conf = Chem.Conformer(fresh.GetNumAtoms())
+    has_coords = heavy.GetNumConformers() > 0
+    for proto_idx, fresh_idx in enumerate(match):
+        if has_coords:
+            conf.SetAtomPosition(
+                fresh_idx, heavy.GetConformer().GetAtomPosition(proto_idx)
+            )
+        fresh.GetAtomWithIdx(fresh_idx).SetFormalCharge(
+            heavy.GetAtomWithIdx(proto_idx).GetFormalCharge()
+        )
+    if has_coords:
+        fresh.AddConformer(conf, assignId=True)
+    else:
+        AllChem.Compute2DCoords(fresh)
+
+    Chem.SanitizeMol(fresh)
+    clear_source_chemistry_props(fresh)
+    return fresh
+
+
+def prepare_input_protonation_mol_for_mmff94(mol: Chem.Mol) -> Chem.Mol:
+    """Sanitize an input-protonation mol for MMFF without rebuilding hydrogens."""
+    clear_source_chemistry_props(mol)
+    clear_aromatic_perception_flags(mol)
+    try:
+        Chem.SanitizeMol(mol)
+    except (
+        Chem.rdchem.KekulizeException,
+        Chem.rdchem.AtomKekulizeException,
+        Chem.rdchem.AtomValenceException,
+    ):
+        logger.debug(
+            "Sanitize after clearing aromatic flags failed; MMFF may retry",
+            exc_info=True,
+        )
+    return mol
+
+
+def normalize_protonated_mol_for_mmff94(mol: Chem.Mol) -> Chem.Mol:
+    """Make a Dimorphite-protonated mol sanitizable and MMFF-ready."""
+    clear_source_chemistry_props(mol)
+    clear_aromatic_perception_flags(mol)
+    try:
+        Chem.SanitizeMol(mol)
+        return mol
+    except (
+        Chem.rdchem.KekulizeException,
+        Chem.rdchem.AtomKekulizeException,
+        Chem.rdchem.AtomValenceException,
+    ):
+        logger.debug(
+            "Sanitize failed after clearing aromatic flags; trying SMILES rebuild",
+            exc_info=True,
+        )
+
+    heavy = Chem.RemoveHs(mol, sanitize=False)
+    rebuilt = _rebuild_mol_via_smiles_preserving_coords(heavy)
+    if rebuilt is None:
+        return mol
+
+    return Chem.AddHs(rebuilt, addCoords=True)
 
 
 def clear_aromatic_perception_flags(mol: Chem.Mol) -> None:
@@ -154,6 +237,7 @@ def _apply_atom_array_annotations(
     if mol.GetNumAtoms() < len(arr_indices):
         return
 
+    saw_subtype = False
     if hasattr(atom_array, "tmol_source_subtype"):
         subtypes = atom_array.tmol_source_subtype
         for mol_idx, arr_idx in enumerate(arr_indices):
@@ -162,6 +246,9 @@ def _apply_atom_array_annotations(
             sub = str(subtypes[arr_idx])
             if sub and sub != "?":
                 mol.GetAtomWithIdx(mol_idx).SetProp(_SOURCE_SUBTYPE_PROP, sub)
+                saw_subtype = True
+    if saw_subtype:
+        mol.SetProp(_ROSETTA_TOPOLOGY_PROP, "1")
 
     if not hasattr(atom_array, "tmol_aromatic"):
         return

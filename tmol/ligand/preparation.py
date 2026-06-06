@@ -39,6 +39,8 @@ from tmol.ligand.mol3d import build_partial_charges
 from tmol.ligand.residue_builder import build_residue_type
 from tmol.ligand.rdkit_mol import (
     ligand_atom_array_to_rdkit_mol,
+    normalize_protonated_mol_for_mmff94,
+    prepare_input_protonation_mol_for_mmff94,
     protonate_ligand_mol,
     reapply_ligand_source_annotations,
 )
@@ -204,6 +206,7 @@ def prepare_single_ligand(  # noqa: C901
             charge_mode=passthrough_charge_mode,
         )
 
+    mode = charge_mode.lower().strip()
     skip_protonation = (
         prepare_mode == "passthrough"
         or ligand_info.skip_protonation
@@ -221,18 +224,21 @@ def prepare_single_ligand(  # noqa: C901
     #   the desired protonation state (heavy-only RDKit mol; AddHs below).
     if skip_protonation:
         protonated = rdkit_mol
+        if mode == "mmff94":
+            protonated = prepare_input_protonation_mol_for_mmff94(protonated)
     else:
         protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
-        try:
-            # Apply source bond orders onto the protonated topology.
-            # RDKit API: AssignBondOrdersFromTemplate(template, mol)
-            # where `template` has trusted bond orders.
-            protonated = AllChem.AssignBondOrdersFromTemplate(rdkit_mol, protonated)
-        except Exception:
-            logger.debug(
-                "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
-                ligand_info.res_name,
-            )
+        if mode != "mmff94":
+            try:
+                # Apply source bond orders onto the protonated topology.
+                protonated = AllChem.AssignBondOrdersFromTemplate(rdkit_mol, protonated)
+            except Exception:
+                logger.debug(
+                    "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
+                    ligand_info.res_name,
+                )
+        else:
+            protonated = normalize_protonated_mol_for_mmff94(protonated)
     # Tolerant sanitize before typing so CIF/mol2 aromatic/subtype hints survive.
     from tmol.ligand.atom_typing import sanitize_tolerant
 

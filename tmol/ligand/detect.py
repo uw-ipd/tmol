@@ -74,8 +74,7 @@ class NonStandardResidueInfo:
             recomputing MMFF94 charges.
         skip_protonation: If True, Dimorphite-DL protonation is skipped and
             explicit hydrogens from the input (mol2/CIF) are preserved.
-        source_path: Optional path to the originating mol2/CIF file (mol2 only
-            today), used for Rosetta-style passthrough preparation.
+        source_path: Optional path to the originating mol2/CIF file.
     """
 
     res_name: str
@@ -522,9 +521,9 @@ def nonstandard_residue_info_from_cif(
 ) -> NonStandardResidueInfo:
     """Construct ``NonStandardResidueInfo`` from a ligand CIF file.
 
-    The CIF is read as-is: bonds come directly from ``_chem_comp_bond`` and
-    custom per-atom fields (``partial_charge``, ``tmol_aromatic``,
-    ``tmol_source_subtype``) are preserved.
+    Expects a self-contained CIF with ``_chem_comp_bond`` chemistry and optional
+    per-atom ``partial_charge``, ``tmol_aromatic``, and ``tmol_source_subtype``
+    fields (as produced by :func:`tmol.ligand.cif_normalization.render_cif_from_mol2`).
     """
     import biotite.structure.io.pdbx as pdbx
 
@@ -554,6 +553,7 @@ def nonstandard_residue_info_from_cif(
         covalently_linked=False,
         partial_charges=partial_charges,
         skip_protonation=partial_charges is not None,
+        source_path=path,
     )
 
 
