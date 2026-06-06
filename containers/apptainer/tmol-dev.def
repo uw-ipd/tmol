@@ -4,8 +4,10 @@ IncludeCmd: yes
 
 # tmol Development Container - Dependencies only (tmol itself is bind-mounted for development)
 
-# To build this Apptainer, from the project root, run:
-# apptainer build tmol-dev.sif containers/apptainer/tmol-dev.def
+# To build this Apptainer on digs, from the project root, run:
+#   containers/apptainer/build-tmol-sif.sh
+# or manually:
+#   apptainer build --fakeroot tmol.sif containers/apptainer/tmol-dev.def
 
 %labels
     Author Institute for Protein Design
@@ -30,11 +32,12 @@ IncludeCmd: yes
     ln -s /home /mnt/home
     ln -s /projects /mnt/projects
 
-    # Update system and install essential packages
-    apt-get update && apt-get install -y \
+    # X11 runtime libs required by openbabel-wheel format plugins (MMFF94 charges).
+    apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         git \
         libxrender1 \
+        libxext6 \
         && rm -rf /var/lib/apt/lists/*
 
     # Fix CUDA compat warning in Apptainer (read-only filesystem)

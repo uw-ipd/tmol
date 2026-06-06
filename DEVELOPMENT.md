@@ -165,6 +165,8 @@ pytest --pyargs tmol.tests -v
 
 Container definitions install all dependencies into an NVIDIA NGC PyTorch base image that provides `torch`, `numpy`, `nvcc`, and CUDA libraries. Bind-mount your tmol checkout at runtime.
 
+Both Docker and Apptainer images install X11 runtime libraries (`libxrender1`, `libxext6`, and their dependencies) so `openbabel-wheel` format plugins load correctly for MMFF94 partial charges.
+
 **Docker:**
 
 ```bash
@@ -173,12 +175,27 @@ docker run --gpus all -it -v $(pwd):/tmol_host -w /tmol_host tmol-dev bash
 pip install -e .  # inside container
 ```
 
-**Apptainer:**
+**Apptainer (digs):**
+
+Build from the NGC base at `/net/software/containers/versions/modelhub/pytorch_25.11-py3.sif`:
 
 ```bash
-apptainer build tmol-dev.sif containers/apptainer/tmol-dev.def
-apptainer run --nv --bind $(pwd):/tmol_host tmol-dev.sif
+# writes tmol.sif in the repo root and verifies Open Babel
+containers/apptainer/build-tmol-sif.sh
+
+# install directly for the self-hosted CI runner on fela
+containers/apptainer/build-tmol-sif.sh --deploy-ci
+# equivalent to: apptainer build --fakeroot /home/bench/git_ci_apptainer/tmol.sif containers/apptainer/tmol-dev.def
 ```
+
+Run interactively:
+
+```bash
+apptainer exec --nv --bind $(pwd):/tmol_host tmol.sif bash
+pip install -e .  # inside container
+```
+
+Rebuild `tmol.sif` when `pyproject.toml` dependencies change or after updating `containers/apptainer/tmol-dev.def`.
 
 ## CI Pipeline
 

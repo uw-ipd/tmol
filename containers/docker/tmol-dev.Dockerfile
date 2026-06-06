@@ -19,6 +19,12 @@ RUN mkdir -p /tmol_host /projects /net /squash
 # Copy pyproject.toml to extract dependencies
 COPY pyproject.toml /opt/tmol_pyproject.toml
 
+# X11 runtime libs required by openbabel-wheel format plugins (MMFF94 charges).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libxrender1 \
+        libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Python dependency installation (separate layer for better caching)
 # Note: Starting from PyTorch 25.03, the container includes /etc/pip/constraint.txt
 # which specifies versions of all packages used during container creation.
