@@ -353,7 +353,6 @@ def inject_ligand_preparations(
         preparations.
     """
     from tmol.database import inject_residue_params
-    from tmol.ligand.sanity_checks import sanity_check
 
     if not preparations:
         return param_db
@@ -362,8 +361,6 @@ def inject_ligand_preparations(
     new_preps = [p for p in preparations if p.residue_type.name not in existing_names]
     if not new_preps:
         return param_db
-
-    sanity_check(new_preps)
 
     new_atom_types: list[AtomType] = []
     seen_at: set[str] = set()

@@ -415,6 +415,12 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
   auto acc_bases = hbond::RotamerCentricAcceptorBases<Int>::for_acceptor(
       A, hyb, bonds, context_dat.block_type_atom_is_hydrogen);
 
+  // No base (B==-1) or no distinct second base (B0==B): undefined water frame,
+  // generate none (slot stays NAN, skipped in scoring).
+  if (acc_bases.B.atom == -1 || acc_bases.B0 == acc_bases.B) {
+    return;
+  }
+
   Real3 Bxyz =
       load_coord<TILE_SIZE>(acc_bases.B, res_dat, context_dat, tile_start);
   Real3 B0xyz =
@@ -530,6 +536,12 @@ void TMOL_DEVICE_FUNC d_build_water_for_acc(
       res_dat.block_ind, res_dat.block_type, tile_start + acc_atom_tile_ind};
   auto acc_bases = hbond::RotamerCentricAcceptorBases<Int>::for_acceptor(
       A, hyb, bonds, context_dat.block_type_atom_is_hydrogen);
+
+  // No base (B==-1) or no distinct second base (B0==B): undefined water frame,
+  // generate none (slot stays NAN, skipped in scoring).
+  if (acc_bases.B.atom == -1 || acc_bases.B0 == acc_bases.B) {
+    return;
+  }
 
   Real3 Bxyz =
       load_coord<TILE_SIZE>(acc_bases.B, res_dat, context_dat, tile_start);
