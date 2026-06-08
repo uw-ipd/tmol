@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-version = "0.1.29"
+version = "0.1.33"
 
 dependencies = [
     # Core ML framework
@@ -58,7 +58,7 @@ dependencies = [
     # Interactive
     "ipython>=8.0",
     # Structure I/O
-    "biotite>=1.6.0",
+    "biotite>=1.4.0",
     # Ligand preparation
     "rdkit>=2024.3",
 ]
