@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SIF: /home/bench/git_ci_apptainer/tmol.sif
+  SIF: /home/bench/git_ci_apptainer/tmol_py11.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
   
 
@@ -45,7 +45,7 @@ jobs:
             $SIF bash << 'SETUP'
           set -ex
           
-          python3.10 -m venv .venv
+          python3.11 -m venv .venv
           source .venv/bin/activate
 
           pip install pip --upgrade
@@ -70,7 +70,7 @@ jobs:
         id: build
         if: always()
         run: |
-          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
+          srun --gres=gpu:large:1 -C A6000 -p gpu --export=ALL \
                   -t 06:00:00 --cpus-per-task=16 --mem=128G \
                   apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                   --pwd $GITHUB_WORKSPACE \
@@ -104,7 +104,7 @@ jobs:
         run: |
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
-          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
+          srun --gres=gpu:large:1 -C A6000 -p gpu --export=ALL \
                   -t 06:00:00 --cpus-per-task=16 --mem=128G \
                   apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                   --pwd $GITHUB_WORKSPACE \
@@ -126,7 +126,7 @@ jobs:
         run: |
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
-          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
+          srun --gres=gpu:large:1 -C A6000 -p gpu --export=ALL \
                 -t 06:00:00 --cpus-per-task=16 --mem=128G \
                 apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                 --pwd $GITHUB_WORKSPACE \
@@ -147,7 +147,7 @@ jobs:
         run: |
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
-          srun --gres=gpu:a6000:1 -p gpu --export=ALL \
+          srun --gres=gpu:large:1 -C A6000 -p gpu --export=ALL \
                 -t 06:00:00 --cpus-per-task=16 --mem=128G \
                 apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                 --pwd $GITHUB_WORKSPACE \

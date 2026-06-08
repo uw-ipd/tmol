@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
@@ -16,6 +17,11 @@ namespace tmol {
 namespace score {
 namespace ljlk {
 namespace potentials {
+
+// Cache the mgpu::standard_context_t objects
+// so as to avoid re-initializing them at each
+// kernel launch
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -69,6 +75,7 @@ class LJLKPoseScoreOp
 
           auto result =
               LJLKPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
+                  mgr,
                   // common params
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
@@ -213,6 +220,7 @@ class LJLKPoseScoreOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
@@ -314,6 +322,7 @@ class LJLKRotamerScoreOp
 
           auto result =
               LJLKRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
+                  mgr,
                   // common params
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
@@ -457,6 +466,7 @@ class LJLKRotamerScoreOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),

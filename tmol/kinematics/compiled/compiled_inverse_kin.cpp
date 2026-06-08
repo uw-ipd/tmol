@@ -16,35 +16,39 @@
 namespace tmol {
 namespace kinematics {
 
-// pybind-ings for inverse kinematics
-// - not part of the evaluation graph but is used in setup
-template <tmol::Device Dev, typename Real, typename Int>
-void bind_dispatch(pybind11::module& m) {
-  using namespace pybind11::literals;
-  using namespace tmol::utility::function_dispatch;
+// // pybind-ings for inverse kinematics
+// // - not part of the evaluation graph but is used in setup
+// template <tmol::Device Dev, typename Real, typename Int>
+// void bind_dispatch(pybind11::module& m) {
+//   using namespace pybind11::literals;
+//   using namespace tmol::utility::function_dispatch;
 
-  add_dispatch_impl<Dev, Real>(
-      m,
-      "inverse_kin",
-      &InverseKinDispatch<Dev, Real, Int>::f,
-      "coords"_a,
-      "parent"_a,
-      "frame_x"_a,
-      "frame_y"_a,
-      "frame_z"_a,
-      "doftype"_a);
-};
+//   add_dispatch_impl<Dev, Real>(
+//       m,
+//       "inverse_kin",
+//       &inv_kin_dispatch_wrapper,
+//       "coords"_a,
+//       "parent"_a,
+//       "frame_x"_a,
+//       "frame_y"_a,
+//       "frame_z"_a,
+//       "doftype"_a);
+// };
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  using namespace pybind11::literals;
+// PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+//   using namespace pybind11::literals;
 
-  bind_dispatch<tmol::Device::CPU, float, int32_t>(m);
-  bind_dispatch<tmol::Device::CPU, double, int32_t>(m);
+//   bind_dispatch<tmol::Device::CPU, float, int32_t>(m);
+//   bind_dispatch<tmol::Device::CPU, double, int32_t>(m);
 
-#ifdef WITH_CUDA
-  bind_dispatch<tmol::Device::CUDA, float, int32_t>(m);
-  bind_dispatch<tmol::Device::CUDA, double, int32_t>(m);
-#endif
+// #ifdef WITH_CUDA
+//   bind_dispatch<tmol::Device::CUDA, float, int32_t>(m);
+//   bind_dispatch<tmol::Device::CUDA, double, int32_t>(m);
+// #endif
+//}
+
+TORCH_LIBRARY(tmol_inv_kin, m) {
+  m.def("inverse_kin", &inv_kin_dispatch_wrapper);
 }
 
 }  // namespace kinematics

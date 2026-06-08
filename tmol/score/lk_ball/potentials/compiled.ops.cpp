@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
@@ -15,6 +16,8 @@ namespace tmol {
 namespace score {
 namespace lk_ball {
 namespace potentials {
+
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -76,6 +79,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
           auto result =
               GeneratePoseWaters<common::DeviceOperations, Dev, Real, Int>::
                   forward(
+                      mgr,
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
                       TCAST(pose_ind_for_atom),
@@ -223,6 +227,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
           auto result =
               GeneratePoseWaters<common::DeviceOperations, Dev, Real, Int>::
                   backward(
+                      mgr,
                       TCAST(dE_dWxyz),
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
@@ -408,6 +413,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
               Real,
               Int>::
               forward(
+                  mgr,
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
                   TCAST(pose_ind_for_atom),
@@ -547,6 +553,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
               Real,
               Int>::
               backward(
+                  mgr,
                   TCAST(rot_coords),
                   TCAST(water_coords),
                   TCAST(rot_coord_offset),
@@ -650,6 +657,7 @@ class LKBallRotamerScoreOp
               Real,
               Int>::
               forward(
+                  mgr,
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
                   TCAST(pose_ind_for_atom),
@@ -781,6 +789,7 @@ class LKBallRotamerScoreOp
               Real,
               Int>::
               backward(
+                  mgr,
                   TCAST(rot_coords),
                   TCAST(water_coords),
                   TCAST(rot_coord_offset),

@@ -3,6 +3,7 @@
 #include <tmol/extern/moderngpu/operators.hxx>
 #include "test.hh"
 #include "tmol/utility/tensor/TensorPack.h"
+#include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
 template <template <Device> class Dispatch, Device D, typename Real>
@@ -45,6 +46,7 @@ auto ComplexDispatchTest<Dispatch, D, Int>::f(
         Int,               // final val from above
         TPack<Int, 1, D>>  // exclusive seg scan
 {
+  ContextManager mgr;
   int const n_entries = vals.size(0);
 
   auto res1_tp = TPack<Int, 1, D>::zeros({n_entries});
@@ -65,14 +67,14 @@ auto ComplexDispatchTest<Dispatch, D, Int>::f(
     res1[index] = vals[index] * 2;
   };
 
-  Dispatch<D>::forall(n_entries, double_func);
-  res2 = Dispatch<D>::reduce(vals, mgpu::plus_t<Int>());
-  Dispatch<D>::exclusive_scan(vals, res3, mgpu::plus_t<Int>());
-  Dispatch<D>::inclusive_scan(vals, res4, mgpu::plus_t<Int>());
-  res6 =
-      Dispatch<D>::exclusive_scan_w_final_val(vals, res5, mgpu::plus_t<Int>());
+  Dispatch<D>::forall(mgr, n_entries, double_func);
+  res2 = Dispatch<D>::reduce(mgr, vals, mgpu::plus_t<Int>());
+  Dispatch<D>::exclusive_scan(mgr, vals, res3, mgpu::plus_t<Int>());
+  Dispatch<D>::inclusive_scan(mgr, vals, res4, mgpu::plus_t<Int>());
+  res6 = Dispatch<D>::exclusive_scan_w_final_val(
+      mgr, vals, res5, mgpu::plus_t<Int>());
   Dispatch<D>::exclusive_segmented_scan(
-      vals, boundaries, res7, mgpu::plus_t<Int>());
+      mgr, vals, boundaries, res7, mgpu::plus_t<Int>());
   return {res1_tp, res2, res3_tp, res4_tp, res5_tp, res6, res7_tp};
 }
 

@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 #include <tmol/utility/nvtx.hh>
 
@@ -16,6 +17,8 @@ namespace tmol {
 namespace score {
 namespace constraint {
 namespace potentials {
+
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -41,7 +44,7 @@ class GetTorsionAngleOp
 
           auto result =
               GetTorsionAngleDispatch<DispatchMethod, Dev, Real>::forward(
-                  TCAST(coords));
+                  mgr, TCAST(coords));
 
           angle = std::get<0>(result).tensor;
           dangle_dcoords = std::get<1>(result).tensor;
