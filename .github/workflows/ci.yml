@@ -8,7 +8,7 @@ name: CI
 
 on:
   push:
-    branches: [master, "kdidi/**"]
+    branches: [master, "kdidi/**", "ncorley/**"]
   pull_request:
     branches: [master]
 
@@ -17,6 +17,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # Rebuild with containers/apptainer/build-tmol-sif.sh --deploy-ci when deps change.
+  # Image includes X11 runtime libs for openbabel-wheel (see tmol-dev.def).
+  # Do NOT bind host /usr/lib into the container: fela's glibc is newer than the
+  # NGC base image and breaks coreutils/fakeroot (GLIBC_2.43 errors on cut, etc.).
   SIF: /home/bench/git_ci_apptainer/tmol.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
   SLURM_PARTITION: gpu-train
@@ -38,6 +42,7 @@ jobs:
           submodules: recursive
 
       - name: Setup
+        id: setup
         run: |
           # Restore source timestamps
           git ls-files -- '*.cpp' '*.cu' '*.cuh' '*.h' '*.hh' '*.cc' | \
@@ -49,6 +54,12 @@ jobs:
             --pwd $GITHUB_WORKSPACE \
             $SIF bash << 'SETUP'
           set -ex
+
+          if ! ldconfig -p 2>/dev/null | grep -q libXrender.so.1; then
+            echo "ERROR: ${SIF:-tmol.sif} is missing libXrender.so.1 (Open Babel will not work)."
+            echo "Rebuild on digs: containers/apptainer/build-tmol-sif.sh --deploy-ci"
+            exit 1
+          fi
 
           PYTHON_BIN=""
           for cand in python3.12 python3.11 python3; do
@@ -73,6 +84,18 @@ jobs:
           pip install uv
           SETUP
 
+      - name: Verify Open Babel runtime
+        run: |
+          apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
+            --pwd $GITHUB_WORKSPACE \
+            --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
+            $SIF bash << 'VERIFY'
+          set -ex
+          source .venv/bin/activate
+          uv pip install openbabel-wheel
+          bash "${GITHUB_WORKSPACE}/containers/scripts/verify-openbabel-formats.sh"
+          VERIFY
+
       - name: Lint
         run: |
           apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
@@ -89,7 +112,8 @@ jobs:
 
       - name: Build
         id: build
-        if: always()
+        # Run even when Lint fails, but not when Setup failed (no .venv yet).
+        if: steps.setup.outcome == 'success'
         run: |
           srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
                   -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
@@ -99,6 +123,10 @@ jobs:
                   $SIF bash << 'BUILD'
           set -ex
 
+          if [ ! -f .venv/bin/activate ]; then
+            echo "ERROR: .venv/bin/activate not found — the Setup step did not complete."
+            exit 1
+          fi
           source .venv/bin/activate
 
           uv pip compile pyproject.toml --all-extras --output-file requirements.txt
@@ -178,6 +206,19 @@ jobs:
           set -ex
           
           source .venv/bin/activate
+
+          # CPU test step exports CUDA_VISIBLE_DEVICES=""; do not inherit that here.
+          unset CUDA_VISIBLE_DEVICES
+
+          python - <<'PY'
+          import torch
+          if not torch.cuda.is_available():
+              raise SystemExit(
+                  "CUDA not visible in GPU test step (torch.cuda.is_available() is False).\n"
+                  "Check: srun --gres=gpu:1, apptainer exec --nv, and venv torch is CUDA-enabled."
+              )
+          print(f"CUDA OK: {torch.cuda.device_count()} device(s), {torch.cuda.get_device_name(0)}")
+          PY
           
           pytest -p no:rerunfailures -s -v --durations=25 \
             --cov=$GITHUB_WORKSPACE/tmol --cov-report=xml \

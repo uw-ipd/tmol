@@ -1,7 +1,8 @@
 """Protein-ligand interface scoring tests.
 
 For each ``*_complex*.pdb`` in ``protein_ligand_test``, prepare the ligand via
-``cif_inputs/<target>.ligand.cif`` (Dimorphite @ pH 7.4, ``charge_mode="mmff94"``),
+``cif_inputs/<target>.ligand.cif`` (self-contained CIF; Dimorphite @ pH 7.4,
+``charge_mode="mmff94"``),
 inject params, score with tmol, and compare to Rosetta ``<stem>.sc``.
 """
 
@@ -16,9 +17,7 @@ from tmol.tests.ligand.test_dud_ligands import (
     _param_db_with_ligand_prep,
     _rosetta_score,
 )
-from tmol.tests.ligand.test_pli_tmol_equivalence import (
-    prepare_pli_ligand_mmff94_from_cif,
-)
+from tmol.tests.ligand.test_pli_tmol_equivalence import prepare_pli_ligand_from_cif
 
 PLI_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 PLI_CASES = [
@@ -124,7 +123,7 @@ def _target_for_complex(pdb_name: str) -> str:
 
 
 def _pli_param_db_from_pipeline(target: str):
-    prep = prepare_pli_ligand_mmff94_from_cif(target)
+    prep = prepare_pli_ligand_from_cif(target)
     return _param_db_with_ligand_prep(prep)
 
 
@@ -160,7 +159,7 @@ class TestPLIScoring:
         self,
         pli_pdb,
         param_db,
-        torch_device,
+        torch_device_gpu,
         label_prefix="",
         threshold=None,
         threshold_sp2_acc=None,
@@ -170,7 +169,7 @@ class TestPLIScoring:
         Args:
             pli_pdb: Path to the PDB file.
             param_db: Parameter database with ligand params injected.
-            torch_device: Torch device.
+            torch_device_gpu: Torch device.
             label_prefix: Label prefix for output naming (e.g. ".tmol", ".cif", ".mol2").
             threshold: If not None, fail the test when any term's absolute delta
                 between tmol and Rosetta exceeds this value.
@@ -192,20 +191,20 @@ class TestPLIScoring:
 
         pose_stack, context = pose_stack_from_biotite(
             bt_struct,
-            torch_device,
+            torch_device_gpu,
             param_db=param_db,
             prepare_ligands=False,
             no_optH=True,
             return_context=True,
         )
 
-        sfxn = beta2016_score_function(torch_device, param_db=param_db)
+        sfxn = beta2016_score_function(torch_device_gpu, param_db=param_db)
         score_types = sfxn.all_score_types()
 
         mask = torch.zeros(
             (1, pose_stack.max_n_blocks),
             dtype=torch.bool,
-            device=torch_device,
+            device=torch_device_gpu,
         )
         mask[0][-1] = True
 
@@ -290,7 +289,7 @@ class TestPLIScoring:
                 )
             pytest.fail("\n".join(msg_lines))
 
-    def test_compare_dg_score_with_rosetta_tmol(self, pli_pdb, torch_device):
+    def test_compare_dg_score_with_rosetta_tmol(self, pli_pdb, torch_device_gpu):
         """Compare Rosetta dG scores with tmol scores using .tmol file params."""
         from tmol.database import ParameterDatabase
         from tmol.ligand.params_file import inject_params_file
@@ -303,46 +302,29 @@ class TestPLIScoring:
         self._dg_vs_rosetta(
             pli_pdb,
             param_db,
-            torch_device,
+            torch_device_gpu,
             label_prefix=".tmol",
             threshold=1e-2,
             threshold_sp2_acc=0.2,
         )
 
-    @pytest.mark.xfail(
-        reason="fd: failing 6/1 (generated CIF params diverge from Rosetta; "
-        "the .tmol-injected path covers scoring correctness)",
-    )
-    def test_compare_dg_score_with_rosetta_cif(self, pli_pdb, torch_device):
+    def test_compare_dg_score_with_rosetta_cif(self, pli_pdb, torch_device_gpu):
         """Compare Rosetta dG scores with tmol scores using .cif file params."""
-        from tmol.database import ParameterDatabase
-        from tmol.ligand import prepare_ligand_from_cif
-
         target = _target_for_complex(pli_pdb.name)
-        ligand_cif = PLI_DIR / "cif_inputs" / f"{target}.ligand.cif"
-
-        extended_db, _ = prepare_ligand_from_cif(
-            str(ligand_cif),
-            param_db=ParameterDatabase.get_default(),
-            ph=7.4,
-        )
+        prep = prepare_pli_ligand_from_cif(target)
+        param_db = _param_db_with_ligand_prep(prep)
 
         self._dg_vs_rosetta(
             pli_pdb,
-            extended_db,
-            torch_device,
+            param_db,
+            torch_device_gpu,
             label_prefix=".cif",
             threshold=1e-2,
             threshold_sp2_acc=0.2,
         )
 
-    @pytest.mark.xfail(
-        reason="fd: failing 6/1 (generated mol2 params diverge from Rosetta; "
-        "the .tmol-injected path covers scoring correctness)",
-    )
-    def test_compare_dg_score_with_rosetta_mol2(self, pli_pdb, torch_device):
+    def test_compare_dg_score_with_rosetta_mol2(self, pli_pdb, torch_device_gpu):
         """Compare Rosetta dG scores with tmol scores using .mol2 file params."""
-        from tmol.database import ParameterDatabase
         from tmol.ligand import prepare_ligand_from_mol2
 
         target = _target_for_complex(pli_pdb.name)
@@ -350,20 +332,24 @@ class TestPLIScoring:
 
         extended_db, _ = prepare_ligand_from_mol2(
             str(ligand_mol2),
-            param_db=ParameterDatabase.get_default(),
+            param_db=None,
             ph=7.4,
+            charge_mode="mmff94",
+            prepare_mode="passthrough",
         )
 
         self._dg_vs_rosetta(
             pli_pdb,
             extended_db,
-            torch_device,
+            torch_device_gpu,
             label_prefix=".mol2",
             threshold=1e-2,
             threshold_sp2_acc=0.2,
         )
 
-    def _packmin_lowers_energy(self, pli_pdb, param_db, torch_device, label_prefix=""):
+    def _packmin_lowers_energy(
+        self, pli_pdb, param_db, torch_device_gpu, label_prefix=""
+    ):
         """Pack + minimize the complex and assert the total energy drops.
 
         No reference comparison: pack+min must not raise the total weighted
@@ -385,14 +371,14 @@ class TestPLIScoring:
 
         pose_stack, context = pose_stack_from_biotite(
             bt_struct,
-            torch_device,
+            torch_device_gpu,
             param_db=param_db,
             prepare_ligands=False,
             no_optH=False,
             return_context=True,
         )
 
-        sfxn = beta2016_score_function(torch_device, param_db=param_db)
+        sfxn = beta2016_score_function(torch_device_gpu, param_db=param_db)
 
         def total_weighted_energy(ps):
             scorer = sfxn.render_whole_pose_scoring_module(ps)
@@ -407,7 +393,7 @@ class TestPLIScoring:
         mask = torch.zeros(
             (1, pose_stack.max_n_blocks),
             dtype=torch.bool,
-            device=torch_device,
+            device=torch_device_gpu,
         )
         mask[0][-1] = True
 
@@ -439,7 +425,7 @@ class TestPLIScoring:
             f"before={total_before:.4f} after={total_after:.4f}"
         )
 
-    def test_packmin_lowers_energy_tmol(self, tmol_minpack_pdb, torch_device):
+    def test_packmin_lowers_energy_tmol(self, tmol_minpack_pdb, torch_device_gpu):
         """Pack+minimize must lower the total energy (tmol params, first 4 cases)."""
         from tmol.database import ParameterDatabase
         from tmol.ligand.params_file import inject_params_file
@@ -450,5 +436,5 @@ class TestPLIScoring:
         param_db = inject_params_file(ParameterDatabase.get_default(), tmol_path)
 
         self._packmin_lowers_energy(
-            tmol_minpack_pdb, param_db, torch_device, label_prefix=".tmol"
+            tmol_minpack_pdb, param_db, torch_device_gpu, label_prefix=".tmol"
         )

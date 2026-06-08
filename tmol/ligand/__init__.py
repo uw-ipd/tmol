@@ -11,6 +11,7 @@ from tmol.ligand.detect import (
     nonstandard_residue_info_from_cif,
     nonstandard_residue_info_from_mol2,
 )
+from tmol.ligand.mol2_io import prepare_ligand_from_mol2_passthrough
 from tmol.ligand.preparation import (
     prepare_ligand_from_cif,
     prepare_ligand_from_mol2,
@@ -26,6 +27,7 @@ __all__ = [
     "prepare_single_ligand",
     "prepare_ligand_from_cif",
     "prepare_ligand_from_mol2",
+    "prepare_ligand_from_mol2_passthrough",
     "detect_nonstandard_residues",
     "nonstandard_residue_info_from_cif",
     "nonstandard_residue_info_from_mol2",

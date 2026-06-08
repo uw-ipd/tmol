@@ -15,7 +15,7 @@ import attr
 
 import numpy as np
 import pytest
-import torch  # noqa: F401  (used via torch_device fixture)
+import torch  # noqa: F401  (used via torch_device_gpu fixture)
 
 from tmol.ligand.equivalence import compare_ligand_preparations
 
@@ -195,10 +195,6 @@ def prepare_dud_ligand_input_protonation_mmff94_from_cif(
 
 
 class TestSkipProtonationPreservesInput:
-    @pytest.mark.xfail(
-        reason="fd: failing 6/1 (partial-charge generation failed)",
-        strict=False,
-    )
     def test_explicit_hydrogens_and_names(self):
         from tmol.ligand import prepare_single_ligand
 
@@ -408,7 +404,7 @@ class TestDUDScoring:
         }
 
     @staticmethod
-    def _score_against_rosetta(dud_scoring_data, param_db, torch_device):
+    def _score_against_rosetta(dud_scoring_data, param_db, torch_device_gpu):
         """Score the input pose with ``param_db`` and diff vs Rosetta ``.sc``."""
         import biotite.structure
         import biotite.structure.io
@@ -422,11 +418,11 @@ class TestDUDScoring:
 
         pose_stack = pose_stack_from_biotite(
             bt_struct,
-            torch_device,
+            torch_device_gpu,
             param_db=param_db,
         )
 
-        sfxn = beta2016_score_function(torch_device, param_db=param_db)
+        sfxn = beta2016_score_function(torch_device_gpu, param_db=param_db)
         scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
         unweighted = scorer.unweighted_scores(pose_stack.coords)
         weights = sfxn.weights_tensor()
@@ -458,7 +454,7 @@ class TestDUDScoring:
             + "\n".join(mismatches)
         )
 
-    def test_score_tmol(self, dud_scoring_data, torch_device):
+    def test_score_tmol(self, dud_scoring_data, torch_device_gpu):
         """Parameters read from the golden ``.tmol`` file (Rosetta reference)."""
         from tmol.ligand.params_file import load_params_file
 
@@ -468,15 +464,11 @@ class TestDUDScoring:
         ), f"{dud_scoring_data['tmol_path']}: expected one residue, got {len(preps)}"
         param_db = _param_db_with_ligand_prep(preps[0])
 
-        self._score_against_rosetta(dud_scoring_data, param_db, torch_device)
+        self._score_against_rosetta(dud_scoring_data, param_db, torch_device_gpu)
 
-    @pytest.mark.xfail(
-        reason="fd: failing 6/1 (scores diverge)",
-        strict=False,
-    )
-    def test_score_cif(self, dud_scoring_data, torch_device):
+    def test_score_cif(self, dud_scoring_data, torch_device_gpu):
         """Parameters generated from the AtomArray via the CIF pipeline."""
         prep = prepare_dud_ligand_mmff94_from_cif(dud_scoring_data["cif_path"], "LG1")
         param_db = _param_db_with_ligand_prep(prep)
 
-        self._score_against_rosetta(dud_scoring_data, param_db, torch_device)
+        self._score_against_rosetta(dud_scoring_data, param_db, torch_device_gpu)

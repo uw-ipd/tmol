@@ -4,7 +4,6 @@ from pathlib import Path
 
 from rdkit import Chem
 
-from tmol.ligand.cif_normalization import render_cif_from_mol2
 from tmol.ligand.detect import nonstandard_residue_info_from_mol2
 from tmol.ligand.mol2_names import (
     apply_disambiguated_mol2_names,
@@ -27,16 +26,6 @@ def test_fgfr1_mol2_load_has_unique_disambiguated_names():
     assert "C2'2" in info.atom_names
     assert "C3'2" in info.atom_names
     assert info.atom_names.count("C2'") == 1
-
-
-def test_fgfr1_rendered_cif_has_unique_atom_ids():
-    mol2_path = PLI_DIR / "fgfr1.lig.mol2"
-    cif_text = render_cif_from_mol2(mol2_path, res_name="LG1")
-    hetatm_names = [
-        line.split()[2] for line in cif_text.splitlines() if line.startswith("HETATM")
-    ]
-    assert len(hetatm_names) == len(set(hetatm_names))
-    assert "C2'2" in hetatm_names
 
 
 def test_apply_disambiguated_mol2_names_is_idempotent_on_props():

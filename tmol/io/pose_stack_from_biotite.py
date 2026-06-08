@@ -16,6 +16,7 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.utility.biotite_util import get_all_residue_positions
+from tmol.ligand.coord_name_registry import lookup_ligand_coords, nearest_name
 
 from tmol import beta2016_score_function
 
@@ -34,6 +35,62 @@ class BiotitePoseBuildContext:
 
 
 @validate_args
+def _remap_ligand_atom_names_by_coord(
+    biotite_structure: "biotite.structure.AtomArray | biotite.structure.AtomArrayStack",
+) -> None:
+    """Rename complex-PDB ligand atoms to prepared-residue names by coordinate.
+
+    Grouped per residue instance so remapped names stay unique within a residue
+    (no two atoms collapse onto one name, and a remap never collides with an
+    atom that keeps its name). No-op for unregistered residues; mutates in place.
+    """
+    if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
+        if biotite_structure.stack_depth() == 0:
+            return
+        coords = biotite_structure.coord[0]
+    else:
+        coords = biotite_structure.coord
+
+    names = biotite_structure.atom_name
+    res_ids = getattr(biotite_structure, "res_id", None)
+    chain_ids = getattr(biotite_structure, "chain_id", None)
+
+    # Group registered-residue atom indices by (res_name, res_id, chain) instance.
+    cache: dict[str, dict] = {}
+    instances: dict[tuple, list[int]] = {}
+    for i, rn in enumerate(str(r).strip() for r in biotite_structure.res_name):
+        if rn not in cache:
+            cache[rn] = lookup_ligand_coords(rn) or {}
+        if not cache[rn]:
+            continue
+        key = (
+            rn,
+            int(res_ids[i]) if res_ids is not None else 0,
+            str(chain_ids[i]) if chain_ids is not None else "",
+        )
+        instances.setdefault(key, []).append(i)
+
+    new_names = numpy.array(names, dtype=names.dtype)
+    changed = False
+    for (rn, *_), idxs in instances.items():
+        cmap = cache[rn]
+        proposed = {
+            i: nearest_name(cmap, *(float(c) for c in coords[i])) or str(names[i])
+            for i in idxs
+        }
+        # Names kept as-is are reserved; assign a remap only if it won't collide.
+        taken = {str(names[i]) for i in idxs if proposed[i] == str(names[i])}
+        for i in idxs:
+            tgt = proposed[i]
+            if tgt != str(names[i]) and tgt not in taken:
+                taken.add(tgt)
+                new_names[i] = tgt
+                changed = True
+
+    if changed:
+        biotite_structure.atom_name = new_names
+
+
 def build_context_from_biotite(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     torch_device: torch.device,
@@ -71,6 +128,11 @@ def build_context_from_biotite(
         BiotitePoseBuildContext containing canonical form, ordering,
         packed block types, parameter database, and residue type set.
     """
+    # Pre-injected ligands (param_db already extended by prepare_ligand_from_*)
+    # may carry atom names that differ from the complex PDB; remap by coordinate
+    # before canonicalization so name-based atom matching succeeds.
+    if not prepare_ligands:
+        _remap_ligand_atom_names_by_coord(biotite_structure)
     if prepare_ligands:
         from tmol.ligand import prepare_ligands as _prepare_ligands
 

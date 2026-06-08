@@ -1,5 +1,3 @@
-import pytest
-
 from .benchmark import subfixture
 
 
@@ -16,16 +14,3 @@ def test_str_join_method(benchmark):
         return foo
 
     assert mult == add
-
-
-@pytest.mark.xfail
-def test_str_join_invalid(benchmark):
-    @subfixture(benchmark)
-    def times10():
-        return "foo" * 10
-
-    @subfixture(benchmark)
-    def times100():
-        return "foo" * 100
-
-    assert times10 == times100

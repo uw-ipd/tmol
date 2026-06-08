@@ -4,8 +4,10 @@ IncludeCmd: yes
 
 # tmol Development Container - Dependencies only (tmol itself is bind-mounted for development)
 
-# To build this Apptainer, from the project root, run:
-# apptainer build tmol-dev.sif containers/apptainer/tmol-dev.def
+# To build this Apptainer on digs, from the project root, run:
+#   containers/apptainer/build-tmol-sif.sh
+# or manually:
+#   apptainer build --fakeroot tmol.sif containers/apptainer/tmol-dev.def
 
 %labels
     Author Institute for Protein Design
@@ -22,6 +24,8 @@ IncludeCmd: yes
     /etc/localtime
     /etc/hosts
     pyproject.toml /opt/tmol_pyproject.toml
+    containers/scripts/install-openbabel-runtime-deps.sh /opt/install-openbabel-runtime-deps.sh
+    containers/scripts/verify-openbabel-formats.sh /opt/verify-openbabel-formats.sh
 
 %post
     ## GENERAL SETUP
@@ -30,11 +34,12 @@ IncludeCmd: yes
     ln -s /home /mnt/home
     ln -s /projects /mnt/projects
 
-    # Update system and install essential packages
-    apt-get update && apt-get install -y \
+    # X11 runtime libs required by openbabel-wheel format plugins (MMFF94 charges).
+    apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         git \
         && rm -rf /var/lib/apt/lists/*
+    bash /opt/install-openbabel-runtime-deps.sh
 
     # Fix CUDA compat warning in Apptainer (read-only filesystem)
     # The base image's shinit_v2 tries to rm a symlink which fails in Apptainer
@@ -66,6 +71,7 @@ IncludeCmd: yes
 
     # Install the cleaned requirements
     uv pip install --system --break-system-packages -r /opt/combined_requirements.txt
+    bash /opt/verify-openbabel-formats.sh
 
     # Clean up to minimize container size
     uv cache clean

@@ -6,11 +6,14 @@ from typing import Optional
 import biotite.structure as struc
 from biotite.interface.rdkit import to_mol
 from rdkit import Chem
+from rdkit.Chem import AllChem
 
 from tmol.ligand.detect import NonStandardResidueInfo, _strip_metals
 from tmol.ligand.dimorphite_dl import protonate_mol_variants
 
 logger = logging.getLogger(__name__)
+
+_ROSETTA_TOPOLOGY_PROP = "_tmol_use_rosetta_topology"
 
 
 # Map biotite BondType -> the RDKit bond order we want on the round-tripped
@@ -44,22 +47,8 @@ def clear_source_chemistry_props(mol: Chem.Mol) -> None:
             mol.ClearProp(key)
 
 
-def clear_aromatic_perception_flags(mol: Chem.Mol) -> None:
-    """Clear per-atom/bond aromatic flags (CIF ``tmol_aromatic`` stamps on the mol)."""
-    for bond in mol.GetBonds():
-        bond.SetIsAromatic(False)
-        if bond.GetBondType() == Chem.BondType.AROMATIC:
-            bond.SetBondType(Chem.BondType.SINGLE)
-    for atom in mol.GetAtoms():
-        atom.SetIsAromatic(False)
-
-
 def _rebuild_mol_via_smiles_preserving_coords(heavy: Chem.Mol) -> Optional[Chem.Mol]:
-    """Rebuild heavy-atom topology from SMILES; copy formal charges and coordinates.
-
-    MolToSmiles requires initialized ring perception on the input mol; without it
-    canonical SMILES generation can fail and MolFromSmiles may not recover.
-    """
+    """Rebuild heavy-atom topology from SMILES; copy formal charges and coordinates."""
     try:
         Chem.GetSSSR(heavy)
         smiles = Chem.MolToSmiles(heavy, isomericSmiles=True)
@@ -87,9 +76,7 @@ def _rebuild_mol_via_smiles_preserving_coords(heavy: Chem.Mol) -> Optional[Chem.
     if has_coords:
         fresh.AddConformer(conf, assignId=True)
     else:
-        from rdkit.Chem import AllChem as _AllChem
-
-        _AllChem.Compute2DCoords(fresh)
+        AllChem.Compute2DCoords(fresh)
 
     Chem.SanitizeMol(fresh)
     clear_source_chemistry_props(fresh)
@@ -97,11 +84,7 @@ def _rebuild_mol_via_smiles_preserving_coords(heavy: Chem.Mol) -> Optional[Chem.
 
 
 def prepare_input_protonation_mol_for_mmff94(mol: Chem.Mol) -> Chem.Mol:
-    """Sanitize an input-protonation mol for MMFF without rebuilding hydrogens.
-
-    Unlike :func:`normalize_protonated_mol_for_mmff94`, this never runs the
-    heavy-only SMILES rebuild path, so explicit H from mol2/CIF are preserved.
-    """
+    """Sanitize an input-protonation mol for MMFF without rebuilding hydrogens."""
     clear_source_chemistry_props(mol)
     clear_aromatic_perception_flags(mol)
     try:
@@ -119,13 +102,7 @@ def prepare_input_protonation_mol_for_mmff94(mol: Chem.Mol) -> Chem.Mol:
 
 
 def normalize_protonated_mol_for_mmff94(mol: Chem.Mol) -> Chem.Mol:
-    """Make a Dimorphite-protonated mol sanitizable and MMFF-ready.
-
-    Clears CIF/mol2 marker props **and** per-atom aromatic flags left by
-    :func:`_apply_atom_aromatic_flags_post_removeh`. If full sanitization still
-    fails, rebuilds the heavy-atom graph from SMILES while preserving 3D
-    coordinates and formal charges.
-    """
+    """Make a Dimorphite-protonated mol sanitizable and MMFF-ready."""
     clear_source_chemistry_props(mol)
     clear_aromatic_perception_flags(mol)
     try:
@@ -147,6 +124,16 @@ def normalize_protonated_mol_for_mmff94(mol: Chem.Mol) -> Chem.Mol:
         return mol
 
     return Chem.AddHs(rebuilt, addCoords=True)
+
+
+def clear_aromatic_perception_flags(mol: Chem.Mol) -> None:
+    """Clear per-atom/bond aromatic flags (CIF ``tmol_aromatic`` stamps on the mol)."""
+    for bond in mol.GetBonds():
+        bond.SetIsAromatic(False)
+        if bond.GetBondType() == Chem.BondType.AROMATIC:
+            bond.SetBondType(Chem.BondType.SINGLE)
+    for atom in mol.GetAtoms():
+        atom.SetIsAromatic(False)
 
 
 def _restore_kekule_bonds(mol: Chem.Mol, atom_array: struc.AtomArray) -> None:
@@ -229,6 +216,15 @@ def normalize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
     _kekulize_non_ring_aromatic_bonds(mol)
 
 
+def _ligand_arr_indices(
+    atom_array: struc.AtomArray, *, keep_hydrogens: bool
+) -> list[int]:
+    """Map RDKit atom indices to AtomArray indices for annotation transfer."""
+    if keep_hydrogens:
+        return list(range(len(atom_array)))
+    return [i for i, e in enumerate(atom_array.element) if str(e) != "H"]
+
+
 def _apply_atom_array_annotations(
     mol: Chem.Mol, atom_array: struc.AtomArray, arr_indices: list[int]
 ) -> None:
@@ -238,9 +234,10 @@ def _apply_atom_array_annotations(
     After ``RemoveHs``, ``arr_indices`` lists only heavy-atom source indices;
     when explicit hydrogens are kept, it is ``range(n_atoms)``.
     """
-    if mol.GetNumAtoms() != len(arr_indices):
+    if mol.GetNumAtoms() < len(arr_indices):
         return
 
+    saw_subtype = False
     if hasattr(atom_array, "tmol_source_subtype"):
         subtypes = atom_array.tmol_source_subtype
         for mol_idx, arr_idx in enumerate(arr_indices):
@@ -249,6 +246,9 @@ def _apply_atom_array_annotations(
             sub = str(subtypes[arr_idx])
             if sub and sub != "?":
                 mol.GetAtomWithIdx(mol_idx).SetProp(_SOURCE_SUBTYPE_PROP, sub)
+                saw_subtype = True
+    if saw_subtype:
+        mol.SetProp(_ROSETTA_TOPOLOGY_PROP, "1")
 
     if not hasattr(atom_array, "tmol_aromatic"):
         return
@@ -275,8 +275,29 @@ def source_subtype(atom: Chem.Atom) -> str:
     """Return the source mol2 atom-type subtype tag (e.g. ``ar``, ``2``,
     ``cat``, ``pl3``, ``3``) when known, else ``""``."""
     if atom.HasProp(_SOURCE_SUBTYPE_PROP):
-        return atom.GetProp(_SOURCE_SUBTYPE_PROP)
+        return atom.GetProp(_SOURCE_SUBTYPE_PROP).strip()
     return ""
+
+
+def reapply_ligand_source_annotations(
+    mol: Chem.Mol,
+    ligand_info: NonStandardResidueInfo,
+    *,
+    keep_hydrogens: bool | None = None,
+) -> None:
+    """Re-stamp source bond orders and per-atom hints after RDKit rebuilds.
+
+    Dimorphite protonation and ``AssignBondOrdersFromTemplate`` can return a
+    fresh Mol that drops ``_tmol_source_subtype`` props and Kekulé bond orders.
+    Re-apply from the original AtomArray before atom typing.
+    """
+    atom_array = ligand_info.atom_array
+    if keep_hydrogens is None:
+        keep_hydrogens = ligand_info.skip_protonation
+    arr_indices = _ligand_arr_indices(atom_array, keep_hydrogens=keep_hydrogens)
+    _restore_kekule_bonds(mol, atom_array)
+    normalize_non_ring_aromatic_bonds(mol)
+    _apply_atom_array_annotations(mol, atom_array, arr_indices)
 
 
 def source_carried_kekule(mol: Chem.Mol) -> bool:
@@ -400,13 +421,10 @@ def ligand_atom_array_to_rdkit_mol(
     _apply_source_subtypes(mol, atom_array)
 
     if keep_hydrogens:
-        arr_indices = list(range(len(atom_array)))
+        arr_indices = _ligand_arr_indices(atom_array, keep_hydrogens=True)
     else:
-        heavy_arr_indices = [
-            i for i, e in enumerate(atom_array.element) if str(e) != "H"
-        ]
         mol = _remove_hs_tolerant(mol)
-        arr_indices = heavy_arr_indices
+        arr_indices = _ligand_arr_indices(atom_array, keep_hydrogens=False)
 
     _apply_atom_array_annotations(mol, atom_array, arr_indices)
     mol = _strip_metals(mol)
@@ -420,7 +438,13 @@ def protonate_ligand_mol(
     ph: float = 7.4,
     precision: float = 0.1,
 ) -> Chem.Mol:
-    """Protonate an RDKit Mol at a target pH and return first variant."""
+    """Protonate an RDKit Mol at a target pH and return first variant.
+
+    Dimorphite-DL sometimes rebuilds the molecule from SMILES, which drops the
+    3D conformer and can yield an invalid valence. Such a result is untrusted:
+    when the input carried coordinates and the variant lost them, we keep the
+    input protonation (already chemically valid and placed in 3D).
+    """
     try:
         variants = protonate_mol_variants(
             mol,
@@ -431,7 +455,10 @@ def protonate_ligand_mol(
             silent=True,
         )
         if variants:
-            return variants[0]
+            variant = variants[0]
+            if mol.GetNumConformers() and not variant.GetNumConformers():
+                return mol
+            return variant
     except Exception:
         logger.warning(
             "Dimorphite-DL direct-Mol protonation failed; keeping input mol",

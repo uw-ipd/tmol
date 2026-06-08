@@ -21,10 +21,6 @@ from rdkit import Chem
 from rdkit.Chem import RWMol, rdDetermineBonds
 
 from tmol.io.canonical_ordering import CanonicalOrdering
-from tmol.ligand.cif_normalization import (
-    infer_paired_mol2_path,
-    repaired_cif_path_from_mol2,
-)
 from tmol.ligand.mol2_names import apply_disambiguated_mol2_names
 
 logger = logging.getLogger(__name__)
@@ -78,6 +74,7 @@ class NonStandardResidueInfo:
             recomputing MMFF94 charges.
         skip_protonation: If True, Dimorphite-DL protonation is skipped and
             explicit hydrogens from the input (mol2/CIF) are preserved.
+        source_path: Optional path to the originating mol2/CIF file.
     """
 
     res_name: str
@@ -90,6 +87,7 @@ class NonStandardResidueInfo:
     covalently_linked: bool = False
     partial_charges: Optional[dict[str, float]] = None
     skip_protonation: bool = False
+    source_path: Optional[Path] = None
 
 
 LigandInfo = NonStandardResidueInfo
@@ -284,6 +282,21 @@ def _mol2_partial_charges_are_authoritative(mol2_path: Path) -> bool:
     return True
 
 
+def _charges_are_plausible(charges: dict[str, float]) -> bool:
+    """True if ``charges`` look like real partial charges.
+
+    Guards against mol2 files whose charge column holds garbage (e.g. a
+    ``USER_CHARGES``/``INVALID_CHARGES`` block with coordinate-like values):
+    partial charges have small magnitudes and a near-integer net charge.
+    """
+    if not charges:
+        return False
+    if any(abs(q) > 2.0 for q in charges.values()):
+        return False
+    net = sum(charges.values())
+    return abs(net - round(net)) < 0.1
+
+
 def nonstandard_residue_info_from_mol2(
     mol2_path: str | Path,
     res_name: str | None = None,
@@ -367,7 +380,9 @@ def nonstandard_residue_info_from_mol2(
     atom_array.bonds = struc.BondList(n_atoms, bond_array)
 
     use_input_charges = (
-        has_full_partial_charges and _mol2_partial_charges_are_authoritative(path)
+        has_full_partial_charges
+        and _mol2_partial_charges_are_authoritative(path)
+        and _charges_are_plausible(partial_charges)
     )
     authoritative_q = partial_charges if use_input_charges else None
     return NonStandardResidueInfo(
@@ -381,6 +396,7 @@ def nonstandard_residue_info_from_mol2(
         covalently_linked=False,
         partial_charges=authoritative_q,
         skip_protonation=authoritative_q is not None,
+        source_path=path,
     )
 
 
@@ -409,46 +425,6 @@ def _cif_value_order_to_biotite_bond_type(value_order: str, aromatic_flag: str) 
     return int(struc.BondType.SINGLE)
 
 
-def _cif_read_path_with_optional_mol2_repair(
-    path: Path,
-    *,
-    paired_mol2_path: str | Path | None,
-    res_name: str | None,
-    repair_invalid_bonds: bool,
-) -> tuple[Path, Path | None]:
-    """Return the CIF path to read and an optional temp file to delete."""
-    cif_path_to_read = path
-    temporary_regenerated_path: Path | None = None
-    if not repair_invalid_bonds:
-        return cif_path_to_read, temporary_regenerated_path
-
-    inferred_mol2 = (
-        Path(paired_mol2_path)
-        if paired_mol2_path is not None
-        else infer_paired_mol2_path(path)
-    )
-    if inferred_mol2 is None or not inferred_mol2.is_file():
-        return cif_path_to_read, temporary_regenerated_path
-
-    regen_res_name = res_name or "LG1"
-    cif_path_to_read, audit, regenerated = repaired_cif_path_from_mol2(
-        path,
-        inferred_mol2,
-        res_name=regen_res_name,
-    )
-    if regenerated:
-        temporary_regenerated_path = cif_path_to_read
-        logger.warning(
-            "Regenerated CIF bonds from paired MOL2 before loading %s; "
-            "missing=%d extra=%d note=%s",
-            path,
-            len(audit.missing_in_cif),
-            len(audit.extra_in_cif),
-            audit.note or "none",
-        )
-    return cif_path_to_read, temporary_regenerated_path
-
-
 def _partial_charges_from_atom_site(
     atom_site,
     atom_names: list[str],
@@ -456,29 +432,47 @@ def _partial_charges_from_atom_site(
     if "partial_charge" not in atom_site:
         return None
     try:
-        vals = atom_site["partial_charge"].as_array(float)
-        vals = np.asarray(vals, dtype=np.float64)
-        if vals.shape[0] == len(atom_names) and np.isfinite(vals).all():
-            return {name: float(q) for name, q in zip(atom_names, vals, strict=False)}
-    except (TypeError, ValueError):
+        site_names = [str(v).strip() for v in atom_site["label_atom_id"].as_array()]
+        vals = np.asarray(atom_site["partial_charge"].as_array(float), dtype=np.float64)
+        if not np.isfinite(vals).all():
+            return None
+        charge_by_name = {
+            name: float(q) for name, q in zip(site_names, vals, strict=False)
+        }
+        out = {
+            name: charge_by_name[name] for name in atom_names if name in charge_by_name
+        }
+        if len(out) != len(atom_names):
+            return None
+        return out
+    except (TypeError, ValueError, KeyError):
         return None
     return None
 
 
 def _apply_cif_atom_array_annotations(arr: struc.AtomArray, atom_site) -> None:
+    """Stamp per-atom CIF fields onto ``arr``, keyed by ``label_atom_id``."""
+    site_names = [str(v).strip() for v in atom_site["label_atom_id"].as_array()]
+    arr_names = [str(v).strip() for v in arr.atom_name]
+    site_by_name = {name: i for i, name in enumerate(site_names)}
+
     if "tmol_aromatic" in atom_site:
         aromatic_vals = atom_site["tmol_aromatic"].as_array()
-        arr.set_annotation(
-            "tmol_aromatic",
-            np.array(
-                [str(v).strip().upper() == "Y" for v in aromatic_vals], dtype=bool
-            ),
-        )
+        aromatic = np.zeros(len(arr), dtype=bool)
+        for i, name in enumerate(arr_names):
+            j = site_by_name.get(name)
+            if j is not None:
+                aromatic[i] = str(aromatic_vals[j]).strip().upper() == "Y"
+        arr.set_annotation("tmol_aromatic", aromatic)
+
     if "tmol_source_subtype" in atom_site:
-        arr.set_annotation(
-            "tmol_source_subtype",
-            np.array([str(v) for v in atom_site["tmol_source_subtype"].as_array()]),
-        )
+        subtype_vals = atom_site["tmol_source_subtype"].as_array()
+        subtypes = np.array(["?"] * len(arr), dtype="U8")
+        for i, name in enumerate(arr_names):
+            j = site_by_name.get(name)
+            if j is not None:
+                subtypes[i] = str(subtype_vals[j])
+        arr.set_annotation("tmol_source_subtype", subtypes)
 
 
 def _attach_chem_comp_bonds(arr: struc.AtomArray, cif, atom_names: list[str]) -> None:
@@ -524,70 +518,43 @@ def _resolve_cif_res_name(atom_site, arr: struc.AtomArray, res_name: str | None)
 def nonstandard_residue_info_from_cif(
     cif_path: str | Path,
     res_name: str | None = None,
-    *,
-    paired_mol2_path: str | Path | None = None,
-    repair_invalid_bonds: bool = True,
 ) -> NonStandardResidueInfo:
     """Construct ``NonStandardResidueInfo`` from a ligand CIF file.
 
-    Preserves custom per-atom fields (``partial_charge``, ``tmol_aromatic``,
-    ``tmol_source_subtype``) and rebuilds the bond table directly from
-    ``_chem_comp_bond`` when present.
+    Expects a self-contained CIF with ``_chem_comp_bond`` chemistry and optional
+    per-atom ``partial_charge``, ``tmol_aromatic``, and ``tmol_source_subtype``
+    fields (as produced by :func:`tmol.ligand.cif_normalization.render_cif_from_mol2`).
     """
     import biotite.structure.io.pdbx as pdbx
 
     path = Path(cif_path)
-    cif_path_to_read, temporary_regenerated_path = (
-        _cif_read_path_with_optional_mol2_repair(
-            path,
-            paired_mol2_path=paired_mol2_path,
-            res_name=res_name,
-            repair_invalid_bonds=repair_invalid_bonds,
-        )
+    cif = pdbx.CIFFile.read(str(path))
+    arr = pdbx.get_structure(cif, model=1, include_bonds=True, extra_fields=["charge"])
+    if isinstance(arr, struc.AtomArrayStack):
+        arr = arr[0]
+
+    atom_site = cif.block["atom_site"]
+    res_name = _resolve_cif_res_name(atom_site, arr, res_name)
+    arr.res_name = np.array([res_name] * len(arr), dtype=arr.res_name.dtype)
+
+    atom_names = [str(v).strip() for v in arr.atom_name]
+    partial_charges = _partial_charges_from_atom_site(atom_site, atom_names)
+    _apply_cif_atom_array_annotations(arr, atom_site)
+    _attach_chem_comp_bonds(arr, cif, atom_names)
+
+    return NonStandardResidueInfo(
+        res_name=res_name,
+        ccd_type=get_chem_comp_type(res_name) or "UNKNOWN",
+        atom_names=tuple(atom_names),
+        elements=tuple(str(e) for e in arr.element),
+        coords=arr.coord.copy(),
+        atom_array=arr,
+        ccd_smiles=_atom_array_to_smiles(arr, source=str(path), res_name=res_name),
+        covalently_linked=False,
+        partial_charges=partial_charges,
+        skip_protonation=partial_charges is not None,
+        source_path=path,
     )
-    try:
-        cif = pdbx.CIFFile.read(str(cif_path_to_read))
-        arr = pdbx.get_structure(
-            cif, model=1, include_bonds=True, extra_fields=["charge"]
-        )
-        if isinstance(arr, struc.AtomArrayStack):
-            arr = arr[0]
-
-        atom_site = cif.block["atom_site"]
-        atom_names = [str(v) for v in atom_site["label_atom_id"].as_array()]
-        res_name = _resolve_cif_res_name(atom_site, arr, res_name)
-        arr.res_name = np.array([res_name] * len(arr), dtype=arr.res_name.dtype)
-
-        partial_charges = _partial_charges_from_atom_site(atom_site, atom_names)
-        _apply_cif_atom_array_annotations(arr, atom_site)
-        _attach_chem_comp_bonds(arr, cif, atom_names)
-
-        return NonStandardResidueInfo(
-            res_name=res_name,
-            ccd_type=get_chem_comp_type(res_name) or "UNKNOWN",
-            atom_names=tuple(atom_names),
-            elements=tuple(str(e) for e in arr.element),
-            coords=arr.coord.copy(),
-            atom_array=arr,
-            ccd_smiles=_atom_array_to_smiles(
-                arr,
-                source=str(path),
-                res_name=res_name,
-            ),
-            covalently_linked=False,
-            partial_charges=partial_charges,
-            skip_protonation=partial_charges is not None,
-        )
-    finally:
-        if temporary_regenerated_path is not None:
-            try:
-                temporary_regenerated_path.unlink(missing_ok=True)
-            except OSError:
-                logger.debug(
-                    "Failed to clean temporary regenerated CIF %s",
-                    temporary_regenerated_path,
-                    exc_info=True,
-                )
 
 
 def _atom_array_to_smiles(

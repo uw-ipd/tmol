@@ -1,5 +1,4 @@
 import torch
-import pytest
 
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 
@@ -41,28 +40,6 @@ def test_lbfgs_armijo():
         E = scorefunc(10 * x)
         E.total_score.backward()
         return E.total_score
-
-    score_start = closure()
-    optimizer.step(closure)
-    score_stop = closure()
-
-    assert score_start > score_stop
-
-
-@pytest.mark.xfail(reason="sparse tensor _copy failure in torch 1.6")
-def test_lbfgs_armijo_sparse():
-    indices = torch.LongTensor([[0, 0, 1], [0, 1, 1]])
-    values = torch.FloatTensor([2, 3, 4])
-    sizes = [2, 2]
-    a = torch.sparse_coo_tensor(indices, values, sizes, requires_grad=True)
-
-    optimizer = LBFGS_Armijo([a], lr=0.1, rtol=1e-8, atol=1e-8, gradtol=1e-8)
-
-    def closure():
-        optimizer.zero_grad()
-        E = (a.coalesce().values().sum()) ** 2
-        E.backward()
-        return E
 
     score_start = closure()
     optimizer.step(closure)

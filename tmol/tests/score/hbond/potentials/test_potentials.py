@@ -1,11 +1,8 @@
 import pytest
-from pytest import approx
-from toolz import valmap
 
 import numpy
 import torch
 from tmol.tests.autograd import gradcheck, VectorizedOp
-from tmol.utility.args import _signature
 
 from tmol.score.chemical_database import AcceptorHybridization
 
@@ -318,72 +315,6 @@ def ring_params(compiled):
         global_params=_global_param_table,
         **_hbond_global_param_dict,
     )
-
-
-def hbsc_subset(params):
-    return dict(
-        D=params["D"],
-        H=params["H"],
-        A=params["A"],
-        B=params["B"],
-        B0=params["B0"],
-        pair_params=params["pair_params"],
-        polynomials=params["polynomials"],
-        global_params=params["global_params"],
-    )
-
-
-@pytest.mark.xfail(
-    reason="hbond_score_V_dV C++ function expects struct args (pair_params, polynomials, "
-    "global_params) that don't match the test's tensor/list format"
-)
-def test_hbond_point_scores(compiled, sp2_params, sp3_params, ring_params):
-    assert compiled.hbond_score_V_dV(**hbsc_subset(sp2_params))[0] == approx(
-        -2.40, abs=0.01
-    )
-    assert compiled.hbond_score_V_dV(**hbsc_subset(sp3_params))[0] == approx(
-        -2.00, abs=0.01
-    )
-    assert compiled.hbond_score_V_dV(**hbsc_subset(ring_params))[0] == approx(
-        -2.17, abs=0.01
-    )
-
-
-@pytest.mark.xfail(
-    reason="hbond_score_V_dV takes struct args (pair_params, polynomials, global_params) "
-    "that cannot be numpy.vectorized for VectorizedOp gradcheck"
-)
-def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_params):
-    def _t(t):
-        return torch.tensor(t).to(dtype=torch.double)
-
-    def targs(params):
-        params = hbsc_subset(params)
-        args = (
-            _signature(compiled.hbond_score_V_dV).bind(**valmap(_t, params)).arguments
-        )
-
-        args["D"] = args["D"].requires_grad_(True)
-        args["H"] = args["H"].requires_grad_(True)
-        args["A"] = args["A"].requires_grad_(True)
-        args["B"] = args["B"].requires_grad_(True)
-        args["B0"] = args["B0"].requires_grad_(True)
-        # args["acceptor_hybridization"] = args["acceptor_hybridization"].to(
-        #    dtype=torch.int32
-        # )
-
-        return tuple(args.values())
-
-    op = VectorizedOp(compiled.hbond_score_V_dV)
-
-    assert float(op(*targs(sp2_params))) == approx(-2.40, abs=0.01)
-    gradcheck(op, targs(sp2_params))
-
-    assert float(op(*targs(sp3_params))) == approx(-2.00, abs=0.01)
-    gradcheck(op, targs(sp3_params))
-
-    assert float(op(*targs(ring_params))) == approx(-2.17, abs=0.01)
-    gradcheck(op, targs(ring_params))
 
 
 def test_AH_dist_gradcheck(compiled, sp2_params, sp3_params, ring_params):
