@@ -40,7 +40,8 @@ def test_seed_entries_are_smiles_only():
         assert entry.expected_prot_smiles
         assert entry.params.exists()
         assert entry.charge_mode == "auto"
-        assert entry.sample_proton_chi is False
+        # Seed references carry PROTON_CHI, so seed entries request sampling.
+        assert entry.sample_proton_chi is True
 
 
 def test_manifest_load_resolves_relative_paths(tmp_path):

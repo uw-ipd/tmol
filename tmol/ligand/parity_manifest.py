@@ -70,6 +70,10 @@ def _seed_entries(root: Path) -> list[LigandParityEntry]:
     The ``ref{1,2}.mol2`` files are deliberately not used: they are orphans
     (a different molecule than ``ref{1,2}.params``), so seed entries leave
     ``mol2`` unset and exercise only the SMILES-path and serialization checks.
+
+    The seed references carry ``PROTON_CHI`` records, so seed entries request
+    proton-chi sampling (``sample_proton_chi=True``) to emit the matching
+    samples; dataset (mol2) entries keep the production default (off).
     """
     inputs = _load_named_smiles(root / "designs.smi")
     protonated = _load_named_smiles(root / "designs.prot.smi")
@@ -85,6 +89,7 @@ def _seed_entries(root: Path) -> list[LigandParityEntry]:
                 expected_prot_smiles=protonated.get(name, inputs[name]),
                 params=params,
                 mol2=None,
+                sample_proton_chi=True,
             )
         )
     return entries

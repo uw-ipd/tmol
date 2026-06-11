@@ -896,9 +896,9 @@ class TestGroundTruthRegression:
     def ref_data(self, request):
         """Load reference data and run our pipeline for comparison.
 
-        Parametrized from the parity manifest seed entries (AC-7), so adding a
+        Parametrized from the parity manifest seed entries, so adding a
         manifest molecule adds a regression case rather than editing a literal
-        list.
+        list. Per-entry settings (``sample_proton_chi``) drive preparation.
         """
         from rdkit import Chem
 
@@ -930,7 +930,7 @@ class TestGroundTruthRegression:
             name,
             atom_types,
             typing_state=typing_state,
-            sample_proton_chi=True,
+            sample_proton_chi=entry.sample_proton_chi,
         )
 
         return {

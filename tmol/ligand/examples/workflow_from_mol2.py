@@ -20,11 +20,11 @@ CIF/biotite-driven flow); this example focuses on the params-emitting half.
 
 Usage::
 
-    python examples/workflow_from_mol2.py [LIGAND_MOL2] [--out-params PATH]
+    python examples/workflow_from_mol2.py LIGAND_MOL2 [--out-params PATH]
 
-Default ligand (invoked from the repo root with no arguments)::
-
-    LIGAND_MOL2   tmol/tests/data/ligand_ground_truth/ref1.mol2
+A ligand mol2 path is required; supply a prepared mol2 (one whose charges and
+geometry you trust). The orphan ``ref{1,2}.mol2`` test fixtures are not valid
+ligand inputs and are intentionally not used as a default.
 """
 
 from __future__ import annotations
@@ -33,11 +33,6 @@ import argparse
 from pathlib import Path
 
 from tmol.ligand import prepare_ligand_from_mol2, write_params_from_mol2
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_LIGAND = (
-    REPO_ROOT / "tmol" / "tests" / "data" / "ligand_ground_truth" / "ref1.mol2"
-)
 
 
 def run(ligand_mol2: str, res_name: str = "LG1", out_params: Path | None = None):
@@ -63,9 +58,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "ligand",
-        nargs="?",
-        default=str(DEFAULT_LIGAND),
-        help="Ligand mol2 file (default: %(default)s)",
+        help="Ligand mol2 file (required).",
     )
     parser.add_argument(
         "--res-name",
