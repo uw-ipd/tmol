@@ -267,8 +267,10 @@ def _mol2_charge_model(mol2_path: Path) -> str:
             if not stripped:
                 continue
             lines_after_molecule += 1
-            # MOLECULE block: name, counts, comment, type, charge_type, ...
-            if lines_after_molecule == 5:
+            # TRIPOS MOLECULE block order: mol_name, counts, mol_type,
+            # charge_type, [status_bits], [comment]. The charge type is the
+            # 4th non-blank line (optional status/comment follow it).
+            if lines_after_molecule == 4:
                 return stripped.upper()
     return ""
 
