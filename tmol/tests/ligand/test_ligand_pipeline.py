@@ -851,68 +851,16 @@ def test_missing_authoritative_charges_reports_cif_loading_guidance(
 
 
 def _parse_reference_params(path):
-    """Parse a full Rosetta .params file into structured reference data.
+    """Parse a Rosetta .params file into the legacy regression dict.
 
-    Returns a dict with keys: atoms (list of (name, type, charge)),
-    bond_types (set of (a1, a2, order, ring_flag)), cut_bonds (set of
-    frozensets), chis (list of (num, a1, a2, a3, a4, biaryl_flag)),
-    proton_chis (list of raw line strings), nbr_atom (str),
-    icoor_topology (dict of name -> (parent, gp, ggp)).
+    Delegates to the shared :mod:`tmol.ligand.params_reference` parser so the
+    regression suite and the parity harness use one implementation. The dict
+    shape (atoms, bond_types, cut_bonds, chis, proton_chis, nbr_atom,
+    icoor_topology) is preserved for existing callers.
     """
-    atoms = []
-    bond_types = set()
-    cut_bonds = set()
-    chis = []
-    proton_chis = []
-    nbr_atom = ""
-    icoor_topo = {}
+    from tmol.ligand.params_reference import as_legacy_dict, parse_reference_params
 
-    with open(path) as f:
-        for line in f:
-            parts = line.split()
-            if not parts:
-                continue
-
-            if parts[0] == "ATOM" and len(parts) >= 5:
-                name, atype = parts[1], parts[2]
-                charge = float(parts[4])
-                atoms.append((name, atype, charge))
-
-            elif parts[0] == "BOND_TYPE" and len(parts) >= 4:
-                a1, a2 = parts[1].strip(), parts[2].strip()
-                order = parts[3]
-                ring = "RING" if len(parts) >= 5 and parts[4] == "RING" else ""
-                bond_types.add((frozenset([a1, a2]), order, ring))
-
-            elif parts[0] == "CUT_BOND" and len(parts) >= 3:
-                cut_bonds.add(frozenset([parts[1].strip(), parts[2].strip()]))
-
-            elif parts[0] == "CHI" and len(parts) >= 6:
-                chi_num = int(parts[1])
-                quad = (parts[2], parts[3], parts[4], parts[5])
-                biaryl = "#biaryl" in line
-                chis.append((chi_num, quad, biaryl))
-
-            elif parts[0] == "PROTON_CHI":
-                proton_chis.append(line.strip())
-
-            elif parts[0] == "NBR_ATOM" and len(parts) >= 2:
-                nbr_atom = parts[1]
-
-            elif parts[0] == "ICOOR_INTERNAL" and len(parts) >= 8:
-                name = parts[1]
-                parent, gp, ggp = parts[5], parts[6], parts[7]
-                icoor_topo[name] = (parent, gp, ggp)
-
-    return {
-        "atoms": atoms,
-        "bond_types": bond_types,
-        "cut_bonds": cut_bonds,
-        "chis": chis,
-        "proton_chis": proton_chis,
-        "nbr_atom": nbr_atom,
-        "icoor_topology": icoor_topo,
-    }
+    return as_legacy_dict(parse_reference_params(path))
 
 
 def _load_smi_file(path, name):

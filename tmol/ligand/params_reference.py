@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -161,31 +160,230 @@ def reference_charges(
     return parse_reference_params(path_or_ref).charges
 
 
+@dataclass(frozen=True)
+class ChargeComparison:
+    """Outcome of comparing two ``{atom_name: charge}`` maps.
+
+    Attributes:
+        ok: Whether the maps agree under the requested policy.
+        mismatches: ``(name, generated, reference, delta)`` for shared atoms
+            whose absolute difference reaches the tolerance.
+        missing_in_generated: Reference atom names absent from the generated map.
+        extra_in_generated: Generated atom names absent from the reference map.
+    """
+
+    ok: bool
+    mismatches: list[tuple[str, float, float, float]]
+    missing_in_generated: list[str]
+    extra_in_generated: list[str]
+
+
 def compare_charges(
     generated: dict[str, float],
     reference: dict[str, float],
     *,
     tolerance: float,
-) -> tuple[bool, list[tuple[str, float, float, float]]]:
+    require_same_keys: bool = True,
+) -> ChargeComparison:
     """Compare two ``{atom_name: charge}`` maps within a tolerance.
 
-    Only atoms shared by both maps are compared. Returns ``(ok, mismatches)``
-    where each mismatch is ``(name, generated, reference, delta)`` and ``ok``
-    requires at least one shared atom and no out-of-tolerance delta.
+    By default this is a strict by-name comparison: every reference atom must
+    be present in the generated map and vice versa, and every shared atom must
+    agree within ``tolerance``. Pass ``require_same_keys=False`` to accept a
+    subset comparison (shared atoms only) when that is genuinely intended.
 
     Args:
         generated: Charges produced by the pipeline, keyed by atom name.
         reference: Reference charges, keyed by atom name.
         tolerance: Maximum permitted absolute charge difference.
+        require_same_keys: When ``True`` (default), missing or extra atoms make
+            the result non-equivalent.
 
     Returns:
-        ``(ok, mismatches)``.
+        A :class:`ChargeComparison`.
     """
-    shared = sorted(generated.keys() & reference.keys())
+    gen_keys = set(generated)
+    ref_keys = set(reference)
+    missing = sorted(ref_keys - gen_keys)
+    extra = sorted(gen_keys - ref_keys)
+    shared = sorted(gen_keys & ref_keys)
     mismatches = [
         (name, generated[name], reference[name], generated[name] - reference[name])
         for name in shared
         if abs(generated[name] - reference[name]) >= tolerance
     ]
     ok = len(shared) > 0 and len(mismatches) == 0
-    return ok, mismatches
+    if require_same_keys:
+        ok = ok and not missing and not extra
+    return ChargeComparison(
+        ok=ok,
+        mismatches=mismatches,
+        missing_in_generated=missing,
+        extra_in_generated=extra,
+    )
+
+
+def reference_bond_keys(
+    ref: ReferenceParams,
+) -> set[tuple[frozenset[str], str, bool]]:
+    """Return normalized all-atom bond keys for a reference.
+
+    Each key is ``(frozenset{a, b}, normalized_order, ring)`` where
+    ``normalized_order`` maps the Rosetta order token (``1/2/3/4``) onto the
+    tmol bond-type label (``SINGLE/DOUBLE/TRIPLE/AROMATIC``) via the shared
+    table in :mod:`tmol.ligand.params_io`, so a reference and a generated
+    preparation can be compared on the same vocabulary.
+    """
+    from tmol.ligand.params_io import _BOND_TOK_TO_TYPE
+
+    keys: set[tuple[frozenset[str], str, bool]] = set()
+    for pair, order, ring in ref.bond_types:
+        label = _BOND_TOK_TO_TYPE.get(str(order).upper(), "SINGLE")
+        keys.add((pair, label, ring == "RING"))
+    return keys
+
+
+@dataclass(frozen=True)
+class GeneratedFields:
+    """Per-field view of a prepared ligand for exact-by-name comparison.
+
+    Attributes:
+        atom_types: ``{atom_name: atom_type}`` over all atoms (hydrogens too).
+        bond_keys: ``(frozenset{a, b}, order_label, ring)`` over all bonds.
+        icoor_topology: ``atom_name -> (parent, grandparent, great_grandparent)``.
+        nbr_atom: The neighbour (default jump connection) atom name.
+        charges: ``{atom_name: charge}`` over all atoms.
+    """
+
+    atom_types: dict[str, str]
+    bond_keys: frozenset[tuple[frozenset[str], str, bool]]
+    icoor_topology: dict[str, tuple[str, str, str]]
+    nbr_atom: str
+    charges: dict[str, float]
+
+
+def generated_fields_from_preparation(prep: object) -> GeneratedFields:
+    """Extract :class:`GeneratedFields` from a ``LigandPreparation``.
+
+    Reads atom types, all-atom bonds (with order/ring labels), ICOOR topology,
+    the neighbour atom, and partial charges from ``prep.residue_type`` and
+    ``prep.partial_charges``.
+    """
+    rt = prep.residue_type  # type: ignore[attr-defined]
+    atom_types = {str(a.name): a.atom_type for a in rt.atoms}
+    bond_keys = frozenset(
+        (frozenset([str(a), str(b)]), str(order), bool(ring))
+        for a, b, order, ring in rt.bonds
+    )
+    icoor_topology = {
+        ic.name: (ic.parent, ic.grand_parent, ic.great_grand_parent) for ic in rt.icoors
+    }
+    return GeneratedFields(
+        atom_types=atom_types,
+        bond_keys=bond_keys,
+        icoor_topology=icoor_topology,
+        nbr_atom=rt.default_jump_connection_atom,
+        charges=dict(prep.partial_charges),  # type: ignore[attr-defined]
+    )
+
+
+@dataclass(frozen=True)
+class StrictComparison:
+    """Outcome of an exact-by-name comparison against a ``.params`` reference."""
+
+    ok: bool
+    checks: dict[str, bool]
+    details: dict[str, object]
+
+
+def compare_params_strict(
+    generated: GeneratedFields,
+    reference: ReferenceParams,
+    *,
+    charge_tolerance: float = 0.01,
+) -> StrictComparison:
+    """Compare a prepared ligand to a ``.params`` reference exactly, by name.
+
+    Intended for the mol2 path, where atom names, all-atom bonds (including
+    hydrogens), ICOOR topology, and the neighbour atom are preserved and must
+    match exactly; charges must agree within ``charge_tolerance``. Excluded
+    fields (raw coordinates, numeric ``NBR_RADIUS``, cartbonded params) are not
+    consulted here.
+
+    Args:
+        generated: Fields extracted from the prepared ligand.
+        reference: Parsed reference ``.params``.
+        charge_tolerance: Maximum permitted absolute charge difference.
+
+    Returns:
+        A :class:`StrictComparison`.
+    """
+    checks: dict[str, bool] = {}
+    details: dict[str, object] = {}
+
+    ref_types = reference.atom_types
+    type_mismatches = [
+        (n, generated.atom_types.get(n), ref_types.get(n))
+        for n in sorted(set(ref_types) | set(generated.atom_types))
+        if generated.atom_types.get(n) != ref_types.get(n)
+    ]
+    checks["atom_types"] = not type_mismatches
+    if type_mismatches:
+        details["atom_types"] = type_mismatches
+
+    ref_bonds = reference_bond_keys(reference)
+    checks["bonds"] = generated.bond_keys == ref_bonds
+    if not checks["bonds"]:
+        details["bonds"] = {
+            "only_in_generated": sorted(
+                map(_bond_repr, generated.bond_keys - ref_bonds)
+            ),
+            "only_in_reference": sorted(
+                map(_bond_repr, ref_bonds - generated.bond_keys)
+            ),
+        }
+
+    checks["icoor_topology"] = generated.icoor_topology == reference.icoor_topology
+    if not checks["icoor_topology"]:
+        ref_ic = reference.icoor_topology
+        gen_ic = generated.icoor_topology
+        details["icoor_topology"] = [
+            (n, gen_ic.get(n), ref_ic.get(n))
+            for n in sorted(set(ref_ic) | set(gen_ic))
+            if gen_ic.get(n) != ref_ic.get(n)
+        ]
+
+    checks["nbr_atom"] = generated.nbr_atom == reference.nbr_atom
+    if not checks["nbr_atom"]:
+        details["nbr_atom"] = (generated.nbr_atom, reference.nbr_atom)
+
+    charge_cmp = compare_charges(
+        generated.charges, reference.charges, tolerance=charge_tolerance
+    )
+    checks["charges"] = charge_cmp.ok
+    if not charge_cmp.ok:
+        details["charges"] = {
+            "mismatches": charge_cmp.mismatches,
+            "missing_in_generated": charge_cmp.missing_in_generated,
+            "extra_in_generated": charge_cmp.extra_in_generated,
+        }
+
+    return StrictComparison(ok=all(checks.values()), checks=checks, details=details)
+
+
+def _bond_repr(key: tuple[frozenset[str], str, bool]) -> tuple[str, str, str, bool]:
+    pair, order, ring = key
+    a, b = sorted(pair)
+    return (a, b, order, ring)
+
+
+def compare_semantic(generated: object, reference: object, **kwargs: object):
+    """Heavy-atom isomorphism comparison of two ``LigandPreparation`` objects.
+
+    Thin wrapper over :func:`tmol.ligand.equivalence.compare_ligand_preparations`
+    so the parity harness has a single import surface for all comparison modes;
+    no new isomorphism logic is introduced here.
+    """
+    from tmol.ligand.equivalence import compare_ligand_preparations
+
+    return compare_ligand_preparations(generated, reference, **kwargs)  # type: ignore[arg-type]
