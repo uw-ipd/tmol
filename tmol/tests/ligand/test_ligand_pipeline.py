@@ -14,6 +14,7 @@ import pytest
 from tmol.io.pose_stack_from_biotite import canonical_ordering_for_biotite
 from tmol.ligand import prepare_ligands, prepare_single_ligand
 from tmol.ligand.detect import detect_nonstandard_residues
+from tmol.ligand.parity_manifest import load_parity_manifest
 from tmol.ligand.dimorphite_dl import protonate_mol_variants
 from tmol.ligand.params_io import read_params_file, write_params_file
 from tmol.ligand.registry import get_default_cache
@@ -891,9 +892,14 @@ class TestGroundTruthRegression:
     GROUND_TRUTH_DIR = Path(__file__).parent.parent / "data" / "ligand_ground_truth"
     CHARGE_TOLERANCE = 0.01
 
-    @pytest.fixture(params=["ref1", "ref2"])
+    @pytest.fixture(params=load_parity_manifest(), ids=lambda e: e.name)
     def ref_data(self, request):
-        """Load reference data and run our pipeline for comparison."""
+        """Load reference data and run our pipeline for comparison.
+
+        Parametrized from the parity manifest seed entries (AC-7), so adding a
+        manifest molecule adds a regression case rather than editing a literal
+        list.
+        """
         from rdkit import Chem
 
         from tmol.ligand.atom_typing import assign_tmol_atom_types
@@ -901,12 +907,12 @@ class TestGroundTruthRegression:
         from tmol.ligand.residue_builder import build_residue_type
         from tmol.ligand.rdkit_mol import protonate_ligand_mol
 
-        name = request.param
-        gt = self.GROUND_TRUTH_DIR
+        entry = request.param
+        name = entry.name
 
-        input_smi = _load_smi_file(gt / "designs.smi", name)
-        expected_prot_smi = _load_smi_file(gt / "designs.prot.smi", name)
-        ref = _parse_reference_params(gt / f"{name}.params")
+        input_smi = entry.input_smiles
+        expected_prot_smi = entry.expected_prot_smiles
+        ref = _parse_reference_params(entry.params)
 
         rdkit_mol = Chem.MolFromSmiles(input_smi)
         protonated = protonate_ligand_mol(rdkit_mol, ph=7.4)

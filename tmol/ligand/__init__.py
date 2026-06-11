@@ -21,6 +21,7 @@ from tmol.ligand.preparation import (
     prepare_ligand_from_smiles,
     prepare_ligands,
     prepare_single_ligand,
+    write_params_from_mol2,
 )
 from tmol.ligand.registry import LigandPreparation
 
@@ -34,6 +35,7 @@ __all__ = [
     "prepare_ligand_from_mol2",
     "prepare_ligand_from_pdb",
     "prepare_ligand_from_smiles",
+    "write_params_from_mol2",
     "detect_nonstandard_residues",
     "nonstandard_residue_info_from_cif",
     "nonstandard_residue_info_from_mol2",

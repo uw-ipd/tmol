@@ -578,3 +578,42 @@ def _prepare_ligand_from_file(
         param_db, [prep], strict_atom_types=strict_atom_types
     )
     return param_db, rebuild_canonical_ordering(param_db)
+
+
+def write_params_from_mol2(
+    mol2_path: str,
+    out_path: str,
+    *,
+    res_name: str | None = None,
+    ph: float = 7.4,
+    charge_mode: str = "auto",
+    sample_proton_chi: bool = False,
+) -> LigandPreparation:
+    """Prepare a ligand from a mol2 and write a Rosetta ``.params`` file.
+
+    Reads the mol2 (preserving its atom names, coordinates, charges, and bond
+    orders), runs the standard single-ligand preparation, and writes the
+    resulting residue type and partial charges to ``out_path`` in Rosetta
+    ``.params`` format.
+
+    Args:
+        mol2_path: Input ligand mol2 file.
+        out_path: Output ``.params`` path.
+        res_name: Optional residue name (defaults to the mol2's own name).
+        ph: pH used only if the mol2 lacks authoritative charges.
+        charge_mode: Charge policy (default ``auto`` keeps authoritative
+            mol2 charges).
+        sample_proton_chi: Whether to emit proton-chi samples (default off).
+
+    Returns:
+        The :class:`LigandPreparation` that was written.
+    """
+    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand.params_io import write_params_file
+
+    info = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
+    prep = prepare_single_ligand(
+        info, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
+    )
+    write_params_file(prep.residue_type, out_path, prep.partial_charges)
+    return prep
