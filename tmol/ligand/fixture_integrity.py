@@ -35,6 +35,7 @@ class Mol2Summary:
     heavy_names: frozenset[str]
     element_counts: dict[str, int]
     n_bonds: int
+    charge_type: str
 
     @property
     def n_atoms(self) -> int:
@@ -60,6 +61,7 @@ def read_mol2_summary(path: str | Path) -> Mol2Summary:
         A :class:`Mol2Summary`.
     """
     title = ""
+    charge_type = ""
     atom_names: list[str] = []
     heavy_names: set[str] = set()
     element_counts: dict[str, int] = {}
@@ -76,8 +78,11 @@ def read_mol2_summary(path: str | Path) -> Mol2Summary:
                 continue
             if section == "@<TRIPOS>MOLECULE":
                 molecule_line += 1
+                # Block order: 1=name, 2=counts, 3=mol_type, 4=charge_type.
                 if molecule_line == 1 and not title:
                     title = stripped
+                elif molecule_line == 4 and not charge_type:
+                    charge_type = stripped
                 continue
             if section == "@<TRIPOS>ATOM":
                 parts = stripped.split()
@@ -99,23 +104,65 @@ def read_mol2_summary(path: str | Path) -> Mol2Summary:
         heavy_names=frozenset(heavy_names),
         element_counts=element_counts,
         n_bonds=n_bonds,
+        charge_type=charge_type,
     )
+
+
+# Charge-model aliases -> the TRIPOS charge-type tag they require.
+_CHARGE_MODEL_TAGS: dict[str, frozenset[str]] = {
+    "mmff94": frozenset({"MMFF94_CHARGES"}),
+    "user": frozenset({"USER_CHARGES"}),
+    "input": frozenset({"USER_CHARGES"}),
+    "gasteiger": frozenset({"GASTEIGER"}),
+}
+_NO_CHARGE_TAGS = frozenset({"", "NO_CHARGES"})
+
+
+def _charge_model_failure(
+    expected_charge_model: str, mol2_charge_type: str
+) -> str | None:
+    """Return a failure message if the mol2 charge model does not satisfy expected.
+
+    ``'auto'`` (or ``'any'``) accepts any usable charge type (charges present,
+    not ``NO_CHARGES``). A specific alias requires the matching TRIPOS tag. An
+    unrecognized expected model can never be satisfied and fails.
+    """
+    model = expected_charge_model.strip().lower()
+    if model in {"auto", "any"}:
+        if mol2_charge_type.upper() in _NO_CHARGE_TAGS:
+            return (
+                f"charge model: expected usable charges (mode '{model}') "
+                f"but mol2 declares '{mol2_charge_type or 'NONE'}'"
+            )
+        return None
+    accepted = _CHARGE_MODEL_TAGS.get(model)
+    if accepted is None or mol2_charge_type.upper() not in accepted:
+        wanted = sorted(accepted) if accepted else f"<unknown model '{model}'>"
+        return (
+            f"charge model: expected {wanted} for mode "
+            f"'{expected_charge_model}' but mol2 declares "
+            f"'{mol2_charge_type or 'NONE'}'"
+        )
+    return None
 
 
 def require_paired_fixture(
     mol2_path: str | Path,
     reference: ReferenceParams | str | Path,
     *,
-    expected_charge_model: str = "mmff94",
+    expected_charge_model: str = "auto",
 ) -> Mol2Summary:
     """Verify a mol2 and its reference ``.params`` describe the same molecule.
 
     Args:
         mol2_path: Path to the ligand mol2.
         reference: A parsed :class:`ReferenceParams` or a path to a ``.params``.
-        expected_charge_model: The charge model the reference is expected to
-            carry; the gate confirms the reference has a charge for every atom
-            (a stand-in for "the charges are present and authoritative").
+        expected_charge_model: The charge model the mol2 must declare.
+            ``'auto'`` (default) requires usable charges (a charge-type tag that
+            is not ``NO_CHARGES``); an explicit model such as ``'mmff94'``
+            requires the matching TRIPOS tag (``MMFF94_CHARGES``). An
+            unrecognized model can never be satisfied and fails. The gate also
+            confirms the reference carries a charge for every atom.
 
     Returns:
         The :class:`Mol2Summary` on success.
@@ -157,10 +204,13 @@ def require_paired_fixture(
             f"hydrogen presence: mol2={mol2.has_hydrogen} "
             f"params={reference.has_hydrogen}"
         )
+    charge_failure = _charge_model_failure(expected_charge_model, mol2.charge_type)
+    if charge_failure is not None:
+        failures.append(charge_failure)
     if len(reference.charges) != len(reference.atoms):
         failures.append(
-            f"charge model: expected {expected_charge_model} charges on all "
-            f"{len(reference.atoms)} atoms, found {len(reference.charges)}"
+            f"charge coverage: reference has {len(reference.charges)} charges "
+            f"for {len(reference.atoms)} atoms"
         )
 
     if failures:

@@ -24,7 +24,7 @@ _ETHANE_MOL2 = """@<TRIPOS>MOLECULE
 {name}
  8 7 0 0 0
 SMALL
-USER_CHARGES
+{charge_type}
 @<TRIPOS>ATOM
       1 C1   0.000 0.000 0.000 C.3 1 LIG -0.060
       2 C2   1.500 0.000 0.000 C.3 1 LIG -0.060
@@ -68,10 +68,15 @@ NBR_RADIUS 999.0
 """
 
 
-def _write_pair(tmp_path, mol2_name="etha", params_name="etha"):
+def _write_pair(
+    tmp_path,
+    mol2_name="etha",
+    params_name="etha",
+    charge_type="USER_CHARGES",
+):
     mol2 = tmp_path / "lig.mol2"
     params = tmp_path / "lig.params"
-    mol2.write_text(_ETHANE_MOL2.format(name=mol2_name))
+    mol2.write_text(_ETHANE_MOL2.format(name=mol2_name, charge_type=charge_type))
     params.write_text(_ETHANE_PARAMS.format(name=params_name))
     return mol2, params
 
@@ -123,3 +128,43 @@ def test_dud80_ace_1_is_a_valid_pair():
     params = _DUD80 / "params" / "ace_1.params"
     summary = require_paired_fixture(mol2, params)
     assert summary.title == "ace_1"
+
+
+def test_charge_model_mismatch_user_vs_mmff94_is_rejected(tmp_path):
+    # Synthetic mol2 declares USER_CHARGES; requiring mmff94 must fail.
+    mol2, params = _write_pair(tmp_path, charge_type="USER_CHARGES")
+    with pytest.raises(FixtureMismatch) as exc:
+        require_paired_fixture(mol2, params, expected_charge_model="mmff94")
+    assert "charge model" in str(exc.value)
+
+
+def test_charge_model_mmff94_matches(tmp_path):
+    mol2, params = _write_pair(tmp_path, charge_type="MMFF94_CHARGES")
+    require_paired_fixture(mol2, params, expected_charge_model="mmff94")
+
+
+def test_charge_model_unknown_expected_is_rejected(tmp_path):
+    mol2, params = _write_pair(tmp_path, charge_type="MMFF94_CHARGES")
+    with pytest.raises(FixtureMismatch) as exc:
+        require_paired_fixture(mol2, params, expected_charge_model="bogus-model")
+    assert "charge model" in str(exc.value)
+
+
+def test_charge_model_no_charges_fails_auto(tmp_path):
+    mol2, params = _write_pair(tmp_path, charge_type="NO_CHARGES")
+    with pytest.raises(FixtureMismatch) as exc:
+        require_paired_fixture(mol2, params, expected_charge_model="auto")
+    assert "charge model" in str(exc.value)
+
+
+@pytest.mark.skipif(
+    not (_DUD80 / "params" / "ace_1.params").exists(),
+    reason="DUD80 dataset not present (git-ignored)",
+)
+def test_dud80_ace_1_charge_model_enforced():
+    mol2 = _DUD80 / "mol2" / "ace_1.mol2"
+    params = _DUD80 / "params" / "ace_1.params"
+    # dud80 mol2 declares MMFF94_CHARGES.
+    require_paired_fixture(mol2, params, expected_charge_model="mmff94")
+    with pytest.raises(FixtureMismatch):
+        require_paired_fixture(mol2, params, expected_charge_model="bogus-model")
