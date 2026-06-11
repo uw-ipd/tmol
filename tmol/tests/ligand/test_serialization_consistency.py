@@ -9,6 +9,8 @@ import pytest
 from tmol.ligand.parity_manifest import load_parity_manifest
 from tmol.tests.ligand._parity_helpers import (
     prepare_seed_entry,
+    proton_chi_by_axis_from_prep,
+    proton_chi_by_axis_from_reference,
     roundtrip_overlapping_fields,
     write_both_formats,
 )
@@ -53,6 +55,32 @@ def test_charge_perturbation_breaks_consistency(tmp_path):
 
     assert not strict.ok
     assert strict.checks["charges"] is False
+
+
+def test_proton_chi_sample_corruption_breaks_consistency(tmp_path):
+    # ref1 carries PROTON_CHI; corrupting a sample value in the .params must be
+    # caught by the proton-chi comparison (it was previously missed).
+    prep = prepare_seed_entry(_SEED[0])
+    params_path, tmol_path = write_both_formats(prep, tmp_path)
+
+    lines = params_path.read_text().splitlines()
+    corrupted = False
+    for i, line in enumerate(lines):
+        if line.startswith("PROTON_CHI") and "SAMPLES" in line:
+            toks = line.split()
+            si = toks.index("SAMPLES")
+            toks[si + 2] = "999.0"  # corrupt the first sample value
+            lines[i] = " ".join(toks)
+            corrupted = True
+            break
+    assert corrupted, "expected a PROTON_CHI record in ref1 params"
+    params_path.write_text("\n".join(lines) + "\n")
+
+    params_ref = parse_reference_params(params_path)
+    tmol_prep = params_file.load_params_file(tmol_path)[0]
+    assert proton_chi_by_axis_from_reference(params_ref) != (
+        proton_chi_by_axis_from_prep(tmol_prep)
+    )
 
 
 def test_sample_proton_chi_setting_drives_emission():
