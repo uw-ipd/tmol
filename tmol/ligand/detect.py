@@ -8,6 +8,7 @@ nucleotides (polymer-linked).
 
 import functools
 import logging
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -653,6 +654,81 @@ def nonstandard_residue_info_from_smiles(
         partial_charges=None,
         skip_protonation=False,
     )
+
+
+def _dimorphite_protonate_smiles(
+    smiles: str, ph: float = 7.4, precision: float = 0.1
+) -> str:
+    """Return the SMILES pKa-protonated at ``ph`` via Dimorphite-DL.
+
+    Takes the first protonation variant (matching the reference ligand-prep
+    protocol). Falls back to the input SMILES if RDKit cannot parse it or
+    Dimorphite produces no variant.
+    """
+    from tmol.ligand.dimorphite_dl import protonate_mol_variants
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return smiles
+    try:
+        variants = protonate_mol_variants(
+            mol,
+            min_ph=ph,
+            max_ph=ph,
+            pka_precision=precision,
+            max_variants=128,
+            silent=True,
+        )
+    except Exception:
+        logger.warning(
+            "Dimorphite protonation failed for SMILES %r; using input", smiles
+        )
+        return smiles
+    if not variants:
+        return smiles
+    return Chem.MolToSmiles(variants[0])
+
+
+def nonstandard_residue_info_from_smiles_via_mol2(
+    smiles: str,
+    res_name: str | None = None,
+    *,
+    ph: float = 7.4,
+    protonate: bool = True,
+) -> NonStandardResidueInfo:
+    """Construct ``NonStandardResidueInfo`` from a SMILES via the mol2 route.
+
+    Implements the canonical ligand-prep protocol end to end:
+
+    1. optionally pKa-protonate the SMILES with Dimorphite-DL (``protonate``),
+    2. generate a 3D mol2 with MMFF94 partial charges via OpenBabel, then
+    3. read that mol2 with :func:`nonstandard_residue_info_from_mol2`.
+
+    Unlike :func:`nonstandard_residue_info_from_smiles`, this never builds a
+    biotite atom-array from an RDKit embedding and never recomputes MMFF on a
+    reconstructed graph — the OpenBabel MMFF94 charges flow through untouched
+    (``skip_protonation`` / authoritative charges are set by the mol2 reader),
+    so fused-ring aromatics keep correct charges.
+
+    Args:
+        smiles: Ligand SMILES string.
+        res_name: Three-letter residue name (default inferred / ``"LG1"``).
+        ph: Target pH for the Dimorphite protonation step.
+        protonate: When ``True`` (default) run Dimorphite on ``smiles`` first;
+            set ``False`` to pin an already-protonated SMILES verbatim.
+
+    Raises:
+        OpenBabelUnavailableError: If the ``openbabel`` package is missing
+            (this path requires it for the SMILES -> mol2 conversion).
+        ValueError: If OpenBabel cannot build a charged mol2 for ``smiles``.
+    """
+    from tmol.ligand.openbabel_compat import obabel_smiles_to_mol2
+
+    prep_smiles = _dimorphite_protonate_smiles(smiles, ph) if protonate else smiles
+    with tempfile.TemporaryDirectory() as tmpdir:
+        mol2_path = Path(tmpdir) / "ligand.mol2"
+        obabel_smiles_to_mol2(prep_smiles, mol2_path)
+        return nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
 
 
 def _cif_value_order_to_biotite_bond_type(value_order: str, aromatic_flag: str) -> int:

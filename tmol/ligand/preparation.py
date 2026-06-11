@@ -23,7 +23,7 @@ from tmol.ligand.detect import (
     nonstandard_residue_info_from_cif,
     nonstandard_residue_info_from_mol2,
     nonstandard_residue_info_from_pdb,
-    nonstandard_residue_info_from_smiles,
+    nonstandard_residue_info_from_smiles_via_mol2,
 )
 from tmol.ligand.graph_match import match_heavy_atoms
 from tmol.ligand.registry import (
@@ -523,24 +523,29 @@ def prepare_ligand_from_smiles(
     ph: float = 7.4,
     strict_atom_types: bool = False,
     res_name: str | None = None,
-    charge_mode: str = "mmff94",
-    embed_seed: int = 0xC0FFEE,
+    charge_mode: str = "auto",
+    protonate: bool = True,
     sample_proton_chi: bool = False,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a SMILES string and inject it into a database.
 
-    RDKit handles the SMILES parse and 3D embedding by default. If RDKit
-    rejects the SMILES and the optional ``openbabel`` Python package is
-    installed, OB is used as a fallback parser / 3D generator. Atom names
-    are synthesized as ``<element><1-based-index>`` since SMILES carries
-    no atom labels. ``charge_mode`` defaults to ``"mmff94"`` since SMILES
-    carries no partial-charge column.
+    Follows the canonical ligand-prep protocol: Dimorphite-DL pKa-protonates
+    the SMILES at ``ph``, OpenBabel generates a 3D mol2 with MMFF94 partial
+    charges, and that mol2 is read verbatim (atom names, coordinates, charges,
+    and bond orders preserved). The MMFF94 charges flow through untouched —
+    there is no biotite atom-array round-trip or MMFF recompute — so
+    ``charge_mode`` defaults to ``"auto"`` (keep the authoritative mol2
+    charges). This path requires the optional ``openbabel`` package.
+
+    Args:
+        protonate: When ``True`` (default) Dimorphite protonates ``smiles``
+            first; set ``False`` to pin an already-protonated SMILES verbatim.
     """
     if param_db is None:
         param_db = ParameterDatabase.get_default()
 
-    lig = nonstandard_residue_info_from_smiles(
-        smiles, res_name=res_name, seed=embed_seed
+    lig = nonstandard_residue_info_from_smiles_via_mol2(
+        smiles, res_name=res_name, ph=ph, protonate=protonate
     )
     prep = prepare_single_ligand(
         lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi

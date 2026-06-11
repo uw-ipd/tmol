@@ -174,6 +174,63 @@ def obabel_read_smiles(
     return _obmol_to_rdkit_mol(pymol.OBMol)
 
 
+def obabel_smiles_to_mol2(
+    smiles: str,
+    out_path: str | Path,
+    *,
+    forcefield: str = "mmff94",
+    make3d_steps: int = 50,
+    minimize_steps: int = 500,
+) -> Path:
+    """Generate a 3D mol2 with MMFF94 partial charges from a SMILES.
+
+    Mirrors the reference ligand-prep protocol: parse the SMILES, add explicit
+    hydrogens, embed and minimize 3D coordinates with the named force field,
+    compute its partial charges, and write a TRIPOS mol2 whose ``charge_type``
+    is ``MMFF94_CHARGES``. MMFF94 charges are topological (graph-determined), so
+    the exact conformer does not affect them — only atom names / coordinates.
+
+    Args:
+        smiles: A (typically already pKa-protonated) SMILES string.
+        out_path: Destination mol2 path.
+        forcefield: Force field used for 3D embedding, minimization, and the
+            partial-charge model (default ``"mmff94"``).
+        make3d_steps: Steps for the initial ``make3D`` embedding.
+        minimize_steps: Steps for the follow-up ``localopt`` (0 to skip).
+
+    Returns:
+        The ``out_path`` written.
+
+    Raises:
+        OpenBabelUnavailableError: If the ``openbabel`` package is not installed.
+        ValueError: If OB rejects the SMILES, fails 3D generation, or cannot
+            compute partial charges.
+    """
+    openbabel, pybel = _import_openbabel()
+    out_path = Path(out_path)
+    try:
+        pymol = pybel.readstring("smi", smiles)
+    except Exception as exc:
+        raise ValueError(f"OpenBabel could not parse SMILES {smiles!r}") from exc
+    try:
+        pymol.addh()
+        pymol.make3D(forcefield=forcefield, steps=make3d_steps)
+        if minimize_steps:
+            pymol.localopt(forcefield=forcefield, steps=minimize_steps)
+    except Exception as exc:
+        raise ValueError(
+            f"OpenBabel failed to generate 3D coordinates for SMILES {smiles!r}"
+        ) from exc
+    charge_model = openbabel.OBChargeModel.FindType(forcefield)
+    if charge_model is None or not charge_model.ComputeCharges(pymol.OBMol):
+        raise ValueError(
+            f"OpenBabel could not compute {forcefield} partial charges for "
+            f"SMILES {smiles!r}"
+        )
+    pymol.write("mol2", str(out_path), overwrite=True)
+    return out_path
+
+
 def is_available() -> bool:
     """Return True iff the optional ``openbabel`` Python package is importable."""
     try:

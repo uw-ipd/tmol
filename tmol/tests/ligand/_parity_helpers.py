@@ -13,7 +13,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from tmol.ligand import params_file, params_io, prepare_single_ligand
-from tmol.ligand.detect import nonstandard_residue_info_from_smiles
+from tmol.ligand.detect import nonstandard_residue_info_from_smiles_via_mol2
 from tmol.ligand.params_reference import (
     StrictComparison,
     compare_params_strict,
@@ -23,12 +23,18 @@ from tmol.ligand.params_reference import (
 
 
 def prepare_seed_entry(entry):
-    """Prepare a ligand from a parity manifest entry's SMILES.
+    """Prepare a ligand from a parity manifest entry via the SMILES->mol2 route.
 
-    Uses the entry's charge mode and proton-chi setting so the regression is
-    genuinely driven by the manifest.
+    Feeds the entry's *protonated* SMILES (``expected_prot_smiles``) verbatim
+    through the canonical SMILES->mol2->params path: OpenBabel builds a 3D
+    MMFF94 mol2, which is read without an atom-array round-trip. Protonation is
+    pinned (``protonate=False``) so the regression reproduces the ground-truth
+    protonation state deterministically. Uses the entry's charge mode and
+    proton-chi setting so the regression is genuinely driven by the manifest.
     """
-    info = nonstandard_residue_info_from_smiles(entry.input_smiles, res_name=entry.name)
+    info = nonstandard_residue_info_from_smiles_via_mol2(
+        entry.expected_prot_smiles, res_name=entry.name, protonate=False
+    )
     return prepare_single_ligand(
         info,
         charge_mode=entry.charge_mode,
@@ -44,6 +50,32 @@ def _chi_axes_from_reference(ref) -> set:
 def _chi_axes_from_prep(prep) -> set:
     """Return the unordered set of central CHI bond {b, c} pairs from a prep."""
     return {frozenset((tor.b.atom, tor.c.atom)) for tor in prep.residue_type.torsions}
+
+
+def chi_axes_equivalent(prep, ref, *, view=None) -> bool:
+    """Compare prep vs reference CHI axes *name-agnostically*.
+
+    The SMILES->mol2 prep keeps the OpenBabel mol2 atom names, while the Rosetta
+    reference renames atoms (``mol2genparams --rename_atoms``), so axis bond
+    pairs cannot be matched by raw name. Map the prep's heavy-atom names into
+    the reference namespace via the same heavy-atom graph isomorphism used by
+    :func:`compare_semantic`, then compare the resulting axis sets. Returns
+    ``False`` if no isomorphism exists (e.g. a mutated reference graph).
+    """
+    from tmol.ligand.equivalence import _heavy_atom_name_mapping
+
+    if view is None:
+        view = reference_view_from_params(ref)
+    mapping = _heavy_atom_name_mapping(prep.residue_type, view.residue_type)
+    if mapping is None:
+        return False
+    mapped: set = set()
+    for tor in prep.residue_type.torsions:
+        b, c = tor.b.atom, tor.c.atom
+        if b not in mapping or c not in mapping:
+            return False
+        mapped.add(frozenset((mapping[b], mapping[c])))
+    return mapped == _chi_axes_from_reference(ref)
 
 
 def proton_chi_by_axis_from_reference(ref) -> dict:
