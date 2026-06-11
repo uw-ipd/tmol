@@ -36,51 +36,6 @@ def prepare_seed_entry(entry):
     )
 
 
-def prepare_seed_view(entry):
-    """Prepare a seed ligand from SMILES via the validated regression path.
-
-    Mirrors the primitives the ground-truth regression uses (protonate ->
-    add hydrogens -> MMFF94 charges -> atom typing -> residue build), which
-    reproduce the reference charges within tolerance. Returns a
-    ``LigandPreparation``-like view (restype + charges + empty cartbonded).
-
-    This intentionally does not route through ``prepare_single_ligand``: that
-    path currently diverges from the reference on the symmetric aromatic
-    charges of some molecules (a known SMILES-path charge difference, tracked
-    as a queued finding), which the validated primitives do not.
-    """
-    from rdkit import Chem
-
-    from tmol.ligand.atom_typing import assign_tmol_atom_types
-    from tmol.ligand.mol3d import compute_mmff94_charges
-    from tmol.ligand.rdkit_mol import protonate_ligand_mol
-    from tmol.ligand.residue_builder import build_residue_type
-
-    mol = Chem.MolFromSmiles(entry.input_smiles)
-    protonated = protonate_ligand_mol(mol, ph=7.4)
-    protonated = Chem.AddHs(protonated, addCoords=False)
-    charges_by_idx = compute_mmff94_charges(protonated)
-    atom_types, state = assign_tmol_atom_types(protonated, return_state=True)
-    charges = {
-        at.atom_name: charges_by_idx[at.index]
-        for at in atom_types
-        if at.index in charges_by_idx
-    }
-    restype = build_residue_type(
-        protonated,
-        entry.name,
-        atom_types,
-        typing_state=state,
-        sample_proton_chi=entry.sample_proton_chi,
-    )
-    cart = SimpleNamespace(
-        length_parameters=(), angle_parameters=(), improper_parameters=()
-    )
-    return SimpleNamespace(
-        residue_type=restype, partial_charges=charges, cartbonded_params=cart
-    )
-
-
 def _chi_axes_from_reference(ref) -> set:
     """Return the unordered set of central CHI bond {b, c} pairs from a ref."""
     return {frozenset((quad[1], quad[2])) for _n, quad, _biaryl in ref.chis}
