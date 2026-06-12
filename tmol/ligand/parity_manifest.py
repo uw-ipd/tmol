@@ -17,6 +17,16 @@ from pathlib import Path
 from typing import Optional
 
 _DEFAULT_ROOT = Path(__file__).parent.parent / "tests" / "data" / "ligand_ground_truth"
+# The dataset-driven parity set (DUD-80) lives under tests/data/ligand_test:
+# ``ligand_ground_truth`` holds the Rosetta ground truth, ``ligand_tmol_generated``
+# the tmol outputs saved for manual comparison. Kept local (git-ignored).
+_DATASET_ROOT = (
+    Path(__file__).parent.parent
+    / "tests"
+    / "data"
+    / "ligand_test"
+    / "ligand_ground_truth"
+)
 
 
 @dataclass(frozen=True)
@@ -180,6 +190,9 @@ def load_parity_manifest(
 
 
 def default_dataset_manifest(root: str | Path | None = None) -> Path:
-    """Return the conventional dataset manifest path (``dud80/manifest.json``)."""
-    base = Path(root) if root is not None else _DEFAULT_ROOT
-    return base / "dud80" / "manifest.json"
+    """Return the conventional dataset manifest path.
+
+    Defaults to ``tests/data/ligand_test/ligand_ground_truth/manifest.json``.
+    """
+    base = Path(root) if root is not None else _DATASET_ROOT
+    return base / "manifest.json"
