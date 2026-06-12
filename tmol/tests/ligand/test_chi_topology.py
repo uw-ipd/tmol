@@ -353,6 +353,22 @@ def test_biaryl_single_bond_is_heavy_chi():
     assert len(rt.torsions) == 1  # the single inter-ring axis
 
 
+def test_special_biaryl_pivot_ring_to_functional_group():
+    # search_special_biaryl_ring: a ring<->conjugated-functional-group bond is a
+    # biaryl pivot kept as a heavy CHI despite border>1. Verified vs mol2genparams
+    # (both emit a single #biaryl CHI on the ring-C<->substituent-C axis).
+    for smi, name, axis_types in [
+        ("c1ccccc1C(=O)N", "BAM", {"CR", "CDp"}),  # aryl<->amide carbonyl
+        ("c1ccccc1/C=C/C", "STY", {"CR", "CD1"}),  # aryl<->vinyl
+    ]:
+        rt = _restype_from_smiles(smi, name)
+        assert len(rt.torsions) == 1, f"{name}: one biaryl-pivot CHI expected"
+        assert rt.chi_samples == ()  # heavy chi, no proton samples
+        t = rt.torsions[0]
+        types = {a.atom_type for a in rt.atoms if a.name in (t.b.atom, t.c.atom)}
+        assert types == axis_types, f"{name}: {types}"
+
+
 # --- strained ring negative; heavy-only OptHSampler negative -------
 
 
