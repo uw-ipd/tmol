@@ -93,6 +93,22 @@ def obabel_read_mol2(path: str | Path) -> Optional[Chem.Mol]:
     return _obmol_to_rdkit_mol(pymol.OBMol)
 
 
+def obabel_read_mol2_block(mol2_block: str) -> Optional[Chem.Mol]:
+    """Read a TRIPOS mol2 *string* via OpenBabel and return an RDKit ``Chem.Mol``.
+
+    In-memory analogue of :func:`obabel_read_mol2` — use as a fallback when
+    ``Chem.MolFromMol2Block`` returns ``None``. Returns ``None`` if OB could not
+    parse the block. Raises :class:`OpenBabelUnavailableError` if OB is missing.
+    """
+    _, pybel = _import_openbabel()
+    try:
+        pymol = pybel.readstring("mol2", mol2_block)
+    except Exception:
+        logger.warning("OpenBabel failed to parse in-memory mol2 block", exc_info=True)
+        return None
+    return _obmol_to_rdkit_mol(pymol.OBMol)
+
+
 def obabel_read_pdb(
     path: str | Path,
     *,
@@ -174,32 +190,22 @@ def obabel_read_smiles(
     return _obmol_to_rdkit_mol(pymol.OBMol)
 
 
-def obabel_smiles_to_mol2(
+def _build_charged_3d_mol2_mol(
     smiles: str,
-    out_path: str | Path,
     *,
     forcefield: str = "mmff94",
     make3d_steps: int = 50,
     minimize_steps: int = 500,
-) -> Path:
-    """Generate a 3D mol2 with MMFF94 partial charges from a SMILES.
+):
+    """Parse a SMILES, 3D-embed, charge, and rename atoms; return the pybel mol.
 
-    Mirrors the reference ligand-prep protocol: parse the SMILES, add explicit
-    hydrogens, embed and minimize 3D coordinates with the named force field,
-    compute its partial charges, and write a TRIPOS mol2 whose ``charge_type``
-    is ``MMFF94_CHARGES``. MMFF94 charges are topological (graph-determined), so
-    the exact conformer does not affect them — only atom names / coordinates.
-
-    Args:
-        smiles: A (typically already pKa-protonated) SMILES string.
-        out_path: Destination mol2 path.
-        forcefield: Force field used for 3D embedding, minimization, and the
-            partial-charge model (default ``"mmff94"``).
-        make3d_steps: Steps for the initial ``make3D`` embedding.
-        minimize_steps: Steps for the follow-up ``localopt`` (0 to skip).
-
-    Returns:
-        The ``out_path`` written.
+    Shared core of :func:`obabel_smiles_to_mol2` (file) and
+    :func:`obabel_smiles_to_mol2_block` (string). Mirrors the reference
+    ligand-prep protocol: add explicit hydrogens, embed and minimize 3D
+    coordinates with the named force field, compute its partial charges (so the
+    mol2 ``charge_type`` is ``MMFF94_CHARGES``), and assign generic atom names.
+    MMFF94 charges are topological (graph-determined), so the exact conformer
+    does not affect them — only the atom coordinates.
 
     Raises:
         OpenBabelUnavailableError: If the ``openbabel`` package is not installed.
@@ -207,7 +213,6 @@ def obabel_smiles_to_mol2(
             compute partial charges.
     """
     openbabel, pybel = _import_openbabel()
-    out_path = Path(out_path)
     try:
         pymol = pybel.readstring("smi", smiles)
     except Exception as exc:
@@ -228,6 +233,56 @@ def obabel_smiles_to_mol2(
             f"SMILES {smiles!r}"
         )
     _assign_generic_atom_names(openbabel, pymol.OBMol)
+    return pymol
+
+
+def obabel_smiles_to_mol2_block(
+    smiles: str,
+    *,
+    forcefield: str = "mmff94",
+    make3d_steps: int = 50,
+    minimize_steps: int = 500,
+) -> str:
+    """Return a 3D MMFF94 mol2 as an in-memory TRIPOS string (no disk I/O).
+
+    Preferred over :func:`obabel_smiles_to_mol2` for high-throughput batches
+    (e.g. millions of SMILES): the mol2 is handed downstream as a string rather
+    than written to and re-read from a temp file. See
+    :func:`_build_charged_3d_mol2_mol` for the protocol and raised errors.
+    """
+    pymol = _build_charged_3d_mol2_mol(
+        smiles,
+        forcefield=forcefield,
+        make3d_steps=make3d_steps,
+        minimize_steps=minimize_steps,
+    )
+    return pymol.write("mol2")
+
+
+def obabel_smiles_to_mol2(
+    smiles: str,
+    out_path: str | Path,
+    *,
+    forcefield: str = "mmff94",
+    make3d_steps: int = 50,
+    minimize_steps: int = 500,
+) -> Path:
+    """Generate a 3D MMFF94 mol2 from a SMILES and write it to ``out_path``.
+
+    File-writing wrapper around :func:`obabel_smiles_to_mol2_block`; prefer the
+    block form when no on-disk mol2 is required. See
+    :func:`_build_charged_3d_mol2_mol` for the protocol and raised errors.
+
+    Returns:
+        The ``out_path`` written.
+    """
+    pymol = _build_charged_3d_mol2_mol(
+        smiles,
+        forcefield=forcefield,
+        make3d_steps=make3d_steps,
+        minimize_steps=minimize_steps,
+    )
+    out_path = Path(out_path)
     pymol.write("mol2", str(out_path), overwrite=True)
     return out_path
 

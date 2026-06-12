@@ -8,7 +8,6 @@ nucleotides (polymer-linked).
 
 import functools
 import logging
-import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -250,41 +249,51 @@ def _source_subtype_from_mol2_atom_type(mol2_type: str) -> str:
     return parts[1] or "?"
 
 
-def _mol2_charge_model(mol2_path: Path) -> str:
-    """Return the Tripos charge model line from a mol2 file (e.g. ``GASTEIGER``)."""
+def _mol2_charge_model_from_text(mol2_text: str) -> str:
+    """Return the Tripos charge model from mol2 text (e.g. ``GASTEIGER``)."""
     in_molecule = False
     lines_after_molecule = 0
-    with mol2_path.open() as handle:
-        for line in handle:
-            stripped = line.strip()
-            if stripped.startswith("@<TRIPOS>MOLECULE"):
-                in_molecule = True
-                lines_after_molecule = 0
-                continue
-            if not in_molecule:
-                continue
-            if stripped.startswith("@<TRIPOS>"):
-                break
-            if not stripped:
-                continue
-            lines_after_molecule += 1
-            # TRIPOS MOLECULE block order: mol_name, counts, mol_type,
-            # charge_type, [status_bits], [comment]. The charge type is the
-            # 4th non-blank line (optional status/comment follow it).
-            if lines_after_molecule == 4:
-                return stripped.upper()
+    for line in mol2_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("@<TRIPOS>MOLECULE"):
+            in_molecule = True
+            lines_after_molecule = 0
+            continue
+        if not in_molecule:
+            continue
+        if stripped.startswith("@<TRIPOS>"):
+            break
+        if not stripped:
+            continue
+        lines_after_molecule += 1
+        # TRIPOS MOLECULE block order: mol_name, counts, mol_type,
+        # charge_type, [status_bits], [comment]. The charge type is the
+        # 4th non-blank line (optional status/comment follow it).
+        if lines_after_molecule == 4:
+            return stripped.upper()
     return ""
 
 
-def _mol2_partial_charges_are_authoritative(mol2_path: Path) -> bool:
-    """True only when mol2 partial charges are a trusted force-field model."""
-    model = _mol2_charge_model(mol2_path)
+def _mol2_charge_model(mol2_path: Path) -> str:
+    """Return the Tripos charge model line from a mol2 file (e.g. ``GASTEIGER``)."""
+    return _mol2_charge_model_from_text(mol2_path.read_text())
+
+
+def _charge_model_is_authoritative(model: str) -> bool:
+    """True only when a Tripos charge model is a trusted force-field model.
+
+    PLI fixtures and legacy mol2s use Gasteiger; MMFF94/AM1-BCC/etc. are OK.
+    """
     if not model:
         return False
     if model == "GASTEIGER":
         return False
-    # PLI fixtures and legacy mol2s use Gasteiger; MMFF94/AM1-BCC/etc. are OK.
     return True
+
+
+def _mol2_partial_charges_are_authoritative(mol2_path: Path) -> bool:
+    """True only when mol2 partial charges are a trusted force-field model."""
+    return _charge_model_is_authoritative(_mol2_charge_model(mol2_path))
 
 
 def nonstandard_residue_info_from_mol2(
@@ -297,7 +306,10 @@ def nonstandard_residue_info_from_mol2(
     per-atom partial charges when present, avoiding lossy rdkit<->biotite
     round-trips.
     """
-    from tmol.ligand.atom_typing import sanitize_tolerant
+    from tmol.ligand.openbabel_compat import (
+        OpenBabelUnavailableError,
+        obabel_read_mol2,
+    )
 
     path = Path(mol2_path)
     mol = Chem.MolFromMol2File(
@@ -307,11 +319,6 @@ def nonstandard_residue_info_from_mol2(
         cleanupSubstructures=False,
     )
     if mol is None:
-        from tmol.ligand.openbabel_compat import (
-            OpenBabelUnavailableError,
-            obabel_read_mol2,
-        )
-
         try:
             mol = obabel_read_mol2(path)
         except OpenBabelUnavailableError:
@@ -323,9 +330,68 @@ def nonstandard_residue_info_from_mol2(
                 "failed or is not installed)"
             )
         logger.info("Used OpenBabel fallback to parse mol2 %s", path)
+    return _nonstandard_residue_info_from_mol2_mol(
+        mol, _mol2_charge_model(path), res_name, source=str(path)
+    )
+
+
+def nonstandard_residue_info_from_mol2_block(
+    mol2_block: str,
+    res_name: str | None = None,
+) -> NonStandardResidueInfo:
+    """Construct ``NonStandardResidueInfo`` from an in-memory mol2 *string*.
+
+    In-memory analogue of :func:`nonstandard_residue_info_from_mol2` — parses a
+    TRIPOS mol2 block directly, with no temp-file write/read. Preferred for
+    high-throughput SMILES batches (see
+    :func:`nonstandard_residue_info_from_smiles_via_mol2`).
+    """
+    from tmol.ligand.openbabel_compat import (
+        OpenBabelUnavailableError,
+        obabel_read_mol2_block,
+    )
+
+    mol = Chem.MolFromMol2Block(
+        mol2_block,
+        sanitize=False,
+        removeHs=False,
+        cleanupSubstructures=False,
+    )
+    if mol is None:
+        try:
+            mol = obabel_read_mol2_block(mol2_block)
+        except OpenBabelUnavailableError:
+            mol = None
+        if mol is None:
+            raise ValueError(
+                "Could not parse in-memory Mol2 block (RDKit MolFromMol2Block "
+                "failed; OpenBabel fallback also failed or is not installed)"
+            )
+        logger.info("Used OpenBabel fallback to parse in-memory mol2 block")
+    return _nonstandard_residue_info_from_mol2_mol(
+        mol, _mol2_charge_model_from_text(mol2_block), res_name, source="<mol2 block>"
+    )
+
+
+def _nonstandard_residue_info_from_mol2_mol(
+    mol: Chem.Mol,
+    charge_model: str,
+    res_name: str | None,
+    *,
+    source: str,
+) -> NonStandardResidueInfo:
+    """Build ``NonStandardResidueInfo`` from an already-parsed mol2 RDKit mol.
+
+    Shared core of the file and in-memory-block mol2 entry points. ``charge_model``
+    is the TRIPOS ``charge_type`` (already parsed from the source) used to decide
+    whether the per-atom charges are authoritative; ``source`` labels the input in
+    error messages.
+    """
+    from tmol.ligand.atom_typing import sanitize_tolerant
+
     sanitize_tolerant(mol)
     if mol.GetNumConformers() == 0:
-        raise ValueError(f"Mol2 file has no 3D coordinates: {path}")
+        raise ValueError(f"Mol2 input has no 3D coordinates: {source}")
     disambiguated_names = apply_disambiguated_mol2_names(mol)
     conf = mol.GetConformer()
     n_atoms = mol.GetNumAtoms()
@@ -384,8 +450,8 @@ def nonstandard_residue_info_from_mol2(
     )
     atom_array.bonds = struc.BondList(n_atoms, bond_array)
 
-    use_input_charges = (
-        has_full_partial_charges and _mol2_partial_charges_are_authoritative(path)
+    use_input_charges = has_full_partial_charges and _charge_model_is_authoritative(
+        charge_model
     )
     authoritative_q = partial_charges if use_input_charges else None
     return NonStandardResidueInfo(
@@ -744,8 +810,9 @@ def nonstandard_residue_info_from_smiles_via_mol2(
     0. normalize bare radical oxygens (``[O]`` -> ``[O-]``) so source
        carboxylate/sulfonate notation has a well-defined charge,
     1. optionally pKa-protonate the SMILES with Dimorphite-DL (``protonate``),
-    2. generate a 3D mol2 with MMFF94 partial charges via OpenBabel, then
-    3. read that mol2 with :func:`nonstandard_residue_info_from_mol2`.
+    2. generate a 3D mol2 with MMFF94 partial charges via OpenBabel (kept
+       in memory as a string — no temp file), then
+    3. read that mol2 with :func:`nonstandard_residue_info_from_mol2_block`.
 
     Unlike :func:`nonstandard_residue_info_from_smiles`, this never builds a
     biotite atom-array from an RDKit embedding and never recomputes MMFF on a
@@ -765,14 +832,12 @@ def nonstandard_residue_info_from_smiles_via_mol2(
             (this path requires it for the SMILES -> mol2 conversion).
         ValueError: If OpenBabel cannot build a charged mol2 for ``smiles``.
     """
-    from tmol.ligand.openbabel_compat import obabel_smiles_to_mol2
+    from tmol.ligand.openbabel_compat import obabel_smiles_to_mol2_block
 
     smiles = _normalize_radical_oxygens(smiles)
     prep_smiles = _dimorphite_protonate_smiles(smiles, ph) if protonate else smiles
-    with tempfile.TemporaryDirectory() as tmpdir:
-        mol2_path = Path(tmpdir) / "ligand.mol2"
-        obabel_smiles_to_mol2(prep_smiles, mol2_path)
-        return nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
+    mol2_block = obabel_smiles_to_mol2_block(prep_smiles)
+    return nonstandard_residue_info_from_mol2_block(mol2_block, res_name=res_name)
 
 
 def _cif_value_order_to_biotite_bond_type(value_order: str, aromatic_flag: str) -> int:

@@ -214,6 +214,38 @@ def test_smiles_via_mol2_uses_generic_atom_names():
     assert "C1" in info.atom_names
 
 
+def test_obabel_smiles_to_mol2_block_is_in_memory_string():
+    from tmol.ligand.openbabel_compat import obabel_smiles_to_mol2_block
+
+    block = obabel_smiles_to_mol2_block("CC(=O)[O-]")
+    assert isinstance(block, str)
+    assert "@<TRIPOS>MOLECULE" in block and "@<TRIPOS>ATOM" in block
+    assert "MMFF94_CHARGES" in block  # charge_type from the MMFF94 model
+
+
+def test_mol2_block_reader_matches_file_reader(tmp_path):
+    # The in-memory block reader must produce the same NonStandardResidueInfo
+    # as the on-disk file reader for an identical mol2 (no temp-file round-trip).
+    from tmol.ligand.detect import (
+        nonstandard_residue_info_from_mol2,
+        nonstandard_residue_info_from_mol2_block,
+    )
+    from tmol.ligand.openbabel_compat import obabel_smiles_to_mol2_block
+
+    block = obabel_smiles_to_mol2_block("CC(=O)[O-]")
+    via_block = nonstandard_residue_info_from_mol2_block(block, res_name="ACT")
+    mol2_file = tmp_path / "lig.mol2"
+    mol2_file.write_text(block)
+    via_file = nonstandard_residue_info_from_mol2(mol2_file, res_name="ACT")
+
+    assert via_block.atom_names == via_file.atom_names
+    assert (via_block.partial_charges is not None) == (
+        via_file.partial_charges is not None
+    )
+    if via_block.partial_charges is not None:
+        assert via_block.partial_charges == via_file.partial_charges
+
+
 # ---------------------------------------------------------------------------
 # Fallback verification (RDKit returns None -> OB takes over)
 # ---------------------------------------------------------------------------
