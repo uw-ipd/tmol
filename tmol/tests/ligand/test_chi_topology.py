@@ -164,17 +164,15 @@ def test_tetraol_extra_expansion_overflow():
         assert cs.expansions == ()
 
 
-def test_extra_counts_skipped_conjugated_polar_h():
-    # num_H_confs is computed over the PRE-skip polar-H set (RosettaVS parity).
-    # This triol-diacid has 3 emitted aliphatic hydroxyl chis (sp3, 9 each) plus
-    # TWO conjugated carboxylic O-H that are skipped from emission but STILL
-    # counted: 9^3 * (>=6)^2 = at least 26244 > MAX_CONFS(5000) -> EXTRA 0.
-    # If the skipped acids were not counted, 9^3 = 729 <= 5000 would wrongly
-    # give EXTRA 1 20.
+def test_carboxylic_and_aliphatic_polar_h_all_emitted():
+    # Rosetta (verified via mol2genparams) emits proton chis for BOTH aliphatic
+    # hydroxyls AND carboxylic-acid O-H: the carboxyl O is Ohx, outside
+    # CONJUGATING_ACLASSES, so the C-OH bond is not conjugated. 5 sp3 polar-H
+    # chis (9-fold each) -> 9^5 = 59049 > MAX_CONFS(5000) -> EXTRA 0.
     rt = _restype_from_smiles("OCC(O)C(O)C(C(=O)O)C(=O)O", "TDA")
-    assert len(rt.chi_samples) == 3  # only the 3 aliphatic O-H emitted
+    assert len(rt.chi_samples) == 5  # 3 aliphatic + 2 carboxylic O-H
     for cs in rt.chi_samples:
-        assert cs.expansions == ()  # the 2 skipped acid O-H are counted
+        assert cs.expansions == ()
 
 
 def test_fused_ring_emits_no_ring_internal_chi():
@@ -320,16 +318,24 @@ def test_polymer_samplers_skip_ligands(default_database, torch_device):
 
 
 def test_conjugated_polar_h_not_emitted():
-    # Conjugated polar hydrogens (aromatic-attached N-H/O-H, carbonyl O-H/N-H)
-    # are skipped, matching RosettaVS's conjugated-polar-H rule.
+    # Conjugated polar hydrogens on an all-but-one-H center (aniline / primary
+    # amide -NH2) ARE skipped: the C-N bond is conjugated (both classes in
+    # CONJUGATING_ACLASSES) and the N is all-but-one hydrogen. Matches Rosetta.
     for smi, name in [
-        ("Nc1ccccc1", "ANI"),  # aniline
-        ("Oc1ccccc1", "PHN"),  # phenol
-        ("CC(=O)O", "ACD"),  # acetic acid
-        ("CC(=O)N", "AMD"),  # primary amide
+        ("Nc1ccccc1", "ANI"),  # aniline -NH2
+        ("CC(=O)N", "AMD"),  # primary amide -NH2
     ]:
         rt = _restype_from_smiles(smi, name)
         assert rt.chi_samples == (), f"{name}: conjugated polar-H should be skipped"
+
+
+def test_aromatic_and_acid_hydroxyl_polar_h_emitted():
+    # Phenol C-OH and carboxylic-acid C-OH ARE emitted (the O is Ohx, outside
+    # CONJUGATING_ACLASSES, so the bond is not conjugated) — verified against
+    # mol2genparams. tmol previously over-skipped these via RDKit GetIsConjugated.
+    for smi, name in [("Oc1ccccc1", "PHN"), ("CC(=O)O", "ACD")]:
+        rt = _restype_from_smiles(smi, name)
+        assert len(rt.chi_samples) == 1, f"{name}: aromatic/acid O-H expected"
 
 
 def test_aliphatic_polar_h_emitted():
@@ -406,12 +412,12 @@ def test_sample_proton_chi_forwarded_file_paths(
     monkeypatch.setattr(prep, "inject_ligand_preparations", lambda db, preps, **k: db)
     monkeypatch.setattr(prep, "rebuild_canonical_ordering", lambda db: "CO")
 
-    getattr(prep, func_attr)(arg, param_db="DB", sample_proton_chi=True)
-    assert captured.get("sample_proton_chi") is True
+    getattr(prep, func_attr)(arg, param_db="DB", sample_proton_chi=False)
+    assert captured.get("sample_proton_chi") is False
 
     captured.clear()
-    getattr(prep, func_attr)(arg, param_db="DB")  # default
-    assert captured.get("sample_proton_chi") is False
+    getattr(prep, func_attr)(arg, param_db="DB")  # default (now True)
+    assert captured.get("sample_proton_chi") is True
 
 
 def test_sample_proton_chi_forwarded_prepare_ligands(monkeypatch):

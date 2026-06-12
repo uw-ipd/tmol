@@ -475,6 +475,7 @@ def build_residue_type(
     if typing_state is not None:
         from tmol.ligand.chi_topology import build_chi_topology
 
+        atype_by_idx = {at.index: at.atom_type for at in atom_types}
         torsions, chi_samples = build_chi_topology(
             mol,
             order,
@@ -482,6 +483,7 @@ def build_residue_type(
             grandparents,
             atom_names,
             typing_state,
+            atype_by_idx=atype_by_idx,
             logger=logger,
         )
         # Heavy + proton-chi torsions are always emitted (inert for scoring /

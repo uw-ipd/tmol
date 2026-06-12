@@ -59,6 +59,35 @@ MAX_CONFS = 5000
 # Heteroatoms that can carry a rotatable polar hydrogen (O, N, S).
 _POLAR_HEAVY = {7, 8, 16}
 
+# RosettaVS Types.py CONJUGATING_ACLASSES: a single bond is treated as
+# conjugated (for the proton-chi skip) only when BOTH central atom types are in
+# this set. Notably it excludes hydroxyl ``Ohx`` and most carbonyl/carboxyl
+# oxygens, so phenol C-OH and aniline C-NH stay rotatable — unlike RDKit's
+# blanket ``GetIsConjugated()``.
+_CONJUGATING_ACLASSES = frozenset(
+    {
+        "CD",
+        "CD1",
+        "CD2",
+        "CR",
+        "CDp",
+        "CRp",
+        "Nad",
+        "Nin",
+        "Nim",
+        "Ngu1",
+        "Ngu2",
+        "NG2",
+        "NG21",
+        "NG22",
+        "Nad3",
+        "Ofu",
+        "OG2",
+        "Ssl",
+        "SG2",
+    }
+)
+
 
 def _is_heavy(mol: Chem.Mol, idx: int) -> bool:
     return mol.GetAtomWithIdx(idx).GetAtomicNum() != 1
@@ -99,6 +128,7 @@ def build_chi_topology(  # noqa: C901
     atom_names: list,
     typing_state,
     *,
+    atype_by_idx: dict[int, str] | None = None,
     logger=None,
 ) -> tuple[tuple[Torsion, ...], tuple[ChiSamples, ...]]:
     """Classify rotatable bonds and return ``(torsions, chi_samples)``.
@@ -114,6 +144,30 @@ def build_chi_topology(  # noqa: C901
     atms_aro = typing_state.atms_aro
     atms_strained = typing_state.atms_strained
     hyb_by_idx = typing_state.hyb_by_idx
+    atype_by_idx = atype_by_idx or {}
+
+    def _rosetta_bond_conjugated(b: int, c: int) -> bool:
+        """Approximate RosettaVS ``assign_bond_conjugation`` for a single bond.
+
+        A bond is conjugated only when neither atom is sp3 and BOTH atom
+        classes are in :data:`_CONJUGATING_ACLASSES`. This excludes hydroxyl
+        ``Ohx`` and most carbonyl oxygens, so phenol C-OH / aniline C-NH are NOT
+        conjugated (kept as rotatable chis), matching mol2genparams — unlike the
+        blanket RDKit ``GetIsConjugated()`` this replaces. (Geometry-based
+        planarity and biaryl-pivot refinements are not yet ported.)
+        """
+        if hyb_by_idx.get(b, 3) == 3 or hyb_by_idx.get(c, 3) == 3:
+            return False
+        return (
+            atype_by_idx.get(b) in _CONJUGATING_ACLASSES
+            and atype_by_idx.get(c) in _CONJUGATING_ACLASSES
+        )
+
+    def _all_but_one_h(idx: int) -> bool:
+        """True if all but one of ``idx``'s bonds are to hydrogen (Rosetta nH test)."""
+        atom = mol.GetAtomWithIdx(idx)
+        n_h = sum(1 for nb in atom.GetNeighbors() if nb.GetAtomicNum() == 1)
+        return n_h == atom.GetDegree() - 1
 
     # Map each atom to its tree children (atoms whose parent is this atom).
     children: dict[int, list[int]] = {i: [] for i in order}
@@ -242,9 +296,15 @@ def build_chi_topology(  # noqa: C901
             _trace(c, b, "skip: border>1 (amide/nbonded/biaryl default off)")
             continue
 
-        if is_proton and bond.GetIsConjugated():
-            # conjugated polar-H chi skipped (approximation of Rosetta's
-            # per-atom hydrogen-count test)
+        # RosettaVS: skip a conjugated polar-H chi only when the bond is
+        # conjugated (both atom classes conjugating) AND one central atom is
+        # all-but-one hydrogen. Phenol C-OH / aniline C-NH are NOT conjugated
+        # (Ohx / amine-N outside CONJUGATING_ACLASSES), so they survive.
+        if (
+            is_proton
+            and _rosetta_bond_conjugated(b, c)
+            and (_all_but_one_h(b) or _all_but_one_h(c))
+        ):
             _trace(c, b, "skip: conjugated polar-H")
             continue
 
