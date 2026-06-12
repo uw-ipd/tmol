@@ -262,3 +262,35 @@ def test_semantic_comparator_flags_type_change():
     reference.residue_type.atoms[1].atom_type = "Nad"  # break a type
     result = compare_semantic(generated, reference)
     assert not result.is_equivalent
+
+
+def test_semantic_comparator_handles_pdb_carbon_name_collision():
+    # A carbon named "CA" (alpha carbon, from OpenBabel PDB-residue naming) must
+    # not be read as the element calcium: the element comes from the atom_type
+    # (CR -> carbon), so the heavy-atom graph still maps to a generic-named copy.
+    generated = _linear_c3(["CA", "CB", "CG"])
+    reference = _linear_c3(["C1", "C2", "C3"])
+    result = compare_semantic(generated, reference)
+    assert result.is_equivalent
+
+
+def test_element_from_atom_type_prefixes():
+    from tmol.ligand.equivalence import _element_from_atom_type
+
+    cases = {
+        "CS1": "C",
+        "CR": "C",
+        "CDp": "C",
+        "Oat": "O",
+        "Nad": "N",
+        "Sth": "S",
+        "Cl": "Cl",
+        "ClR": "Cl",
+        "Br": "Br",
+        "BrR": "Br",
+        "F": "F",
+        "I": "I",
+    }
+    for atom_type, element in cases.items():
+        assert _element_from_atom_type(atom_type) == element, atom_type
+    assert _element_from_atom_type("") is None

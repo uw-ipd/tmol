@@ -227,8 +227,30 @@ def obabel_smiles_to_mol2(
             f"OpenBabel could not compute {forcefield} partial charges for "
             f"SMILES {smiles!r}"
         )
+    _assign_generic_atom_names(openbabel, pymol.OBMol)
     pymol.write("mol2", str(out_path), overwrite=True)
     return out_path
+
+
+def _assign_generic_atom_names(openbabel, obmol) -> None:
+    """Rename atoms to generic ``<element><1-based-per-element-index>``.
+
+    For peptide-like ligands ``make3D`` perceives amino-acid residues and writes
+    PDB atom names (``CA``, ``CB``, ``OXT``) into the mol2. Those collide with
+    element symbols (``CA`` = carbon-alpha vs calcium), which can confuse
+    name-based element inference downstream. Generic names (``C1``, ``N1``, …)
+    are element-unambiguous and match the conventional SMILES->PDB->mol2
+    ligand-prep output. Chemistry (elements, coordinates, bonds, charges) is
+    untouched — only the labels change.
+    """
+    periodic_table = Chem.GetPeriodicTable()
+    counts: dict[str, int] = {}
+    for atom in openbabel.OBMolAtomIter(obmol):
+        symbol = periodic_table.GetElementSymbol(atom.GetAtomicNum())
+        counts[symbol] = counts.get(symbol, 0) + 1
+        residue = atom.GetResidue()
+        if residue is not None:
+            residue.SetAtomID(atom, f"{symbol}{counts[symbol]}")
 
 
 def is_available() -> bool:

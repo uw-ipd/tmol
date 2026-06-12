@@ -198,6 +198,22 @@ def test_smiles_via_mol2_deprotonates_bare_o_carboxylate():
     assert abs(carboxylate[0] - carboxylate[1]) < 0.05
 
 
+def test_smiles_via_mol2_uses_generic_atom_names():
+    from tmol.ligand.detect import nonstandard_residue_info_from_smiles_via_mol2
+
+    # A peptidomimetic SMILES makes OpenBabel perceive amino-acid residues and
+    # assign PDB atom names (CA, CB, OXT). The path must emit generic,
+    # element-unambiguous names so nothing collides with an element symbol
+    # (CA == carbon-alpha would otherwise be mistaken for calcium).
+    info = nonstandard_residue_info_from_smiles_via_mol2(
+        "C[C@H](NC(=O)[C@@H](CS)[C@@H](C)c1ccccc1)C(=O)[O-]", res_name="ACE"
+    )
+    element_symbols = {"CL", "BR", "NA", "MG", "ZN", "FE", "CA"}
+    colliding = [n for n in info.atom_names if n.upper() in element_symbols]
+    assert not colliding, info.atom_names
+    assert "C1" in info.atom_names
+
+
 # ---------------------------------------------------------------------------
 # Fallback verification (RDKit returns None -> OB takes over)
 # ---------------------------------------------------------------------------
