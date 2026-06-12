@@ -41,6 +41,8 @@ class ScoreFunction:
         self._param_db = param_db
         self._device = device
 
+        self.term_options = {}
+
     def set_weight(self, st: ScoreType, weight: float):
         if not self.score_type_covered_by_contained_term(st):
             self.retrieve_term_for_score_type(st)
@@ -193,6 +195,16 @@ class ScoreFunction:
             energy_term.setup_packed_block_types(pose_stack.packed_block_types)
         for energy_term in self.all_terms():
             energy_term.setup_poses(pose_stack)
+        for energy_term in self.all_terms():
+            energy_term.set_options(self.term_options)
+
+    def set_option(self, key: str, value):
+        """Set an option for all energy terms.
+
+        Options are passed to each energy term's set_options method
+        as a dictionary during pre_work_initialization.
+        """
+        self.term_options[key] = value
 
     def weights_tensor(self):
         if self._weights_tensor_out_of_date:
