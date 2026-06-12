@@ -413,14 +413,9 @@ def prepare_ligands(
         canonical_ordering = rebuild_canonical_ordering(param_db)
 
         if params_output:
-            from tmol.ligand.params_file import write_params_file
+            from tmol.ligand.params_io import write_params_file
 
-            all_residues = [p.residue_type for p in preparations]
-            all_charges = {p.residue_type.name: p.partial_charges for p in preparations}
-            all_cartbonded = {
-                p.residue_type.name: p.cartbonded_params for p in preparations
-            }
-            write_params_file(params_output, all_residues, all_charges, all_cartbonded)
+            write_params_file(preparations, params_output, format="tmol")
             logger.info("Wrote params to %s", params_output)
 
     return param_db, canonical_ordering
@@ -620,5 +615,5 @@ def write_params_from_mol2(
     prep = prepare_single_ligand(
         info, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
     )
-    write_params_file(prep.residue_type, out_path, prep.partial_charges)
+    write_params_file(prep, out_path, format="rosetta")
     return prep

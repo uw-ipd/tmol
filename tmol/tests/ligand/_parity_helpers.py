@@ -8,7 +8,7 @@ two formats share).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -165,16 +165,15 @@ def write_both_formats(prep, out_dir, *, params_charges=None):
     uses the preparation's own charges.
     """
     out_dir = Path(out_dir)
-    rt = prep.residue_type
     params_path = out_dir / "rt.params"
     tmol_path = out_dir / "rt.tmol"
-    params_io.write_params_file(rt, params_path, params_charges or prep.partial_charges)
-    params_file.write_params_file(
-        tmol_path,
-        [rt],
-        {rt.name: prep.partial_charges},
-        {rt.name: prep.cartbonded_params},
+    rosetta_prep = (
+        prep
+        if params_charges is None
+        else replace(prep, partial_charges=params_charges)
     )
+    params_io.write_params_file(rosetta_prep, params_path, format="rosetta")
+    params_io.write_params_file(prep, tmol_path, format="tmol")
     return params_path, tmol_path
 
 

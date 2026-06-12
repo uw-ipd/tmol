@@ -1,13 +1,17 @@
-"""Read and write classic Rosetta .params files.
+"""Read and write ligand params files (Rosetta ``.params`` and tmol ``.tmol``).
 
-Provides interoperability with Rosetta's params file format for ligand
-residue types. Writing produces a standard Rosetta-compatible params file;
-reading parses one into a tmol RawResidueType.
+Single home for ligand params I/O. :func:`write_params_file` serializes a
+:class:`~tmol.ligand.registry.LigandPreparation` to either format; the Rosetta
+reader :func:`read_params_file` and (re-exported) tmol reader cover the inputs.
 """
 
 import logging
 import math
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Mapping
+
+import cattr
+import yaml
 
 from tmol.database.chemical import (
     Atom,
@@ -20,6 +24,11 @@ from tmol.database.chemical import (
     Torsion,
     UnresolvedAtom,
 )
+from tmol.database.scoring.cartbonded import CartRes
+from tmol.database.scoring.elec import PartialCharges
+
+if TYPE_CHECKING:
+    from tmol.ligand.registry import LigandPreparation
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +52,7 @@ def _chi_number(name: str) -> int:
     return 0
 
 
-def write_params_file(
+def _write_rosetta_params_file(
     restype: RawResidueType,
     path: str | Path,
     partial_charges: dict[str, float] | None = None,
@@ -238,3 +247,216 @@ def read_params_file(path: str | Path) -> RawResidueType:
         chi_samples=tuple(chi_proton[n] for n in sorted(chi_proton)),
         default_jump_connection_atom=nbr_atom or (atoms[0].name if atoms else ""),
     )
+
+
+# --- tmol .tmol YAML writer --------------------------------------------------
+# Frank's hand-curated reference `.tmol` files use a hybrid layout: a
+# block-style outer list (one entry per line) of flow-style entries
+# (`{name: C1, ...}`). The helpers + `_CompactDumper` below reproduce that
+# style so writer output is byte-close to the reference, which keeps regression
+# diffs readable and the injection-equivalence tests strict.
+
+_OMIT_IF_EMPTY_FIELDS = ("torsions",)
+_PROPERTIES_OMIT_IF_DEFAULT: dict[str, Any] = {}
+_POLYMER_OMIT_IF_DEFAULT: dict[str, Any] = {}
+
+
+def _radians_to_deg_str(val: float) -> str:
+    """Format a radian angle as a ``"<deg> deg"`` string (Frank's convention)."""
+    return f"{math.degrees(val):.6f} deg"
+
+
+def _unstructure_residue(rt: RawResidueType) -> dict[str, Any]:
+    """Unstructure a RawResidueType to a YAML-friendly dict.
+
+    Output matches the compact style Frank uses for ligand ``.tmol`` files:
+    flow-style atoms/bonds (one entry per line), icoor angles re-formatted as
+    degree strings, and optional fields with default values omitted entirely so
+    the output is byte-close to a hand-curated reference.
+    """
+    d = cattr.unstructure(rt)
+
+    # Drop empty optional collections that Frank's references omit.
+    for f in _OMIT_IF_EMPTY_FIELDS:
+        if f in d and not d[f]:
+            del d[f]
+
+    # Trim default polymer/protonation fields when they match the neutral
+    # non-polymer ligand defaults (the only setting the pipeline emits).
+    props = d.get("properties")
+    if isinstance(props, dict):
+        for k, default in _PROPERTIES_OMIT_IF_DEFAULT.items():
+            if k in props and props[k] == default:
+                del props[k]
+        polymer = props.get("polymer")
+        if isinstance(polymer, dict):
+            for k, default in _POLYMER_OMIT_IF_DEFAULT.items():
+                if k in polymer and polymer[k] == default:
+                    del polymer[k]
+
+    for ic in d.get("icoors", []):
+        if isinstance(ic.get("phi"), (int, float)):
+            ic["phi"] = _radians_to_deg_str(ic["phi"])
+        if isinstance(ic.get("theta"), (int, float)):
+            ic["theta"] = _radians_to_deg_str(ic["theta"])
+        # Round bond distances to match Frank's 6-decimal convention.
+        if isinstance(ic.get("d"), float):
+            rounded = round(ic["d"], 6)
+            ic["d"] = float(f"{rounded:g}")
+
+    # Trim ``UnresolvedAtom`` defaults inside torsion entries and emit them
+    # flow-style (``{atom: C3}``) — Frank's references keep only ``atom``.
+    for tor in d.get("torsions", []):
+        for k in ("a", "b", "c", "d"):
+            ua = tor.get(k)
+            if isinstance(ua, dict):
+                if ua.get("connection") is None:
+                    ua.pop("connection", None)
+                if ua.get("bond_sep_from_conn") is None:
+                    ua.pop("bond_sep_from_conn", None)
+                tor[k] = _flow_atom(ua)
+    return d
+
+
+class _FlowList(list):
+    """Marker subtype: yaml dumper emits this list in flow style ([...])."""
+
+
+def _flow_list_representer(dumper: Any, data: _FlowList) -> Any:
+    """Represent a list in compact flow-style YAML."""
+    return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
+
+
+def _flow_dict_representer(dumper: Any, data: dict[str, Any]) -> Any:
+    """Represent a dict in compact flow-style YAML."""
+    return dumper.represent_mapping("tag:yaml.org,2002:map", data, flow_style=True)
+
+
+class _CompactDumper(yaml.SafeDumper):
+    pass
+
+
+_CompactDumper.add_representer(_FlowList, _flow_list_representer)
+
+
+def _flow_atom(d: dict[str, Any]) -> dict[str, Any]:
+    """Mark an atom dict for flow-style emission."""
+    out = dict(d)
+
+    class _FlowDict(dict):
+        pass
+
+    _CompactDumper.add_representer(_FlowDict, _flow_dict_representer)
+    return _FlowDict(out)
+
+
+def _compactify_residue(d: dict[str, Any]) -> dict[str, Any]:
+    """Block-style outer list with flow-style entries (matches Frank's tmol).
+
+    Each atom / bond / icoor lives on its own line via the block-style outer
+    ``-`` marker, but its fields are emitted on a single line via the flow-style
+    dict / list. Mirrors Frank's hand-curated layout.
+    """
+    if "atoms" in d:
+        d["atoms"] = [_flow_atom(a) for a in d["atoms"]]
+    if "bonds" in d:
+        # Sort bonds: SINGLE first (in input order), then non-SINGLE in input
+        # order — matches Frank's reference layout.
+        bonds = list(d["bonds"])
+        single = [b for b in bonds if (b[2] if len(b) > 2 else "SINGLE") == "SINGLE"]
+        other = [b for b in bonds if (b[2] if len(b) > 2 else "SINGLE") != "SINGLE"]
+        d["bonds"] = [_FlowList(b) for b in single + other]
+    if "icoors" in d:
+        d["icoors"] = [_flow_atom(ic) for ic in d["icoors"]]
+    return d
+
+
+def _write_tmol_params_file(
+    path: str | Path,
+    residue_types: list[RawResidueType],
+    charges: Mapping[str, dict[str, float]],
+    cartbonded: Mapping[str, CartRes],
+) -> None:
+    """Write prepared ligand data to a tmol params YAML (``.tmol``) file.
+
+    Output style matches Frank's reference ``.tmol`` files: flow-style atom/bond
+    entries (one record per line) and omitted defaults so the file is byte-close
+    to a hand-curated example. Supports one or more residues per file.
+    """
+    charge_list = [
+        _flow_atom(cattr.unstructure(PartialCharges(res=res, atom=atom, charge=charge)))
+        for res, cmap in charges.items()
+        for atom, charge in cmap.items()
+    ]
+
+    cartbonded_payload: dict[str, Any] = {}
+    for k, v in cartbonded.items():
+        cb = cattr.unstructure(v)
+        for group_key in (
+            "length_parameters",
+            "angle_parameters",
+            "torsion_parameters",
+            "improper_parameters",
+            "hxltorsion_parameters",
+        ):
+            if group_key in cb:
+                cb[group_key] = _FlowList(_flow_atom(g) for g in cb[group_key])
+        cartbonded_payload[k] = cb
+
+    payload: dict[str, Any] = {
+        "chemical": {
+            "residues": [
+                _compactify_residue(_unstructure_residue(r)) for r in residue_types
+            ],
+        },
+        "elec": {
+            "atom_charge_parameters": _FlowList(charge_list),
+        },
+        "cartbonded": {
+            "residue_params": cartbonded_payload,
+        },
+    }
+
+    with Path(path).open("w") as f:
+        yaml.dump(
+            payload, f, Dumper=_CompactDumper, sort_keys=False, default_flow_style=False
+        )
+
+
+def write_params_file(
+    preparation: "LigandPreparation | list[LigandPreparation]",
+    path: str | Path,
+    format: str = "rosetta",
+) -> None:
+    """Write a ligand ``LigandPreparation`` as a Rosetta ``.params`` or tmol ``.tmol``.
+
+    Args:
+        preparation: A :class:`~tmol.ligand.registry.LigandPreparation` (its
+            ``residue_type`` / ``partial_charges`` / ``cartbonded_params`` are
+            used), or a list of them. ``"rosetta"`` requires exactly one;
+            ``"tmol"`` accepts one or more residues in a single file.
+        path: Output file path.
+        format: ``"rosetta"`` (classic Rosetta ``.params``) or ``"tmol"``
+            (tmol YAML ``.tmol``).
+    """
+    preps = (
+        list(preparation) if isinstance(preparation, (list, tuple)) else [preparation]
+    )
+    fmt = str(format).lower()
+    if fmt == "rosetta":
+        if len(preps) != 1:
+            raise ValueError(
+                "rosetta .params holds exactly one residue; "
+                f"got {len(preps)} preparations"
+            )
+        prep = preps[0]
+        _write_rosetta_params_file(prep.residue_type, path, prep.partial_charges)
+    elif fmt == "tmol":
+        _write_tmol_params_file(
+            path,
+            [p.residue_type for p in preps],
+            {p.residue_type.name: p.partial_charges for p in preps},
+            {p.residue_type.name: p.cartbonded_params for p in preps},
+        )
+    else:
+        raise ValueError(f"unknown params format {format!r} (use 'rosetta' or 'tmol')")

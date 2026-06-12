@@ -694,10 +694,10 @@ class TestParamsRoundtrip:
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
         i4b = next(lig for lig in ligands if lig.res_name == "I4B")
         prep = prepare_single_ligand(i4b)
-        restype, charges = prep.residue_type, prep.partial_charges
+        restype = prep.residue_type
 
         path = tmp_path / "I4B.params"
-        write_params_file(restype, path, partial_charges=charges)
+        write_params_file(prep, path, format="rosetta")
         loaded = read_params_file(path)
 
         assert loaded.name == "I4B"
@@ -712,10 +712,10 @@ class TestParamsRoundtrip:
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
         i4b = next(lig for lig in ligands if lig.res_name == "I4B")
         prep = prepare_single_ligand(i4b)
-        restype, charges = prep.residue_type, prep.partial_charges
+        restype = prep.residue_type
 
         path = tmp_path / "I4B_bondtypes.params"
-        write_params_file(restype, path, partial_charges=charges)
+        write_params_file(prep, path, format="rosetta")
         loaded = read_params_file(path)
 
         assert all(len(b) == 4 for b in loaded.bonds)

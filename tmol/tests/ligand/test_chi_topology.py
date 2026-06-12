@@ -210,12 +210,15 @@ def test_torsion_quads_are_valid_bonded_paths():
 
 
 def test_params_io_chi_proton_chi_roundtrip(tmp_path):
+    from tmol.ligand.params_file import _empty_cartres
     from tmol.ligand.params_io import read_params_file, write_params_file
+    from tmol.ligand.registry import LigandPreparation
 
     rt = _restype_from_smiles("OCCO", "EDO")
     assert rt.torsions and rt.chi_samples  # has both heavy + proton chis
     out = tmp_path / "edo.params"
-    write_params_file(rt, out)
+    prep = LigandPreparation(rt, {}, _empty_cartres())
+    write_params_file(prep, out, format="rosetta")
 
     text = out.read_text()
     assert "CHI " in text and "PROTON_CHI " in text
@@ -471,7 +474,9 @@ def _proton_by_axis(restype):
 def test_params_io_read_write_read_roundtrip(tmp_path):
     # Start from a hand-written .params with CHI + PROTON_CHI, write it back,
     # read again; the semantic content (axes, samples, expansions) is stable.
+    from tmol.ligand.params_file import _empty_cartres
     from tmol.ligand.params_io import read_params_file, write_params_file
+    from tmol.ligand.registry import LigandPreparation
 
     src = tmp_path / "src.params"
     src.write_text(
@@ -485,7 +490,9 @@ def test_params_io_read_write_read_roundtrip(tmp_path):
     rt1 = read_params_file(src)
     assert len(rt1.torsions) == 2 and len(rt1.chi_samples) == 1
     out = tmp_path / "out.params"
-    write_params_file(rt1, out)
+    write_params_file(
+        LigandPreparation(rt1, {}, _empty_cartres()), out, format="rosetta"
+    )
     rt2 = read_params_file(out)
     assert _axes(rt2) == _axes(rt1)
     assert _proton_by_axis(rt2) == _proton_by_axis(rt1)
@@ -497,8 +504,9 @@ def test_tmol_yaml_roundtrip_preserves_chi(tmp_path):
     # tmol .tmol YAML path (params_file.py) round-trips non-empty torsions and
     # chi_samples. cartbonded is built with the same helper the prep pipeline
     # uses; charges are dummy (orthogonal to chi topology).
-    from tmol.ligand.params_file import load_params_file, write_params_file
-    from tmol.ligand.registry import _build_cartbonded_params
+    from tmol.ligand.params_file import load_params_file
+    from tmol.ligand.params_io import write_params_file
+    from tmol.ligand.registry import LigandPreparation, _build_cartbonded_params
 
     rt = _restype_from_smiles("OCCO", "EDO")
     assert rt.torsions and rt.chi_samples
@@ -506,7 +514,7 @@ def test_tmol_yaml_roundtrip_preserves_chi(tmp_path):
     cart = _build_cartbonded_params(rt)
 
     out = tmp_path / "edo.tmol"
-    write_params_file(out, [rt], {"EDO": charges}, {"EDO": cart})
+    write_params_file(LigandPreparation(rt, charges, cart), out, format="tmol")
     rt2 = load_params_file(out)[0].residue_type
     assert _axes(rt2) == _axes(rt)
     assert _proton_by_axis(rt2) == _proton_by_axis(rt)
