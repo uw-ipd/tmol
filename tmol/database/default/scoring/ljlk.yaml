@@ -1,6 +1,7 @@
 global_parameters:
   max_dis : 6.0
   lj_dlin_sigma_factor : 0.6
+  lj_dlin_sigma_factor_soft : 0.91
   lj_hbond_OH_donor_dis : 2.6
   lj_hbond_hdis : 1.75
   lj_hbond_dis : 3.0

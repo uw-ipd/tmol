@@ -26,6 +26,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         self.type_params = ljlk_param_resolver.type_params
         self.global_params = ljlk_param_resolver.global_params
         self.tile_size = LJLKEnergyTerm.tile_size
+        self.soft_repulsive = False
 
     @classmethod
     def class_name(cls):
@@ -39,6 +40,10 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
 
     def n_bodies(self):
         return 2
+
+    def set_options(self, options: dict):
+        if "soft_rep" in options:
+            self.soft_repulsive = options["soft_rep"]
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(LJLKEnergyTerm, self).setup_block_type(block_type)
@@ -119,7 +124,11 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             _t(
                 [
                     self.global_params.max_dis,
-                    self.global_params.lj_dlin_sigma_factor,
+                    (
+                        self.global_params.lj_dlin_sigma_factor_soft
+                        if self.soft_repulsive
+                        else self.global_params.lj_dlin_sigma_factor
+                    ),
                     self.global_params.lj_hbond_dis,
                     self.global_params.lj_hbond_OH_donor_dis,
                     self.global_params.lj_hbond_hdis,
