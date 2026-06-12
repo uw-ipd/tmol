@@ -88,6 +88,17 @@ def _write_rosetta_params_file(
 
     lines.append("NBR_RADIUS 999.0")
 
+    # ICOOR_INTERNAL comes BEFORE CHI / PROTON_CHI, matching Rosetta's
+    # mol2genparams layout (NBR_RADIUS -> ICOOR_INTERNAL -> CHI -> PROTON_CHI).
+    for ic in restype.icoors:
+        phi_deg = math.degrees(ic.phi)
+        theta_deg = math.degrees(ic.theta)
+        lines.append(
+            f"ICOOR_INTERNAL {ic.name:4s} {phi_deg:11.6f} {theta_deg:11.6f} "
+            f"{ic.d:11.6f} {ic.parent:4s} {ic.grand_parent:4s} "
+            f"{ic.great_grand_parent:4s}"
+        )
+
     # CHI / PROTON_CHI rotatable-bond DOFs. One CHI line per named torsion;
     # PROTON_CHI lines carry the sample/expansion data for polar-hydrogen chis.
     # Rosetta-only annotations (e.g. a trailing "#biaryl" comment) are NOT
@@ -107,15 +118,6 @@ def _write_rosetta_params_file(
             else:
                 extra = "EXTRA 0"
             lines.append(f"PROTON_CHI {n} SAMPLES {len(cs.samples)} {samples} {extra}")
-
-    for ic in restype.icoors:
-        phi_deg = math.degrees(ic.phi)
-        theta_deg = math.degrees(ic.theta)
-        lines.append(
-            f"ICOOR_INTERNAL {ic.name:4s} {phi_deg:11.6f} {theta_deg:11.6f} "
-            f"{ic.d:11.6f} {ic.parent:4s} {ic.grand_parent:4s} "
-            f"{ic.great_grand_parent:4s}"
-        )
 
     with open(path, "w") as f:
         f.write("\n".join(lines))
