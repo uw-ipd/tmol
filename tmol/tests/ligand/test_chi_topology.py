@@ -520,6 +520,24 @@ def test_tmol_yaml_roundtrip_preserves_chi(tmp_path):
     assert _proton_by_axis(rt2) == _proton_by_axis(rt)
 
 
+def test_write_rosetta_params_list_one_file_per_residue(tmp_path):
+    # A list of preparations + format="rosetta" writes one .params per residue,
+    # named by the residue type, into the directory `path`.
+    from tmol.ligand.params_file import _empty_cartres
+    from tmol.ligand.params_io import read_params_file, write_params_file
+    from tmol.ligand.registry import LigandPreparation
+
+    preps = [
+        LigandPreparation(_restype_from_smiles("OCCO", "EDO"), {}, _empty_cartres()),
+        LigandPreparation(_restype_from_smiles("CC", "ETA"), {}, _empty_cartres()),
+    ]
+    write_params_file(preps, tmp_path, format="rosetta")
+    assert (tmp_path / "EDO.params").is_file()
+    assert (tmp_path / "ETA.params").is_file()
+    assert read_params_file(tmp_path / "EDO.params").name == "EDO"
+    assert read_params_file(tmp_path / "ETA.params").name == "ETA"
+
+
 # --- ref1/ref2 inject -> ParameterDatabase -> CanonicalOrdering
 
 

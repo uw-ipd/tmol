@@ -433,24 +433,34 @@ def write_params_file(
     Args:
         preparation: A :class:`~tmol.ligand.registry.LigandPreparation` (its
             ``residue_type`` / ``partial_charges`` / ``cartbonded_params`` are
-            used), or a list of them. ``"rosetta"`` requires exactly one;
-            ``"tmol"`` accepts one or more residues in a single file.
-        path: Output file path.
+            used), or a list of them.
+        path: Output path. Its meaning depends on the format and whether a list
+            was passed:
+
+            * single preparation -> ``path`` is the output file (either format);
+            * ``"rosetta"`` + list -> ``path`` is a **directory**; each
+              preparation is written to ``<path>/<residue_type.name>.params``
+              (a ``.params`` holds a single residue);
+            * ``"tmol"`` (single or list) -> ``path`` is a single file holding
+              all residues.
         format: ``"rosetta"`` (classic Rosetta ``.params``) or ``"tmol"``
             (tmol YAML ``.tmol``).
     """
-    preps = (
-        list(preparation) if isinstance(preparation, (list, tuple)) else [preparation]
-    )
+    is_list = isinstance(preparation, (list, tuple))
+    preps = list(preparation) if is_list else [preparation]
     fmt = str(format).lower()
     if fmt == "rosetta":
-        if len(preps) != 1:
-            raise ValueError(
-                "rosetta .params holds exactly one residue; "
-                f"got {len(preps)} preparations"
-            )
-        prep = preps[0]
-        _write_rosetta_params_file(prep.residue_type, path, prep.partial_charges)
+        if is_list:
+            out_dir = Path(path)
+            for prep in preps:
+                _write_rosetta_params_file(
+                    prep.residue_type,
+                    out_dir / f"{prep.residue_type.name}.params",
+                    prep.partial_charges,
+                )
+        else:
+            prep = preps[0]
+            _write_rosetta_params_file(prep.residue_type, path, prep.partial_charges)
     elif fmt == "tmol":
         _write_tmol_params_file(
             path,
