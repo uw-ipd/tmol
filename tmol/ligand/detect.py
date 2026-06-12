@@ -656,6 +656,47 @@ def nonstandard_residue_info_from_smiles(
     )
 
 
+def _normalize_radical_oxygens(smiles: str) -> str:
+    """Restore the formal charge on bare radical oxygens (e.g. DUD ``[O]``).
+
+    Some source databases write anionic oxygens (carboxylate, sulfonate,
+    phosphate) as a bare ``[O]`` — a neutral, singly-bonded oxygen with no
+    hydrogen, which RDKit reads as a radical. Dimorphite cannot act on it
+    (its acid rules need an explicit ``-O-H``), and downstream 3D tools fill
+    the open valence inconsistently (OpenBabel via a PDB hop adds an H ->
+    neutral acid; the direct SMILES read keeps a symmetric carboxylate). Convert
+    each such oxygen to the proper anion ``[O-]`` so the protonation state is
+    well-defined end to end. Returns the input unchanged if nothing matches or
+    the SMILES cannot be parsed.
+    """
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return smiles
+    changed = False
+    for atom in mol.GetAtoms():
+        if (
+            atom.GetSymbol() == "O"
+            and atom.GetDegree() == 1
+            and atom.GetTotalNumHs() == 0
+            and atom.GetFormalCharge() == 0
+            and atom.GetNumRadicalElectrons() > 0
+        ):
+            atom.SetFormalCharge(-1)
+            atom.SetNumRadicalElectrons(0)
+            changed = True
+    if not changed:
+        return smiles
+    try:
+        Chem.SanitizeMol(mol)
+    except Exception:
+        logger.warning(
+            "Radical-oxygen normalization failed to sanitize SMILES %r; " "using input",
+            smiles,
+        )
+        return smiles
+    return Chem.MolToSmiles(mol)
+
+
 def _dimorphite_protonate_smiles(
     smiles: str, ph: float = 7.4, precision: float = 0.1
 ) -> str:
@@ -700,6 +741,8 @@ def nonstandard_residue_info_from_smiles_via_mol2(
 
     Implements the canonical ligand-prep protocol end to end:
 
+    0. normalize bare radical oxygens (``[O]`` -> ``[O-]``) so source
+       carboxylate/sulfonate notation has a well-defined charge,
     1. optionally pKa-protonate the SMILES with Dimorphite-DL (``protonate``),
     2. generate a 3D mol2 with MMFF94 partial charges via OpenBabel, then
     3. read that mol2 with :func:`nonstandard_residue_info_from_mol2`.
@@ -724,6 +767,7 @@ def nonstandard_residue_info_from_smiles_via_mol2(
     """
     from tmol.ligand.openbabel_compat import obabel_smiles_to_mol2
 
+    smiles = _normalize_radical_oxygens(smiles)
     prep_smiles = _dimorphite_protonate_smiles(smiles, ph) if protonate else smiles
     with tempfile.TemporaryDirectory() as tmpdir:
         mol2_path = Path(tmpdir) / "ligand.mol2"

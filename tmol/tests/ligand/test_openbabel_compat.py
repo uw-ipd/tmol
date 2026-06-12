@@ -166,6 +166,39 @@ def test_nonstandard_residue_info_from_smiles_default_res_name():
 
 
 # ---------------------------------------------------------------------------
+# radical-oxygen normalization ([O] -> [O-]) for the SMILES->mol2 path
+# ---------------------------------------------------------------------------
+
+
+def test_normalize_radical_oxygens_restores_anion_charge():
+    from tmol.ligand.detect import _normalize_radical_oxygens
+
+    # bare [O] (DUD carboxylate / sulfonate notation) gains its -1 charge
+    assert "[O-]" in _normalize_radical_oxygens("CC(=O)[O]")
+    assert "[O-]" in _normalize_radical_oxygens("CS(=O)(=O)[O]")
+    # well-formed inputs pass through verbatim (no spurious rewriting)
+    assert _normalize_radical_oxygens("CC(=O)[O-]") == "CC(=O)[O-]"
+    assert _normalize_radical_oxygens("CC(=O)O") == "CC(=O)O"
+    # a carbonyl oxygen is not a radical and is left alone
+    assert _normalize_radical_oxygens("CC=O") == "CC=O"
+
+
+def test_smiles_via_mol2_deprotonates_bare_o_carboxylate():
+    from tmol.ligand.detect import nonstandard_residue_info_from_smiles_via_mol2
+
+    # A DUD-style bare [O] carboxylate must normalize to a symmetric COO-
+    # (two near-equal, strongly-negative oxygens via MMFF94), not a neutral
+    # COOH — this is the fix for the SMILES-path acid divergence.
+    info = nonstandard_residue_info_from_smiles_via_mol2("CC(=O)[O]", res_name="ACT")
+    assert info.partial_charges is not None
+    carboxylate = sorted(
+        q for name, q in info.partial_charges.items() if name[0] == "O" and q < -0.7
+    )
+    assert len(carboxylate) == 2, info.partial_charges
+    assert abs(carboxylate[0] - carboxylate[1]) < 0.05
+
+
+# ---------------------------------------------------------------------------
 # Fallback verification (RDKit returns None -> OB takes over)
 # ---------------------------------------------------------------------------
 
