@@ -162,7 +162,7 @@ def prepare_single_ligand(
     ligand_info: NonStandardResidueInfo,
     ph: float = 7.4,
     charge_mode: str = "auto",
-    sample_proton_chi: bool = False,
+    sample_proton_chi: bool = True,
 ) -> LigandPreparation:
     """Run the full RDKit preparation pipeline for a single ligand.
 
@@ -279,7 +279,7 @@ def prepare_ligands(
     params_files: list[str] | None = None,
     params_output: str | None = None,
     charge_mode: str = "auto",
-    sample_proton_chi: bool = False,
+    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Detect, prepare, and register all non-standard residues.
 
@@ -429,7 +429,7 @@ def prepare_ligand_from_cif(
     strict_atom_types: bool = False,
     res_name: str | None = None,
     charge_mode: str = "auto",
-    sample_proton_chi: bool = False,
+    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a CIF file and inject it into a database.
 
@@ -458,7 +458,7 @@ def prepare_ligand_from_mol2(
     strict_atom_types: bool = False,
     res_name: str | None = None,
     charge_mode: str = "auto",
-    sample_proton_chi: bool = False,
+    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a Mol2 file and inject it into a database.
 
@@ -487,7 +487,7 @@ def prepare_ligand_from_pdb(
     res_name: str | None = None,
     charge_mode: str = "mmff94",
     perceive_bond_orders: bool = True,
-    sample_proton_chi: bool = False,
+    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a PDB file and inject it into a database.
 
@@ -520,7 +520,7 @@ def prepare_ligand_from_smiles(
     res_name: str | None = None,
     charge_mode: str = "auto",
     protonate: bool = True,
-    sample_proton_chi: bool = False,
+    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a SMILES string and inject it into a database.
 
@@ -560,7 +560,7 @@ def _prepare_ligand_from_file(
     strict_atom_types: bool,
     res_name: str | None,
     charge_mode: str,
-    sample_proton_chi: bool = False,
+    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Load one ligand from file, prepare it, and inject it.
 
@@ -587,7 +587,7 @@ def write_params_from_mol2(
     res_name: str | None = None,
     ph: float = 7.4,
     charge_mode: str = "auto",
-    sample_proton_chi: bool = False,
+    sample_proton_chi: bool = True,
 ) -> LigandPreparation:
     """Prepare a ligand from a mol2 and write a Rosetta ``.params`` file.
 

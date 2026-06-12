@@ -357,10 +357,10 @@ def test_strained_ring_emits_no_chi():
     assert rt.chi_samples == ()
 
 
-def test_default_prep_gates_chi_samples_off():
-    # gated: the DEFAULT preparation path emits heavy + proton-chi
-    # torsions but NO proton chi_samples (so pose construction stays NaN-free);
-    # sample_proton_chi=True opts into the proton samples that drive OptHSampler.
+def test_proton_chi_samples_default_on_opt_out_off():
+    # The DEFAULT preparation path now emits proton chi_samples
+    # (sample_proton_chi defaults to True); sample_proton_chi=False opts out
+    # (e.g. to keep pose construction NaN-free) while still emitting torsions.
     from tmol.ligand.preparation import prepare_ligand_from_smiles
 
     # Allyl alcohol: one aliphatic hydroxyl (-> proton chi) plus a C=C double
@@ -370,13 +370,14 @@ def test_default_prep_gates_chi_samples_off():
     db_default, _ = prepare_ligand_from_smiles("OCC=C", res_name="EDG")
     rt_default = next(r for r in db_default.chemical.residues if r.name == "EDG")
     assert rt_default.torsions  # torsions always emitted
-    assert rt_default.chi_samples == ()  # samples gated off by default
+    assert rt_default.chi_samples  # proton chi_samples present by default
 
-    db_on, _ = prepare_ligand_from_smiles(
-        "OCC=C", res_name="EDN", sample_proton_chi=True
+    db_off, _ = prepare_ligand_from_smiles(
+        "OCC=C", res_name="EDN", sample_proton_chi=False
     )
-    rt_on = next(r for r in db_on.chemical.residues if r.name == "EDN")
-    assert rt_on.chi_samples  # opt-in -> proton chi_samples present
+    rt_off = next(r for r in db_off.chemical.residues if r.name == "EDN")
+    assert rt_off.torsions  # torsions still emitted
+    assert rt_off.chi_samples == ()  # opt-out -> no proton chi_samples
 
 
 @pytest.mark.parametrize(

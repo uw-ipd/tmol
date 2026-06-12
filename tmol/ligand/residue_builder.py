@@ -365,7 +365,7 @@ def build_residue_type(
     atom_aliases: tuple = (),
     *,
     typing_state=None,
-    sample_proton_chi: bool = False,
+    sample_proton_chi: bool = True,
 ) -> RawResidueType:
     """Build a complete RawResidueType from a Chem.Mol.
 
