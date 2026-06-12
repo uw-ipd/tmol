@@ -226,6 +226,7 @@ struct GeneratePoseWaters {
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(
         mgr, n_rots, f_watergen);
 
+    DeviceOps<Dev>::synchronize_device();
     return water_coords_t;
   };
 

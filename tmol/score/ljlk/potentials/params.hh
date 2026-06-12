@@ -62,6 +62,8 @@ struct LJLKTypeParams {
 
 template <typename Real>
 struct LJGlobalParams {
+  Real max_dis;
+  Real lj_dlin_sigma_factor;
   Real lj_hbond_dis;
   Real lj_hbond_OH_donor_dis;
   Real lj_hbond_hdis;
@@ -115,6 +117,8 @@ struct LKTypeParamTensors {
 
 template <typename Real, tmol::Device D>
 struct LJGlobalParamTensors {
+  TView<Real, 1, D> max_dis;
+  TView<Real, 1, D> lj_dlin_sigma_factor;
   TView<Real, 1, D> lj_hbond_dis;
   TView<Real, 1, D> lj_hbond_OH_donor_dis;
   TView<Real, 1, D> lj_hbond_hdis;
@@ -122,7 +126,11 @@ struct LJGlobalParamTensors {
   template <typename Idx>
   auto operator[](Idx i) const {
     return LJGlobalParams<Real>{
-        lj_hbond_dis[i], lj_hbond_OH_donor_dis[i], lj_hbond_hdis[i]};
+        max_dis[i],
+        lj_dlin_sigma_factor[i],
+        lj_hbond_dis[i],
+        lj_hbond_OH_donor_dis[i],
+        lj_hbond_hdis[i]};
   }
 };
 

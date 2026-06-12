@@ -159,4 +159,6 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack.packed_block_types.elec_inter_repr_path_distance,
             pose_stack.packed_block_types.elec_intra_repr_path_distance,
             global_params,
+            # elec_max_dis as host scalar for detect-neighbors call
+            float(self.global_params.elec_max_dis),
         ]
