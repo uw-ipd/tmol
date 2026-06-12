@@ -43,6 +43,9 @@ def build_context_from_biotite(
     ligand_ph: float = 7.4,
     strict_atom_types: bool = False,
     ligand_params_files: list[str] | None = None,
+    # Stays False even though ligand-prep now defaults proton-chi sampling on:
+    # sampled polar hydrogens produce NaN coordinates during pose construction
+    # (OptHSampler). Opt in explicitly once that is fixed.
     sample_proton_chi: bool = False,
 ) -> BiotitePoseBuildContext:
     """Build immutable construction context from a Biotite structure.
@@ -150,6 +153,8 @@ def pose_stack_from_biotite(
     ligand_ph: float = 7.4,
     strict_atom_types: bool = False,
     ligand_params_files: list[str] | None = None,
+    # Stays False (unlike the ligand-prep default): sampled polar hydrogens
+    # produce NaN pose coordinates (OptHSampler). Opt in once that is fixed.
     sample_proton_chi: bool = False,
     return_context: bool = False,
     **kwargs: object,
