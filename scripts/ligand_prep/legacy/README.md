@@ -1,4 +1,4 @@
-# Deprecated: manual small-molecule prep scripts
+# Legacy: manual small-molecule prep scripts
 
 These three shell scripts were the original manual pipeline for turning a
 SMILES into a Rosetta `.params` file:
@@ -16,5 +16,6 @@ They are **superseded** by the Python pipeline in `tmol/ligand/`:
 
 They are kept here (not deleted) for historical reference and because the
 ground-truth dataset was generated with this exact protocol (see
-`scripts/ligand_prep/build_dud80_ground_truth.sh`, which still uses them via
-absolute tool paths). Prefer the Python API for new work.
+`scripts/ligand_prep/build_ligand_test_ground_truth.sh`, which reuses the same
+dimorphite-dl / OpenBabel / mol2genparams tools via absolute paths). Prefer the
+Python API for new work.
