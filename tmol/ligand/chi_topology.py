@@ -25,12 +25,17 @@ samples/expansions match. The ``EXTRA`` encoding (``EXTRA 1 20`` ->
 ``OptHSampler``'s ``len(samples) * (1 + 2 * len(expansions))`` expansion.
 
 Scope notes / latitude:
-- ``border > 1`` biaryl-pivot CHIs are intentionally not emitted; faithful
-  ``biaryl_pivots`` detection (``is_biaryl_ring`` / ``search_special_biaryl_ring``)
-  is out of scope for this stage and does not affect ref1/ref2 (ref1's
-  ``#biaryl`` CHI is a single bond, handled correctly).
-- Conjugated-polar-H skipping uses RDKit ``bond.GetIsConjugated()`` as a close
-  approximation of Rosetta's per-atom H-count test.
+- Conjugated-polar-H skipping is a faithful port of ``assign_bond_conjugation``'s
+  core: a bond is conjugated only when both atom classes are in
+  :data:`_CONJUGATING_ACLASSES` (and neither is sp3), plus Rosetta's all-but-one-H
+  test. So phenol/acid C-OH and aniline/amide -NH are classified like
+  mol2genparams (verified). The geometry-based planarity refinement (``is_planar``)
+  is not ported.
+- ``border > 1`` biaryl-pivot CHIs are still NOT emitted: faithful
+  ``biaryl_pivots`` detection (``is_biaryl_ring`` / ``search_special_biaryl_ring``
+  + ``is_planar``) is a remaining gap. This is the dominant source of CHI-axis
+  divergence on the DUD-80 parity set (aromatic-C <-> conjugated-N/C order>1
+  bonds Rosetta keeps as pivots).
 - NU / ring-pucker DOFs are unsupported (RosettaVS default
   ``report_puckering_chi=False``); none are emitted by any preparation path.
 
