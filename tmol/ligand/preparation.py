@@ -227,6 +227,7 @@ def prepare_single_ligand(
         atom_types,
         typing_state=typing_state,
         sample_proton_chi=sample_proton_chi,
+        original_single_bonds=ligand_info.original_single_bonds,
     )
 
     charges = build_partial_charges(
@@ -521,6 +522,7 @@ def prepare_ligand_from_smiles(
     charge_mode: str = "auto",
     protonate: bool = True,
     sample_proton_chi: bool = True,
+    conformer_search: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a SMILES string and inject it into a database.
 
@@ -535,12 +537,19 @@ def prepare_ligand_from_smiles(
     Args:
         protonate: When ``True`` (default) Dimorphite protonates ``smiles``
             first; set ``False`` to pin an already-protonated SMILES verbatim.
+        conformer_search: When ``True`` (default) run a rotor conformer search
+            during 3D mol2 generation (matching the reference pipeline); set
+            ``False`` for faster single-conformer generation.
     """
     if param_db is None:
         param_db = ParameterDatabase.get_default()
 
     lig = nonstandard_residue_info_from_smiles_via_mol2(
-        smiles, res_name=res_name, ph=ph, protonate=protonate
+        smiles,
+        res_name=res_name,
+        ph=ph,
+        protonate=protonate,
+        conformer_search=conformer_search,
     )
     prep = prepare_single_ligand(
         lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi

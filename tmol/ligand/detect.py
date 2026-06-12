@@ -78,6 +78,12 @@ class NonStandardResidueInfo:
             recomputing MMFF94 charges.
         skip_protonation: If True, Dimorphite-DL protonation is skipped and
             explicit hydrogens from the input (mol2/CIF) are preserved.
+        original_single_bonds: Optional set of ``frozenset({name_a, name_b})``
+            pairs that the source mol2 records as literal single (order ``'1'``)
+            bonds, keyed by disambiguated atom name. ``build_chi_topology`` uses
+            these to honor the mol2 bond order (Rosetta-faithful) instead of
+            RDKit's post-kekulization order. Only set on the mol2 / SMILES-via-
+            mol2 paths; ``None`` elsewhere.
     """
 
     res_name: str
@@ -90,6 +96,7 @@ class NonStandardResidueInfo:
     covalently_linked: bool = False
     partial_charges: Optional[dict[str, float]] = None
     skip_protonation: bool = False
+    original_single_bonds: Optional[frozenset[frozenset[str]]] = None
 
 
 LigandInfo = NonStandardResidueInfo
@@ -279,6 +286,42 @@ def _mol2_charge_model(mol2_path: Path) -> str:
     return _mol2_charge_model_from_text(mol2_path.read_text())
 
 
+def _mol2_single_bond_ids(mol2_text: str) -> frozenset[frozenset[int]]:
+    """Return the set of single (order ``'1'``) bonds from a mol2 BOND section.
+
+    Each bond is returned as a ``frozenset`` of its two 1-based TRIPOS atom
+    ids. Only bonds whose TRIPOS ``bond_type`` is literally ``'1'`` are
+    included — aromatic (``ar``), amide (``am``), double (``2``), etc. are
+    excluded.
+
+    RDKit's sanitize/kekulize step promotes some mol2 single bonds (e.g. a
+    ``C.ar``-``N.pl3`` written as ``1``) to AROMATIC/DOUBLE, which then makes
+    :func:`tmol.ligand.chi_topology.build_chi_topology` skip them as
+    ``border > 1``. Rosetta's ``mol2genparams`` reads the literal mol2 order
+    instead, so honoring the source ``'1'`` here restores parity. Returns an
+    empty set if no BOND section is present.
+    """
+    single_bonds: set[frozenset[int]] = set()
+    in_bond = False
+    for line in mol2_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("@<TRIPOS>"):
+            in_bond = stripped.startswith("@<TRIPOS>BOND")
+            continue
+        if not in_bond or not stripped:
+            continue
+        tokens = stripped.split()
+        # TRIPOS BOND line: bond_id atom1 atom2 bond_type [status_bits]
+        if len(tokens) < 4 or tokens[3] != "1":
+            continue
+        try:
+            a1, a2 = int(tokens[1]), int(tokens[2])
+        except ValueError:
+            continue
+        single_bonds.add(frozenset((a1, a2)))
+    return frozenset(single_bonds)
+
+
 def _charge_model_is_authoritative(model: str) -> bool:
     """True only when a Tripos charge model is a trusted force-field model.
 
@@ -312,6 +355,7 @@ def nonstandard_residue_info_from_mol2(
     )
 
     path = Path(mol2_path)
+    mol2_text = path.read_text()
     mol = Chem.MolFromMol2File(
         str(path),
         sanitize=False,
@@ -331,7 +375,11 @@ def nonstandard_residue_info_from_mol2(
             )
         logger.info("Used OpenBabel fallback to parse mol2 %s", path)
     return _nonstandard_residue_info_from_mol2_mol(
-        mol, _mol2_charge_model(path), res_name, source=str(path)
+        mol,
+        _mol2_charge_model_from_text(mol2_text),
+        res_name,
+        source=str(path),
+        single_bond_ids=_mol2_single_bond_ids(mol2_text),
     )
 
 
@@ -369,7 +417,11 @@ def nonstandard_residue_info_from_mol2_block(
             )
         logger.info("Used OpenBabel fallback to parse in-memory mol2 block")
     return _nonstandard_residue_info_from_mol2_mol(
-        mol, _mol2_charge_model_from_text(mol2_block), res_name, source="<mol2 block>"
+        mol,
+        _mol2_charge_model_from_text(mol2_block),
+        res_name,
+        source="<mol2 block>",
+        single_bond_ids=_mol2_single_bond_ids(mol2_block),
     )
 
 
@@ -379,13 +431,17 @@ def _nonstandard_residue_info_from_mol2_mol(
     res_name: str | None,
     *,
     source: str,
+    single_bond_ids: frozenset[frozenset[int]] = frozenset(),
 ) -> NonStandardResidueInfo:
     """Build ``NonStandardResidueInfo`` from an already-parsed mol2 RDKit mol.
 
     Shared core of the file and in-memory-block mol2 entry points. ``charge_model``
     is the TRIPOS ``charge_type`` (already parsed from the source) used to decide
     whether the per-atom charges are authoritative; ``source`` labels the input in
-    error messages.
+    error messages. ``single_bond_ids`` is the set of 1-based TRIPOS atom-id pairs
+    the source records as literal single bonds (see :func:`_mol2_single_bond_ids`);
+    these are mapped to disambiguated atom names and stored as
+    ``original_single_bonds`` so the CHI classifier can honor the mol2 bond order.
     """
     from tmol.ligand.atom_typing import sanitize_tolerant
 
@@ -454,6 +510,16 @@ def _nonstandard_residue_info_from_mol2_mol(
         charge_model
     )
     authoritative_q = partial_charges if use_input_charges else None
+
+    # Map literal mol2 single bonds (1-based TRIPOS ids) to disambiguated atom
+    # names. RDKit index i corresponds to TRIPOS atom id i+1 (the reader keeps
+    # mol2 atom order), the same correspondence used for names/coords above.
+    original_single_bonds: frozenset[frozenset[str]] = frozenset(
+        frozenset((disambiguated_names[i - 1], disambiguated_names[j - 1]))
+        for i, j in (tuple(pair) for pair in single_bond_ids)
+        if 1 <= i <= n_atoms and 1 <= j <= n_atoms
+    )
+
     return NonStandardResidueInfo(
         res_name=inferred_res_name,
         ccd_type="UNKNOWN",
@@ -465,6 +531,7 @@ def _nonstandard_residue_info_from_mol2_mol(
         covalently_linked=False,
         partial_charges=authoritative_q,
         skip_protonation=authoritative_q is not None,
+        original_single_bonds=original_single_bonds or None,
     )
 
 
@@ -802,6 +869,7 @@ def nonstandard_residue_info_from_smiles_via_mol2(
     *,
     ph: float = 7.4,
     protonate: bool = True,
+    conformer_search: bool = True,
 ) -> NonStandardResidueInfo:
     """Construct ``NonStandardResidueInfo`` from a SMILES via the mol2 route.
 
@@ -826,6 +894,9 @@ def nonstandard_residue_info_from_smiles_via_mol2(
         ph: Target pH for the Dimorphite protonation step.
         protonate: When ``True`` (default) run Dimorphite on ``smiles`` first;
             set ``False`` to pin an already-protonated SMILES verbatim.
+        conformer_search: When ``True`` (default) run a rotor conformer search
+            during the 3D mol2 generation (matching the reference pipeline);
+            set ``False`` for faster single-conformer generation.
 
     Raises:
         OpenBabelUnavailableError: If the ``openbabel`` package is missing
@@ -836,7 +907,9 @@ def nonstandard_residue_info_from_smiles_via_mol2(
 
     smiles = _normalize_radical_oxygens(smiles)
     prep_smiles = _dimorphite_protonate_smiles(smiles, ph) if protonate else smiles
-    mol2_block = obabel_smiles_to_mol2_block(prep_smiles)
+    mol2_block = obabel_smiles_to_mol2_block(
+        prep_smiles, conformer_search=conformer_search
+    )
     return nonstandard_residue_info_from_mol2_block(mol2_block, res_name=res_name)
 
 

@@ -366,6 +366,7 @@ def build_residue_type(
     *,
     typing_state=None,
     sample_proton_chi: bool = True,
+    original_single_bonds: frozenset[frozenset[str]] | None = None,
 ) -> RawResidueType:
     """Build a complete RawResidueType from a Chem.Mol.
 
@@ -484,6 +485,7 @@ def build_residue_type(
             atom_names,
             typing_state,
             atype_by_idx=atype_by_idx,
+            original_single_bonds=original_single_bonds,
             logger=logger,
         )
         # Heavy + proton-chi torsions are always emitted (inert for scoring /

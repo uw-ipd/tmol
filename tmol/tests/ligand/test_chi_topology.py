@@ -369,6 +369,58 @@ def test_special_biaryl_pivot_ring_to_functional_group():
         assert types == axis_types, f"{name}: {types}"
 
 
+# --- mol2 literal single-bond override (RDKit kekulization promotion) ------
+
+
+def test_mol2_single_bond_ids_parses_only_order_one():
+    # _mol2_single_bond_ids returns ONLY the order-'1' bonds as 1-based id pairs;
+    # aromatic ('ar'), amide ('am'), double ('2') etc. are excluded.
+    from tmol.ligand.detect import _mol2_single_bond_ids
+
+    text = (
+        "@<TRIPOS>MOLECULE\nx\n4 3\nSMALL\nUSER_CHARGES\n\n"
+        "@<TRIPOS>ATOM\n"
+        "1 C1 0 0 0 C.ar\n2 N1 0 0 0 N.pl3\n3 O1 0 0 0 O.2\n4 C2 0 0 0 C.3\n"
+        "@<TRIPOS>BOND\n"
+        "1 1 2 1\n"  # single -> kept
+        "2 1 3 2\n"  # double -> excluded
+        "3 2 4 ar\n"  # aromatic -> excluded
+    )
+    assert _mol2_single_bond_ids(text) == frozenset({frozenset({1, 2})})
+
+
+def test_original_single_bonds_restores_border_one_chi():
+    # A genuine non-ring C=C double bond between two heavy-substituted carbons is
+    # skipped by the border>1 rule. Passing it in original_single_bonds (as the
+    # mol2 reader does for mol2-'1' bonds RDKit promoted) forces border=1, so the
+    # axis is recovered as a heavy CHI — the exact mechanism that closes the
+    # aryl-Ngu1/Nad3/NG2/Ofu DUD-80 cases.
+    smi = "CCC=CCC"  # hex-3-ene: ethyls flank the central C2=C3 double bond
+    mol = Chem.AddHs(Chem.MolFromSmiles(smi))
+    assert AllChem.EmbedMolecule(mol, randomSeed=0xC0FFEE) == 0
+    atom_types, state = assign_tmol_atom_types(mol, return_state=True)
+    name_by_idx = {at.index: at.atom_name for at in atom_types}
+    dbl = next(b for b in mol.GetBonds() if b.GetBondType() == Chem.BondType.DOUBLE)
+    axis = frozenset(
+        {name_by_idx[dbl.GetBeginAtomIdx()], name_by_idx[dbl.GetEndAtomIdx()]}
+    )
+
+    base = build_residue_type(
+        mol, "HEX", atom_types, typing_state=state, sample_proton_chi=True
+    )
+    assert axis not in _axes(base), "double bond should be skipped by default"
+
+    forced = build_residue_type(
+        mol,
+        "HEX",
+        atom_types,
+        typing_state=state,
+        sample_proton_chi=True,
+        original_single_bonds=frozenset({axis}),
+    )
+    assert axis in _axes(forced), "honoring mol2 single order should add the CHI"
+
+
 # --- strained ring negative; heavy-only OptHSampler negative -------
 
 

@@ -223,6 +223,22 @@ def test_obabel_smiles_to_mol2_block_is_in_memory_string():
     assert "MMFF94_CHARGES" in block  # charge_type from the MMFF94 model
 
 
+@pytest.mark.parametrize("conformer_search", [True, False])
+def test_conformer_search_flag_produces_valid_mol2(conformer_search):
+    # conformer_search defaults on (rotor search, matching the reference
+    # pipeline); the off-switch is for faster single-conformer generation.
+    # Both settings must yield a chemically complete MMFF94 mol2.
+    from tmol.ligand.openbabel_compat import obabel_smiles_to_mol2_block
+
+    block = obabel_smiles_to_mol2_block(
+        "CCCCCC(=O)O", conformer_search=conformer_search
+    )
+    assert "@<TRIPOS>ATOM" in block
+    assert "MMFF94_CHARGES" in block
+    mol = Chem.MolFromMol2Block(block, sanitize=False, removeHs=False)
+    assert mol is not None and mol.GetNumConformers() == 1
+
+
 def test_mol2_block_reader_matches_file_reader(tmp_path):
     # The in-memory block reader must produce the same NonStandardResidueInfo
     # as the on-disk file reader for an identical mol2 (no temp-file round-trip).

@@ -33,11 +33,14 @@ Scope notes / latitude:
   is not ported.
 - ``border > 1`` biaryl-pivot CHIs (ring <-> conjugated functional group) ARE
   emitted via a port of ``search_special_biaryl_ring`` (the hard-coded
-  :data:`_SPECIAL_BIARYL_PAIRS` class-pair list). The ring<->ring
-  ``is_biaryl_ring`` detection and the ``is_planar`` geometry refinement are not
-  yet ported, so a handful of pivots through ring-like conjugated groups
-  (guanidinium ``Ngu1``, tertiary amide ``Nad3``, ``NG2``, furan ``Ofu``) are
-  still missed on the DUD-80 parity set.
+  :data:`_SPECIAL_BIARYL_PAIRS` class-pair list). The remaining pivots through
+  ring-like conjugated groups (guanidinium ``Ngu1``, tertiary amide ``Nad3``,
+  ``NG2``, furan ``Ofu``) are recovered not by the ``is_planar`` geometry port
+  but by honoring the source mol2's literal single-bond order
+  (``original_single_bonds``): RDKit kekulization promotes those aryl-X bonds to
+  DOUBLE, which the ``border > 1`` rule would skip, whereas Rosetta reads the
+  mol2 order ``1`` verbatim. Restoring ``border = 1`` for those bonds matches
+  mol2genparams and closes the DUD-80 parity set (80/80 full CHI).
 - NU / ring-pucker DOFs are unsupported (RosettaVS default
   ``report_puckering_chi=False``); none are emitted by any preparation path.
 
@@ -174,6 +177,7 @@ def build_chi_topology(  # noqa: C901
     typing_state,
     *,
     atype_by_idx: dict[int, str] | None = None,
+    original_single_bonds: frozenset[frozenset[str]] | None = None,
     logger=None,
 ) -> tuple[tuple[Torsion, ...], tuple[ChiSamples, ...]]:
     """Classify rotatable bonds and return ``(torsions, chi_samples)``.
@@ -183,6 +187,13 @@ def build_chi_topology(  # noqa: C901
     is the root itself).  ``atom_names[idx]`` is the final residue atom name
     (or ``None`` for dropped atoms).  ``typing_state`` is a
     :class:`~tmol.ligand.atom_typing.RosettaTypingState`.
+
+    ``original_single_bonds`` (optional) is a set of ``frozenset({name_a,
+    name_b})`` pairs that the source mol2 records as literal single bonds.
+    For those bonds the bond order is forced to 1 — overriding RDKit's
+    post-kekulization promotion of some aromatic/conjugated single bonds to
+    DOUBLE — so the ``border > 1`` skips match Rosetta's ``mol2genparams``,
+    which reads the literal mol2 order.
     """
     valid = set(order)
     ring_membership = typing_state.ring_membership_by_idx
@@ -345,6 +356,14 @@ def build_chi_topology(  # noqa: C901
 
         # --- RosettaVS define_rotable_torsions skip rules (default flags) ---
         border = _bond_order(bond)
+        # Honor the source mol2's literal single-bond order: RDKit kekulization
+        # promotes some aromatic/conjugated single bonds (e.g. aryl-Ngu1) to
+        # DOUBLE, which the border>1 rule would wrongly skip. Rosetta reads the
+        # mol2 order verbatim, so restore border=1 for those bonds.
+        if original_single_bonds and (
+            frozenset((atom_names[b], atom_names[c])) in original_single_bonds
+        ):
+            border = 1
         is_pivot = frozenset((b, c)) in biaryl_pivots
 
         # strained torsion inside a ring
