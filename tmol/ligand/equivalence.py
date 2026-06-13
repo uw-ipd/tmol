@@ -32,7 +32,12 @@ _AROMATIC_EQUIV = frozenset({"AROMATIC", "SINGLE", "DOUBLE"})
 
 
 def _infer_element_from_name(name: str) -> str:
-    """Infer element symbol from a Rosetta-style atom name."""
+    """Infer element symbol from a Rosetta-style atom name.
+
+    Fallback only: prefer :func:`_element_from_atom_type` when an atom type is
+    available. This name-based guess cannot disambiguate a PDB carbon name like
+    ``CA`` (alpha carbon) from the element calcium.
+    """
     s = str(name).strip()
     if not s:
         return "?"
@@ -53,10 +58,41 @@ def _infer_element_from_name(name: str) -> str:
     return token[0].upper()
 
 
+def _element_from_atom_type(atom_type: Any) -> str | None:
+    """Element symbol from a Rosetta gen-potential atom type, or ``None``.
+
+    The element is encoded unambiguously in the type prefix (``CS1`` -> C,
+    ``Oat`` -> O, ``Nad`` -> N, ``Sth`` -> S, ``Cl``/``ClR`` -> Cl,
+    ``Br``/``BrR`` -> Br, ``F``/``FR`` -> F, ``I``/``IR`` -> I). Preferring this
+    over name-based inference avoids the PDB-atom-name collision where a carbon
+    named ``CA`` (alpha carbon) would otherwise be read as calcium.
+    """
+    s = str(atom_type).strip()
+    if not s:
+        return None
+    if s[:2].capitalize() in {"Cl", "Br"}:
+        return s[:2].capitalize()
+    first = s[0].upper()
+    return first if first.isalpha() else None
+
+
 def _heavy_graph(
     residue_type: Any,
 ) -> tuple[list[str], dict[str, set[str]], dict[str, tuple[str, int]]]:
-    """Build heavy-atom adjacency and per-node labels."""
+    """Build heavy-atom adjacency and per-node labels.
+
+    Node element labels are taken from each atom's Rosetta ``atom_type`` (which
+    encodes the element unambiguously), falling back to name-based inference
+    only when no type is present.
+    """
+    type_by_name = {
+        str(a.name): getattr(a, "atom_type", None) for a in residue_type.atoms
+    }
+
+    def _element(name: str) -> str:
+        from_type = _element_from_atom_type(type_by_name.get(name))
+        return from_type if from_type is not None else _infer_element_from_name(name)
+
     nodes = [str(a.name) for a in residue_type.atoms if _is_heavy(a.name)]
     adj: dict[str, set[str]] = {n: set() for n in nodes}
     for a, b, *_ in residue_type.bonds:
@@ -66,7 +102,7 @@ def _heavy_graph(
             continue
         adj[a].add(b)
         adj[b].add(a)
-    labels = {n: (_infer_element_from_name(n), len(adj[n])) for n in nodes}
+    labels = {n: (_element(n), len(adj[n])) for n in nodes}
     return nodes, adj, labels
 
 

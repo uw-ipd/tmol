@@ -43,6 +43,10 @@ def build_context_from_biotite(
     ligand_ph: float = 7.4,
     strict_atom_types: bool = False,
     ligand_params_files: list[str] | None = None,
+    # Stays False even though ligand-prep now defaults proton-chi sampling on:
+    # sampled polar hydrogens produce NaN coordinates during pose construction
+    # (OptHSampler). Opt in explicitly once that is fixed.
+    sample_proton_chi: bool = False,
 ) -> BiotitePoseBuildContext:
     """Build immutable construction context from a Biotite structure.
 
@@ -66,6 +70,12 @@ def build_context_from_biotite(
             instead of using a fallback element heuristic.
         ligand_params_files: Optional list of tmol YAML params file paths.
             Residues defined in these files skip the RDKit/OB pipeline.
+        sample_proton_chi: If True, prepared ligands emit PROTON_CHI
+            ``chi_samples`` for polar-hydrogen rotations (driving OptHSampler).
+            Default False: heavy + proton-chi torsions are always emitted, but
+            the samples are opt-in because emitting them by default makes pose
+            construction place sampled polar hydrogens at NaN coordinates (only
+            used when prepare_ligands=True).
 
     Returns:
         BiotitePoseBuildContext containing canonical form, ordering,
@@ -83,6 +93,7 @@ def build_context_from_biotite(
             ph=ligand_ph,
             strict_atom_types=strict_atom_types,
             params_files=ligand_params_files,
+            sample_proton_chi=sample_proton_chi,
         )
         cf = canonical_form_from_biotite(
             biotite_structure,
@@ -142,6 +153,9 @@ def pose_stack_from_biotite(
     ligand_ph: float = 7.4,
     strict_atom_types: bool = False,
     ligand_params_files: list[str] | None = None,
+    # Stays False (unlike the ligand-prep default): sampled polar hydrogens
+    # produce NaN pose coordinates (OptHSampler). Opt in once that is fixed.
+    sample_proton_chi: bool = False,
     return_context: bool = False,
     **kwargs: object,
 ) -> PoseStack | tuple[PoseStack, dict] | tuple[PoseStack, BiotitePoseBuildContext]:
@@ -170,6 +184,10 @@ def pose_stack_from_biotite(
         strict_atom_types: If True, unknown ligand atom types raise errors
             instead of using a fallback element heuristic.
         ligand_params_files: Optional list of tmol YAML params file paths.
+        sample_proton_chi: If True, prepared ligands emit PROTON_CHI
+            ``chi_samples`` so OptHSampler samples ligand polar-H rotamers
+            (default False; see ``build_context_from_biotite``). Only used when
+            prepare_ligands=True.
         return_context: If True, return ``(pose_stack, BiotitePoseBuildContext)``.
         **kwargs: Additional arguments passed to pose_stack_from_canonical_form.
 
@@ -193,6 +211,7 @@ def pose_stack_from_biotite(
         ligand_ph=ligand_ph,
         strict_atom_types=strict_atom_types,
         ligand_params_files=ligand_params_files,
+        sample_proton_chi=sample_proton_chi,
     )
 
     result = pose_stack_from_canonical_form(

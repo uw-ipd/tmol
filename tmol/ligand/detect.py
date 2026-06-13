@@ -78,6 +78,12 @@ class NonStandardResidueInfo:
             recomputing MMFF94 charges.
         skip_protonation: If True, Dimorphite-DL protonation is skipped and
             explicit hydrogens from the input (mol2/CIF) are preserved.
+        original_single_bonds: Optional set of ``frozenset({name_a, name_b})``
+            pairs that the source mol2 records as literal single (order ``'1'``)
+            bonds, keyed by disambiguated atom name. ``build_chi_topology`` uses
+            these to honor the mol2 bond order (Rosetta-faithful) instead of
+            RDKit's post-kekulization order. Only set on the mol2 / SMILES-via-
+            mol2 paths; ``None`` elsewhere.
     """
 
     res_name: str
@@ -90,6 +96,7 @@ class NonStandardResidueInfo:
     covalently_linked: bool = False
     partial_charges: Optional[dict[str, float]] = None
     skip_protonation: bool = False
+    original_single_bonds: Optional[frozenset[frozenset[str]]] = None
 
 
 LigandInfo = NonStandardResidueInfo
@@ -249,39 +256,87 @@ def _source_subtype_from_mol2_atom_type(mol2_type: str) -> str:
     return parts[1] or "?"
 
 
-def _mol2_charge_model(mol2_path: Path) -> str:
-    """Return the Tripos charge model line from a mol2 file (e.g. ``GASTEIGER``)."""
+def _mol2_charge_model_from_text(mol2_text: str) -> str:
+    """Return the Tripos charge model from mol2 text (e.g. ``GASTEIGER``)."""
     in_molecule = False
     lines_after_molecule = 0
-    with mol2_path.open() as handle:
-        for line in handle:
-            stripped = line.strip()
-            if stripped.startswith("@<TRIPOS>MOLECULE"):
-                in_molecule = True
-                lines_after_molecule = 0
-                continue
-            if not in_molecule:
-                continue
-            if stripped.startswith("@<TRIPOS>"):
-                break
-            if not stripped:
-                continue
-            lines_after_molecule += 1
-            # MOLECULE block: name, counts, comment, type, charge_type, ...
-            if lines_after_molecule == 5:
-                return stripped.upper()
+    for line in mol2_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("@<TRIPOS>MOLECULE"):
+            in_molecule = True
+            lines_after_molecule = 0
+            continue
+        if not in_molecule:
+            continue
+        if stripped.startswith("@<TRIPOS>"):
+            break
+        if not stripped:
+            continue
+        lines_after_molecule += 1
+        # TRIPOS MOLECULE block order: mol_name, counts, mol_type,
+        # charge_type, [status_bits], [comment]. The charge type is the
+        # 4th non-blank line (optional status/comment follow it).
+        if lines_after_molecule == 4:
+            return stripped.upper()
     return ""
 
 
-def _mol2_partial_charges_are_authoritative(mol2_path: Path) -> bool:
-    """True only when mol2 partial charges are a trusted force-field model."""
-    model = _mol2_charge_model(mol2_path)
+def _mol2_charge_model(mol2_path: Path) -> str:
+    """Return the Tripos charge model line from a mol2 file (e.g. ``GASTEIGER``)."""
+    return _mol2_charge_model_from_text(mol2_path.read_text())
+
+
+def _mol2_single_bond_ids(mol2_text: str) -> frozenset[frozenset[int]]:
+    """Return the set of single (order ``'1'``) bonds from a mol2 BOND section.
+
+    Each bond is returned as a ``frozenset`` of its two 1-based TRIPOS atom
+    ids. Only bonds whose TRIPOS ``bond_type`` is literally ``'1'`` are
+    included — aromatic (``ar``), amide (``am``), double (``2``), etc. are
+    excluded.
+
+    RDKit's sanitize/kekulize step promotes some mol2 single bonds (e.g. a
+    ``C.ar``-``N.pl3`` written as ``1``) to AROMATIC/DOUBLE, which then makes
+    :func:`tmol.ligand.chi_topology.build_chi_topology` skip them as
+    ``border > 1``. Rosetta's ``mol2genparams`` reads the literal mol2 order
+    instead, so honoring the source ``'1'`` here restores parity. Returns an
+    empty set if no BOND section is present.
+    """
+    single_bonds: set[frozenset[int]] = set()
+    in_bond = False
+    for line in mol2_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("@<TRIPOS>"):
+            in_bond = stripped.startswith("@<TRIPOS>BOND")
+            continue
+        if not in_bond or not stripped:
+            continue
+        tokens = stripped.split()
+        # TRIPOS BOND line: bond_id atom1 atom2 bond_type [status_bits]
+        if len(tokens) < 4 or tokens[3] != "1":
+            continue
+        try:
+            a1, a2 = int(tokens[1]), int(tokens[2])
+        except ValueError:
+            continue
+        single_bonds.add(frozenset((a1, a2)))
+    return frozenset(single_bonds)
+
+
+def _charge_model_is_authoritative(model: str) -> bool:
+    """True only when a Tripos charge model is a trusted force-field model.
+
+    PLI fixtures and legacy mol2s use Gasteiger; MMFF94/AM1-BCC/etc. are OK.
+    """
     if not model:
         return False
     if model == "GASTEIGER":
         return False
-    # PLI fixtures and legacy mol2s use Gasteiger; MMFF94/AM1-BCC/etc. are OK.
     return True
+
+
+def _mol2_partial_charges_are_authoritative(mol2_path: Path) -> bool:
+    """True only when mol2 partial charges are a trusted force-field model."""
+    return _charge_model_is_authoritative(_mol2_charge_model(mol2_path))
 
 
 def nonstandard_residue_info_from_mol2(
@@ -294,9 +349,13 @@ def nonstandard_residue_info_from_mol2(
     per-atom partial charges when present, avoiding lossy rdkit<->biotite
     round-trips.
     """
-    from tmol.ligand.atom_typing import sanitize_tolerant
+    from tmol.ligand.openbabel_compat import (
+        OpenBabelUnavailableError,
+        obabel_read_mol2,
+    )
 
     path = Path(mol2_path)
+    mol2_text = path.read_text()
     mol = Chem.MolFromMol2File(
         str(path),
         sanitize=False,
@@ -304,10 +363,91 @@ def nonstandard_residue_info_from_mol2(
         cleanupSubstructures=False,
     )
     if mol is None:
-        raise ValueError(f"Could not parse Mol2 file: {path}")
+        try:
+            mol = obabel_read_mol2(path)
+        except OpenBabelUnavailableError:
+            mol = None
+        if mol is None:
+            raise ValueError(
+                f"Could not parse Mol2 file: {path} "
+                "(RDKit MolFromMol2File failed; OpenBabel fallback also "
+                "failed or is not installed)"
+            )
+        logger.info("Used OpenBabel fallback to parse mol2 %s", path)
+    return _nonstandard_residue_info_from_mol2_mol(
+        mol,
+        _mol2_charge_model_from_text(mol2_text),
+        res_name,
+        source=str(path),
+        single_bond_ids=_mol2_single_bond_ids(mol2_text),
+    )
+
+
+def nonstandard_residue_info_from_mol2_block(
+    mol2_block: str,
+    res_name: str | None = None,
+) -> NonStandardResidueInfo:
+    """Construct ``NonStandardResidueInfo`` from an in-memory mol2 *string*.
+
+    In-memory analogue of :func:`nonstandard_residue_info_from_mol2` — parses a
+    TRIPOS mol2 block directly, with no temp-file write/read. Preferred for
+    high-throughput SMILES batches (see
+    :func:`nonstandard_residue_info_from_smiles_via_mol2`).
+    """
+    from tmol.ligand.openbabel_compat import (
+        OpenBabelUnavailableError,
+        obabel_read_mol2_block,
+    )
+
+    mol = Chem.MolFromMol2Block(
+        mol2_block,
+        sanitize=False,
+        removeHs=False,
+        cleanupSubstructures=False,
+    )
+    if mol is None:
+        try:
+            mol = obabel_read_mol2_block(mol2_block)
+        except OpenBabelUnavailableError:
+            mol = None
+        if mol is None:
+            raise ValueError(
+                "Could not parse in-memory Mol2 block (RDKit MolFromMol2Block "
+                "failed; OpenBabel fallback also failed or is not installed)"
+            )
+        logger.info("Used OpenBabel fallback to parse in-memory mol2 block")
+    return _nonstandard_residue_info_from_mol2_mol(
+        mol,
+        _mol2_charge_model_from_text(mol2_block),
+        res_name,
+        source="<mol2 block>",
+        single_bond_ids=_mol2_single_bond_ids(mol2_block),
+    )
+
+
+def _nonstandard_residue_info_from_mol2_mol(
+    mol: Chem.Mol,
+    charge_model: str,
+    res_name: str | None,
+    *,
+    source: str,
+    single_bond_ids: frozenset[frozenset[int]] = frozenset(),
+) -> NonStandardResidueInfo:
+    """Build ``NonStandardResidueInfo`` from an already-parsed mol2 RDKit mol.
+
+    Shared core of the file and in-memory-block mol2 entry points. ``charge_model``
+    is the TRIPOS ``charge_type`` (already parsed from the source) used to decide
+    whether the per-atom charges are authoritative; ``source`` labels the input in
+    error messages. ``single_bond_ids`` is the set of 1-based TRIPOS atom-id pairs
+    the source records as literal single bonds (see :func:`_mol2_single_bond_ids`);
+    these are mapped to disambiguated atom names and stored as
+    ``original_single_bonds`` so the CHI classifier can honor the mol2 bond order.
+    """
+    from tmol.ligand.atom_typing import sanitize_tolerant
+
     sanitize_tolerant(mol)
     if mol.GetNumConformers() == 0:
-        raise ValueError(f"Mol2 file has no 3D coordinates: {path}")
+        raise ValueError(f"Mol2 input has no 3D coordinates: {source}")
     disambiguated_names = apply_disambiguated_mol2_names(mol)
     conf = mol.GetConformer()
     n_atoms = mol.GetNumAtoms()
@@ -366,10 +506,20 @@ def nonstandard_residue_info_from_mol2(
     )
     atom_array.bonds = struc.BondList(n_atoms, bond_array)
 
-    use_input_charges = (
-        has_full_partial_charges and _mol2_partial_charges_are_authoritative(path)
+    use_input_charges = has_full_partial_charges and _charge_model_is_authoritative(
+        charge_model
     )
     authoritative_q = partial_charges if use_input_charges else None
+
+    # Map literal mol2 single bonds (1-based TRIPOS ids) to disambiguated atom
+    # names. RDKit index i corresponds to TRIPOS atom id i+1 (the reader keeps
+    # mol2 atom order), the same correspondence used for names/coords above.
+    original_single_bonds: frozenset[frozenset[str]] = frozenset(
+        frozenset((disambiguated_names[i - 1], disambiguated_names[j - 1]))
+        for i, j in (tuple(pair) for pair in single_bond_ids)
+        if 1 <= i <= n_atoms and 1 <= j <= n_atoms
+    )
+
     return NonStandardResidueInfo(
         res_name=inferred_res_name,
         ccd_type="UNKNOWN",
@@ -381,7 +531,386 @@ def nonstandard_residue_info_from_mol2(
         covalently_linked=False,
         partial_charges=authoritative_q,
         skip_protonation=authoritative_q is not None,
+        original_single_bonds=original_single_bonds or None,
     )
+
+
+def nonstandard_residue_info_from_pdb(
+    pdb_path: str | Path,
+    res_name: str | None = None,
+    *,
+    perceive_bond_orders: bool = True,
+) -> NonStandardResidueInfo:
+    """Construct ``NonStandardResidueInfo`` from a ligand PDB file via OpenBabel.
+
+    PDB does not carry bond orders. OpenBabel's ``ConnectTheDots`` +
+    ``PerceiveBondOrders`` are used to derive chemistry from geometry,
+    matching the standard ligand-prep practice in Rosetta/AMBER. The
+    original PDB atom names are preserved.
+
+    Args:
+        pdb_path: Path to a PDB file containing a single ligand. ATOM
+            and HETATM records are read; other records are ignored.
+        res_name: Override for the 3-letter residue name. Falls back to
+            the PDB residue name if present, else ``"LG1"``.
+        perceive_bond_orders: If True (default), OB infers bond orders
+            from geometry. If False, all bonds are emitted as single.
+
+    Returns:
+        A :class:`NonStandardResidueInfo` ready for
+        :func:`prepare_single_ligand`.
+    """
+    from tmol.ligand.atom_typing import sanitize_tolerant
+    from tmol.ligand.openbabel_compat import (
+        OpenBabelUnavailableError,
+        _import_openbabel,
+        _obmol_to_rdkit_mol,
+    )
+
+    path = Path(pdb_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"PDB file not found: {path}")
+
+    try:
+        openbabel, pybel = _import_openbabel()
+    except OpenBabelUnavailableError as exc:
+        raise OpenBabelUnavailableError(
+            "prepare_ligand_from_pdb requires the optional 'openbabel' "
+            "Python package because PDB files lack explicit bond orders "
+            "and need geometry-based bond perception. "
+            "Install with `pip install openbabel-wheel`."
+        ) from exc
+
+    try:
+        pymol = next(pybel.readfile("pdb", str(path)))
+    except StopIteration:
+        raise ValueError(f"No molecules in PDB file: {path}")
+    obmol = pymol.OBMol
+    if perceive_bond_orders:
+        obmol.ConnectTheDots()
+        obmol.PerceiveBondOrders()
+
+    residue = obmol.GetResidue(0) if obmol.NumResidues() > 0 else None
+
+    n_atoms = obmol.NumAtoms()
+    atom_names: list[str] = []
+    elements: list[str] = []
+    coords = np.zeros((n_atoms, 3), dtype=np.float64)
+    for i, atom in enumerate(openbabel.OBMolAtomIter(obmol)):
+        name = ""
+        if residue is not None:
+            name = (residue.GetAtomID(atom) or "").strip()
+        symbol = openbabel.GetSymbol(atom.GetAtomicNum()) or "X"
+        if not name:
+            name = f"{symbol}{i + 1}"
+        atom_names.append(name)
+        elements.append(symbol)
+        coords[i] = (atom.GetX(), atom.GetY(), atom.GetZ())
+
+    mol = _obmol_to_rdkit_mol(obmol, sanitize=False)
+    if mol is None:
+        raise ValueError(f"Could not convert OpenBabel-parsed PDB to RDKit Mol: {path}")
+    sanitize_tolerant(mol)
+    if mol.GetNumAtoms() != n_atoms:
+        raise ValueError(
+            f"Atom count mismatch reading PDB {path}: "
+            f"OBMol={n_atoms} RDKit={mol.GetNumAtoms()}"
+        )
+
+    inferred_res_name = res_name
+    if inferred_res_name is None and residue is not None:
+        candidate = (residue.GetName() or "").strip()
+        if candidate:
+            inferred_res_name = candidate
+    if inferred_res_name is None:
+        inferred_res_name = "LG1"
+
+    atom_array = struc.AtomArray(n_atoms)
+    atom_array.coord = coords
+    atom_array.atom_name = np.array(atom_names, dtype="U16")
+    atom_array.element = np.array(elements, dtype="U4")
+    atom_array.res_name = np.array([inferred_res_name] * n_atoms, dtype="U8")
+    atom_array.chain_id = np.array(["A"] * n_atoms, dtype="U4")
+    atom_array.res_id = np.array([1] * n_atoms, dtype=np.int32)
+    atom_array.hetero = np.array([True] * n_atoms, dtype=bool)
+
+    bond_array = np.array(
+        [
+            (
+                bond.GetBeginAtomIdx(),
+                bond.GetEndAtomIdx(),
+                _rdkit_bond_to_biotite_type(bond),
+            )
+            for bond in mol.GetBonds()
+        ],
+        dtype=np.int32,
+    )
+    atom_array.bonds = struc.BondList(n_atoms, bond_array)
+
+    return NonStandardResidueInfo(
+        res_name=inferred_res_name,
+        ccd_type="UNKNOWN",
+        atom_names=tuple(atom_names),
+        elements=tuple(elements),
+        coords=coords,
+        atom_array=atom_array,
+        ccd_smiles=None,
+        covalently_linked=False,
+        partial_charges=None,
+        skip_protonation=False,
+    )
+
+
+def nonstandard_residue_info_from_smiles(
+    smiles: str,
+    res_name: str | None = None,
+    *,
+    add_hydrogens: bool = True,
+    seed: int = 0xC0FFEE,
+) -> NonStandardResidueInfo:
+    """Construct ``NonStandardResidueInfo`` from a SMILES string.
+
+    RDKit parses the SMILES, adds explicit hydrogens, and embeds a 3D
+    conformer (UFF-optimized). If RDKit's SMILES parser returns ``None``
+    on input that OpenBabel can read, the parse step falls back to OB.
+
+    Atom names are synthesized as ``<element><1-based-index>`` since
+    SMILES carries no atom labels.
+
+    Args:
+        smiles: SMILES string for the ligand.
+        res_name: Three-letter residue name (default ``"LG1"``).
+        add_hydrogens: If True (default), explicit Hs are added before
+            embedding so 3D geometry is chemically sensible.
+        seed: RNG seed for RDKit ``EmbedMolecule`` (deterministic by
+            default).
+    """
+    from rdkit.Chem import AllChem as _AllChem
+
+    from tmol.ligand.atom_typing import sanitize_tolerant
+    from tmol.ligand.openbabel_compat import (
+        OpenBabelUnavailableError,
+        obabel_read_smiles,
+    )
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        try:
+            mol = obabel_read_smiles(smiles)
+        except OpenBabelUnavailableError:
+            mol = None
+        if mol is None:
+            raise ValueError(
+                f"Could not parse SMILES: {smiles!r} "
+                "(RDKit MolFromSmiles failed; OpenBabel fallback also "
+                "failed or is not installed)"
+            )
+        logger.info("Used OpenBabel fallback to parse SMILES %r", smiles)
+
+    if add_hydrogens:
+        mol = Chem.AddHs(mol)
+
+    if mol.GetNumConformers() == 0:
+        embed_result = _AllChem.EmbedMolecule(mol, randomSeed=seed)
+        if embed_result < 0:
+            # RDKit embedding failed; try OB-based 3D generation.
+            try:
+                mol = obabel_read_smiles(smiles, generate_3d=True, minimize=True)
+            except OpenBabelUnavailableError:
+                mol = None
+            if mol is None:
+                raise ValueError(
+                    f"Could not embed 3D coordinates for SMILES {smiles!r}"
+                )
+        else:
+            try:
+                _AllChem.UFFOptimizeMolecule(mol, maxIters=200)
+            except Exception:
+                logger.debug(
+                    "UFF optimization failed for SMILES %r; using raw embed",
+                    smiles,
+                    exc_info=True,
+                )
+
+    sanitize_tolerant(mol)
+
+    if mol.GetNumConformers() == 0:
+        raise ValueError(f"3D generation produced no conformer for SMILES {smiles!r}")
+
+    conf = mol.GetConformer()
+    n_atoms = mol.GetNumAtoms()
+    inferred_res_name = res_name or "LG1"
+
+    atom_names: list[str] = []
+    elements: list[str] = []
+    elem_counts: dict[str, int] = {}
+    coords = np.zeros((n_atoms, 3), dtype=np.float64)
+    for i, atom in enumerate(mol.GetAtoms()):
+        symbol = atom.GetSymbol()
+        elem_counts[symbol] = elem_counts.get(symbol, 0) + 1
+        atom_names.append(f"{symbol}{elem_counts[symbol]}")
+        elements.append(symbol)
+        p = conf.GetAtomPosition(i)
+        coords[i] = (float(p.x), float(p.y), float(p.z))
+
+    atom_array = struc.AtomArray(n_atoms)
+    atom_array.coord = coords
+    atom_array.atom_name = np.array(atom_names, dtype="U16")
+    atom_array.element = np.array(elements, dtype="U4")
+    atom_array.res_name = np.array([inferred_res_name] * n_atoms, dtype="U8")
+    atom_array.chain_id = np.array(["A"] * n_atoms, dtype="U4")
+    atom_array.res_id = np.array([1] * n_atoms, dtype=np.int32)
+    atom_array.hetero = np.array([True] * n_atoms, dtype=bool)
+
+    bond_array = np.array(
+        [
+            (
+                bond.GetBeginAtomIdx(),
+                bond.GetEndAtomIdx(),
+                _rdkit_bond_to_biotite_type(bond),
+            )
+            for bond in mol.GetBonds()
+        ],
+        dtype=np.int32,
+    )
+    atom_array.bonds = struc.BondList(n_atoms, bond_array)
+
+    return NonStandardResidueInfo(
+        res_name=inferred_res_name,
+        ccd_type="UNKNOWN",
+        atom_names=tuple(atom_names),
+        elements=tuple(elements),
+        coords=coords,
+        atom_array=atom_array,
+        ccd_smiles=smiles,
+        covalently_linked=False,
+        partial_charges=None,
+        skip_protonation=False,
+    )
+
+
+def _normalize_radical_oxygens(smiles: str) -> str:
+    """Restore the formal charge on bare radical oxygens (e.g. DUD ``[O]``).
+
+    Some source databases write anionic oxygens (carboxylate, sulfonate,
+    phosphate) as a bare ``[O]`` — a neutral, singly-bonded oxygen with no
+    hydrogen, which RDKit reads as a radical. Dimorphite cannot act on it
+    (its acid rules need an explicit ``-O-H``), and downstream 3D tools fill
+    the open valence inconsistently (OpenBabel via a PDB hop adds an H ->
+    neutral acid; the direct SMILES read keeps a symmetric carboxylate). Convert
+    each such oxygen to the proper anion ``[O-]`` so the protonation state is
+    well-defined end to end. Returns the input unchanged if nothing matches or
+    the SMILES cannot be parsed.
+    """
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return smiles
+    changed = False
+    for atom in mol.GetAtoms():
+        if (
+            atom.GetSymbol() == "O"
+            and atom.GetDegree() == 1
+            and atom.GetTotalNumHs() == 0
+            and atom.GetFormalCharge() == 0
+            and atom.GetNumRadicalElectrons() > 0
+        ):
+            atom.SetFormalCharge(-1)
+            atom.SetNumRadicalElectrons(0)
+            changed = True
+    if not changed:
+        return smiles
+    try:
+        Chem.SanitizeMol(mol)
+    except Exception:
+        logger.warning(
+            "Radical-oxygen normalization failed to sanitize SMILES %r; " "using input",
+            smiles,
+        )
+        return smiles
+    return Chem.MolToSmiles(mol)
+
+
+def _dimorphite_protonate_smiles(
+    smiles: str, ph: float = 7.4, precision: float = 0.1
+) -> str:
+    """Return the SMILES pKa-protonated at ``ph`` via Dimorphite-DL.
+
+    Takes the first protonation variant (matching the reference ligand-prep
+    protocol). Falls back to the input SMILES if RDKit cannot parse it or
+    Dimorphite produces no variant.
+    """
+    from tmol.ligand.dimorphite_dl import protonate_mol_variants
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return smiles
+    try:
+        variants = protonate_mol_variants(
+            mol,
+            min_ph=ph,
+            max_ph=ph,
+            pka_precision=precision,
+            max_variants=128,
+            silent=True,
+        )
+    except Exception:
+        logger.warning(
+            "Dimorphite protonation failed for SMILES %r; using input", smiles
+        )
+        return smiles
+    if not variants:
+        return smiles
+    return Chem.MolToSmiles(variants[0])
+
+
+def nonstandard_residue_info_from_smiles_via_mol2(
+    smiles: str,
+    res_name: str | None = None,
+    *,
+    ph: float = 7.4,
+    protonate: bool = True,
+    conformer_search: bool = True,
+) -> NonStandardResidueInfo:
+    """Construct ``NonStandardResidueInfo`` from a SMILES via the mol2 route.
+
+    Implements the canonical ligand-prep protocol end to end:
+
+    0. normalize bare radical oxygens (``[O]`` -> ``[O-]``) so source
+       carboxylate/sulfonate notation has a well-defined charge,
+    1. optionally pKa-protonate the SMILES with Dimorphite-DL (``protonate``),
+    2. generate a 3D mol2 with MMFF94 partial charges via OpenBabel (kept
+       in memory as a string — no temp file), then
+    3. read that mol2 with :func:`nonstandard_residue_info_from_mol2_block`.
+
+    Unlike :func:`nonstandard_residue_info_from_smiles`, this never builds a
+    biotite atom-array from an RDKit embedding and never recomputes MMFF on a
+    reconstructed graph — the OpenBabel MMFF94 charges flow through untouched
+    (``skip_protonation`` / authoritative charges are set by the mol2 reader),
+    so fused-ring aromatics keep correct charges.
+
+    Args:
+        smiles: Ligand SMILES string.
+        res_name: Three-letter residue name (default inferred / ``"LG1"``).
+        ph: Target pH for the Dimorphite protonation step.
+        protonate: When ``True`` (default) run Dimorphite on ``smiles`` first;
+            set ``False`` to pin an already-protonated SMILES verbatim.
+        conformer_search: When ``True`` (default) run a rotor conformer search
+            during the 3D mol2 generation (matching the reference pipeline);
+            set ``False`` for faster single-conformer generation.
+
+    Raises:
+        OpenBabelUnavailableError: If the ``openbabel`` package is missing
+            (this path requires it for the SMILES -> mol2 conversion).
+        ValueError: If OpenBabel cannot build a charged mol2 for ``smiles``.
+    """
+    from tmol.ligand.openbabel_compat import obabel_smiles_to_mol2_block
+
+    smiles = _normalize_radical_oxygens(smiles)
+    prep_smiles = _dimorphite_protonate_smiles(smiles, ph) if protonate else smiles
+    mol2_block = obabel_smiles_to_mol2_block(
+        prep_smiles, conformer_search=conformer_search
+    )
+    return nonstandard_residue_info_from_mol2_block(mol2_block, res_name=res_name)
 
 
 def _cif_value_order_to_biotite_bond_type(value_order: str, aromatic_flag: str) -> int:

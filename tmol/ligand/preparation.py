@@ -22,6 +22,8 @@ from tmol.ligand.detect import (
     detect_nonstandard_residues,
     nonstandard_residue_info_from_cif,
     nonstandard_residue_info_from_mol2,
+    nonstandard_residue_info_from_pdb,
+    nonstandard_residue_info_from_smiles_via_mol2,
 )
 from tmol.ligand.graph_match import match_heavy_atoms
 from tmol.ligand.registry import (
@@ -160,6 +162,7 @@ def prepare_single_ligand(
     ligand_info: NonStandardResidueInfo,
     ph: float = 7.4,
     charge_mode: str = "auto",
+    sample_proton_chi: bool = True,
 ) -> LigandPreparation:
     """Run the full RDKit preparation pipeline for a single ligand.
 
@@ -215,13 +218,16 @@ def prepare_single_ligand(
     if not ligand_info.skip_protonation:
         protonated = Chem.AddHs(protonated, addCoords=True)
 
-    atom_types = assign_tmol_atom_types(protonated)
+    atom_types, typing_state = assign_tmol_atom_types(protonated, return_state=True)
     atom_types = _rename_atoms_to_cif(protonated, atom_types, ligand_info)
 
     restype = build_residue_type(
         protonated,
         ligand_info.res_name,
         atom_types,
+        typing_state=typing_state,
+        sample_proton_chi=sample_proton_chi,
+        original_single_bonds=ligand_info.original_single_bonds,
     )
 
     charges = build_partial_charges(
@@ -274,6 +280,7 @@ def prepare_ligands(
     params_files: list[str] | None = None,
     params_output: str | None = None,
     charge_mode: str = "auto",
+    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Detect, prepare, and register all non-standard residues.
 
@@ -366,6 +373,7 @@ def prepare_ligands(
             lig.res_name,
             round(ph, 3),
             charge_mode,
+            sample_proton_chi,
             tuple(lig.atom_names),
             tuple(lig.elements),
         )
@@ -387,7 +395,9 @@ def prepare_ligands(
             continue
 
         logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)
-        prep = prepare_single_ligand(lig, ph=ph, charge_mode=charge_mode)
+        prep = prepare_single_ligand(
+            lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
+        )
         cache_ligand(
             lig.res_name,
             prep.residue_type,
@@ -404,14 +414,9 @@ def prepare_ligands(
         canonical_ordering = rebuild_canonical_ordering(param_db)
 
         if params_output:
-            from tmol.ligand.params_file import write_params_file
+            from tmol.ligand.params_io import write_params_file
 
-            all_residues = [p.residue_type for p in preparations]
-            all_charges = {p.residue_type.name: p.partial_charges for p in preparations}
-            all_cartbonded = {
-                p.residue_type.name: p.cartbonded_params for p in preparations
-            }
-            write_params_file(params_output, all_residues, all_charges, all_cartbonded)
+            write_params_file(preparations, params_output, format="tmol")
             logger.info("Wrote params to %s", params_output)
 
     return param_db, canonical_ordering
@@ -425,6 +430,7 @@ def prepare_ligand_from_cif(
     strict_atom_types: bool = False,
     res_name: str | None = None,
     charge_mode: str = "auto",
+    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a CIF file and inject it into a database.
 
@@ -441,6 +447,7 @@ def prepare_ligand_from_cif(
         strict_atom_types=strict_atom_types,
         res_name=res_name,
         charge_mode=charge_mode,
+        sample_proton_chi=sample_proton_chi,
     )
 
 
@@ -452,6 +459,7 @@ def prepare_ligand_from_mol2(
     strict_atom_types: bool = False,
     res_name: str | None = None,
     charge_mode: str = "auto",
+    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a Mol2 file and inject it into a database.
 
@@ -467,7 +475,89 @@ def prepare_ligand_from_mol2(
         strict_atom_types=strict_atom_types,
         res_name=res_name,
         charge_mode=charge_mode,
+        sample_proton_chi=sample_proton_chi,
     )
+
+
+def prepare_ligand_from_pdb(
+    pdb_path: str,
+    *,
+    param_db: Optional[ParameterDatabase] = None,
+    ph: float = 7.4,
+    strict_atom_types: bool = False,
+    res_name: str | None = None,
+    charge_mode: str = "mmff94",
+    perceive_bond_orders: bool = True,
+    sample_proton_chi: bool = True,
+) -> tuple[ParameterDatabase, CanonicalOrdering]:
+    """Prepare a single ligand from a PDB file and inject it into a database.
+
+    PDB files do not carry bond orders, so this entry point requires the
+    optional ``openbabel`` Python package — OpenBabel's ``PerceiveBondOrders``
+    is used to derive chemistry from geometry. ``charge_mode`` defaults to
+    ``"mmff94"`` since PDB carries no partial-charge column.
+    """
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
+
+    lig = nonstandard_residue_info_from_pdb(
+        pdb_path, res_name=res_name, perceive_bond_orders=perceive_bond_orders
+    )
+    prep = prepare_single_ligand(
+        lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
+    )
+    param_db = inject_ligand_preparations(
+        param_db, [prep], strict_atom_types=strict_atom_types
+    )
+    return param_db, rebuild_canonical_ordering(param_db)
+
+
+def prepare_ligand_from_smiles(
+    smiles: str,
+    *,
+    param_db: Optional[ParameterDatabase] = None,
+    ph: float = 7.4,
+    strict_atom_types: bool = False,
+    res_name: str | None = None,
+    charge_mode: str = "auto",
+    protonate: bool = True,
+    sample_proton_chi: bool = True,
+    conformer_search: bool = True,
+) -> tuple[ParameterDatabase, CanonicalOrdering]:
+    """Prepare a single ligand from a SMILES string and inject it into a database.
+
+    Follows the canonical ligand-prep protocol: Dimorphite-DL pKa-protonates
+    the SMILES at ``ph``, OpenBabel generates a 3D mol2 with MMFF94 partial
+    charges, and that mol2 is read verbatim (atom names, coordinates, charges,
+    and bond orders preserved). The MMFF94 charges flow through untouched —
+    there is no biotite atom-array round-trip or MMFF recompute — so
+    ``charge_mode`` defaults to ``"auto"`` (keep the authoritative mol2
+    charges). This path requires the optional ``openbabel`` package.
+
+    Args:
+        protonate: When ``True`` (default) Dimorphite protonates ``smiles``
+            first; set ``False`` to pin an already-protonated SMILES verbatim.
+        conformer_search: When ``True`` (default) run a rotor conformer search
+            during 3D mol2 generation (matching the reference pipeline); set
+            ``False`` for faster single-conformer generation.
+    """
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
+
+    lig = nonstandard_residue_info_from_smiles_via_mol2(
+        smiles,
+        res_name=res_name,
+        ph=ph,
+        protonate=protonate,
+        conformer_search=conformer_search,
+    )
+    prep = prepare_single_ligand(
+        lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
+    )
+    param_db = inject_ligand_preparations(
+        param_db, [prep], strict_atom_types=strict_atom_types
+    )
+    return param_db, rebuild_canonical_ordering(param_db)
 
 
 def _prepare_ligand_from_file(
@@ -479,6 +569,7 @@ def _prepare_ligand_from_file(
     strict_atom_types: bool,
     res_name: str | None,
     charge_mode: str,
+    sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Load one ligand from file, prepare it, and inject it.
 
@@ -489,8 +580,49 @@ def _prepare_ligand_from_file(
         param_db = ParameterDatabase.get_default()
 
     lig = loader(path, res_name)
-    prep = prepare_single_ligand(lig, ph=ph, charge_mode=charge_mode)
+    prep = prepare_single_ligand(
+        lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
+    )
     param_db = inject_ligand_preparations(
         param_db, [prep], strict_atom_types=strict_atom_types
     )
     return param_db, rebuild_canonical_ordering(param_db)
+
+
+def write_params_from_mol2(
+    mol2_path: str,
+    out_path: str,
+    *,
+    res_name: str | None = None,
+    ph: float = 7.4,
+    charge_mode: str = "auto",
+    sample_proton_chi: bool = True,
+) -> LigandPreparation:
+    """Prepare a ligand from a mol2 and write a Rosetta ``.params`` file.
+
+    Reads the mol2 (preserving its atom names, coordinates, charges, and bond
+    orders), runs the standard single-ligand preparation, and writes the
+    resulting residue type and partial charges to ``out_path`` in Rosetta
+    ``.params`` format.
+
+    Args:
+        mol2_path: Input ligand mol2 file.
+        out_path: Output ``.params`` path.
+        res_name: Optional residue name (defaults to the mol2's own name).
+        ph: pH used only if the mol2 lacks authoritative charges.
+        charge_mode: Charge policy (default ``auto`` keeps authoritative
+            mol2 charges).
+        sample_proton_chi: Whether to emit proton-chi samples (default off).
+
+    Returns:
+        The :class:`LigandPreparation` that was written.
+    """
+    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand.params_io import write_params_file
+
+    info = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
+    prep = prepare_single_ligand(
+        info, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
+    )
+    write_params_file(prep, out_path, format="rosetta")
+    return prep

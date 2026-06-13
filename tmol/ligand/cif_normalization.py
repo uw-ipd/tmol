@@ -55,7 +55,21 @@ def _load_mol2(path: Path) -> Chem.Mol:
         cleanupSubstructures=False,
     )
     if mol is None:
-        raise ValueError(f"Could not parse MOL2: {path}")
+        from tmol.ligand.openbabel_compat import (
+            OpenBabelUnavailableError,
+            obabel_read_mol2,
+        )
+
+        try:
+            mol = obabel_read_mol2(path)
+        except OpenBabelUnavailableError:
+            mol = None
+        if mol is None:
+            raise ValueError(
+                f"Could not parse MOL2: {path} "
+                "(RDKit MolFromMol2File failed; OpenBabel fallback also "
+                "failed or is not installed)"
+            )
     sanitize_tolerant(mol)
     if mol.GetNumConformers() == 0:
         raise ValueError(f"MOL2 has no 3D coordinates: {path}")

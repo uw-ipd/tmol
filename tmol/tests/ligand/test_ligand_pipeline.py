@@ -14,6 +14,7 @@ import pytest
 from tmol.io.pose_stack_from_biotite import canonical_ordering_for_biotite
 from tmol.ligand import prepare_ligands, prepare_single_ligand
 from tmol.ligand.detect import detect_nonstandard_residues
+from tmol.ligand.parity_manifest import load_parity_manifest
 from tmol.ligand.dimorphite_dl import protonate_mol_variants
 from tmol.ligand.params_io import read_params_file, write_params_file
 from tmol.ligand.registry import get_default_cache
@@ -711,10 +712,10 @@ class TestParamsRoundtrip:
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
         i4b = next(lig for lig in ligands if lig.res_name == "I4B")
         prep = prepare_single_ligand(i4b)
-        restype, charges = prep.residue_type, prep.partial_charges
+        restype = prep.residue_type
 
         path = tmp_path / "I4B.params"
-        write_params_file(restype, path, partial_charges=charges)
+        write_params_file(prep, path, format="rosetta")
         loaded = read_params_file(path)
 
         assert loaded.name == "I4B"
@@ -729,10 +730,10 @@ class TestParamsRoundtrip:
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
         i4b = next(lig for lig in ligands if lig.res_name == "I4B")
         prep = prepare_single_ligand(i4b)
-        restype, charges = prep.residue_type, prep.partial_charges
+        restype = prep.residue_type
 
         path = tmp_path / "I4B_bondtypes.params"
-        write_params_file(restype, path, partial_charges=charges)
+        write_params_file(prep, path, format="rosetta")
         loaded = read_params_file(path)
 
         assert all(len(b) == 4 for b in loaded.bonds)
@@ -869,68 +870,16 @@ def test_missing_authoritative_charges_reports_cif_loading_guidance(
 
 
 def _parse_reference_params(path):
-    """Parse a full Rosetta .params file into structured reference data.
+    """Parse a Rosetta .params file into the legacy regression dict.
 
-    Returns a dict with keys: atoms (list of (name, type, charge)),
-    bond_types (set of (a1, a2, order, ring_flag)), cut_bonds (set of
-    frozensets), chis (list of (num, a1, a2, a3, a4, biaryl_flag)),
-    proton_chis (list of raw line strings), nbr_atom (str),
-    icoor_topology (dict of name -> (parent, gp, ggp)).
+    Delegates to the shared :mod:`tmol.ligand.params_reference` parser so the
+    regression suite and the parity harness use one implementation. The dict
+    shape (atoms, bond_types, cut_bonds, chis, proton_chis, nbr_atom,
+    icoor_topology) is preserved for existing callers.
     """
-    atoms = []
-    bond_types = set()
-    cut_bonds = set()
-    chis = []
-    proton_chis = []
-    nbr_atom = ""
-    icoor_topo = {}
+    from tmol.ligand.params_reference import as_legacy_dict, parse_reference_params
 
-    with open(path) as f:
-        for line in f:
-            parts = line.split()
-            if not parts:
-                continue
-
-            if parts[0] == "ATOM" and len(parts) >= 5:
-                name, atype = parts[1], parts[2]
-                charge = float(parts[4])
-                atoms.append((name, atype, charge))
-
-            elif parts[0] == "BOND_TYPE" and len(parts) >= 4:
-                a1, a2 = parts[1].strip(), parts[2].strip()
-                order = parts[3]
-                ring = "RING" if len(parts) >= 5 and parts[4] == "RING" else ""
-                bond_types.add((frozenset([a1, a2]), order, ring))
-
-            elif parts[0] == "CUT_BOND" and len(parts) >= 3:
-                cut_bonds.add(frozenset([parts[1].strip(), parts[2].strip()]))
-
-            elif parts[0] == "CHI" and len(parts) >= 6:
-                chi_num = int(parts[1])
-                quad = (parts[2], parts[3], parts[4], parts[5])
-                biaryl = "#biaryl" in line
-                chis.append((chi_num, quad, biaryl))
-
-            elif parts[0] == "PROTON_CHI":
-                proton_chis.append(line.strip())
-
-            elif parts[0] == "NBR_ATOM" and len(parts) >= 2:
-                nbr_atom = parts[1]
-
-            elif parts[0] == "ICOOR_INTERNAL" and len(parts) >= 8:
-                name = parts[1]
-                parent, gp, ggp = parts[5], parts[6], parts[7]
-                icoor_topo[name] = (parent, gp, ggp)
-
-    return {
-        "atoms": atoms,
-        "bond_types": bond_types,
-        "cut_bonds": cut_bonds,
-        "chis": chis,
-        "proton_chis": proton_chis,
-        "nbr_atom": nbr_atom,
-        "icoor_topology": icoor_topo,
-    }
+    return as_legacy_dict(parse_reference_params(path))
 
 
 def _load_smi_file(path, name):
@@ -961,9 +910,14 @@ class TestGroundTruthRegression:
     GROUND_TRUTH_DIR = Path(__file__).parent.parent / "data" / "ligand_ground_truth"
     CHARGE_TOLERANCE = 0.01
 
-    @pytest.fixture(params=["ref1", "ref2"])
+    @pytest.fixture(params=load_parity_manifest(), ids=lambda e: e.name)
     def ref_data(self, request):
-        """Load reference data and run our pipeline for comparison."""
+        """Load reference data and run our pipeline for comparison.
+
+        Parametrized from the parity manifest seed entries, so adding a
+        manifest molecule adds a regression case rather than editing a literal
+        list. Per-entry settings (``sample_proton_chi``) drive preparation.
+        """
         from rdkit import Chem
 
         from tmol.ligand.atom_typing import assign_tmol_atom_types
@@ -971,25 +925,31 @@ class TestGroundTruthRegression:
         from tmol.ligand.residue_builder import build_residue_type
         from tmol.ligand.rdkit_mol import protonate_ligand_mol
 
-        name = request.param
-        gt = self.GROUND_TRUTH_DIR
+        entry = request.param
+        name = entry.name
 
-        input_smi = _load_smi_file(gt / "designs.smi", name)
-        expected_prot_smi = _load_smi_file(gt / "designs.prot.smi", name)
-        ref = _parse_reference_params(gt / f"{name}.params")
+        input_smi = entry.input_smiles
+        expected_prot_smi = entry.expected_prot_smiles
+        ref = _parse_reference_params(entry.params)
 
         rdkit_mol = Chem.MolFromSmiles(input_smi)
         protonated = protonate_ligand_mol(rdkit_mol, ph=7.4)
         protonated = Chem.AddHs(protonated, addCoords=False)
         prot_smi = Chem.MolToSmiles(Chem.RemoveHs(protonated), isomericSmiles=True)
         charges_by_idx = compute_mmff94_charges(protonated)
-        atom_types = assign_tmol_atom_types(protonated)
+        atom_types, typing_state = assign_tmol_atom_types(protonated, return_state=True)
         charges = {
             at.atom_name: charges_by_idx[at.index]
             for at in atom_types
             if at.index in charges_by_idx
         }
-        restype = build_residue_type(protonated, name, atom_types)
+        restype = build_residue_type(
+            protonated,
+            name,
+            atom_types,
+            typing_state=typing_state,
+            sample_proton_chi=entry.sample_proton_chi,
+        )
 
         return {
             "name": name,
@@ -1001,6 +961,74 @@ class TestGroundTruthRegression:
             "charges": charges,
             "restype": restype,
         }
+
+    def test_chi_axes_match(self, ref_data):
+        """Emitted CHI torsions cover the same rotatable axes as ref .params.
+
+        Semantic parity: compare the unordered set of central {b, c} heavy-atom
+        name pairs (CHI numbering / quad text are not asserted).
+        """
+        ref_axes = {
+            frozenset((quad[1], quad[2]))
+            for (_num, quad, _biaryl) in ref_data["ref"]["chis"]
+        }
+        emit_axes = {
+            frozenset((t.b.atom, t.c.atom)) for t in ref_data["restype"].torsions
+        }
+        assert emit_axes == ref_axes, (
+            f"CHI axis mismatch for {ref_data['name']}: "
+            f"only-in-ref={sorted(tuple(sorted(s)) for s in ref_axes - emit_axes)}, "
+            f"only-in-emit={sorted(tuple(sorted(s)) for s in emit_axes - ref_axes)}"
+        )
+
+    def test_proton_chi_samples_match(self, ref_data):
+        """PROTON_CHI sample sets and EXTRA expansions match ref .params."""
+        ref = ref_data["ref"]
+        restype = ref_data["restype"]
+
+        chi_axis_by_num = {
+            num: frozenset((quad[1], quad[2])) for (num, quad, _b) in ref["chis"]
+        }
+        ref_by_axis = {}
+        for line in ref["proton_chis"]:
+            toks = line.split()
+            num = int(toks[1])
+            si = toks.index("SAMPLES")
+            k = int(toks[si + 1])
+            samples = tuple(float(x) for x in toks[si + 2 : si + 2 + k])
+            extra = (
+                tuple(float(x) for x in toks[toks.index("EXTRA") + 1 :])
+                if "EXTRA" in toks
+                else ()
+            )
+            ref_by_axis[chi_axis_by_num[num]] = (samples, extra)
+
+        axis_by_chiname = {
+            t.name: frozenset((t.b.atom, t.c.atom)) for t in restype.torsions
+        }
+        emit_by_axis = {
+            axis_by_chiname[cs.chi_dihedral]: (cs.samples, cs.expansions)
+            for cs in restype.chi_samples
+        }
+
+        assert set(emit_by_axis) == set(ref_by_axis), (
+            f"PROTON_CHI axis-set mismatch for {ref_data['name']}: "
+            f"ref={sorted(tuple(sorted(s)) for s in ref_by_axis)}, "
+            f"emit={sorted(tuple(sorted(s)) for s in emit_by_axis)}"
+        )
+        for axis, (r_samples, r_extra) in ref_by_axis.items():
+            e_samples, e_expansions = emit_by_axis[axis]
+            assert sorted(e_samples) == sorted(r_samples), (
+                f"{ref_data['name']} samples mismatch on {tuple(sorted(axis))}: "
+                f"ref={r_samples} emit={e_samples}"
+            )
+            # Rosetta EXTRA "1 20" -> one expansion of 20 deg -> (20.0,);
+            # EXTRA "0" -> no expansion -> ().
+            expected = (r_extra[1],) if (r_extra and r_extra[0] >= 1) else ()
+            assert tuple(e_expansions) == expected, (
+                f"{ref_data['name']} EXTRA mismatch on {tuple(sorted(axis))}: "
+                f"ref EXTRA={r_extra} -> expected {expected}, emit={e_expansions}"
+            )
 
     def test_protonation_matches(self, ref_data):
         """dimorphite_dl protonation must produce the expected SMILES."""

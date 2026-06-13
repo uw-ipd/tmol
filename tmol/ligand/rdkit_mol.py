@@ -68,6 +68,18 @@ def _rebuild_mol_via_smiles_preserving_coords(heavy: Chem.Mol) -> Optional[Chem.
 
     fresh = Chem.MolFromSmiles(smiles)
     if fresh is None:
+        from tmol.ligand.openbabel_compat import (
+            OpenBabelUnavailableError,
+            obabel_read_smiles,
+        )
+
+        try:
+            fresh = obabel_read_smiles(smiles)
+        except OpenBabelUnavailableError:
+            fresh = None
+        if fresh is not None:
+            logger.info("Used OpenBabel fallback to parse SMILES %r", smiles)
+    if fresh is None:
         return None
 
     match = fresh.GetSubstructMatch(heavy)
