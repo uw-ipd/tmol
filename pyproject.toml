@@ -73,7 +73,8 @@ ligand = [
 ]
 dev = [
     # Linters & formatters
-    "black==24.1.1",
+    # Keep in sync with the black pin in .pre-commit-config.yaml (CI lint)
+    "black==26.3.1",
     "flake8==7.3.0",
     "pre-commit>=4.0",
     "clang-format==21.1.8",
