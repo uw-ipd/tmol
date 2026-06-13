@@ -101,14 +101,23 @@ jobs:
 
           source .venv/bin/activate
 
+          # The NGC container ships a CUDA forward-compat libcuda in
+          # /usr/local/cuda/compat that sits ahead of the --nv-injected host
+          # driver on LD_LIBRARY_PATH. On nodes whose driver is newer than the
+          # container's CUDA toolkit this mismatches and breaks CUDA init
+          # (cudaGetDeviceCount error 803 -> torch.cuda.is_available()==False).
+          # Drop it so torch uses the host driver provided by --nv.
+          export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
+
           uv pip compile pyproject.toml --all-extras --output-file requirements.txt
           grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" requirements.txt > to_install.txt
 
           uv pip install -r to_install.txt
           uv pip install torch
-          # TODO: previously we were pinning 2.11.0 for the test server because the environment CUDA version isn't high enough for a more recent version
-          # is this still necessary?
-          # uv pip install torch==2.11.0 
+          # NB: an old torch pin (torch==2.11.0) used to work around CUDA init
+          # failures here. That was actually the container's forward-compat
+          # libcuda mismatching the node driver (error 803), now fixed by the
+          # LD_LIBRARY_PATH cleanup above -- no torch pin is needed.
 
           # PyTorch reports the *runtime* GPU (e.g. sm_120 on Blackwell), but Apptainer
           # nvcc is often older (e.g. CUDA 12.4) and cannot compile compute_120.
@@ -178,7 +187,12 @@ jobs:
           set -ex
           
           source .venv/bin/activate
-          
+
+          # Drop the container's CUDA forward-compat libcuda so torch uses the
+          # --nv host driver (otherwise CUDA init fails with error 803 on nodes
+          # with a driver newer than the container CUDA, skipping all cuda tests).
+          export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
+
           pytest -p no:rerunfailures -s -v --durations=25 \
             --cov=$GITHUB_WORKSPACE/tmol --cov-report=xml \
             --junitxml=$GITHUB_WORKSPACE/testing.cuda.junit.xml -k "cuda"
@@ -199,6 +213,10 @@ jobs:
           set -ex
           
           source .venv/bin/activate
+
+          # Drop the container's CUDA forward-compat libcuda so torch uses the
+          # --nv host driver (avoids CUDA init error 803 on newer-driver nodes).
+          export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
 
           BENCHMARK_DIR=benchmark/$GITHUB_REPOSITORY/$GITHUB_REF_NAME
           BENCHMARK_RESULT=${BENCHMARK_DIR}/${GITHUB_RUN_NUMBER}.json
