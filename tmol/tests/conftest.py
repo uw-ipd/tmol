@@ -77,12 +77,21 @@ def pytest_benchmark_update_machine_info(config, machine_info):
         dp = torch.cuda.get_device_properties(i)
         return {k: getattr(dp, k) for k in dir(dp) if not k.startswith("_")}
 
-    machine_info["cuda"] = {
-        "device": {n: device_info_dict(n) for n in range(torch.cuda.device_count())},
-        "current_device": (
-            torch.cuda.current_device() if torch.cuda.device_count() else None
-        ),
-    }
+    # Querying CUDA can raise on nodes with a broken/mismatched driver
+    # (e.g. cudaGetDeviceCount error 803). This is best-effort benchmark
+    # metadata, so degrade gracefully rather than killing the test session.
+    try:
+        n_devices = torch.cuda.device_count()
+        machine_info["cuda"] = {
+            "device": {n: device_info_dict(n) for n in range(n_devices)},
+            "current_device": torch.cuda.current_device() if n_devices else None,
+        }
+    except Exception as exc:
+        machine_info["cuda"] = {
+            "device": {},
+            "current_device": None,
+            "error": repr(exc),
+        }
 
     machine_info["cpuinfo"] = cpuinfo.get_cpu_info()
 
