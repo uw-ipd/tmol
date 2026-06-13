@@ -17,6 +17,7 @@ Usage:
                              [--ph 7.4] [--no-protonate] [--sample-proton-chi]
 Writes <out_prefix>.params and <out_prefix>.tmol .
 """
+
 import argparse
 
 from tmol.ligand import prepare_single_ligand, params_io
