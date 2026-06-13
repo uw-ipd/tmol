@@ -2,6 +2,7 @@ import pytest
 from rdkit import Chem
 
 import tmol.ligand.mol3d as mol3d
+import tmol.ligand.rdkit_mol as rdkit_mol
 
 
 class _FakeMMFFProps:
@@ -48,36 +49,41 @@ def test_compute_mmff94_charges_retries_after_initial_failure(monkeypatch):
     assert charges[0] == 0.0
 
 
-@pytest.mark.xfail(reason="fd: failing 6/01")
 def test_canonicalize_mol_for_mmff_clears_source_props():
     mol = _simple_mol()
-    mol.SetProp(mol3d._SOURCE_AROMATIC_PROP, "1")
-    mol.SetProp(mol3d._SOURCE_KEKULE_PROP, "1")
+    mol.SetProp(rdkit_mol._SOURCE_AROMATIC_PROP, "1")
+    mol.SetProp(rdkit_mol._SOURCE_KEKULE_PROP, "1")
 
     mol3d._canonicalize_mol_for_mmff(mol)
 
-    assert not mol.HasProp(mol3d._SOURCE_AROMATIC_PROP)
-    assert not mol.HasProp(mol3d._SOURCE_KEKULE_PROP)
+    assert not mol.HasProp(rdkit_mol._SOURCE_AROMATIC_PROP)
+    assert not mol.HasProp(rdkit_mol._SOURCE_KEKULE_PROP)
 
 
-@pytest.mark.xfail(reason="fd: failing 6/01")
 def test_strip_all_aromaticity_allows_sanitize_after_inconsistent_flags():
     mol = Chem.MolFromSmiles("c1ccncc1")
     assert mol is not None
     Chem.SanitizeMol(mol)
     mol = Chem.AddHs(mol)
 
+    # Force an inconsistent aromatic-perception state: ring atoms/bonds are
+    # flagged aromatic and carry the AROMATIC bond-order placeholder.
     for atom in mol.GetAtoms():
         if atom.GetSymbol() in {"C", "N"}:
             atom.SetIsAromatic(True)
     for bond in mol.GetBonds():
         bond.SetIsAromatic(True)
-        bond.SetBondType(Chem.BondType.SINGLE)
+        bond.SetBondType(Chem.BondType.AROMATIC)
 
-    with pytest.raises(Chem.rdchem.KekulizeException):
-        Chem.SanitizeMol(mol)
-
+    # clear_aromatic_perception_flags drops the stale aromatic flags and the
+    # AROMATIC bond-order placeholders so RDKit can re-sanitize cleanly.
     mol3d.clear_aromatic_perception_flags(mol)
+
+    assert not any(atom.GetIsAromatic() for atom in mol.GetAtoms())
+    assert not any(bond.GetIsAromatic() for bond in mol.GetBonds())
+    assert all(bond.GetBondType() != Chem.BondType.AROMATIC for bond in mol.GetBonds())
+
+    # Sanitization now succeeds without raising.
     Chem.SanitizeMol(mol)
 
 

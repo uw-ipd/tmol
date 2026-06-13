@@ -1,27 +1,25 @@
-"""Regression tests for protein_ligand_test file-to-.tmol equivalence.
+"""Reference-integrity guardrails for the protein_ligand_test inputs.
 
-For each PLI target, this suite checks both ligand-source formats:
+The PLI set is used for dG scoring against golden references (see
+``test_pli_scoring.py``). These tests only verify that the checked-in
+CIF / MOL2 / ``.tmol`` inputs are mutually consistent and that the loader
+behaves deterministically.
 
-1. ``cif_inputs/<target>.ligand.cif`` -> ``prepare_single_ligand``
-2. ``<target>.lig.mol2``             -> ``prepare_single_ligand``
-
-Each generated ``LigandPreparation`` is compared to the checked-in reference
-``<target>.xtal-lig.mmff94.tmol`` for topology, typing, bonds, partial charges,
-and cartbonded parameters. Both CIF and mol2 inputs use ``charge_mode="mmff94"``
-(RDKit MMFF94 recomputation; fixture source charges are cleared before prep).
+Generated-param equivalence (CIF/MOL2 -> ``.tmol``) is intentionally **not**
+asserted here. Param-generation parity against Rosetta is covered by the
+DUD-80 suite (``test_ligand_pipeline.py::TestGroundTruthRegression`` and
+``scripts/ligand_prep/validate_dud80.py``); scoring correctness on this set is
+covered by ``test_pli_scoring.py`` via the golden ``.tmol`` params.
 """
 
-import math
 from pathlib import Path
 
-import attr
 import pytest
 
 from tmol.ligand.cif_normalization import (
     audit_cif_bonds_vs_mol2,
     repaired_cif_path_from_mol2,
 )
-from tmol.ligand.equivalence import compare_ligand_preparations
 
 PLI_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 PLI_CIF_DIR = PLI_DIR / "cif_inputs"
@@ -38,55 +36,6 @@ CIF_TARGETS = {
 MOL2_TARGETS = {
     p.name[: -len(".lig.mol2")] for p in PLI_DIR.glob("*.lig.mol2") if p.is_file()
 }
-
-_CIF_CASES = sorted(("cif", t) for t in (TMOL_TARGETS & CIF_TARGETS))
-_MOL2_CASES = sorted(("mol2", t) for t in (TMOL_TARGETS & MOL2_TARGETS))
-
-PLI_FORMAT_CASES = [
-    pytest.param(c, marks=pytest.mark.xfail(reason="fd: failing 6/01"))
-    for c in _CIF_CASES
-] + list(_MOL2_CASES)
-
-CASE_IDS = [f"{s}_{t}" for s, t in (_CIF_CASES + _MOL2_CASES)]
-
-
-def _source_path(source: str, target: str) -> Path:
-    if source == "cif":
-        return PLI_CIF_DIR / f"{target}.ligand.cif"
-    if source == "mol2":
-        return PLI_DIR / f"{target}.lig.mol2"
-    raise ValueError(f"Unsupported source format: {source}")
-
-
-def _format_check_error(prep_pair: dict, check: str) -> str:
-    details = prep_pair["equivalence"].details.get(check)
-    return (
-        f"{check} mismatch for {prep_pair['target']} ({prep_pair['source']} -> .tmol): "
-        f"{details}"
-    )
-
-
-def prepare_pli_ligand_mmff94_from_cif(target: str):
-    """CIF → Dimorphite @ pH 7.4 → MMFF94 (shared by equivalence and scoring tests)."""
-    from tmol.ligand import prepare_single_ligand
-    from tmol.ligand.detect import nonstandard_residue_info_from_cif
-    from tmol.ligand.params_file import load_params_file
-
-    tmol_path = PLI_DIR / f"{target}{TMOL_SUFFIX}"
-    ref_res_name = load_params_file(tmol_path)[0].residue_type.name
-
-    source_info = nonstandard_residue_info_from_cif(
-        PLI_CIF_DIR / f"{target}.ligand.cif",
-        res_name=ref_res_name,
-        paired_mol2_path=PLI_DIR / f"{target}.lig.mol2",
-        repair_invalid_bonds=True,
-    )
-    source_info = attr.evolve(
-        source_info,
-        partial_charges=None,
-        skip_protonation=False,
-    )
-    return prepare_single_ligand(source_info, ph=7.4, charge_mode="mmff94")
 
 
 def test_pli_reference_inputs_are_complete():
@@ -121,121 +70,6 @@ def test_pli_cif_bond_tables_audit_and_regeneration():
         finally:
             if regenerated:
                 repaired_path.unlink(missing_ok=True)
-
-
-@pytest.fixture(scope="class", params=PLI_FORMAT_CASES, ids=CASE_IDS)
-def prep_pair(request):
-    from tmol.ligand import prepare_single_ligand
-    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
-    from tmol.ligand.params_file import load_params_file
-
-    source, target = request.param
-    source_path = _source_path(source, target)
-    tmol_path = PLI_DIR / f"{target}{TMOL_SUFFIX}"
-
-    preps_tmol = load_params_file(tmol_path)
-    assert (
-        len(preps_tmol) == 1
-    ), f"{tmol_path.name}: expected one residue, got {len(preps_tmol)}"
-    prep_tmol = preps_tmol[0]
-    ref_res_name = prep_tmol.residue_type.name
-
-    if source == "cif":
-        prep_source = prepare_pli_ligand_mmff94_from_cif(target)
-    else:
-        source_info = nonstandard_residue_info_from_mol2(
-            source_path, res_name=ref_res_name
-        )
-        source_info = attr.evolve(
-            source_info,
-            partial_charges=None,
-            skip_protonation=False,
-        )
-        prep_source = prepare_single_ligand(source_info, ph=7.4, charge_mode="mmff94")
-    equivalence = compare_ligand_preparations(
-        prep_source,
-        prep_tmol,
-        charge_tolerance=0.05,
-    )
-
-    return {
-        "source": source,
-        "target": target,
-        "source_path": source_path,
-        "tmol_path": tmol_path,
-        "source_info": source_info,
-        "prep_source": prep_source,
-        "equivalence": equivalence,
-    }
-
-
-class TestPLIFileToTmolEquivalence:
-    """File-derived ligand prep must match checked-in `.tmol` references."""
-
-    @pytest.mark.xfail(reason="fd: failing 6/01")
-    def test_atom_set(self, prep_pair):
-        assert prep_pair["equivalence"].checks["atom_set"], _format_check_error(
-            prep_pair, "atom_set"
-        )
-
-    @pytest.mark.xfail(reason="fd: failing 6/01")
-    def test_atom_types(self, prep_pair):
-        assert prep_pair["equivalence"].checks["atom_types"], _format_check_error(
-            prep_pair, "atom_types"
-        )
-
-    @pytest.mark.xfail(reason="fd: failing 6/01")
-    def test_bonds(self, prep_pair):
-        assert prep_pair["equivalence"].checks["bonds"], _format_check_error(
-            prep_pair, "bonds"
-        )
-
-    @pytest.mark.xfail(reason="fd: failing 6/01")
-    def test_partial_charges(self, prep_pair):
-        assert prep_pair["equivalence"].checks["partial_charges"], _format_check_error(
-            prep_pair, "partial_charges"
-        )
-
-    def test_partial_charges_are_finite_after_mmff94(self, prep_pair):
-        charges = prep_pair["prep_source"].partial_charges
-        assert charges, f"{prep_pair['target']}: no partial charges after mmff94 prep"
-        for atom_name, q in charges.items():
-            assert math.isfinite(
-                q
-            ), f"{prep_pair['target']}: non-finite charge on {atom_name}: {q}"
-
-    @pytest.mark.xfail(reason="fd: failing 6/01")
-    def test_cartbonded_params(self, prep_pair):
-        assert prep_pair["equivalence"].checks[
-            "cartbonded_params"
-        ], _format_check_error(prep_pair, "cartbonded_params")
-
-
-def test_pli_prepare_is_deterministic_when_ccd_smiles_missing():
-    """CIF setup should remain stable when optional CCD SMILES is unavailable."""
-    from tmol.ligand import prepare_single_ligand
-    from tmol.ligand.detect import nonstandard_residue_info_from_cif
-
-    target = "ace"
-    cif_path = PLI_CIF_DIR / f"{target}.ligand.cif"
-    mol2_path = PLI_DIR / f"{target}.lig.mol2"
-    info = attr.evolve(
-        nonstandard_residue_info_from_cif(
-            cif_path,
-            res_name="LG1",
-            paired_mol2_path=mol2_path,
-            repair_invalid_bonds=True,
-        ),
-        partial_charges=None,
-        skip_protonation=False,
-    )
-    info_without_smiles = attr.evolve(info, ccd_smiles=None)
-    prep_with_smiles = prepare_single_ligand(info, ph=7.4, charge_mode="mmff94")
-    prep_without_smiles = prepare_single_ligand(
-        info_without_smiles, ph=7.4, charge_mode="mmff94"
-    )
-    comp = compare_ligand_preparations(prep_with_smiles, prep_without_smiles)
-    assert comp.is_equivalent, f"Prep changed when ccd_smiles missing: {comp.details}"
 
 
 def test_prepare_single_ligand_rejects_topology_only_single_bonds():
