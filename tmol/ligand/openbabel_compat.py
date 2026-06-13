@@ -39,7 +39,7 @@ class OpenBabelUnavailableError(RuntimeError):
     """Raised when an OB-fallback helper is called but ``openbabel`` is missing."""
 
 
-def _import_openbabel():
+def _import_openbabel() -> tuple:
     """Return ``(openbabel, pybel)`` modules, or raise a clear error.
 
     Imported lazily so that ``tmol.ligand`` can be loaded without the

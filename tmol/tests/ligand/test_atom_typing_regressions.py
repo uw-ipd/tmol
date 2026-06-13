@@ -1,3 +1,5 @@
+"""Regression tests for ligand atom typing and bond-order correction helpers."""
+
 import math
 from types import SimpleNamespace
 
@@ -25,7 +27,8 @@ from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
 from tmol.ligand.residue_builder import build_residue_type
 
 
-def test_get_hyb_distinguishes_ar_vs_aro_subtypes():
+def test_get_hyb_distinguishes_ar_vs_aro_subtypes() -> None:
+    """The 'ar' and 'aro' source subtypes map to distinct hybridizations."""
     mol = Chem.MolFromSmiles("N")
     atom = mol.GetAtomWithIdx(0)
 
@@ -36,7 +39,8 @@ def test_get_hyb_distinguishes_ar_vs_aro_subtypes():
     assert _get_hyb(atom) == HYB_SP2
 
 
-def test_ring_nitrogen_correction_forces_nim():
+def test_ring_nitrogen_correction_forces_nim() -> None:
+    """Ring-nitrogen correction reassigns a divalent ring N to Nim."""
     mol = Chem.MolFromSmiles("N1=NC=CC=C1")
     n_idx = next(
         atom.GetIdx()
@@ -58,7 +62,8 @@ def test_ring_nitrogen_correction_forces_nim():
     assert corrected[0].atom_type == "Nim"
 
 
-def test_classify_n_sp2_no_nameerror_on_aromatic_context():
+def test_classify_n_sp2_no_nameerror_on_aromatic_context() -> None:
+    """Aromatic sp2 N with no attached H classifies as Nim without error."""
     # Pyridine-like aromatic N (no attached H) to exercise the nH==0 branch.
     mol = Chem.MolFromSmiles("n1ccccc1")
     atom = mol.GetAtomWithIdx(0)
@@ -68,7 +73,8 @@ def test_classify_n_sp2_no_nameerror_on_aromatic_context():
     assert atom_type == "Nim"
 
 
-def test_state_marks_strained_and_aromatic_ring_atoms():
+def test_state_marks_strained_and_aromatic_ring_atoms() -> None:
+    """Typing state marks strained-ring and aromatic-ring atoms."""
     strained = Chem.MolFromSmiles("C1CC1")
     s_state = _build_rosetta_typing_state(strained)
     assert len(s_state.atms_strained) == 3
@@ -78,7 +84,8 @@ def test_state_marks_strained_and_aromatic_ring_atoms():
     assert len(a_state.atms_aro) == 6
 
 
-def test_amide_bond_correction_promotes_nad_cdp_single_bond():
+def test_amide_bond_correction_promotes_nad_cdp_single_bond() -> None:
+    """Amide bond correction promotes the Nad-CDp single bond to double."""
     mol = Chem.MolFromSmiles("NC(=O)C")
     n_idx = next(a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 7)
     c_idx = next(
@@ -103,7 +110,8 @@ def test_amide_bond_correction_promotes_nad_cdp_single_bond():
     assert bond.GetBondType() == Chem.BondType.DOUBLE
 
 
-def test_classify_n_hyb8_amide_primary_and_tertiary():
+def test_classify_n_hyb8_amide_primary_and_tertiary() -> None:
+    """Primary and tertiary amide nitrogens both classify as Nad3."""
     primary = Chem.MolFromSmiles("NC=O")
     n_primary = next(a for a in primary.GetAtoms() if a.GetAtomicNum() == 7)
     n_primary.SetProp("_tmol_source_subtype", "am")
@@ -117,7 +125,8 @@ def test_classify_n_hyb8_amide_primary_and_tertiary():
     assert _classify_N(n_tertiary, tertiary, t_state) == "Nad3"
 
 
-def test_classify_o2_oxime_guard_requires_sp2_n():
+def test_classify_o2_oxime_guard_requires_sp2_n() -> None:
+    """O.2 oxime classification requires an sp2 nitrogen neighbor."""
     oxime = Chem.MolFromSmiles("C=NO")
     o_atom = next(a for a in oxime.GetAtoms() if a.GetAtomicNum() == 8)
     o_atom.SetProp("_tmol_source_subtype", "2")
@@ -131,7 +140,8 @@ def test_classify_o2_oxime_guard_requires_sp2_n():
     assert _classify_O(o_atom2, hydroxylamine, o_state2) != "OG31"
 
 
-def test_classify_o3_aromatic_ring_oxygen_maps_to_ofu():
+def test_classify_o3_aromatic_ring_oxygen_maps_to_ofu() -> None:
+    """An sp3 oxygen in an aromatic ring maps to Ofu."""
     mol = Chem.MolFromSmiles("O1C=CC=C1")
     atom = next(a for a in mol.GetAtoms() if a.GetAtomicNum() == 8)
     atom.SetProp("_tmol_source_subtype", "3")
@@ -139,7 +149,8 @@ def test_classify_o3_aromatic_ring_oxygen_maps_to_ofu():
     assert _classify_O(atom, mol, state) == "Ofu"
 
 
-def test_classify_o3_nonaromatic_ring_oxygen_maps_to_oet():
+def test_classify_o3_nonaromatic_ring_oxygen_maps_to_oet() -> None:
+    """An sp3 oxygen in a non-aromatic ring maps to Oet."""
     mol = Chem.MolFromSmiles("O1CC=CC1")
     atom = next(a for a in mol.GetAtoms() if a.GetAtomicNum() == 8)
     atom.SetProp("_tmol_source_subtype", "3")
@@ -148,7 +159,8 @@ def test_classify_o3_nonaromatic_ring_oxygen_maps_to_oet():
     assert _classify_O(atom, mol, state) == "Oet"
 
 
-def test_six_member_mixed_sp2_sp3_ring_is_not_aromatic():
+def test_six_member_mixed_sp2_sp3_ring_is_not_aromatic() -> None:
+    """A six-membered mixed sp2/sp3 ring is not treated as aromatic."""
     mol = Chem.MolFromSmiles("O1CC=CCC1")
     o_atom = next(a for a in mol.GetAtoms() if a.GetAtomicNum() == 8)
     o_atom.SetProp("_tmol_source_subtype", "3")
@@ -157,7 +169,8 @@ def test_six_member_mixed_sp2_sp3_ring_is_not_aromatic():
     assert _classify_O(o_atom, mol, state) == "Oet"
 
 
-def test_missing_hybridization_assignment_for_nh_subtype():
+def test_missing_hybridization_assignment_for_nh_subtype() -> None:
+    """The 'nh' subtype resolves hybridization from the bonding context."""
     aniline = Chem.AddHs(Chem.MolFromSmiles("Nc1ccccc1"))
     n1 = next(a for a in aniline.GetAtoms() if a.GetAtomicNum() == 7)
     n1.SetProp("_tmol_source_subtype", "nh")
@@ -171,7 +184,8 @@ def test_missing_hybridization_assignment_for_nh_subtype():
     assert _get_hyb(n2, s2) == 3
 
 
-def test_p_and_s_follow_hyb5_classification():
+def test_p_and_s_follow_hyb5_classification() -> None:
+    """Phosphorus and sulfur classify by hybridization across subtypes."""
     p_mol = Chem.MolFromSmiles("P")
     p_atom = p_mol.GetAtomWithIdx(0)
     p_atom.SetProp("_tmol_source_subtype", "o2")
@@ -198,7 +212,8 @@ def test_p_and_s_follow_hyb5_classification():
     assert _classify_S(s_atom, disulfide, ds_state) in {"Ssl", "SR"}
 
 
-def test_modify_polar_c_promotes_cdp():
+def test_modify_polar_c_promotes_cdp() -> None:
+    """A polar carbonyl carbon adjacent to N is promoted to CDp."""
     mol = Chem.MolFromSmiles("NC(=O)C")
     carbonyl_c = next(
         a
@@ -228,7 +243,8 @@ def test_modify_polar_c_promotes_cdp():
     assert by_idx[carbonyl_c.GetIdx()] == "CDp"
 
 
-def test_long_ring_aromatic_planarity_gate():
+def test_long_ring_aromatic_planarity_gate() -> None:
+    """Large rings count as aromatic only when sufficiently planar."""
     mol = Chem.MolFromSmiles("C1CCCCCC1")
     conf = Chem.Conformer(mol.GetNumAtoms())
     # Planar heptagon in xy-plane.
@@ -256,7 +272,8 @@ def test_long_ring_aromatic_planarity_gate():
     assert len(non_planar.atms_aro) == 0
 
 
-def test_classify_n_pl3_ring_hetero_tertiary_maps_to_nim():
+def test_classify_n_pl3_ring_hetero_tertiary_maps_to_nim() -> None:
+    """A tertiary pl3 ring N with a hetero neighbor maps to Nim."""
     mol = Chem.MolFromSmiles("CN1N=CC=CC1")
     atom = next(
         a for a in mol.GetAtoms() if a.GetAtomicNum() == 7 and a.GetDegree() == 3
@@ -266,7 +283,8 @@ def test_classify_n_pl3_ring_hetero_tertiary_maps_to_nim():
     assert _classify_N(atom, mol, state) == "Nim"
 
 
-def test_conjugated_single_bond_promotion_for_conjugating_classes():
+def test_conjugated_single_bond_promotion_for_conjugating_classes() -> None:
+    """Conjugating atom classes promote a shared single bond to double."""
     mol = Chem.MolFromSmiles("NNC=C")
     n0 = mol.GetAtomWithIdx(0)
     n1 = mol.GetAtomWithIdx(1)
@@ -291,7 +309,8 @@ def test_conjugated_single_bond_promotion_for_conjugating_classes():
     assert bond.GetBondType() == Chem.BondType.DOUBLE
 
 
-def test_classify_o2_uses_rosetta_first_bond_behavior():
+def test_classify_o2_uses_rosetta_first_bond_behavior() -> None:
+    """O.2 classification follows Rosetta's first-bonded-atom behavior."""
     # Rosetta classify_O() inspects only the first bonded atom for O.2.
     # If that first neighbor is non-carbon, O.2 falls back to OG2.
     mol = Chem.MolFromSmiles("NOC(=N)N")
@@ -301,7 +320,8 @@ def test_classify_o2_uses_rosetta_first_bond_behavior():
     assert _classify_O(o_atom, mol, state) == "OG2"
 
 
-def test_five_member_ring_sp3_oxygen_aromatic_exception():
+def test_five_member_ring_sp3_oxygen_aromatic_exception() -> None:
+    """The 5-membered-ring exception keeps an sp3 ring O aromatic."""
     # Rosetta's 5-membered-ring exception allows one sp3 O/S ring atom
     # to still count as aromatic for atom typing.
     mol = Chem.MolFromSmiles("O1C=CC=C1")
@@ -312,7 +332,8 @@ def test_five_member_ring_sp3_oxygen_aromatic_exception():
     assert _classify_O(o_atom, mol, state) == "Ofu"
 
 
-def test_classify_n_hetero_accepts_sp2_oxygen_neighbor_without_double_bond():
+def test_classify_n_hetero_accepts_sp2_oxygen_neighbor_without_double_bond() -> None:
+    """N classification accepts an sp2 oxygen neighbor lacking a double bond."""
     mol = Chem.RWMol()
     n_idx = mol.AddAtom(Chem.Atom(7))
     c_idx = mol.AddAtom(Chem.Atom(6))
@@ -338,7 +359,8 @@ def test_classify_n_hetero_accepts_sp2_oxygen_neighbor_without_double_bond():
     assert _classify_N(n_atom, mol, state) == "Nad"
 
 
-def test_classify_n_sp2_nonaromatic_nh_maps_to_ng21_not_nin():
+def test_classify_n_sp2_nonaromatic_nh_maps_to_ng21_not_nin() -> None:
+    """A non-aromatic sp2 N-H maps to NG21 rather than Nin."""
     mol = Chem.RWMol()
     n_idx = mol.AddAtom(Chem.Atom(7))
     c_sp2_idx = mol.AddAtom(Chem.Atom(6))
@@ -362,7 +384,8 @@ def test_classify_n_sp2_nonaromatic_nh_maps_to_ng21_not_nin():
     assert _classify_N(n_atom, mol, state) == "NG21"
 
 
-def test_classify_n2_nonaromatic_tertiary_with_n_neighbor_maps_to_nad3():
+def test_classify_n2_nonaromatic_tertiary_with_n_neighbor_maps_to_nad3() -> None:
+    """A non-aromatic tertiary N.2 with an N neighbor maps to Nad3."""
     mol = Chem.RWMol()
     n0 = mol.AddAtom(Chem.Atom(7))
     c1 = mol.AddAtom(Chem.Atom(6))
@@ -393,7 +416,10 @@ def test_classify_n2_nonaromatic_tertiary_with_n_neighbor_maps_to_nad3():
     assert _classify_N(mol.GetAtomWithIdx(n0), mol, state) == "Nad3"
 
 
-def test_conjugated_single_bond_promotion_does_not_require_planarity_by_default():
+def test_conjugated_single_bond_promotion_does_not_require_planarity_by_default() -> (
+    None
+):
+    """Conjugated single-bond promotion does not require a planar conformer."""
     mol = Chem.MolFromSmiles("NNC=C")
     conf = Chem.Conformer(mol.GetNumAtoms())
     # Deliberately twisted around N-N to be far from planar.
@@ -427,7 +453,8 @@ def test_conjugated_single_bond_promotion_does_not_require_planarity_by_default(
     assert bond.GetBondType() == Chem.BondType.DOUBLE
 
 
-def test_sanitize_tolerant_handles_nonring_aromatic_placeholders():
+def test_sanitize_tolerant_handles_nonring_aromatic_placeholders() -> None:
+    """Tolerant sanitization clears stale aromatic flags on non-ring bonds."""
     mol = Chem.MolFromSmiles("CC")
     rw = Chem.RWMol(mol)
     b = rw.GetBondBetweenAtoms(0, 1)
@@ -444,7 +471,8 @@ def test_sanitize_tolerant_handles_nonring_aromatic_placeholders():
     assert not bond.GetIsAromatic()
 
 
-def test_classify_n_pl3_protonated_maps_to_nam2():
+def test_classify_n_pl3_protonated_maps_to_nam2() -> None:
+    """A protonated pl3 nitrogen maps to Nam2."""
     mol = Chem.AddHs(Chem.MolFromSmiles("C[NH2+]C"))
     n_atom = next(a for a in mol.GetAtoms() if a.GetAtomicNum() == 7)
     n_atom.SetProp("_tmol_source_subtype", "pl3")
@@ -452,7 +480,8 @@ def test_classify_n_pl3_protonated_maps_to_nam2():
     assert _classify_N(n_atom, mol, state) == "Nam2"
 
 
-def test_classify_n_am_protonated_tertiary_maps_to_nam2():
+def test_classify_n_am_protonated_tertiary_maps_to_nam2() -> None:
+    """A protonated tertiary amide nitrogen maps to Nam2."""
     mol = Chem.AddHs(Chem.MolFromSmiles("C[NH+](C)C=O"))
     n_atom = next(a for a in mol.GetAtoms() if a.GetAtomicNum() == 7)
     n_atom.SetProp("_tmol_source_subtype", "am")
@@ -460,7 +489,8 @@ def test_classify_n_am_protonated_tertiary_maps_to_nam2():
     assert _classify_N(n_atom, mol, state) == "Nam2"
 
 
-def test_classify_n2_protonated_with_n_neighbor_maps_to_nam2():
+def test_classify_n2_protonated_with_n_neighbor_maps_to_nam2() -> None:
+    """A protonated N.2 with an N neighbor maps to Nam2."""
     mol = Chem.RWMol()
     n0 = mol.AddAtom(Chem.Atom(7))
     c1 = mol.AddAtom(Chem.Atom(6))
@@ -481,7 +511,8 @@ def test_classify_n2_protonated_with_n_neighbor_maps_to_nam2():
     assert _classify_N(mol.GetAtomWithIdx(n0), mol, state) == "Nam2"
 
 
-def test_classify_n2_protonated_formal_charge_maps_to_nam2():
+def test_classify_n2_protonated_formal_charge_maps_to_nam2() -> None:
+    """A formally charged protonated N.2 maps to Nam2."""
     mol = Chem.RWMol()
     n0 = mol.AddAtom(Chem.Atom(7))
     c1 = mol.AddAtom(Chem.Atom(6))
@@ -501,7 +532,9 @@ def test_classify_n2_protonated_formal_charge_maps_to_nam2():
     assert _classify_N(n_atom, mol, state) == "Nam2"
 
 
-def test_ligand_atom_array_allows_passthrough_unknown_bond_type(monkeypatch):
+def test_ligand_atom_array_allows_passthrough_unknown_bond_type(monkeypatch) -> None:
+    """Unknown bond-type codes pass through atom-array to RDKit conversion."""
+
     class _FakeBondTable:
         def __init__(self, rows):
             self._rows = np.array(rows, dtype=int)
@@ -529,7 +562,8 @@ def test_ligand_atom_array_allows_passthrough_unknown_bond_type(monkeypatch):
     assert mol.GetNumAtoms() == 3
 
 
-def test_conjugated_single_bond_skips_biaryl_like_ring_pivot():
+def test_conjugated_single_bond_skips_biaryl_like_ring_pivot() -> None:
+    """Conjugation promotion skips the biaryl pivot bond between aromatic rings."""
     mol = Chem.MolFromSmiles("c1ccccc1-c2ccccc2")
     bond = next(
         b
@@ -551,7 +585,8 @@ def test_conjugated_single_bond_skips_biaryl_like_ring_pivot():
     assert bond.GetBondType() == Chem.BondType.SINGLE
 
 
-def test_large_ring_bonds_keep_ring_flag_in_residue_type():
+def test_large_ring_bonds_keep_ring_flag_in_residue_type() -> None:
+    """Large-ring bonds are not flagged as small-ring in the residue type."""
     mol = Chem.MolFromSmiles("C1CCCCCCCC1")
     atom_types = [
         AtomTypeAssignment(atom_name=f"C{i + 1}", atom_type="CS3", element="C", index=i)
@@ -561,7 +596,10 @@ def test_large_ring_bonds_keep_ring_flag_in_residue_type():
     assert all(not b[3] for b in restype.bonds)
 
 
-def test_sanitize_tolerant_preserves_existing_double_bond_without_aromatic_rewrite():
+def test_sanitize_tolerant_preserves_existing_double_bond_without_aromatic_rewrite() -> (
+    None
+):
+    """Tolerant sanitization preserves an existing double bond unchanged."""
     mol = Chem.MolFromSmiles("CC=O")
     bond = next(
         b

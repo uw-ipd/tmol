@@ -13,6 +13,7 @@ from typing import Any, Iterable
 
 
 def _identity_name(name: str) -> str:
+    """Return ``name`` unchanged (default atom-name mapping)."""
     return name
 
 
@@ -248,6 +249,14 @@ def _cartres_heavy_key_set(
 
 @dataclass
 class EquivalenceResult:
+    """Outcome of comparing two ``LigandPreparation`` objects.
+
+    Attributes:
+        is_equivalent: Whether all active (non-skipped) checks passed.
+        checks: Per-check pass/fail flags keyed by check name.
+        details: Diagnostic detail for failed (or skipped) checks.
+    """
+
     is_equivalent: bool
     checks: dict[str, bool]
     details: dict[str, Any]

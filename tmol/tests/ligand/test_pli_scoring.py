@@ -122,7 +122,7 @@ class TestPLIScoring:
         return PLI_DIR / request.param
 
     @staticmethod
-    def _write_scored_cif(pose_stack, canonical_ordering, out_name):
+    def _write_scored_cif(pose_stack, canonical_ordering, out_name: str) -> None:
         """Write ``pose_stack`` to a CIF file named ``out_name`` in the cwd."""
         import biotite.structure
         from biotite.structure.io.pdbx import CIFFile, set_structure
@@ -143,10 +143,10 @@ class TestPLIScoring:
         pli_pdb,
         param_db,
         torch_device,
-        label_prefix="",
+        label_prefix: str = "",
         threshold=None,
         threshold_sp2_acc=None,
-    ):
+    ) -> None:
         """Score the raw complex and compare block-pair dG with Rosetta.
 
         Args:
@@ -272,7 +272,7 @@ class TestPLIScoring:
                 )
             pytest.fail("\n".join(msg_lines))
 
-    def test_compare_dg_score_with_rosetta_tmol(self, pli_pdb, torch_device):
+    def test_compare_dg_score_with_rosetta_tmol(self, pli_pdb, torch_device) -> None:
         """Compare Rosetta dG scores with tmol scores using .tmol file params."""
         from tmol.database import ParameterDatabase
         from tmol.ligand.params_file import inject_params_file

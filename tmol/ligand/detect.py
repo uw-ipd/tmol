@@ -982,6 +982,11 @@ def _partial_charges_from_atom_site(
     atom_site,
     atom_names: list[str],
 ) -> Optional[dict[str, float]]:
+    """Extract a per-atom partial-charge map from a CIF ``atom_site`` category.
+
+    Returns ``None`` unless the ``partial_charge`` column is present, finite, and
+    has exactly one value per atom name.
+    """
     if "partial_charge" not in atom_site:
         return None
     try:
@@ -995,6 +1000,8 @@ def _partial_charges_from_atom_site(
 
 
 def _apply_cif_atom_array_annotations(arr: struc.AtomArray, atom_site) -> None:
+    """Copy tmol custom CIF columns (``tmol_aromatic``, ``tmol_source_subtype``)
+    onto an AtomArray as annotations when present."""
     if "tmol_aromatic" in atom_site:
         aromatic_vals = atom_site["tmol_aromatic"].as_array()
         arr.set_annotation(
@@ -1011,6 +1018,11 @@ def _apply_cif_atom_array_annotations(arr: struc.AtomArray, atom_site) -> None:
 
 
 def _attach_chem_comp_bonds(arr: struc.AtomArray, cif, atom_names: list[str]) -> None:
+    """Rebuild ``arr.bonds`` from the CIF ``chem_comp_bond`` table.
+
+    Bonds referencing atom names not present in ``atom_names`` are skipped; if no
+    valid bonds remain the existing bond table is left unchanged.
+    """
     if "chem_comp_bond" not in cif.block:
         return
     bond_site = cif.block["chem_comp_bond"]
@@ -1040,6 +1052,8 @@ def _attach_chem_comp_bonds(arr: struc.AtomArray, cif, atom_names: list[str]) ->
 
 
 def _resolve_cif_res_name(atom_site, arr: struc.AtomArray, res_name: str | None) -> str:
+    """Resolve the residue name, preferring an explicit override, then the CIF
+    ``label_comp_id`` column, then the AtomArray, falling back to ``"LG1"``."""
     if res_name is not None:
         return res_name
     if "label_comp_id" in atom_site:

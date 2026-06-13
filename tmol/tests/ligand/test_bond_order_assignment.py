@@ -32,6 +32,7 @@ DATA = Path(__file__).resolve().parents[1] / "data" / "ligand_ground_truth"
 
 
 def _embed(smiles: str, *, with_hs: bool = True) -> Chem.Mol:
+    """Parse a SMILES and embed a single 3D conformer (optionally adding Hs)."""
     mol = Chem.MolFromSmiles(smiles)
     assert mol is not None, smiles
     if with_hs:
@@ -55,6 +56,7 @@ def _single_bond_copy(mol: Chem.Mol) -> Chem.Mol:
 
 
 def _write_single_bond_sdf(mol: Chem.Mol, path: Path) -> None:
+    """Write ``mol`` to an SDF with every bond demoted to a single bond."""
     Chem.MolToMolFile(_single_bond_copy(mol), str(path), kekulize=False)
 
 
@@ -99,6 +101,7 @@ def _write_single_bond_mol2(mol: Chem.Mol, path: Path) -> list[str]:
 
 
 def _bond_type_counts(mol: Chem.Mol) -> dict[str, int]:
+    """Count bonds by their RDKit bond-type name."""
     counts: dict[str, int] = {}
     for bond in mol.GetBonds():
         key = str(bond.GetBondType())
@@ -121,16 +124,19 @@ def _bond_type_counts(mol: Chem.Mol) -> dict[str, int]:
         ("x.ent", "pdb"),
     ],
 )
-def test_infer_format(name, expected):
+def test_infer_format(name, expected) -> None:
+    """Known file extensions map to their expected structure format."""
     assert _infer_format(Path(name)) == expected
 
 
-def test_infer_format_unknown_raises():
+def test_infer_format_unknown_raises() -> None:
+    """An unknown extension raises a format-inference error."""
     with pytest.raises(ValueError, match="infer format"):
         _infer_format(Path("ligand.xyz"))
 
 
-def test_ensure_atom_names_synthesizes_unique_names():
+def test_ensure_atom_names_synthesizes_unique_names() -> None:
+    """Missing atom names are synthesized without colliding with existing ones."""
     # Two carbons named "C1"/"" : the synthesized fallback for the unnamed
     # carbon must not collide with the existing "C1".
     rw = Chem.RWMol()
@@ -151,7 +157,8 @@ def test_ensure_atom_names_synthesizes_unique_names():
 # --- core bond-order transfer ----------------------------------------------
 
 
-def test_pdb_recovers_aromatic_benzene(tmp_path):
+def test_pdb_recovers_aromatic_benzene(tmp_path) -> None:
+    """A bond-order-free benzene PDB recovers its six aromatic ring bonds."""
     pdb = tmp_path / "bnz.pdb"
     Chem.MolToPDBFile(_embed("c1ccccc1"), str(pdb))  # PDB carries no bond orders
 
@@ -161,7 +168,8 @@ def test_pdb_recovers_aromatic_benzene(tmp_path):
     assert counts.get("AROMATIC", 0) == 6  # the 6 ring bonds are aromatic again
 
 
-def test_sdf_corrects_wrong_single_bonds(tmp_path):
+def test_sdf_corrects_wrong_single_bonds(tmp_path) -> None:
+    """An all-single-bond phenol SDF has its aromatic ring restored."""
     sdf = tmp_path / "phenol.sdf"
     _write_single_bond_sdf(_embed("Oc1ccccc1"), sdf)
 
@@ -173,7 +181,8 @@ def test_sdf_corrects_wrong_single_bonds(tmp_path):
     assert _bond_type_counts(fixed).get("AROMATIC", 0) == 6
 
 
-def test_double_bond_recovered(tmp_path):
+def test_double_bond_recovered(tmp_path) -> None:
+    """A double bond demoted to single is recovered from the SMILES."""
     sdf = tmp_path / "allyl.sdf"
     _write_single_bond_sdf(_embed("OCC=C"), sdf)
 
@@ -181,7 +190,8 @@ def test_double_bond_recovered(tmp_path):
     assert _bond_type_counts(fixed).get("DOUBLE", 0) == 1
 
 
-def test_coordinates_preserved(tmp_path):
+def test_coordinates_preserved(tmp_path) -> None:
+    """Bond-order assignment leaves atom coordinates unchanged."""
     mol = _embed("Oc1ccccc1")
     sdf = tmp_path / "phenol.sdf"
     _write_single_bond_sdf(mol, sdf)
@@ -196,7 +206,8 @@ def test_coordinates_preserved(tmp_path):
         assert np.allclose([a.x, a.y, a.z], [b.x, b.y, b.z], atol=1e-3)
 
 
-def test_explicit_hydrogens_preserved(tmp_path):
+def test_explicit_hydrogens_preserved(tmp_path) -> None:
+    """Explicit hydrogens survive bond-order assignment."""
     mol = _embed("OCC=C", with_hs=True)
     n_h = sum(1 for a in mol.GetAtoms() if a.GetSymbol() == "H")
     assert n_h > 0
@@ -207,7 +218,8 @@ def test_explicit_hydrogens_preserved(tmp_path):
     assert sum(1 for a in fixed.GetAtoms() if a.GetSymbol() == "H") == n_h
 
 
-def test_formal_charge_transferred(tmp_path):
+def test_formal_charge_transferred(tmp_path) -> None:
+    """Formal charges from the SMILES are transferred to the structure."""
     # Acetate: the SMILES carries a -1 on a carboxylate oxygen.
     sdf = tmp_path / "acetate.sdf"
     _write_single_bond_sdf(_embed("CC(=O)[O-]"), sdf)
@@ -216,7 +228,8 @@ def test_formal_charge_transferred(tmp_path):
     assert sum(a.GetFormalCharge() for a in fixed.GetAtoms()) == -1
 
 
-def test_atom_names_preserved_through_mol2(tmp_path):
+def test_atom_names_preserved_through_mol2(tmp_path) -> None:
+    """Mol2 atom names survive reading and bond-order assignment."""
     names = _write_single_bond_mol2(_embed("OCC=C"), tmp_path / "allyl.mol2")
     mol = read_structure(tmp_path / "allyl.mol2")
     read_names = [a.GetProp("_TriposAtomName") for a in mol.GetAtoms()]
@@ -228,7 +241,8 @@ def test_atom_names_preserved_through_mol2(tmp_path):
     assert _bond_type_counts(fixed).get("DOUBLE", 0) == 1
 
 
-def test_real_mol2_fixture_reads_with_names_and_coords():
+def test_real_mol2_fixture_reads_with_names_and_coords() -> None:
+    """A real mol2 fixture reads with non-empty atom names and coordinates."""
     mol = read_structure(DATA / "ref1.mol2")
     assert mol.GetNumAtoms() == 51
     assert mol.GetNumConformers() == 1
@@ -240,21 +254,24 @@ def test_real_mol2_fixture_reads_with_names_and_coords():
 # --- error handling ---------------------------------------------------------
 
 
-def test_mismatched_smiles_raises(tmp_path):
+def test_mismatched_smiles_raises(tmp_path) -> None:
+    """A SMILES that does not match the structure raises a substructure error."""
     sdf = tmp_path / "bnz.sdf"
     _write_single_bond_sdf(_embed("c1ccccc1"), sdf)
     with pytest.raises(ValueError, match="substructure"):
         assign_bond_orders_from_smiles(sdf, "CCO")  # ethanol != benzene
 
 
-def test_unparseable_smiles_raises(tmp_path):
+def test_unparseable_smiles_raises(tmp_path) -> None:
+    """An unparseable SMILES raises a parse error."""
     sdf = tmp_path / "bnz.sdf"
     _write_single_bond_sdf(_embed("c1ccccc1"), sdf)
     with pytest.raises(ValueError, match="parse SMILES"):
         assign_bond_orders_from_smiles(sdf, "this is not a smiles ((")
 
 
-def test_missing_file_raises():
+def test_missing_file_raises() -> None:
+    """Reading a nonexistent structure file raises ``FileNotFoundError``."""
     with pytest.raises(FileNotFoundError):
         read_structure("/nonexistent/ligand.sdf")
 
@@ -262,19 +279,22 @@ def test_missing_file_raises():
 # --- output -----------------------------------------------------------------
 
 
-def test_write_rejects_lossy_pdb(tmp_path):
+def test_write_rejects_lossy_pdb(tmp_path) -> None:
+    """Writing to a bond-order-lossy PDB output format is rejected."""
     mol = assign_bond_orders_from_smiles(_make_sdf("c1ccccc1", tmp_path), "c1ccccc1")
     with pytest.raises(ValueError, match="Unsupported output format"):
         write_structure(mol, tmp_path / "out.pdb")
 
 
 def _make_sdf(smiles: str, tmp_path: Path) -> Path:
+    """Write an all-single-bond SDF for ``smiles`` and return its path."""
     sdf = tmp_path / "in.sdf"
     _write_single_bond_sdf(_embed(smiles), sdf)
     return sdf
 
 
-def test_sdf_output_roundtrip_preserves_orders_and_names(tmp_path):
+def test_sdf_output_roundtrip_preserves_orders_and_names(tmp_path) -> None:
+    """SDF output preserves recovered bond orders and atom names on reread."""
     src = _make_sdf("Oc1ccccc1", tmp_path)
     mol = assign_bond_orders_from_smiles(src, "Oc1ccccc1")
     out = tmp_path / "fixed.sdf"
@@ -294,7 +314,8 @@ def test_sdf_output_roundtrip_preserves_orders_and_names(tmp_path):
 # --- CLI --------------------------------------------------------------------
 
 
-def test_cli_writes_sdf(tmp_path, capsys):
+def test_cli_writes_sdf(tmp_path, capsys) -> None:
+    """The CLI writes a corrected SDF and reports the recovered bond counts."""
     pdb = tmp_path / "bnz.pdb"
     Chem.MolToPDBFile(_embed("c1ccccc1"), str(pdb))
     out = tmp_path / "bnz.sdf"
@@ -309,14 +330,16 @@ def test_cli_writes_sdf(tmp_path, capsys):
     assert _bond_type_counts(reread).get("AROMATIC", 0) == 6
 
 
-def test_cli_default_output_path(tmp_path):
+def test_cli_default_output_path(tmp_path) -> None:
+    """The CLI derives a default ``.bondfix.sdf`` output path."""
     sdf_in = _make_sdf("OCC=C", tmp_path)
     rc = main([str(sdf_in), "OCC=C"])
     assert rc == 0
     assert (tmp_path / "in.bondfix.sdf").is_file()
 
 
-def test_cli_mismatch_returns_error(tmp_path, capsys):
+def test_cli_mismatch_returns_error(tmp_path, capsys) -> None:
+    """A mismatched SMILES makes the CLI exit non-zero with an error message."""
     sdf_in = _make_sdf("c1ccccc1", tmp_path)
     rc = main([str(sdf_in), "CCO", "-o", str(tmp_path / "out.sdf")])
     assert rc == 1

@@ -81,6 +81,8 @@ _HYB_MAP = {
 
 
 class AtomTypeAssignment(NamedTuple):
+    """Atom-type result for a single atom: name, type, element, and index."""
+
     atom_name: str
     atom_type: str
     element: str

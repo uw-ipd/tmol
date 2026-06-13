@@ -39,7 +39,10 @@ def _heavy_atom_graph(
     return atoms, adj, idx_to_pos
 
 
-def _vf2_node_order_key(atoms: list[tuple[int, int, int]], index: int) -> tuple:
+def _vf2_node_order_key(
+    atoms: list[tuple[int, int, int]], index: int
+) -> tuple[int, int, int]:
+    """Order key prioritizing high heavy-degree, then element, then index."""
     return (-atoms[index][2], atoms[index][1], index)
 
 
@@ -53,6 +56,11 @@ def _vf2_is_feasible(
     p1: int,
     p2: int,
 ) -> bool:
+    """Return whether mapping position ``p1`` to ``p2`` is consistent so far.
+
+    Checks matching element and heavy-degree labels and that the partial
+    mapping preserves adjacency in both directions.
+    """
     if atoms1[p1][1] != atoms2[p2][1]:
         return False
     if atoms1[p1][2] != atoms2[p2][2]:
@@ -76,6 +84,10 @@ def _vf2_backtrack(
     mapping: dict[int, int],
     reverse: dict[int, int],
 ) -> bool:
+    """Recursively extend the partial isomorphism, backtracking on failure.
+
+    Returns ``True`` once all ``n`` nodes are mapped consistently.
+    """
     if depth == n:
         return True
 

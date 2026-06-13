@@ -43,6 +43,7 @@ DUD_CASES = [
 
 
 def _param_db_with_ligand_prep(prep):
+    """Return the default parameter database with ``prep`` injected."""
     from tmol.database import ParameterDatabase
     from tmol.ligand.registry import inject_ligand_preparations
 
@@ -105,7 +106,7 @@ class TestDUDScoring:
         }
 
     @staticmethod
-    def _score_against_rosetta(dud_scoring_data, param_db, torch_device):
+    def _score_against_rosetta(dud_scoring_data, param_db, torch_device) -> None:
         """Score the input pose with ``param_db`` and diff vs Rosetta ``.sc``."""
         import biotite.structure
         import biotite.structure.io
@@ -155,7 +156,7 @@ class TestDUDScoring:
             + "\n".join(mismatches)
         )
 
-    def test_score_tmol(self, dud_scoring_data, torch_device):
+    def test_score_tmol(self, dud_scoring_data, torch_device) -> None:
         """Parameters read from the golden ``.tmol`` file (Rosetta reference)."""
         from tmol.ligand.params_file import load_params_file
 

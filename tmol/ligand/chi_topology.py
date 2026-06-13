@@ -138,6 +138,7 @@ _SPECIAL_BIARYL_PAIRS = frozenset(
 
 
 def _is_heavy(mol: Chem.Mol, idx: int) -> bool:
+    """True if atom ``idx`` is not a hydrogen."""
     return mol.GetAtomWithIdx(idx).GetAtomicNum() != 1
 
 
@@ -153,6 +154,7 @@ def _is_polar_hydrogen(mol: Chem.Mol, idx: int) -> bool:
 
 
 def _bond_order(bond: Chem.Bond) -> int:
+    """Return the integer bond order (aromatic and unknown treated as 2)."""
     bt = bond.GetBondType()
     if bt == Chem.BondType.SINGLE:
         return 1
@@ -165,6 +167,7 @@ def _bond_order(bond: Chem.Bond) -> int:
 
 
 def _share_ring(ring_membership: dict[int, set[int]], a: int, b: int) -> bool:
+    """True if atoms ``a`` and ``b`` belong to a common ring."""
     return bool(ring_membership.get(a, set()) & ring_membership.get(b, set()))
 
 

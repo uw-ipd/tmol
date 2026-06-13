@@ -34,7 +34,8 @@ def _restype_from_smiles(smi: str, name: str = "LIG"):
     )
 
 
-def _axes(restype):
+def _axes(restype) -> set:
+    """Return the set of central ``{b, c}`` torsion-axis bond pairs."""
     return {frozenset((t.b.atom, t.c.atom)) for t in restype.torsions}
 
 
@@ -99,7 +100,8 @@ def _smiles_to_mol2(smi: str, name: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _adjacency(restype):
+def _adjacency(restype) -> set:
+    """Return the set of bonded ``{a, b}`` atom-name pairs."""
     adj = set()
     for a, b, *_rest in restype.bonds:
         adj.add(frozenset((a, b)))
@@ -109,19 +111,22 @@ def _adjacency(restype):
 # --- negative cases: no spurious rotatable bonds ---------------------
 
 
-def test_benzene_emits_no_chi():
+def test_benzene_emits_no_chi() -> None:
+    """Benzene emits no CHI torsions or proton-chi samples."""
     rt = _restype_from_smiles("c1ccccc1", "BNZ")
     assert rt.torsions == ()
     assert rt.chi_samples == ()
 
 
-def test_toluene_methyl_is_apolar_h_skipped():
+def test_toluene_methyl_is_apolar_h_skipped() -> None:
+    """Toluene's methyl emits no CHI (its only tip is an apolar hydrogen)."""
     # Methyl-on-aromatic: the only reference atom is an apolar H -> hapol skip.
     rt = _restype_from_smiles("Cc1ccccc1", "TOL")
     assert rt.torsions == ()
 
 
-def test_ethane_apolar_skipped():
+def test_ethane_apolar_skipped() -> None:
+    """Ethane emits no CHI (only apolar hydrogens to rotate)."""
     rt = _restype_from_smiles("CC", "ETA")
     assert rt.torsions == ()
 
@@ -129,7 +134,8 @@ def test_ethane_apolar_skipped():
 # --- ring-pucker (NU) is unsupported / not emitted ------------------
 
 
-def test_saturated_ring_no_chi_and_no_nu():
+def test_saturated_ring_no_chi_and_no_nu() -> None:
+    """Cyclohexane emits no CHI and no (unsupported) NU ring-pucker DOFs."""
     # Cyclohexane: all C-C bonds are ring-internal -> no rotatable CHI, and
     # tmol emits no NU / ring-pucker DOFs (NU is explicitly unsupported).
     rt = _restype_from_smiles("C1CCCCC1", "CHX")
@@ -140,7 +146,8 @@ def test_saturated_ring_no_chi_and_no_nu():
 # --- heavy + proton chis, sp3 samples + EXTRA ----------------
 
 
-def test_ethylene_glycol_heavy_and_proton_chis():
+def test_ethylene_glycol_heavy_and_proton_chis() -> None:
+    """Ethylene glycol yields one heavy CHI plus two sp3 hydroxyl proton chis."""
     # HOCH2-CH2OH: one heavy C-C chi + two sp3 hydroxyl proton chis.
     rt = _restype_from_smiles("OCCO", "EDO")
     proton_names = {cs.chi_dihedral for cs in rt.chi_samples}
@@ -155,7 +162,8 @@ def test_ethylene_glycol_heavy_and_proton_chis():
         assert cs.expansions == (20.0,)
 
 
-def test_tetraol_extra_expansion_overflow():
+def test_tetraol_extra_expansion_overflow() -> None:
+    """A tetraol's proton-chi count overflows MAX_CONFS, so EXTRA expansions drop."""
     # Four sp3 hydroxyls -> 9^4 = 6561 > MAX_CONFS(5000) -> EXTRA 0.
     rt = _restype_from_smiles("OCC(O)C(O)CO", "TTL")
     assert len(rt.chi_samples) == 4
@@ -164,7 +172,8 @@ def test_tetraol_extra_expansion_overflow():
         assert cs.expansions == ()
 
 
-def test_carboxylic_and_aliphatic_polar_h_all_emitted():
+def test_carboxylic_and_aliphatic_polar_h_all_emitted() -> None:
+    """Both aliphatic and carboxylic-acid O-H protons are emitted as proton chis."""
     # Rosetta (verified via mol2genparams) emits proton chis for BOTH aliphatic
     # hydroxyls AND carboxylic-acid O-H: the carboxyl O is Ohx, outside
     # CONJUGATING_ACLASSES, so the C-OH bond is not conjugated. 5 sp3 polar-H
@@ -175,7 +184,8 @@ def test_carboxylic_and_aliphatic_polar_h_all_emitted():
         assert cs.expansions == ()
 
 
-def test_fused_ring_emits_no_ring_internal_chi():
+def test_fused_ring_emits_no_ring_internal_chi() -> None:
+    """Fused-ring systems with only ring-internal bonds emit no CHI."""
     # Ring-closure bonds are never atom-tree edges, so they are never CHI
     # candidates (implicit handling of RosettaVS ring_cuts / FT_connected).
     # Decalin and naphthalene have only ring-internal bonds -> no chi.
@@ -187,7 +197,8 @@ def test_fused_ring_emits_no_ring_internal_chi():
 # --- torsion-quad validity ------------------------------------------
 
 
-def test_torsion_quads_are_valid_bonded_paths():
+def test_torsion_quads_are_valid_bonded_paths() -> None:
+    """Every torsion quad is four distinct atoms forming a bonded path."""
     rt = _restype_from_smiles("OCC(O)C(O)CO", "TTL")
     adj = _adjacency(rt)
     proton_names = {cs.chi_dihedral for cs in rt.chi_samples}
@@ -207,7 +218,8 @@ def test_torsion_quads_are_valid_bonded_paths():
 # --- params_io CHI / PROTON_CHI round-trip --------------------------
 
 
-def test_params_io_chi_proton_chi_roundtrip(tmp_path):
+def test_params_io_chi_proton_chi_roundtrip(tmp_path) -> None:
+    """CHI/PROTON_CHI survive a Rosetta-params write and reread."""
     from tmol.ligand.params_file import _empty_cartres
     from tmol.ligand.params_io import read_params_file, write_params_file
     from tmol.ligand.registry import LigandPreparation
@@ -237,7 +249,8 @@ def test_params_io_chi_proton_chi_roundtrip(tmp_path):
     assert proton_by_axis(rt2) == proton_by_axis(rt)
 
 
-def test_params_io_ignores_biaryl_comment(tmp_path):
+def test_params_io_ignores_biaryl_comment(tmp_path) -> None:
+    """The reader parses a CHI line while ignoring a trailing ``#biaryl`` comment."""
     from tmol.ligand.params_io import read_params_file
 
     params = tmp_path / "x.params"
@@ -259,6 +272,7 @@ def test_params_io_ignores_biaryl_comment(tmp_path):
 
 
 def _refined(smi: str, name: str):
+    """Build a raw and a refined residue type from SMILES; return both."""
     import cattr
 
     from tmol.chemical.restypes import RefinedResidueType
@@ -268,7 +282,8 @@ def _refined(smi: str, name: str):
     return rt, refined
 
 
-def test_refine_resolves_chi_torsion_uaids():
+def test_refine_resolves_chi_torsion_uaids() -> None:
+    """Refining resolves every chi torsion to a four-atom ``torsion_to_uaids``."""
     # every chi_samples.chi_dihedral references a named torsion, and the
     # RefinedResidueType exposes a resolvable torsion_to_uaids for chi1..chiN.
     rt, refined = _refined("OCCO", "EDO")
@@ -280,7 +295,8 @@ def test_refine_resolves_chi_torsion_uaids():
         assert len(refined.torsion_to_uaids[t.name]) == 4
 
 
-def test_opth_sampler_activates_for_polar_h_ligand():
+def test_opth_sampler_activates_for_polar_h_ligand() -> None:
+    """The OptHSampler activates for a ligand carrying proton chi samples."""
     # a hydroxyl ligand carries proton chi_samples -> OptHSampler active.
     from tmol.pack.rotamer.opth_sampler import OptHSampler
 
@@ -289,7 +305,8 @@ def test_opth_sampler_activates_for_polar_h_ligand():
     assert OptHSampler().defines_rotamers_for_rt(refined) is True
 
 
-def test_opth_sampler_inactive_without_polar_h():
+def test_opth_sampler_inactive_without_polar_h() -> None:
+    """The OptHSampler stays inactive for a ligand with no proton chi samples."""
     # benzene has no chi_samples -> OptHSampler inactive.
     from tmol.pack.rotamer.opth_sampler import OptHSampler
 
@@ -298,7 +315,8 @@ def test_opth_sampler_inactive_without_polar_h():
     assert OptHSampler(flip_NHQ=False).defines_rotamers_for_rt(refined) is False
 
 
-def test_polymer_samplers_skip_ligands(default_database, torch_device):
+def test_polymer_samplers_skip_ligands(default_database, torch_device) -> None:
+    """Polymer-guarded heavy-chi samplers never define rotamers for ligands."""
     # heavy-chi rotamer samplers are polymer-guarded -> never fire on
     # non-polymer ligands, regardless of emitted torsions/chi_samples.
     from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
@@ -317,7 +335,8 @@ def test_polymer_samplers_skip_ligands(default_database, torch_device):
 # --- conjugation / biaryl edge cases (negative + positive matrix) -----
 
 
-def test_conjugated_polar_h_not_emitted():
+def test_conjugated_polar_h_not_emitted() -> None:
+    """Conjugated polar hydrogens (aniline/primary amide -NH2) are skipped."""
     # Conjugated polar hydrogens on an all-but-one-H center (aniline / primary
     # amide -NH2) ARE skipped: the C-N bond is conjugated (both classes in
     # CONJUGATING_ACLASSES) and the N is all-but-one hydrogen. Matches Rosetta.
@@ -329,7 +348,8 @@ def test_conjugated_polar_h_not_emitted():
         assert rt.chi_samples == (), f"{name}: conjugated polar-H should be skipped"
 
 
-def test_aromatic_and_acid_hydroxyl_polar_h_emitted():
+def test_aromatic_and_acid_hydroxyl_polar_h_emitted() -> None:
+    """Phenol and carboxylic-acid C-OH protons are emitted as proton chis."""
     # Phenol C-OH and carboxylic-acid C-OH ARE emitted (the O is Ohx, outside
     # CONJUGATING_ACLASSES, so the bond is not conjugated) — verified against
     # mol2genparams. tmol previously over-skipped these via RDKit GetIsConjugated.
@@ -338,14 +358,16 @@ def test_aromatic_and_acid_hydroxyl_polar_h_emitted():
         assert len(rt.chi_samples) == 1, f"{name}: aromatic/acid O-H expected"
 
 
-def test_aliphatic_polar_h_emitted():
+def test_aliphatic_polar_h_emitted() -> None:
+    """Non-conjugated aliphatic O-H / N-H protons are emitted as proton chis."""
     # Non-conjugated aliphatic O-H / N-H ARE emitted as proton chis.
     for smi, name in [("CCO", "EOH"), ("CCN", "EAM")]:
         rt = _restype_from_smiles(smi, name)
         assert len(rt.chi_samples) == 1, f"{name}: aliphatic polar-H expected"
 
 
-def test_biaryl_single_bond_is_heavy_chi():
+def test_biaryl_single_bond_is_heavy_chi() -> None:
+    """A biphenyl inter-ring single bond is emitted as a heavy CHI."""
     # report_ringring_chi=True (default): an aromatic-aromatic single bond
     # (biphenyl pivot) is emitted as a heavy CHI, not skipped.
     rt = _restype_from_smiles("c1ccccc1-c2ccccc2", "BPH")
@@ -353,7 +375,8 @@ def test_biaryl_single_bond_is_heavy_chi():
     assert len(rt.torsions) == 1  # the single inter-ring axis
 
 
-def test_special_biaryl_pivot_ring_to_functional_group():
+def test_special_biaryl_pivot_ring_to_functional_group() -> None:
+    """A ring<->conjugated-functional-group pivot is kept as a heavy CHI."""
     # search_special_biaryl_ring: a ring<->conjugated-functional-group bond is a
     # biaryl pivot kept as a heavy CHI despite border>1. Verified vs mol2genparams
     # (both emit a single #biaryl CHI on the ring-C<->substituent-C axis).
@@ -372,7 +395,8 @@ def test_special_biaryl_pivot_ring_to_functional_group():
 # --- mol2 literal single-bond override (RDKit kekulization promotion) ------
 
 
-def test_mol2_single_bond_ids_parses_only_order_one():
+def test_mol2_single_bond_ids_parses_only_order_one() -> None:
+    """``_mol2_single_bond_ids`` returns only the order-'1' bond id pairs."""
     # _mol2_single_bond_ids returns ONLY the order-'1' bonds as 1-based id pairs;
     # aromatic ('ar'), amide ('am'), double ('2') etc. are excluded.
     from tmol.ligand.detect import _mol2_single_bond_ids
@@ -389,7 +413,8 @@ def test_mol2_single_bond_ids_parses_only_order_one():
     assert _mol2_single_bond_ids(text) == frozenset({frozenset({1, 2})})
 
 
-def test_original_single_bonds_restores_border_one_chi():
+def test_original_single_bonds_restores_border_one_chi() -> None:
+    """Passing a bond in ``original_single_bonds`` forces it back to a heavy CHI."""
     # A genuine non-ring C=C double bond between two heavy-substituted carbons is
     # skipped by the border>1 rule. Passing it in original_single_bonds (as the
     # mol2 reader does for mol2-'1' bonds RDKit promoted) forces border=1, so the
@@ -424,14 +449,16 @@ def test_original_single_bonds_restores_border_one_chi():
 # --- strained ring negative; heavy-only OptHSampler negative -------
 
 
-def test_strained_ring_emits_no_chi():
+def test_strained_ring_emits_no_chi() -> None:
+    """A strained 3-membered ring emits no CHI or proton-chi samples."""
     # 3-membered ring: all ring bonds are strained ring-internal -> no chi.
     rt = _restype_from_smiles("C1CC1", "CPR")
     assert rt.torsions == ()
     assert rt.chi_samples == ()
 
 
-def test_proton_chi_samples_default_on_opt_out_off():
+def test_proton_chi_samples_default_on_opt_out_off() -> None:
+    """Proton chi samples default on and are suppressed by ``sample_proton_chi=False``."""
     # The DEFAULT preparation path now emits proton chi_samples
     # (sample_proton_chi defaults to True); sample_proton_chi=False opts out
     # (e.g. to keep pose construction NaN-free) while still emitting torsions.
@@ -464,7 +491,8 @@ def test_proton_chi_samples_default_on_opt_out_off():
 )
 def test_sample_proton_chi_forwarded_file_paths(
     monkeypatch, loader_attr, func_attr, arg
-):
+) -> None:
+    """``sample_proton_chi`` reaches prepare_single_ligand from each file entry point."""
     # the option must reach prepare_single_ligand from every file-based
     # public entry point, not just the SMILES path. Spy on the call kwargs.
     import tmol.ligand.preparation as prep
@@ -488,7 +516,8 @@ def test_sample_proton_chi_forwarded_file_paths(
     assert captured.get("sample_proton_chi") is True
 
 
-def test_sample_proton_chi_forwarded_prepare_ligands(monkeypatch):
+def test_sample_proton_chi_forwarded_prepare_ligands(monkeypatch) -> None:
+    """The multi-ligand entry point forwards ``sample_proton_chi`` too."""
     # the multi-ligand entry point forwards the option too.
     from types import SimpleNamespace
 
@@ -525,7 +554,8 @@ def test_sample_proton_chi_forwarded_prepare_ligands(monkeypatch):
     assert captured.get("sample_proton_chi") is True
 
 
-def test_opth_inactive_for_heavy_only_chi_ligand():
+def test_opth_inactive_for_heavy_only_chi_ligand() -> None:
+    """The OptHSampler stays inactive for a heavy-only CHI ligand (biphenyl)."""
     # biphenyl has a heavy CHI but NO proton chi_samples ->
     # OptHSampler must NOT define rotamers for it.
     from tmol.pack.rotamer.opth_sampler import OptHSampler
@@ -538,7 +568,8 @@ def test_opth_inactive_for_heavy_only_chi_ligand():
 # --- params_io read->write->read + tmol YAML round-trip -------
 
 
-def _proton_by_axis(restype):
+def _proton_by_axis(restype) -> dict:
+    """Map each CHI axis to its proton-chi ``(samples, expansions)`` tuple."""
     axis = {t.name: frozenset((t.b.atom, t.c.atom)) for t in restype.torsions}
     return {
         axis[cs.chi_dihedral]: (tuple(cs.samples), tuple(cs.expansions))
@@ -546,7 +577,8 @@ def _proton_by_axis(restype):
     }
 
 
-def test_params_io_read_write_read_roundtrip(tmp_path):
+def test_params_io_read_write_read_roundtrip(tmp_path) -> None:
+    """A hand-written CHI/PROTON_CHI params file is semantically stable on rewrite."""
     # Start from a hand-written .params with CHI + PROTON_CHI, write it back,
     # read again; the semantic content (axes, samples, expansions) is stable.
     from tmol.ligand.params_file import _empty_cartres
@@ -575,7 +607,8 @@ def test_params_io_read_write_read_roundtrip(tmp_path):
     assert rt2.chi_samples[0].expansions == (20.0,)
 
 
-def test_tmol_yaml_roundtrip_preserves_chi(tmp_path):
+def test_tmol_yaml_roundtrip_preserves_chi(tmp_path) -> None:
+    """The tmol YAML path round-trips torsions and proton-chi samples."""
     # tmol .tmol YAML path (params_file.py) round-trips non-empty torsions and
     # chi_samples. cartbonded is built with the same helper the prep pipeline
     # uses; charges are dummy (orthogonal to chi topology).
@@ -595,7 +628,8 @@ def test_tmol_yaml_roundtrip_preserves_chi(tmp_path):
     assert _proton_by_axis(rt2) == _proton_by_axis(rt)
 
 
-def test_write_rosetta_params_list_one_file_per_residue(tmp_path):
+def test_write_rosetta_params_list_one_file_per_residue(tmp_path) -> None:
+    """A list of preparations writes one Rosetta .params file per residue type."""
     # A list of preparations + format="rosetta" writes one .params per residue,
     # named by the residue type, into the directory `path`.
     from tmol.ligand.params_file import _empty_cartres
@@ -623,7 +657,8 @@ REF_SMILES = {
 
 
 @pytest.mark.parametrize("name", ["ref1", "ref2"])
-def test_ref_ligand_injects_and_builds_canonical_ordering(name):
+def test_ref_ligand_injects_and_builds_canonical_ordering(name) -> None:
+    """A reference ligand injects into a database and rebuilds CanonicalOrdering."""
     import cattr
 
     from tmol.chemical.restypes import RefinedResidueType
@@ -648,7 +683,8 @@ def test_ref_ligand_injects_and_builds_canonical_ordering(name):
 # --- mol2-path smoke (prepares + emits non-empty topology) ---------
 
 
-def test_mol2_path_emits_topology(monkeypatch):
+def test_mol2_path_emits_topology(monkeypatch) -> None:
+    """The mol2 prep path emits non-empty CHI topology with valid proton refs."""
     # mol2 prep path produces a residue type with rotatable-bond DOFs. (We do
     # NOT compare to ref1.params: ref1.mol2 is a different molecule than the
     # SMILES-derived ref1.params; this is a topology-emission smoke test.)
@@ -676,7 +712,8 @@ def test_mol2_path_emits_topology(monkeypatch):
         assert cs.chi_dihedral in names
 
 
-def test_mol2_path_matches_smiles_path_topology(tmp_path, monkeypatch):
+def test_mol2_path_matches_smiles_path_topology(tmp_path, monkeypatch) -> None:
+    """The mol2 path reproduces the SMILES path's CHI topology for one molecule."""
     # Matching-molecule mol2-path parity: generate a mol2 from the SAME molecule
     # used on the SMILES path, prepare via the mol2 path, and assert the emitted
     # CHI topology (heavy/proton counts + proton samples) matches. Charges are

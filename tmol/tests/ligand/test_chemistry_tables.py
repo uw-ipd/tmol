@@ -1,3 +1,5 @@
+"""Tests that ligand chemistry tables are derived from the chemical database."""
+
 from tmol.database import ParameterDatabase
 from tmol.ligand.chemistry_tables import (
     get_hbond_properties,
@@ -6,7 +8,8 @@ from tmol.ligand.chemistry_tables import (
 )
 
 
-def test_hbond_properties_derived_from_chemical_db():
+def test_hbond_properties_derived_from_chemical_db() -> None:
+    """H-bond properties mirror the chemical database atom-type flags."""
     param_db = ParameterDatabase.get_default()
     atom_types_by_name = {at.name: at for at in param_db.chemical.atom_types}
     hbond_props = get_hbond_properties()
@@ -17,7 +20,8 @@ def test_hbond_properties_derived_from_chemical_db():
     assert "acceptor_hybridization" in hbond_props["Ohx"]
 
 
-def test_polar_and_sp2_classes_come_from_db_tables():
+def test_polar_and_sp2_classes_come_from_db_tables() -> None:
+    """Polar and sp2 atom-type sets are sourced from the database tables."""
     polar_classes = get_polar_classes()
     sp2_atom_types = get_sp2_atom_types()
 

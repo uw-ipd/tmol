@@ -20,9 +20,10 @@ from tmol.ligand.params_reference import (
     generated_fields_from_preparation,
     parse_reference_params,
 )
+from tmol.ligand.registry import LigandPreparation
 
 
-def prepare_seed_entry(entry):
+def prepare_seed_entry(entry) -> LigandPreparation:
     """Prepare a ligand from a parity manifest entry via the SMILES->mol2 route.
 
     Feeds the entry's *protonated* SMILES (``expected_prot_smiles``) verbatim
@@ -116,7 +117,7 @@ def proton_chi_by_axis_from_prep(prep) -> dict:
     }
 
 
-def reference_view_from_params(ref):
+def reference_view_from_params(ref) -> SimpleNamespace:
     """Build a ``LigandPreparation``-like view from a parsed ``.params``.
 
     Suitable as the *reference* argument to
@@ -157,7 +158,9 @@ class RoundtripResult:
         return self.strict.ok and self.chi_axes_match and self.proton_chi_match
 
 
-def write_both_formats(prep, out_dir, *, params_charges=None):
+def write_both_formats(
+    prep, out_dir: str | Path, *, params_charges=None
+) -> tuple[Path, Path]:
     """Write ``prep`` as a Rosetta ``.params`` and a tmol ``.tmol``.
 
     ``params_charges`` overrides the charges written to the ``.params`` file
@@ -178,7 +181,11 @@ def write_both_formats(prep, out_dir, *, params_charges=None):
 
 
 def roundtrip_overlapping_fields(
-    prep, out_dir, *, charge_tolerance: float = 0.01, params_charges=None
+    prep,
+    out_dir: str | Path,
+    *,
+    charge_tolerance: float = 0.01,
+    params_charges=None,
 ) -> RoundtripResult:
     """Write a prep to both formats, read back, and compare overlapping fields.
 

@@ -335,7 +335,7 @@ def _flow_dict_representer(dumper: Any, data: dict[str, Any]) -> Any:
 
 
 class _CompactDumper(yaml.SafeDumper):
-    pass
+    """SafeDumper variant that emits ``_FlowList`` marker lists in flow style."""
 
 
 _CompactDumper.add_representer(_FlowList, _flow_list_representer)

@@ -12,6 +12,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tmol.ligand.equivalence import EquivalenceResult
 
 
 @dataclass(frozen=True)
@@ -372,12 +376,15 @@ def compare_params_strict(
 
 
 def _bond_repr(key: tuple[frozenset[str], str, bool]) -> tuple[str, str, str, bool]:
+    """Flatten a bond key into a sortable ``(a, b, order, ring)`` tuple."""
     pair, order, ring = key
     a, b = sorted(pair)
     return (a, b, order, ring)
 
 
-def compare_semantic(generated: object, reference: object, **kwargs: object):
+def compare_semantic(
+    generated: object, reference: object, **kwargs: object
+) -> "EquivalenceResult":
     """Heavy-atom isomorphism comparison of two ``LigandPreparation`` objects.
 
     Thin wrapper over :func:`tmol.ligand.equivalence.compare_ligand_preparations`

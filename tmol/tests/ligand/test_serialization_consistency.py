@@ -29,7 +29,8 @@ def seed_prep(request):
     return prepare_seed_entry(request.param)
 
 
-def test_params_tmol_overlapping_fields_agree(seed_prep, tmp_path):
+def test_params_tmol_overlapping_fields_agree(seed_prep, tmp_path) -> None:
+    """Overlapping .params/.tmol fields agree after a roundtrip."""
     result = roundtrip_overlapping_fields(seed_prep, tmp_path)
     assert result.strict.ok, result.strict.details
     assert result.chi_axes_match, (
@@ -39,7 +40,8 @@ def test_params_tmol_overlapping_fields_agree(seed_prep, tmp_path):
     assert result.ok
 
 
-def test_charge_perturbation_breaks_consistency(tmp_path):
+def test_charge_perturbation_breaks_consistency(tmp_path) -> None:
+    """Perturbing a partial charge makes the strict comparison fail."""
     prep = prepare_seed_entry(_SEED[0])
     perturbed = dict(prep.partial_charges)
     victim = next(iter(perturbed))
@@ -57,7 +59,8 @@ def test_charge_perturbation_breaks_consistency(tmp_path):
     assert strict.checks["charges"] is False
 
 
-def test_proton_chi_sample_corruption_breaks_consistency(tmp_path):
+def test_proton_chi_sample_corruption_breaks_consistency(tmp_path) -> None:
+    """Corrupting a PROTON_CHI sample is caught by the proton-chi comparison."""
     # ref1 carries PROTON_CHI; corrupting a sample value in the .params must be
     # caught by the proton-chi comparison (it was previously missed).
     prep = prepare_seed_entry(_SEED[0])
@@ -83,7 +86,8 @@ def test_proton_chi_sample_corruption_breaks_consistency(tmp_path):
     )
 
 
-def test_sample_proton_chi_setting_drives_emission():
+def test_sample_proton_chi_setting_drives_emission() -> None:
+    """The sample_proton_chi setting toggles proton-chi sample emission."""
     # A manifest entry's sample_proton_chi must actually change preparation:
     # on -> proton-chi samples emitted, off -> none.
     base = _SEED[0]

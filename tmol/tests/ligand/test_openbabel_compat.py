@@ -37,12 +37,13 @@ pytestmark = pytest.mark.skipif(
 # ---------------------------------------------------------------------------
 
 
-def test_is_available_returns_true_when_ob_present():
+def test_is_available_returns_true_when_ob_present() -> None:
     """If we got past the module-level skip, OB must be importable."""
     assert ob_is_available() is True
 
 
-def test_obabel_read_mol2_returns_rdkit_mol():
+def test_obabel_read_mol2_returns_rdkit_mol() -> None:
+    """Reading a mol2 via OpenBabel yields a populated RDKit Mol."""
     mol = obabel_read_mol2(ACE_MOL2)
     assert mol is not None
     assert isinstance(mol, Chem.Mol)
@@ -50,24 +51,28 @@ def test_obabel_read_mol2_returns_rdkit_mol():
     assert mol.GetNumConformers() == 1
 
 
-def test_obabel_read_mol2_missing_file_returns_none(tmp_path):
+def test_obabel_read_mol2_missing_file_returns_none(tmp_path) -> None:
+    """A malformed/missing mol2 yields ``None`` rather than raising."""
     bogus = tmp_path / "nonexistent.mol2"
     # OB's pybel.readfile raises on missing file; helper catches and returns None.
     bogus.write_text("not a mol2")
     assert obabel_read_mol2(bogus) is None
 
 
-def test_obabel_read_smiles_simple():
+def test_obabel_read_smiles_simple() -> None:
+    """A simple SMILES parses to a Mol with the expected heavy-atom count."""
     mol = obabel_read_smiles("CCO")  # ethanol
     assert mol is not None
     assert mol.GetNumAtoms() == 3  # C, C, O (no Hs by default)
 
 
-def test_obabel_read_smiles_invalid_returns_none():
+def test_obabel_read_smiles_invalid_returns_none() -> None:
+    """An invalid SMILES string yields ``None``."""
     assert obabel_read_smiles("not_a_smiles_at_all_!!@@##") is None
 
 
-def test_obabel_read_smiles_3d_generation():
+def test_obabel_read_smiles_3d_generation() -> None:
+    """``generate_3d`` adds hydrogens and a single embedded conformer."""
     mol = obabel_read_smiles("CCO", generate_3d=True)
     assert mol is not None
     assert mol.GetNumConformers() == 1
@@ -75,7 +80,7 @@ def test_obabel_read_smiles_3d_generation():
     assert mol.GetNumAtoms() == 9
 
 
-def test_obabel_read_pdb_from_generated_file(tmp_path):
+def test_obabel_read_pdb_from_generated_file(tmp_path) -> None:
     """Round-trip: mol2 -> OB -> PDB on disk -> OB read PDB."""
     from openbabel import pybel
 
@@ -94,7 +99,7 @@ def test_obabel_read_pdb_from_generated_file(tmp_path):
 
 
 @pytest.fixture
-def ace_pdb_path(tmp_path):
+def ace_pdb_path(tmp_path) -> Path:
     """Convert ace.lig.mol2 to a PDB file for testing the PDB entry point."""
     from openbabel import pybel
 
@@ -104,7 +109,8 @@ def ace_pdb_path(tmp_path):
     return out
 
 
-def test_nonstandard_residue_info_from_pdb_shape(ace_pdb_path):
+def test_nonstandard_residue_info_from_pdb_shape(ace_pdb_path) -> None:
+    """PDB-derived residue info has consistent shapes, bonds and no charges."""
     from tmol.ligand import nonstandard_residue_info_from_pdb
 
     info = nonstandard_residue_info_from_pdb(ace_pdb_path, res_name="ACE")
@@ -121,7 +127,8 @@ def test_nonstandard_residue_info_from_pdb_shape(ace_pdb_path):
     assert len(set(info.atom_names)) == len(info.atom_names)
 
 
-def test_nonstandard_residue_info_from_pdb_missing_file(tmp_path):
+def test_nonstandard_residue_info_from_pdb_missing_file(tmp_path) -> None:
+    """A missing PDB path raises ``FileNotFoundError``."""
     from tmol.ligand import nonstandard_residue_info_from_pdb
 
     with pytest.raises(FileNotFoundError):
@@ -133,7 +140,8 @@ def test_nonstandard_residue_info_from_pdb_missing_file(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_nonstandard_residue_info_from_smiles_ethanol():
+def test_nonstandard_residue_info_from_smiles_ethanol() -> None:
+    """SMILES-derived residue info has unique names, 3D coords and bonds."""
     from tmol.ligand import nonstandard_residue_info_from_smiles
 
     info = nonstandard_residue_info_from_smiles("CCO", res_name="ETH")
@@ -151,14 +159,16 @@ def test_nonstandard_residue_info_from_smiles_ethanol():
     assert info.atom_array.bonds.get_bond_count() > 0
 
 
-def test_nonstandard_residue_info_from_smiles_invalid_raises():
+def test_nonstandard_residue_info_from_smiles_invalid_raises() -> None:
+    """An invalid SMILES raises ``ValueError``."""
     from tmol.ligand import nonstandard_residue_info_from_smiles
 
     with pytest.raises(ValueError, match="Could not parse SMILES"):
         nonstandard_residue_info_from_smiles("not_a_smiles_!!@@##")
 
 
-def test_nonstandard_residue_info_from_smiles_default_res_name():
+def test_nonstandard_residue_info_from_smiles_default_res_name() -> None:
+    """Omitting ``res_name`` defaults the residue name to ``LG1``."""
     from tmol.ligand import nonstandard_residue_info_from_smiles
 
     info = nonstandard_residue_info_from_smiles("CCO")
@@ -170,7 +180,8 @@ def test_nonstandard_residue_info_from_smiles_default_res_name():
 # ---------------------------------------------------------------------------
 
 
-def test_normalize_radical_oxygens_restores_anion_charge():
+def test_normalize_radical_oxygens_restores_anion_charge() -> None:
+    """Bare ``[O]`` is rewritten to ``[O-]`` while well-formed SMILES pass through."""
     from tmol.ligand.detect import _normalize_radical_oxygens
 
     # bare [O] (DUD carboxylate / sulfonate notation) gains its -1 charge
@@ -183,7 +194,8 @@ def test_normalize_radical_oxygens_restores_anion_charge():
     assert _normalize_radical_oxygens("CC=O") == "CC=O"
 
 
-def test_smiles_via_mol2_deprotonates_bare_o_carboxylate():
+def test_smiles_via_mol2_deprotonates_bare_o_carboxylate() -> None:
+    """A bare ``[O]`` carboxylate normalizes to a symmetric, doubly-anionic COO-."""
     from tmol.ligand.detect import nonstandard_residue_info_from_smiles_via_mol2
 
     # A DUD-style bare [O] carboxylate must normalize to a symmetric COO-
@@ -198,7 +210,8 @@ def test_smiles_via_mol2_deprotonates_bare_o_carboxylate():
     assert abs(carboxylate[0] - carboxylate[1]) < 0.05
 
 
-def test_smiles_via_mol2_uses_generic_atom_names():
+def test_smiles_via_mol2_uses_generic_atom_names() -> None:
+    """The SMILES->mol2 path emits generic names that never collide with elements."""
     from tmol.ligand.detect import nonstandard_residue_info_from_smiles_via_mol2
 
     # A peptidomimetic SMILES makes OpenBabel perceive amino-acid residues and
@@ -214,7 +227,8 @@ def test_smiles_via_mol2_uses_generic_atom_names():
     assert "C1" in info.atom_names
 
 
-def test_obabel_smiles_to_mol2_block_is_in_memory_string():
+def test_obabel_smiles_to_mol2_block_is_in_memory_string() -> None:
+    """SMILES->mol2 returns an in-memory MMFF94 mol2 block string."""
     from tmol.ligand.openbabel_compat import obabel_smiles_to_mol2_block
 
     block = obabel_smiles_to_mol2_block("CC(=O)[O-]")
@@ -224,7 +238,8 @@ def test_obabel_smiles_to_mol2_block_is_in_memory_string():
 
 
 @pytest.mark.parametrize("conformer_search", [True, False])
-def test_conformer_search_flag_produces_valid_mol2(conformer_search):
+def test_conformer_search_flag_produces_valid_mol2(conformer_search) -> None:
+    """Both conformer-search settings yield a chemically complete MMFF94 mol2."""
     # conformer_search defaults on (rotor search, matching the reference
     # pipeline); the off-switch is for faster single-conformer generation.
     # Both settings must yield a chemically complete MMFF94 mol2.
@@ -239,7 +254,8 @@ def test_conformer_search_flag_produces_valid_mol2(conformer_search):
     assert mol is not None and mol.GetNumConformers() == 1
 
 
-def test_mol2_block_reader_matches_file_reader(tmp_path):
+def test_mol2_block_reader_matches_file_reader(tmp_path) -> None:
+    """The in-memory block reader matches the on-disk file reader for one mol2."""
     # The in-memory block reader must produce the same NonStandardResidueInfo
     # as the on-disk file reader for an identical mol2 (no temp-file round-trip).
     from tmol.ligand.detect import (
@@ -267,7 +283,7 @@ def test_mol2_block_reader_matches_file_reader(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_mol2_fallback_to_openbabel_when_rdkit_returns_none(monkeypatch):
+def test_mol2_fallback_to_openbabel_when_rdkit_returns_none(monkeypatch) -> None:
     """If MolFromMol2File returns None, the mol2 reader uses OB and succeeds."""
     from tmol.ligand import nonstandard_residue_info_from_mol2
     import tmol.ligand.detect as detect_mod
@@ -288,7 +304,7 @@ def test_mol2_fallback_to_openbabel_when_rdkit_returns_none(monkeypatch):
     monkeypatch.setattr(detect_mod.Chem, "MolFromMol2File", real)
 
 
-def test_smiles_fallback_inside_rebuild_path(monkeypatch):
+def test_smiles_fallback_inside_rebuild_path(monkeypatch) -> None:
     """If MolFromSmiles returns None inside the SMILES rebuild path,
     the helper falls back to OB and still produces a Mol."""
     import tmol.ligand.rdkit_mol as rdkit_mol_mod

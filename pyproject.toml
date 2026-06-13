@@ -64,6 +64,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# OpenBabel powers the SMILES -> 3D mol2 ligand-preparation path (conformer
+# search + MMFF94 charges). The CIF/mol2 paths use RDKit and do not need it;
+# it is imported lazily (see tmol.ligand.openbabel_compat), so it stays an
+# opt-in extra rather than a core dependency.
+ligand = [
+    "openbabel-wheel==3.1.1.22",
+]
 dev = [
     # Linters & formatters
     "black==24.1.1",
@@ -80,6 +87,8 @@ dev = [
     "pytest-watch>=4.2",
     # Visualization
     "seaborn>=0.13",
+    # Ligand SMILES-prep path and its tests require OpenBabel
+    "tmol[ligand]",
 ]
 cuda = [
     # CUDA nvcc compiler for JIT compilation of custom kernels.

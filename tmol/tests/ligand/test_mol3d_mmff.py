@@ -1,3 +1,5 @@
+"""Tests for MMFF94 charge computation and aromatic-flag canonicalization."""
+
 import pytest
 from rdkit import Chem
 
@@ -19,7 +21,8 @@ def _simple_mol() -> Chem.Mol:
     return Chem.AddHs(mol)
 
 
-def test_compute_mmff94_charges_retries_after_initial_failure(monkeypatch):
+def test_compute_mmff94_charges_retries_after_initial_failure(monkeypatch) -> None:
+    """MMFF94 charge computation retries via canonicalization after a failure."""
     mol = _simple_mol()
     calls = {"mmff": 0, "canonicalize": 0}
 
@@ -49,7 +52,8 @@ def test_compute_mmff94_charges_retries_after_initial_failure(monkeypatch):
     assert charges[0] == 0.0
 
 
-def test_canonicalize_mol_for_mmff_clears_source_props():
+def test_canonicalize_mol_for_mmff_clears_source_props() -> None:
+    """Canonicalization for MMFF removes source aromatic/kekule props."""
     mol = _simple_mol()
     mol.SetProp(rdkit_mol._SOURCE_AROMATIC_PROP, "1")
     mol.SetProp(rdkit_mol._SOURCE_KEKULE_PROP, "1")
@@ -60,7 +64,8 @@ def test_canonicalize_mol_for_mmff_clears_source_props():
     assert not mol.HasProp(rdkit_mol._SOURCE_KEKULE_PROP)
 
 
-def test_strip_all_aromaticity_allows_sanitize_after_inconsistent_flags():
+def test_strip_all_aromaticity_allows_sanitize_after_inconsistent_flags() -> None:
+    """Clearing aromatic flags lets RDKit re-sanitize an inconsistent mol."""
     mol = Chem.MolFromSmiles("c1ccncc1")
     assert mol is not None
     Chem.SanitizeMol(mol)
@@ -87,7 +92,8 @@ def test_strip_all_aromaticity_allows_sanitize_after_inconsistent_flags():
     Chem.SanitizeMol(mol)
 
 
-def test_compute_mmff94_charges_reports_attempt_diagnostics(monkeypatch):
+def test_compute_mmff94_charges_reports_attempt_diagnostics(monkeypatch) -> None:
+    """Persistent MMFF94 failure raises with per-attempt diagnostics."""
     mol = _simple_mol()
 
     def _always_fail(*_args, **_kwargs):

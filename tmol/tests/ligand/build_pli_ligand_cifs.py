@@ -29,11 +29,17 @@ _BOND_ORDER_TO_CIF = {
 
 
 def _targets() -> list[str]:
+    """Return the sorted target stems with a reference ``.tmol`` in ``PLI_DIR``."""
     suffix = ".xtal-lig.mmff94.tmol"
     return sorted(p.name[: -len(suffix)] for p in PLI_DIR.glob(f"*{suffix}"))
 
 
 def _find_complex_path(target: str) -> Path:
+    """Return the single ``*_complex*.pdb`` for ``target``.
+
+    Raises:
+        ValueError: If zero or more than one matching complex PDB exists.
+    """
     matches = sorted(PLI_DIR.glob(f"{target}_complex*.pdb"))
     if len(matches) != 1:
         raise ValueError(
@@ -45,6 +51,18 @@ def _find_complex_path(target: str) -> Path:
 def _load_ligand_coords_by_name(
     complex_pdb: Path, res_name: str
 ) -> dict[str, tuple[str, tuple[float, float, float]]]:
+    """Map ligand atom name to ``(element, xyz)`` from a complex PDB.
+
+    Args:
+        complex_pdb: Path to the complex PDB containing the ligand.
+        res_name: Residue name selecting the hetero ligand atoms.
+
+    Returns:
+        Mapping of atom name to its element symbol and Cartesian coordinate.
+
+    Raises:
+        ValueError: If no matching hetero atoms exist or a name is duplicated.
+    """
     bt_struct = struc_io.load_structure(str(complex_pdb), include_bonds=False)
     if isinstance(bt_struct, struc.AtomArrayStack):
         bt_struct = bt_struct[0]
@@ -73,6 +91,7 @@ def _load_ligand_coords_by_name(
 
 
 def _element_from_tripos_type(tripos_type: str) -> str:
+    """Extract the element symbol from a TRIPOS SYBYL atom type."""
     tripos_type = tripos_type.strip()
     if not tripos_type:
         return "X"
@@ -84,6 +103,11 @@ def _element_from_tripos_type(tripos_type: str) -> str:
 def _load_ligand_coords_from_mol2(
     mol2_path: Path,
 ) -> dict[str, tuple[str, tuple[float, float, float]]]:
+    """Map disambiguated mol2 atom name to ``(element, xyz)``.
+
+    Raises:
+        ValueError: If a disambiguated name is duplicated or no atoms are found.
+    """
     coords_by_name: dict[str, tuple[str, tuple[float, float, float]]] = {}
     seen: dict[str, int] = {}
     in_atoms = False
@@ -144,6 +168,11 @@ def _load_ligand_coords_for_target(
 
 
 def _aromatic_atom_set(restype) -> set[str]:
+    """Return the atom names participating in aromatic ring chemistry.
+
+    Combines atoms on ring AROMATIC bonds with atoms whose reference atom
+    type encodes aromatic-like character (e.g. ``Nim``/``Ofu``).
+    """
     aromatic_atoms: set[str] = set()
     for a, b, bond_type, *rest in restype.bonds:
         ring = bool(rest[0]) if rest else False
@@ -204,7 +233,20 @@ def _source_subtype_from_atom_type(element: str, atom_type: str) -> str:
 
 def _render_ligand_cif(
     prep, coords_by_name: dict[str, tuple[str, tuple[float, float, float]]]
-):
+) -> str:
+    """Render a ligand-only CIF with explicit bond orders and partial charges.
+
+    Args:
+        prep: The ligand preparation supplying topology and charges.
+        coords_by_name: Atom-name -> ``(element, xyz)`` coordinate donor.
+
+    Returns:
+        The CIF document as a single string.
+
+    Raises:
+        ValueError: On an unsupported bond type or an atom missing coordinates
+            or a reference charge.
+    """
     restype = prep.residue_type
     aromatic_atoms = _aromatic_atom_set(restype)
 
@@ -301,6 +343,11 @@ def _render_ligand_cif(
 
 
 def ensure_pli_ligand_cifs(output_dir: Path = CIF_OUT_DIR) -> list[Path]:
+    """Build a ligand CIF for every PLI target and return the written paths.
+
+    Raises:
+        ValueError: If a reference ``.tmol`` does not contain exactly one residue.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
 
@@ -325,6 +372,7 @@ def ensure_pli_ligand_cifs(output_dir: Path = CIF_OUT_DIR) -> list[Path]:
 
 
 def main() -> None:
+    """Build the ligand CIF fixtures and print a summary of what was written."""
     written = ensure_pli_ligand_cifs()
     print(f"Wrote {len(written)} ligand CIF fixtures to {CIF_OUT_DIR}")
 

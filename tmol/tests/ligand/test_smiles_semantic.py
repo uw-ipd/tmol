@@ -27,7 +27,9 @@ from tmol.tests.ligand._parity_helpers import (
 _SEED = load_parity_manifest()
 
 
-def _semantic_match(prep, ref, *, charge_tolerance: float = 0.05, skip_charges=False):
+def _semantic_match(
+    prep, ref, *, charge_tolerance: float = 0.05, skip_charges: bool = False
+):
     """Production-path semantic equivalence plus CHI-axis equality.
 
     Returns ``(ok, result)`` where ``ok`` is the combined verdict and ``result``
@@ -52,7 +54,8 @@ def entry_prep(request):
     return entry, prepare_seed_entry(entry)
 
 
-def test_smiles_prep_structural_equivalence(entry_prep):
+def test_smiles_prep_structural_equivalence(entry_prep) -> None:
+    """SMILES-prepared structure matches the reference graph and CHI axes."""
     # atom set / types / bonds + CHI axes via the production path, charges aside.
     entry, prep = entry_prep
     ref = parse_reference_params(entry.params)
@@ -62,7 +65,8 @@ def test_smiles_prep_structural_equivalence(entry_prep):
 
 
 @pytest.mark.parametrize("entry", _SEED, ids=lambda e: e.name)
-def test_smiles_prep_charge_equivalence(entry):
+def test_smiles_prep_charge_equivalence(entry) -> None:
+    """SMILES-prepared MMFF94 charges match the reference for every seed."""
     # The SMILES->mol2 path carries OpenBabel's topological MMFF94 charges
     # straight through, so charges match the reference for every seed
     # (including fused-ring ref2, which the old atom-array path mis-charged).
@@ -72,7 +76,8 @@ def test_smiles_prep_charge_equivalence(entry):
     assert ok, result.details
 
 
-def test_changed_heavy_graph_is_detected():
+def test_changed_heavy_graph_is_detected() -> None:
+    """Removing a heavy-atom bond breaks structural equivalence."""
     prep = prepare_seed_entry(_SEED[0])
     ref = parse_reference_params(_SEED[0].params)
     heavy_bonds = [
@@ -84,7 +89,8 @@ def test_changed_heavy_graph_is_detected():
     assert not ok
 
 
-def test_changed_chi_axis_is_detected():
+def test_changed_chi_axis_is_detected() -> None:
+    """Altering a CHI axis breaks structural equivalence."""
     prep = prepare_seed_entry(_SEED[0])
     ref = parse_reference_params(_SEED[0].params)
     assert ref.chis, "ref1 must carry CHI records for this negative"

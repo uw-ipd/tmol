@@ -48,6 +48,11 @@ def infer_paired_mol2_path(cif_path: str | Path) -> Path | None:
 
 
 def _load_mol2(path: Path) -> Chem.Mol:
+    """Load and sanitize a MOL2 file, falling back to OpenBabel if RDKit fails.
+
+    Raises:
+        ValueError: If the file cannot be parsed or has no 3D coordinates.
+    """
     mol = Chem.MolFromMol2File(
         str(path),
         sanitize=False,
@@ -78,6 +83,7 @@ def _load_mol2(path: Path) -> Chem.Mol:
 
 
 def _canonical_atom_name(atom: Chem.Atom) -> str:
+    """Return the atom's Tripos name, or a synthesized ``<symbol><1-based-idx>``."""
     if atom.HasProp("_TriposAtomName"):
         name = atom.GetProp("_TriposAtomName").strip()
         if name:
@@ -86,6 +92,7 @@ def _canonical_atom_name(atom: Chem.Atom) -> str:
 
 
 def _source_subtype_from_mol2_type(mol2_type: str) -> str:
+    """Return the subtype suffix from a Tripos atom type (e.g. ``C.ar`` -> ``ar``)."""
     if not mol2_type:
         return "?"
     parts = mol2_type.split(".")
@@ -100,6 +107,10 @@ def _canonical_cif_bond_tuple(
     value_order: str,
     aromatic_flag: str,
 ) -> tuple[str, str, str, str]:
+    """Build a canonical, order-independent CIF bond record for set comparison.
+
+    Atom names are sorted so the tuple is symmetric in the two endpoints.
+    """
     a1, a2 = sorted((atom_name_1.strip(), atom_name_2.strip()))
     order = str(value_order).strip().upper() or "SING"
     aromatic = "Y" if str(aromatic_flag).strip().upper() == "Y" else "N"
@@ -107,6 +118,11 @@ def _canonical_cif_bond_tuple(
 
 
 def _expected_bonds_from_mol2(mol: Chem.Mol) -> set[tuple[str, str, str, str]]:
+    """Build the set of canonical CIF bond records expected from a MOL2 mol.
+
+    Applies the DUD-scale policy where aromatic non-ring bonds are recorded as
+    plain single bonds.
+    """
     expected: set[tuple[str, str, str, str]] = set()
     for bond in mol.GetBonds():
         a = bond.GetBeginAtom()
@@ -129,6 +145,12 @@ def _expected_bonds_from_mol2(mol: Chem.Mol) -> set[tuple[str, str, str, str]]:
 def _actual_bonds_from_cif(
     cif_path: Path,
 ) -> tuple[set[tuple[str, str, str, str]], int]:
+    """Read a CIF's ``chem_comp_bond`` table as canonical bond records.
+
+    Returns:
+        A ``(bond_records, atom_count)`` pair; the record set is empty when the
+        CIF has no bond table.
+    """
     cif = pdbx.CIFFile.read(str(cif_path))
     block = cif.block
     atom_site = block["atom_site"]

@@ -97,6 +97,11 @@ def _canonicalize_mol_for_mmff(mol: Chem.Mol) -> None:
 
 
 def _mmff_charges_by_index(mol: Chem.Mol, atom_count: int) -> dict[int, float]:
+    """Return ``{atom_index: MMFF94 partial charge}`` for ``mol``.
+
+    Raises:
+        RuntimeError: If RDKit returns no MMFF properties for ``mol``.
+    """
     props = AllChem.MMFFGetMoleculeProperties(mol, mmffVariant="MMFF94")
     if props is None:
         raise RuntimeError("MMFF94 parameterization returned no properties")
@@ -104,6 +109,7 @@ def _mmff_charges_by_index(mol: Chem.Mol, atom_count: int) -> dict[int, float]:
 
 
 def _format_mmff_attempt_errors(attempt_errors: Sequence[tuple[str, Exception]]) -> str:
+    """Render ``(stage, exception)`` pairs into a single compact diagnostic string."""
     formatted: list[str] = []
     for stage, exc in attempt_errors:
         msg = str(exc).replace("\n", " ").strip() or "<no message>"

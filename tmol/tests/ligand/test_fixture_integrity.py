@@ -69,11 +69,12 @@ NBR_RADIUS 999.0
 
 
 def _write_pair(
-    tmp_path,
-    mol2_name="etha",
-    params_name="etha",
-    charge_type="USER_CHARGES",
-):
+    tmp_path: Path,
+    mol2_name: str = "etha",
+    params_name: str = "etha",
+    charge_type: str = "USER_CHARGES",
+) -> tuple[Path, Path]:
+    """Write a paired ethane mol2/params fixture and return their paths."""
     mol2 = tmp_path / "lig.mol2"
     params = tmp_path / "lig.params"
     mol2.write_text(_ETHANE_MOL2.format(name=mol2_name, charge_type=charge_type))
@@ -81,7 +82,8 @@ def _write_pair(
     return mol2, params
 
 
-def test_read_mol2_summary_counts():
+def test_read_mol2_summary_counts() -> None:
+    """The mol2 summary reports the correct total and heavy atom counts."""
     summary = read_mol2_summary(_ORPHAN_MOL2)
     # ref1.mol2 is the orphan molecule: 27 heavy of 51 atoms.
     assert summary.n_atoms == 51
@@ -89,20 +91,23 @@ def test_read_mol2_summary_counts():
     assert summary.has_hydrogen
 
 
-def test_paired_fixture_passes(tmp_path):
+def test_paired_fixture_passes(tmp_path) -> None:
+    """A matching mol2/params pair passes and returns the mol2 summary."""
     mol2, params = _write_pair(tmp_path)
     summary = require_paired_fixture(mol2, parse_reference_params(params))
     assert summary.title == "etha"
     assert summary.heavy_names == frozenset({"C1", "C2"})
 
 
-def test_paired_fixture_accepts_params_path(tmp_path):
+def test_paired_fixture_accepts_params_path(tmp_path) -> None:
+    """The reference argument may be a params path, not just a parsed object."""
     mol2, params = _write_pair(tmp_path)
     # reference may be passed as a path, not just a parsed object.
     require_paired_fixture(mol2, params)
 
 
-def test_orphan_ref1_is_rejected_with_heavy_count_mismatch():
+def test_orphan_ref1_is_rejected_with_heavy_count_mismatch() -> None:
+    """A mismatched heavy-atom count is rejected with a descriptive error."""
     ref = parse_reference_params(_ORPHAN_PARAMS)
     with pytest.raises(FixtureMismatch) as exc:
         require_paired_fixture(_ORPHAN_MOL2, ref)
@@ -112,7 +117,8 @@ def test_orphan_ref1_is_rejected_with_heavy_count_mismatch():
     assert "mol2=27" in msg and "params=17" in msg
 
 
-def test_residue_name_mismatch_is_rejected(tmp_path):
+def test_residue_name_mismatch_is_rejected(tmp_path) -> None:
+    """A residue-name mismatch between mol2 and params is rejected."""
     mol2, params = _write_pair(tmp_path, mol2_name="etha", params_name="other")
     with pytest.raises(FixtureMismatch) as exc:
         require_paired_fixture(mol2, params)
@@ -123,14 +129,16 @@ def test_residue_name_mismatch_is_rejected(tmp_path):
     not (_DUD80 / "params" / "ace_1.params").exists(),
     reason="DUD80 dataset not present (git-ignored); paired-fixture check skipped",
 )
-def test_dud80_ace_1_is_a_valid_pair():
+def test_dud80_ace_1_is_a_valid_pair() -> None:
+    """The DUD80 ace_1 mol2/params files form a valid pair."""
     mol2 = _DUD80 / "mol2" / "ace_1.mol2"
     params = _DUD80 / "params" / "ace_1.params"
     summary = require_paired_fixture(mol2, params)
     assert summary.title == "ace_1"
 
 
-def test_charge_model_mismatch_user_vs_mmff94_is_rejected(tmp_path):
+def test_charge_model_mismatch_user_vs_mmff94_is_rejected(tmp_path) -> None:
+    """Requiring mmff94 against a USER_CHARGES mol2 is rejected."""
     # Synthetic mol2 declares USER_CHARGES; requiring mmff94 must fail.
     mol2, params = _write_pair(tmp_path, charge_type="USER_CHARGES")
     with pytest.raises(FixtureMismatch) as exc:
@@ -138,19 +146,22 @@ def test_charge_model_mismatch_user_vs_mmff94_is_rejected(tmp_path):
     assert "charge model" in str(exc.value)
 
 
-def test_charge_model_mmff94_matches(tmp_path):
+def test_charge_model_mmff94_matches(tmp_path) -> None:
+    """An MMFF94_CHARGES mol2 satisfies the mmff94 charge-model requirement."""
     mol2, params = _write_pair(tmp_path, charge_type="MMFF94_CHARGES")
     require_paired_fixture(mol2, params, expected_charge_model="mmff94")
 
 
-def test_charge_model_unknown_expected_is_rejected(tmp_path):
+def test_charge_model_unknown_expected_is_rejected(tmp_path) -> None:
+    """An unrecognized expected charge model is rejected."""
     mol2, params = _write_pair(tmp_path, charge_type="MMFF94_CHARGES")
     with pytest.raises(FixtureMismatch) as exc:
         require_paired_fixture(mol2, params, expected_charge_model="bogus-model")
     assert "charge model" in str(exc.value)
 
 
-def test_charge_model_no_charges_fails_auto(tmp_path):
+def test_charge_model_no_charges_fails_auto(tmp_path) -> None:
+    """A NO_CHARGES mol2 fails the ``auto`` charge-model requirement."""
     mol2, params = _write_pair(tmp_path, charge_type="NO_CHARGES")
     with pytest.raises(FixtureMismatch) as exc:
         require_paired_fixture(mol2, params, expected_charge_model="auto")
@@ -161,7 +172,8 @@ def test_charge_model_no_charges_fails_auto(tmp_path):
     not (_DUD80 / "params" / "ace_1.params").exists(),
     reason="DUD80 dataset not present (git-ignored)",
 )
-def test_dud80_ace_1_charge_model_enforced():
+def test_dud80_ace_1_charge_model_enforced() -> None:
+    """The DUD80 ace_1 pair enforces its declared mmff94 charge model."""
     mol2 = _DUD80 / "mol2" / "ace_1.mol2"
     params = _DUD80 / "params" / "ace_1.params"
     # dud80 mol2 declares MMFF94_CHARGES.

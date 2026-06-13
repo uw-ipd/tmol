@@ -39,10 +39,12 @@ class Mol2Summary:
 
     @property
     def n_atoms(self) -> int:
+        """Total number of atoms in the mol2."""
         return len(self.atom_names)
 
     @property
     def has_hydrogen(self) -> bool:
+        """Whether the mol2 contains any hydrogen atoms."""
         return self.element_counts.get("H", 0) > 0
 
 

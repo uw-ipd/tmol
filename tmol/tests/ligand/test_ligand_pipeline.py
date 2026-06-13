@@ -10,6 +10,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import torch
 
 from tmol.io.pose_stack_from_biotite import canonical_ordering_for_biotite
 from tmol.ligand import prepare_ligands, prepare_single_ligand
@@ -40,10 +41,12 @@ class TestDetectFromCIF:
     def canonical_ordering(self):
         return canonical_ordering_for_biotite()
 
-    def test_no_ligands_in_ubq(self, biotite_1ubq, canonical_ordering):
+    def test_no_ligands_in_ubq(self, biotite_1ubq, canonical_ordering) -> None:
+        """A pure-protein structure yields no non-standard residues."""
         assert len(detect_nonstandard_residues(biotite_1ubq, canonical_ordering)) == 0
 
-    def test_detects_i4b_in_184l(self, cif_184l_with_i4b, canonical_ordering):
+    def test_detects_i4b_in_184l(self, cif_184l_with_i4b, canonical_ordering) -> None:
+        """The I4B ligand in 184L is detected with coords and CCD type."""
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, canonical_ordering)
         i4b = {lig.res_name: lig for lig in ligands}.get("I4B")
         assert i4b is not None
@@ -52,13 +55,15 @@ class TestDetectFromCIF:
 
     def test_detects_pse_with_partial_occupancy(
         self, cif_1a25_with_pse, canonical_ordering
-    ):
+    ) -> None:
+        """The partial-occupancy PSE ligand is still detected."""
         ligands = detect_nonstandard_residues(cif_1a25_with_pse, canonical_ordering)
         assert any(lig.res_name == "PSE" for lig in ligands)
 
     def test_detects_authoritative_partial_charges_from_load_structure(
         self, canonical_ordering
-    ):
+    ) -> None:
+        """Authoritative CIF partial charges are surfaced and skip protonation."""
         import biotite.structure
         import biotite.structure.io
 
@@ -88,13 +93,13 @@ class TestFullPipeline:
 
         return ParameterDatabase.get_default()
 
-    def test_hem_metal_ligand_skipped(self, cif_155c_with_hem, param_db):
+    def test_hem_metal_ligand_skipped(self, cif_155c_with_hem, param_db) -> None:
         """HEM contains Fe; metal-containing ligands are unsupported and skipped."""
         param_db, new_co = prepare_ligands(cif_155c_with_hem, param_db=param_db)
 
         assert "HEM" not in {r.name for r in param_db.chemical.residues}
 
-    def test_pse_partial_occupancy(self, cif_1a25_with_pse, param_db):
+    def test_pse_partial_occupancy(self, cif_1a25_with_pse, param_db) -> None:
         """Ligand with partial occupancy (PSE, 0.56) still prepares."""
         param_db, new_co = prepare_ligands(cif_1a25_with_pse, param_db=param_db)
 
@@ -102,7 +107,8 @@ class TestFullPipeline:
 
     def test_inject_ligand_preparations_is_idempotent(
         self, cif_184l_with_i4b, param_db
-    ):
+    ) -> None:
+        """Re-injecting an already-registered ligand preparation is a no-op."""
         ligands = detect_nonstandard_residues(
             cif_184l_with_i4b, canonical_ordering_for_biotite()
         )
@@ -119,7 +125,8 @@ class TestFullPipeline:
         again = inject_ligand_preparations(extended_db, [prep])
         assert len(again.chemical.residues) == len(extended_db.chemical.residues)
 
-    def test_ubq_passes_through_unchanged(self, biotite_1ubq, param_db):
+    def test_ubq_passes_through_unchanged(self, biotite_1ubq, param_db) -> None:
+        """A ligand-free structure leaves the parameter database unchanged."""
         n_before = len(param_db.chemical.residues)
         param_db, _ = prepare_ligands(biotite_1ubq, param_db=param_db)
         assert len(param_db.chemical.residues) == n_before
@@ -128,7 +135,7 @@ class TestFullPipeline:
 class TestLigandScoringData:
     """Verify that scoring databases are correctly populated for ligands."""
 
-    def test_ljlk_halogen_params_exist(self):
+    def test_ljlk_halogen_params_exist(self) -> None:
         """All halogen types (aromatic and non-aromatic) have LJLK params."""
         from tmol.database import ParameterDatabase
 
@@ -138,7 +145,9 @@ class TestLigandScoringData:
             assert halogen in ljlk_names, f"Missing LJLK params for {halogen}"
 
 
-def test_prepare_ligands_missing_ligand_atom_fails(cif_184l_with_i4b, torch_device):
+def test_prepare_ligands_missing_ligand_atom_fails(
+    cif_184l_with_i4b, torch_device
+) -> None:
     """Ligands with missing atoms are unsupported; loading must fail."""
     import numpy
 
@@ -159,14 +168,76 @@ def test_prepare_ligands_missing_ligand_atom_fails(cif_184l_with_i4b, torch_devi
             bt_ligand_missing,
             torch_device,
             prepare_ligands=True,
-            param_db=ParameterDatabase.get_fresh_default(),
+            param_db=ParameterDatabase.get_default(),
         )
+
+
+def test_ddg_from_cif_complex_with_onthefly_ligand_prep(
+    cif_1a25_with_pse, torch_device
+) -> None:
+    """End-to-end protein-ligand ddG straight from a CIF complex.
+
+    Exercises the path a user hits when they only have a structure (a biotite
+    AtomArray loaded from a CIF whose ligand carries explicit bond orders via a
+    ``_chem_comp_bond`` block) and no preprocessed ``.tmol``/``.params`` file:
+    ``pose_stack_from_biotite(prepare_ligands=True)`` generates the ligand
+    parameters on the fly, and ``calculate_block_pair_ddg`` then scores the
+    protein-ligand interface. The score function must be built from the
+    ligand-extended parameter database returned in the build context, otherwise
+    the freshly minted ligand block type has no scoring parameters.
+    """
+    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+    from tmol.score import beta2016_score_function
+    from tmol.score.score_utils import calculate_block_pair_ddg
+
+    pose_stack, context = pose_stack_from_biotite(
+        cif_1a25_with_pse,
+        torch_device,
+        prepare_ligands=True,
+        no_optH=True,
+        return_context=True,
+    )
+
+    # Locate the ligand (PSE) block(s) via the canonical form rather than
+    # assuming a fixed position in the pose.
+    co = context.canonical_ordering
+    res_types = context.canonical_form.res_types[0]
+    n_blocks = pose_stack.max_n_blocks
+
+    ligand_mask = torch.zeros((1, n_blocks), dtype=torch.bool, device=torch_device)
+    block_names = []
+    for block_idx in range(min(n_blocks, res_types.shape[0])):
+        res_type_id = int(res_types[block_idx])
+        if res_type_id < 0:
+            continue
+        name = co.restype_io_equiv_classes[res_type_id]
+        block_names.append(name)
+        if name == "PSE":
+            ligand_mask[0, block_idx] = True
+
+    assert (
+        "PSE" in block_names
+    ), f"ligand PSE not found among pose blocks: {block_names}"
+    assert ligand_mask.any(), "no PSE ligand block was masked"
+
+    sfxn = beta2016_score_function(torch_device, param_db=context.parameter_database)
+    ddg = calculate_block_pair_ddg(
+        pose_stack,
+        ligand_mask,
+        sfxn=sfxn,
+        minimize=False,
+        pack=False,
+        database=context.parameter_database,
+    )
+
+    assert torch.isfinite(ddg).all(), f"non-finite ddG from on-the-fly path: {ddg}"
 
 
 class TestParamsRoundtrip:
     """Write a prepared ligand to .params and read it back."""
 
-    def test_i4b_params_roundtrip(self, tmp_path, cif_184l_with_i4b):
+    def test_i4b_params_roundtrip(self, tmp_path, cif_184l_with_i4b) -> None:
+        """A prepared ligand written to .params reloads with matching topology."""
         co = canonical_ordering_for_biotite()
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
         i4b = next(lig for lig in ligands if lig.res_name == "I4B")
@@ -184,7 +255,10 @@ class TestParamsRoundtrip:
         assert prep.atom_type_elements is not None
         assert len(prep.atom_type_elements) > 0
 
-    def test_params_roundtrip_preserves_bond_types(self, tmp_path, cif_184l_with_i4b):
+    def test_params_roundtrip_preserves_bond_types(
+        self, tmp_path, cif_184l_with_i4b
+    ) -> None:
+        """Bond types and ring flags survive a .params write/read roundtrip."""
         co = canonical_ordering_for_biotite()
         ligands = detect_nonstandard_residues(cif_184l_with_i4b, co)
         i4b = next(lig for lig in ligands if lig.res_name == "I4B")
@@ -201,7 +275,8 @@ class TestParamsRoundtrip:
         }
 
 
-def test_collect_new_atom_types_strict_mode_errors(default_database):
+def test_collect_new_atom_types_strict_mode_errors(default_database) -> None:
+    """Strict atom typing raises on an unknown element mapping."""
     from tmol.ligand.registry import collect_new_atom_types
 
     residue = SimpleNamespace(
@@ -217,7 +292,8 @@ def test_collect_new_atom_types_strict_mode_errors(default_database):
         )
 
 
-def test_protonate_mol_variants_produces_valid_mol():
+def test_protonate_mol_variants_produces_valid_mol() -> None:
+    """Protonating a molecule yields RDKit-parseable variant SMILES."""
     from rdkit import Chem
 
     input_smiles = "CC(=O)ON"
@@ -238,7 +314,8 @@ def test_protonate_mol_variants_produces_valid_mol():
 
 def test_prepare_single_ligand_uses_index_mapping_before_graph(
     cif_184l_with_i4b, monkeypatch
-):
+) -> None:
+    """Direct-Mol preparation uses index mapping and skips graph matching."""
     import tmol.ligand.preparation as ligand_preparation
 
     ligands = detect_nonstandard_residues(
@@ -260,7 +337,8 @@ def test_prepare_single_ligand_uses_index_mapping_before_graph(
     assert "C3'" in prep.partial_charges
 
 
-def test_prepare_ligand_from_cif_helper_loads_reference_fixture():
+def test_prepare_ligand_from_cif_helper_loads_reference_fixture() -> None:
+    """The CIF helper prepares a ligand and registers it as LG1."""
     from tmol.database import ParameterDatabase
     from tmol.ligand import prepare_ligand_from_cif
 
@@ -272,7 +350,8 @@ def test_prepare_ligand_from_cif_helper_loads_reference_fixture():
     assert any(rt.name == "LG1" for rt in param_db.chemical.residues)
 
 
-def test_prepare_ligand_from_mol2_helper_loads_reference_fixture():
+def test_prepare_ligand_from_mol2_helper_loads_reference_fixture() -> None:
+    """The MOL2 helper prepares a ligand and registers it as LG1."""
     from tmol.database import ParameterDatabase
     from tmol.ligand import prepare_ligand_from_mol2
 
@@ -286,7 +365,8 @@ def test_prepare_ligand_from_mol2_helper_loads_reference_fixture():
 
 def test_missing_authoritative_charges_reports_cif_loading_guidance(
     monkeypatch, torch_device
-):
+) -> None:
+    """Missing authoritative charges raise an error with CIF-loading guidance."""
     import biotite.structure
     import biotite.structure.io
     import numpy
@@ -328,7 +408,7 @@ def test_missing_authoritative_charges_reports_cif_loading_guidance(
     assert "ligand_params_files" in msg
 
 
-def _parse_reference_params(path):
+def _parse_reference_params(path: Path) -> dict:
     """Parse a Rosetta .params file into the legacy regression dict.
 
     Delegates to the shared :mod:`tmol.ligand.params_reference` parser so the
@@ -341,7 +421,7 @@ def _parse_reference_params(path):
     return as_legacy_dict(parse_reference_params(path))
 
 
-def _load_smi_file(path, name):
+def _load_smi_file(path: Path, name: str) -> str:
     """Load a SMILES for a given molecule name from a .smi file.
 
     Accepts both tab-separated and whitespace-separated formats:
@@ -421,7 +501,7 @@ class TestGroundTruthRegression:
             "restype": restype,
         }
 
-    def test_chi_axes_match(self, ref_data):
+    def test_chi_axes_match(self, ref_data) -> None:
         """Emitted CHI torsions cover the same rotatable axes as ref .params.
 
         Semantic parity: compare the unordered set of central {b, c} heavy-atom
@@ -440,7 +520,7 @@ class TestGroundTruthRegression:
             f"only-in-emit={sorted(tuple(sorted(s)) for s in emit_axes - ref_axes)}"
         )
 
-    def test_proton_chi_samples_match(self, ref_data):
+    def test_proton_chi_samples_match(self, ref_data) -> None:
         """PROTON_CHI sample sets and EXTRA expansions match ref .params."""
         ref = ref_data["ref"]
         restype = ref_data["restype"]
@@ -489,7 +569,7 @@ class TestGroundTruthRegression:
                 f"ref EXTRA={r_extra} -> expected {expected}, emit={e_expansions}"
             )
 
-    def test_protonation_matches(self, ref_data):
+    def test_protonation_matches(self, ref_data) -> None:
         """dimorphite_dl protonation must produce the expected SMILES."""
         assert ref_data["actual_prot_smiles"] == ref_data["expected_prot_smiles"], (
             f"Protonation mismatch for {ref_data['name']}: "
@@ -497,7 +577,7 @@ class TestGroundTruthRegression:
             f"expected {ref_data['expected_prot_smiles']!r}"
         )
 
-    def test_atom_count_matches(self, ref_data):
+    def test_atom_count_matches(self, ref_data) -> None:
         """Total atom count must match reference params."""
         ref_count = len(ref_data["ref"]["atoms"])
         actual_count = len(ref_data["restype"].atoms)
@@ -506,7 +586,7 @@ class TestGroundTruthRegression:
             f"got {actual_count}, expected {ref_count}"
         )
 
-    def test_atom_types_match(self, ref_data):
+    def test_atom_types_match(self, ref_data) -> None:
         """Each atom's name and Rosetta type must match the reference."""
         ref_atoms = ref_data["ref"]["atoms"]
         actual_atoms = [(a.name, a.atom_type) for a in ref_data["restype"].atoms]
@@ -518,7 +598,7 @@ class TestGroundTruthRegression:
             f"  expected: {ref_name_type}"
         )
 
-    def test_charges_match(self, ref_data):
+    def test_charges_match(self, ref_data) -> None:
         """MMFF94 partial charges must match reference within tolerance."""
         ref_charges = {name: charge for name, _, charge in ref_data["ref"]["atoms"]}
         actual_charges = ref_data["charges"]
@@ -533,7 +613,7 @@ class TestGroundTruthRegression:
                 f"got {actual_q:.4f}, expected {ref_q:.4f}"
             )
 
-    def test_bond_topology_matches(self, ref_data):
+    def test_bond_topology_matches(self, ref_data) -> None:
         """Bond pairs must match reference (order-independent)."""
         actual_bonds = set()
         for a, b, *_ in ref_data["restype"].bonds:
@@ -549,7 +629,7 @@ class TestGroundTruthRegression:
             f"  extra:   {actual_bonds - ref_bonds}"
         )
 
-    def test_bond_count_matches(self, ref_data):
+    def test_bond_count_matches(self, ref_data) -> None:
         """Bond count must match reference."""
         ref_count = len(ref_data["ref"]["bond_types"])
         actual_count = len(ref_data["restype"].bonds)
@@ -558,7 +638,7 @@ class TestGroundTruthRegression:
             f"got {actual_count}, expected {ref_count}"
         )
 
-    def test_icoor_completeness(self, ref_data):
+    def test_icoor_completeness(self, ref_data) -> None:
         """Every atom must appear in the ICOOR tree."""
         actual_icoors = ref_data["restype"].icoors
         actual_atoms = ref_data["restype"].atoms

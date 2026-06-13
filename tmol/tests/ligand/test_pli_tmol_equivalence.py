@@ -38,7 +38,7 @@ MOL2_TARGETS = {
 }
 
 
-def test_pli_reference_inputs_are_complete():
+def test_pli_reference_inputs_are_complete() -> None:
     """Guardrail: every reference .tmol target should have both CIF and MOL2 inputs."""
     missing_cif = sorted(TMOL_TARGETS - CIF_TARGETS)
     missing_mol2 = sorted(TMOL_TARGETS - MOL2_TARGETS)
@@ -46,7 +46,7 @@ def test_pli_reference_inputs_are_complete():
     assert not missing_mol2, f"Missing PLI MOL2 inputs for targets: {missing_mol2}"
 
 
-def test_pli_cif_bond_tables_audit_and_regeneration():
+def test_pli_cif_bond_tables_audit_and_regeneration() -> None:
     """Every paired CIF/MOL2 must be auditable and repairable."""
     shared = sorted(TMOL_TARGETS & CIF_TARGETS & MOL2_TARGETS)
     assert shared, "No shared PLI CIF/MOL2 targets found"
@@ -72,7 +72,8 @@ def test_pli_cif_bond_tables_audit_and_regeneration():
                 repaired_path.unlink(missing_ok=True)
 
 
-def test_prepare_single_ligand_rejects_topology_only_single_bonds():
+def test_prepare_single_ligand_rejects_topology_only_single_bonds() -> None:
+    """Preparation rejects PDB ligands carrying only topology-inferred bonds."""
     import biotite.structure as struc
     import biotite.structure.io
 

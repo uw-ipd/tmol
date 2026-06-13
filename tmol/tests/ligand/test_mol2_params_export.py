@@ -35,12 +35,14 @@ USER_CHARGES
 """
 
 
-def test_write_params_from_mol2_is_exported():
+def test_write_params_from_mol2_is_exported() -> None:
+    """``write_params_from_mol2`` is part of the public ligand API."""
     assert hasattr(tmol.ligand, "write_params_from_mol2")
     assert "write_params_from_mol2" in tmol.ligand.__all__
 
 
-def test_example_run_against_real_api(tmp_path):
+def test_example_run_against_real_api(tmp_path) -> None:
+    """The workflow example runs end-to-end against the real public API."""
     # The example previously imported undefined names and raised ImportError;
     # now run() must actually execute against the real public API.
     import tmol.ligand.examples.workflow_from_mol2 as example
@@ -54,7 +56,8 @@ def test_example_run_against_real_api(tmp_path):
     assert len(parse_reference_params(out).atoms) == 8
 
 
-def test_write_params_from_mol2_produces_valid_params(tmp_path):
+def test_write_params_from_mol2_produces_valid_params(tmp_path) -> None:
+    """The helper writes a parseable params file matching the mol2 atom set."""
     mol2 = tmp_path / "etha.mol2"
     mol2.write_text(_ETHANE_MOL2)
     out = tmp_path / "out.params"
@@ -67,7 +70,8 @@ def test_write_params_from_mol2_produces_valid_params(tmp_path):
     assert len(prep.residue_type.atoms) == len(ref.atoms)
 
 
-def test_write_params_from_mol2_output_is_serialization_consistent(tmp_path):
+def test_write_params_from_mol2_output_is_serialization_consistent(tmp_path) -> None:
+    """The mol2-path preparation round-trips consistently through both formats."""
     # The helper's preparation must round-trip through .params and .tmol with
     # agreeing overlapping fields (serialization consistency for the mol2 path).
     mol2 = tmp_path / "etha.mol2"

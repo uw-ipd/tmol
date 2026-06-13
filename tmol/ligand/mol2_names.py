@@ -22,6 +22,7 @@ def disambiguate_mol2_atom_name(name: str, occurrence: int) -> str:
 
 
 def _raw_tripos_atom_name(atom: Chem.Atom, fallback_index: int) -> str:
+    """Return the atom's raw Tripos name, or ``<symbol><fallback_index+1>``."""
     if atom.HasProp("_TriposAtomName"):
         name = atom.GetProp("_TriposAtomName").strip()
         if name:
