@@ -34,7 +34,7 @@ CI currently uploads these wheel variants to [GitHub Releases](https://github.co
 - GPU wheels (Linux `x86_64` and `aarch64`) for:
   - Python `cp311`, `cp312`, `cp313`, `cp314`
   - Torch/CUDA tags:
-    - `+cu128torch2.8`
+    - `+cu128torch2.8` (Google Colab / Turing **T4** wheel — the only variant built with `sm_75`; matches Colab runtime 2025.10: Python 3.12, torch 2.8)
     - `+cu130torch2.9`
     - `+cu128torch2.10` (x86_64 manylinux default)
     - `+cu131torch2.11`
@@ -93,6 +93,15 @@ pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu132
 
 ```bash
 pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.12-cp313-cp313-manylinux_2_28_x86_64.whl"
+```
+
+#### Google Colab (Turing T4)
+
+Colab ships Python 3.12 + torch 2.8 on a T4 (`sm_75`). Use the `+cu128torch2.8`
+wheel — it is the only variant compiled for `sm_75` (it also covers A100/L4):
+
+```bash
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-linux_x86_64.whl"
 ```
 
 #### Auto-fetch matching wheel, fallback to source build

@@ -161,6 +161,13 @@ pip install git+https://github.com/uw-ipd/tmol.git@vX.Y.Z
 pytest --pyargs tmol.tests -v
 ```
 
+On Google Colab (Python 3.12, torch 2.8, Turing T4) use the `+cu128torch2.8`
+wheel — it is the only variant built with `sm_75`:
+
+```bash
+pip install "https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-linux_x86_64.whl"
+```
+
 ## Containers
 
 Container definitions install all dependencies into an NVIDIA NGC PyTorch base image that provides `torch`, `numpy`, `nvcc`, and CUDA libraries. Bind-mount your tmol checkout at runtime.
