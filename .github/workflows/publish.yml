@@ -105,13 +105,25 @@ jobs:
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.12 x86_64 NGC"
 
-          # ── x86_64 py3.12 Colab override ──
+          # ── x86_64 py3.12 cu128 torch2.10 (foundry torch-2.10 upgrade path) ──
+          # Datacenter target (no sm_75); consumed by foundry upgrade_torch_cu12_to_210.sh.
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:25.02-py3
             torch-version: "2.10"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.10 x86_64 NGC cu128"
+
+          # ── x86_64 py3.12 Colab wheel (T4/sm_75, torch 2.8 cu128) ──
+          # The ONLY wheel that carries sm_75. Matches Colab runtime 2025.10
+          # (Python 3.12, torch 2.8, T4); archs cover T4(75)/A100(80)/L4(89).
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:25.06-py3
+            torch-version: "2.8"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
+            cuda-archs: "75;80;89"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.8 x86_64 Colab cu128"
 
           # ── ARM64 py3.11 (NGC native) ──
           - python-version: "3.11"
@@ -183,6 +195,7 @@ jobs:
       python-version: ${{ matrix.python-version }}
       label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.pip-torch-cuda-url || '' }}
+      cuda-archs: ${{ matrix.cuda-archs || '' }}
       use-manylinux-build: false
 
   # ── CPU-only wheel ─────────────────────────────────────────────────

@@ -37,6 +37,15 @@ on:
         description: >
           Build x86_64 wheels in manylinux_2_28 with devtoolset and auditwheel
           repair for broad glibc/libstdc++ compatibility.
+      cuda-archs:
+        required: false
+        type: string
+        default: ""
+        description: >
+          Override CMAKE_CUDA_ARCHITECTURES (semicolon-separated SM list). When
+          empty, defaults to "80;86;89;90" (CUDA<13) or "80;86;89;90;100"
+          (CUDA>=13). Set e.g. "75;80;89" for the Colab/T4 wheel; sm_75 is kept
+          out of the default lists so datacenter wheels stay lean.
 
 jobs:
   build-wheel:
@@ -213,6 +222,7 @@ jobs:
         run: |
           docker exec \
             -e MAX_JOBS=1 \
+            -e CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
             "$BUILDER" bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
             if [ -f /opt/rh/devtoolset-10/enable ]; then
@@ -223,10 +233,12 @@ jobs:
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             CUDA_MAJOR=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
-            if [ "$CUDA_MAJOR" -ge 13 ]; then
-              CUDA_ARCHS="75;80;86;89;90;100"
+            if [ -n "${CUDA_ARCHS_OVERRIDE}" ]; then
+              CUDA_ARCHS="${CUDA_ARCHS_OVERRIDE}"
+            elif [ "$CUDA_MAJOR" -ge 13 ]; then
+              CUDA_ARCHS="80;86;89;90;100"
             else
-              CUDA_ARCHS="75;80;86;89;90"
+              CUDA_ARCHS="80;86;89;90"
             fi
             export CMAKE_PREFIX_PATH=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.utils.cmake_prefix_path)")
             '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
