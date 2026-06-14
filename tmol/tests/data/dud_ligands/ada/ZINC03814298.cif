@@ -1,0 +1,109 @@
+data_structure
+#
+loop_
+_chem_comp_bond.pdbx_ordinal 
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+1  LG1 C1  C6  SING N ?
+2  LG1 C1  C2  DOUB N ?
+3  LG1 C1  H4  SING N ?
+4  LG1 C2  C3  SING N ?
+5  LG1 C2  H5  SING N ?
+6  LG1 C3  C4  DOUB N ?
+7  LG1 C3  N2  SING N ?
+8  LG1 C4  C5  SING N ?
+9  LG1 C4  N3  SING N ?
+10 LG1 C5  C6  DOUB N ?
+11 LG1 C5  N1  SING N ?
+12 LG1 C6  H6  SING N ?
+13 LG1 N1  C7  SING N ?
+14 LG1 N1  C8  SING N ?
+15 LG1 C7  H7  SING N ?
+16 LG1 C7  N3  DOUB N ?
+17 LG1 C8  H1  SING N ?
+18 LG1 C8  O1  SING N ?
+19 LG1 C8  C9  SING N ?
+20 LG1 C9  C10 SING N ?
+21 LG1 C9  H8  SING N ?
+22 LG1 C9  H9  SING N ?
+23 LG1 C10 H2  SING N ?
+24 LG1 C10 C11 SING N ?
+25 LG1 C10 O3  SING N ?
+26 LG1 C11 H3  SING N ?
+27 LG1 C11 O1  SING N ?
+28 LG1 C11 C12 SING N ?
+29 LG1 C12 O2  SING N ?
+30 LG1 C12 H10 SING N ?
+31 LG1 C12 H11 SING N ?
+32 LG1 O2  H12 SING N ?
+33 LG1 O3  H13 SING N ?
+34 LG1 N2  O4  SING N ?
+35 LG1 N2  H14 SING N ?
+36 LG1 O4  H15 SING N ?
+37 LG1 N3  H16 SING N ?
+#
+loop_
+_atom_site.group_PDB 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.B_iso_or_equiv 
+_atom_site.occupancy 
+_atom_site.pdbx_formal_charge 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.pdbx_PDB_model_num 
+_atom_site.id 
+_atom_site.partial_charge 
+_atom_site.tmol_aromatic 
+_atom_site.tmol_source_subtype 
+HETATM C C1  . LG1 A 1 1 . 1 LG1 A C1  nan 0.0 ?  0.5574  5.5757  0.0259  1 1  -0.150000 Y ar
+HETATM C C2  . LG1 A 1 1 . 1 LG1 A C2  nan 0.0 ?  -0.8288 5.5282  0.0393  1 2  -0.150000 Y ar
+HETATM C C3  . LG1 A 1 1 . 1 LG1 A C3  nan 0.0 ?  -1.488  4.3127  0.04    1 3  +0.141000 Y ar
+HETATM C C4  . LG1 A 1 1 . 1 LG1 A C4  nan 0.0 ?  -0.7467 3.1211  0.026   1 4  +0.309000 Y ar
+HETATM C C5  . LG1 A 1 1 . 1 LG1 A C5  nan 0.0 ?  0.6551  3.1809  0.0129  1 5  +0.309000 Y ar
+HETATM C C6  . LG1 A 1 1 . 1 LG1 A C6  nan 0.0 ?  1.2976  4.4131  0.013   1 6  -0.109000 Y ar
+HETATM N N1  . LG1 A 1 1 . 1 LG1 A N1  nan 0.0 ?  1.0922  1.8714  0.0017  1 7  -0.764000 Y pl3
+HETATM C C7  . LG1 A 1 1 . 1 LG1 A C7  nan 0.0 ?  -0.0126 1.0758  0.008   1 8  +0.650000 Y cat
+HETATM C C8  . LG1 A 1 1 . 1 LG1 A C8  nan 0.0 ?  2.4863  1.4214  -0.0145 1 9  +0.794000 N 3
+HETATM H H1  . LG1 A 1 1 . 1 LG1 A H1  nan 0.0 ?  3.1007  2.1125  -0.5915 1 10 +0.000000 N ?
+HETATM C C9  . LG1 A 1 1 . 1 LG1 A C9  nan 0.0 ?  3.0266  1.2927  1.427   1 11 +0.000000 N 3
+HETATM C C10 . LG1 A 1 1 . 1 LG1 A C10 nan 0.0 ?  3.937   0.0453  1.3768  1 12 +0.280000 N 3
+HETATM H H2  . LG1 A 1 1 . 1 LG1 A H2  nan 0.0 ?  3.5679  -0.7244 2.0546  1 13 +0.000000 N ?
+HETATM C C11 . LG1 A 1 1 . 1 LG1 A C11 nan 0.0 ?  3.839   -0.4321 -0.0891 1 14 +0.280000 N 3
+HETATM H H3  . LG1 A 1 1 . 1 LG1 A H3  nan 0.0 ?  4.6624  -0.0256 -0.6764 1 15 +0.000000 N ?
+HETATM O O1  . LG1 A 1 1 . 1 LG1 A O1  nan 0.0 ?  2.5781  0.0887  -0.5633 1 16 -0.560000 N 3
+HETATM C C12 . LG1 A 1 1 . 1 LG1 A C12 nan 0.0 ?  3.8416  -1.9608 -0.1528 1 17 +0.280000 N 3
+HETATM O O2  . LG1 A 1 1 . 1 LG1 A O2  nan 0.0 ?  3.7935  -2.3808 -1.5178 1 18 -0.680000 N 3
+HETATM O O3  . LG1 A 1 1 . 1 LG1 A O3  nan 0.0 ?  5.2847  0.3922  1.7013  1 19 -0.680000 N 3
+HETATM N N2  . LG1 A 1 1 . 1 LG1 A N2  nan 0.0 ?  -2.8837 4.271   0.054   1 20 -0.521000 N pl3
+HETATM O O4  . LG1 A 1 1 . 1 LG1 A O4  nan 0.0 ?  -3.6279 5.4756  0.0676  1 21 -0.379000 N 3
+HETATM H H4  . LG1 A 1 1 . 1 LG1 A H4  nan 0.0 ?  1.0607  6.5313  0.0259  1 22 +0.150000 N ?
+HETATM H H5  . LG1 A 1 1 . 1 LG1 A H5  nan 0.0 ?  -1.397  6.4466  0.0498  1 23 +0.150000 N ?
+HETATM H H6  . LG1 A 1 1 . 1 LG1 A H6  nan 0.0 ?  2.3766  4.4597  0.0026  1 24 +0.150000 N ?
+HETATM H H7  . LG1 A 1 1 . 1 LG1 A H7  nan 0.0 ?  0.0021  -0.0041 0.002   1 25 +0.150000 N ?
+HETATM H H8  . LG1 A 1 1 . 1 LG1 A H8  nan 0.0 ?  3.6042  2.1763  1.6987  1 26 +0.000000 N ?
+HETATM H H9  . LG1 A 1 1 . 1 LG1 A H9  nan 0.0 ?  2.2075  1.1397  2.1297  1 27 +0.000000 N ?
+HETATM H H10 . LG1 A 1 1 . 1 LG1 A H10 nan 0.0 ?  4.7503  -2.3422 0.3129  1 28 +0.000000 N ?
+HETATM H H11 . LG1 A 1 1 . 1 LG1 A H11 nan 0.0 ?  2.9715  -2.348  0.3774  1 29 +0.000000 N ?
+HETATM H H12 . LG1 A 1 1 . 1 LG1 A H12 nan 0.0 ?  3.7924  -3.3408 -1.6341 1 30 +0.400000 N ?
+HETATM H H13 . LG1 A 1 1 . 1 LG1 A H13 nan 0.0 ?  5.4038  0.6989  2.6106  1 31 +0.400000 N ?
+HETATM H H14 . LG1 A 1 1 . 1 LG1 A H14 nan 0.0 ?  -3.3435 3.4169  0.0544  1 32 +0.400000 N ?
+HETATM H H15 . LG1 A 1 1 . 1 LG1 A H15 nan 0.0 ?  -4.5861 5.3459  0.0767  1 33 +0.400000 N ?
+HETATM N N3  . LG1 A 1 1 . 1 LG1 A N3  nan 0.0 +1 -1.0893 1.8065  0.0165  1 34 -0.700000 Y pl3
+HETATM H H16 . LG1 A 1 1 . 1 LG1 A H16 nan 0.0 ?  -2.0503 1.445   0.0161  1 35 +0.450000 N ?
+#

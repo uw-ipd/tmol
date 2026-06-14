@@ -32,6 +32,74 @@ def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
     assert scores is not None
 
 
+def _score_functions_dir():
+    import os
+
+    import tmol.score as tmol_score
+
+    return os.path.join(
+        os.path.dirname(tmol_score.__file__), "..", "database", "score_functions"
+    )
+
+
+def test_soft_rep_score_function(ubq_pdb, default_database, torch_device):
+    """beta_soft loads its ``soft_rep`` option, propagates it to the LJLK and
+    Ref energy terms, and softens the LJ repulsion relative to beta2016.
+
+    Exercises the YAML-driven ``from_weights_file`` path and the
+    ``set_options`` plumbing: the ``options.soft_rep`` flag in
+    ``beta_soft.yaml`` must reach ``LJLKEnergyTerm.soft_repulsive`` and
+    ``RefEnergyTerm.soft_rep`` (via ``pre_work_initialization``), selecting the
+    softer ``lj_dlin_sigma_factor_soft`` so the raw ``fa_ljrep`` cannot exceed
+    the standard beta2016 value.
+    """
+    import os
+
+    from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
+    from tmol.score.ref.ref_energy_term import RefEnergyTerm
+
+    sf_dir = _score_functions_dir()
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
+
+    beta = ScoreFunction.from_weights_file(
+        os.path.join(sf_dir, "beta2016.yaml"), default_database, torch_device
+    )
+    soft = ScoreFunction.from_weights_file(
+        os.path.join(sf_dir, "beta_soft.yaml"), default_database, torch_device
+    )
+
+    # The soft_rep option is parsed from beta_soft.yaml only.
+    assert "soft_rep" not in beta.term_options
+    assert soft.term_options.get("soft_rep") is True
+
+    beta_scorer = beta.render_whole_pose_scoring_module(pose_stack)
+    soft_scorer = soft.render_whole_pose_scoring_module(pose_stack)
+
+    def _term(sfxn, cls):
+        return next(t for t in sfxn.all_terms() if isinstance(t, cls))
+
+    # pre_work_initialization (run by render_*) must have pushed the option
+    # down into the relevant terms.
+    assert _term(soft, LJLKEnergyTerm).soft_repulsive is True
+    assert _term(beta, LJLKEnergyTerm).soft_repulsive is False
+    assert _term(soft, RefEnergyTerm).soft_rep is True
+    assert _term(beta, RefEnergyTerm).soft_rep is False
+
+    def _raw_ljrep(sfxn, scorer):
+        unweighted = scorer.unweighted_scores(pose_stack.coords)
+        idx = sfxn.all_score_types().index(ScoreType.fa_ljrep)
+        return float(unweighted[idx, 0])
+
+    ljrep_beta = _raw_ljrep(beta, beta_scorer)
+    ljrep_soft = _raw_ljrep(soft, soft_scorer)
+
+    # Softening the repulsive shoulder can only lower (never raise) the raw
+    # fa_ljrep energy, and on a real structure with close contacts it must
+    # actually change it.
+    assert ljrep_soft <= ljrep_beta + 1e-4
+    assert ljrep_soft != ljrep_beta
+
+
 def test_block_pair_scoring_matches_whole_pose(ubq_pdb, torch_device):
     sfxn = beta2016_score_function(torch_device)
 
@@ -209,10 +277,10 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.cart_impropers: n([9.430529]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
-        ScoreType.fa_ljatr: n([-417.9582]),
+        ScoreType.fa_ljatr: n([-417.02362]),
         ScoreType.fa_ljrep: n([240.7147]),
         ScoreType.fa_lk: n([298.27637]),
-        ScoreType.fa_elec: n([-136.2924]),
+        ScoreType.fa_elec: n([-134.02109]),
         ScoreType.hbond: n([-55.675613]),
         ScoreType.lk_ball_iso: n([422.03955]),
         ScoreType.lk_ball: n([172.19647]),
@@ -224,6 +292,7 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.dunbrack_rot: n([70.64968]),
         ScoreType.dunbrack_rotdev: n([240.31009]),
         ScoreType.dunbrack_semirot: n([99.660904]),
+        ScoreType.gen_torsions: n([0.0]),
     }
     for st in score_types:
         numpy.testing.assert_allclose(
@@ -259,6 +328,7 @@ def test_score_function_two_body_terms_getter():
     from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
     from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
     from tmol.score.elec.elec_energy_term import ElecEnergyTerm
+    from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
     from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
     from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
     from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
@@ -275,6 +345,7 @@ def test_score_function_two_body_terms_getter():
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
         ElecEnergyTerm,
+        GenBondedEnergyTerm,
         HBondEnergyTerm,
         LJLKEnergyTerm,
         LKBallEnergyTerm,
@@ -296,6 +367,7 @@ def test_score_function_all_terms_getter():
     from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
     from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
     from tmol.score.elec.elec_energy_term import ElecEnergyTerm
+    from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
     from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
     from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
     from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
@@ -315,6 +387,7 @@ def test_score_function_all_terms_getter():
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
         ElecEnergyTerm,
+        GenBondedEnergyTerm,
         HBondEnergyTerm,
         LJLKEnergyTerm,
         LKBallEnergyTerm,

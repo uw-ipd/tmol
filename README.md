@@ -16,86 +16,183 @@ Full documentation: [tmol Wiki](https://github.com/uw-ipd/tmol/wiki/DevHome)
 
 ### Pre-built wheels (recommended)
 
-Pre-built wheels ship with **ahead-of-time (AOT) compiled** C++/CUDA extensions -- no `nvcc` or CUDA toolkit needed at install time. Pick the wheel matching your **PyTorch version** and **platform**:
+Pre-built wheels ship with **ahead-of-time (AOT) compiled** C++/CUDA extensions, so install does not require `nvcc`.
 
-**x86_64 GPU (Linux):**
+tmol uses two channels:
 
-| PyTorch | CUDA | Wheel tag              | Note |
-|---------|------|------------------------|------|
-| 2.8     | 12.6 | `+cu126torch2.8`       | NGC native |
-| 2.9     | 13.0 | `+cu130torch2.9`       | NGC native |
-| 2.10    | 13.1 | `+cu131torch2.10`      | NGC native |
-| 2.10    | 12.8 | `+cu128torch2.10`      | Google Colab compatible |
+- **PyPI**: source distribution (`sdist`) for `pip install tmol`
+- **GitHub Releases**: prebuilt CPU/GPU wheels
 
-**ARM64 / aarch64 GPU (Linux, e.g., Grace Hopper, Jetson):**
+Use the mode that fits your needs:
 
-| PyTorch | CUDA | Wheel tag              |
-|---------|------|------------------------|
-| 2.8     | 12.6 | `+cu126torch2.8`       |
-| 2.9     | 13.0 | `+cu130torch2.9`       |
-| 2.10    | 13.1 | `+cu131torch2.10`      |
+- **Deterministic binary install (canonical):** direct wheel URL or local `--find-links`.
+- **Convenience install:** `pip install tmol` (best-effort wheel auto-fetch, source-build fallback).
+- **Forced source build:** disable fetch and compile locally.
 
-**CPU-only (any platform):**
+CI currently uploads these wheel variants to [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
 
-| PyTorch | Wheel tag |
-|---------|-----------|
-| 2.10    | `+cpu`    |
+- GPU wheels (Linux `x86_64` and `aarch64`) for:
+  - Python `cp311`, `cp312`, `cp313`, `cp314`
+  - Torch/CUDA tags:
+    - `+cu128torch2.8` (Google Colab / Turing **T4** wheel — the only variant built with `sm_75`; matches Colab runtime 2025.10: Python 3.12, torch 2.8)
+    - `+cu130torch2.9`
+    - `+cu128torch2.10` (x86_64 manylinux default)
+    - `+cu131torch2.11`
+    - `+cu132torch2.12`
+  - some `aarch64` lanes may additionally publish `+cu131torch2.10` depending on NGC base image CUDA
+- CPU wheels (Linux `x86_64`) for:
+  - Python `cp311`, `cp312`, `cp313`, `cp314`
+  - local version tag `+cpu`
 
-All wheels are Python 3.12 (`cp312`).
+Wheel filename format:
+
+```text
+tmol-{VERSION}+{LOCAL_TAG}-cp{PYTAG}-cp{PYTAG}-manylinux_2_28_{ARCH}.whl
+```
+
+Examples:
+
+- `tmol-0.1.22+cu132torch2.12-cp313-cp313-manylinux_2_28_x86_64.whl`
+- `tmol-0.1.22+cpu-cp314-cp314-manylinux_2_28_x86_64.whl`
 
 > [!TIP]
-> CUDA wheels are **forward-compatible** within a major version: a `cu126` wheel works on any CUDA 12.x driver >= 12.6. You do not need an exact CUDA version match.
+> CUDA wheels are forward-compatible within a major family (e.g. `cu132` wheels run on appropriate CUDA 13.x driver stacks).
+
+### System requirements (Linux wheels)
+
+Pre-built Linux wheels are built for **manylinux_2_28** (glibc ≥ 2.28, typical minimum: **Ubuntu 20.04**, RHEL/CentOS 8+, or equivalent).
+
+Wheel tags such as `cp312` and `+cu130torch2.9` select **Python**, **PyTorch**, and **CUDA** — they do not override your system's C++ runtime (`libstdc++`). If `import tmol` fails with `GLIBCXX_3.4.xx not found`, your **libstdc++ is older than the wheel was built for** (not a wrong CUDA wheel tag).
+
+**On older HPC clusters or minimal Linux images:**
+
+```bash
+# Build against your system libraries (recommended)
+TMOL_DISABLE_WHEEL_FETCH=1 pip install -e .
+
+# Or allow JIT compile at import if nvcc is available
+export TMOL_JIT_FALLBACK=1
+```
+
+Other workarounds: load a newer GCC module, `conda install -c conda-forge libstdcxx-ng` and set `LD_LIBRARY_PATH`, or use a recent container image.
 
 Check your environment:
 
 ```bash
-python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.version_info.minor}, PyTorch {torch.__version__}, CUDA {torch.version.cuda}')"
+python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.version_info.minor}, Torch {torch.__version__}, CUDA {torch.version.cuda}')"
 ```
 
-Install from [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
+Install torch first so it matches your chosen wheel tag:
 
 ```bash
-# Direct URL (replace RELEASE_TAG and WHEEL_FILENAME):
-pip install https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/WHEEL_FILENAME.whl
-
-# Or use --find-links to let pip resolve by version:
-pip install tmol --find-links https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/
+pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu132
+# or e.g. cu131/cu130/cu128 depending on the wheel you pick
 ```
 
-<details>
-<summary><b>Google Colab</b></summary>
-
-Colab ships PyTorch 2.10 with CUDA 12.8. Install the Colab-specific wheel:
+#### Install by direct wheel URL (recommended)
 
 ```bash
-pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.10-cp312-cp312-linux_x86_64.whl
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.12-cp313-cp313-manylinux_2_28_x86_64.whl"
 ```
 
-Replace `vX.Y.Z` and `X.Y.Z` with the desired release version.
+#### Google Colab (Turing T4)
 
-</details>
-
-<details>
-<summary><b>CPU-only (no GPU)</b></summary>
-
-For machines without a GPU (laptops, CI servers, data preprocessing):
+Colab ships Python 3.12 + torch 2.8 on a T4 (`sm_75`). Use the `+cu128torch2.8`
+wheel — it is the only variant compiled for `sm_75` (it also covers A100/L4):
 
 ```bash
-pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cpu-cp312-cp312-linux_x86_64.whl
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-linux_x86_64.whl"
 ```
 
-The CPU wheel works with any PyTorch installation (CPU or CUDA). CUDA operations will raise a runtime error; all CPU operations work normally.
+#### Auto-fetch matching wheel, fallback to source build
 
-</details>
+tmol supports a FlashAttention-style bootstrap when installing from PyPI `sdist`:
 
-### From PyPI (source distribution)
+1. During wheel build, tmol tries to download a matching prebuilt wheel from GitHub Releases.
+2. If no match is found, tmol falls back to local source build.
 
-The source distribution compiles C++/CUDA extensions during installation. If `nvcc` is available, both CPU and CUDA extensions are built. Without `nvcc`, only CPU extensions are built.
+In pip's default PEP517 isolated build environment, tmol performs **best-effort auto-detection** of CUDA/Torch lane. For deterministic behavior, pin the lane explicitly.
+
+Simplest command (safe default):
 
 ```bash
-pip install tmol              # builds extensions (CUDA if nvcc available, CPU otherwise)
-pip install tmol[dev]         # includes development tools (black, flake8, pytest, etc.)
+pip install tmol
 ```
+
+For deterministic wheel auto-fetch in isolated builds, pin the lane:
+
+```bash
+TMOL_WHEEL_LOCAL_TAG=cu132torch2.12 pip install "tmol==X.Y.Z"
+```
+
+If you want detection based on the currently active runtime environment instead, you can disable build isolation:
+
+```bash
+pip install --no-build-isolation "tmol==X.Y.Z"
+```
+
+Install a specific release version:
+
+```bash
+pip install "tmol==X.Y.Z"
+```
+
+If auto-detection picks the wrong wheel variant, pin the exact local tag:
+
+```bash
+TMOL_WHEEL_LOCAL_TAG=cu132torch2.12 \
+pip install "tmol==X.Y.Z"
+```
+
+Useful toggles:
+
+- `TMOL_DISABLE_WHEEL_FETCH=1`: skip prebuilt lookup and always build locally.
+- `TMOL_FORCE_BUILD=1`: same as above (explicit force-local-build path).
+- `TMOL_ENABLE_LOCAL_FETCH=1`: allow fetch even from a git checkout (`pip install .`).
+- `TMOL_WHEEL_RELEASE_TAG=vX.Y.Z`: override GitHub release tag.
+- `TMOL_WHEEL_RELEASE_BASE_URL=...`: override release base URL (mirrors/internal hosting).
+- `TMOL_WHEEL_FETCH_RETRIES=2`: number of retry attempts after the first failed request.
+- `TMOL_WHEEL_FETCH_TIMEOUT_S=20`: HTTP timeout in seconds per request.
+- `TMOL_WHEEL_FETCH_BACKOFF_S=1.5`: linear backoff multiplier between retries.
+
+#### Install from a local wheel cache (`--find-links`)
+
+```bash
+# 1) Download wheel files for your environment into ./wheels
+mkdir -p wheels
+# e.g. use browser/curl/wget from the release page
+
+# 2) Install from local directory only
+pip install --no-index --find-links ./wheels "tmol==X.Y.Z+cu132torch2.12"
+```
+
+#### CPU-only install
+
+```bash
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cpu-cp313-cp313-manylinux_2_28_x86_64.whl"
+```
+
+The CPU wheel works with CPU-only or CUDA torch installs; CUDA ops in tmol are unavailable.
+
+### From PyPI sdist (source-build baseline)
+
+By default, `pip install tmol` installs from PyPI `sdist`. tmol applies the auto-fetch safety policy described above and otherwise builds locally.
+
+To force local source build explicitly:
+
+```bash
+TMOL_DISABLE_WHEEL_FETCH=1 pip install tmol
+```
+
+For dev extras:
+
+```bash
+TMOL_DISABLE_WHEEL_FETCH=1 pip install "tmol[dev]"
+```
+
+> [!NOTE]
+> Current CI publishes `sdist` to PyPI and prebuilt wheels to GitHub Releases.
+> If you need deterministic binary selection, use direct wheel URL or local `--find-links`.
 
 ### From source
 
@@ -105,6 +202,12 @@ pip install -e ".[dev]"   # builds extensions via CMake (CUDA auto-detected)
 ```
 
 If you don't have a CUDA toolkit, the build automatically falls back to CPU-only extensions. You can also force a CPU-only build explicitly:
+
+```bash
+pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
+```
+
+For macOS, install from source (CPU-only build):
 
 ```bash
 pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF

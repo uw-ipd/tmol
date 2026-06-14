@@ -6,7 +6,7 @@ import yaml
 from attrs import evolve
 from functools import partial
 from toolz.curried import groupby
-from tmol.database.chemical import ChemicalDatabase, VariantType
+from tmol.database.chemical import ChemicalDatabase, VariantType, normalize_bond_tuples
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.io.canonical_ordering import (
@@ -151,8 +151,9 @@ def test_assign_block_types(torch_device, ubq_pdb):
     ]
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
     ubq_bt_inds = numpy.expand_dims(
-        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
-    ).copy()
+        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].to_numpy(copy=True),
+        axis=0,
+    )
     ubq_bt_inds[0, 0] = next(
         i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
     )
@@ -201,6 +202,7 @@ def test_assign_block_types_w_exotic_termini_options(
 
     def variant_from_yaml(yml_string):
         raw = yaml.safe_load(yml_string)
+        raw = normalize_bond_tuples(raw)
         return tuple(cattr.structure(x, VariantType) for x in raw)
 
     floro_nterm_variant = variant_from_yaml(floro_nterm_patch)
@@ -279,8 +281,9 @@ def test_assign_block_types_w_exotic_termini_options(
     ]
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
     ubq_bt_inds = numpy.expand_dims(
-        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
-    ).copy()
+        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].to_numpy(copy=True),
+        axis=0,
+    )
     ubq_bt_inds[0, 0] = next(
         i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
     )
@@ -370,8 +373,9 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
     ]
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
     ubq_bt_inds = numpy.expand_dims(
-        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
-    ).copy()
+        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].to_numpy(copy=True),
+        axis=0,
+    )
 
     jagged_gold_bt_inds = numpy.full((2, 6), -1, dtype=numpy.int64)
     jagged_gold_bt_inds[0, :4] = ubq_bt_inds[0, :4]
@@ -794,6 +798,7 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
 
 def variants_from_yaml(yml_string):
     raw = yaml.safe_load(yml_string)
+    raw = normalize_bond_tuples(raw)
     return tuple(cattr.structure(x, VariantType) for x in raw)
 
 
@@ -1012,8 +1017,9 @@ def test_select_best_block_type_candidate_w_mult_opts(
     ]
     ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
     ubq_bt_inds = numpy.expand_dims(
-        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
-    ).copy()
+        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].to_numpy(copy=True),
+        axis=0,
+    )
     ubq_bt_inds[0, 0] = next(
         i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
     )

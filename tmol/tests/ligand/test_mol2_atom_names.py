@@ -1,0 +1,56 @@
+"""Tests for Rosetta-style MOL2 duplicate atom-name disambiguation."""
+
+from pathlib import Path
+
+from rdkit import Chem
+
+from tmol.ligand.cif_normalization import render_cif_from_mol2
+from tmol.ligand.detect import nonstandard_residue_info_from_mol2
+from tmol.ligand.mol2_names import (
+    apply_disambiguated_mol2_names,
+    disambiguate_mol2_atom_name,
+)
+
+PLI_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
+
+
+def test_disambiguate_mol2_atom_name_follows_mol2gen() -> None:
+    """Duplicate atom names get a mol2gen-style numeric suffix."""
+    assert disambiguate_mol2_atom_name("C2'", 1) == "C2'"
+    assert disambiguate_mol2_atom_name("C2'", 2) == "C2'2"
+    assert disambiguate_mol2_atom_name("C3'", 3) == "C3'3"
+
+
+def test_fgfr1_mol2_load_has_unique_disambiguated_names() -> None:
+    """Loading the fgfr1 mol2 yields unique, disambiguated atom names."""
+    mol2_path = PLI_DIR / "fgfr1.lig.mol2"
+    info = nonstandard_residue_info_from_mol2(mol2_path, res_name="LG1")
+    assert len(info.atom_names) == len(set(info.atom_names))
+    assert "C2'2" in info.atom_names
+    assert "C3'2" in info.atom_names
+    assert info.atom_names.count("C2'") == 1
+
+
+def test_fgfr1_rendered_cif_has_unique_atom_ids() -> None:
+    """The CIF rendered from the fgfr1 mol2 carries unique HETATM atom ids."""
+    mol2_path = PLI_DIR / "fgfr1.lig.mol2"
+    cif_text = render_cif_from_mol2(mol2_path, res_name="LG1")
+    hetatm_names = [
+        line.split()[2] for line in cif_text.splitlines() if line.startswith("HETATM")
+    ]
+    assert len(hetatm_names) == len(set(hetatm_names))
+    assert "C2'2" in hetatm_names
+
+
+def test_apply_disambiguated_mol2_names_is_idempotent_on_props() -> None:
+    """Reapplying disambiguated names leaves the atom properties unchanged."""
+    mol = Chem.MolFromMol2File(
+        str(PLI_DIR / "fgfr1.lig.mol2"),
+        sanitize=False,
+        removeHs=False,
+        cleanupSubstructures=False,
+    )
+    assert mol is not None
+    first = apply_disambiguated_mol2_names(mol)
+    second = apply_disambiguated_mol2_names(mol)
+    assert first == second

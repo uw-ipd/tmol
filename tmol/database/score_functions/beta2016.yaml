@@ -1,0 +1,26 @@
+# Beta-Nov2016 score function weights
+# From: https://pubs.acs.org/doi/10.1021/acs.jctc.6b0081
+#       https://pubs.acs.org/doi/full/10.1021/acs.jctc.7b00125
+weights:
+  fa_ljatr: 1.0
+  fa_ljrep: 0.55
+  fa_lk: 1.0
+  fa_elec: 1.0
+  hbond: 1.0
+  lk_ball_iso: -0.38
+  lk_ball: 0.92
+  lk_bridge: -0.33
+  lk_bridge_uncpl: -0.33
+  omega: 0.48
+  rama: 0.50
+  disulfide: 1.25
+  cart_lengths: 0.5
+  cart_angles: 0.5
+  cart_torsions: 0.5
+  cart_impropers: 0.5
+  cart_hxltorsions: 0.5
+  dunbrack_rot: 0.76
+  dunbrack_rotdev: 0.69
+  dunbrack_semirot: 0.78
+  ref: 1.0
+  gen_torsions: 1.0

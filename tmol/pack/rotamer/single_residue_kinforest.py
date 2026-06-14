@@ -102,28 +102,45 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     # c1, c2 are the two frame atoms for root:
     #   if root has >= 2 children: c1, c2 = first two children of root
     #   if root has only 1 child:  c1 = that child, c2 = first child of c1
-    # Backbone (mainchain) atoms are preferred over sidechain atoms since
-    # their positions are fixed and don't change across rotamers.
     root_children = numpy.where((kfo_parents == 0) & (numpy.arange(n_atoms) > 0))[0]
 
-    # fd we might need to rethink this for ligand packing
-    # fd if we _don't_ do this CB is chosen as ref frame which means CB position is not idealized
-    mc_atoms = set()
-    if hasattr(restype, "properties") and hasattr(restype.properties, "polymer"):
-        mc_atoms = set(restype.properties.polymer.mainchain_atoms)
+    polymer_mc = (
+        restype.properties.polymer.mainchain_atoms
+        if hasattr(restype, "properties") and hasattr(restype.properties, "polymer")
+        else None
+    )
+    if polymer_mc:
+        # Polymer residues: prefer mainchain atoms as frame atoms because their
+        # positions are fixed across rotamers (otherwise CB ends up as the ref
+        # frame and is not idealized).
+        mc_atoms = set(polymer_mc)
 
-    def is_backbone(kfo_idx):
-        return restype.atoms[kfo_2_to[kfo_idx]].name in mc_atoms
+        def sort_key(i):
+            return (restype.atoms[kfo_2_to[i]].name not in mc_atoms, i)
 
-    root_children = sorted(root_children, key=lambda i: (not is_backbone(i), i))
-
-    c1 = int(root_children[0])
-    if len(root_children) >= 2:
-        c2 = int(root_children[1])
+        root_children = sorted(root_children, key=sort_key)
+        c1 = int(root_children[0])
+        if len(root_children) >= 2:
+            c2 = int(root_children[1])
+        else:
+            c1_children = numpy.where(kfo_parents == c1)[0]
+            c1_children = sorted(c1_children, key=sort_key)
+            c2 = int(c1_children[0])
     else:
-        c1_children = numpy.where(kfo_parents == c1)[0]
-        c1_children = sorted(c1_children, key=lambda i: (not is_backbone(i), i))
-        c2 = int(c1_children[0])
+        # Ligand / non-polymer: no mainchain to prefer. Use the root's children
+        #   (and grandchildren) in the order produced by the params-file icoor
+        #   tree
+        # need to handle case where natoms < 3
+        if len(root_children) == 0:
+            c1 = 0
+            c2 = 0
+        elif len(root_children) >= 2:
+            c1 = int(root_children[0])
+            c2 = int(root_children[1])
+        else:
+            c1 = int(root_children[0])
+            c1_children = numpy.where(kfo_parents == c1)[0]
+            c2 = int(c1_children[0]) if len(c1_children) > 0 else 0
 
     # Root (KFO 0): frame_x=c1, frame_y=self(=0), frame_z=c2
     frame_x[0] = c1

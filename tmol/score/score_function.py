@@ -1,6 +1,7 @@
 import torch
+import yaml
 
-from typing import Sequence
+from typing import Dict, Sequence
 from tmol.types.torch import Tensor
 
 from tmol.database import ParameterDatabase
@@ -40,6 +41,8 @@ class ScoreFunction:
         self._term_for_st = [None] * ScoreType.n_score_types.value
         self._param_db = param_db
         self._device = device
+
+        self.term_options = {}
 
     def set_weight(self, st: ScoreType, weight: float):
         if not self.score_type_covered_by_contained_term(st):
@@ -186,6 +189,11 @@ class ScoreFunction:
         return RotamerScoringModule(self.weights_tensor(), term_modules)
 
     def pre_work_initialization(self, pose_stack: PoseStack):
+        # set_options must be first, since some of the logic that follows it
+        # may depend on the options
+        for energy_term in self.all_terms():
+            energy_term.set_options(self.term_options)
+
         for block_type in pose_stack.packed_block_types.active_block_types:
             for energy_term in self.all_terms():
                 energy_term.setup_block_type(block_type)
@@ -193,6 +201,22 @@ class ScoreFunction:
             energy_term.setup_packed_block_types(pose_stack.packed_block_types)
         for energy_term in self.all_terms():
             energy_term.setup_poses(pose_stack)
+
+    def set_option(self, key: str, value):
+        """Set an option for all energy terms.
+
+        Options are passed to each energy term's set_options method
+        as a dictionary during pre_work_initialization.
+        """
+        self.term_options[key] = value
+
+    def set_options(self, options: Dict):
+        """Set the score function options by a dict.
+
+        This replaces the options dict entirely - any previous values
+        are gone.
+        """
+        self.term_options = options
 
     def weights_tensor(self):
         if self._weights_tensor_out_of_date:
@@ -207,6 +231,28 @@ class ScoreFunction:
             )
             self._weights_tensor_out_of_date = False
         return self._weights_tensor
+
+    @classmethod
+    def from_weights_file(cls, path, param_db, device):
+        """Create a ScoreFunction from a YAML weights file.
+
+        Args:
+            path: Path to a YAML file containing a ``weights`` dict mapping
+                score type names (as in ``ScoreType``) to their weights.
+            param_db: ParameterDatabase instance.
+            device: Target torch device.
+
+        Returns:
+            Configured ScoreFunction with all weights from the file applied.
+        """
+        with open(path) as f:
+            data = yaml.safe_load(f)
+        sfxn = cls(param_db, device)
+        for name, weight in data["weights"].items():
+            sfxn.set_weight(getattr(ScoreType, name), weight)
+        if "options" in data:
+            sfxn.set_options(data["options"])
+        return sfxn
 
     @staticmethod
     def get_sorted_terms(term_list):

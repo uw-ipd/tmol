@@ -21,6 +21,46 @@ def _parse_acceptor_hybridization(v, t):
 cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridization)
 
 
+def normalize_bond_tuples(raw):
+    """Normalize legacy 2-field bond entries to include bond order.
+
+    Historically, some YAML snippets used ``[atom1, atom2]`` for bonds.
+    The typed schema expects 3-tuples: ``(atom1, atom2, bond_type)``.
+    This helper expands 2-field entries to use ``"SINGLE"`` as default.
+
+    Handles both the top-level dict shape (``chemical.yaml``) and a
+    flat list of residue/variant dicts.
+    """
+    if isinstance(raw, dict):
+        for key in ("residues", "variants"):
+            entries = raw.get(key)
+            if isinstance(entries, list):
+                normalize_bond_tuples(entries)
+        return raw
+
+    if not isinstance(raw, list):
+        return raw
+
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        for field in ("bonds", "add_bonds"):
+            bonds = entry.get(field)
+            if not isinstance(bonds, list):
+                continue
+
+            normalized = []
+            for bond in bonds:
+                if isinstance(bond, (list, tuple)) and len(bond) == 2:
+                    normalized.append([bond[0], bond[1], "SINGLE", False])
+                elif isinstance(bond, (list, tuple)) and len(bond) == 3:
+                    normalized.append([bond[0], bond[1], bond[2], False])
+                else:
+                    normalized.append(bond)
+            entry[field] = normalized
+    return raw
+
+
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Element:
     name: str
@@ -65,6 +105,7 @@ class Icoor:
 class Connection:
     name: str
     atom: str
+    type: str = "SINGLE"
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -130,7 +171,7 @@ class RawResidueType:
     io_equiv_class: str
     atoms: Tuple[Atom, ...]
     atom_aliases: Tuple[AtomAlias, ...]
-    bonds: Tuple[Tuple[str, str], ...]
+    bonds: Tuple[tuple, ...]
     connections: Tuple[Connection, ...]
     torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
@@ -174,7 +215,7 @@ class VariantType:
     add_atom_aliases: Tuple[AtomAlias, ...]
     modify_atoms: Tuple[Atom, ...]
     add_connections: Tuple[Connection, ...]
-    add_bonds: Tuple[Tuple[str, str], ...]
+    add_bonds: Tuple[tuple, ...]
     icoors: Tuple[IcoorVariant, ...]
 
 
@@ -187,9 +228,6 @@ class ChemicalDatabase:
     residues: Tuple[RawResidueType, ...]
     variants: Tuple[VariantType, ...]
 
-    # fd I don't particularly like this way of providing access to the unpatched database,
-    # fd    but I'm not sure how else to do this.  Maybe keeping the unpatched in
-    # fd    the default DB alongside the patched?
     @classmethod
     def get_default(cls) -> "ChemicalDatabase":
         """Load and return default parameter database."""
@@ -204,5 +242,6 @@ class ChemicalDatabase:
         path = os.path.join(path, "chemical.yaml")
         with open(path, "r") as infile:
             raw = yaml.safe_load(infile)
+        raw = normalize_bond_tuples(raw)
 
         return cattr.structure(raw, cls)

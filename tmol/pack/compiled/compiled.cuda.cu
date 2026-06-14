@@ -857,13 +857,17 @@ struct Annealer {
       int const n_res = ig.n_res(pose);
       int const n_rotamers = ig.n_rotamers(pose);
 
+      if (g.thread_rank() == 0) {
+        sorted_fullquench_traj[pose][traj_id] = traj_id;
+      }
+
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         int i_rot = current_rotamer_assignments_lotemp[pose][source_traj][i];
         current_rotamer_assignments_fullquench[pose][traj_id][i] = i_rot;
         best_rotamer_assignments_fullquench[pose][traj_id][i] = i_rot;
       }
 
-      float after_full_quench_totalE = warp_wide_sim_annealing(
+      warp_wide_sim_annealing(
           pose,
           traj_id,
           &state,
@@ -879,8 +883,11 @@ struct Annealer {
           n_rotamers,
           true,
           false);
+      // rescore best assignment
+      float best_totalE = ig.total_energy_for_assignment_parallel(
+          pose, g, best_rotamer_assignments_fullquench[pose][traj_id]);
       if (g.thread_rank() == 0) {
-        scores_fullquench[pose][traj_id] = after_full_quench_totalE;
+        scores_fullquench[pose][traj_id] = best_totalE;
       }
     });
 
@@ -894,7 +901,7 @@ struct Annealer {
       int const source_traj = sorted_fullquench_traj[pose][traj_id];
       int const n_res = ig.n_res(pose);
       if (g.thread_rank() == 0) {
-        scores_final[pose][traj_id] = scores_fullquench[pose][source_traj];
+        scores_final[pose][traj_id] = scores_fullquench[pose][traj_id];
       }
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         rotamer_assignments_final[pose][traj_id][i] =
@@ -910,7 +917,7 @@ struct Annealer {
     mgpu::segmented_sort(
         scores_hitemp.data(),
         sorted_hitemp_traj.data(),
-        n_hitemp_simA_traj,
+        n_poses * n_hitemp_simA_traj,
         segment_heads_hitemp.data(),
         n_poses,
         mgpu::less_t<float>(),
@@ -922,7 +929,7 @@ struct Annealer {
     mgpu::segmented_sort(
         scores_lotemp.data(),
         sorted_lotemp_traj.data(),
-        n_lotemp_simA_traj,
+        n_poses * n_lotemp_simA_traj,
         segment_heads_lotemp.data(),
         n_poses,
         mgpu::less_t<float>(),
@@ -933,7 +940,7 @@ struct Annealer {
     mgpu::segmented_sort(
         scores_fullquench.data(),
         sorted_fullquench_traj.data(),
-        n_fullquench_traj,
+        n_poses * n_fullquench_traj,
         segment_heads_fullquench.data(),
         n_poses,
         mgpu::less_t<float>(),

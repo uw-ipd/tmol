@@ -17,8 +17,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SIF: /home/bench/git_ci_apptainer/tmol_py11.sif
+  SIF: /home/bench/git_ci_apptainer/tmol.sif
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
+  SLURM_PARTITION: gpu-train
+  SLURM_GRES: gpu:1
+  SLURM_CPUS_PER_TASK: 16
+  SLURM_MEM: 128G
+  SLURM_TIME: 06:00:00
   
 
 jobs:
@@ -44,8 +49,24 @@ jobs:
             --pwd $GITHUB_WORKSPACE \
             $SIF bash << 'SETUP'
           set -ex
-          
-          python3.11 -m venv .venv
+
+          PYTHON_BIN=""
+          for cand in python3.12 python3.11 python3; do
+            if command -v "$cand" >/dev/null 2>&1; then
+              if "$cand" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)"; then
+                PYTHON_BIN=$(command -v "$cand")
+                break
+              fi
+            fi
+          done
+
+          if [ -z "$PYTHON_BIN" ]; then
+            echo "ERROR: No Python >=3.11 found in CI container."
+            echo "Please update \$SIF to include Python >=3.11."
+            exit 1
+          fi
+
+          "$PYTHON_BIN" -m venv .venv
           source .venv/bin/activate
 
           pip install pip --upgrade
@@ -70,8 +91,8 @@ jobs:
         id: build
         if: always()
         run: |
-          srun --gres=gpu:large:1 -C A6000 -p gpu --export=ALL \
-                  -t 06:00:00 --cpus-per-task=16 --mem=128G \
+          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
+                  -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
                   apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                   --pwd $GITHUB_WORKSPACE \
                   --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
@@ -80,18 +101,49 @@ jobs:
 
           source .venv/bin/activate
 
+          # The NGC container ships a CUDA forward-compat libcuda in
+          # /usr/local/cuda/compat that sits ahead of the --nv-injected host
+          # driver on LD_LIBRARY_PATH. On nodes whose driver is newer than the
+          # container's CUDA toolkit this mismatches and breaks CUDA init
+          # (cudaGetDeviceCount error 803 -> torch.cuda.is_available()==False).
+          # Drop it so torch uses the host driver provided by --nv.
+          export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
+
           uv pip compile pyproject.toml --all-extras --output-file requirements.txt
           grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" requirements.txt > to_install.txt
 
           uv pip install -r to_install.txt
+          uv pip install torch
+          # NB: an old torch pin (torch==2.11.0) used to work around CUDA init
+          # failures here. That was actually the container's forward-compat
+          # libcuda mismatching the node driver (error 803), now fixed by the
+          # LD_LIBRARY_PATH cleanup above -- no torch pin is needed.
 
-          # pinning 2.11.0 for the test server because the environment CUDA version isn't high enough for a more recent version
-          uv pip install torch==2.11.0 
-
-          GPU_ARCH=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}{c[1]}')")
-          echo "=== Building for GPU architecture: sm_${GPU_ARCH} ==="
+          # PyTorch reports the *runtime* GPU (e.g. sm_120 on Blackwell), but Apptainer
+          # nvcc is often older (e.g. CUDA 12.4) and cannot compile compute_120.
+          # Use a portable arch list for AOT; JIT tests still use the local GPU at runtime.
+          RUN_GPU=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')" 2>/dev/null || echo "n/a")
+          CUDA_ARCHS="${TMOL_CI_CUDA_ARCHITECTURES:-80;86;89;90;100}"
+          NVCC_VER=$(nvcc --version 2>&1 | sed -n 's/.*release \([0-9.]*\).*/\1/p' | head -1)
+          case "${NVCC_VER}" in
+            11.*|12.*) CUDA_ARCHS="80;86;89;90" ;;
+          esac
+          # Do not inherit CMake 4 "native" (sm_120 on Blackwell) or Torch defaults.
+          unset CMAKE_CUDA_ARCHITECTURES
+          export CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}"
+          TORCH_ARCH_LIST=""
+          IFS=';' read -ra _CUDA_ARCH_ARR <<< "${CUDA_ARCHS}"
+          for _A in "${_CUDA_ARCH_ARR[@]}"; do
+            if [ "${#_A}" -eq 3 ]; then
+              TORCH_ARCH_LIST+=" ${_A:0:2}.${_A:2:1}"
+            elif [ "${#_A}" -eq 2 ]; then
+              TORCH_ARCH_LIST+=" ${_A:0:1}.${_A:1:1}"
+            fi
+          done
+          export TORCH_CUDA_ARCH_LIST="${TORCH_ARCH_LIST# }"
+          echo "=== Runner GPU sm_${RUN_GPU} | nvcc ${NVCC_VER} | CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS} | TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST} ==="
           MAX_JOBS=12 pip install -v --no-deps \
-                  -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${GPU_ARCH}" \
+                  -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
                   -Ccmake.define.TMOL_BUILD_TESTS=ON \
                   -Ccmake.define.TMOL_NVCC_THREADS=2 \
                   -e .
@@ -104,8 +156,8 @@ jobs:
         run: |
           # ── Test CPU ───────────────────────────────────────────────────
           echo "=== tests (CPU only) ==="
-          srun --gres=gpu:large:1 -C A6000 -p gpu --export=ALL \
-                  -t 06:00:00 --cpus-per-task=16 --mem=128G \
+          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
+                  -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
                   apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                   --pwd $GITHUB_WORKSPACE \
                   --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
@@ -126,8 +178,8 @@ jobs:
         run: |
           # ── Test CUDA ──────────────────────────────────────────────────
           echo "=== tests (CUDA) ==="
-          srun --gres=gpu:large:1 -C A6000 -p gpu --export=ALL \
-                -t 06:00:00 --cpus-per-task=16 --mem=128G \
+          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
+                -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
                 apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                 --pwd $GITHUB_WORKSPACE \
                 --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
@@ -135,7 +187,12 @@ jobs:
           set -ex
           
           source .venv/bin/activate
-          
+
+          # Drop the container's CUDA forward-compat libcuda so torch uses the
+          # --nv host driver (otherwise CUDA init fails with error 803 on nodes
+          # with a driver newer than the container CUDA, skipping all cuda tests).
+          export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
+
           pytest -p no:rerunfailures -s -v --durations=25 \
             --cov=$GITHUB_WORKSPACE/tmol --cov-report=xml \
             --junitxml=$GITHUB_WORKSPACE/testing.cuda.junit.xml -k "cuda"
@@ -147,8 +204,8 @@ jobs:
         run: |
           # ── Benchmark ──────────────────────────────────────────────────
           echo "=== benchmarks ==="
-          srun --gres=gpu:large:1 -C A6000 -p gpu --export=ALL \
-                -t 06:00:00 --cpus-per-task=16 --mem=128G \
+          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
+                -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
                 apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
                 --pwd $GITHUB_WORKSPACE \
                 --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
@@ -156,6 +213,10 @@ jobs:
           set -ex
           
           source .venv/bin/activate
+
+          # Drop the container's CUDA forward-compat libcuda so torch uses the
+          # --nv host driver (avoids CUDA init error 803 on newer-driver nodes).
+          export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
 
           BENCHMARK_DIR=benchmark/$GITHUB_REPOSITORY/$GITHUB_REF_NAME
           BENCHMARK_RESULT=${BENCHMARK_DIR}/${GITHUB_RUN_NUMBER}.json
@@ -184,7 +245,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: $GITHUB_WORKSPACE/coverage.xml
+          files: ${{ github.workspace }}/coverage.xml
           fail_ci_if_error: true # fail the CI if upload fails
 
       

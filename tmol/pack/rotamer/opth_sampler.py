@@ -442,6 +442,9 @@ class OptHSampler(ConformerSampler):
                         n_rots_for_gbt_list.append(0)
                         continue
                     bt_cache = bt.opth_sampler_cache
+                    if not opth_assigned:
+                        n_rots_for_gbt_list.append(0)
+                        continue
                     n_rots = _n_rots_for_gbt(self, blt, orig, orig_cache, bt, bt_cache)
                     n_rots_for_gbt_list.append(n_rots)
                     if n_rots > 0:

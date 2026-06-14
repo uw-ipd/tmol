@@ -48,17 +48,19 @@ class PolynomialParameters:
     min_val: float
     max_val: float
     degree: int
-    c_a: float
-    c_b: float
-    c_c: float
-    c_d: float
-    c_e: float
-    c_f: float
-    c_g: float
-    c_h: float
-    c_i: float
-    c_j: float
-    c_k: float
+    # Polynomial coefficients
+    # The polynomial value is sum_{N=0..10} c_N * X^N. Default to 0
+    c_0: float = 0.0
+    c_1: float = 0.0
+    c_2: float = 0.0
+    c_3: float = 0.0
+    c_4: float = 0.0
+    c_5: float = 0.0
+    c_6: float = 0.0
+    c_7: float = 0.0
+    c_8: float = 0.0
+    c_9: float = 0.0
+    c_10: float = 0.0
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

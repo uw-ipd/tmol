@@ -96,7 +96,6 @@ struct GeneratePoseWaters {
 
     NVTXRange _function(__FUNCTION__);
 
-    using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
 
     nvtx_range_push("watergen::setup");
@@ -226,7 +225,6 @@ struct GeneratePoseWaters {
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(
         mgr, n_rots, f_watergen);
 
-    DeviceOps<Dev>::synchronize_device();
     return water_coords_t;
   };
 
@@ -295,7 +293,6 @@ struct GeneratePoseWaters {
 
     NVTXRange _function(__FUNCTION__);
 
-    using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
 
     nvtx_range_push("watergen::setup");

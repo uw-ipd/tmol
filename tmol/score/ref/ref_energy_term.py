@@ -16,6 +16,8 @@ class RefEnergyTerm(EnergyTerm):
         super(RefEnergyTerm, self).__init__(param_db=param_db, device=device)
 
         self.ref_weights = param_db.scoring.ref.weights
+        self.soft_weights = param_db.scoring.ref.soft_weights
+        self.soft_rep = False
         self.device = device
 
     @classmethod
@@ -31,6 +33,10 @@ class RefEnergyTerm(EnergyTerm):
     def n_bodies(self):
         return 1
 
+    def set_options(self, options: dict):
+        if "soft_rep" in options:
+            self.soft_rep = options["soft_rep"]
+
     def setup_block_type(self, block_type: RefinedResidueType):
         super(RefEnergyTerm, self).setup_block_type(block_type)
 
@@ -39,8 +45,10 @@ class RefEnergyTerm(EnergyTerm):
 
         ref_weight = 0.0
 
+        ref_weights = self.soft_weights if self.soft_rep else self.ref_weights
+
         if block_type.base_name in self.ref_weights:
-            ref_weight = self.ref_weights[block_type.base_name]
+            ref_weight = ref_weights[block_type.base_name]
 
         setattr(block_type, "ref_weight", ref_weight)
 
