@@ -285,6 +285,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.lk_ball_params.tile_lk_ball_params,
             pose_stack.packed_block_types.bond_separation,
             self._lk_ball_global_params,
+            # max_dis as host scalar for detect-neighbors call
+            float(self.ljlk_param_resolver.global_params.max_dis.item()),
             water_coords,
             block_pair_scoring,
         ]
@@ -345,6 +347,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.lk_ball_params.tile_lk_ball_params,
             pose_stack.packed_block_types.bond_separation,
             self._lk_ball_global_params,
+            # max_dis as host scalar for detect-neighbors call
+            float(self.ljlk_param_resolver.global_params.max_dis.item()),
             water_coords,
             block_pair_scoring,
         ]

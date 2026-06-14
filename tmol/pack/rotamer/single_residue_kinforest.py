@@ -10,7 +10,7 @@ from tmol.kinematics.scan_ordering import (
     KinForestScanOrdering,
     annotate_block_type_with_residue_kinforest_data,
 )
-from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
+from tmol.kinematics.compiled import inverse_kin
 from tmol.utility.ndarray.common_operations import invert_mapping
 
 from tmol.chemical.restypes import RefinedResidueType

@@ -54,6 +54,7 @@ struct type_caster<tmol::score::lk_ball::potentials::LKBallGlobalParams<Real>> {
     CAST_ATTR(src, value, lj_hbond_OH_donor_dis);
     CAST_ATTR(src, value, lj_hbond_hdis);
     CAST_ATTR(src, value, lkb_water_dist);
+    CAST_ATTR(src, value, distance_threshold);
 
     return true;
   }

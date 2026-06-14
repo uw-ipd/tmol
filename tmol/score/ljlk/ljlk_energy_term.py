@@ -131,6 +131,8 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         global_params = torch.stack(
             _t(
                 [
+                    self.global_params.max_dis,
+                    self.global_params.lj_dlin_sigma_factor,
                     self.global_params.lj_hbond_dis,
                     self.global_params.lj_hbond_OH_donor_dis,
                     self.global_params.lj_hbond_hdis,
@@ -150,4 +152,6 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack.packed_block_types.ljlk_bond_separation,
             type_params,
             global_params,
+            # max_dis as host scalar for detect-neighbors call
+            float(self.global_params.max_dis.item()),
         ]

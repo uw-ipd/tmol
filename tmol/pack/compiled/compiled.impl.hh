@@ -2,6 +2,7 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/context_manager.hh>
 
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/tuple.hh>
@@ -21,6 +22,7 @@ template <
     typename Real,
     typename Int>
 auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
+    ContextManager& mgr,
     int const chunk_size,
     TView<Int, 1, D> n_rots_for_pose,
     TView<Int, 1, D> rot_offset_for_pose,
@@ -67,7 +69,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_blocks, count_n_chunks_for_block);
+      mgr, n_poses * max_n_blocks, count_n_chunks_for_block);
 
   auto respair_is_adjacent_tp =
       TPack<int32_t, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
@@ -86,7 +88,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     respair_is_adjacent[pose][block1][block2] = 1;
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_sparse_entries, note_adjacent_respairs);
+      mgr, n_sparse_entries, note_adjacent_respairs);
 
   auto n_chunks_for_block_pair_tp =
       TPack<int64_t, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
@@ -110,7 +112,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_blocks * max_n_blocks, note_n_chunks_for_block_pair);
+      mgr, n_poses * max_n_blocks * max_n_blocks, note_n_chunks_for_block_pair);
 
   auto chunk_pair_offset_for_block_pair_tp =
       TPack<int64_t, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
@@ -119,6 +121,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
 
   int const n_adjacent_chunk_pairs_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           n_chunks_for_block_pair.data(),
           chunk_pair_offset_for_block_pair.data(),
           n_poses * max_n_blocks * max_n_blocks,
@@ -169,7 +172,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
             chunk1_size * chunk2_size;
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_sparse_entries, note_adjacent_chunk_pairs);
+      mgr, n_sparse_entries, note_adjacent_chunk_pairs);
 
   auto chunk_pair_offsets_tp =
       TPack<int64_t, 1, D>::zeros({n_adjacent_chunk_pairs_total});
@@ -177,6 +180,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
 
   int64_t const n_two_body_energies =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           chunk_pair_adjacency.data(),
           chunk_pair_offsets.data(),
           n_adjacent_chunk_pairs_total,
@@ -234,7 +238,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_sparse_entries, record_energies_in_energy1b_and_energy2b);
+      mgr, n_sparse_entries, record_energies_in_energy1b_and_energy2b);
 
   // Mark the chunk_pair_offset_for_block_pair that are not adjacent w/ -1s
   // Mark the chunk_pair_offsets that are not adjacent w/ -1s
@@ -254,6 +258,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         }
       });
   DeviceDispatch<D>::template forall<launch_t>(
+      mgr,
       n_poses * max_n_blocks * max_n_blocks,
       sentinel_out_non_adjacent_block_pairs);
 
@@ -265,7 +270,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         }
       });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_adjacent_chunk_pairs_total, sentinel_out_non_adjacent_chunk_pairs);
+      mgr, n_adjacent_chunk_pairs_total, sentinel_out_non_adjacent_chunk_pairs);
 
   return std::make_tuple(
       energy1b_tp,

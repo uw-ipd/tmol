@@ -1,6 +1,8 @@
 import attr
 import cattr
 import yaml
+import json
+import hashlib
 
 from typing import Tuple
 
@@ -61,9 +63,24 @@ class CartRes:
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class CartBondedDatabase:
     residue_params: dict[str, CartRes]
+    hash: str
 
     @classmethod
     def from_file(cls, path):
         with open(path, "r") as infile:
-            raw = yaml.safe_load(infile)
-        return cattr.structure(raw, cls)
+            resparam_dict = yaml.safe_load(infile)
+            resparam_dict["hash"] = cls._generate_hash(resparam_dict)
+
+        return cattr.structure(resparam_dict, cls)
+
+    @classmethod
+    def from_cartres_dict(cls, cartres_dict: dict[str, CartRes]):
+        resparam_dict = cattr.unstructure(cartres_dict)
+        hash = cls._generate_hash(resparam_dict)
+        return cls(residue_params=cartres_dict, hash=hash)
+
+    @classmethod
+    def _generate_hash(cls, resparam_dict):
+        serialized = json.dumps(resparam_dict, sort_keys=True)
+        hash_value = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+        return hash_value

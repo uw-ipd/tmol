@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
@@ -15,6 +16,8 @@ namespace tmol {
 namespace score {
 namespace lk_ball {
 namespace potentials {
+
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -76,6 +79,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
           auto result =
               GeneratePoseWaters<common::DeviceOperations, Dev, Real, Int>::
                   forward(
+                      mgr,
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
                       TCAST(pose_ind_for_atom),
@@ -223,6 +227,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
           auto result =
               GeneratePoseWaters<common::DeviceOperations, Dev, Real, Int>::
                   backward(
+                      mgr,
                       TCAST(dE_dWxyz),
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
@@ -389,6 +394,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
       Tensor block_type_path_distance,
 
       Tensor global_params,
+      double max_dis,  // host scalar; needed by detect-neighbors call
       Tensor water_coords,
       bool output_block_pair_energies) {
     at::Tensor score;
@@ -407,6 +413,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
               Real,
               Int>::
               forward(
+                  mgr,
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
                   TCAST(pose_ind_for_atom),
@@ -435,6 +442,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
                   TCAST(block_type_path_distance),
 
                   TCAST(global_params),
+                  (Real)max_dis,
                   TCAST(water_coords),
                   output_block_pair_energies);
 
@@ -545,6 +553,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
               Real,
               Int>::
               backward(
+                  mgr,
                   TCAST(rot_coords),
                   TCAST(water_coords),
                   TCAST(rot_coord_offset),
@@ -583,14 +592,13 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
         }));
 
     return {
-        dV_d_pose_coords, torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  dV_d_water_coords, torch::Tensor(),
-
+        dV_d_pose_coords, torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), dV_d_water_coords, torch::Tensor(),
     };
   }
 };
@@ -630,6 +638,7 @@ class LKBallRotamerScoreOp
       Tensor block_type_path_distance,
 
       Tensor global_params,
+      double max_dis,  // host scalar; needed by detect-neighbors call
       Tensor water_coords,
       bool output_block_pair_energies) {
     at::Tensor score;
@@ -648,6 +657,7 @@ class LKBallRotamerScoreOp
               Real,
               Int>::
               forward(
+                  mgr,
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
                   TCAST(pose_ind_for_atom),
@@ -676,6 +686,7 @@ class LKBallRotamerScoreOp
                   TCAST(block_type_path_distance),
 
                   TCAST(global_params),
+                  (Real)max_dis,
                   TCAST(water_coords),
                   output_block_pair_energies);
 
@@ -778,6 +789,7 @@ class LKBallRotamerScoreOp
               Real,
               Int>::
               backward(
+                  mgr,
                   TCAST(rot_coords),
                   TCAST(water_coords),
                   TCAST(rot_coord_offset),
@@ -816,14 +828,13 @@ class LKBallRotamerScoreOp
         }));
 
     return {
-        dV_d_pose_coords, torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  dV_d_water_coords, torch::Tensor(),
-
+        dV_d_pose_coords, torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), dV_d_water_coords, torch::Tensor(),
     };
   }
 };
@@ -859,6 +870,7 @@ std::vector<Tensor> lkball_pose_score(
     Tensor block_type_path_distance,
 
     Tensor global_params,
+    double max_dis,
     Tensor water_coords,
     bool output_block_pair_energies) {
   return LKBallPoseScoreOp::apply(
@@ -891,6 +903,7 @@ std::vector<Tensor> lkball_pose_score(
       block_type_path_distance,
 
       global_params,
+      max_dis,
       water_coords,
       output_block_pair_energies);
 }
@@ -926,6 +939,7 @@ std::vector<Tensor> lkball_rotamer_score(
     Tensor block_type_path_distance,
 
     Tensor global_params,
+    double max_dis,
     Tensor water_coords,
     bool output_block_pair_energies) {
   return LKBallRotamerScoreOp::apply(
@@ -958,6 +972,7 @@ std::vector<Tensor> lkball_rotamer_score(
       block_type_path_distance,
 
       global_params,
+      max_dis,
       water_coords,
       output_block_pair_energies);
 }
