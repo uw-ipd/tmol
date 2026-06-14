@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 #include <tmol/utility/nvtx.hh>
 
@@ -17,6 +18,8 @@ namespace tmol {
 namespace score {
 namespace genbonded {
 namespace potentials {
+
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -74,6 +77,7 @@ class GenBondedPoseScoreOp
           auto result =
               GenBondedPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   forward(
+                      mgr,
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
                       TCAST(pose_ind_for_atom),
@@ -189,6 +193,7 @@ class GenBondedPoseScoreOp
             auto result =
                 GenBondedPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
                     backward(
+                        mgr,
                         TCAST(rot_coords),
                         TCAST(rot_coord_offset),
                         TCAST(pose_ind_for_atom),
@@ -307,6 +312,7 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
           auto result =
               GenBondedRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   forward(
+                      mgr,
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
                       TCAST(pose_ind_for_atom),
@@ -417,6 +423,7 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
           auto result =
               GenBondedRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   backward(
+                      mgr,
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
                       TCAST(pose_ind_for_atom),

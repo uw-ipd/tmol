@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -155,6 +156,7 @@ template <
     typename Real,
     typename Int>
 auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
+    ContextManager& mgr,
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
     TView<Int, 1, D> pose_ind_for_atom,
@@ -456,6 +458,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
   });
 
   DeviceOps<D>::template foreach_workgroup<launch_t>(
+      mgr,
       n_poses * max_n_blocks * (max_n_conns + 1),
       eval_torsions_for_interaction);
 
@@ -471,6 +474,7 @@ template <
     typename Real,
     typename Int>
 auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
+    ContextManager& mgr,
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
     TView<Int, 1, D> pose_ind_for_atom,
@@ -722,6 +726,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
   });
 
   DeviceOps<D>::template foreach_workgroup<launch_t>(
+      mgr,
       n_poses * max_n_blocks * (max_n_conns + 1),
       eval_torsions_for_interaction);
 
@@ -737,6 +742,7 @@ template <
     typename Real,
     typename Int>
 auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
+    ContextManager& mgr,
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
     TView<Int, 1, D> pose_ind_for_atom,
@@ -813,16 +819,18 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
     }
   });
   DeviceOps<D>::template forall<launch_t>(
-      max_n_interactions, count_intxns_for_rot_conn);
+      mgr, max_n_interactions, count_intxns_for_rot_conn);
 
   int n_output_intxns_total =
       DeviceOps<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           n_output_intxns_for_rot_conn.data(),
           n_output_intxns_for_rot_conn_offset.data(),
           max_n_interactions,
           mgpu::plus_t<Int>());
   TPack<Int, 1, D> rotconn_for_output_intxn_t =
       DeviceOps<D>::template load_balancing_search<launch_t>(
+          mgr,
           n_output_intxns_total,
           n_output_intxns_for_rot_conn_offset.data(),
           max_n_interactions);
@@ -860,7 +868,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
     dispatch_indices[2][index] = rot_ind2;
   });
   DeviceOps<D>::template forall<launch_t>(
-      n_output_intxns_total, record_dispatch_indices);
+      mgr, n_output_intxns_total, record_dispatch_indices);
 
   auto eval_torsions_for_interaction = ([=] TMOL_DEVICE_FUNC(int cta) {
     SHARED_MEMORY union shared_mem_union {
@@ -1035,7 +1043,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
     DeviceOps<D>::template for_each_in_workgroup<nt>(reduce_and_write);
   });
   DeviceOps<D>::template foreach_workgroup<launch_t>(
-      n_output_intxns_total, eval_torsions_for_interaction);
+      mgr, n_output_intxns_total, eval_torsions_for_interaction);
 
   return {
       V_t,
@@ -1055,6 +1063,7 @@ template <
     typename Real,
     typename Int>
 auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
+    ContextManager& mgr,
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
     TView<Int, 1, D> pose_ind_for_atom,
@@ -1250,7 +1259,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
     }
   });
   DeviceOps<D>::template foreach_workgroup<launch_t>(
-      n_output_intxns_total, eval_torsions_for_interaction);
+      mgr, n_output_intxns_total, eval_torsions_for_interaction);
 
   return dV_dx_t;
 }
