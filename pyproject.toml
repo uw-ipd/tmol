@@ -40,7 +40,8 @@ dependencies = [
     "networkx>=3.0",
     # Utilities
     "toolz>=0.12.0,<2",
-    "decorator>=5.1",
+    # decorator floor kept low (>=4.0) for Google Colab, which ships an old version
+    "decorator>=4.0",
     "typing_extensions>=4.0,<5",
     "typing_inspect>=0.9",
     "pint>=0.23,<1",
@@ -55,8 +56,6 @@ dependencies = [
     "hypothesis>=5.35",
     # AST manipulation (used by tmol.utility.args)
     "astor>=0.8",
-    # Interactive
-    "ipython>=8.0",
     # Structure I/O
     "biotite>=1.4.0",
     # Ligand preparation
@@ -86,6 +85,8 @@ dev = [
     "pytest-instafail>=0.5",
     "pytest-repeat>=0.9",
     "pytest-watch>=4.2",
+    # Interactive
+    "ipython>=8.0",
     # Visualization
     "seaborn>=0.13",
     # Ligand SMILES-prep path and its tests require OpenBabel
