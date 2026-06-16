@@ -23,3 +23,26 @@ weights:
   ref: 1.0
 options:
   soft_rep: True
+  ref_weights:
+      ALA: 1.3535
+      CYS: 2.9828
+      CYD: 2.9828
+      ASP: -1.9872
+      GLU: -2.0080
+      PHE: 3.6543
+      GLY: -0.6290
+      HIS: 0.5347
+      HIS_D: 0.5347
+      ILE: 3.6828
+      LYS: -1.1870
+      LEU: 3.0591
+      MET: 2.1654
+      ASN: -0.7549
+      PRO: -4.6330
+      GLN: -0.1943
+      ARG: -0.3519
+      SER: -1.2864
+      THR: -1.2064
+      VAL: 3.5934
+      TRP: 5.8434
+      TYR: 2.7219
