@@ -1,5 +1,6 @@
 import torch
 import numpy
+import os
 
 from tmol.score import _non_memoized_beta2016
 from tmol.score.score_function import ScoreFunction
@@ -250,6 +251,64 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
 
     torch.testing.assert_close(scores_wo_vrt, scores_w_vrt)
     torch.testing.assert_close(unweighted_scores_wo_vrt, unweighted_scores_w_vrt)
+
+
+def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_device):
+    device = torch.device("cpu")
+    ps = pose_stack_from_pdb(ubq_pdb, device)
+    sfxn = beta2016_score_function(device)
+
+    _weights_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "database",
+        "score_functions",
+        "beta_soft.yaml",
+    )
+    sfxn = ScoreFunction.from_weights_file(
+        _weights_path, default_database, torch_device
+    )
+
+    wpsm = sfxn.render_whole_pose_scoring_module(ps)
+    term_scores = wpsm(ps.coords, sum_terms=False)
+    score_types = sfxn.all_score_types()
+    unweighted_score_map = {
+        st: term_scores[i, :].detach().cpu().numpy() for i, st in enumerate(score_types)
+    }
+
+    def n(x):
+        return numpy.array(x)
+
+    # edit 2026/1/7: torsions change slightly due to improper double-counting of
+    # hydroxyl torsions in old version.
+    gold_score_map = {
+        ScoreType.cart_lengths: n([37.762318]),
+        ScoreType.cart_angles: n([183.56915]),
+        ScoreType.cart_torsions: n([46.02357]),
+        ScoreType.cart_impropers: n([9.430529]),
+        ScoreType.cart_hxltorsions: n([47.41971]),
+        ScoreType.disulfide: n([0.0]),
+        ScoreType.fa_ljatr: n([-417.9582]),
+        ScoreType.fa_ljrep: n([240.7147]),
+        ScoreType.fa_lk: n([298.27637]),
+        ScoreType.fa_elec: n([-136.2924]),
+        ScoreType.hbond: n([-55.675613]),
+        ScoreType.lk_ball_iso: n([422.03955]),
+        ScoreType.lk_ball: n([172.19647]),
+        ScoreType.lk_bridge: n([1.5785888]),
+        ScoreType.lk_bridge_uncpl: n([10.9946]),
+        ScoreType.rama: n([-12.743372]),
+        ScoreType.omega: n([4.100171]),
+        ScoreType.ref: n([-41.275]),
+        ScoreType.dunbrack_rot: n([70.64968]),
+        ScoreType.dunbrack_rotdev: n([240.31009]),
+        ScoreType.dunbrack_semirot: n([99.660904]),
+    }
+    for st in score_types:
+        numpy.testing.assert_allclose(
+            unweighted_score_map[st], gold_score_map[st], rtol=1e-4, atol=1e-4
+        )
 
 
 def test_score_function_all_score_types(ubq_pdb):
