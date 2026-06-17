@@ -7,7 +7,6 @@ import cattr
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class RefDatabase:
     weights: dict[str, float]
-    soft_weights: dict[str, float]
 
     @classmethod
     def from_file(cls, path):
