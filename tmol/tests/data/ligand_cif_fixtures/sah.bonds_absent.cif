@@ -1,0 +1,48 @@
+data_structure
+#
+loop_
+_atom_site.group_PDB 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.pdbx_PDB_model_num 
+_atom_site.id 
+HETATM N N     . SAH A 1 1 . 1 SAH A N     -18.187 32.417 82.371 1 1
+HETATM C CA    . SAH A 1 1 . 1 SAH A CA    -18.844 31.545 83.308 1 2
+HETATM C CB    . SAH A 1 1 . 1 SAH A CB    -18.823 32.167 84.707 1 3
+HETATM C CG    . SAH A 1 1 . 1 SAH A CG    -17.502 31.972 85.45  1 4
+HETATM S SD    . SAH A 1 1 . 1 SAH A SD    -17.089 33.235 86.69  1 5
+HETATM C C     . SAH A 1 1 . 1 SAH A C     -20.274 31.36  82.855 1 6
+HETATM O O     . SAH A 1 1 . 1 SAH A O     -20.63  31.285 81.609 1 7
+HETATM O OXT   . SAH A 1 1 . 1 SAH A OXT   -20.986 30.75  83.725 1 8
+HETATM C "C5'" . SAH A 1 1 . 1 SAH A "C5'" -15.598 32.461 87.379 1 9
+HETATM C "C4'" . SAH A 1 1 . 1 SAH A "C4'" -15.654 31.02  88.078 1 10
+HETATM O "O4'" . SAH A 1 1 . 1 SAH A "O4'" -14.385 30.672 88.622 1 11
+HETATM C "C3'" . SAH A 1 1 . 1 SAH A "C3'" -16.519 30.874 89.368 1 12
+HETATM O "O3'" . SAH A 1 1 . 1 SAH A "O3'" -17.61  30.052 89.067 1 13
+HETATM C "C2'" . SAH A 1 1 . 1 SAH A "C2'" -15.603 30.181 90.395 1 14
+HETATM O "O2'" . SAH A 1 1 . 1 SAH A "O2'" -16.425 29.271 91.082 1 15
+HETATM C "C1'" . SAH A 1 1 . 1 SAH A "C1'" -14.631 29.539 89.44  1 16
+HETATM N N9    . SAH A 1 1 . 1 SAH A N9    -13.303 29.252 89.939 1 17
+HETATM C C8    . SAH A 1 1 . 1 SAH A C8    -12.548 30.169 90.645 1 18
+HETATM N N7    . SAH A 1 1 . 1 SAH A N7    -11.363 29.702 90.975 1 19
+HETATM C C5    . SAH A 1 1 . 1 SAH A C5    -11.339 28.414 90.458 1 20
+HETATM C C6    . SAH A 1 1 . 1 SAH A C6    -10.359 27.447 90.504 1 21
+HETATM N N6    . SAH A 1 1 . 1 SAH A N6    -9.286  27.682 91.224 1 22
+HETATM N N1    . SAH A 1 1 . 1 SAH A N1    -10.544 26.261 89.916 1 23
+HETATM C C2    . SAH A 1 1 . 1 SAH A C2    -11.714 26.049 89.309 1 24
+HETATM N N3    . SAH A 1 1 . 1 SAH A N3    -12.748 26.886 89.215 1 25
+HETATM C C4    . SAH A 1 1 . 1 SAH A C4    -12.501 28.098 89.818 1 26
+#

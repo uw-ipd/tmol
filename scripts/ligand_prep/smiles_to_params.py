@@ -58,9 +58,7 @@ def main() -> None:
         conformer_search=not args.no_conformer_search,
     )
     # 2. prepare (type, charges, cartbonded)
-    prep = prepare_single_ligand(
-        info, ph=args.ph, charge_mode="auto", sample_proton_chi=args.sample_proton_chi
-    )
+    prep = prepare_single_ligand(info, sample_proton_chi=args.sample_proton_chi)
     # 3a. Rosetta .params  3b. tmol .tmol  (one merged writer, format-dispatched)
     params_path = f"{args.out_prefix}.params"
     tmol_path = f"{args.out_prefix}.tmol"

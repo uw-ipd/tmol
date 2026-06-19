@@ -2,12 +2,13 @@
 
 ``TestDUDScoring`` injects the golden ``.tmol`` params (Rosetta reference) and
 scores the input pose with tmol, comparing per-term energies against the
-pre-generated Rosetta ``.sc`` files.
+pre-generated Rosetta ``.sc`` files. This isolates scoring correctness from
+parameter generation.
 
-Param-generation parity (SMILES/mol2 -> Rosetta ``.params``) is covered by the
-DUD-80 suite (``test_ligand_pipeline.py::TestGroundTruthRegression`` and
-``scripts/ligand_prep/validate_dud80.py``); the CIF-generated-param path is
-intentionally not scored here (it is not the validated guanfeng pipeline).
+Param-generation parity (SMILES -> Rosetta ``.params``) is covered separately
+by the guanfeng SMILES suite (``test_smiles_semantic.py``,
+``test_serialization_consistency.py``, ``test_params_reference.py``) and
+``scripts/ligand_prep/validate_dud80.py``.
 """
 
 from pathlib import Path

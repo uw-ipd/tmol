@@ -5,13 +5,12 @@ This module contains the concrete preparation pipeline implementation.
 """
 
 import logging
-from collections.abc import Callable
 from typing import Optional
 
 import biotite.structure as struc
+import numpy as np
 from biotite.interface.rdkit import to_mol
 from rdkit import Chem
-from rdkit.Chem import AllChem
 
 from tmol.database import ParameterDatabase
 from tmol.io.canonical_ordering import CanonicalOrdering
@@ -20,9 +19,6 @@ from tmol.ligand.detect import (
     NonStandardResidueInfo,
     _METAL_SYMBOLS,
     detect_nonstandard_residues,
-    nonstandard_residue_info_from_cif,
-    nonstandard_residue_info_from_mol2,
-    nonstandard_residue_info_from_pdb,
     nonstandard_residue_info_from_smiles_via_mol2,
 )
 from tmol.ligand.graph_match import match_heavy_atoms
@@ -37,33 +33,41 @@ from tmol.ligand.registry import (
     inject_ligand_preparations,
     rebuild_canonical_ordering,
 )
-from tmol.ligand.mol3d import build_partial_charges
+from tmol.ligand.mol3d import authoritative_charges_by_index
 from tmol.ligand.residue_builder import build_residue_type
-from tmol.ligand.rdkit_mol import (
-    ligand_atom_array_to_rdkit_mol,
-    normalize_protonated_mol_for_mmff94,
-    prepare_input_protonation_mol_for_mmff94,
-    protonate_ligand_mol,
+from tmol.ligand.external.atomworks_rdkit import atom_array_to_rdkit
+from tmol.ligand.structure_to_smiles import (
+    ligand_smiles_candidates_from_atom_array,
 )
+from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
 
 logger = logging.getLogger(__name__)
 
 
 def _build_cif_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.Mol:
-    """Build a Chem.Mol from CIF atom names, elements, and coordinates.
+    """Build a Chem.Mol from the CIF ligand for heavy-atom graph matching.
 
-    This helper is only used for fallback atom-name graph matching and
-    therefore follows the same explicit-bond contract as the main ligand
-    pipeline: no bond inference.
+    Atom order is preserved (atom ``i`` corresponds to
+    ``ligand_info.atom_names[i]``) so the matched indices can be mapped back to
+    CIF atom names. Uses the explicit CIF bond table when present and falls
+    back to geometry-based bond perception (vendored atomworks
+    :func:`atom_array_to_rdkit`) for bonds-absent CIFs.
     """
     atom_array = ligand_info.atom_array
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
-    if not has_bonds:
-        raise ValueError(
-            f"{ligand_info.res_name}: explicit ligand bonds required for graph "
-            "matching; bond inference is unsupported."
-        )
-    return to_mol(atom_array)
+    if has_bonds:
+        return to_mol(atom_array)
+
+    if "charge" in atom_array.get_annotation_categories():
+        system_charge = int(np.nansum(atom_array.charge))
+    else:
+        system_charge = 0
+    return atom_array_to_rdkit(
+        atom_array,
+        infer_bonds=True,
+        system_charge=system_charge,
+        hydrogen_policy="keep",
+    )
 
 
 def _rename_atoms_to_cif(
@@ -160,66 +164,72 @@ def _rename_atoms_to_cif_by_graph(
 
 def prepare_single_ligand(
     ligand_info: NonStandardResidueInfo,
-    ph: float = 7.4,
-    charge_mode: str = "auto",
     sample_proton_chi: bool = True,
+    name_source: Optional[NonStandardResidueInfo] = None,
 ) -> LigandPreparation:
-    """Run the full RDKit preparation pipeline for a single ligand.
+    """Build a :class:`LigandPreparation` from a SMILES-derived ligand.
 
-    Returns a :class:`LigandPreparation` — the same struct
-    :func:`tmol.ligand.params_file.load_params_file` produces for each
-    residue defined in a ``.tmol`` file, so the AtomArray-driven path
-    and the params-file path converge on a single abstraction that
+    This is the final, naming-and-typing step of the unified pipeline. Its input
+    must already be fully resolved chemistry: explicit hydrogens at the desired
+    protonation state and authoritative per-atom partial charges (the OpenBabel
+    MMFF94 charges produced by the SMILES -> mol2 step). Protonation and charge
+    generation are *not* done here -- they happen upstream in
+    :func:`tmol.ligand.detect.nonstandard_residue_info_from_smiles_via_mol2`.
+
+    Charges are mapped onto atoms by stable RDKit index (source atom order),
+    so they are independent of the atom renaming below and never recomputed.
+
+    Returns a :class:`LigandPreparation` -- the same struct
+    :func:`tmol.ligand.params_file.load_params_file` produces for each residue
+    defined in a ``.tmol`` file, so the AtomArray-driven path and the params-file
+    path converge on a single abstraction that
     :func:`inject_ligand_preparations` consumes.
 
     Args:
-        ligand_info: Detected ligand information.
-        ph: Target pH for protonation.
-        charge_mode: Partial-charge source policy passed to
-            :func:`tmol.ligand.mol3d.build_partial_charges`.
+        ligand_info: A SMILES-derived ligand (``skip_protonation=True`` with
+            authoritative ``partial_charges``). Raw CIF/atom-array ligands must
+            be routed through :func:`prepare_ligands` / :func:`prepare_ligand_from_cif`.
+        sample_proton_chi: Whether to emit proton-chi samples.
+        name_source: Optional ligand whose atom names the prepared residue should
+            adopt (graph-matched to the prepared heavy atoms). On the unified CIF
+            path this is the original CIF ligand, so pose-build can place CIF
+            coordinates by ``(res_name, atom_name)``. Defaults to ``ligand_info``.
+
+    Raises:
+        ValueError: If ``ligand_info`` lacks explicit hydrogens / authoritative
+            charges (there is no charge-generation fallback).
     """
-    mode = charge_mode.lower().strip()
-    rdkit_mol = ligand_atom_array_to_rdkit_mol(
-        ligand_info, keep_hydrogens=ligand_info.skip_protonation
-    )
-    # Skip protonation when:
-    # - The caller explicitly sets skip_protonation=True (keeps input explicit
-    #   H and protonation from mol2/CIF), OR
-    # - The caller supplies authoritative partial charges (e.g. AM1-BCC
-    #   from a Tripos mol2 file), which implies the input already encodes
-    #   the desired protonation state (heavy-only RDKit mol; AddHs below).
-    if ligand_info.skip_protonation or ligand_info.partial_charges:
-        protonated = rdkit_mol
-        if ligand_info.skip_protonation and mode == "mmff94":
-            protonated = prepare_input_protonation_mol_for_mmff94(protonated)
-    else:
-        protonated = protonate_ligand_mol(rdkit_mol, ph=ph)
-        if mode != "mmff94":
-            try:
-                # Apply source bond orders onto the protonated topology.
-                # RDKit API: AssignBondOrdersFromTemplate(template, mol)
-                # where `template` has trusted bond orders.
-                protonated = AllChem.AssignBondOrdersFromTemplate(rdkit_mol, protonated)
-            except Exception:
-                logger.debug(
-                    "AssignBondOrdersFromTemplate failed for %s, using protonated mol directly",
-                    ligand_info.res_name,
-                )
-        else:
-            protonated = normalize_protonated_mol_for_mmff94(protonated)
-    # Always use tolerant sanitize before typing so CIF/mol2 aromatic flags and
-    # subtype hints survive (mmff94 charge recomputation must not skip this).
+    if not ligand_info.skip_protonation or not ligand_info.partial_charges:
+        raise ValueError(
+            f"{ligand_info.res_name}: prepare_single_ligand requires a ligand that "
+            "already carries explicit hydrogens and authoritative partial charges "
+            "(skip_protonation=True). Route raw CIF/atom-array ligands through the "
+            "unified SMILES path (prepare_ligands / prepare_ligand_from_cif), which "
+            "derives a SMILES and generates OpenBabel MMFF94 charges. No RDKit/"
+            "Gasteiger charge fallback is used."
+        )
+
     from tmol.ligand.atom_typing import sanitize_tolerant
 
+    protonated = ligand_atom_array_to_rdkit_mol(ligand_info, keep_hydrogens=True)
     sanitize_tolerant(protonated)
-    # Inputs with authoritative partial charges already carry explicit
-    # hydrogens at the desired protonation state; AddHs would duplicate them
-    # and force a full MMFF94 fallback in build_partial_charges.
-    if not ligand_info.skip_protonation:
-        protonated = Chem.AddHs(protonated, addCoords=True)
 
     atom_types, typing_state = assign_tmol_atom_types(protonated, return_state=True)
-    atom_types = _rename_atoms_to_cif(protonated, atom_types, ligand_info)
+
+    # Charges come straight from the SMILES -> OpenBabel MMFF94 step, carried on
+    # ``ligand_info`` in source-atom order. Map them onto atoms by stable RDKit
+    # index *before* renaming so they are wholly independent of atom naming --
+    # no name-based bridging and no force-field recomputation.
+    charge_by_index = authoritative_charges_by_index(
+        ligand_info.atom_names,
+        ligand_info.partial_charges,
+        protonated,
+        ligand_name=ligand_info.res_name,
+    )
+
+    atom_types = _rename_atoms_to_cif(
+        protonated, atom_types, name_source if name_source is not None else ligand_info
+    )
 
     restype = build_residue_type(
         protonated,
@@ -228,14 +238,6 @@ def prepare_single_ligand(
         typing_state=typing_state,
         sample_proton_chi=sample_proton_chi,
         original_single_bonds=ligand_info.original_single_bonds,
-    )
-
-    charges = build_partial_charges(
-        protonated,
-        atom_types,
-        input_charges=ligand_info.partial_charges,
-        ligand_name=ligand_info.res_name,
-        charge_mode=charge_mode,
     )
 
     atom_type_elements: dict[str, str] = {}
@@ -247,8 +249,13 @@ def prepare_single_ligand(
                 f"{at.atom_type} ({prev} vs {at.element})"
             )
         atom_type_elements[at.atom_type] = at.element
+
     restype_atom_names = {a.name for a in restype.atoms}
-    charges = {name: q for name, q in charges.items() if name in restype_atom_names}
+    charges = {
+        at.atom_name: charge_by_index[at.index]
+        for at in atom_types
+        if at.atom_name in restype_atom_names
+    }
     missing_names = sorted(restype_atom_names - set(charges))
     if missing_names:
         raise RuntimeError(
@@ -271,6 +278,116 @@ def prepare_single_ligand(
     )
 
 
+def _cif_heavy_atom_names(ligand_info: NonStandardResidueInfo) -> set[str]:
+    """Heavy-atom names of the (CIF) ligand, used to verify name matching."""
+    return {
+        name
+        for name, element in zip(ligand_info.atom_names, ligand_info.elements)
+        if str(element).strip().upper() != "H"
+    }
+
+
+def _residue_covers_cif_heavy_atoms(
+    prep: LigandPreparation, cif_heavy_names: set[str]
+) -> bool:
+    """Return True if the prepared residue carries every CIF heavy-atom name.
+
+    When the SMILES-derived residue's heavy-atom names are a superset of the
+    CIF ligand's heavy-atom names, pose-build can place every CIF heavy-atom
+    coordinate by ``(res_name, atom_name)`` match.
+    """
+    if not cif_heavy_names:
+        return True
+    elements = prep.atom_type_elements or {}
+    restype_heavy: set[str] = set()
+    for atom in prep.residue_type.atoms:
+        element = elements.get(atom.atom_type)
+        if element is not None and element.upper() == "H":
+            continue
+        restype_heavy.add(atom.name)
+    return cif_heavy_names.issubset(restype_heavy)
+
+
+def _prepare_ligand_via_smiles(
+    ligand_info: NonStandardResidueInfo,
+    *,
+    ph: float,
+    sample_proton_chi: bool,
+) -> LigandPreparation:
+    """Prepare one ligand through the unified CIF -> SMILES -> params path.
+
+    Derives candidate SMILES from the ligand's atom array (existing-bonds then
+    geometry; never a CCD lookup), runs each through the SMILES -> mol2 ->
+    params pipeline, and returns the first preparation whose heavy-atom names
+    cover the original ligand's heavy atoms (so CIF coordinates can be placed).
+    Falls back to the last successful preparation if none match exactly.
+
+    Args:
+        ligand_info: The detected (CIF/atom-array) ligand.
+        ph: Target pH for protonation (applied in the SMILES -> mol2 step).
+        sample_proton_chi: Whether to emit proton-chi samples.
+
+    Returns:
+        The chosen :class:`LigandPreparation`.
+
+    Raises:
+        ValueError: If no SMILES candidate could be derived or prepared.
+    """
+    candidates = ligand_smiles_candidates_from_atom_array(
+        ligand_info.atom_array, res_name=ligand_info.res_name
+    )
+    if not candidates:
+        raise ValueError(
+            f"{ligand_info.res_name}: could not derive a SMILES from the ligand "
+            "atom array (no usable bonds or geometry)."
+        )
+
+    cif_heavy_names = _cif_heavy_atom_names(ligand_info)
+    last_prep: LigandPreparation | None = None
+    last_error: Exception | None = None
+
+    for smiles in candidates:
+        try:
+            smiles_info = nonstandard_residue_info_from_smiles_via_mol2(
+                smiles, res_name=ligand_info.res_name, ph=ph
+            )
+            prep = prepare_single_ligand(
+                smiles_info,
+                sample_proton_chi=sample_proton_chi,
+                name_source=ligand_info,
+            )
+        except Exception as err:  # noqa: BLE001  try the next candidate
+            last_error = err
+            logger.warning(
+                "SMILES candidate %r failed for %s: %s",
+                smiles,
+                ligand_info.res_name,
+                err,
+            )
+            continue
+
+        last_prep = prep
+        if _residue_covers_cif_heavy_atoms(prep, cif_heavy_names):
+            return prep
+        logger.info(
+            "SMILES candidate for %s did not cover all CIF heavy-atom names; "
+            "trying next candidate",
+            ligand_info.res_name,
+        )
+
+    if last_prep is not None:
+        logger.warning(
+            "No SMILES candidate fully matched CIF atom names for %s; "
+            "using best-effort preparation",
+            ligand_info.res_name,
+        )
+        return last_prep
+
+    raise ValueError(
+        f"{ligand_info.res_name}: failed to prepare ligand via SMILES"
+    ) from last_error
+
+
 def prepare_ligands(
     atom_array: struc.AtomArray,
     param_db: Optional[ParameterDatabase] = None,
@@ -279,7 +396,6 @@ def prepare_ligands(
     cache: LigandPreparationCache | None = None,
     params_files: list[str] | None = None,
     params_output: str | None = None,
-    charge_mode: str = "auto",
     sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Detect, prepare, and register all non-standard residues.
@@ -303,10 +419,6 @@ def prepare_ligands(
             skip the RDKit/OB preparation pipeline.
         params_output: Optional path to write all prepared ligand data
             to a tmol YAML params file for later reuse.
-        charge_mode: Charge policy for prepared ligands. ``"auto"`` uses
-            authoritative source charges when complete, else MMFF94;
-            ``"mmff94"`` always computes MMFF94; ``"input"`` requires
-            complete input charges.
 
     Returns:
         A (ParameterDatabase, CanonicalOrdering) tuple. The returned
@@ -372,7 +484,6 @@ def prepare_ligands(
         cache_key = (
             lig.res_name,
             round(ph, 3),
-            charge_mode,
             sample_proton_chi,
             tuple(lig.atom_names),
             tuple(lig.elements),
@@ -395,8 +506,8 @@ def prepare_ligands(
             continue
 
         logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)
-        prep = prepare_single_ligand(
-            lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
+        prep = _prepare_ligand_via_smiles(
+            lig, ph=ph, sample_proton_chi=sample_proton_chi
         )
         cache_ligand(
             lig.res_name,
@@ -422,6 +533,40 @@ def prepare_ligands(
     return param_db, canonical_ordering
 
 
+def _ligand_info_from_cif(
+    cif_path: str, res_name: str | None
+) -> NonStandardResidueInfo:
+    """Read a ligand CIF file into a :class:`NonStandardResidueInfo`.
+
+    Loads the atom array (with the ``_chem_comp_bond`` table when present),
+    atom names, and elements. Bond orders/chemistry are intentionally *not*
+    trusted here — they are re-derived as a SMILES by the unified path; this
+    only needs connectivity (for graph matching) and CIF atom names/coords.
+    """
+    import biotite.structure.io.pdbx as pdbx
+
+    from tmol.ligand.detect import get_chem_comp_type
+
+    cif = pdbx.CIFFile.read(str(cif_path))
+    arr = pdbx.get_structure(cif, model=1, include_bonds=True, extra_fields=["charge"])
+    if isinstance(arr, struc.AtomArrayStack):
+        arr = arr[0]
+
+    atom_site = cif.block["atom_site"]
+    atom_names = [str(v) for v in atom_site["label_atom_id"].as_array()]
+    resolved = (res_name or str(arr.res_name[0])).strip()
+    arr.res_name = np.array([resolved] * len(arr), dtype=arr.res_name.dtype)
+
+    return NonStandardResidueInfo(
+        res_name=resolved,
+        ccd_type=get_chem_comp_type(resolved) or "UNKNOWN",
+        atom_names=tuple(atom_names),
+        elements=tuple(str(e) for e in arr.element),
+        coords=arr.coord.copy(),
+        atom_array=arr,
+    )
+
+
 def prepare_ligand_from_cif(
     cif_path: str,
     *,
@@ -429,83 +574,31 @@ def prepare_ligand_from_cif(
     ph: float = 7.4,
     strict_atom_types: bool = False,
     res_name: str | None = None,
-    charge_mode: str = "auto",
     sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a CIF file and inject it into a database.
 
-    This helper preserves ligand chemistry annotations from CIF fields such as
-    ``partial_charge``, ``tmol_aromatic``, and ``tmol_source_subtype``.
-    ``charge_mode`` controls whether those source charges are consumed or
-    MMFF94 is recomputed.
-    """
-    return _prepare_ligand_from_file(
-        cif_path,
-        loader=nonstandard_residue_info_from_cif,
-        param_db=param_db,
-        ph=ph,
-        strict_atom_types=strict_atom_types,
-        res_name=res_name,
-        charge_mode=charge_mode,
-        sample_proton_chi=sample_proton_chi,
-    )
+    Routes through the unified path: the CIF ligand is converted to a SMILES
+    (existing-bonds / geometry; never a CCD lookup), run through the SMILES ->
+    params pipeline, and the resulting residue's atom names are graph-matched
+    back to the CIF names so pose-build can place CIF coordinates.
 
+    Args:
+        cif_path: Path to the ligand CIF file.
+        param_db: Base database (not modified); defaults to the tmol default.
+        ph: Target pH for protonation.
+        strict_atom_types: Fail on unknown atom-type element mappings.
+        res_name: Optional residue name override.
+        sample_proton_chi: Whether to emit proton-chi samples.
 
-def prepare_ligand_from_mol2(
-    mol2_path: str,
-    *,
-    param_db: Optional[ParameterDatabase] = None,
-    ph: float = 7.4,
-    strict_atom_types: bool = False,
-    res_name: str | None = None,
-    charge_mode: str = "auto",
-    sample_proton_chi: bool = True,
-) -> tuple[ParameterDatabase, CanonicalOrdering]:
-    """Prepare a single ligand from a Mol2 file and inject it into a database.
-
-    This helper preserves Tripos bond/aromaticity/subtype metadata and uses
-    Tripos partial charges when they are present on all atoms unless
-    ``charge_mode="mmff94"`` forces recomputation.
-    """
-    return _prepare_ligand_from_file(
-        mol2_path,
-        loader=nonstandard_residue_info_from_mol2,
-        param_db=param_db,
-        ph=ph,
-        strict_atom_types=strict_atom_types,
-        res_name=res_name,
-        charge_mode=charge_mode,
-        sample_proton_chi=sample_proton_chi,
-    )
-
-
-def prepare_ligand_from_pdb(
-    pdb_path: str,
-    *,
-    param_db: Optional[ParameterDatabase] = None,
-    ph: float = 7.4,
-    strict_atom_types: bool = False,
-    res_name: str | None = None,
-    charge_mode: str = "mmff94",
-    perceive_bond_orders: bool = True,
-    sample_proton_chi: bool = True,
-) -> tuple[ParameterDatabase, CanonicalOrdering]:
-    """Prepare a single ligand from a PDB file and inject it into a database.
-
-    PDB files do not carry bond orders, so this entry point requires the
-    optional ``openbabel`` Python package — OpenBabel's ``PerceiveBondOrders``
-    is used to derive chemistry from geometry. ``charge_mode`` defaults to
-    ``"mmff94"`` since PDB carries no partial-charge column.
+    Returns:
+        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.
     """
     if param_db is None:
         param_db = ParameterDatabase.get_default()
 
-    lig = nonstandard_residue_info_from_pdb(
-        pdb_path, res_name=res_name, perceive_bond_orders=perceive_bond_orders
-    )
-    prep = prepare_single_ligand(
-        lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
-    )
+    lig = _ligand_info_from_cif(cif_path, res_name)
+    prep = _prepare_ligand_via_smiles(lig, ph=ph, sample_proton_chi=sample_proton_chi)
     param_db = inject_ligand_preparations(
         param_db, [prep], strict_atom_types=strict_atom_types
     )
@@ -519,7 +612,6 @@ def prepare_ligand_from_smiles(
     ph: float = 7.4,
     strict_atom_types: bool = False,
     res_name: str | None = None,
-    charge_mode: str = "auto",
     protonate: bool = True,
     sample_proton_chi: bool = True,
     conformer_search: bool = True,
@@ -530,9 +622,8 @@ def prepare_ligand_from_smiles(
     the SMILES at ``ph``, OpenBabel generates a 3D mol2 with MMFF94 partial
     charges, and that mol2 is read verbatim (atom names, coordinates, charges,
     and bond orders preserved). The MMFF94 charges flow through untouched —
-    there is no biotite atom-array round-trip or MMFF recompute — so
-    ``charge_mode`` defaults to ``"auto"`` (keep the authoritative mol2
-    charges). This path requires the optional ``openbabel`` package.
+    there is no biotite atom-array round-trip or MMFF recompute. This path
+    requires the optional ``openbabel`` package.
 
     Args:
         protonate: When ``True`` (default) Dimorphite protonates ``smiles``
@@ -551,78 +642,8 @@ def prepare_ligand_from_smiles(
         protonate=protonate,
         conformer_search=conformer_search,
     )
-    prep = prepare_single_ligand(
-        lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
-    )
+    prep = prepare_single_ligand(lig, sample_proton_chi=sample_proton_chi)
     param_db = inject_ligand_preparations(
         param_db, [prep], strict_atom_types=strict_atom_types
     )
     return param_db, rebuild_canonical_ordering(param_db)
-
-
-def _prepare_ligand_from_file(
-    path: str,
-    *,
-    loader: Callable[[str, str | None], NonStandardResidueInfo],
-    param_db: Optional[ParameterDatabase],
-    ph: float,
-    strict_atom_types: bool,
-    res_name: str | None,
-    charge_mode: str,
-    sample_proton_chi: bool = True,
-) -> tuple[ParameterDatabase, CanonicalOrdering]:
-    """Load one ligand from file, prepare it, and inject it.
-
-    Both ``prepare_ligand_from_cif`` and ``prepare_ligand_from_mol2`` use this
-    helper to keep single-ligand file ingestion behavior identical.
-    """
-    if param_db is None:
-        param_db = ParameterDatabase.get_default()
-
-    lig = loader(path, res_name)
-    prep = prepare_single_ligand(
-        lig, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
-    )
-    param_db = inject_ligand_preparations(
-        param_db, [prep], strict_atom_types=strict_atom_types
-    )
-    return param_db, rebuild_canonical_ordering(param_db)
-
-
-def write_params_from_mol2(
-    mol2_path: str,
-    out_path: str,
-    *,
-    res_name: str | None = None,
-    ph: float = 7.4,
-    charge_mode: str = "auto",
-    sample_proton_chi: bool = True,
-) -> LigandPreparation:
-    """Prepare a ligand from a mol2 and write a Rosetta ``.params`` file.
-
-    Reads the mol2 (preserving its atom names, coordinates, charges, and bond
-    orders), runs the standard single-ligand preparation, and writes the
-    resulting residue type and partial charges to ``out_path`` in Rosetta
-    ``.params`` format.
-
-    Args:
-        mol2_path: Input ligand mol2 file.
-        out_path: Output ``.params`` path.
-        res_name: Optional residue name (defaults to the mol2's own name).
-        ph: pH used only if the mol2 lacks authoritative charges.
-        charge_mode: Charge policy (default ``auto`` keeps authoritative
-            mol2 charges).
-        sample_proton_chi: Whether to emit proton-chi samples (default off).
-
-    Returns:
-        The :class:`LigandPreparation` that was written.
-    """
-    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
-    from tmol.ligand.params_io import write_params_file
-
-    info = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
-    prep = prepare_single_ligand(
-        info, ph=ph, charge_mode=charge_mode, sample_proton_chi=sample_proton_chi
-    )
-    write_params_file(prep, out_path, format="rosetta")
-    return prep

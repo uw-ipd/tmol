@@ -38,7 +38,6 @@ def prepare_seed_entry(entry) -> LigandPreparation:
     )
     return prepare_single_ligand(
         info,
-        charge_mode=entry.charge_mode,
         sample_proton_chi=entry.sample_proton_chi,
     )
 

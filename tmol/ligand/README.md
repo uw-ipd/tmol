@@ -26,13 +26,13 @@ flowchart TD
     end
 
     subgraph preparation [Preparation -- per residue]
-        B --> C["ligand_atom_array_to_rdkit_mol\n(rdkit_mol.py)"]
-        C --> D["protonate_ligand_mol\n(Dimorphite-DL)"]
-        D --> E["AssignBondOrdersFromTemplate\n+ SanitizeMol + Chem.AddHs"]
+        B --> S["ligand_smiles_candidates_from_atom_array\n(structure_to_smiles.py — input bonds/geometry, no CCD lookup)"]
+        S --> D["nonstandard_residue_info_from_smiles_via_mol2\n(detect.py — Dimorphite + OpenBabel 3D MMFF94 mol2)"]
+        D --> E["ligand_atom_array_to_rdkit_mol + SanitizeMol\n(rdkit_mol.py)"]
 
-        E --> F["compute_mmff94_charges\n(mol3d.py — RDKit MMFF94)"]
+        E --> F["authoritative_charges_by_index\n(mol3d.py — OpenBabel MMFF94 by atom index; no RDKit/Gasteiger fallback)"]
         E --> H["assign_tmol_atom_types\n(atom_typing.py — RDKit)"]
-        H --> I["rename atoms to CIF names\n(preparation.py)"]
+        H --> I["rename atoms to CIF names\n(preparation.py — graph match)"]
         I --> J["build_residue_type\n(residue_builder.py — RDKit)"]
     end
 
@@ -241,8 +241,9 @@ To "reset", just reacquire `get_default()` (or drop your extended instance).
 | `__init__.py` | 32 | Thin public API / re-export layer |
 | `preparation.py` | 434 | `prepare_single_ligand`, `prepare_ligands`, CIF atom renaming |
 | `detect.py` | 641 | `NonStandardResidueInfo`, `detect_nonstandard_residues` |
-| `rdkit_mol.py` | 307 | `ligand_atom_array_to_rdkit_mol`, `protonate_ligand_mol` |
-| `mol3d.py` | 146 | `compute_mmff94_charges` |
+| `rdkit_mol.py` | 230 | `ligand_atom_array_to_rdkit_mol` (Mol from AtomArray, preserving source chemistry) |
+| `mol3d.py` | 74 | `authoritative_charges_by_index` (OpenBabel MMFF94 charges by atom index) |
+| `structure_to_smiles.py` | 150 | `ligand_smiles_candidates_from_atom_array` (input bonds/geometry; no CCD lookup) |
 | `atom_typing.py` | 1577 | Rosetta-style atom type assignment from Chem.Mol |
 | `residue_builder.py` | 504 | `build_residue_type` — RawResidueType from Chem.Mol |
 | `registry.py` | 400 | `inject_ligand_preparations`, `LigandPreparation`, `LigandPreparationCache` |

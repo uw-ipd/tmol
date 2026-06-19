@@ -1,273 +1,71 @@
-"""Molecular charge computation for ligands.
+"""Authoritative partial-charge mapping for prepared ligands.
 
-MMFF94 partial charges are the only automatic charge method used in the
-pipeline. If MMFF94 cannot parameterize a molecule, preparation fails with
-an actionable error instead of silently switching charge models.
+The unified ligand path derives every ligand's partial charges from its SMILES
+via OpenBabel MMFF94 (see
+:func:`tmol.ligand.detect.nonstandard_residue_info_from_smiles_via_mol2`). Those
+charges arrive on the detected ligand as an ``{atom_name: charge}`` map in
+source-atom order. This module maps them onto the prepared molecule purely by
+stable atom index, so charges are wholly independent of any later atom renaming
+and no force-field recomputation is ever attempted.
 
-When the typing pipeline preserves source aromatic/Kekulé annotations
-(``sanitize_tolerant``), MMFF may still require a fully kekulized graph.
-``compute_mmff94_charges`` therefore retries once on a molecule copy with
-strict RDKit sanitization only — it does not reuse tolerant prep semantics.
+If authoritative charges are missing, incomplete, or mis-sized, preparation
+fails loudly rather than guessing -- there is no RDKit/Gasteiger fallback.
 """
 
 from typing import Mapping, Optional, Sequence
 
 from rdkit import Chem
-from rdkit.Chem import AllChem
-
-from tmol.ligand.atom_typing import AtomTypeAssignment
-from tmol.ligand.rdkit_mol import (
-    clear_aromatic_perception_flags,
-    clear_source_chemistry_props,
-    normalize_non_ring_aromatic_bonds,
-    normalize_protonated_mol_for_mmff94,
-)
-
-_MMFF_SANITIZE_EXCEPTIONS = (
-    Chem.rdchem.KekulizeException,
-    Chem.rdchem.AtomKekulizeException,
-    Chem.rdchem.AtomValenceException,
-)
 
 
-def _name_sort_key(name: str) -> tuple[str, int]:
-    """Create a natural sort key for atom names with numeric suffixes.
+def authoritative_charges_by_index(
+    source_atom_names: Sequence[str],
+    partial_charges: Optional[Mapping[str, float]],
+    mol: Chem.Mol,
+    *,
+    ligand_name: str = "",
+) -> dict[int, float]:
+    """Return ``{atom_index: charge}`` mapping source charges onto ``mol``.
+
+    ``source_atom_names[i]`` must name atom ``i`` of ``mol``. The SMILES -> mol2
+    reader preserves atom order from the OpenBabel mol2 through to the prepared
+    molecule, so the per-atom MMFF94 charges can be applied directly by index --
+    independent of any downstream atom renaming.
 
     Args:
-        name: Atom name such as ``C12``.
+        source_atom_names: Atom names in source (OpenBabel mol2) order.
+        partial_charges: Authoritative ``{atom_name: charge}`` map from the
+            SMILES -> OpenBabel MMFF94 step.
+        mol: The prepared RDKit molecule (same atom order as the source).
+        ligand_name: Optional residue name for error messages.
 
     Returns:
-        Tuple of alphabetic prefix and numeric suffix for stable sorting.
-    """
-    i = len(name)
-    while i > 0 and name[i - 1].isdigit():
-        i -= 1
-    prefix = name[:i]
-    suffix = name[i:]
-    return (prefix, int(suffix) if suffix else -1)
-
-
-def _mmff_diagnostics(mol: Chem.Mol) -> str:
-    """Return a compact diagnostic string for MMFF parameterization failures."""
-    has_all = False
-    try:
-        has_all = bool(AllChem.MMFFHasAllMoleculeParams(mol))
-    except Exception:
-        has_all = False
-    try:
-        smiles = Chem.MolToSmiles(Chem.RemoveHs(Chem.Mol(mol)), isomericSmiles=True)
-    except Exception:
-        smiles = "<smiles-unavailable>"
-
-    atom_summaries = []
-    for atom in mol.GetAtoms():
-        atom_summaries.append(
-            (
-                f"{atom.GetIdx()}:{atom.GetSymbol()}(q={atom.GetFormalCharge()},"
-                f"deg={atom.GetDegree()},aro={int(atom.GetIsAromatic())},"
-                f"ring={int(atom.IsInRing())})"
-            )
-        )
-
-    return (
-        f"MMFFHasAllMoleculeParams={has_all}; "
-        f"num_atoms={mol.GetNumAtoms()}; "
-        f"smiles={smiles}; "
-        f"atoms=[{', '.join(atom_summaries)}]"
-    )
-
-
-def _canonicalize_mol_for_mmff(mol: Chem.Mol) -> None:
-    """Strict sanitize/kekulize for MMFF on a dedicated molecule copy.
-
-    The main typing pipeline may skip ``KEKULIZE`` when CIF/mol2 annotations
-    are present. MMFF requires a kekulizable graph; this path clears those
-    hints and runs full RDKit sanitization without ``sanitize_tolerant``.
-    """
-    clear_source_chemistry_props(mol)
-    normalize_non_ring_aromatic_bonds(mol)
-    try:
-        Chem.SanitizeMol(mol)
-        return
-    except _MMFF_SANITIZE_EXCEPTIONS:
-        pass
-
-    clear_aromatic_perception_flags(mol)
-    Chem.SanitizeMol(mol)
-
-
-def _mmff_charges_by_index(mol: Chem.Mol, atom_count: int) -> dict[int, float]:
-    """Return ``{atom_index: MMFF94 partial charge}`` for ``mol``.
+        ``{rdkit_atom_index: partial_charge}`` for every atom in ``mol``.
 
     Raises:
-        RuntimeError: If RDKit returns no MMFF properties for ``mol``.
+        ValueError: If charges are absent, incomplete, or atom counts disagree.
     """
-    props = AllChem.MMFFGetMoleculeProperties(mol, mmffVariant="MMFF94")
-    if props is None:
-        raise RuntimeError("MMFF94 parameterization returned no properties")
-    return {i: props.GetMMFFPartialCharge(i) for i in range(atom_count)}
-
-
-def _format_mmff_attempt_errors(attempt_errors: Sequence[tuple[str, Exception]]) -> str:
-    """Render ``(stage, exception)`` pairs into a single compact diagnostic string."""
-    formatted: list[str] = []
-    for stage, exc in attempt_errors:
-        msg = str(exc).replace("\n", " ").strip() or "<no message>"
-        if len(msg) > 200:
-            msg = msg[:197] + "..."
-        formatted.append(f"{stage}: {type(exc).__name__}: {msg}")
-    return "; ".join(formatted)
-
-
-def compute_mmff94_charges(mol: Chem.Mol) -> dict[int, float]:
-    """Compute MMFF94 partial charges via RDKit.
-
-    Tries the input molecule first, then one retry on a copy after strict
-    MMFF-only canonicalization.
-
-    Raises:
-        RuntimeError: If RDKit cannot parameterize MMFF94 charges for ``mol``.
-    """
-    attempt_errors: list[tuple[str, Exception]] = []
-    atom_count = mol.GetNumAtoms()
-
-    try:
-        return _mmff_charges_by_index(mol, atom_count)
-    except Exception as exc:
-        attempt_errors.append(("input", exc))
-
-    mmff_mol = Chem.Mol(mol)
-    try:
-        _canonicalize_mol_for_mmff(mmff_mol)
-    except Exception as exc:
-        attempt_errors.append(("mmff-canonicalized/prep", exc))
-    else:
-        try:
-            return _mmff_charges_by_index(mmff_mol, atom_count)
-        except Exception as exc:
-            attempt_errors.append(("mmff-canonicalized", exc))
-
-    try:
-        rebuilt = normalize_protonated_mol_for_mmff94(Chem.Mol(mol))
-        if rebuilt.GetNumAtoms() == atom_count:
-            return _mmff_charges_by_index(rebuilt, atom_count)
-        attempt_errors.append(
-            (
-                "mmff-smiles-rebuild",
-                RuntimeError(
-                    "SMILES rebuild changed atom count "
-                    f"({atom_count} -> {rebuilt.GetNumAtoms()})"
-                ),
-            )
-        )
-    except Exception as exc:
-        attempt_errors.append(("mmff-smiles-rebuild", exc))
-
-    detail = _format_mmff_attempt_errors(attempt_errors)
-    raise RuntimeError(
-        "MMFF94 parameterization failed after canonicalization retry. "
-        f"{_mmff_diagnostics(mol)}; "
-        f"attempts=[{detail}]"
-    ) from attempt_errors[0][1]
-
-
-def build_partial_charges(
-    mol: Chem.Mol,
-    atom_types: list[AtomTypeAssignment],
-    input_charges: Optional[Mapping[str, float]] = None,
-    ligand_name: Optional[str] = None,
-    charge_mode: str = "auto",
-) -> dict[str, float]:
-    """Return ``{atom_name: partial_charge}`` for every atom in ``atom_types``.
-
-    Authoritative caller-supplied charges (e.g. AM1-BCC from mol2/CIF) win
-    when present in ``charge_mode="auto"``. Remaining atoms fall back to MMFF94,
-    and failures are surfaced to the caller.
-    """
-    mode = charge_mode.lower().strip()
-    if mode not in {"auto", "input", "mmff94"}:
+    prefix = f"{ligand_name}: " if ligand_name else ""
+    if not partial_charges:
         raise ValueError(
-            f"Unsupported charge_mode={charge_mode!r}. "
-            "Expected one of: 'auto', 'input', 'mmff94'."
+            f"{prefix}no authoritative partial charges available. The unified "
+            "ligand path requires OpenBabel MMFF94 charges from the SMILES step; "
+            "no RDKit/Gasteiger charge fallback is used."
         )
-
-    by_name = {} if mode == "mmff94" else dict(input_charges or {})
-    if by_name:
-        missing_from_input = [at for at in atom_types if at.atom_name not in by_name]
-        if missing_from_input:
-            # When hydrogens are regenerated by RDKit, names can differ
-            # (e.g. source H1/H2 vs generated HC1/HC2). Bridge those
-            # deterministically so authoritative source charges still apply.
-            missing_non_h = [at for at in missing_from_input if at.element != "H"]
-            if not missing_non_h:
-                atom_names = {at.atom_name for at in atom_types}
-                source_h = [
-                    name
-                    for name in by_name
-                    if name not in atom_names and name.startswith("H")
-                ]
-                if len(source_h) >= len(missing_from_input):
-                    source_h_sorted = sorted(source_h, key=_name_sort_key)
-                    missing_h_sorted = sorted(
-                        missing_from_input, key=lambda at: at.index
-                    )
-                    for at, src_name in zip(missing_h_sorted, source_h_sorted):
-                        by_name[at.atom_name] = by_name[src_name]
-                    missing_from_input = [
-                        at for at in atom_types if at.atom_name not in by_name
-                    ]
-        missing_heavy = [at for at in missing_from_input if at.element != "H"]
-        if not missing_heavy and missing_from_input:
-            try:
-                by_index = compute_mmff94_charges(mol)
-            except RuntimeError as exc:
-                prefix = f"{ligand_name}: " if ligand_name else ""
-                missing_names = ", ".join(at.atom_name for at in missing_from_input)
-                raise RuntimeError(
-                    f"{prefix}partial-charge generation failed for hydrogens "
-                    f"not present in authoritative input: [{missing_names}]. "
-                    f"Details: {exc}"
-                ) from exc
-            return {
-                at.atom_name: (
-                    by_name[at.atom_name]
-                    if at.atom_name in by_name
-                    else by_index[at.index]
-                )
-                for at in atom_types
-            }
-        if not missing_from_input:
-            return {at.atom_name: by_name[at.atom_name] for at in atom_types}
-    else:
-        missing_from_input = list(atom_types)
-
-    if mode == "input":
-        prefix = f"{ligand_name}: " if ligand_name else ""
-        missing_names = ", ".join(at.atom_name for at in missing_from_input)
-        raise RuntimeError(
-            f"{prefix}authoritative input charges are required (charge_mode='input') "
-            f"but missing for atoms: [{missing_names}]"
+    n_atoms = mol.GetNumAtoms()
+    if len(source_atom_names) != n_atoms:
+        raise ValueError(
+            f"{prefix}atom-count mismatch mapping charges by index: "
+            f"{len(source_atom_names)} source names vs {n_atoms} prepared atoms."
         )
-    try:
-        by_index = compute_mmff94_charges(mol)
-    except RuntimeError as exc:
-        prefix = f"{ligand_name}: " if ligand_name else ""
-        missing_names = ", ".join(at.atom_name for at in missing_from_input)
-        raise RuntimeError(
-            f"{prefix}partial-charge generation failed. "
-            "No Gasteiger fallback is used; provide authoritative input "
-            "charges or fix MMFF94 parameterization. "
-            "For CIF inputs, load with biotite using include_bonds=True and "
-            "include per-atom partial charges when available "
-            "(e.g. extra_fields=['partial_charge']). "
-            "Alternatively, provide pre-parameterized ligand_params_files. "
-            f"Atoms requiring MMFF charges: [{missing_names}]. "
-            f"Details: {exc}"
-        ) from exc
-    charges: dict[str, float] = {}
-    for at in atom_types:
-        if at.atom_name in by_name:
-            charges[at.atom_name] = by_name[at.atom_name]
-        elif at.index in by_index:
-            charges[at.atom_name] = by_index[at.index]
-    return charges
+    by_index: dict[int, float] = {}
+    missing: list[str] = []
+    for index, name in enumerate(source_atom_names):
+        if name in partial_charges:
+            by_index[index] = float(partial_charges[name])
+        else:
+            missing.append(name)
+    if missing:
+        raise ValueError(
+            f"{prefix}authoritative partial charges missing for atoms: {missing}."
+        )
+    return by_index

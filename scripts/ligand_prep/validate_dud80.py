@@ -67,9 +67,7 @@ def main() -> int:
             tmol_mol2 = mol2_dir / f"{e.name}.mol2"
             obabel_smiles_to_mol2(smi, tmol_mol2)
             info = nonstandard_residue_info_from_mol2(tmol_mol2, res_name=e.name)
-            prep = prepare_single_ligand(
-                info, charge_mode=e.charge_mode, sample_proton_chi=e.sample_proton_chi
-            )
+            prep = prepare_single_ligand(info, sample_proton_chi=e.sample_proton_chi)
             params_io.write_params_file(
                 prep, params_dir / f"{e.name}.params", format="rosetta"
             )
@@ -86,9 +84,7 @@ def main() -> int:
         # --- (B) mol2 direct (read the ground-truth mol2) ---
         try:
             info = nonstandard_residue_info_from_mol2(e.mol2, res_name=e.name)
-            prep = prepare_single_ligand(
-                info, charge_mode=e.charge_mode, sample_proton_chi=e.sample_proton_chi
-            )
+            prep = prepare_single_ligand(info, sample_proton_chi=e.sample_proton_chi)
             chem_ok, chi_ok, details = _evaluate(prep, ref)
             b_chem += chem_ok
             b_full += chem_ok and chi_ok

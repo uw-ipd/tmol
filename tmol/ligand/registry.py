@@ -26,12 +26,12 @@ from tmol.ligand.chemistry_tables import get_hbond_properties
 
 logger = logging.getLogger(__name__)
 
-CacheKey = tuple[str, float, str, tuple[str, ...], tuple[str, ...]]
+CacheKey = tuple[str, float, bool, tuple[str, ...], tuple[str, ...]]
 
 
 @dataclass
 class LigandPreparationCache:
-    """Mutable cache keyed by (res_name, ph, charge_mode, atom_names, elements)."""
+    """Mutable cache keyed by (res_name, ph, sample_proton_chi, atom_names, elements)."""
 
     ligands_by_key: dict[CacheKey, RawResidueType] = field(default_factory=dict)
     charges_by_key: dict[CacheKey, dict[str, float]] = field(default_factory=dict)
@@ -298,10 +298,10 @@ class LigandPreparation:
 
     Both pipeline entry points produce this same struct:
 
-    * **AtomArray path** — :func:`tmol.ligand.prepare_single_ligand`
-      runs the RDKit pipeline (protonation, atom typing, residue
-      building, cartbonded extraction) and returns one
-      ``LigandPreparation`` per detected ligand.
+    * **AtomArray / SMILES path** — :func:`tmol.ligand.prepare_single_ligand`
+      types the (already protonated, already charged) SMILES-derived molecule,
+      builds the residue, and extracts cartbonded params, returning one
+      ``LigandPreparation`` per ligand.
     * **Params-file path** — :func:`tmol.ligand.params_file.load_params_file`
       parses a ``.tmol`` YAML and returns ``list[LigandPreparation]``
       describing the residues defined in that file.
