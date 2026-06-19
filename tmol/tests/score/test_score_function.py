@@ -210,6 +210,9 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
     def n(x):
         return numpy.array(x)
 
+    # fa_ljatr/fa_elec match the beta2016 baselines: soft_rep only softens the
+    # LJ repulsive shoulder, leaving the attractive and electrostatic terms
+    # unchanged. gen_torsions is enabled in beta_soft.yaml on this branch.
     gold_score_map = {
         ScoreType.cart_lengths: n([37.762318]),
         ScoreType.cart_angles: n([183.56915]),
@@ -217,10 +220,10 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
         ScoreType.cart_impropers: n([9.430529]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
-        ScoreType.fa_ljatr: n([-417.9582]),
+        ScoreType.fa_ljatr: n([-417.02362]),
         ScoreType.fa_ljrep: n([39.92654]),
         ScoreType.fa_lk: n([298.27637]),
-        ScoreType.fa_elec: n([-136.2924]),
+        ScoreType.fa_elec: n([-134.02109]),
         ScoreType.hbond: n([-55.675613]),
         ScoreType.lk_ball_iso: n([422.03955]),
         ScoreType.lk_ball: n([172.19647]),
@@ -232,6 +235,7 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
         ScoreType.dunbrack_rot: n([70.64968]),
         ScoreType.dunbrack_rotdev: n([240.31009]),
         ScoreType.dunbrack_semirot: n([99.660904]),
+        ScoreType.gen_torsions: n([0.0]),
     }
     for st in score_types:
         numpy.testing.assert_allclose(
