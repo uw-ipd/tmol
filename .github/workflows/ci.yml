@@ -1,7 +1,11 @@
 # CI pipeline — self-hosted runner on fela (as bench).
 #
-# Jobs: lint → build → (test-cpu | test-cuda | benchmark in parallel) → report
-# CPU pytest uses the cpu Slurm partition; GPU work uses gpu-train with retry.
+# Jobs: lint → build → test (cpu + cuda + benchmark, serialized) → report
+#
+# test-cpu / test-cuda / benchmark are NOT separate parallel jobs: there is a
+# single [self-hosted, gpu] runner, so parallel jobs only queue behind each
+# other and each re-downloads the ~3GB build cache. One test job restores
+# cache once and runs CPU (cpu partition), CUDA, then benchmarks (gpu-train).
 
 name: CI
 
@@ -128,11 +132,12 @@ jobs:
             .torch_ext*
           key: ${{ env.CACHE_KEY }}
 
-  test-cpu:
-    name: test (cpu)
+  test:
+    name: test
     runs-on: [self-hosted, gpu]
     needs: build
-    timeout-minutes: 180
+    if: ${{ !cancelled() }}
+    timeout-minutes: 360
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -146,6 +151,8 @@ jobs:
             .venv
             .torch_ext*
           key: ${{ env.CACHE_KEY }}
+          restore-keys: |
+            tmol-ci-
           fail-on-cache-miss: true
 
       - name: Pytest CPU
@@ -164,41 +171,11 @@ jobs:
           CPU_TEST
           SCRIPT
 
-      - name: Upload CPU test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-cpu
-          path: |
-            testing.cpu.junit.xml
-            coverage.xml
-          if-no-files-found: ignore
-
-  test-cuda:
-    name: test (cuda)
-    runs-on: [self-hosted, gpu]
-    needs: build
-    timeout-minutes: 180
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          submodules: recursive
-
-      - name: Restore build cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            .venv
-            .torch_ext*
-          key: ${{ env.CACHE_KEY }}
-          fail-on-cache-miss: true
-
       - name: Pytest CUDA
         env:
           GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
         run: |
-          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
+          .github/ci/srun_gpu_retry.sh <<SCRIPT
           apptainer exec --nv --fakeroot --containall \
             --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
             --pwd "$GITHUB_WORKSPACE" \
@@ -210,6 +187,32 @@ jobs:
           GPU_TEST
           SCRIPT
 
+      - name: Benchmark
+        env:
+          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
+        run: |
+          .github/ci/srun_gpu_retry.sh <<SCRIPT
+          apptainer exec --nv --fakeroot --containall \
+            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
+            --pwd "$GITHUB_WORKSPACE" \
+            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
+            --env GPU_ALLOC_SENTINEL="$GPU_ALLOC_SENTINEL" \
+            "$SIF" bash <<'BENCHMARK'
+          set -ex
+          .github/ci/run_benchmarks.sh
+          BENCHMARK
+          SCRIPT
+
+      - name: Upload CPU test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-cpu
+          path: |
+            testing.cpu.junit.xml
+            coverage.xml
+          if-no-files-found: ignore
+
       - name: Upload CUDA test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -218,54 +221,18 @@ jobs:
           path: testing.cuda.junit.xml
           if-no-files-found: ignore
 
-  benchmark:
-    name: benchmark
-    runs-on: [self-hosted, gpu]
-    needs: build
-    timeout-minutes: 120
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          submodules: recursive
-
-      - name: Restore build cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            .venv
-            .torch_ext*
-          key: ${{ env.CACHE_KEY }}
-          fail-on-cache-miss: true
-
-      - name: Benchmark
-        run: |
-          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
-          apptainer exec --nv --fakeroot --containall \
-            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            --pwd "$GITHUB_WORKSPACE" \
-            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
-            "$SIF" bash <<'BENCHMARK'
-          set -ex
-          source .venv/bin/activate
-          export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
-          BENCHMARK_DIR=benchmark/$GITHUB_REPOSITORY/$GITHUB_REF_NAME
-          BENCHMARK_RESULT=${BENCHMARK_DIR}/${GITHUB_RUN_NUMBER}.json
-          mkdir -p "$BENCHMARK_DIR"
-          pytest -p no:rerunfailures --benchmark-enable --benchmark-only \
-            --benchmark-name=short --benchmark-sort=fullname \
-            --benchmark-columns=ops,mean,iqr \
-            --benchmark-json="${BENCHMARK_RESULT}" \
-            --benchmark-max-time=.1
-          pytest-benchmark compare --name=short --sort=fullname \
-            --columns=ops,mean,iqr $(find benchmark -name '*.json')
-          BENCHMARK
-          SCRIPT
+          name: benchmark-results
+          path: benchmark/**/*
+          if-no-files-found: ignore
 
   report:
     name: report
     runs-on: [self-hosted, gpu]
-    needs: [test-cpu, test-cuda]
+    needs: test
     if: always()
     timeout-minutes: 15
     steps:
