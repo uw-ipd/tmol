@@ -1,11 +1,8 @@
-# CI pipeline — self-hosted runner on fela (as bench).
+# CI — single job on the fela self-hosted runner (user bench).
 #
-# Jobs: lint → build → test (cpu + cuda + benchmark, serialized) → report
-#
-# test-cpu / test-cuda / benchmark are NOT separate parallel jobs: there is a
-# single [self-hosted, gpu] runner, so parallel jobs only queue behind each
-# other and each re-downloads the ~3GB build cache. One test job restores
-# cache once and runs CPU (cpu partition), CUDA, then benchmarks (gpu-train).
+# One checkout, one venv, one gpu-train srun: build → CPU tests → CUDA tests →
+# benchmarks. Lint runs on the runner before queuing Slurm. This avoids brittle
+# multi-job cache handoffs, cpu/gpu env leakage, and runner queue pile-up.
 
 name: CI
 
@@ -21,36 +18,28 @@ concurrency:
 
 env:
   SIF: /home/bench/git_ci_apptainer/tmol.sif
-  PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
   SLURM_PARTITION: gpu-train
   SLURM_GRES: gpu:1
-  SLURM_CPU_PARTITION: cpu
   SLURM_CPUS_PER_TASK: 16
   SLURM_MEM: 128G
   SLURM_TIME: 06:00:00
-  SLURM_CPU_TIME: 06:00:00
   SRUN_GPU_MAX_ATTEMPTS: 5
   SRUN_GPU_RETRY_SLEEP: 10
-  CACHE_KEY: tmol-ci-${{ github.sha }}
 
 jobs:
-  lint:
-    name: lint
+  ci:
+    name: ci
     runs-on: [self-hosted, gpu]
-    timeout-minutes: 30
+    timeout-minutes: 720
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
-      - name: Restore source timestamps
-        run: .github/ci/restore_source_timestamps.sh
+      - run: .github/ci/restore_source_timestamps.sh
+      - run: .github/ci/setup_ci_venv.sh
 
-      - name: Setup venv
-        run: .github/ci/setup_ci_venv.sh
-
-      - name: Pre-commit
+      - name: Lint
         run: |
           apptainer exec --nv --fakeroot --containall \
             --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
@@ -62,194 +51,48 @@ jobs:
           pre-commit run --all-files --show-diff-on-failure
           LINT
 
-  build:
-    name: build
-    runs-on: [self-hosted, gpu]
-    needs: lint
-    timeout-minutes: 360
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          submodules: recursive
-
-      - name: Restore source timestamps
-        run: .github/ci/restore_source_timestamps.sh
-
-      - name: Setup venv
-        run: .github/ci/setup_ci_venv.sh
-
-      - name: Compile and install (GPU srun)
-        run: |
-          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
-          apptainer exec --nv --fakeroot --containall \
-            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            --pwd "$GITHUB_WORKSPACE" \
-            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
-            "$SIF" bash <<'BUILD'
-          set -ex
-          source .venv/bin/activate
-
-          export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
-
-          uv pip compile pyproject.toml --all-extras --output-file requirements.txt
-          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" requirements.txt > to_install.txt
-          uv pip install -r to_install.txt
-          uv pip install torch
-
-          RUN_GPU=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')" 2>/dev/null || echo "n/a")
-          CUDA_ARCHS="${TMOL_CI_CUDA_ARCHITECTURES:-80;86;89;90;100}"
-          NVCC_VER=$(nvcc --version 2>&1 | sed -n 's/.*release \([0-9.]*\).*/\1/p' | head -1)
-          case "${NVCC_VER}" in
-            11.*|12.*) CUDA_ARCHS="80;86;89;90" ;;
-          esac
-          unset CMAKE_CUDA_ARCHITECTURES
-          export CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}"
-          TORCH_ARCH_LIST=""
-          IFS=';' read -ra _CUDA_ARCH_ARR <<< "${CUDA_ARCHS}"
-          for _A in "${_CUDA_ARCH_ARR[@]}"; do
-            if [ "${#_A}" -eq 3 ]; then
-              TORCH_ARCH_LIST+=" ${_A:0:2}.${_A:2:1}"
-            elif [ "${#_A}" -eq 2 ]; then
-              TORCH_ARCH_LIST+=" ${_A:0:1}.${_A:1:1}"
-            fi
-          done
-          export TORCH_CUDA_ARCH_LIST="${TORCH_ARCH_LIST# }"
-          echo "=== Runner GPU sm_${RUN_GPU} | nvcc ${NVCC_VER} | CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS} ==="
-          MAX_JOBS=12 pip install -v --no-deps \
-            -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
-            -Ccmake.define.TMOL_BUILD_TESTS=ON \
-            -Ccmake.define.TMOL_NVCC_THREADS=2 \
-            -e .
-          BUILD
-          SCRIPT
-
-      - name: Save build cache
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            .venv
-            .torch_ext*
-          key: ${{ env.CACHE_KEY }}
-
-  test:
-    name: test
-    runs-on: [self-hosted, gpu]
-    needs: build
-    if: ${{ !cancelled() }}
-    timeout-minutes: 360
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          submodules: recursive
-
-      - name: Restore build cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            .venv
-            .torch_ext*
-          key: ${{ env.CACHE_KEY }}
-          restore-keys: |
-            tmol-ci-
-          fail-on-cache-miss: true
-
-      - name: Pytest CPU
-        run: |
-          .github/ci/srun_cpu.sh <<'SCRIPT'
-          apptainer exec --fakeroot --containall \
-            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            --pwd "$GITHUB_WORKSPACE" \
-            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
-            "$SIF" bash <<'CPU_TEST'
-          set -ex
-          source .venv/bin/activate
-          CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
-            --cov="$GITHUB_WORKSPACE/tmol" --cov-report=xml \
-            --junitxml="$GITHUB_WORKSPACE/testing.cpu.junit.xml" -k "not cuda"
-          CPU_TEST
-          SCRIPT
-
-      - name: Pytest CUDA
+      - name: Build and test
         env:
           GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
         run: |
+          rm -f "$GPU_ALLOC_SENTINEL"
           .github/ci/srun_gpu_retry.sh <<SCRIPT
           apptainer exec --nv --fakeroot --containall \
             --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
             --pwd "$GITHUB_WORKSPACE" \
             --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
             --env GPU_ALLOC_SENTINEL="$GPU_ALLOC_SENTINEL" \
-            "$SIF" bash <<'GPU_TEST'
+            "$SIF" bash <<'WORK'
           set -ex
-          .github/ci/run_gpu_tests.sh
-          GPU_TEST
+          .github/ci/run_ci_gpu_work.sh
+          WORK
           SCRIPT
 
-      - name: Benchmark
-        env:
-          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
-        run: |
-          .github/ci/srun_gpu_retry.sh <<SCRIPT
-          apptainer exec --nv --fakeroot --containall \
-            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            --pwd "$GITHUB_WORKSPACE" \
-            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
-            --env GPU_ALLOC_SENTINEL="$GPU_ALLOC_SENTINEL" \
-            "$SIF" bash <<'BENCHMARK'
-          set -ex
-          .github/ci/run_benchmarks.sh
-          BENCHMARK
-          SCRIPT
-
-      - name: Upload CPU test results
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: test-cpu
+          name: test-results
           path: |
             testing.cpu.junit.xml
+            testing.cuda.junit.xml
             coverage.xml
           if-no-files-found: ignore
 
-      - name: Upload CUDA test results
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-cuda
-          path: testing.cuda.junit.xml
-          if-no-files-found: ignore
-
-      - name: Upload benchmark results
-        if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: benchmark-results
           path: benchmark/**/*
           if-no-files-found: ignore
 
-  report:
-    name: report
-    runs-on: [self-hosted, gpu]
-    needs: test
-    if: always()
-    timeout-minutes: 15
-    steps:
-      - name: Download test artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: test-*
-          merge-multiple: true
-
-      - name: Test summary
-        uses: test-summary/action@v2
+      - uses: test-summary/action@v2
+        if: always()
         with:
           paths: |
             testing.*.junit.xml
 
-      - name: Upload Codecov
-        uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v5
+        if: always()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/coverage.xml

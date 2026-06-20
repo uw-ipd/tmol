@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
-# GPU benchmark lane (mirrors foundry-dev gpu job pattern).
+# GPU benchmark lane.
 set -euo pipefail
 
 : "${GITHUB_WORKSPACE:?}"
 
-if [[ -n "${GPU_ALLOC_SENTINEL:-}" ]]; then
-  touch "${GPU_ALLOC_SENTINEL}"
-fi
+# shellcheck source=/dev/null
+source .github/ci/gpu_env.sh
+touch_gpu_sentinel
+strip_cuda_compat_from_ld_path
 
 source .venv/bin/activate
-
-export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
 
 BENCHMARK_DIR="benchmark/${GITHUB_REPOSITORY}/${GITHUB_REF_NAME}"
 BENCHMARK_RESULT="${BENCHMARK_DIR}/${GITHUB_RUN_NUMBER}.json"
@@ -23,8 +22,8 @@ pytest -p no:rerunfailures --benchmark-enable --benchmark-only \
   --benchmark-max-time=.1
 
 # First run on a branch has no history to compare against.
-json_files=$(find benchmark -name '*.json' -print -quit)
-if [[ -n "$json_files" ]]; then
+mapfile -t json_files < <(find benchmark -name '*.json' -print 2>/dev/null || true)
+if ((${#json_files[@]} > 0)); then
   pytest-benchmark compare --name=short --sort=fullname \
-    --columns=ops,mean,iqr $(find benchmark -name '*.json')
+    --columns=ops,mean,iqr "${json_files[@]}"
 fi

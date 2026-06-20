@@ -6,8 +6,7 @@
 
 from tmol.ligand.external.atomworks_rdkit import (
     atom_array_to_rdkit,
-    ccd_code_to_rdkit,
     fix_mol,
 )
 
-__all__ = ["atom_array_to_rdkit", "ccd_code_to_rdkit", "fix_mol"]
+__all__ = ["atom_array_to_rdkit", "fix_mol"]

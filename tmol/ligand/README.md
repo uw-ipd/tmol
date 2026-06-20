@@ -62,11 +62,12 @@ flowchart TD
 
 | Step | Library | Why |
 |------|---------|-----|
-| Mol construction from AtomArray | **RDKit** + Biotite | Direct coordinate + bond transfer, no SMILES roundtrip |
-| Protonation at target pH | **RDKit** via Dimorphite-DL | `protonate_mol_variants` operates on Mol objects directly |
-| Partial charges (MMFF94) | **RDKit** | `AllChem.MMFFGetMoleculeProperties`; failures raise an error (no fallback) |
-| Atom typing | **RDKit** | Rosetta AtomTypeClassifier port operating on perceived RDKit hybridization, aromaticity, ring membership, and bond orders |
-| Residue type building | **RDKit** | Atom tree, internal coordinates, bond order from Chem.Mol |
+| SMILES from structure | **RDKit** + Biotite | Input bonds or geometry; no CCD lookup |
+| Protonation at target pH | **Dimorphite-DL** | pKa-based protonation on SMILES |
+| 3D coords + MMFF94 charges | **OpenBabel** | Conformer search + force-field charges in mol2 |
+| Mol construction from AtomArray | **RDKit** + Biotite | Direct coordinate + bond transfer for typing |
+| Atom typing | **RDKit** | Rosetta AtomTypeClassifier port |
+| Residue type building | **RDKit** | Atom tree, internal coordinates, bond order |
 
 ## Direct Params File Injection
 
@@ -160,6 +161,7 @@ avoid repeating full ligand preparation.
 
 - residue name
 - pH
+- `sample_proton_chi`
 - atom names
 - element list
 
@@ -228,26 +230,27 @@ To "reset", just reacquire `get_default()` (or drop your extended instance).
 
 | Step | Library |
 |------|---------|
-| Mol construction from AtomArray | **RDKit** + Biotite |
-| Protonation at target pH | **RDKit** via Dimorphite-DL |
-| Partial charges (MMFF94) | **RDKit** (no fallback; fail loud on parameterization errors) |
-| Atom typing | **RDKit** (Rosetta AtomTypeClassifier port) |
-| Residue type building | **RDKit** (atom tree, icoors, bond order) |
+| SMILES from structure | **RDKit** + Biotite |
+| Protonation | **Dimorphite-DL** |
+| 3D + MMFF94 charges | **OpenBabel** (mol2) |
+| Atom typing | **RDKit** (Rosetta port) |
+| Residue building | **RDKit** |
 
 ## File Inventory
 
-| File | Lines | Role |
-|------|------:|------|
-| `__init__.py` | 32 | Thin public API / re-export layer |
-| `preparation.py` | 434 | `prepare_single_ligand`, `prepare_ligands`, CIF atom renaming |
-| `detect.py` | 641 | `NonStandardResidueInfo`, `detect_nonstandard_residues` |
-| `rdkit_mol.py` | 230 | `ligand_atom_array_to_rdkit_mol` (Mol from AtomArray, preserving source chemistry) |
-| `mol3d.py` | 74 | `authoritative_charges_by_index` (OpenBabel MMFF94 charges by atom index) |
-| `structure_to_smiles.py` | 150 | `ligand_smiles_candidates_from_atom_array` (input bonds/geometry; no CCD lookup) |
-| `atom_typing.py` | 1577 | Rosetta-style atom type assignment from Chem.Mol |
-| `residue_builder.py` | 504 | `build_residue_type` — RawResidueType from Chem.Mol |
-| `registry.py` | 400 | `inject_ligand_preparations`, `LigandPreparation`, `LigandPreparationCache` |
-| `graph_match.py` | 138 | VF2 heavy-atom isomorphism for CIF name mapping |
-| `params_io.py` | 180 | Rosetta `.params` file read/write (backward compat) |
-| `chemistry_tables.py` | 89 | H-bond/polar/sp2 atom-type sets from default DB |
-| `dimorphite_dl.py` | 1407 | Vendored Dimorphite-DL (Apache-2.0) |
+| File | Role |
+|------|------|
+| `preparation.py` | `prepare_ligands`, single-ligand helpers, CIF rename |
+| `detect.py` | `NonStandardResidueInfo`, detection, mol2/SMILES readers |
+| `structure_to_smiles.py` | SMILES candidates from AtomArray |
+| `openbabel_compat.py` | SMILES→mol2, mol2 read fallbacks |
+| `rdkit_mol.py` | AtomArray → RDKit Mol |
+| `mol3d.py` | OpenBabel MMFF94 charges by atom index |
+| `atom_typing.py` | Rosetta-style atom type assignment |
+| `chi_topology.py` | Rotatable bonds / PROTON_CHI |
+| `residue_builder.py` | `RawResidueType` from Chem.Mol |
+| `registry.py` | Cache + `ParameterDatabase` injection |
+| `params_file.py` | Load/inject `.tmol` YAML |
+| `params_io.py` | Write `.params`/`.tmol`; read Rosetta `.params` |
+| `graph_match.py` | VF2 CIF name mapping |
+| `equivalence.py` | Parity comparison helpers |

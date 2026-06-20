@@ -401,15 +401,15 @@ def prepare_ligands(
     """Detect, prepare, and register all non-standard residues.
 
     Scans the input AtomArray for residues not in the ParameterDatabase,
-    runs each through the ligand preparation pipeline (direct RDKit molecule
-    construction, protonation, 3D generation, atom typing, residue building),
-    and returns a **new** ParameterDatabase with the ligand data injected.
+    runs each through the unified SMILES→OpenBabel mol2→typing→residue-build
+    pipeline, and returns a **new** ParameterDatabase with the ligand data
+    injected.
 
     Args:
         atom_array: A biotite AtomArray from a CIF or PDB file.
         param_db: The base ParameterDatabase (not modified). If None, the
             default database is used.
-        ph: Target pH for ligand protonation.
+        ph: Target pH for ligand protonation (Dimorphite-DL on derived SMILES).
         strict_atom_types: If True, fail when unknown atom-type element
             mappings are encountered during registration.
         cache: Optional cache object controlling ligand reuse behavior.
@@ -419,6 +419,8 @@ def prepare_ligands(
             skip the RDKit/OB preparation pipeline.
         params_output: Optional path to write all prepared ligand data
             to a tmol YAML params file for later reuse.
+        sample_proton_chi: Whether to emit PROTON_CHI samples in the
+            built residue type (also part of the in-process cache key).
 
     Returns:
         A (ParameterDatabase, CanonicalOrdering) tuple. The returned
@@ -642,6 +644,42 @@ def prepare_ligand_from_smiles(
         protonate=protonate,
         conformer_search=conformer_search,
     )
+    prep = prepare_single_ligand(lig, sample_proton_chi=sample_proton_chi)
+    param_db = inject_ligand_preparations(
+        param_db, [prep], strict_atom_types=strict_atom_types
+    )
+    return param_db, rebuild_canonical_ordering(param_db)
+
+
+def prepare_ligand_from_mol2(
+    mol2_path: str,
+    *,
+    param_db: Optional[ParameterDatabase] = None,
+    strict_atom_types: bool = False,
+    res_name: str | None = None,
+    sample_proton_chi: bool = True,
+) -> tuple[ParameterDatabase, CanonicalOrdering]:
+    """Prepare a single ligand from a Tripos mol2 file and inject it.
+
+    Reads atom names, coordinates, bond orders, and MMFF94 partial charges
+    verbatim from the mol2 (no SMILES or OpenBabel 3D generation step).
+
+    Args:
+        mol2_path: Path to the ligand mol2 file.
+        param_db: Base database (not modified); defaults to the tmol default.
+        strict_atom_types: Fail on unknown atom-type element mappings.
+        res_name: Optional residue name override.
+        sample_proton_chi: Whether to emit proton-chi samples.
+
+    Returns:
+        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.
+    """
+    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
+
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
+
+    lig = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
     prep = prepare_single_ligand(lig, sample_proton_chi=sample_proton_chi)
     param_db = inject_ligand_preparations(
         param_db, [prep], strict_atom_types=strict_atom_types

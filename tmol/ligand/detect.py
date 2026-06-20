@@ -23,30 +23,6 @@ from tmol.ligand.mol2_names import apply_disambiguated_mol2_names
 
 logger = logging.getLogger(__name__)
 
-AA_LIKE_CHEM_TYPES = frozenset(
-    {
-        "D-PEPTIDE LINKING",
-        "D-PEPTIDE NH3 AMINO TERMINUS",
-        "L-PEPTIDE LINKING",
-        "L-PEPTIDE NH3 AMINO TERMINUS",
-        "PEPTIDE LINKING",
-        "PEPTIDE-LIKE",
-    }
-)
-
-NA_LIKE_CHEM_TYPES = frozenset(
-    {
-        "DNA LINKING",
-        "DNA OH 3 PRIME TERMINUS",
-        "DNA OH 5 PRIME TERMINUS",
-        "L-DNA LINKING",
-        "L-RNA LINKING",
-        "RNA LINKING",
-        "RNA OH 3 PRIME TERMINUS",
-        "RNA OH 5 PRIME TERMINUS",
-    }
-)
-
 SKIP_RESIDUES = frozenset({"HOH", "WAT", "DOD", "VRT"})
 
 
@@ -92,9 +68,6 @@ class NonStandardResidueInfo:
     partial_charges: Optional[dict[str, float]] = None
     skip_protonation: bool = False
     original_single_bonds: Optional[frozenset[frozenset[str]]] = None
-
-
-LigandInfo = NonStandardResidueInfo
 
 
 @functools.cache
@@ -272,11 +245,6 @@ def _charge_model_is_authoritative(model: str) -> bool:
     if model == "GASTEIGER":
         return False
     return True
-
-
-def _mol2_partial_charges_are_authoritative(mol2_path: Path) -> bool:
-    """True only when mol2 partial charges are a trusted force-field model."""
-    return _charge_model_is_authoritative(_mol2_charge_model(mol2_path))
 
 
 def nonstandard_residue_info_from_mol2(

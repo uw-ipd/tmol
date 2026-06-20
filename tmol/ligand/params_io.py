@@ -472,3 +472,28 @@ def write_params_file(
         )
     else:
         raise ValueError(f"unknown params format {format!r} (use 'rosetta' or 'tmol')")
+
+
+def write_params_from_mol2(
+    mol2_path: str | Path,
+    out_path: str | Path,
+    *,
+    res_name: str | None = None,
+    sample_proton_chi: bool = True,
+    format: str = "rosetta",
+) -> None:
+    """Build params from a mol2 file and write Rosetta ``.params`` or tmol ``.tmol``.
+
+    Args:
+        mol2_path: Input Tripos mol2 (names, coords, charges preserved verbatim).
+        out_path: Output file path (see :func:`write_params_file`).
+        res_name: Optional residue name override.
+        sample_proton_chi: Whether to emit PROTON_CHI samples.
+        format: ``"rosetta"`` or ``"tmol"``.
+    """
+    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand.preparation import prepare_single_ligand
+
+    info = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
+    prep = prepare_single_ligand(info, sample_proton_chi=sample_proton_chi)
+    write_params_file(prep, out_path, format=format)

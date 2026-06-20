@@ -93,8 +93,10 @@ chemistry check on either path. It only writes under `ligand_tmol_generated/`
 The focused parity assertions also run under pytest:
 
 ```bash
-pytest tmol/tests/ligand/test_chi_topology.py tmol/tests/ligand/test_parity_manifest.py \
-       tmol/tests/ligand/test_ligand_pipeline.py::TestGroundTruthRegression
+pytest tmol/tests/ligand/test_smiles_semantic.py \
+       tmol/tests/ligand/test_serialization_consistency.py \
+       tmol/tests/ligand/test_parity_manifest.py \
+       tmol/tests/ligand/test_ligand_pipeline.py
 ```
 
 ---

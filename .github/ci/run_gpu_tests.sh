@@ -1,19 +1,17 @@
 #!/usr/bin/env bash
-# GPU pytest lane with allocation sentinel (mirrors foundry-dev gpu job pattern).
-#
-# Writes GPU_ALLOC_SENTINEL once the srun allocation starts so the workflow can
-# distinguish TaskProlog/dirty-GPU failures (no sentinel) from real test failures.
+# CUDA pytest lane. Writes GPU_ALLOC_SENTINEL once the allocation starts so
+# srun_gpu_retry.sh can distinguish TaskProlog failures from real test failures.
 set -euo pipefail
 
-: "${GPU_ALLOC_SENTINEL:?GPU_ALLOC_SENTINEL must be set}"
 : "${GITHUB_WORKSPACE:?}"
 
-touch "${GPU_ALLOC_SENTINEL}"
+# shellcheck source=/dev/null
+source .github/ci/gpu_env.sh
+touch_gpu_sentinel
+strip_cuda_compat_from_ld_path
 
 source .venv/bin/activate
 
-export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
-
 pytest -p no:rerunfailures -s -v --durations=25 \
-  --cov="${GITHUB_WORKSPACE}/tmol" --cov-report=xml \
+  --cov="${GITHUB_WORKSPACE}/tmol" --cov-report=xml --cov-append \
   --junitxml="${GITHUB_WORKSPACE}/testing.cuda.junit.xml" -k "cuda"
