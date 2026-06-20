@@ -1,8 +1,7 @@
-# CI pipeline — self-hosted runner on fela (as bench), GPU work via Slurm srun.
+# CI pipeline — self-hosted runner on fela (as bench).
 #
-# Lint runs directly on fela (no GPU needed).
-# All GPU work (build, tests, benchmarks) runs inside a single srun allocation
-# to avoid re-queuing overhead.
+# Jobs: lint → build → (test-cpu | test-cuda | benchmark in parallel) → report
+# CPU pytest uses the cpu Slurm partition; GPU work uses gpu-train with retry.
 
 name: CI
 
@@ -21,114 +20,85 @@ env:
   PIP_PKGS: /net/scratch/bench/ci-pip-pkgs
   SLURM_PARTITION: gpu-train
   SLURM_GRES: gpu:1
+  SLURM_CPU_PARTITION: cpu
   SLURM_CPUS_PER_TASK: 16
   SLURM_MEM: 128G
   SLURM_TIME: 06:00:00
-  
+  SLURM_CPU_TIME: 06:00:00
+  SRUN_GPU_MAX_ATTEMPTS: 5
+  SRUN_GPU_RETRY_SLEEP: 10
+  CACHE_KEY: tmol-ci-${{ github.sha }}
 
 jobs:
-  ci:
+  lint:
+    name: lint
     runs-on: [self-hosted, gpu]
-    timeout-minutes: 720
+    timeout-minutes: 30
     steps:
-
       - name: Checkout
         uses: actions/checkout@v5
         with:
           submodules: recursive
 
-      - name: Setup
+      - name: Restore source timestamps
+        run: .github/ci/restore_source_timestamps.sh
+
+      - name: Setup venv
+        run: .github/ci/setup_ci_venv.sh
+
+      - name: Pre-commit
         run: |
-          # Restore source timestamps
-          git ls-files -- '*.cpp' '*.cu' '*.cuh' '*.h' '*.hh' '*.cc' | \
-            xargs -P8 -I{} bash -c 'ts=$(git log -1 --format="%ct" -- "$1") && touch -d "@$ts" "$1"' _ {}
-
-
-          # Get the venv and pip setup
-          apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
-            --pwd $GITHUB_WORKSPACE \
-            $SIF bash << 'SETUP'
+          apptainer exec --nv --fakeroot --containall \
+            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
+            --pwd "$GITHUB_WORKSPACE" \
+            "$SIF" bash <<'LINT'
           set -ex
-
-          PYTHON_BIN=""
-          for cand in python3.12 python3.11 python3; do
-            if command -v "$cand" >/dev/null 2>&1; then
-              if "$cand" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)"; then
-                PYTHON_BIN=$(command -v "$cand")
-                break
-              fi
-            fi
-          done
-
-          if [ -z "$PYTHON_BIN" ]; then
-            echo "ERROR: No Python >=3.11 found in CI container."
-            echo "Please update \$SIF to include Python >=3.11."
-            exit 1
-          fi
-
-          "$PYTHON_BIN" -m venv .venv
           source .venv/bin/activate
-
-          pip install pip --upgrade
-          pip install uv
-          SETUP
-
-      - name: Lint
-        run: |
-          apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
-            --pwd $GITHUB_WORKSPACE \
-            $SIF bash << 'LINT'
-          set -ex
-          
-          source .venv/bin/activate
-
           uv pip install pre-commit
-
           pre-commit run --all-files --show-diff-on-failure
           LINT
 
-      - name: Build
-        id: build
-        if: always()
-        run: |
-          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
-                  -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
-                  apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
-                  --pwd $GITHUB_WORKSPACE \
-                  --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
-                  $SIF bash << 'BUILD'
-          set -ex
+  build:
+    name: build
+    runs-on: [self-hosted, gpu]
+    needs: lint
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
 
+      - name: Restore source timestamps
+        run: .github/ci/restore_source_timestamps.sh
+
+      - name: Setup venv
+        run: .github/ci/setup_ci_venv.sh
+
+      - name: Compile and install (GPU srun)
+        run: |
+          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
+          apptainer exec --nv --fakeroot --containall \
+            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
+            --pwd "$GITHUB_WORKSPACE" \
+            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
+            "$SIF" bash <<'BUILD'
+          set -ex
           source .venv/bin/activate
 
-          # The NGC container ships a CUDA forward-compat libcuda in
-          # /usr/local/cuda/compat that sits ahead of the --nv-injected host
-          # driver on LD_LIBRARY_PATH. On nodes whose driver is newer than the
-          # container's CUDA toolkit this mismatches and breaks CUDA init
-          # (cudaGetDeviceCount error 803 -> torch.cuda.is_available()==False).
-          # Drop it so torch uses the host driver provided by --nv.
           export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
 
           uv pip compile pyproject.toml --all-extras --output-file requirements.txt
           grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" requirements.txt > to_install.txt
-
           uv pip install -r to_install.txt
           uv pip install torch
-          # NB: an old torch pin (torch==2.11.0) used to work around CUDA init
-          # failures here. That was actually the container's forward-compat
-          # libcuda mismatching the node driver (error 803), now fixed by the
-          # LD_LIBRARY_PATH cleanup above -- no torch pin is needed.
 
-          # PyTorch reports the *runtime* GPU (e.g. sm_120 on Blackwell), but Apptainer
-          # nvcc is often older (e.g. CUDA 12.4) and cannot compile compute_120.
-          # Use a portable arch list for AOT; JIT tests still use the local GPU at runtime.
           RUN_GPU=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')" 2>/dev/null || echo "n/a")
           CUDA_ARCHS="${TMOL_CI_CUDA_ARCHITECTURES:-80;86;89;90;100}"
           NVCC_VER=$(nvcc --version 2>&1 | sed -n 's/.*release \([0-9.]*\).*/\1/p' | head -1)
           case "${NVCC_VER}" in
             11.*|12.*) CUDA_ARCHS="80;86;89;90" ;;
           esac
-          # Do not inherit CMake 4 "native" (sm_120 on Blackwell) or Torch defaults.
           unset CMAKE_CUDA_ARCHITECTURES
           export CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}"
           TORCH_ARCH_LIST=""
@@ -141,111 +111,179 @@ jobs:
             fi
           done
           export TORCH_CUDA_ARCH_LIST="${TORCH_ARCH_LIST# }"
-          echo "=== Runner GPU sm_${RUN_GPU} | nvcc ${NVCC_VER} | CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS} | TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST} ==="
+          echo "=== Runner GPU sm_${RUN_GPU} | nvcc ${NVCC_VER} | CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS} ==="
           MAX_JOBS=12 pip install -v --no-deps \
-                  -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
-                  -Ccmake.define.TMOL_BUILD_TESTS=ON \
-                  -Ccmake.define.TMOL_NVCC_THREADS=2 \
-                  -e .
-
+            -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
+            -Ccmake.define.TMOL_BUILD_TESTS=ON \
+            -Ccmake.define.TMOL_NVCC_THREADS=2 \
+            -e .
           BUILD
+          SCRIPT
 
-      - name: Test CPU
-        id: cpu
-        if: always() && steps.build.outcome == 'success'
+      - name: Save build cache
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .venv
+            .torch_ext*
+          key: ${{ env.CACHE_KEY }}
+
+  test-cpu:
+    name: test (cpu)
+    runs-on: [self-hosted, gpu]
+    needs: build
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .venv
+            .torch_ext*
+          key: ${{ env.CACHE_KEY }}
+          fail-on-cache-miss: true
+
+      - name: Pytest CPU
         run: |
-          # ── Test CPU ───────────────────────────────────────────────────
-          echo "=== tests (CPU only) ==="
-          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
-                  -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
-                  apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
-                  --pwd $GITHUB_WORKSPACE \
-                  --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
-              $SIF bash << 'CPU_TEST'
+          .github/ci/srun_cpu.sh <<'SCRIPT'
+          apptainer exec --fakeroot --containall \
+            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
+            --pwd "$GITHUB_WORKSPACE" \
+            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
+            "$SIF" bash <<'CPU_TEST'
           set -ex
-          
           source .venv/bin/activate
-          
           CUDA_VISIBLE_DEVICES="" pytest -p no:rerunfailures -s -v --durations=25 \
-            --cov=$GITHUB_WORKSPACE/tmol --cov-report=xml \
-            --junitxml=$GITHUB_WORKSPACE/testing.cpu.junit.xml -k "not cuda"
-
+            --cov="$GITHUB_WORKSPACE/tmol" --cov-report=xml \
+            --junitxml="$GITHUB_WORKSPACE/testing.cpu.junit.xml" -k "not cuda"
           CPU_TEST
+          SCRIPT
 
-      - name: Test CUDA
-        id: cuda
-        if: always() && steps.build.outcome == 'success'
+      - name: Upload CPU test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-cpu
+          path: |
+            testing.cpu.junit.xml
+            coverage.xml
+          if-no-files-found: ignore
+
+  test-cuda:
+    name: test (cuda)
+    runs-on: [self-hosted, gpu]
+    needs: build
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .venv
+            .torch_ext*
+          key: ${{ env.CACHE_KEY }}
+          fail-on-cache-miss: true
+
+      - name: Pytest CUDA
+        env:
+          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
         run: |
-          # ── Test CUDA ──────────────────────────────────────────────────
-          echo "=== tests (CUDA) ==="
-          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
-                -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
-                apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
-                --pwd $GITHUB_WORKSPACE \
-                --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
-              $SIF bash << 'GPU_TEST'
+          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
+          apptainer exec --nv --fakeroot --containall \
+            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
+            --pwd "$GITHUB_WORKSPACE" \
+            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
+            --env GPU_ALLOC_SENTINEL="$GPU_ALLOC_SENTINEL" \
+            "$SIF" bash <<'GPU_TEST'
           set -ex
-          
-          source .venv/bin/activate
-
-          # Drop the container's CUDA forward-compat libcuda so torch uses the
-          # --nv host driver (otherwise CUDA init fails with error 803 on nodes
-          # with a driver newer than the container CUDA, skipping all cuda tests).
-          export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
-
-          pytest -p no:rerunfailures -s -v --durations=25 \
-            --cov=$GITHUB_WORKSPACE/tmol --cov-report=xml \
-            --junitxml=$GITHUB_WORKSPACE/testing.cuda.junit.xml -k "cuda"
-
+          .github/ci/run_gpu_tests.sh
           GPU_TEST
+          SCRIPT
+
+      - name: Upload CUDA test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-cuda
+          path: testing.cuda.junit.xml
+          if-no-files-found: ignore
+
+  benchmark:
+    name: benchmark
+    runs-on: [self-hosted, gpu]
+    needs: build
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .venv
+            .torch_ext*
+          key: ${{ env.CACHE_KEY }}
+          fail-on-cache-miss: true
 
       - name: Benchmark
-        if: always() && steps.build.outcome == 'success'
         run: |
-          # ── Benchmark ──────────────────────────────────────────────────
-          echo "=== benchmarks ==="
-          srun --gres=${SLURM_GRES} -p ${SLURM_PARTITION} --export=ALL \
-                -t ${SLURM_TIME} --cpus-per-task=${SLURM_CPUS_PER_TASK} --mem=${SLURM_MEM} \
-                apptainer exec --nv --fakeroot --containall --bind $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
-                --pwd $GITHUB_WORKSPACE \
-                --env GITHUB_WORKSPACE=$GITHUB_WORKSPACE \
-              $SIF bash << 'BENCHMARK'
+          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
+          apptainer exec --nv --fakeroot --containall \
+            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
+            --pwd "$GITHUB_WORKSPACE" \
+            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
+            "$SIF" bash <<'BENCHMARK'
           set -ex
-          
           source .venv/bin/activate
-
-          # Drop the container's CUDA forward-compat libcuda so torch uses the
-          # --nv host driver (avoids CUDA init error 803 on newer-driver nodes).
           export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH}" | tr ':' '\n' | grep -v '/usr/local/cuda/compat' | paste -sd:)
-
           BENCHMARK_DIR=benchmark/$GITHUB_REPOSITORY/$GITHUB_REF_NAME
           BENCHMARK_RESULT=${BENCHMARK_DIR}/${GITHUB_RUN_NUMBER}.json
-          mkdir -p $BENCHMARK_DIR
-
+          mkdir -p "$BENCHMARK_DIR"
           pytest -p no:rerunfailures --benchmark-enable --benchmark-only \
             --benchmark-name=short --benchmark-sort=fullname \
             --benchmark-columns=ops,mean,iqr \
-            --benchmark-json=${BENCHMARK_RESULT} \
+            --benchmark-json="${BENCHMARK_RESULT}" \
             --benchmark-max-time=.1
-
           pytest-benchmark compare --name=short --sort=fullname \
             --columns=ops,mean,iqr $(find benchmark -name '*.json')
-
           BENCHMARK
+          SCRIPT
 
-      - name: Test Summary
-        if: always() #&& (steps.cpu.outcome == 'success' || steps.cuda.outcome == 'success')
+  report:
+    name: report
+    runs-on: [self-hosted, gpu]
+    needs: [test-cpu, test-cuda]
+    if: always()
+    timeout-minutes: 15
+    steps:
+      - name: Download test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-*
+          merge-multiple: true
+
+      - name: Test summary
         uses: test-summary/action@v2
         with:
           paths: |
             testing.*.junit.xml
 
       - name: Upload Codecov
-        if: always() #&& (steps.cpu.outcome == 'success' || steps.cuda.outcome == 'success')
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/coverage.xml
-          fail_ci_if_error: true # fail the CI if upload fails
-
-      
+          fail_ci_if_error: true
