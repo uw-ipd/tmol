@@ -18,7 +18,9 @@ Coverage here:
 * :func:`prepare_ligand_from_cif` registers the ligand from both variants.
 * ``pose_stack_from_biotite(prepare_ligands=True)`` yields a finite score.
 
-The complementary bonds-present *complex* ddG case (PSE / 1A25) lives in
+The complementary deterministic protein–ligand ddG goldens (fixture CIF +
+fixture ``.tmol`` params) live in ``test_protein_ligand_ddg.py``. The on-the-fly
+complex ddG case (PSE / 1A25, finiteness only) is in
 ``test_ligand_pipeline.py::test_ddg_from_cif_complex_with_onthefly_ligand_prep``.
 """
 

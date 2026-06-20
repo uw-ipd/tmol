@@ -237,9 +237,12 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
         ScoreType.dunbrack_semirot: n([99.660904]),
         ScoreType.gen_torsions: n([0.0]),
     }
+    # This test runs on both cpu and cuda; summed full-pose energies drift at the
+    # ~1e-3 level in float32 across devices (e.g. omega), so the tolerance is
+    # looser than the cpu-only beta2016 golden test below.
     for st in score_types:
         numpy.testing.assert_allclose(
-            unweighted_score_map[st], gold_score_map[st], rtol=1e-4, atol=1e-4
+            unweighted_score_map[st], gold_score_map[st], rtol=1e-3, atol=1e-3
         )
 
 
