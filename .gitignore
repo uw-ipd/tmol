@@ -151,6 +151,8 @@ CLAUDE.md
 # (reproducible; the committed ground truth lives in ligand_ground_truth/)
 tmol/tests/data/ligand_test/ligand_tmol_generated/
 
-# scored-structure dumps written by the PLI scoring tests (test_pli_scoring.py)
-tmol/tests/data/protein_ligand_test/*.nomin.cif
+# scored-structure dumps written by the PLI scoring tests (test_pli_scoring.py).
+# Golden complex CIFs for test_protein_ligand_ddg.py use *.tmol.nomin.cif and
+# are committed; only ad-hoc pipeline outputs are ignored here.
+tmol/tests/data/protein_ligand_test/*.pipeline.nomin.cif
 tmol/tests/data/protein_ligand_test/*.packmin.cif
