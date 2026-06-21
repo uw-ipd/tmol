@@ -13,7 +13,9 @@ uv pip compile pyproject.toml --all-extras --output-file requirements.txt
 grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" \
   requirements.txt > to_install.txt
 uv pip install -r to_install.txt
-uv pip install torch
+TORCH_CUDA_INDEX="${TMOL_CI_TORCH_CUDA_INDEX:-https://download.pytorch.org/whl/cu128}"
+uv pip install torch --index-url "${TORCH_CUDA_INDEX}"
+assert_torch_cuda
 
 RUN_GPU=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')" 2>/dev/null || echo "n/a")
 CUDA_ARCHS="${TMOL_CI_CUDA_ARCHITECTURES:-80;86;89;90;100}"

@@ -1,8 +1,7 @@
 # CI — one job on the fela self-hosted runner (user bench).
 #
-# Separate GitHub Actions steps for lint / build / CPU / GPU / benchmark.
-# Build + GPU lanes use a single gpu-train srun each; CPU pytest runs on the
-# runner (no Slurm) so SLURM_GRES cannot leak into a cpu-partition job.
+# Checkout + venv bootstrap on the runner; lint before Slurm. One gpu-train srun
+# runs build → CPU tests → CUDA tests → benchmarks (see run_ci_gpu_work.sh).
 
 name: CI
 
@@ -51,70 +50,13 @@ jobs:
           pre-commit run --all-files --show-diff-on-failure
           LINT
 
-      - name: build
+      - name: build and test
         env:
-          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_build
+          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
         run: |
           rm -f "$GPU_ALLOC_SENTINEL"
           .github/ci/srun_gpu_retry.sh <<SCRIPT
-          apptainer exec --nv --fakeroot --containall \
-            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            --pwd "$GITHUB_WORKSPACE" \
-            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
-            --env GPU_ALLOC_SENTINEL="$GPU_ALLOC_SENTINEL" \
-            "$SIF" bash <<'BUILD'
-          set -ex
-          # shellcheck source=/dev/null
-          source .github/ci/gpu_env.sh
-          touch_gpu_sentinel
-          strip_cuda_compat_from_ld_path
-          .github/ci/build_package.sh
-          BUILD
-          SCRIPT
-
-      - name: test (cpu)
-        run: |
-          apptainer exec --fakeroot --containall \
-            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            --pwd "$GITHUB_WORKSPACE" \
-            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
-            "$SIF" bash <<'CPU'
-          set -ex
-          .github/ci/run_cpu_tests.sh
-          CPU
-
-      - name: test (cuda)
-        env:
-          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_cuda
-        run: |
-          rm -f "$GPU_ALLOC_SENTINEL"
-          .github/ci/srun_gpu_retry.sh <<SCRIPT
-          apptainer exec --nv --fakeroot --containall \
-            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            --pwd "$GITHUB_WORKSPACE" \
-            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
-            --env GPU_ALLOC_SENTINEL="$GPU_ALLOC_SENTINEL" \
-            "$SIF" bash <<'CUDA'
-          set -ex
-          .github/ci/run_gpu_tests.sh
-          CUDA
-          SCRIPT
-
-      - name: benchmark
-        env:
-          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_benchmark
-        run: |
-          rm -f "$GPU_ALLOC_SENTINEL"
-          .github/ci/srun_gpu_retry.sh <<SCRIPT
-          apptainer exec --nv --fakeroot --containall \
-            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
-            --pwd "$GITHUB_WORKSPACE" \
-            --env GITHUB_WORKSPACE="$GITHUB_WORKSPACE" \
-            --env GPU_ALLOC_SENTINEL="$GPU_ALLOC_SENTINEL" \
-            "$SIF" bash <<'BENCH'
-          set -ex
-          .github/ci/run_benchmarks.sh
-          BENCH
+          .github/ci/exec_gpu_apptainer.sh .github/ci/run_ci_gpu_work.sh
           SCRIPT
 
       - uses: actions/upload-artifact@v4
