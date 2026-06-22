@@ -1,0 +1,114 @@
+# Smoke-test prebuilt wheel builds and pip/uv autodetect on feature branches
+# before merge. Does not publish to PyPI or GitHub Releases.
+#
+# Triggers on kdidi/easy-wheel-install (and workflow_dispatch). Remove or
+# narrow the branch filter after merge.
+
+name: Wheel smoke test
+
+on:
+  push:
+    branches: [kdidi/easy-wheel-install]
+  workflow_dispatch:
+
+concurrency:
+  group: wheel-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Foundry-like install: torch 2.12 reports cu130, published wheel is cu132torch2.12.
+  test-pip-autodetect:
+    name: pip autodetect (torch2.12 cu130 → cu132 wheel)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install torch 2.12 (cu130 index — matches foundry reporting)
+        run: |
+          python -m pip install --upgrade pip
+          pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu130
+          python -c "import torch; print('torch', torch.__version__, 'cuda', torch.version.cuda)"
+
+      - name: Build sdist outside git checkout (enables wheel fetch backend)
+        run: |
+          rsync -a --exclude .git --exclude build --exclude dist --exclude .venv \
+            "$GITHUB_WORKSPACE/" /tmp/tmol-sdist-src/
+          cd /tmp/tmol-sdist-src
+          pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja packaging pybind11 build
+          python -m build --sdist --outdir /tmp/tmol-sdist
+
+      - name: pip install sdist (should fetch prebuilt wheel, not compile)
+        run: |
+          set -euo pipefail
+          pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja packaging pybind11
+          # --no-build-isolation: torch must be visible to the wheel-fetch backend
+          # (same pattern as flash-attn / foundry uv installs).
+          pip install --no-build-isolation /tmp/tmol-sdist/tmol-*.tar.gz 2>&1 | tee /tmp/pip-install.log
+          if grep -qE "CMake configuration failed|No CMAKE_CUDA_COMPILER" /tmp/pip-install.log; then
+            echo "ERROR: pip fell back to source build"
+            exit 1
+          fi
+          if grep -q "Downloaded prebuilt wheel" /tmp/pip-install.log; then
+            echo "OK: prebuilt wheel was fetched"
+          else
+            echo "WARN: install log did not show prebuilt fetch; checking import anyway"
+          fi
+          python -c "import tmol; print('tmol', tmol.__version__)"
+
+      - name: uv pip install sdist (foundry path)
+        run: |
+          set -euo pipefail
+          pip install uv
+          python -m venv /tmp/uv-test-venv
+          source /tmp/uv-test-venv/bin/activate
+          pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu130
+          uv pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja packaging pybind11
+          uv pip install --no-build-isolation /tmp/tmol-sdist/tmol-*.tar.gz 2>&1 | tee /tmp/uv-install.log
+          if grep -qE "CMake configuration failed|No CMAKE_CUDA_COMPILER" /tmp/uv-install.log; then
+            echo "ERROR: uv fell back to source build"
+            exit 1
+          fi
+          python -c "import tmol; print('tmol', tmol.__version__)"
+
+  # Build one representative manylinux GPU wheel from this branch.
+  build-wheel-smoke:
+    name: build py3.12 pt2.12 manylinux wheel
+    uses: ./.github/workflows/_build_wheel.yml
+    with:
+      runs-on: ubuntu-22.04
+      container-image: nvcr.io/nvidia/pytorch:26.04-py3
+      torch-version: "2.12"
+      python-version: "3.12"
+      label: "smoke py3.12 pt2.12 manylinux"
+      use-manylinux-build: true
+
+  test-built-wheel:
+    name: install branch-built wheel
+    needs: build-wheel-smoke
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheel-cp312-pt2.12-*
+          merge-multiple: true
+          path: wheels/
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install matching torch + built wheel
+        run: |
+          python -m pip install --upgrade pip
+          pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu132
+          ls -lh wheels/
+          pip install wheels/*.whl
+          python -c "import tmol; print('tmol', tmol.__version__)"
