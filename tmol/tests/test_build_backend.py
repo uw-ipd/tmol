@@ -50,6 +50,7 @@ def test_build_wheel_falls_back_when_no_prebuilt_match(monkeypatch, tmp_path):
     )
     monkeypatch.setattr(backend, "_release_tag", lambda: "v0.0.0")
     monkeypatch.setattr(backend, "_download_to_path", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(backend, "_can_build_from_source", lambda: True)
     monkeypatch.setattr(
         backend._skbuild_backend,
         "build_wheel",
@@ -159,3 +160,55 @@ def test_download_retries_then_succeeds(monkeypatch, tmp_path):
     )
     assert attempts["count"] == 3
     assert out_path.read_bytes() == b"wheel-bytes"
+
+
+def test_cuda_tag_variants_include_published_aliases():
+    variants = backend._cuda_tag_variants("cu130", "2.12")
+    assert variants[0] == "cu132"
+    assert "cu130" in variants
+    assert "cu131" in variants
+
+
+def test_candidate_local_tags_torch212_cu130_includes_cu132(monkeypatch):
+    monkeypatch.setattr(backend, "_torch_major_minor", lambda: "2.12")
+    monkeypatch.setattr(backend, "_torch_cuda_tag", lambda: "cu130")
+    tags = backend._candidate_local_tags()
+    assert tags[0] == "cu132torch2.12"
+    assert "cu130torch2.12" in tags
+
+
+def test_candidate_wheel_filenames_torch212_cu130(monkeypatch):
+    monkeypatch.setattr(backend, "_read_project_version", lambda: "0.1.35")
+    monkeypatch.setattr(backend, "_torch_major_minor", lambda: "2.12")
+    monkeypatch.setattr(backend, "_torch_cuda_tag", lambda: "cu130")
+    monkeypatch.setattr(backend, "_python_tag", lambda: "cp312")
+    names = backend._candidate_wheel_filenames()
+    assert "tmol-0.1.35+cu132torch2.12-cp312-cp312-linux_x86_64.whl" in names
+    assert "tmol-0.1.35+cu130torch2.12-cp312-cp312-linux_x86_64.whl" in names
+
+
+def test_build_wheel_raises_without_nvcc_when_no_wheel(monkeypatch, tmp_path):
+    monkeypatch.setattr(backend, "_is_repo_checkout", lambda: False)
+    monkeypatch.setattr(backend, "_is_isolated_build_environment", lambda: False)
+    monkeypatch.setattr(backend, "_torch_cuda_tag", lambda: "cu130")
+    monkeypatch.setattr(
+        backend,
+        "_candidate_wheel_filenames",
+        lambda: ["tmol-0.1.35+cu132torch2.12-cp312-cp312-linux_x86_64.whl"],
+    )
+    monkeypatch.setattr(backend, "_release_tag", lambda: "v0.1.35")
+    monkeypatch.setattr(backend, "_try_fetch_prebuilt_wheel", lambda *_a, **_k: None)
+    monkeypatch.setattr(backend, "_can_build_from_source", lambda: False)
+    monkeypatch.setattr(
+        backend._skbuild_backend,
+        "build_wheel",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("should not fall back to source build")
+        ),
+    )
+
+    try:
+        backend.build_wheel(str(tmp_path))
+        assert False, "expected RuntimeError"
+    except RuntimeError as error:
+        assert "No matching prebuilt tmol wheel" in str(error)

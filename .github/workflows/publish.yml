@@ -196,7 +196,7 @@ jobs:
       label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.pip-torch-cuda-url || '' }}
       cuda-archs: ${{ matrix.cuda-archs || '' }}
-      use-manylinux-build: false
+      use-manylinux-build: ${{ !contains(matrix.runs-on, 'arm') }}
 
   # ── CPU-only wheel ─────────────────────────────────────────────────
   build_cpu_wheel:

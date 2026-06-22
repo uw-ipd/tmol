@@ -7,6 +7,7 @@ This backend mirrors FlashAttention-style UX:
 
 from __future__ import annotations
 
+import json
 import os
 import platform
 import re
@@ -70,6 +71,17 @@ _LOCAL_TAG_ENV = "TMOL_WHEEL_LOCAL_TAG"
 _FORCE_BUILD_ENV = "TMOL_FORCE_BUILD"
 _DISABLE_FETCH_ENV = "TMOL_DISABLE_WHEEL_FETCH"
 _ALLOW_CPU_FALLBACK_ENV = "TMOL_WHEEL_ALLOW_CPU_FALLBACK"
+_ALLOW_SOURCE_BUILD_ENV = "TMOL_ALLOW_SOURCE_BUILD"
+_GITHUB_REPO = "uw-ipd/tmol"
+# Published wheel CUDA tags per torch minor (pip index tags, not always torch.version.cuda).
+_TORCH_CUDA_ALIASES: dict[str, list[str]] = {
+    "2.12": ["cu132", "cu131", "cu130"],
+    "2.11": ["cu131", "cu130"],
+    "2.10": ["cu128", "cu131"],
+    "2.9": ["cu130", "cu128"],
+    "2.8": ["cu128", "cu129"],
+}
+_RELEASE_ASSETS_CACHE: dict[str, list[str]] = {}
 _ENABLE_LOCAL_FETCH_ENV = "TMOL_ENABLE_LOCAL_FETCH"
 _FETCH_TIMEOUT_ENV = "TMOL_WHEEL_FETCH_TIMEOUT_S"
 _FETCH_RETRIES_ENV = "TMOL_WHEEL_FETCH_RETRIES"
@@ -160,6 +172,27 @@ def _dedupe_keep_order(values: list[str]) -> list[str]:
     return ordered
 
 
+def _cuda_tag_variants(cuda_tag: str, torch_mm: str) -> list[str]:
+    """CUDA wheel tags compatible with the detected runtime (driver-level forward compat)."""
+    variants: list[str] = []
+    for tag in _TORCH_CUDA_ALIASES.get(torch_mm, []):
+        if tag not in variants:
+            variants.append(tag)
+    if cuda_tag not in variants:
+        variants.append(cuda_tag)
+    if cuda_tag.startswith("cu13"):
+        for suffix in ("2", "1", "0"):
+            alt = f"cu13{suffix}"
+            if alt not in variants:
+                variants.append(alt)
+    elif cuda_tag.startswith("cu12"):
+        for suffix in ("8", "9"):
+            alt = f"cu12{suffix}"
+            if alt not in variants:
+                variants.append(alt)
+    return variants
+
+
 def _candidate_local_tags() -> list[str]:
     override = os.environ.get(_LOCAL_TAG_ENV, "").strip()
     if override:
@@ -169,15 +202,8 @@ def _candidate_local_tags() -> list[str]:
     cuda_tag = _torch_cuda_tag()
     candidates: list[str] = []
     if torch_mm and cuda_tag:
-        candidates.append(f"{cuda_tag}torch{torch_mm}")
-        if torch_mm == "2.8":
-            # x86_64 manylinux builds use cu128 for torch 2.8; keep cu129 as
-            # fallback for older/aarch64 release lanes.
-            candidates.extend(["cu128torch2.8", "cu129torch2.8"])
-        if torch_mm == "2.10":
-            # x86_64 manylinux uses cu128 for torch 2.10; some aarch64/legacy
-            # release lanes may still publish cu131.
-            candidates.extend(["cu128torch2.10", "cu131torch2.10"])
+        for cuda_var in _cuda_tag_variants(cuda_tag, torch_mm):
+            candidates.append(f"{cuda_var}torch{torch_mm}")
     elif torch_mm and not cuda_tag:
         candidates.append("cpu")
     elif _env_true(_ALLOW_CPU_FALLBACK_ENV):
@@ -197,7 +223,8 @@ def _candidate_wheel_filenames() -> list[str]:
     py_tag = _python_tag()
     platform_tags: list[str]
     if arch == "x86_64":
-        # Current published x86_64 wheels are auditwheel-repaired manylinux.
+        # Prefer manylinux (auditwheel-repaired) when published; linux_x86_64 for
+        # legacy NGC-native release wheels.
         platform_tags = ["manylinux_2_28_x86_64", "linux_x86_64"]
     else:
         # aarch64 releases are currently native Linux; keep manylinux fallback
@@ -283,6 +310,147 @@ def _download_to_path(url: str, out_path: Path) -> bool:
     return False
 
 
+def _release_asset_names(tag: str) -> list[str]:
+    if tag in _RELEASE_ASSETS_CACHE:
+        return _RELEASE_ASSETS_CACHE[tag]
+
+    api_url = f"https://api.github.com/repos/{_GITHUB_REPO}/releases/tags/{tag}"
+    request = Request(
+        api_url,
+        headers={
+            "User-Agent": "tmol-build-backend/1",
+            "Accept": "application/vnd.github+json",
+        },
+    )
+    timeout_s = _env_float(_FETCH_TIMEOUT_ENV, 20.0, minimum=1.0)
+    names: list[str] = []
+    try:
+        with urlopen(request, timeout=timeout_s) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        names = [
+            asset["name"]
+            for asset in payload.get("assets", [])
+            if str(asset.get("name", "")).endswith(".whl")
+        ]
+    except HTTPError as error:
+        _log(f"Release asset lookup failed for {tag}: HTTP {error.code}")
+    except (URLError, TimeoutError, json.JSONDecodeError, KeyError) as error:
+        _log(f"Release asset lookup failed for {tag}: {error}")
+
+    _RELEASE_ASSETS_CACHE[tag] = names
+    return names
+
+
+def _platform_tags_for_arch(arch: str) -> list[str]:
+    if arch == "x86_64":
+        return ["manylinux_2_28_x86_64", "linux_x86_64"]
+    return ["linux_aarch64", "manylinux_2_34_aarch64"]
+
+
+def _score_wheel_filename(
+    filename: str, local_tags: list[str], platform_tags: list[str]
+) -> int:
+    if not filename.endswith(".whl"):
+        return -1
+    parts = filename.removesuffix(".whl").split("-")
+    if len(parts) < 5:
+        return -1
+    local_tag = parts[1]
+    py_tag = parts[2]
+    platform_tag = parts[-1]
+
+    if py_tag != _python_tag():
+        return -1
+    if platform_tag not in platform_tags:
+        return -1
+
+    score = 0
+    if local_tag in local_tags:
+        score += 1000 - local_tags.index(local_tag) * 10
+    elif local_tag == "cpu":
+        score += 1
+    else:
+        return -1
+
+    if platform_tag.startswith("manylinux"):
+        score += 5
+    return score
+
+
+def _pick_wheel_from_release_assets(tag: str, filenames: list[str]) -> str | None:
+    assets = set(_release_asset_names(tag))
+    if not assets:
+        return None
+    for name in filenames:
+        if name in assets:
+            return name
+    return None
+
+
+def _can_build_from_source() -> bool:
+    if _env_true(_ALLOW_SOURCE_BUILD_ENV):
+        return True
+    if shutil.which("nvcc") or shutil.which("CUDACXX"):
+        return True
+    # CPU-only torch can compile extensions without nvcc.
+    return _torch_cuda_tag() is None
+
+
+def _no_wheel_install_help(tag: str, filenames: list[str]) -> str:
+    torch_mm = _torch_major_minor() or "?"
+    cuda_tag = _torch_cuda_tag() or "none"
+    py_tag = _python_tag()
+    assets = _release_asset_names(tag)
+    hints: list[str] = []
+    if assets:
+        for needle in (py_tag, f"torch{torch_mm}"):
+            matches = [a for a in assets if needle in a][:4]
+            if matches:
+                hints.append(
+                    f"  release wheels containing '{needle}': {', '.join(matches)}"
+                )
+    example = (
+        filenames[0]
+        if filenames
+        else (
+            f"tmol-{_read_project_version()}+cu132torch{torch_mm}-{py_tag}-{py_tag}-linux_x86_64.whl"
+        )
+    )
+    base = _release_download_base()
+    return (
+        "No matching prebuilt tmol wheel for this environment "
+        f"(python={py_tag}, torch={torch_mm}, cuda={cuda_tag}).\n"
+        "Install a published wheel directly instead of compiling from source:\n"
+        f"  pip install {base}/{tag}/{example}\n"
+        "Or pin the variant:\n"
+        f"  TMOL_WHEEL_LOCAL_TAG=cu132torch{torch_mm} pip install tmol=={_read_project_version()}\n"
+        + ("\nAvailable on this release:\n" + "\n".join(hints) if hints else "")
+    )
+
+
+def _try_fetch_prebuilt_wheel(
+    wheel_dir: Path, filenames: list[str], tag: str
+) -> str | None:
+    base = _release_download_base()
+    for filename in filenames:
+        url = f"{base}/{tag}/{filename}"
+        out_path = wheel_dir / filename
+        _log(f"Trying prebuilt wheel: {url}")
+        if _download_to_path(url, out_path):
+            _log(f"Downloaded prebuilt wheel: {filename}")
+            return filename
+
+    asset_match = _pick_wheel_from_release_assets(tag, filenames)
+    if asset_match:
+        url = f"{base}/{tag}/{asset_match}"
+        out_path = wheel_dir / asset_match
+        _log(f"Trying release asset match: {url}")
+        if _download_to_path(url, out_path):
+            _log(f"Downloaded prebuilt wheel: {asset_match}")
+            return asset_match
+    return None
+
+
 def build_wheel(
     wheel_directory: str,
     config_settings: dict[str, Any] | None = None,
@@ -320,20 +488,23 @@ def build_wheel(
                 "Auto-detected torch/cuda may differ from your runtime env; "
                 "use TMOL_WHEEL_LOCAL_TAG to pin an exact wheel variant."
             )
-        base = _release_download_base()
         tag = _release_tag()
-        for filename in filenames:
-            url = f"{base}/{tag}/{filename}"
-            out_path = wheel_dir / filename
-            _log(f"Trying prebuilt wheel: {url}")
-            if _download_to_path(url, out_path):
-                _log(f"Downloaded prebuilt wheel: {filename}")
-                return filename
+        fetched = _try_fetch_prebuilt_wheel(wheel_dir, filenames, tag)
+        if fetched:
+            return fetched
+
+        if not _can_build_from_source():
+            raise RuntimeError(_no_wheel_install_help(tag, filenames))
         _log("No matching prebuilt wheel found; falling back to local build.")
     else:
         _log(
             "No compatible wheel naming candidates for this platform; building locally."
         )
+        if not _can_build_from_source():
+            raise RuntimeError(
+                "tmol cannot compile CUDA extensions on this platform (no nvcc). "
+                "Use a prebuilt wheel from GitHub Releases or set TMOL_WHEEL_LOCAL_TAG."
+            )
 
     return _skbuild_backend.build_wheel(
         wheel_directory,
