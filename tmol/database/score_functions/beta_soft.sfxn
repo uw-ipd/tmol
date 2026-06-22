@@ -1,4 +1,5 @@
 # beta_soft score function weights with a softer repulsive
+version: "1.0"
 weights:
   fa_ljatr: 1.0
   fa_ljrep: 1.0

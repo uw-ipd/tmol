@@ -27,9 +27,9 @@ def _non_memoized_beta2016(
         "..",
         "database",
         "score_functions",
-        "beta2016.yaml",
+        "beta2016.sfxn",
     )
-    return ScoreFunction.from_weights_file(_weights_path, param_db, device)
+    return ScoreFunction.from_sfxn_file(_weights_path, param_db, device)
 
 
 @toolz.functoolz.memoize
