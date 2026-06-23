@@ -194,11 +194,9 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
         "..",
         "database",
         "score_functions",
-        "beta_soft.yaml",
+        "beta_soft.sfxn",
     )
-    sfxn = ScoreFunction.from_weights_file(
-        _weights_path, default_database, torch_device
-    )
+    sfxn = ScoreFunction.from_sfxn_file(_weights_path, default_database, torch_device)
 
     wpsm = sfxn.render_whole_pose_scoring_module(ps)
     term_scores = wpsm(ps.coords, sum_terms=False, apply_weights=False)

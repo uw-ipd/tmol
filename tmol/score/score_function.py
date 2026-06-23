@@ -1,5 +1,6 @@
 import torch
 import yaml
+import logging
 
 from typing import Dict, Sequence
 from tmol.types.torch import Tensor
@@ -12,6 +13,14 @@ from tmol.score.terms import *  # noqa: F401, F403
 from tmol.score.terms.score_term_factory import ScoreTermFactory
 
 from tmol.pose.pose_stack import PoseStack
+
+logger = logging.getLogger(__name__)
+
+# Current .sfxn (score function weights YAML) format version.  Bump the major
+# version on breaking schema changes; bump the minor version on
+# backward-compatible additions.  The version string is written into every
+# .sfxn file and checked on load.
+SFXN_FORMAT_VERSION: str = "1.0"
 
 
 class ScoreFunction:
@@ -233,12 +242,13 @@ class ScoreFunction:
         return self._weights_tensor
 
     @classmethod
-    def from_weights_file(cls, path, param_db, device):
+    def from_sfxn_file(cls, path, param_db, device):
         """Create a ScoreFunction from a YAML weights file.
 
         Args:
             path: Path to a YAML file containing a ``weights`` dict mapping
-                score type names (as in ``ScoreType``) to their weights.
+                score type names (as in ``ScoreType``) to their weights, as well
+                as any other options to configure the score function.
             param_db: ParameterDatabase instance.
             device: Target torch device.
 
@@ -247,6 +257,34 @@ class ScoreFunction:
         """
         with open(path) as f:
             data = yaml.safe_load(f)
+
+        # --- .sfxn format version check ---
+        file_version = data.get("version")
+        if file_version is None:
+            raise ValueError(
+                f"{path}: no 'version' field found in .sfxn file. "
+                f"Current format version is {SFXN_FORMAT_VERSION}. "
+                f"Regenerate the file with the current version."
+            )
+        else:
+            file_version = str(file_version)
+            file_major = file_version.split(".")[0]
+            current_major = SFXN_FORMAT_VERSION.split(".")[0]
+            if file_major != current_major:
+                raise ValueError(
+                    f"{path}: .sfxn format version {file_version} is incompatible "
+                    f"with the current format version {SFXN_FORMAT_VERSION}. "
+                    f"Regenerate the file with the current writer."
+                )
+            if file_version != SFXN_FORMAT_VERSION:
+                logger.info(
+                    "%s: .sfxn format version %s differs from current %s "
+                    "(backward-compatible minor version change)",
+                    path,
+                    file_version,
+                    SFXN_FORMAT_VERSION,
+                )
+
         sfxn = cls(param_db, device)
         for name, weight in data["weights"].items():
             sfxn.set_weight(getattr(ScoreType, name), weight)

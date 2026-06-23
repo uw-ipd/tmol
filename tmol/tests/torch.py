@@ -6,7 +6,7 @@ import torch
 import torch.cuda
 
 requires_cuda = pytest.mark.skipif(
-    lambda: not torch.cuda.is_available(),
+    not torch.cuda.is_available(),
     reason="Requires cuda.",
 )
 

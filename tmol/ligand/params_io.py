@@ -26,6 +26,7 @@ from tmol.database.chemical import (
 )
 from tmol.database.scoring.cartbonded import CartRes
 from tmol.database.scoring.elec import PartialCharges
+from tmol.ligand.params_file import TMOL_FORMAT_VERSION
 
 if TYPE_CHECKING:
     from tmol.ligand.registry import LigandPreparation
@@ -406,6 +407,7 @@ def _write_tmol_params_file(
         cartbonded_payload[k] = cb
 
     payload: dict[str, Any] = {
+        "version": TMOL_FORMAT_VERSION,
         "chemical": {
             "residues": [
                 _compactify_residue(_unstructure_residue(r)) for r in residue_types

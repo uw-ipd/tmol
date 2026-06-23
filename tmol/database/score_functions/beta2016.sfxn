@@ -1,6 +1,7 @@
 # Beta-Nov2016 score function weights
 # From: https://pubs.acs.org/doi/10.1021/acs.jctc.6b0081
 #       https://pubs.acs.org/doi/full/10.1021/acs.jctc.7b00125
+version: "1.0"
 weights:
   fa_ljatr: 1.0
   fa_ljrep: 0.55
