@@ -5,7 +5,7 @@ import cattr
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pack.packer_task import PackerTask, PackerPalette
+from tmol.pack.packer_task import PackerTask, SetPackerTask, PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 from tmol.tests.data import no_termini_pose_stack_from_pdb
@@ -65,7 +65,9 @@ def test_chi_sampler_smoke(ubq_pdb, torch_device, default_restype_set):
     for rt in poses.packed_block_types.active_block_types:
         sampler.annotate_residue_type(rt)
     sampler.annotate_packed_block_types(poses.packed_block_types)
-    results = sampler.sample_chi_for_poses(poses, task)
+    set_task = SetPackerTask.from_packer_task(task)
+
+    results = sampler.sample_chi_for_poses(poses, set_task)
 
     assert results[0].shape[0] == 21 * 13
     assert results[1].shape[0] == 1

@@ -123,8 +123,9 @@ class PackerPalette:
         assert orig.device == pbt.device
 
         dppann = pbt.default_packer_palette_annotations
-        allowed_block_types_for_block_type = torch.zeros(
+        allowed_block_types_for_block_type = torch.full(
             (orig.shape[0], orig.shape[1], dppann.max_n_allowed),
+            -1,
             dtype=torch.int64,
             device=pbt.device,
         )
@@ -400,7 +401,7 @@ class PackerTask:
         # meet the definition of "repacking" for the original
         # packer palette (i.e. same name3)
         self.per_block_is_block_type_allowed = torch.logical_and(
-            self.per_block_is_block_type_allowed, self.restrict_to_repacking_mask
+            self.per_block_is_block_type_allowed, self.restrict_to_repacking_masks
         )
 
     def add_conformer_sampler(self, sampler: ConformerSampler):
@@ -502,6 +503,7 @@ class SetPackerTask:
     @classmethod
     def from_packer_task(cls, task: PackerTask):
         set_task = cls()
+        set_task.blts = task.blts  # DEPRECATED!!!
         set_task.pbt = task.pbt
         set_task.device = task.device
         set_task.per_block_orig_block_type = task.per_block_orig_block_type
