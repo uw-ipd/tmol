@@ -1,3 +1,5 @@
+import torch
+
 from tmol.pack.packer_task import PackerPalette, BlockLevelTask, PackerTask
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io import pose_stack_from_pdb
@@ -8,18 +10,69 @@ def test_packer_palette_smoke(default_restype_set):
     assert pp
 
 
-def test_packer_palette_design_to_canonical_aas(default_restype_set):
-    pp = PackerPalette(default_restype_set)
-    arg_rt = next(rt for rt in default_restype_set.residue_types if rt.name == "ARG")
-    allowed = pp.block_types_from_original(arg_rt)
-    assert len(allowed) == 21
+def test_packer_palette_design_to_canonical_aas(
+    fresh_default_restype_set, fresh_default_packed_block_types
+):
+    pp = PackerPalette(fresh_default_restype_set)
+    pbt = fresh_default_packed_block_types
+
+    arg_index, _ = next(
+        (i, rt)
+        for i, rt in enumerate(fresh_default_restype_set.residue_types)
+        if rt.name == "ARG"
+    )
+    n_allowed, allowed_bts = pp.block_types_from_original(
+        pbt, torch.tensor([[arg_index]], dtype=torch.int64)
+    )
+    assert n_allowed[0, 0] == 21
 
 
-def test_packer_palette_design_to_canonical_aas2(default_restype_set):
-    pp = PackerPalette(default_restype_set)
-    gly_rt = next(rt for rt in default_restype_set.residue_types if rt.name == "GLY")
-    allowed = pp.block_types_from_original(gly_rt)
+def test_packer_palette_design_to_canonical_aas_backward_compat(
+    fresh_default_restype_set, fresh_default_packed_block_types
+):
+    pp = PackerPalette(fresh_default_restype_set)
+    pbt = fresh_default_packed_block_types
+
+    arg_index, arg_rt = next(
+        (i, rt)
+        for i, rt in enumerate(fresh_default_restype_set.residue_types)
+        if rt.name == "ARG"
+    )
+    allowed = pp.block_types_from_original_old(arg_rt)
+    n_allowed, allowed_bts = pp.block_types_from_original(
+        pbt, torch.tensor([[arg_index]], dtype=torch.int64)
+    )
     assert len(allowed) == 21
+    assert n_allowed[0, 0] == 21
+    allowed_set = set([id(bt) for bt in allowed])
+
+    for i in range(n_allowed[0, 0]):
+        bt_ind = allowed_bts[0, 0, i].item()
+        bt = pbt.active_block_types[bt_ind]
+        assert id(bt) in allowed_set
+
+
+def test_packer_palette_design_to_canonical_aas2_backward_compat(
+    fresh_default_restype_set, fresh_default_packed_block_types
+):
+    pp = PackerPalette(fresh_default_restype_set)
+    pbt = fresh_default_packed_block_types
+    gly_ind, gly_rt = next(
+        (i, rt)
+        for i, rt in enumerate(fresh_default_restype_set.residue_types)
+        if rt.name == "GLY"
+    )
+    allowed = pp.block_types_from_original_old(gly_rt)
+    n_allowed, allowed_bts = pp.block_types_from_original(
+        pbt, torch.tensor([[gly_ind]], dtype=torch.int64)
+    )
+    assert len(allowed) == 21
+    assert n_allowed[0, 0] == 21
+    allowed_set = set([id(bt) for bt in allowed])
+    for i in range(n_allowed[0, 0]):
+        bt_ind = allowed_bts[0, 0, i].item()
+        bt = pbt.active_block_types[bt_ind]
+        assert id(bt) in allowed_set
 
 
 def test_packer_task_smoke(ubq_pdb, default_restype_set, torch_device):
@@ -31,7 +84,7 @@ def test_packer_task_smoke(ubq_pdb, default_restype_set, torch_device):
     assert task
 
 
-def test_residue_level_task_his_restrict_to_repacking(
+def test_residue_level_task_his_restrict_to_repacking_backward_compat(
     ubq_pdb, default_restype_set, torch_device
 ):
     palette = PackerPalette(default_restype_set)
@@ -50,6 +103,14 @@ def test_residue_level_task_his_restrict_to_repacking(
     assert sum(blt.block_type_allowed) == 21
     blt.restrict_to_repacking()
     assert sum(blt.block_type_allowed) == 2
+    n_allowed, allowed_bts = palette.block_types_from_original(
+        pbt, torch.tensor([[i]], dtype=torch.int64)
+    )
+    restrict_to_repacking_masks = palette.create_restrict_to_repacking_mask(
+        pbt, torch.tensor([[i]], dtype=torch.int64)
+    )
+    assert n_allowed[0, 0] == 21
+    assert sum(restrict_to_repacking_masks[0, 0].to(torch.int64)) == 2
 
 
 def test_packer_task_ctor(ubq_pdb, default_restype_set, torch_device):
