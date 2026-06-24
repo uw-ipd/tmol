@@ -37,6 +37,11 @@ def pdb_1r21():
 
 
 @pytest.fixture(scope="session")
+def pdb_10VB():
+    return pdb.data["10VB"]
+
+
+@pytest.fixture(scope="session")
 def disulfide_pdb():
     return pdb.data["3plc"]
 
