@@ -338,7 +338,7 @@ def _prepare_ligand_via_smiles(
     *,
     ph: float,
     sample_proton_chi: bool,
-    strict: bool = True,
+    strict: bool = False,
 ) -> LigandPreparation:
     """Prepare one ligand through the unified CIF -> SMILES -> params path.
 
@@ -351,10 +351,12 @@ def _prepare_ligand_via_smiles(
         ligand_info: The detected (CIF/atom-array) ligand.
         ph: Target pH for protonation (applied in the SMILES -> mol2 step).
         sample_proton_chi: Whether to emit proton-chi samples.
-        strict: If True (default), raise when no SMILES candidate fully covers
-            the CIF heavy-atom names. If False, fall back to the last
+        strict: If True, raise when no SMILES candidate fully covers the CIF
+            heavy-atom names. If False (default), fall back to the last
             successful (best-effort) preparation, which may leave some CIF
-            coordinates unplaceable.
+            coordinates unplaceable. The user-facing entry points
+            (:func:`prepare_ligands`, :func:`prepare_ligand_from_cif`) pass
+            their ``strict_ligands`` value here.
 
     Returns:
         The chosen :class:`LigandPreparation`.
