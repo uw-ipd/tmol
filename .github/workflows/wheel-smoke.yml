@@ -41,13 +41,13 @@ jobs:
           rsync -a --exclude .git --exclude build --exclude dist --exclude .venv \
             "$GITHUB_WORKSPACE/" /tmp/tmol-sdist-src/
           cd /tmp/tmol-sdist-src
-          pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja packaging pybind11 build
+          pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja packaging pybind11 wheel build
           python -m build --sdist --outdir /tmp/tmol-sdist
 
       - name: pip install sdist (should fetch prebuilt wheel, not compile)
         run: |
           set -euo pipefail
-          pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja packaging pybind11
+          pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja packaging pybind11 wheel
           # --no-build-isolation: torch must be visible to the wheel-fetch backend
           # (same pattern as flash-attn / foundry uv installs).
           pip install --no-build-isolation /tmp/tmol-sdist/tmol-*.tar.gz 2>&1 | tee /tmp/pip-install.log
@@ -69,7 +69,7 @@ jobs:
           python -m venv /tmp/uv-test-venv
           source /tmp/uv-test-venv/bin/activate
           pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu130
-          uv pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja packaging pybind11
+          uv pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja packaging pybind11 wheel
           uv pip install --no-build-isolation /tmp/tmol-sdist/tmol-*.tar.gz 2>&1 | tee /tmp/uv-install.log
           if grep -qE "CMake configuration failed|No CMAKE_CUDA_COMPILER" /tmp/uv-install.log; then
             echo "ERROR: uv fell back to source build"

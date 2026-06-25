@@ -215,7 +215,7 @@ jobs:
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             ${TARGET_VENV}/bin/pip install \
-              'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
+              'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12' wheel
           "
 
       - name: Build wheel
@@ -249,17 +249,18 @@ jobs:
       - name: Repair wheel (auditwheel / manylinux)
         if: inputs.use-manylinux-build
         run: |
-          chmod +x scripts/repair_linux_wheel.sh
-          ./scripts/repair_linux_wheel.sh dist
+          docker exec "$BUILDER" bash -e -o pipefail -c '
+            cd /workspace
+            chmod +x scripts/repair_linux_wheel.sh
+            ./scripts/repair_linux_wheel.sh dist
+          '
 
       - name: Rename wheel with CUDA/Torch tag
         run: |
           tmpname=cu${WHEEL_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}
           docker exec "$BUILDER" bash -c "
             cd /workspace
-            wheel_name=\$(ls dist/*whl | xargs -n 1 basename | sed \"s/-/+${tmpname}-/2\")
-            ls dist/*whl | xargs -I {} mv {} dist/\${wheel_name}
-            echo \${wheel_name}
+            python3 scripts/tag_wheel_local_version.py dist ${tmpname}
           " | tail -1 > /tmp/wheel_name.txt
           wheel_name=$(cat /tmp/wheel_name.txt)
           echo "wheel_name=${wheel_name}" >> "$GITHUB_ENV"

@@ -288,10 +288,17 @@ def _download_to_path(url: str, out_path: Path) -> bool:
                 if getattr(response, "status", 200) != 200:
                     _log(f"Wheel probe returned HTTP {response.status}: {url}")
                     return False
-                with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                with tempfile.NamedTemporaryFile(
+                    delete=False, dir=str(out_path.parent)
+                ) as tmp:
                     shutil.copyfileobj(response, tmp)
                     tmp_path = Path(tmp.name)
-            tmp_path.replace(out_path)
+            try:
+                tmp_path.replace(out_path)
+            except OSError:
+                # uv/pip wheel dirs may live on a different mount than /tmp.
+                shutil.move(str(tmp_path), str(out_path))
             return True
         except HTTPError as error:
             if error.code == 404:
@@ -428,6 +435,74 @@ def _no_wheel_install_help(tag: str, filenames: list[str]) -> str:
     )
 
 
+_WHEEL_LOCAL_VERSION_RE = re.compile(r"^tmol-(?P<base>[^-+]+)\+(?P<local>[^-]+)-")
+
+
+def _version_from_wheel_filename(filename: str) -> str | None:
+    match = _WHEEL_LOCAL_VERSION_RE.match(filename)
+    if not match:
+        return None
+    return f"{match.group('base')}+{match.group('local')}"
+
+
+def _align_wheel_metadata_from_filename(wheel_path: Path) -> None:
+    """Rename dist-info to match +local tag in filename and patch METADATA/RECORD."""
+    import base64
+    import hashlib
+    import zipfile
+
+    target_version = _version_from_wheel_filename(wheel_path.name)
+    if not target_version:
+        return
+
+    with zipfile.ZipFile(wheel_path, "r") as zin:
+        entries = {name: zin.read(name) for name in zin.namelist()}
+
+    metadata_paths = [n for n in entries if n.endswith(".dist-info/METADATA")]
+    if not metadata_paths:
+        _log("wheel metadata align skipped: no METADATA in wheel")
+        return
+
+    old_dist = metadata_paths[0].split("/")[0]
+    new_dist = f"tmol-{target_version}.dist-info"
+    if old_dist == new_dist:
+        meta = entries[metadata_paths[0]].decode("utf-8")
+        if any(ln == f"Version: {target_version}" for ln in meta.splitlines()):
+            return
+
+    new_entries: dict[str, bytes] = {}
+    for name, data in entries.items():
+        if name.endswith("/RECORD"):
+            continue
+        new_name = name.replace(f"{old_dist}/", f"{new_dist}/", 1)
+        if name.endswith("/METADATA"):
+            lines: list[str] = []
+            for line in data.decode("utf-8").splitlines():
+                if line.startswith("Version:"):
+                    line = f"Version: {target_version}"
+                lines.append(line)
+            data = ("\n".join(lines) + "\n").encode("utf-8")
+        new_entries[new_name] = data
+
+    record_lines: list[str] = []
+    for name in sorted(new_entries):
+        payload = new_entries[name]
+        digest = (
+            base64.urlsafe_b64encode(hashlib.sha256(payload).digest())
+            .rstrip(b"=")
+            .decode("ascii")
+        )
+        record_lines.append(f"{name},sha256={digest},{len(payload)}")
+    record_lines.append(f"{new_dist}/RECORD,,")
+    new_entries[f"{new_dist}/RECORD"] = "\n".join(record_lines).encode("utf-8")
+
+    patched = wheel_path.with_suffix(".patched.whl")
+    with zipfile.ZipFile(patched, "w", compression=zipfile.ZIP_DEFLATED) as zout:
+        for name, data in new_entries.items():
+            zout.writestr(name, data)
+    patched.replace(wheel_path)
+
+
 def _try_fetch_prebuilt_wheel(
     wheel_dir: Path, filenames: list[str], tag: str
 ) -> str | None:
@@ -437,6 +512,7 @@ def _try_fetch_prebuilt_wheel(
         out_path = wheel_dir / filename
         _log(f"Trying prebuilt wheel: {url}")
         if _download_to_path(url, out_path):
+            _align_wheel_metadata_from_filename(out_path)
             _log(f"Downloaded prebuilt wheel: {filename}")
             return filename
 
@@ -446,6 +522,7 @@ def _try_fetch_prebuilt_wheel(
         out_path = wheel_dir / asset_match
         _log(f"Trying release asset match: {url}")
         if _download_to_path(url, out_path):
+            _align_wheel_metadata_from_filename(out_path)
             _log(f"Downloaded prebuilt wheel: {asset_match}")
             return asset_match
     return None

@@ -232,11 +232,8 @@ jobs:
 
       - name: Rename wheel with CPU tag
         run: |
-          cd dist
-          for whl in *.whl; do
-            new_name=$(echo "$whl" | sed 's/-/+cpu-/2')
-            mv "$whl" "$new_name"
-          done
+          pip install wheel
+          python scripts/tag_wheel_local_version.py dist cpu
 
       - name: Log built wheels
         run: ls -lh dist/
