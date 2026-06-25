@@ -42,6 +42,7 @@ def build_context_from_biotite(
     prepare_ligands: bool = False,
     ligand_ph: float = 7.4,
     strict_atom_types: bool = False,
+    strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
     # Stays False even though ligand-prep now defaults proton-chi sampling on:
     # sampled polar hydrogens produce NaN coordinates during pose construction
@@ -68,6 +69,10 @@ def build_context_from_biotite(
             prepare_ligands=True).
         strict_atom_types: If True, unknown ligand atom types raise errors
             instead of using a fallback element heuristic.
+        strict_ligands: If True (default), raise when a detected ligand cannot
+            be prepared and registered (instead of silently dropping it during
+            pose construction). Pass False to fall back to warn-and-skip. Only
+            used when prepare_ligands=True.
         ligand_params_files: Optional list of tmol YAML params file paths.
             Residues defined in these files skip the RDKit/OB pipeline.
         sample_proton_chi: If True, prepared ligands emit PROTON_CHI
@@ -94,6 +99,7 @@ def build_context_from_biotite(
             strict_atom_types=strict_atom_types,
             params_files=ligand_params_files,
             sample_proton_chi=sample_proton_chi,
+            strict_ligands=strict_ligands,
         )
         cf = canonical_form_from_biotite(
             biotite_structure,
@@ -152,6 +158,7 @@ def pose_stack_from_biotite(
     prepare_ligands: bool = False,
     ligand_ph: float = 7.4,
     strict_atom_types: bool = False,
+    strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
     # Stays False (unlike the ligand-prep default): sampled polar hydrogens
     # produce NaN pose coordinates (OptHSampler). Opt in once that is fixed.
@@ -183,6 +190,9 @@ def pose_stack_from_biotite(
             prepare_ligands=True).
         strict_atom_types: If True, unknown ligand atom types raise errors
             instead of using a fallback element heuristic.
+        strict_ligands: If True (default), raise when a detected ligand cannot
+            be prepared and registered, instead of silently dropping it. Pass
+            False to warn-and-skip. Only used when prepare_ligands=True.
         ligand_params_files: Optional list of tmol YAML params file paths.
         sample_proton_chi: If True, prepared ligands emit PROTON_CHI
             ``chi_samples`` so OptHSampler samples ligand polar-H rotamers
@@ -210,6 +220,7 @@ def pose_stack_from_biotite(
         prepare_ligands=prepare_ligands,
         ligand_ph=ligand_ph,
         strict_atom_types=strict_atom_types,
+        strict_ligands=strict_ligands,
         ligand_params_files=ligand_params_files,
         sample_proton_chi=sample_proton_chi,
     )

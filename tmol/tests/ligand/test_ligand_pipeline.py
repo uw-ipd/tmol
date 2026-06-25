@@ -9,13 +9,18 @@ against reference pipeline outputs.
 from pathlib import Path
 from types import SimpleNamespace
 
+import biotite.structure as struc
+import numpy as np
 import pytest
 import torch
 
 from tmol.io.pose_stack_from_biotite import canonical_ordering_for_biotite
 from tmol.ligand import prepare_ligands
 from tmol.ligand.preparation import _prepare_ligand_via_smiles
-from tmol.ligand.detect import detect_nonstandard_residues
+from tmol.ligand.detect import (
+    _residue_names_with_cross_residue_bonds,
+    detect_nonstandard_residues,
+)
 from tmol.ligand.dimorphite_dl import protonate_mol_variants
 from tmol.ligand.params_io import read_params_file, write_params_file
 from tmol.ligand.registry import clear_cache
@@ -71,10 +76,21 @@ class TestFullPipeline:
         return ParameterDatabase.get_default()
 
     def test_hem_metal_ligand_skipped(self, cif_155c_with_hem, param_db) -> None:
-        """HEM contains Fe; metal-containing ligands are unsupported and skipped."""
-        param_db, new_co = prepare_ligands(cif_155c_with_hem, param_db=param_db)
+        """HEM contains Fe; metal ligands are unsupported and skipped when lenient."""
+        param_db, new_co = prepare_ligands(
+            cif_155c_with_hem, param_db=param_db, strict_ligands=False
+        )
 
         assert "HEM" not in {r.name for r in param_db.chemical.residues}
+
+    def test_hem_metal_ligand_raises_when_strict(
+        self, cif_155c_with_hem, param_db
+    ) -> None:
+        """The strict default raises rather than silently dropping the ligand."""
+        from tmol.ligand import LigandPreparationError
+
+        with pytest.raises(LigandPreparationError, match="HEM"):
+            prepare_ligands(cif_155c_with_hem, param_db=param_db)
 
     def test_pse_partial_occupancy(self, cif_1a25_with_pse, param_db) -> None:
         """Ligand with partial occupancy (PSE, 0.56) still prepares."""
@@ -300,3 +316,120 @@ def test_prepare_ligand_from_cif_helper_loads_reference_fixture() -> None:
         param_db=ParameterDatabase.get_default(),
     )
     assert any(rt.name == "LG1" for rt in param_db.chemical.residues)
+
+
+def _residue_atoms(res_id, res_name, names_coords, chain_id="A"):
+    """Build a list of biotite Atoms for one residue.
+
+    ``names_coords`` is an iterable of ``(atom_name, element, (x, y, z))``.
+    """
+    return [
+        struc.Atom(
+            np.asarray(coord, dtype=np.float32),
+            chain_id=chain_id,
+            res_id=res_id,
+            res_name=res_name,
+            atom_name=atom_name,
+            element=element,
+        )
+        for atom_name, element, coord in names_coords
+    ]
+
+
+class TestCovalentDetection:
+    """Unit tests for ``_residue_names_with_cross_residue_bonds``."""
+
+    def test_nonpolymer_ligand_close_contact_not_flagged(self) -> None:
+        """A non-polymer ligand near a protein atom is not flagged covalent.
+
+        Regression for binding-pocket ligands (e.g. Yanjing's B;N) whose tight
+        protein contacts / clashes in unminimized models fall below a covalent
+        distance but must not be misread as covalently linked.
+        """
+        atoms = _residue_atoms(
+            1,
+            "ALA",
+            [
+                ("N", "N", (0.0, 0.0, 0.0)),
+                ("CA", "C", (1.5, 0.0, 0.0)),
+                ("C", "C", (2.5, 1.0, 0.0)),
+            ],
+        ) + _residue_atoms(
+            2,
+            "LIG",
+            [("C1", "C", (2.6, 0.0, 0.0))],  # ~1.1 A from ALA CA, no explicit bond
+        )
+        arr = struc.array(atoms)
+
+        linked = _residue_names_with_cross_residue_bonds(arr)
+        assert "LIG" not in linked
+
+    def test_explicit_cross_residue_bond_is_flagged(self) -> None:
+        """An explicit bond between residues is honored for any residue type."""
+        atoms = _residue_atoms(
+            1,
+            "ALA",
+            [("C", "C", (0.0, 0.0, 0.0))],
+        ) + _residue_atoms(
+            2,
+            "LIG",
+            [("C1", "C", (5.0, 0.0, 0.0))],  # far away; only the bond connects them
+        )
+        arr = struc.array(atoms)
+        arr.bonds = struc.BondList(arr.array_length(), np.array([[0, 1, 1]]))
+
+        linked = _residue_names_with_cross_residue_bonds(arr)
+        assert "LIG" in linked
+
+    def test_polymer_linking_residue_spatial_fallback_retained(self) -> None:
+        """Glycans (saccharides) are still flagged via the spatial fallback."""
+        atoms = _residue_atoms(
+            1,
+            "NAG",
+            [("C1", "C", (0.0, 0.0, 0.0))],
+        ) + _residue_atoms(
+            2,
+            "NAG",
+            [("O4", "O", (1.4, 0.0, 0.0))],  # glycosidic distance, no explicit bond
+        )
+        arr = struc.array(atoms)
+
+        linked = _residue_names_with_cross_residue_bonds(arr)
+        assert "NAG" in linked
+
+
+_YANJING_BTN_DIR = Path(
+    "/home/yanjing/beta_barrels/codebase/foundry-dev/structures/default_dgpo/all_samples"
+)
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "9c9e8b02__BTN_10_generated.cif",
+        "9c9e8b02__BTN_12_generated.cif",
+        "9c9e8b02__BTN_26_generated.cif",
+    ],
+)
+def test_btn_close_contact_ligand_not_dropped_as_covalent(filename) -> None:
+    """Real Yanjing complexes with tight B;N-protein contacts stay as ligands.
+
+    These files have the ligand heavy atoms within ~1.0-1.6 A of a protein atom
+    (clashes in unminimized generated models). They used to be discarded as
+    covalently linked, leaving the ligand out of the pose and ddG meaningless.
+    """
+    import biotite.structure.io.pdbx as pdbx
+
+    cif_path = _YANJING_BTN_DIR / filename
+    if not cif_path.exists():
+        pytest.skip(f"Yanjing dataset not available: {cif_path}")
+
+    cif = pdbx.CIFFile.read(str(cif_path))
+    arr = pdbx.get_structure(cif, model=1, include_bonds=True)
+    if isinstance(arr, struc.AtomArrayStack):
+        arr = arr[0]
+
+    ligands = detect_nonstandard_residues(arr, canonical_ordering_for_biotite())
+    btn = next((lig for lig in ligands if lig.res_name == "B;N"), None)
+    assert btn is not None, "B;N ligand was not detected"
+    assert not btn.covalently_linked

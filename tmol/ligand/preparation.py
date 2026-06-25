@@ -44,6 +44,31 @@ from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
 logger = logging.getLogger(__name__)
 
 
+class LigandPreparationError(RuntimeError):
+    """A detected ligand could not be prepared, registered, or retained.
+
+    Raised by :func:`prepare_ligands` (and the ``prepare_ligands=True`` IO
+    paths) when ``strict_ligands=True`` and a non-standard residue is skipped
+    or fails preparation, instead of silently dropping it. Pass
+    ``strict_ligands=False`` to downgrade these failures to warnings.
+    """
+
+
+def _skip_or_raise(strict_ligands: bool, message: str) -> None:
+    """Raise :class:`LigandPreparationError` if strict, else log a warning.
+
+    Centralizes the strict-versus-lenient handling for ligands that
+    :func:`prepare_ligands` cannot register. The lenient branch appends a hint
+    so the warning matches the strict error's guidance.
+    """
+    if strict_ligands:
+        raise LigandPreparationError(
+            f"{message}. Pass strict_ligands=False to skip it with a warning, "
+            "or supply prebuilt params via ligand_params_files."
+        )
+    logger.warning("Skipping %s", message)
+
+
 def _build_cif_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.Mol:
     """Build a Chem.Mol from the CIF ligand for heavy-atom graph matching.
 
@@ -313,6 +338,7 @@ def _prepare_ligand_via_smiles(
     *,
     ph: float,
     sample_proton_chi: bool,
+    strict: bool = True,
 ) -> LigandPreparation:
     """Prepare one ligand through the unified CIF -> SMILES -> params path.
 
@@ -320,18 +346,23 @@ def _prepare_ligand_via_smiles(
     geometry; never a CCD lookup), runs each through the SMILES -> mol2 ->
     params pipeline, and returns the first preparation whose heavy-atom names
     cover the original ligand's heavy atoms (so CIF coordinates can be placed).
-    Falls back to the last successful preparation if none match exactly.
 
     Args:
         ligand_info: The detected (CIF/atom-array) ligand.
         ph: Target pH for protonation (applied in the SMILES -> mol2 step).
         sample_proton_chi: Whether to emit proton-chi samples.
+        strict: If True (default), raise when no SMILES candidate fully covers
+            the CIF heavy-atom names. If False, fall back to the last
+            successful (best-effort) preparation, which may leave some CIF
+            coordinates unplaceable.
 
     Returns:
         The chosen :class:`LigandPreparation`.
 
     Raises:
         ValueError: If no SMILES candidate could be derived or prepared.
+        LigandPreparationError: If ``strict`` and no candidate fully matches
+            the CIF heavy-atom names.
     """
     candidates = ligand_smiles_candidates_from_atom_array(
         ligand_info.atom_array, res_name=ligand_info.res_name
@@ -376,6 +407,13 @@ def _prepare_ligand_via_smiles(
         )
 
     if last_prep is not None:
+        if strict:
+            raise LigandPreparationError(
+                f"{ligand_info.res_name}: no SMILES candidate fully matched the "
+                "CIF heavy-atom names, so some ligand coordinates cannot be "
+                "placed. Pass strict_ligands=False to accept a best-effort "
+                "preparation, or supply prebuilt params via ligand_params_files."
+            )
         logger.warning(
             "No SMILES candidate fully matched CIF atom names for %s; "
             "using best-effort preparation",
@@ -397,6 +435,7 @@ def prepare_ligands(
     params_files: list[str] | None = None,
     params_output: str | None = None,
     sample_proton_chi: bool = True,
+    strict_ligands: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Detect, prepare, and register all non-standard residues.
 
@@ -421,11 +460,20 @@ def prepare_ligands(
             to a tmol YAML params file for later reuse.
         sample_proton_chi: Whether to emit PROTON_CHI samples in the
             built residue type (also part of the in-process cache key).
+        strict_ligands: If True (default), raise :class:`LigandPreparationError`
+            when a detected non-standard residue is skipped (metal-containing or
+            covalently linked) or fails preparation, instead of silently
+            dropping it. If False, such residues are logged as warnings and
+            skipped, leaving them to be filtered out during pose construction.
 
     Returns:
         A (ParameterDatabase, CanonicalOrdering) tuple. The returned
         ParameterDatabase is a new instance with all detected ligands
         injected; the input ``param_db`` is not modified.
+
+    Raises:
+        LigandPreparationError: If ``strict_ligands`` and any detected ligand
+            cannot be prepared and registered.
     """
     if isinstance(atom_array, struc.AtomArrayStack):
         if len(atom_array) == 1:
@@ -468,18 +516,18 @@ def prepare_ligands(
             }
         )
         if metals_present:
-            logger.warning(
-                "Skipping %s: ligands containing metal atoms (%s) are not supported",
-                lig.res_name,
-                metals_present,
+            _skip_or_raise(
+                strict_ligands,
+                f"{lig.res_name}: ligands containing metal atoms "
+                f"({metals_present}) are not supported",
             )
             continue
 
         if lig.covalently_linked:
-            logger.warning(
-                "Skipping %s: ligand is covalently linked to another residue "
+            _skip_or_raise(
+                strict_ligands,
+                f"{lig.res_name}: ligand is covalently linked to another residue "
                 "(e.g. glycan attached to protein) — not supported",
-                lig.res_name,
             )
             continue
 
@@ -508,9 +556,26 @@ def prepare_ligands(
             continue
 
         logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)
-        prep = _prepare_ligand_via_smiles(
-            lig, ph=ph, sample_proton_chi=sample_proton_chi
-        )
+        try:
+            prep = _prepare_ligand_via_smiles(
+                lig,
+                ph=ph,
+                sample_proton_chi=sample_proton_chi,
+                strict=strict_ligands,
+            )
+        except LigandPreparationError:
+            raise
+        except Exception as err:  # noqa: BLE001  SMILES/typing/build failure
+            if strict_ligands:
+                raise LigandPreparationError(
+                    f"{lig.res_name}: failed to prepare ligand ({err}). Pass "
+                    "strict_ligands=False to skip it with a warning, or supply "
+                    "prebuilt params via ligand_params_files."
+                ) from err
+            logger.warning(
+                "Skipping %s: ligand preparation failed (%s)", lig.res_name, err
+            )
+            continue
         cache_ligand(
             lig.res_name,
             prep.residue_type,
@@ -519,6 +584,15 @@ def prepare_ligands(
             cache=cache,
         )
         preparations.append(prep)
+
+    if strict_ligands and not preparations:
+        raise LigandPreparationError(
+            "All "
+            f"{len(ligands)} detected non-standard residue(s) "
+            f"({', '.join(sorted({lig.res_name for lig in ligands}))}) were "
+            "skipped; none could be prepared. Pass strict_ligands=False to "
+            "continue with these residues dropped."
+        )
 
     if preparations:
         param_db = inject_ligand_preparations(
@@ -575,6 +649,7 @@ def prepare_ligand_from_cif(
     param_db: Optional[ParameterDatabase] = None,
     ph: float = 7.4,
     strict_atom_types: bool = False,
+    strict_ligands: bool = True,
     res_name: str | None = None,
     sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
@@ -590,6 +665,9 @@ def prepare_ligand_from_cif(
         param_db: Base database (not modified); defaults to the tmol default.
         ph: Target pH for protonation.
         strict_atom_types: Fail on unknown atom-type element mappings.
+        strict_ligands: If True (default), raise when no SMILES candidate fully
+            matches the CIF heavy-atom names. Pass False to accept a best-effort
+            preparation.
         res_name: Optional residue name override.
         sample_proton_chi: Whether to emit proton-chi samples.
 
@@ -600,7 +678,9 @@ def prepare_ligand_from_cif(
         param_db = ParameterDatabase.get_default()
 
     lig = _ligand_info_from_cif(cif_path, res_name)
-    prep = _prepare_ligand_via_smiles(lig, ph=ph, sample_proton_chi=sample_proton_chi)
+    prep = _prepare_ligand_via_smiles(
+        lig, ph=ph, sample_proton_chi=sample_proton_chi, strict=strict_ligands
+    )
     param_db = inject_ligand_preparations(
         param_db, [prep], strict_atom_types=strict_atom_types
     )

@@ -12,6 +12,7 @@ from tmol.ligand.detect import (
 from tmol.ligand.params_file import inject_params_file
 from tmol.ligand.params_io import write_params_from_mol2
 from tmol.ligand.preparation import (
+    LigandPreparationError,
     prepare_ligand_from_cif,
     prepare_ligand_from_mol2,
     prepare_ligand_from_smiles,
@@ -26,6 +27,7 @@ from tmol.ligand.structure_to_smiles import (
 
 __all__ = [
     "LigandPreparation",
+    "LigandPreparationError",
     "NonStandardResidueInfo",
     "RawResidueType",
     "clear_cache",
