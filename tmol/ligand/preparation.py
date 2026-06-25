@@ -338,7 +338,6 @@ def _prepare_ligand_via_smiles(
     *,
     ph: float,
     sample_proton_chi: bool,
-    strict: bool = False,
 ) -> LigandPreparation:
     """Prepare one ligand through the unified CIF -> SMILES -> params path.
 
@@ -346,25 +345,18 @@ def _prepare_ligand_via_smiles(
     geometry; never a CCD lookup), runs each through the SMILES -> mol2 ->
     params pipeline, and returns the first preparation whose heavy-atom names
     cover the original ligand's heavy atoms (so CIF coordinates can be placed).
+    Falls back to the last successful preparation if none match exactly.
 
     Args:
         ligand_info: The detected (CIF/atom-array) ligand.
         ph: Target pH for protonation (applied in the SMILES -> mol2 step).
         sample_proton_chi: Whether to emit proton-chi samples.
-        strict: If True, raise when no SMILES candidate fully covers the CIF
-            heavy-atom names. If False (default), fall back to the last
-            successful (best-effort) preparation, which may leave some CIF
-            coordinates unplaceable. The user-facing entry points
-            (:func:`prepare_ligands`, :func:`prepare_ligand_from_cif`) pass
-            their ``strict_ligands`` value here.
 
     Returns:
         The chosen :class:`LigandPreparation`.
 
     Raises:
         ValueError: If no SMILES candidate could be derived or prepared.
-        LigandPreparationError: If ``strict`` and no candidate fully matches
-            the CIF heavy-atom names.
     """
     candidates = ligand_smiles_candidates_from_atom_array(
         ligand_info.atom_array, res_name=ligand_info.res_name
@@ -409,13 +401,6 @@ def _prepare_ligand_via_smiles(
         )
 
     if last_prep is not None:
-        if strict:
-            raise LigandPreparationError(
-                f"{ligand_info.res_name}: no SMILES candidate fully matched the "
-                "CIF heavy-atom names, so some ligand coordinates cannot be "
-                "placed. Pass strict_ligands=False to accept a best-effort "
-                "preparation, or supply prebuilt params via ligand_params_files."
-            )
         logger.warning(
             "No SMILES candidate fully matched CIF atom names for %s; "
             "using best-effort preparation",
@@ -560,10 +545,7 @@ def prepare_ligands(
         logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)
         try:
             prep = _prepare_ligand_via_smiles(
-                lig,
-                ph=ph,
-                sample_proton_chi=sample_proton_chi,
-                strict=strict_ligands,
+                lig, ph=ph, sample_proton_chi=sample_proton_chi
             )
         except LigandPreparationError:
             raise
@@ -651,7 +633,6 @@ def prepare_ligand_from_cif(
     param_db: Optional[ParameterDatabase] = None,
     ph: float = 7.4,
     strict_atom_types: bool = False,
-    strict_ligands: bool = True,
     res_name: str | None = None,
     sample_proton_chi: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
@@ -667,9 +648,6 @@ def prepare_ligand_from_cif(
         param_db: Base database (not modified); defaults to the tmol default.
         ph: Target pH for protonation.
         strict_atom_types: Fail on unknown atom-type element mappings.
-        strict_ligands: If True (default), raise when no SMILES candidate fully
-            matches the CIF heavy-atom names. Pass False to accept a best-effort
-            preparation.
         res_name: Optional residue name override.
         sample_proton_chi: Whether to emit proton-chi samples.
 
@@ -680,9 +658,7 @@ def prepare_ligand_from_cif(
         param_db = ParameterDatabase.get_default()
 
     lig = _ligand_info_from_cif(cif_path, res_name)
-    prep = _prepare_ligand_via_smiles(
-        lig, ph=ph, sample_proton_chi=sample_proton_chi, strict=strict_ligands
-    )
+    prep = _prepare_ligand_via_smiles(lig, ph=ph, sample_proton_chi=sample_proton_chi)
     param_db = inject_ligand_preparations(
         param_db, [prep], strict_atom_types=strict_atom_types
     )

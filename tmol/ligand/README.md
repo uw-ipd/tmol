@@ -177,9 +177,11 @@ pose_stack, context = pose_stack_from_biotite(
 )
 ```
 
-A residue can fail to prepare because it contains metal atoms, is covalently
-linked to another residue, or cannot be matched to a SMILES that covers its CIF
-heavy-atom names.
+A residue triggers the strict error when it is skipped (it contains metal atoms
+or is covalently linked to another residue) or when preparation fails outright
+(no derivable SMILES, atom typing, or residue construction error). A successful
+but imperfect "best-effort" name match is still logged as a warning rather than
+raised, since the ligand is loaded in that case.
 
 ### `Unrecognized 3lc <NAME>` warning
 
