@@ -86,10 +86,15 @@ class TestFullPipeline:
     def test_hem_metal_ligand_raises_when_strict(
         self, cif_155c_with_hem, param_db
     ) -> None:
-        """The strict default raises rather than silently dropping the ligand."""
+        """The strict default raises rather than silently dropping a ligand.
+
+        This fixture carries unsupported residues (HEM contains Fe; UNK is a
+        polymer-linking residue covalently attached to the chain), so strict
+        mode raises on the first one encountered instead of dropping it.
+        """
         from tmol.ligand import LigandPreparationError
 
-        with pytest.raises(LigandPreparationError, match="HEM"):
+        with pytest.raises(LigandPreparationError, match="not supported"):
             prepare_ligands(cif_155c_with_hem, param_db=param_db)
 
     def test_pse_partial_occupancy(self, cif_1a25_with_pse, param_db) -> None:
