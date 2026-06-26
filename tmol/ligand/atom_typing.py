@@ -190,28 +190,7 @@ def sanitize_tolerant(mol: Chem.Mol) -> None:
         Chem.SanitizeMol(mol, sanitizeOps=ops)
 
 
-_WAS_AROMATIC_PROP = "_tmol_was_aromatic"
 _IS_STRAINED_RING_ATOM_PROP = "_tmol_is_strained_ring_atom"
-
-
-def _save_aromatic_perception(mol: Chem.Mol) -> None:
-    """Stamp each atom's current ``GetIsAromatic`` flag onto an atom prop.
-
-    Kekulization clears the live aromatic flag, but the classifier still
-    needs to know that a pyrrole-type N or aromatic ring carbon was once
-    aromatic to choose ``Nin`` over ``NG21``. Read back via
-    :func:`was_aromatic`.
-    """
-    for atom in mol.GetAtoms():
-        atom.SetIntProp(_WAS_AROMATIC_PROP, 1 if atom.GetIsAromatic() else 0)
-
-
-def was_aromatic(atom: Chem.Atom) -> bool:
-    """Return the aromatic flag captured before kekulization, falling back
-    to the live flag if the property wasn't set."""
-    if atom.HasProp(_WAS_AROMATIC_PROP):
-        return atom.GetIntProp(_WAS_AROMATIC_PROP) == 1
-    return atom.GetIsAromatic()
 
 
 def _annotate_strained_ring_atoms(mol: Chem.Mol) -> None:
@@ -566,11 +545,7 @@ def kekulize_tolerant(mol: Chem.Mol) -> None:
     ``CR/CRp``; explicit ``DOUBLE``/``SINGLE`` ring bonds rather than
     ``AROMATIC``). Aromaticity perception in RDKit's standard sanitize
     flips them back, so we kekulize after every sanitize step.
-
-    Stamps :func:`was_aromatic` first so downstream classifiers can still
-    distinguish pyrrole-type N (``Nin``) from plain sp2 NH (``NG21``).
     """
-    _save_aromatic_perception(mol)
     try:
         Chem.Kekulize(mol, clearAromaticFlags=True)
     except (Chem.rdchem.KekulizeException, Chem.rdchem.AtomKekulizeException):

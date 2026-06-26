@@ -627,6 +627,25 @@ def _ligand_info_from_cif(
     )
 
 
+def _inject_single(
+    prep: LigandPreparation,
+    param_db: Optional[ParameterDatabase],
+    strict_atom_types: bool,
+) -> tuple[ParameterDatabase, CanonicalOrdering]:
+    """Inject one prepared ligand and return the new ``(db, canonical_ordering)``.
+
+    Shared tail of the single-ligand ``prepare_ligand_from_*`` entry points:
+    resolve the default database, inject the preparation, and rebuild the
+    canonical ordering for the extended database.
+    """
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
+    param_db = inject_ligand_preparations(
+        param_db, [prep], strict_atom_types=strict_atom_types
+    )
+    return param_db, rebuild_canonical_ordering(param_db)
+
+
 def prepare_ligand_from_cif(
     cif_path: str,
     *,
@@ -654,15 +673,9 @@ def prepare_ligand_from_cif(
     Returns:
         A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.
     """
-    if param_db is None:
-        param_db = ParameterDatabase.get_default()
-
     lig = _ligand_info_from_cif(cif_path, res_name)
     prep = _prepare_ligand_via_smiles(lig, ph=ph, sample_proton_chi=sample_proton_chi)
-    param_db = inject_ligand_preparations(
-        param_db, [prep], strict_atom_types=strict_atom_types
-    )
-    return param_db, rebuild_canonical_ordering(param_db)
+    return _inject_single(prep, param_db, strict_atom_types)
 
 
 def prepare_ligand_from_smiles(
@@ -692,9 +705,6 @@ def prepare_ligand_from_smiles(
             during 3D mol2 generation (matching the reference pipeline); set
             ``False`` for faster single-conformer generation.
     """
-    if param_db is None:
-        param_db = ParameterDatabase.get_default()
-
     lig = nonstandard_residue_info_from_smiles_via_mol2(
         smiles,
         res_name=res_name,
@@ -703,10 +713,7 @@ def prepare_ligand_from_smiles(
         conformer_search=conformer_search,
     )
     prep = prepare_single_ligand(lig, sample_proton_chi=sample_proton_chi)
-    param_db = inject_ligand_preparations(
-        param_db, [prep], strict_atom_types=strict_atom_types
-    )
-    return param_db, rebuild_canonical_ordering(param_db)
+    return _inject_single(prep, param_db, strict_atom_types)
 
 
 def prepare_ligand_from_mol2(
@@ -734,12 +741,6 @@ def prepare_ligand_from_mol2(
     """
     from tmol.ligand.detect import nonstandard_residue_info_from_mol2
 
-    if param_db is None:
-        param_db = ParameterDatabase.get_default()
-
     lig = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
     prep = prepare_single_ligand(lig, sample_proton_chi=sample_proton_chi)
-    param_db = inject_ligand_preparations(
-        param_db, [prep], strict_atom_types=strict_atom_types
-    )
-    return param_db, rebuild_canonical_ordering(param_db)
+    return _inject_single(prep, param_db, strict_atom_types)

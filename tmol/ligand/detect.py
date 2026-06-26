@@ -194,11 +194,6 @@ def _mol2_charge_model_from_text(mol2_text: str) -> str:
     return ""
 
 
-def _mol2_charge_model(mol2_path: Path) -> str:
-    """Return the Tripos charge model line from a mol2 file (e.g. ``GASTEIGER``)."""
-    return _mol2_charge_model_from_text(mol2_path.read_text())
-
-
 def _mol2_single_bond_ids(mol2_text: str) -> frozenset[frozenset[int]]:
     """Return the set of single (order ``'1'``) bonds from a mol2 BOND section.
 
