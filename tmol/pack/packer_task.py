@@ -45,13 +45,19 @@ class PackerPalleteAnnotation:
     max_n_allowed: int
     n_allowed_block_types_for_block_type: Tensor[torch.int64][:]
     allowed_block_types_for_block_type: Tensor[torch.bool][:, :]
+    allowed_block_type_is_orig: Tensor[torch.bool][:, :]
     restrict_to_repacking_masks: Tensor[torch.bool][:, :]
 
 
 class PackerPalette:
     def __init__(self, rts: ResidueTypeSet):
         # RTS argument to be deprecated!
+
         self.rts = rts
+        # TEMP!
+        from tmol.pack.rotamer.fallback_sampler import FallbackSampler
+
+        self._default_conformer_samplers = [FallbackSampler()]
 
     def block_types_from_original_old(self, orig: RefinedResidueType):
         # ok, this is where we figure out what the allowed restypes
@@ -129,18 +135,30 @@ class PackerPalette:
             dtype=torch.int64,
             device=pbt.device,
         )
+        allowed_block_type_is_orig = torch.zeros_like(
+            allowed_block_types_for_block_type, dtype=torch.bool
+        )
         n_allowed_block_types_for_block_type = torch.zeros_like(orig, dtype=torch.int64)
         is_real_bt = orig >= 0
 
         n_allowed_bt_from_orig = dppann.n_allowed_block_types_for_block_type
         allowed_bt_from_orig = dppann.allowed_block_types_for_block_type
+        allowed_bt_is_orig_from_orig = dppann.allowed_block_type_is_orig
         n_allowed_block_types_for_block_type[is_real_bt] = n_allowed_bt_from_orig[
             orig[is_real_bt]
         ]
         allowed_block_types_for_block_type[is_real_bt] = allowed_bt_from_orig[
             orig[is_real_bt]
         ]
-        return n_allowed_block_types_for_block_type, allowed_block_types_for_block_type
+        allowed_block_type_is_orig[is_real_bt] = allowed_bt_is_orig_from_orig[
+            orig[is_real_bt]
+        ]
+
+        return (
+            n_allowed_block_types_for_block_type,
+            allowed_block_types_for_block_type,
+            allowed_block_type_is_orig,
+        )
 
     def create_restrict_to_repacking_mask(
         self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
@@ -173,9 +191,11 @@ class PackerPalette:
         other sampler are left to that sampler exclusively.
         Future versions of PackerPalette have the option to override this method.
         """
-        from tmol.pack.rotamer.fallback_sampler import FallbackSampler
+        # TEMP from tmol.pack.rotamer.fallback_sampler import FallbackSampler
 
-        return [FallbackSampler()]
+        # return [FallbackSampler()]
+        # TEMP!
+        return [self._default_conformer_samplers[0]]
 
 
 def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockTypes):
@@ -183,6 +203,7 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
     if hasattr(pbt, "default_packer_palette_annotations"):
         return
     allowed_block_types_for_block_type = [list() for _ in range(pbt.n_types)]
+    allowed_block_is_orig = [list() for _ in range(pbt.n_types)]
     restrict_to_repacking_masks = [list() for _ in range(pbt.n_types)]
     for i, orig_bt in enumerate(pbt.active_block_types):
         for j, alt_bt in enumerate(pbt.active_block_types):
@@ -211,6 +232,7 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
                     == orig_bt.properties.polymer.sidechain_chirality
                 ):
                     allowed_block_types_for_block_type[i].append(j)
+                    allowed_block_is_orig[i].append(j == i)
                     restrict_to_repacking_masks[i].append(
                         j_allowed_for_restrict_to_repack
                     )
@@ -226,6 +248,7 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
                 ):
                     # allow glycine <--> l-caa mutations
                     allowed_block_types_for_block_type[i].append(j)
+                    allowed_block_is_orig[i].append(j == i)
                     restrict_to_repacking_masks[i].append(
                         j_allowed_for_restrict_to_repack
                     )
@@ -239,11 +262,13 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
                     # your d-caa to become glycine, and then later
                     # to an l-caa, but not the other way around
                     allowed_block_types_for_block_type[i].append(j)
+                    allowed_block_is_orig[i].append(j == i)
                     restrict_to_repacking_masks[i].append(
                         j_allowed_for_restrict_to_repack
                     )
             elif i == j:
                 allowed_block_types_for_block_type[i].append(j)
+                allowed_block_is_orig[i].append(j == i)
                 restrict_to_repacking_masks[i].append(j_allowed_for_restrict_to_repack)
 
     max_n_allowed = max(len(lst) for lst in allowed_block_types_for_block_type)
@@ -260,6 +285,11 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
         dtype=torch.int64,
         device=pbt.device,
     )
+    allowed_block_type_is_orig = torch.tensor(
+        [lst + [False] * (max_n_allowed - len(lst)) for lst in allowed_block_is_orig],
+        dtype=torch.bool,
+        device=pbt.device,
+    )
     restrict_to_repacking_masks = torch.tensor(
         [
             lst + [False] * (max_n_allowed - len(lst))
@@ -273,6 +303,7 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
         max_n_allowed=max_n_allowed,
         n_allowed_block_types_for_block_type=n_allowed_block_types_for_block_type,
         allowed_block_types_for_block_type=allowed_block_types_for_block_type,
+        allowed_block_type_is_orig=allowed_block_type_is_orig,
         restrict_to_repacking_masks=restrict_to_repacking_masks,
     )
     setattr(pbt, "default_packer_palette_annotations", annotation)
@@ -284,6 +315,8 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
 # the logic of what "restrict to repacking" means for each BLT rather
 # than deciding over and over again based on string matching.
 class BlockLevelTask:
+    """Deprecated!"""
+
     def __init__(
         self, seqpos: int, block_type: RefinedResidueType, palette: PackerPalette
     ):
@@ -358,6 +391,7 @@ class PackerTask:
         (
             self.per_block_n_considered_block_types,
             self.per_block_considered_block_types,
+            self.per_block_considered_block_types_is_orig,
         ) = palette.block_types_from_original(
             systems.packed_block_types, systems.block_type_ind64
         )
@@ -506,12 +540,20 @@ class SetPackerTask:
         set_task.blts = task.blts  # DEPRECATED!!!
         set_task.pbt = task.pbt
         set_task.device = task.device
+        set_task.is_real_block = task.is_real_block
+        set_task.real_block_pose, set_task.real_block_block = torch.nonzero(
+            set_task.is_real_block, as_tuple=True
+        )
+
         set_task.per_block_orig_block_type = task.per_block_orig_block_type
         set_task.per_block_considered_block_types = (
             task.per_block_considered_block_types
         )
         set_task.per_block_n_considered_block_types = (
             task.per_block_n_considered_block_types
+        )
+        set_task.per_block_considered_block_types_is_orig = (
+            task.per_block_considered_block_types_is_orig
         )
         set_task.restrict_to_repacking_masks = task.restrict_to_repacking_masks
         set_task.per_block_is_block_type_allowed = task.per_block_is_block_type_allowed
@@ -553,6 +595,8 @@ class SetPackerTask:
             max_n_blocks * cbt_pose + cbt_block
         )
 
+        # these non-zeros are indices in the n-poses x n-blocks x max-n-considered
+        # tensor.
         allowed_pose, allowed_block, allowed_which_bt = torch.nonzero(
             task.per_block_is_block_type_allowed, as_tuple=True
         )
@@ -563,5 +607,14 @@ class SetPackerTask:
         set_task.allowed_bt_block = allowed_block
         set_task.allowed_bt_which_block_type = allowed_which_bt
         set_task.allowed_bt_block_type = allowed_bt
+
+        # these non-zeros are indices in a one-dimensional tensor of
+        # all (real) considered block types.
+        set_task.allowed_cons_bt = torch.nonzero(
+            task.per_block_is_block_type_allowed[
+                cbt_pose, cbt_block, cbt_which_block_type
+            ],
+            as_tuple=True,
+        )[0]
 
         return set_task

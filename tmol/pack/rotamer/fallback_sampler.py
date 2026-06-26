@@ -1,4 +1,3 @@
-import numpy
 import torch
 import attr
 
@@ -34,6 +33,9 @@ class FallbackSampler(ConformerSampler):
     something to represent for fixed residues.
     """
 
+    def __init__(self):
+        print("instantiating FallbackSampler", id(self))
+
     @classmethod
     def sampler_name(cls):
         return "FallbackSampler"
@@ -57,41 +59,103 @@ class FallbackSampler(ConformerSampler):
     def create_samples_for_poses(
         self,
         pose_stack: PoseStack,
-        task: "PackerTask",  # noqa: F821
+        task: "SetPackerTask",  # noqa: F821
     ) -> Tuple[  # noqa F821
         Tensor[torch.int32][:],  # n_rots_for_gbt
         Tensor[torch.int32][:],  # gbt_for_rotamer
         dict,
     ]:
-        n_rots_for_gbt_list = [
-            (
-                1
-                if bt is blt.original_block_type
-                and (
-                    not numpy.any(blt.block_type_allowed)
-                    or not any(
-                        s
-                        for s in blt.conformer_samplers
-                        if not isinstance(s, FallbackSampler)
-                        and s.defines_rotamers_for_rt(bt)
-                    )
-                )
-                else 0
-            )
-            for one_pose_blts in task.blts
-            for blt in one_pose_blts
-            for bt in blt.considered_block_types
+        """Create rotamers for the blocks that either (1) have no allowed block types, in which case the residue
+        is considered fixed and we simply create a rotamer of the input conformation, or (2) have no conformer
+        sampler that defines conformers for it. So the first step is to look at the other conformers stored
+        in the SetPackerTask and ask them which block types they define rotamers for.
+        """
+        # n_rots_for_gbt_list = [
+        #     (
+        #         1
+        #         if bt is blt.original_block_type
+        #         and (
+        #             not numpy.any(blt.block_type_allowed)
+        #             or not any(
+        #                 s
+        #                 for s in blt.conformer_samplers
+        #                 if not isinstance(s, FallbackSampler)
+        #                 and s.defines_rotamers_for_rt(bt)
+        #             )
+        #         )
+        #         else 0
+        #     )
+        #     for one_pose_blts in task.blts
+        #     for blt in one_pose_blts
+        #     for bt in blt.considered_block_types
+        # ]
+        n_allowed_per_block = task.per_block_conformer_sampler_allowed.sum(dim=2)
+        gbt_block_allows_none = (n_allowed_per_block == 0)[
+            task.cons_bt_pose, task.cons_bt_block
         ]
-        n_rots_for_gbt = torch.tensor(
-            n_rots_for_gbt_list, dtype=torch.int32, device=pose_stack.device
-        )
+
+        assert (
+            id(self) in task.conformer_sampler_index
+        ), "This sampler is not in the PackerTask's conformer samplers"
+        self_ind_in_packer_task = task.conformer_sampler_index[id(self)]
+        print("FallbackSampler: self_ind_in_packer_task", self_ind_in_packer_task)
+        # all_bts = torch.arange(
+        #     pose_stack.packed_block_types.n_types, device=pose_stack.device
+        # )
+        # all_bts_at_all_pos = torch.arange(
+        #     pose_stack.packed_block_types.n_block_types, device=pose_stack.device
+        # ).unsqueeze(0).unsqueeze(0).expand(
+        #     pose_stack.n_poses, pose_stack.max_n_blocks_per_pose, -1
+        # )
+        if len(task.conformer_samplers) > 1:
+            pbt = pose_stack.packed_block_types
+            do_other_samplers_build_for_gbt = torch.stack(
+                [
+                    sampler.defines_rotamers_for_bts(pbt, task.cons_bt_block_type)
+                    for i, sampler in enumerate(task.conformer_samplers)
+                    if i != self_ind_in_packer_task
+                ]
+            )
+            any_other_sampler_allowed_for_gbt = torch.stack(
+                [
+                    task.per_block_conformer_sampler_allowed[
+                        task.cons_bt_pose, task.cons_bt_block, i
+                    ]
+                    for i in range(len(task.conformer_samplers))
+                    if i != self_ind_in_packer_task
+                ]
+            )
+            other_sampler_builds_for_gbt = torch.logical_and(
+                do_other_samplers_build_for_gbt,
+                any_other_sampler_allowed_for_gbt,
+            ).any(dim=0)
+        else:
+            # The fallback sampler is the only sampler, so no other samplers build for any block types.
+            # This seems like a weird case but it can happen.
+            other_sampler_builds_for_gbt = torch.zeros(
+                (task.cons_bt_pose.shape[0]),
+                dtype=torch.bool,
+                device=pose_stack.device,
+            )
+
+        is_gbt_orig_block_type = task.per_block_considered_block_types_is_orig
+
+        n_rots_for_gbt = torch.logical_and(
+            is_gbt_orig_block_type[
+                task.cons_bt_pose, task.cons_bt_block, task.cons_bt_which_block_type
+            ],
+            torch.logical_or(
+                gbt_block_allows_none, torch.logical_not(other_sampler_builds_for_gbt)
+            ),
+        ).to(torch.int32)
+
         gbt_for_rotamer = torch.nonzero(n_rots_for_gbt, as_tuple=True)[0]
         return (n_rots_for_gbt, gbt_for_rotamer, {})
 
     def fill_dofs_for_samples(
         self,
         pose_stack: PoseStack,
-        task: "PackerTask",  # noqa: F821
+        task: "SetPackerTask",  # noqa: F821
         orig_kinforest: KinForest,
         orig_dofs_kto: Tensor[torch.float32][:, 9],
         gbt_for_conformer: Tensor[torch.int64][:],
