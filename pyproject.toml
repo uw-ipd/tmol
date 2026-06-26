@@ -3,7 +3,7 @@ name = "tmol"
 description = "GPU-accelerated PyTorch reimplementation of the Rosetta energy function"
 readme = "README.md"
 license = {text = "Apache-2.0"}
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     { name = "Institute for Protein Design", email = "contact@ipd.uw.edu" },
 ]
@@ -14,78 +14,91 @@ classifiers = [
     "Natural Language :: English",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-version = "0.1.12"
+version = "0.1.35"
 
 dependencies = [
     # Core ML framework
-    "torch>=2.5,<3",
-    "numpy>=1.24,<3",
-    "scipy>=1.11,<2",
+    "torch>=2.5",
+    "numpy>=1.24",
+    "scipy>=1.11",
     # Data structures & serialization
-    "attrs>=21.0,<26",
+    "attrs>=21.0",
     "attrs_strict>=1.0,<2",
-    "cattrs>=22.0,<25",
-    "frozendict>=2.4,<3",
+    "cattrs>=22.0",
+    "frozendict>=2.4",
     "pandas>=2.0,<3",
-    "pyarrow>=12,<23",
-    "pyyaml>=6.0,<7",
+    "pyarrow>=12",
+    "pyyaml>=6.0",
     # Graphs & algorithms
-    "networkx>=3.0,<4",
+    "networkx>=3.0",
     # Utilities
-    "toolz>=0.12,<1",
-    "decorator>=5.1,<6",
+    "toolz>=0.12.0,<2",
+    # decorator floor kept low (>=4.0) for Google Colab, which ships an old version
+    "decorator>=4.0",
     "typing_extensions>=4.0,<5",
-    "typing_inspect>=0.9,<1",
+    "typing_inspect>=0.9",
     "pint>=0.23,<1",
-    "psutil>=5.9,<8",
+    "psutil>=5.9",
     "requests>=2.28,<3",
     # Sparse arrays (requires SPARSE_AUTO_DENSIFY=1 for sparse>0.3.1)
-    "sparse>=0.13,<1",
+    "sparse>=0.13",
     # numba/llvmlite
-    "numba>=0.56,<1",
-    "llvmlite>=0.39,<1",
+    "numba>=0.56",
+    "llvmlite>=0.39",
     # Testing (hypothesis is used at runtime for property-based data generation)
-    "hypothesis>=5.35,<7",
+    "hypothesis>=5.35",
     # AST manipulation (used by tmol.utility.args)
-    "astor>=0.8,<1",
-    # Interactive
-    "ipython>=8.0",
-    # Biotite
-    "biotite>=1.2.0",
+    "astor>=0.8",
+    # Structure I/O
+    "biotite>=1.4.0",
+    # Ligand preparation
+    "rdkit>=2024.3",
 ]
 
 [project.optional-dependencies]
+# OpenBabel powers the SMILES -> 3D mol2 ligand-preparation path (conformer
+# search + MMFF94 charges). The CIF/mol2 paths use RDKit and do not need it;
+# it is imported lazily (see tmol.ligand.openbabel_compat), so it stays an
+# opt-in extra rather than a core dependency.
+ligand = [
+    "openbabel-wheel==3.1.1.22",
+]
 dev = [
     # Linters & formatters
-    "black==24.1.1",
+    # Keep in sync with the black pin in .pre-commit-config.yaml (CI lint)
+    "black==26.3.1",
     "flake8==7.3.0",
-    "pre-commit>=4.0,<5",
+    "pre-commit>=4.0",
     "clang-format==21.1.8",
     # Testing
-    "pytest>=8.0,<9",
-    "pytest-cov>=4.1,<7",
-    "pytest-benchmark>=5.1,<6",
-    "pytest-forked>=1.6,<2",
-    "pytest-instafail>=0.5,<1",
-    "pytest-repeat>=0.9,<1",
-    "pytest-watch>=4.2,<5",
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "pytest-benchmark>=5.1",
+    "pytest-forked>=1.6",
+    "pytest-instafail>=0.5",
+    "pytest-repeat>=0.9",
+    "pytest-watch>=4.2",
+    # Interactive
+    "ipython>=8.0",
     # Visualization
-    "seaborn>=0.13,<1",
+    "seaborn>=0.13",
+    # Ligand SMILES-prep path and its tests require OpenBabel
+    "tmol[ligand]",
 ]
 cuda = [
     # CUDA nvcc compiler for JIT compilation of custom kernels.
     # Only the unsuffixed (cu13) package ships the full nvcc binary;
     # nvidia-cuda-nvcc-cu12 only contains ptxas.
-    "nvidia-cuda-nvcc>=13,<14",
+    "nvidia-cuda-nvcc>=13",
     # CCCL headers (nv/target, cub/, thrust/) needed by nvcc
-    "nvidia-cuda-cccl>=13,<14",
+    "nvidia-cuda-cccl>=13",
 ]
 
 [project.urls]
@@ -100,13 +113,14 @@ requires = [
     "ninja",
     "packaging",
 ]
-build-backend = "scikit_build_core.build"
+build-backend = "tmol_build_backend"
+backend-path = ["."]
 
 [tool.scikit-build]
 minimum-version = "0.10"
 build-dir = "build/{wheel_tag}"
 cmake.build-type = "Release"
-cmake.version = ">=3.18"
+cmake.version = ">=3.18,<4"
 wheel.packages = ["tmol"]
 wheel.install-dir = "."
 sdist.cmake = false
@@ -116,9 +130,19 @@ editable.mode = "inplace"
 CMAKE_CUDA_ARCHITECTURES = {env = "CMAKE_CUDA_ARCHITECTURES", default = "80;86;89;90"}
 TMOL_BUILD_TESTS = {env = "TMOL_BUILD_TESTS", default = "OFF"}
 
+# Linux wheel policy (CI builds x86_64 GPU wheels in manylinux_2_28 + auditwheel)
+[tool.cibuildwheel]
+build = "cp3{11,12,13,14}-*"
+skip = "*-musllinux_*"
+manylinux-x86_64-image = "quay.io/pypa/manylinux_2_28_x86_64"
+manylinux-aarch64-image = "quay.io/pypa/manylinux_2_34_aarch64"
+
 # Test settings ----------------------------------------------------------------
 [tool.pytest.ini_options]
-addopts = "--benchmark-disable --benchmark-columns=ops,mean,iqr"
+addopts = "--benchmark-disable --benchmark-columns=ops,mean,iqr -m 'not slow'"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 filterwarnings = [
     "ignore:(?s).*is not compatible with the compiler Pytorch.*:",
     "ignore:(?s).*Benchmark fixture was not used.*:",
@@ -131,3 +155,15 @@ filterwarnings = [
 
 [tool.pytest-watch]
 ext = ".cpp,.hh,.h,.cu,.py,.yaml"
+
+# Coverage settings ------------------------------------------------------------
+# Vendored third-party ports are excluded from coverage measurement: driving
+# them to a coverage target via unit tests is not meaningful. Keep this list in
+# sync with the `ignore:` block in codecov.yml.
+[tool.coverage.run]
+omit = [
+    "*/tmol/ligand/external/*",
+    "*/tmol/ligand/dimorphite_dl.py",
+    "*/tmol/ligand/openbabel_compat.py",
+    "*/tmol/tests/ligand/build_pli_ligand_cifs.py",
+]

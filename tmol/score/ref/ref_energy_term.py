@@ -16,6 +16,8 @@ class RefEnergyTerm(EnergyTerm):
         super(RefEnergyTerm, self).__init__(param_db=param_db, device=device)
 
         self.ref_weights = param_db.scoring.ref.weights
+        self.weights_override = None
+        self.soft_rep = False
         self.device = device
 
     @classmethod
@@ -31,23 +33,46 @@ class RefEnergyTerm(EnergyTerm):
     def n_bodies(self):
         return 1
 
+    def set_options(self, options: dict):
+        if "ref_weights" in options:
+            self.weights_override = options["ref_weights"]
+
+    def _resolved_weights(self) -> dict:
+        """The ref-weight map this term scores with (override beats the db default)."""
+        return self.weights_override if self.weights_override else self.ref_weights
+
     def setup_block_type(self, block_type: RefinedResidueType):
         super(RefEnergyTerm, self).setup_block_type(block_type)
 
-        if hasattr(block_type, "ref_weight"):
+        # ``ref_weight`` is score-function-specific: ``set_options`` can override
+        # the database defaults per score function. Block types are shared/cached
+        # across score functions, so the cache must be keyed by the resolved
+        # weight map -- otherwise a second score function (e.g. beta_soft after
+        # beta2016) silently reuses the first's ref weights. (See the matching
+        # guard in ``setup_packed_block_types``.)
+        src = self._resolved_weights()
+        if getattr(block_type, "_ref_weight_src", None) is src:
             return
 
         ref_weight = 0.0
-
         if block_type.base_name in self.ref_weights:
-            ref_weight = self.ref_weights[block_type.base_name]
+            ref_weight = src[block_type.base_name]
 
         setattr(block_type, "ref_weight", ref_weight)
+        setattr(block_type, "_ref_weight_src", src)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(RefEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
-        if hasattr(packed_block_types, "ref_weights"):
+        # Keyed by the resolved weight map for the same reason as
+        # ``setup_block_type``: the PackedBlockTypes is cached and shared across
+        # score functions, so reusing a stale ``ref_weights`` tensor would leak
+        # one score function's reference energies into another.
+        src = self._resolved_weights()
+        if (
+            hasattr(packed_block_types, "ref_weights")
+            and getattr(packed_block_types, "_ref_weights_src", None) is src
+        ):
             return
 
         ref_weights = []
@@ -59,6 +84,7 @@ class RefEnergyTerm(EnergyTerm):
         )
 
         setattr(packed_block_types, "ref_weights", ref_weights)
+        setattr(packed_block_types, "_ref_weights_src", src)
 
     def setup_poses(self, poses: PoseStack):
         super(RefEnergyTerm, self).setup_poses(poses)

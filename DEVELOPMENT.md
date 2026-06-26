@@ -20,7 +20,7 @@ git clone https://github.com/uw-ipd/tmol.git && cd tmol
 pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
 ```
 
-Requirements: Python 3.12+, PyTorch 2.8+, C++17 compiler, CMake 3.18+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built.
+Requirements: Python 3.11+, PyTorch 2.8+, C++17 compiler, CMake 3.18+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built. Pre-built wheels are published for Python `cp311`-`cp314`.
 
 ## Building Extensions
 
@@ -66,6 +66,12 @@ Two environment variables control which path is taken:
 | `TMOL_JIT_FALLBACK=1` | **Fallback to JIT** if the precompiled `_C` library is missing or incompatible. Silent degradation instead of an error. |
 
 When neither variable is set, tmol tries to load the precompiled library and raises an error if it is not found.
+
+### Pre-built wheel compatibility
+
+Linux x86_64 release wheels are built in **manylinux_2_28** with **auditwheel** repair so they depend only on glibc/libstdc++ symbols allowed by that policy. Extensions are compiled with the same **`_GLIBCXX_USE_CXX11_ABI`** flag as the target PyTorch build (`TORCH_CXX_FLAGS` from CMake).
+
+If `import tmol` fails with `GLIBCXX_* not found`, the host `libstdc++` is too old for the wheel — use a newer GCC module, conda `libstdcxx-ng`, a container, `TMOL_DISABLE_WHEEL_FETCH=1 pip install -e .`, or `TMOL_JIT_FALLBACK=1`.
 
 ```mermaid
 flowchart TD
@@ -118,17 +124,37 @@ pytest tmol/tests/ --cov=./tmol --junitxml=results.xml
 pytest --benchmark-enable --benchmark-only --benchmark-max-time=.1
 ```
 
+### Ligand charges
+
+Partial charges come exclusively from the SMILES -> OpenBabel MMFF94 mol2 step and
+are applied to the prepared molecule by atom index (`authoritative_charges_by_index`
+in `mol3d.py`). There is no RDKit/Gasteiger charge fallback and no `charge_mode`
+knob: if OpenBabel cannot charge a ligand, preparation fails loudly. The validated
+parameter-generation parity is the guanfeng DUD-80 SMILES suite
+(`tmol/tests/ligand/test_smiles_semantic.py`,
+`tmol/tests/ligand/test_serialization_consistency.py`).
+
 ### Testing a specific release
 
 ```bash
+# Install matching PyTorch first (example: x86_64 manylinux cu128/torch2.10)
+pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu128
+
 # Install a release wheel from GitHub
-pip install https://github.com/uw-ipd/tmol/releases/download/v0.1.1/tmol-0.1.1+cu131torch2.10-cp312-cp312-linux_x86_64.whl
+pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.10-cp312-cp312-manylinux_2_28_x86_64.whl
 
 # Or install a specific branch/tag from source
-pip install git+https://github.com/uw-ipd/tmol.git@v0.1.1
+pip install git+https://github.com/uw-ipd/tmol.git@vX.Y.Z
 
 # Run tests against it
 pytest --pyargs tmol.tests -v
+```
+
+On Google Colab (Python 3.12, torch 2.8, Turing T4) use the `+cu128torch2.8`
+wheel — it is the only variant built with `sm_75`:
+
+```bash
+pip install "https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-linux_x86_64.whl"
 ```
 
 ## Containers
@@ -156,8 +182,8 @@ tmol uses GitHub Actions for all CI:
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| `ci.yml` | Push to `master`/`kdidi/*`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
-| `publish.yml` | Push to `master`/`kdidi/*`, manual | Builds wheels (GPU + CPU) + sdist, uploads sdist to TestPyPI, uploads wheels to a GitHub Release. |
+| `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
+| `publish.yml` | Push to `master`/`kdidi/ligand_clean`, manual | Builds wheels (GPU + CPU) + sdist, uploads sdist to TestPyPI, uploads wheels to a GitHub Release. |
 
 ### CI architecture
 
@@ -190,11 +216,24 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
 
 ## Releasing
 
-1. Bump version in `pyproject.toml`
-2. Commit and push to `master` (or a `kdidi/**` branch)
-3. The `publish.yml` workflow triggers automatically, building all wheels (GPU + CPU) and sdist
-4. Sdist is uploaded to TestPyPI; wheels are attached to a GitHub Release
-5. Users install via: `pip install tmol --find-links https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/`
+1. Bump `project.version` in `pyproject.toml`.
+2. Commit and push to `master` or `kdidi/ligand_clean`:
+   - `publish.yml` auto-triggers on push for these two branches.
+   - You can also run `publish.yml` manually with `workflow_dispatch`.
+3. Wait for workflow completion:
+   - `build_wheels` (GPU matrix)
+   - `build_cpu_wheel`
+   - `build_sdist`
+   - `upload`
+4. Verify release artifacts:
+   - TestPyPI sdist upload succeeds.
+   - GitHub prerelease `vX.Y.Z` exists and contains all wheel files.
+5. Install using explicit wheel files (recommended):
+   - Install matching PyTorch/CUDA first.
+   - Install from GitHub release wheel URL (or pinned `tmol==X.Y.Z+...` with `--find-links`).
+6. TestPyPI install path (sdist):
+   - `pip install tmol --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/`
+   - This compiles extensions at install time.
 
 ## Code Style
 

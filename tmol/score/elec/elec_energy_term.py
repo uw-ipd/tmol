@@ -67,6 +67,17 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         inter_rep_path_dist = block_type.path_distance[:, representative_mapping]
         intra_rep_path_dist = inter_rep_path_dist[representative_mapping, :]
 
+        # Ligands (non-polymer residues) use CP_CROSSOVER_3FULL: 1-4 pairs get
+        # full weight (1.0) rather than the standard 0.2. Encode these pairs as
+        # distance 5 so connectivity_weight() returns 1.0 without C++ changes.
+        if not block_type.properties.polymer.is_polymer:
+            intra_rep_path_dist = intra_rep_path_dist.copy()
+            # CP_CROSSOVER_3FULL: path_dist >= 3 bonds counts at weight 1.0.
+            # Encode path_dist 3 and 4 as 5 so connectivity_weight returns 1.0.
+            intra_rep_path_dist[
+                (intra_rep_path_dist == 3) | (intra_rep_path_dist == 4)
+            ] = 5
+
         setattr(block_type, "elec_partial_charge", partial_charge)
         setattr(block_type, "elec_inter_repr_path_distance", inter_rep_path_dist)
         setattr(block_type, "elec_intra_repr_path_distance", intra_rep_path_dist)

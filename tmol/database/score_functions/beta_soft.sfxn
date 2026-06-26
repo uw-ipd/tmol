@@ -1,0 +1,50 @@
+# beta_soft score function weights with a softer repulsive
+version: "1.0"
+weights:
+  fa_ljatr: 1.0
+  fa_ljrep: 1.0
+  fa_lk: 1.0
+  fa_elec: 1.0
+  hbond: 1.0
+  lk_ball_iso: -0.38
+  lk_ball: 0.92
+  lk_bridge: -0.33
+  lk_bridge_uncpl: -0.33
+  omega: 0.48
+  rama: 0.50
+  disulfide: 1.25
+  cart_lengths: 0.5
+  cart_angles: 0.5
+  cart_torsions: 0.5
+  cart_impropers: 0.5
+  cart_hxltorsions: 0.5
+  dunbrack_rot: 0.76
+  dunbrack_rotdev: 0.69
+  dunbrack_semirot: 0.78
+  ref: 1.0
+  gen_torsions: 1.0
+options:
+  soft_rep: True
+  ref_weights:
+      ALA: 1.3535
+      CYS: 2.9828
+      CYD: 2.9828
+      ASP: -1.9872
+      GLU: -2.0080
+      PHE: 3.6543
+      GLY: -0.6290
+      HIS: 0.5347
+      HIS_D: 0.5347
+      ILE: 3.6828
+      LYS: -1.1870
+      LEU: 3.0591
+      MET: 2.1654
+      ASN: -0.7549
+      PRO: -4.6330
+      GLN: -0.1943
+      ARG: -0.3519
+      SER: -1.2864
+      THR: -1.2064
+      VAL: 3.5934
+      TRP: 5.8434
+      TYR: 2.7219

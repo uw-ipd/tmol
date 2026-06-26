@@ -371,6 +371,11 @@ void TMOL_DEVICE_FUNC elec_load_intrares2_tile_data_to_shared(
     int n_atoms_to_load2,
     ElecScoringData<Real>& intra_dat,
     ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
+  // A prior same-tile elec_load_intrares_data_from_shared call may have
+  // aliased r2's pointers to the "1" shared-memory arrays. Reset them to
+  // the "2" arrays so the load below writes to the correct destination.
+  intra_dat.r2.coords = shared_m.coords2;
+  intra_dat.r2.charges = shared_m.charges2;
   elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>(
       coords,
       block_type_partial_charge,
@@ -408,17 +413,20 @@ TMOL_DEVICE_FUNC Real elec_atom_energy(
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
 
+  Real const q1 = score_dat.r1.charges[atom_tile_ind1];
+  Real const q2 = score_dat.r2.charges[atom_tile_ind2];
   Real const dist = distance<Real>::V(coord1, coord2);
-  return elec(
+  Real const result = elec(
       dist,
-      score_dat.r1.charges[atom_tile_ind1],
-      score_dat.r2.charges[atom_tile_ind2],
+      q1,
+      q2,
       Real(cp_separation),
       score_dat.global_params.D,
       score_dat.global_params.D0,
       score_dat.global_params.S,
       score_dat.global_params.min_dis,
       score_dat.global_params.max_dis);
+  return result;
 }
 
 template <typename Real, tmol::Device D>

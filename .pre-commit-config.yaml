@@ -17,6 +17,7 @@ repos:
         exclude: >
             (?x)^(
                 tmol/extern/.* |
+                tmol/ligand/external/.* |
                 dev/.* 
                 \.conda/.*
             )$
@@ -27,6 +28,7 @@ repos:
         exclude: >
             (?x)^(
                 tmol/extern/.* |
+                tmol/ligand/external/.* |
                 dev/.* 
                 \.venv/.*
             )$

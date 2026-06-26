@@ -1,0 +1,551 @@
+version: "1.0"
+chemical:
+  residues:
+  - name: LG1
+    base_name: LG1
+    name3: LG1
+    io_equiv_class: LG1
+    atoms:
+    - {name: C1, atom_type: CS3}
+    - {name: C2, atom_type: CS2}
+    - {name: O1, atom_type: Oet}
+    - {name: C3, atom_type: CR}
+    - {name: C4, atom_type: CR}
+    - {name: C5, atom_type: CR}
+    - {name: C6, atom_type: CRp}
+    - {name: C7, atom_type: CR}
+    - {name: C8, atom_type: CR}
+    - {name: S1, atom_type: SG5}
+    - {name: O2, atom_type: OG2}
+    - {name: O3, atom_type: OG2}
+    - {name: C9, atom_type: CS3}
+    - {name: N1, atom_type: NG3}
+    - {name: C10, atom_type: CS2}
+    - {name: C11, atom_type: CSp}
+    - {name: N2, atom_type: Nam}
+    - {name: C12, atom_type: CSp}
+    - {name: C13, atom_type: CS2}
+    - {name: C14, atom_type: CSp}
+    - {name: C15, atom_type: CD}
+    - {name: N3, atom_type: Nad}
+    - {name: C16, atom_type: CDp}
+    - {name: C17, atom_type: CR}
+    - {name: N4, atom_type: Nad3}
+    - {name: N5, atom_type: Nim}
+    - {name: O4, atom_type: Oad}
+    - {name: C18, atom_type: CR}
+    - {name: N6, atom_type: Nim}
+    - {name: C19, atom_type: CR}
+    - {name: C20, atom_type: CS3}
+    - {name: C21, atom_type: CS2}
+    - {name: C22, atom_type: CS2}
+    - {name: C23, atom_type: CS3}
+    - {name: H1, atom_type: HC}
+    - {name: H2, atom_type: HC}
+    - {name: H3, atom_type: HC}
+    - {name: H4, atom_type: HC}
+    - {name: H5, atom_type: HC}
+    - {name: H6, atom_type: HR}
+    - {name: H7, atom_type: HR}
+    - {name: H8, atom_type: HR}
+    - {name: H9, atom_type: HC}
+    - {name: H10, atom_type: HC}
+    - {name: H11, atom_type: HC}
+    - {name: H12, atom_type: HC}
+    - {name: H13, atom_type: HC}
+    - {name: H14, atom_type: HC}
+    - {name: H15, atom_type: HC}
+    - {name: H16, atom_type: HC}
+    - {name: H17, atom_type: HC}
+    - {name: H18, atom_type: HC}
+    - {name: H19, atom_type: HC}
+    - {name: H20, atom_type: HC}
+    - {name: H21, atom_type: HC}
+    - {name: H22, atom_type: HN}
+    - {name: H23, atom_type: HC}
+    - {name: H24, atom_type: HC}
+    - {name: H25, atom_type: HC}
+    - {name: H26, atom_type: HC}
+    - {name: H27, atom_type: HC}
+    - {name: H28, atom_type: HC}
+    - {name: H29, atom_type: HC}
+    - {name: H30, atom_type: HC}
+    - {name: H31, atom_type: HC}
+    - {name: H32, atom_type: HC}
+    - {name: H33, atom_type: HN}
+    atom_aliases: []
+    bonds:
+    - [C1, C2, SINGLE, false]
+    - [C2, O1, SINGLE, false]
+    - [O1, C3, SINGLE, false]
+    - [C6, S1, SINGLE, false]
+    - [S1, N1, SINGLE, false]
+    - [C9, C14, SINGLE, false]
+    - [N1, C10, SINGLE, true]
+    - [N1, C13, SINGLE, true]
+    - [C10, C11, SINGLE, true]
+    - [C11, N2, SINGLE, true]
+    - [N2, C12, SINGLE, true]
+    - [N2, C14, SINGLE, false]
+    - [C12, C13, SINGLE, true]
+    - [C8, C15, SINGLE, false]
+    - [C15, N3, SINGLE, true]
+    - [C15, N5, SINGLE, true]
+    - [C16, C17, SINGLE, true]
+    - [N4, N5, SINGLE, true]
+    - [C18, C20, SINGLE, false]
+    - [C19, C21, SINGLE, false]
+    - [C21, C22, SINGLE, false]
+    - [C22, C23, SINGLE, false]
+    - [C1, H1, SINGLE, false]
+    - [C1, H2, SINGLE, false]
+    - [C1, H3, SINGLE, false]
+    - [C2, H4, SINGLE, false]
+    - [C2, H5, SINGLE, false]
+    - [C4, H6, SINGLE, false]
+    - [C5, H7, SINGLE, false]
+    - [C7, H8, SINGLE, false]
+    - [C9, H9, SINGLE, false]
+    - [C9, H10, SINGLE, false]
+    - [C9, H11, SINGLE, false]
+    - [C10, H12, SINGLE, false]
+    - [C10, H13, SINGLE, false]
+    - [C11, H14, SINGLE, false]
+    - [C11, H15, SINGLE, false]
+    - [N2, H33, SINGLE, false]
+    - [C12, H16, SINGLE, false]
+    - [C12, H17, SINGLE, false]
+    - [C13, H18, SINGLE, false]
+    - [C13, H19, SINGLE, false]
+    - [C14, H20, SINGLE, false]
+    - [C14, H21, SINGLE, false]
+    - [N3, H22, SINGLE, false]
+    - [C20, H23, SINGLE, false]
+    - [C20, H24, SINGLE, false]
+    - [C20, H25, SINGLE, false]
+    - [C21, H26, SINGLE, false]
+    - [C21, H27, SINGLE, false]
+    - [C22, H28, SINGLE, false]
+    - [C22, H29, SINGLE, false]
+    - [C23, H30, SINGLE, false]
+    - [C23, H31, SINGLE, false]
+    - [C23, H32, SINGLE, false]
+    - [S1, O2, DOUBLE, false]
+    - [S1, O3, DOUBLE, false]
+    - [C16, O4, DOUBLE, false]
+    - [C3, C4, AROMATIC, true]
+    - [C3, C8, AROMATIC, true]
+    - [C4, C5, AROMATIC, true]
+    - [C5, C6, AROMATIC, true]
+    - [C6, C7, AROMATIC, true]
+    - [C7, C8, AROMATIC, true]
+    - [N3, C16, AROMATIC, true]
+    - [C17, N4, AROMATIC, true]
+    - [C17, C18, AROMATIC, true]
+    - [N4, C19, AROMATIC, true]
+    - [C18, N6, AROMATIC, true]
+    - [N6, C19, AROMATIC, true]
+    connections: []
+    torsions:
+    - name: chi1
+      a: {atom: C3}
+      b: {atom: O1}
+      c: {atom: C2}
+      d: {atom: C1}
+    - name: chi2
+      a: {atom: C4}
+      b: {atom: C3}
+      c: {atom: O1}
+      d: {atom: C2}
+    - name: chi3
+      a: {atom: C6}
+      b: {atom: S1}
+      c: {atom: N1}
+      d: {atom: C10}
+    - name: chi4
+      a: {atom: C5}
+      b: {atom: C6}
+      c: {atom: S1}
+      d: {atom: N1}
+    - name: chi5
+      a: {atom: C11}
+      b: {atom: N2}
+      c: {atom: C14}
+      d: {atom: C9}
+    - name: chi6
+      a: {atom: C3}
+      b: {atom: C8}
+      c: {atom: C15}
+      d: {atom: N3}
+    - name: chi7
+      a: {atom: C19}
+      b: {atom: C21}
+      c: {atom: C22}
+      d: {atom: C23}
+    - name: chi8
+      a: {atom: N4}
+      b: {atom: C19}
+      c: {atom: C21}
+      d: {atom: C22}
+    icoors:
+    - {name: C6, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: C6, grand_parent: C5, great_grand_parent: C7}
+    - {name: C5, phi: 0.000000 deg, theta: 0.000000 deg, d: 1.402415, parent: C6, grand_parent: C5, great_grand_parent: C7}
+    - {name: C7, phi: 0.000000 deg, theta: 60.628568 deg, d: 1.394734, parent: C6, grand_parent: C5, great_grand_parent: C7}
+    - {name: S1, phi: -178.721603 deg, theta: 58.334438 deg, d: 1.605657, parent: C6, grand_parent: C5, great_grand_parent: C7}
+    - {name: O2, phi: -132.116801 deg, theta: 68.075827 deg, d: 1.43152, parent: S1, grand_parent: C6, great_grand_parent: C5}
+    - {name: O3, phi: -11.637826 deg, theta: 72.667607 deg, d: 1.430798, parent: S1, grand_parent: C6, great_grand_parent: C5}
+    - {name: N1, phi: 107.813895 deg, theta: 68.050107 deg, d: 1.532893, parent: S1, grand_parent: C6, great_grand_parent: C5}
+    - {name: C4, phi: -0.372901 deg, theta: 59.163239 deg, d: 1.393257, parent: C5, grand_parent: C6, great_grand_parent: C7}
+    - {name: C10, phi: -58.101205 deg, theta: 65.858078 deg, d: 1.471722, parent: N1, grand_parent: S1, great_grand_parent: C6}
+    - {name: C13, phi: 101.287934 deg, theta: 62.344199 deg, d: 1.469507, parent: N1, grand_parent: S1, great_grand_parent: C6}
+    - {name: C3, phi: 0.067718 deg, theta: 60.834716 deg, d: 1.397453, parent: C4, grand_parent: C5, great_grand_parent: C6}
+    - {name: C11, phi: 175.507892 deg, theta: 67.507150 deg, d: 1.517642, parent: C10, grand_parent: N1, great_grand_parent: S1}
+    - {name: O1, phi: 179.992738 deg, theta: 58.089867 deg, d: 1.378531, parent: C3, grand_parent: C4, great_grand_parent: C5}
+    - {name: C8, phi: -1.631381 deg, theta: 60.189515 deg, d: 1.392709, parent: C3, grand_parent: C4, great_grand_parent: C5}
+    - {name: N2, phi: -45.278737 deg, theta: 74.076546 deg, d: 1.44899, parent: C11, grand_parent: C10, great_grand_parent: N1}
+    - {name: C15, phi: 177.085150 deg, theta: 64.102414 deg, d: 1.485983, parent: C8, grand_parent: C3, great_grand_parent: C4}
+    - {name: C2, phi: 3.782130 deg, theta: 56.981308 deg, d: 1.421367, parent: O1, grand_parent: C3, great_grand_parent: C4}
+    - {name: C12, phi: 72.996007 deg, theta: 67.344532 deg, d: 1.452721, parent: N2, grand_parent: C11, great_grand_parent: C10}
+    - {name: C14, phi: -146.376647 deg, theta: 64.032394 deg, d: 1.459133, parent: N2, grand_parent: C11, great_grand_parent: C10}
+    - {name: N3, phi: 62.655718 deg, theta: 60.051631 deg, d: 1.444348, parent: C15, grand_parent: C8, great_grand_parent: C3}
+    - {name: N5, phi: -147.365853 deg, theta: 63.017739 deg, d: 1.435505, parent: C15, grand_parent: C8, great_grand_parent: C3}
+    - {name: C1, phi: 177.717650 deg, theta: 70.675010 deg, d: 1.514351, parent: C2, grand_parent: O1, great_grand_parent: C3}
+    - {name: C9, phi: -59.862325 deg, theta: 69.644101 deg, d: 1.524351, parent: C14, grand_parent: N2, great_grand_parent: C11}
+    - {name: C16, phi: 166.313392 deg, theta: 56.552947 deg, d: 1.33302, parent: N3, grand_parent: C15, great_grand_parent: C8}
+    - {name: C17, phi: -9.103822 deg, theta: 65.232178 deg, d: 1.475056, parent: C16, grand_parent: N3, great_grand_parent: C15}
+    - {name: O4, phi: 173.180123 deg, theta: 59.390224 deg, d: 1.221563, parent: C16, grand_parent: N3, great_grand_parent: C15}
+    - {name: N4, phi: 2.269262 deg, theta: 55.711791 deg, d: 1.315174, parent: C17, grand_parent: C16, great_grand_parent: N3}
+    - {name: C18, phi: -176.891947 deg, theta: 48.747971 deg, d: 1.390628, parent: C17, grand_parent: C16, great_grand_parent: N3}
+    - {name: C19, phi: -178.317007 deg, theta: 64.824615 deg, d: 1.306781, parent: N4, grand_parent: C17, great_grand_parent: C16}
+    - {name: N6, phi: 179.266371 deg, theta: 73.750523 deg, d: 1.36101, parent: C18, grand_parent: C17, great_grand_parent: C16}
+    - {name: C20, phi: -0.255662 deg, theta: 50.746367 deg, d: 1.503842, parent: C18, grand_parent: C17, great_grand_parent: C16}
+    - {name: C21, phi: -178.755833 deg, theta: 52.917267 deg, d: 1.500588, parent: C19, grand_parent: N4, great_grand_parent: C17}
+    - {name: C22, phi: 70.806058 deg, theta: 71.903054 deg, d: 1.52904, parent: C21, grand_parent: C19, great_grand_parent: N4}
+    - {name: C23, phi: 179.653001 deg, theta: 71.514722 deg, d: 1.510383, parent: C22, grand_parent: C21, great_grand_parent: C19}
+    - {name: H8, phi: 179.992286 deg, theta: 59.850582 deg, d: 1.083846, parent: C7, grand_parent: C6, great_grand_parent: C8}
+    - {name: H7, phi: 179.995536 deg, theta: 60.444533 deg, d: 1.084006, parent: C5, grand_parent: C6, great_grand_parent: C4}
+    - {name: H6, phi: 179.972448 deg, theta: 59.593911 deg, d: 1.083738, parent: C4, grand_parent: C5, great_grand_parent: C3}
+    - {name: H12, phi: 119.957992 deg, theta: 70.945458 deg, d: 1.099681, parent: C10, grand_parent: N1, great_grand_parent: C11}
+    - {name: H13, phi: -119.957914 deg, theta: 70.955921 deg, d: 1.09978, parent: C10, grand_parent: N1, great_grand_parent: C11}
+    - {name: H18, phi: 120.185721 deg, theta: 71.295383 deg, d: 1.100079, parent: C13, grand_parent: N1, great_grand_parent: C12}
+    - {name: H19, phi: -120.189859 deg, theta: 71.304578 deg, d: 1.100187, parent: C13, grand_parent: N1, great_grand_parent: C12}
+    - {name: H14, phi: 118.919845 deg, theta: 69.294381 deg, d: 1.099603, parent: C11, grand_parent: C10, great_grand_parent: N2}
+    - {name: H15, phi: -118.929208 deg, theta: 69.324773 deg, d: 1.100215, parent: C11, grand_parent: C10, great_grand_parent: N2}
+    - {name: H33, phi: -108.761060 deg, theta: 76.853536 deg, d: 1.007829, parent: N2, grand_parent: C11, great_grand_parent: C12}
+    - {name: H4, phi: -120.075259 deg, theta: 71.079438 deg, d: 1.100194, parent: C2, grand_parent: O1, great_grand_parent: C1}
+    - {name: H5, phi: 120.060768 deg, theta: 71.074269 deg, d: 1.099915, parent: C2, grand_parent: O1, great_grand_parent: C1}
+    - {name: H16, phi: 119.389907 deg, theta: 70.046203 deg, d: 1.100335, parent: C12, grand_parent: N2, great_grand_parent: C13}
+    - {name: H17, phi: -119.403778 deg, theta: 70.028348 deg, d: 1.100371, parent: C12, grand_parent: N2, great_grand_parent: C13}
+    - {name: H20, phi: 119.655325 deg, theta: 70.388047 deg, d: 1.100337, parent: C14, grand_parent: N2, great_grand_parent: C9}
+    - {name: H21, phi: -119.632534 deg, theta: 70.376383 deg, d: 1.099931, parent: C14, grand_parent: N2, great_grand_parent: C9}
+    - {name: H22, phi: 179.968645 deg, theta: 61.742722 deg, d: 1.00031, parent: N3, grand_parent: C15, great_grand_parent: C16}
+    - {name: H1, phi: 179.999040 deg, theta: 70.987727 deg, d: 1.10019, parent: C1, grand_parent: C2, great_grand_parent: O1}
+    - {name: H2, phi: -60.596047 deg, theta: 70.045335 deg, d: 1.099734, parent: C1, grand_parent: C2, great_grand_parent: O1}
+    - {name: H3, phi: 60.554139 deg, theta: 70.064126 deg, d: 1.099616, parent: C1, grand_parent: C2, great_grand_parent: O1}
+    - {name: H9, phi: 179.987207 deg, theta: 71.003572 deg, d: 1.099494, parent: C9, grand_parent: C14, great_grand_parent: N2}
+    - {name: H10, phi: -60.580331 deg, theta: 70.081961 deg, d: 1.100108, parent: C9, grand_parent: C14, great_grand_parent: N2}
+    - {name: H11, phi: 60.596277 deg, theta: 70.039958 deg, d: 1.100072, parent: C9, grand_parent: C14, great_grand_parent: N2}
+    - {name: H23, phi: 179.985373 deg, theta: 71.021511 deg, d: 1.09986, parent: C20, grand_parent: C18, great_grand_parent: C17}
+    - {name: H24, phi: -60.576465 deg, theta: 70.043034 deg, d: 1.100017, parent: C20, grand_parent: C18, great_grand_parent: C17}
+    - {name: H25, phi: 60.548853 deg, theta: 70.062222 deg, d: 1.100212, parent: C20, grand_parent: C18, great_grand_parent: C17}
+    - {name: H26, phi: 119.274302 deg, theta: 69.842358 deg, d: 1.100434, parent: C21, grand_parent: C19, great_grand_parent: C22}
+    - {name: H27, phi: -119.293130 deg, theta: 69.866464 deg, d: 1.100144, parent: C21, grand_parent: C19, great_grand_parent: C22}
+    - {name: H28, phi: 119.321637 deg, theta: 69.941378 deg, d: 1.099612, parent: C22, grand_parent: C21, great_grand_parent: C23}
+    - {name: H29, phi: -119.308581 deg, theta: 69.942493 deg, d: 1.100063, parent: C22, grand_parent: C21, great_grand_parent: C23}
+    - {name: H30, phi: 179.976212 deg, theta: 71.015802 deg, d: 1.100166, parent: C23, grand_parent: C22, great_grand_parent: C21}
+    - {name: H31, phi: -60.581181 deg, theta: 70.086345 deg, d: 1.100043, parent: C23, grand_parent: C22, great_grand_parent: C21}
+    - {name: H32, phi: 60.570771 deg, theta: 70.086933 deg, d: 1.099965, parent: C23, grand_parent: C22, great_grand_parent: C21}
+    properties:
+      is_canonical: false
+      polymer:
+        is_polymer: false
+        polymer_type: NA
+        backbone_type: NA
+        mainchain_atoms: null
+        sidechain_chirality: NA
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: C6
+elec:
+  atom_charge_parameters:
+  - {res: LG1, atom: C1, charge: 0.0}
+  - {res: LG1, atom: C2, charge: 0.28}
+  - {res: LG1, atom: O1, charge: -0.362}
+  - {res: LG1, atom: C3, charge: 0.083}
+  - {res: LG1, atom: C4, charge: -0.15}
+  - {res: LG1, atom: C5, charge: -0.15}
+  - {res: LG1, atom: C6, charge: -0.009}
+  - {res: LG1, atom: C7, charge: -0.15}
+  - {res: LG1, atom: C8, charge: 0.028}
+  - {res: LG1, atom: S1, charge: 1.447}
+  - {res: LG1, atom: O2, charge: -0.65}
+  - {res: LG1, atom: O3, charge: -0.65}
+  - {res: LG1, atom: C9, charge: 0.0}
+  - {res: LG1, atom: N1, charge: -0.849}
+  - {res: LG1, atom: C10, charge: 0.356}
+  - {res: LG1, atom: C11, charge: 0.503}
+  - {res: LG1, atom: N2, charge: -0.959}
+  - {res: LG1, atom: C12, charge: 0.503}
+  - {res: LG1, atom: C13, charge: 0.356}
+  - {res: LG1, atom: C14, charge: 0.503}
+  - {res: LG1, atom: C15, charge: -0.119}
+  - {res: LG1, atom: N3, charge: -0.539}
+  - {res: LG1, atom: C16, charge: 0.715}
+  - {res: LG1, atom: C17, charge: -0.237}
+  - {res: LG1, atom: N4, charge: 0.074}
+  - {res: LG1, atom: N5, charge: -0.571}
+  - {res: LG1, atom: O4, charge: -0.57}
+  - {res: LG1, atom: C18, charge: 0.046}
+  - {res: LG1, atom: N6, charge: -0.565}
+  - {res: LG1, atom: C19, charge: 0.006}
+  - {res: LG1, atom: C20, charge: 0.181}
+  - {res: LG1, atom: C21, charge: 0.18}
+  - {res: LG1, atom: C22, charge: 0.0}
+  - {res: LG1, atom: C23, charge: 0.0}
+  - {res: LG1, atom: H1, charge: 0.0}
+  - {res: LG1, atom: H2, charge: 0.0}
+  - {res: LG1, atom: H3, charge: 0.0}
+  - {res: LG1, atom: H4, charge: 0.0}
+  - {res: LG1, atom: H5, charge: 0.0}
+  - {res: LG1, atom: H6, charge: 0.15}
+  - {res: LG1, atom: H7, charge: 0.15}
+  - {res: LG1, atom: H8, charge: 0.15}
+  - {res: LG1, atom: H9, charge: 0.0}
+  - {res: LG1, atom: H10, charge: 0.0}
+  - {res: LG1, atom: H11, charge: 0.0}
+  - {res: LG1, atom: H12, charge: 0.0}
+  - {res: LG1, atom: H13, charge: 0.0}
+  - {res: LG1, atom: H14, charge: 0.0}
+  - {res: LG1, atom: H15, charge: 0.0}
+  - {res: LG1, atom: H16, charge: 0.0}
+  - {res: LG1, atom: H17, charge: 0.0}
+  - {res: LG1, atom: H18, charge: 0.0}
+  - {res: LG1, atom: H19, charge: 0.0}
+  - {res: LG1, atom: H20, charge: 0.0}
+  - {res: LG1, atom: H21, charge: 0.0}
+  - {res: LG1, atom: H22, charge: 0.37}
+  - {res: LG1, atom: H23, charge: 0.0}
+  - {res: LG1, atom: H24, charge: 0.0}
+  - {res: LG1, atom: H25, charge: 0.0}
+  - {res: LG1, atom: H26, charge: 0.0}
+  - {res: LG1, atom: H27, charge: 0.0}
+  - {res: LG1, atom: H28, charge: 0.0}
+  - {res: LG1, atom: H29, charge: 0.0}
+  - {res: LG1, atom: H30, charge: 0.0}
+  - {res: LG1, atom: H31, charge: 0.0}
+  - {res: LG1, atom: H32, charge: 0.0}
+  - {res: LG1, atom: H33, charge: 0.45}
+cartbonded:
+  residue_params:
+    LG1:
+      length_parameters:
+      - {atm1: C1, atm2: C2, x0: 1.51435, K: 300.0}
+      - {atm1: C2, atm2: O1, x0: 1.42137, K: 300.0}
+      - {atm1: O1, atm2: C3, x0: 1.37853, K: 300.0}
+      - {atm1: C6, atm2: S1, x0: 1.60566, K: 300.0}
+      - {atm1: S1, atm2: N1, x0: 1.53289, K: 300.0}
+      - {atm1: C9, atm2: C14, x0: 1.52435, K: 300.0}
+      - {atm1: N1, atm2: C10, x0: 1.47172, K: 300.0}
+      - {atm1: N1, atm2: C13, x0: 1.46951, K: 300.0}
+      - {atm1: C10, atm2: C11, x0: 1.51764, K: 300.0}
+      - {atm1: C11, atm2: N2, x0: 1.44899, K: 300.0}
+      - {atm1: N2, atm2: C12, x0: 1.45272, K: 300.0}
+      - {atm1: N2, atm2: C14, x0: 1.45913, K: 300.0}
+      - {atm1: C12, atm2: C13, x0: 1.53485, K: 300.0}
+      - {atm1: C8, atm2: C15, x0: 1.48598, K: 300.0}
+      - {atm1: C15, atm2: N3, x0: 1.44435, K: 300.0}
+      - {atm1: C15, atm2: N5, x0: 1.43551, K: 300.0}
+      - {atm1: C16, atm2: C17, x0: 1.47506, K: 300.0}
+      - {atm1: N4, atm2: N5, x0: 1.38946, K: 300.0}
+      - {atm1: C18, atm2: C20, x0: 1.50384, K: 300.0}
+      - {atm1: C19, atm2: C21, x0: 1.50059, K: 300.0}
+      - {atm1: C21, atm2: C22, x0: 1.52904, K: 300.0}
+      - {atm1: C22, atm2: C23, x0: 1.51038, K: 300.0}
+      - {atm1: C1, atm2: H1, x0: 1.10019, K: 300.0}
+      - {atm1: C1, atm2: H2, x0: 1.09973, K: 300.0}
+      - {atm1: C1, atm2: H3, x0: 1.09962, K: 300.0}
+      - {atm1: C2, atm2: H4, x0: 1.10019, K: 300.0}
+      - {atm1: C2, atm2: H5, x0: 1.09991, K: 300.0}
+      - {atm1: C4, atm2: H6, x0: 1.08374, K: 300.0}
+      - {atm1: C5, atm2: H7, x0: 1.08401, K: 300.0}
+      - {atm1: C7, atm2: H8, x0: 1.08385, K: 300.0}
+      - {atm1: C9, atm2: H9, x0: 1.09949, K: 300.0}
+      - {atm1: C9, atm2: H10, x0: 1.10011, K: 300.0}
+      - {atm1: C9, atm2: H11, x0: 1.10007, K: 300.0}
+      - {atm1: C10, atm2: H12, x0: 1.09968, K: 300.0}
+      - {atm1: C10, atm2: H13, x0: 1.09978, K: 300.0}
+      - {atm1: C11, atm2: H14, x0: 1.0996, K: 300.0}
+      - {atm1: C11, atm2: H15, x0: 1.10022, K: 300.0}
+      - {atm1: N2, atm2: H33, x0: 1.00783, K: 300.0}
+      - {atm1: C12, atm2: H16, x0: 1.10034, K: 300.0}
+      - {atm1: C12, atm2: H17, x0: 1.10037, K: 300.0}
+      - {atm1: C13, atm2: H18, x0: 1.10008, K: 300.0}
+      - {atm1: C13, atm2: H19, x0: 1.10019, K: 300.0}
+      - {atm1: C14, atm2: H20, x0: 1.10034, K: 300.0}
+      - {atm1: C14, atm2: H21, x0: 1.09993, K: 300.0}
+      - {atm1: N3, atm2: H22, x0: 1.00031, K: 300.0}
+      - {atm1: C20, atm2: H23, x0: 1.09986, K: 300.0}
+      - {atm1: C20, atm2: H24, x0: 1.10002, K: 300.0}
+      - {atm1: C20, atm2: H25, x0: 1.10021, K: 300.0}
+      - {atm1: C21, atm2: H26, x0: 1.10043, K: 300.0}
+      - {atm1: C21, atm2: H27, x0: 1.10014, K: 300.0}
+      - {atm1: C22, atm2: H28, x0: 1.09961, K: 300.0}
+      - {atm1: C22, atm2: H29, x0: 1.10006, K: 300.0}
+      - {atm1: C23, atm2: H30, x0: 1.10017, K: 300.0}
+      - {atm1: C23, atm2: H31, x0: 1.10004, K: 300.0}
+      - {atm1: C23, atm2: H32, x0: 1.09997, K: 300.0}
+      - {atm1: S1, atm2: O2, x0: 1.43152, K: 300.0}
+      - {atm1: S1, atm2: O3, x0: 1.4308, K: 300.0}
+      - {atm1: C16, atm2: O4, x0: 1.22156, K: 300.0}
+      - {atm1: C3, atm2: C4, x0: 1.39745, K: 300.0}
+      - {atm1: C3, atm2: C8, x0: 1.39271, K: 300.0}
+      - {atm1: C4, atm2: C5, x0: 1.39326, K: 300.0}
+      - {atm1: C5, atm2: C6, x0: 1.40241, K: 300.0}
+      - {atm1: C6, atm2: C7, x0: 1.39473, K: 300.0}
+      - {atm1: C7, atm2: C8, x0: 1.38338, K: 300.0}
+      - {atm1: N3, atm2: C16, x0: 1.33302, K: 300.0}
+      - {atm1: C17, atm2: N4, x0: 1.31517, K: 300.0}
+      - {atm1: C17, atm2: C18, x0: 1.39063, K: 300.0}
+      - {atm1: N4, atm2: C19, x0: 1.30678, K: 300.0}
+      - {atm1: C18, atm2: N6, x0: 1.36101, K: 300.0}
+      - {atm1: N6, atm2: C19, x0: 1.35529, K: 300.0}
+      angle_parameters:
+      - {atm1: C2, atm2: C1, atm3: H1, x0: 1.90262, K: 80.0}
+      - {atm1: C2, atm2: C1, atm3: H2, x0: 1.91907, K: 80.0}
+      - {atm1: C2, atm2: C1, atm3: H3, x0: 1.91874, K: 80.0}
+      - {atm1: H1, atm2: C1, atm3: H2, x0: 1.90196, K: 80.0}
+      - {atm1: H1, atm2: C1, atm3: H3, x0: 1.9027, K: 80.0}
+      - {atm1: H2, atm2: C1, atm3: H3, x0: 1.91848, K: 80.0}
+      - {atm1: C1, atm2: C2, atm3: O1, x0: 1.90808, K: 80.0}
+      - {atm1: C1, atm2: C2, atm3: H4, x0: 1.91776, K: 80.0}
+      - {atm1: C1, atm2: C2, atm3: H5, x0: 1.91751, K: 80.0}
+      - {atm1: O1, atm2: C2, atm3: H4, x0: 1.90102, K: 80.0}
+      - {atm1: O1, atm2: C2, atm3: H5, x0: 1.90111, K: 80.0}
+      - {atm1: H4, atm2: C2, atm3: H5, x0: 1.91814, K: 80.0}
+      - {atm1: C2, atm2: O1, atm3: C3, x0: 2.14708, K: 80.0}
+      - {atm1: O1, atm2: C3, atm3: C4, x0: 2.12773, K: 80.0}
+      - {atm1: O1, atm2: C3, atm3: C8, x0: 2.06403, K: 80.0}
+      - {atm1: C4, atm2: C3, atm3: C8, x0: 2.09109, K: 80.0}
+      - {atm1: H6, atm2: C4, atm3: C3, x0: 2.10188, K: 80.0}
+      - {atm1: H6, atm2: C4, atm3: C5, x0: 2.10148, K: 80.0}
+      - {atm1: C3, atm2: C4, atm3: C5, x0: 2.07983, K: 80.0}
+      - {atm1: H7, atm2: C5, atm3: C4, x0: 2.08755, K: 80.0}
+      - {atm1: H7, atm2: C5, atm3: C6, x0: 2.08664, K: 80.0}
+      - {atm1: C4, atm2: C5, atm3: C6, x0: 2.109, K: 80.0}
+      - {atm1: S1, atm2: C6, atm3: C5, x0: 2.12346, K: 80.0}
+      - {atm1: S1, atm2: C6, atm3: C7, x0: 2.07609, K: 80.0}
+      - {atm1: C5, atm2: C6, atm3: C7, x0: 2.08342, K: 80.0}
+      - {atm1: H8, atm2: C7, atm3: C6, x0: 2.097, K: 80.0}
+      - {atm1: H8, atm2: C7, atm3: C8, x0: 2.09657, K: 80.0}
+      - {atm1: C6, atm2: C7, atm3: C8, x0: 2.08961, K: 80.0}
+      - {atm1: C15, atm2: C8, atm3: C3, x0: 2.02279, K: 80.0}
+      - {atm1: C15, atm2: C8, atm3: C7, x0: 2.14292, K: 80.0}
+      - {atm1: C3, atm2: C8, atm3: C7, x0: 2.11159, K: 80.0}
+      - {atm1: C6, atm2: S1, atm3: N1, x0: 1.95389, K: 80.0}
+      - {atm1: C6, atm2: S1, atm3: O2, x0: 1.95345, K: 80.0}
+      - {atm1: C6, atm2: S1, atm3: O3, x0: 1.8733, K: 80.0}
+      - {atm1: N1, atm2: S1, atm3: O2, x0: 1.86664, K: 80.0}
+      - {atm1: N1, atm2: S1, atm3: O3, x0: 1.90073, K: 80.0}
+      - {atm1: O2, atm2: S1, atm3: O3, x0: 1.91552, K: 80.0}
+      - {atm1: C14, atm2: C9, atm3: H9, x0: 1.90235, K: 80.0}
+      - {atm1: C14, atm2: C9, atm3: H10, x0: 1.91843, K: 80.0}
+      - {atm1: C14, atm2: C9, atm3: H11, x0: 1.91916, K: 80.0}
+      - {atm1: H9, atm2: C9, atm3: H10, x0: 1.90281, K: 80.0}
+      - {atm1: H9, atm2: C9, atm3: H11, x0: 1.90186, K: 80.0}
+      - {atm1: H10, atm2: C9, atm3: H11, x0: 1.91897, K: 80.0}
+      - {atm1: S1, atm2: N1, atm3: C10, x0: 1.99215, K: 80.0}
+      - {atm1: S1, atm2: N1, atm3: C13, x0: 2.05348, K: 80.0}
+      - {atm1: C10, atm2: N1, atm3: C13, x0: 2.1733, K: 80.0}
+      - {atm1: N1, atm2: C10, atm3: C11, x0: 1.96337, K: 80.0}
+      - {atm1: N1, atm2: C10, atm3: H12, x0: 1.90336, K: 80.0}
+      - {atm1: N1, atm2: C10, atm3: H13, x0: 1.90318, K: 80.0}
+      - {atm1: C11, atm2: C10, atm3: H12, x0: 1.88725, K: 80.0}
+      - {atm1: C11, atm2: C10, atm3: H13, x0: 1.88735, K: 80.0}
+      - {atm1: H12, atm2: C10, atm3: H13, x0: 1.91915, K: 80.0}
+      - {atm1: C10, atm2: C11, atm3: N2, x0: 1.84871, K: 80.0}
+      - {atm1: C10, atm2: C11, atm3: H14, x0: 1.93218, K: 80.0}
+      - {atm1: C10, atm2: C11, atm3: H15, x0: 1.93165, K: 80.0}
+      - {atm1: N2, atm2: C11, atm3: H14, x0: 1.91558, K: 80.0}
+      - {atm1: N2, atm2: C11, atm3: H15, x0: 1.91595, K: 80.0}
+      - {atm1: H14, atm2: C11, atm3: H15, x0: 1.91866, K: 80.0}
+      - {atm1: C11, atm2: N2, atm3: C12, x0: 1.96621, K: 80.0}
+      - {atm1: C11, atm2: N2, atm3: C14, x0: 2.02402, K: 80.0}
+      - {atm1: C11, atm2: N2, atm3: H33, x0: 1.80025, K: 80.0}
+      - {atm1: C12, atm2: N2, atm3: C14, x0: 2.06315, K: 80.0}
+      - {atm1: C12, atm2: N2, atm3: H33, x0: 1.7736, K: 80.0}
+      - {atm1: C14, atm2: N2, atm3: H33, x0: 1.78095, K: 80.0}
+      - {atm1: N2, atm2: C12, atm3: C13, x0: 1.90076, K: 80.0}
+      - {atm1: N2, atm2: C12, atm3: H16, x0: 1.91906, K: 80.0}
+      - {atm1: N2, atm2: C12, atm3: H17, x0: 1.91937, K: 80.0}
+      - {atm1: C13, atm2: C12, atm3: H16, x0: 1.90269, K: 80.0}
+      - {atm1: C13, atm2: C12, atm3: H17, x0: 1.90273, K: 80.0}
+      - {atm1: H16, atm2: C12, atm3: H17, x0: 1.91896, K: 80.0}
+      - {atm1: N1, atm2: C13, atm3: C12, x0: 1.99085, K: 80.0}
+      - {atm1: N1, atm2: C13, atm3: H18, x0: 1.89725, K: 80.0}
+      - {atm1: N1, atm2: C13, atm3: H19, x0: 1.89709, K: 80.0}
+      - {atm1: C12, atm2: C13, atm3: H18, x0: 1.87976, K: 80.0}
+      - {atm1: C12, atm2: C13, atm3: H19, x0: 1.8799, K: 80.0}
+      - {atm1: H18, atm2: C13, atm3: H19, x0: 1.91847, K: 80.0}
+      - {atm1: C9, atm2: C14, atm3: N2, x0: 1.92607, K: 80.0}
+      - {atm1: C9, atm2: C14, atm3: H20, x0: 1.89675, K: 80.0}
+      - {atm1: C9, atm2: C14, atm3: H21, x0: 1.89633, K: 80.0}
+      - {atm1: N2, atm2: C14, atm3: H20, x0: 1.91309, K: 80.0}
+      - {atm1: N2, atm2: C14, atm3: H21, x0: 1.91329, K: 80.0}
+      - {atm1: H20, atm2: C14, atm3: H21, x0: 1.91817, K: 80.0}
+      - {atm1: C8, atm2: C15, atm3: N3, x0: 2.09349, K: 80.0}
+      - {atm1: C8, atm2: C15, atm3: N5, x0: 2.04173, K: 80.0}
+      - {atm1: N3, atm2: C15, atm3: N5, x0: 2.02869, K: 80.0}
+      - {atm1: C15, atm2: N3, atm3: H22, x0: 2.06398, K: 80.0}
+      - {atm1: C15, atm2: N3, atm3: C16, x0: 2.15456, K: 80.0}
+      - {atm1: H22, atm2: N3, atm3: C16, x0: 2.06465, K: 80.0}
+      - {atm1: C17, atm2: C16, atm3: O4, x0: 2.17432, K: 80.0}
+      - {atm1: C17, atm2: C16, atm3: N3, x0: 2.00308, K: 80.0}
+      - {atm1: O4, atm2: C16, atm3: N3, x0: 2.10504, K: 80.0}
+      - {atm1: C16, atm2: C17, atm3: N4, x0: 2.16924, K: 80.0}
+      - {atm1: C16, atm2: C17, atm3: C18, x0: 2.29078, K: 80.0}
+      - {atm1: N4, atm2: C17, atm3: C18, x0: 1.8231, K: 80.0}
+      - {atm1: N5, atm2: N4, atm3: C17, x0: 2.09221, K: 80.0}
+      - {atm1: N5, atm2: N4, atm3: C19, x0: 2.17758, K: 80.0}
+      - {atm1: C17, atm2: N4, atm3: C19, x0: 2.01019, K: 80.0}
+      - {atm1: C15, atm2: N5, atm3: N4, x0: 2.08232, K: 80.0}
+      - {atm1: C20, atm2: C18, atm3: C17, x0: 2.2559, K: 80.0}
+      - {atm1: C20, atm2: C18, atm3: N6, x0: 2.17285, K: 80.0}
+      - {atm1: C17, atm2: C18, atm3: N6, x0: 1.8544, K: 80.0}
+      - {atm1: C18, atm2: N6, atm3: C19, x0: 1.91898, K: 80.0}
+      - {atm1: C21, atm2: C19, atm3: N4, x0: 2.21801, K: 80.0}
+      - {atm1: C21, atm2: C19, atm3: N6, x0: 2.24628, K: 80.0}
+      - {atm1: N4, atm2: C19, atm3: N6, x0: 1.81769, K: 80.0}
+      - {atm1: C18, atm2: C20, atm3: H23, x0: 1.90203, K: 80.0}
+      - {atm1: C18, atm2: C20, atm3: H24, x0: 1.91911, K: 80.0}
+      - {atm1: C18, atm2: C20, atm3: H25, x0: 1.91878, K: 80.0}
+      - {atm1: H23, atm2: C20, atm3: H24, x0: 1.90272, K: 80.0}
+      - {atm1: H23, atm2: C20, atm3: H25, x0: 1.90286, K: 80.0}
+      - {atm1: H24, atm2: C20, atm3: H25, x0: 1.9181, K: 80.0}
+      - {atm1: C19, atm2: C21, atm3: C22, x0: 1.88665, K: 80.0}
+      - {atm1: C19, atm2: C21, atm3: H26, x0: 1.92261, K: 80.0}
+      - {atm1: C19, atm2: C21, atm3: H27, x0: 1.92219, K: 80.0}
+      - {atm1: C22, atm2: C21, atm3: H26, x0: 1.90635, K: 80.0}
+      - {atm1: C22, atm2: C21, atm3: H27, x0: 1.90682, K: 80.0}
+      - {atm1: H26, atm2: C21, atm3: H27, x0: 1.9188, K: 80.0}
+      - {atm1: C21, atm2: C22, atm3: C23, x0: 1.89343, K: 80.0}
+      - {atm1: C21, atm2: C22, atm3: H28, x0: 1.92089, K: 80.0}
+      - {atm1: C21, atm2: C22, atm3: H29, x0: 1.92087, K: 80.0}
+      - {atm1: C23, atm2: C22, atm3: H28, x0: 1.90448, K: 80.0}
+      - {atm1: C23, atm2: C22, atm3: H29, x0: 1.9043, K: 80.0}
+      - {atm1: H28, atm2: C22, atm3: H29, x0: 1.91952, K: 80.0}
+      - {atm1: C22, atm2: C23, atm3: H30, x0: 1.90213, K: 80.0}
+      - {atm1: C22, atm2: C23, atm3: H31, x0: 1.91836, K: 80.0}
+      - {atm1: C22, atm2: C23, atm3: H32, x0: 1.91834, K: 80.0}
+      - {atm1: H30, atm2: C23, atm3: H31, x0: 1.9031, K: 80.0}
+      - {atm1: H30, atm2: C23, atm3: H32, x0: 1.90257, K: 80.0}
+      - {atm1: H31, atm2: C23, atm3: H32, x0: 1.91909, K: 80.0}
+      torsion_parameters: []
+      improper_parameters: []
+      hxltorsion_parameters: []
