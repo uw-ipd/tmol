@@ -148,6 +148,64 @@ Notes:
 - `calculate_block_pair_ddg` is a Python API in `tmol.score.score_utils` (no separate CLI wrapper).
 - The structure residue/atom naming must match the residue definition in your `.tmol`.
 - For multi-ligand systems, build an explicit mask instead of assuming the ligand is the last block.
+- Build the score function from the **ligand-extended** database
+  (`beta2016_score_function(device, param_db=context.parameter_database)`),
+  not the default database. A freshly prepared ligand block type has no
+  scoring parameters in the default database, so scoring against it silently
+  contributes nothing.
+
+## Troubleshooting
+
+### `strict_ligands` (default: fail loudly)
+
+When `prepare_ligands=True`, ligand preparation is **strict by default**: if a
+detected non-standard residue cannot be prepared and registered, the call
+raises `LigandPreparationError` instead of silently continuing. This prevents
+the common footgun of loading a protein-ligand complex, getting a pose with the
+ligand missing, and computing a meaningless (often `0.0`) ddG.
+
+Pass `strict_ligands=False` to restore the older warn-and-skip behavior, where
+unpreparable ligands are logged and dropped:
+
+```python
+pose_stack, context = pose_stack_from_biotite(
+    atom_array,
+    device,
+    prepare_ligands=True,
+    strict_ligands=False,  # warn and drop instead of raising
+    return_context=True,
+)
+```
+
+A residue triggers the strict error when it is skipped (it contains metal atoms
+or is covalently linked to another residue) or when preparation fails outright
+(no derivable SMILES, atom typing, or residue construction error). A successful
+but imperfect "best-effort" name match is still logged as a warning rather than
+raised, since the ligand is loaded in that case.
+
+### `Unrecognized 3lc <NAME>` warning
+
+This warning comes from pose construction
+(`tmol/io/pose_stack_from_biotite.py`), not ligand prep. It means a residue with
+that 3-letter code is not in the active `CanonicalOrdering`, so the residue is
+**stripped from the structure**. If you see it for a ligand you expected to
+score, the ligand never made it into the pose. The usual causes are:
+
+- `prepare_ligands=False` (ligands are never registered), or
+- `prepare_ligands=True, strict_ligands=False` and the ligand was skipped or
+  failed preparation (the preceding warning explains why).
+
+With the strict default (`strict_ligands=True`), this turns into a
+`LigandPreparationError` at preparation time with an actionable message.
+
+### Ligand close to the protein is dropped as "covalently linked"
+
+Protein-ligand complexes with tight binding-pocket contacts, hydrogen bonds, or
+clashes in unminimized models used to be misclassified as covalently linked and
+skipped. Covalent detection now trusts the explicit bond table for all residues
+and only applies the spatial-proximity fallback to polymer-linking residue
+types (modified amino acids/nucleotides, glycans). Genuine non-polymer ligands
+are no longer flagged by proximity alone.
 
 ## Reuse, Caching, and Persistence
 

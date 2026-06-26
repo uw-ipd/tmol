@@ -1,11 +1,7 @@
 "Module for the xyz2mol functionality for TMCs"
 
-import argparse
 import logging
-import signal
-import subprocess
 from itertools import combinations
-from pathlib import Path
 
 import numpy as np
 from rdkit import Chem
@@ -15,53 +11,12 @@ from rdkit.Chem.MolStandardize import rdMolStandardize
 from tmol.ligand.external.xyz2mol_tm.xyz2mol_local import (
     AC2mol,
     chiral_stereo_check,
-    read_xyz_file,
-    xyz2AC_obabel,
 )
 
 # fmt: off
-TRANSITION_METALS = ["Sc","Ti","V","Cr","Mn","Fe","Co","La","Ni","Cu","Zn",
-                     "Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd","Lu",
-                     "Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
-]
-
 TRANSITION_METALS_NUM = [21,22,23,24,25,26,27,57,28,29,30,39,40,41,
                          42,43,44,45,46,47,48,71,72,73,74,75,76,77,78,79,80,
 ]
-
-
-ALLOWED_OXIDATION_STATES = {
-    "Sc": [3],
-    "Ti": [3, 4],
-    "V": [2, 3, 4, 5],
-    "Cr": [2, 3, 4, 6],
-    "Mn": [2, 3, 4, 6, 7],
-    "Fe": [2, 3],
-    "Co": [2, 3],
-    "Ni": [2],
-    "Cu": [1, 2],
-    "Zn": [2],
-    "Y": [3],
-    "Zr": [4],
-    "Nb": [3, 4, 5],
-    "Mo": [2, 3, 4, 5, 6],
-    "Tc": [2, 3, 4, 5, 6, 7],
-    "Ru": [2, 3, 4, 5, 6, 7, 8],
-    "Rh": [1, 3],
-    "Pd": [2, 4],
-    "Ag": [1],
-    "Cd": [2],
-    "La": [3],
-    "Hf": [4],
-    "Ta": [3, 4, 5],
-    "W": [2, 3, 4, 5, 6],
-    "Re": [2, 3, 4, 5, 6, 7],
-    "Os": [3, 4, 5, 6, 7, 8],
-    "Ir": [1, 3],
-    "Pt": [2, 4],
-    "Au": [1, 3],
-    "Hg": [1, 2],
-}
 # fmt: on
 
 logger = logging.getLogger(__name__)
@@ -129,25 +84,6 @@ atomic_valence_electrons[77] = 9  # Ir
 atomic_valence_electrons[78] = 10  # Pt
 atomic_valence_electrons[79] = 11  # Au
 atomic_valence_electrons[80] = 12  # Hg
-
-
-def shell(cmd, shell=False):
-    if shell:
-        p = subprocess.Popen(
-            cmd,
-            shell=True,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    else:
-        cmd = cmd.split()
-        p = subprocess.Popen(
-            cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-
-    output, err = p.communicate()
-    return output
 
 
 # NOTE: Changing from source code to take as input and return mol object (vs. smiles)
@@ -258,65 +194,6 @@ def get_proposed_ligand_charge(ligand_mol, cutoff=-10):
         percieved_homo = result.GetOrbitalEnergies()[N_occ_orbs - 1]
 
     return charge
-
-
-def get_basic_mol(xyz_file, overall_charge):
-    """A basic mol-object (that can be usedto do an extended Hückel calculation
-    is constructed based on the adjacency matrix evaluated from the xyz-
-    coordinates.
-
-    All bonds are single bonds, and charges are only asigned if
-    necessary to work with it, i.e. a Nitrogen with four neihbors gets a
-    +1 charge, Boron with 4 neighbors gets a -1 charge and oxygen with
-    three neighbors gets a +1 charge.
-    """
-    atoms, _, xyz_coords = read_xyz_file(xyz_file)
-
-    # AC, mol = xyz2AC_huckel(atoms, xyz_coords, overall_charge)
-    AC, mol = xyz2AC_obabel(atoms, xyz_coords)
-    tm_indxs = [atoms.index(tm) for tm in TRANSITION_METALS_NUM if tm in atoms]
-
-    rwMol = Chem.RWMol(mol)
-    length_ac = len(AC)
-
-    bondTypeDict = {
-        1: Chem.BondType.SINGLE,
-        2: Chem.BondType.DOUBLE,
-        3: Chem.BondType.TRIPLE,
-    }
-    for i in range(length_ac):
-        for j in range(i + 1, length_ac):
-            bo = int(round(AC[i, j]))
-            if bo == 0:
-                continue
-            bt = bondTypeDict.get(bo, Chem.BondType.SINGLE)
-            rwMol.AddBond(i, j, bt)
-
-    mol = rwMol.GetMol()
-
-    for i, a in enumerate(mol.GetAtoms()):
-        if a.GetAtomicNum() == 7:
-            # explicit_valence = np.sum(AC[i])
-            explicit_valence = sum(
-                [ele for idx, ele in enumerate(AC[i]) if idx not in tm_indxs]
-            )
-            if explicit_valence == 4:
-                a.SetFormalCharge(1)
-        if a.GetAtomicNum() == 5:
-            # Boron with 4 explicit bonds should be negative
-            explicit_valence = sum(
-                [ele for idx, ele in enumerate(AC[i]) if idx not in tm_indxs]
-            )
-            if explicit_valence == 4:
-                a.SetFormalCharge(-1)
-        if a.GetAtomicNum() == 8:
-            explicit_valence = sum(
-                [ele for idx, ele in enumerate(AC[i]) if idx not in tm_indxs]
-            )
-            if explicit_valence == 3:
-                a.SetFormalCharge(1)
-
-    return mol
 
 
 def lig_checks(lig_mol, coordinating_atoms):
@@ -549,8 +426,6 @@ def get_tmc_mol(mol, overall_charge, with_stereo=False):
 
     tm = Chem.RWMol(frag_mols[tm_idx])
     tm_ox = overall_charge - total_lig_charge
-
-    len(tm.GetAtoms())
 
     for a in tm.GetAtoms():
         if a.GetAtomicNum() in TRANSITION_METALS_NUM:

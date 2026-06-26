@@ -12,9 +12,6 @@ Provenance:
     https://github.com/jensengroup/xyz2mol_tm, MIT licensed).
 
 Differences from the atomworks original (intentional, to drop heavy deps):
-    - The Chemical Component Dictionary source for :func:`ccd_code_to_rdkit`
-      is biotite's bundled CCD (``biotite.structure.info``) rather than an
-      external CCD mirror.
     - The ``timer.timeout`` decorator is replaced by a small signal-based
       timeout context manager.
     - atomworks-internal helpers (``exists``, ``not_isin``,
@@ -35,7 +32,6 @@ from typing import Callable, Final, Generator, Literal
 import numpy as np
 from biotite import structure as struc
 from biotite.structure import AtomArray
-from biotite.structure.info import residue as _biotite_residue
 from rdkit import Chem
 from rdkit.Chem import rdDetermineBonds
 from rdkit.Chem.MolStandardize import rdMolStandardize
@@ -541,46 +537,5 @@ def atom_array_to_rdkit(
 
     if hydrogen_policy == "infer":
         mol = add_hydrogens(mol, add_coords=set_coord)
-
-    return mol
-
-
-def ccd_code_to_rdkit(
-    ccd_code: str,
-    *,
-    hydrogen_policy: Literal["infer", "remove", "keep"] = "keep",
-    **atom_array_to_rdkit_kwargs,
-) -> Mol:
-    """Convert a CCD residue code (e.g. ``'ALA'``, ``'9RH'``) to an RDKit molecule.
-
-    Uses biotite's bundled Chemical Component Dictionary as the template source.
-
-    Args:
-        ccd_code: The CCD three-letter (or longer) component code.
-        hydrogen_policy: Whether to keep/remove/infer hydrogens.
-        **atom_array_to_rdkit_kwargs: Forwarded to :func:`atom_array_to_rdkit`.
-
-    Returns:
-        The RDKit molecule for the requested component.
-
-    Raises:
-        KeyError: If ``ccd_code`` is not present in biotite's CCD.
-    """
-    atom_array = _biotite_residue(ccd_code)
-
-    mol = atom_array_to_rdkit(
-        atom_array,
-        set_coord=True,  # coordinates needed for stereochemistry assignment
-        hydrogen_policy=hydrogen_policy,
-        **atom_array_to_rdkit_kwargs,
-    )
-
-    try:
-        Chem.AssignStereochemistryFrom3D(mol)
-    except (ValueError, RuntimeError):
-        logger.warning(
-            f"Failed to assign stereochemistry to {ccd_code}. Returning unstereochem molecule."
-        )
-        pass
 
     return mol

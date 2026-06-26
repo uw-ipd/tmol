@@ -120,87 +120,6 @@ def obabel_read_mol2_block(mol2_block: str) -> Optional[Chem.Mol]:
     return _obmol_to_rdkit_mol(pymol.OBMol)
 
 
-def obabel_read_pdb(
-    path: str | Path,
-    *,
-    perceive_bond_orders: bool = True,
-) -> Optional[Chem.Mol]:
-    """Read a PDB file via OpenBabel and return an RDKit ``Chem.Mol``.
-
-    PDB does not encode bond orders. By default this calls
-    ``ConnectTheDots`` + ``PerceiveBondOrders`` so the resulting Mol has
-    chemically sensible bonds suitable for downstream RDKit usage.
-
-    Returns ``None`` if OB could not parse the file. Raises
-    :class:`OpenBabelUnavailableError` if OpenBabel is not installed.
-    """
-    openbabel, pybel = _import_openbabel()
-    path = Path(path)
-    try:
-        pymol = next(pybel.readfile("pdb", str(path)))
-    except StopIteration:
-        logger.warning("OpenBabel could not read any molecule from %s", path)
-        return None
-    except Exception:
-        logger.warning("OpenBabel failed to parse PDB file %s", path, exc_info=True)
-        return None
-
-    obmol = pymol.OBMol
-    if perceive_bond_orders:
-        # ConnectTheDots is normally called by the reader, but is idempotent
-        # and cheap; call it explicitly so we know connectivity is set
-        # before PerceiveBondOrders runs.
-        obmol.ConnectTheDots()
-        obmol.PerceiveBondOrders()
-    return _obmol_to_rdkit_mol(obmol)
-
-
-def obabel_read_smiles(
-    smiles: str,
-    *,
-    generate_3d: bool = False,
-    minimize: bool = False,
-    forcefield: str = "mmff94",
-) -> Optional[Chem.Mol]:
-    """Parse a SMILES string via OpenBabel and return an RDKit ``Chem.Mol``.
-
-    Args:
-        smiles: A SMILES string.
-        generate_3d: If True, embed the molecule in 3D and add explicit
-            hydrogens (calls ``make3D``).
-        minimize: If True (and ``generate_3d``), run a force-field
-            geometry optimization after embedding.
-        forcefield: Name of the force field used for 3D embedding and
-            optional minimization (typically ``"mmff94"`` or ``"uff"``).
-
-    Returns:
-        An RDKit ``Chem.Mol``, or ``None`` if OB rejected the SMILES.
-        Raises :class:`OpenBabelUnavailableError` if OB is not installed.
-    """
-    openbabel, pybel = _import_openbabel()
-    try:
-        pymol = pybel.readstring("smi", smiles)
-    except Exception:
-        logger.warning("OpenBabel failed to parse SMILES %r", smiles, exc_info=True)
-        return None
-
-    if generate_3d:
-        try:
-            pymol.addh()
-            pymol.make3D(forcefield=forcefield, steps=50)
-            if minimize:
-                pymol.localopt(forcefield=forcefield, steps=500)
-        except Exception:
-            logger.warning(
-                "OpenBabel failed to generate 3D for SMILES %r",
-                smiles,
-                exc_info=True,
-            )
-            return None
-
-    return _obmol_to_rdkit_mol(pymol.OBMol)
-
-
 def _conformer_search(
     openbabel, obmol, *, forcefield: str, minimize_steps: int
 ) -> bool:
@@ -360,12 +279,3 @@ def _assign_generic_atom_names(openbabel, obmol) -> None:
         residue = atom.GetResidue()
         if residue is not None:
             residue.SetAtomID(atom, f"{symbol}{counts[symbol]}")
-
-
-def is_available() -> bool:
-    """Return True iff the optional ``openbabel`` Python package is importable."""
-    try:
-        _import_openbabel()
-    except OpenBabelUnavailableError:
-        return False
-    return True

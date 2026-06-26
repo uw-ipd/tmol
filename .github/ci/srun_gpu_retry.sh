@@ -18,6 +18,9 @@
 #   SLURM_PARTITION, SLURM_GRES, SLURM_TIME, SLURM_CPUS_PER_TASK, SLURM_MEM
 #   SRUN_GPU_MAX_ATTEMPTS (default 5)
 #   SRUN_GPU_RETRY_SLEEP (default 10 seconds between attempts)
+#   SLURM_EXCLUDE (optional comma-separated nodelist to exclude up front, e.g.
+#                  nodes with known hardware faults; dynamic per-attempt
+#                  exclusions are appended to it)
 
 set -euo pipefail
 
@@ -34,7 +37,9 @@ trap 'rm -rf "$tmpdir"' EXIT
 inner_script="${tmpdir}/inner.sh"
 cat >"$inner_script"
 
-exclude=""
+# Seed the exclude list from SLURM_EXCLUDE so nodes with known hardware faults
+# are skipped from the first attempt; per-attempt bad nodes are appended below.
+exclude="${SLURM_EXCLUDE:-}"
 attempt=1
 
 _gpu_retry_pattern='TaskProlog failed|Failed to get device handle|Unable to determine the device handle|GPU problem:|nvidia-smi failed'

@@ -44,6 +44,31 @@ from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
 logger = logging.getLogger(__name__)
 
 
+class LigandPreparationError(RuntimeError):
+    """A detected ligand could not be prepared, registered, or retained.
+
+    Raised by :func:`prepare_ligands` (and the ``prepare_ligands=True`` IO
+    paths) when ``strict_ligands=True`` and a non-standard residue is skipped
+    or fails preparation, instead of silently dropping it. Pass
+    ``strict_ligands=False`` to downgrade these failures to warnings.
+    """
+
+
+def _skip_or_raise(strict_ligands: bool, message: str) -> None:
+    """Raise :class:`LigandPreparationError` if strict, else log a warning.
+
+    Centralizes the strict-versus-lenient handling for ligands that
+    :func:`prepare_ligands` cannot register. The lenient branch appends a hint
+    so the warning matches the strict error's guidance.
+    """
+    if strict_ligands:
+        raise LigandPreparationError(
+            f"{message}. Pass strict_ligands=False to skip it with a warning, "
+            "or supply prebuilt params via ligand_params_files."
+        )
+    logger.warning("Skipping %s", message)
+
+
 def _build_cif_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.Mol:
     """Build a Chem.Mol from the CIF ligand for heavy-atom graph matching.
 
@@ -397,6 +422,7 @@ def prepare_ligands(
     params_files: list[str] | None = None,
     params_output: str | None = None,
     sample_proton_chi: bool = True,
+    strict_ligands: bool = True,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Detect, prepare, and register all non-standard residues.
 
@@ -421,11 +447,20 @@ def prepare_ligands(
             to a tmol YAML params file for later reuse.
         sample_proton_chi: Whether to emit PROTON_CHI samples in the
             built residue type (also part of the in-process cache key).
+        strict_ligands: If True (default), raise :class:`LigandPreparationError`
+            when a detected non-standard residue is skipped (metal-containing or
+            covalently linked) or fails preparation, instead of silently
+            dropping it. If False, such residues are logged as warnings and
+            skipped, leaving them to be filtered out during pose construction.
 
     Returns:
         A (ParameterDatabase, CanonicalOrdering) tuple. The returned
         ParameterDatabase is a new instance with all detected ligands
         injected; the input ``param_db`` is not modified.
+
+    Raises:
+        LigandPreparationError: If ``strict_ligands`` and any detected ligand
+            cannot be prepared and registered.
     """
     if isinstance(atom_array, struc.AtomArrayStack):
         if len(atom_array) == 1:
@@ -468,18 +503,18 @@ def prepare_ligands(
             }
         )
         if metals_present:
-            logger.warning(
-                "Skipping %s: ligands containing metal atoms (%s) are not supported",
-                lig.res_name,
-                metals_present,
+            _skip_or_raise(
+                strict_ligands,
+                f"{lig.res_name}: ligands containing metal atoms "
+                f"({metals_present}) are not supported",
             )
             continue
 
         if lig.covalently_linked:
-            logger.warning(
-                "Skipping %s: ligand is covalently linked to another residue "
+            _skip_or_raise(
+                strict_ligands,
+                f"{lig.res_name}: ligand is covalently linked to another residue "
                 "(e.g. glycan attached to protein) — not supported",
-                lig.res_name,
             )
             continue
 
@@ -508,9 +543,23 @@ def prepare_ligands(
             continue
 
         logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)
-        prep = _prepare_ligand_via_smiles(
-            lig, ph=ph, sample_proton_chi=sample_proton_chi
-        )
+        try:
+            prep = _prepare_ligand_via_smiles(
+                lig, ph=ph, sample_proton_chi=sample_proton_chi
+            )
+        except LigandPreparationError:
+            raise
+        except Exception as err:  # noqa: BLE001  SMILES/typing/build failure
+            if strict_ligands:
+                raise LigandPreparationError(
+                    f"{lig.res_name}: failed to prepare ligand ({err}). Pass "
+                    "strict_ligands=False to skip it with a warning, or supply "
+                    "prebuilt params via ligand_params_files."
+                ) from err
+            logger.warning(
+                "Skipping %s: ligand preparation failed (%s)", lig.res_name, err
+            )
+            continue
         cache_ligand(
             lig.res_name,
             prep.residue_type,
@@ -519,6 +568,15 @@ def prepare_ligands(
             cache=cache,
         )
         preparations.append(prep)
+
+    if strict_ligands and not preparations:
+        raise LigandPreparationError(
+            "All "
+            f"{len(ligands)} detected non-standard residue(s) "
+            f"({', '.join(sorted({lig.res_name for lig in ligands}))}) were "
+            "skipped; none could be prepared. Pass strict_ligands=False to "
+            "continue with these residues dropped."
+        )
 
     if preparations:
         param_db = inject_ligand_preparations(
@@ -569,6 +627,25 @@ def _ligand_info_from_cif(
     )
 
 
+def _inject_single(
+    prep: LigandPreparation,
+    param_db: Optional[ParameterDatabase],
+    strict_atom_types: bool,
+) -> tuple[ParameterDatabase, CanonicalOrdering]:
+    """Inject one prepared ligand and return the new ``(db, canonical_ordering)``.
+
+    Shared tail of the single-ligand ``prepare_ligand_from_*`` entry points:
+    resolve the default database, inject the preparation, and rebuild the
+    canonical ordering for the extended database.
+    """
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
+    param_db = inject_ligand_preparations(
+        param_db, [prep], strict_atom_types=strict_atom_types
+    )
+    return param_db, rebuild_canonical_ordering(param_db)
+
+
 def prepare_ligand_from_cif(
     cif_path: str,
     *,
@@ -596,15 +673,9 @@ def prepare_ligand_from_cif(
     Returns:
         A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.
     """
-    if param_db is None:
-        param_db = ParameterDatabase.get_default()
-
     lig = _ligand_info_from_cif(cif_path, res_name)
     prep = _prepare_ligand_via_smiles(lig, ph=ph, sample_proton_chi=sample_proton_chi)
-    param_db = inject_ligand_preparations(
-        param_db, [prep], strict_atom_types=strict_atom_types
-    )
-    return param_db, rebuild_canonical_ordering(param_db)
+    return _inject_single(prep, param_db, strict_atom_types)
 
 
 def prepare_ligand_from_smiles(
@@ -634,9 +705,6 @@ def prepare_ligand_from_smiles(
             during 3D mol2 generation (matching the reference pipeline); set
             ``False`` for faster single-conformer generation.
     """
-    if param_db is None:
-        param_db = ParameterDatabase.get_default()
-
     lig = nonstandard_residue_info_from_smiles_via_mol2(
         smiles,
         res_name=res_name,
@@ -645,10 +713,7 @@ def prepare_ligand_from_smiles(
         conformer_search=conformer_search,
     )
     prep = prepare_single_ligand(lig, sample_proton_chi=sample_proton_chi)
-    param_db = inject_ligand_preparations(
-        param_db, [prep], strict_atom_types=strict_atom_types
-    )
-    return param_db, rebuild_canonical_ordering(param_db)
+    return _inject_single(prep, param_db, strict_atom_types)
 
 
 def prepare_ligand_from_mol2(
@@ -676,12 +741,6 @@ def prepare_ligand_from_mol2(
     """
     from tmol.ligand.detect import nonstandard_residue_info_from_mol2
 
-    if param_db is None:
-        param_db = ParameterDatabase.get_default()
-
     lig = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
     prep = prepare_single_ligand(lig, sample_proton_chi=sample_proton_chi)
-    param_db = inject_ligand_preparations(
-        param_db, [prep], strict_atom_types=strict_atom_types
-    )
-    return param_db, rebuild_canonical_ordering(param_db)
+    return _inject_single(prep, param_db, strict_atom_types)

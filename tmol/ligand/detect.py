@@ -194,11 +194,6 @@ def _mol2_charge_model_from_text(mol2_text: str) -> str:
     return ""
 
 
-def _mol2_charge_model(mol2_path: Path) -> str:
-    """Return the Tripos charge model line from a mol2 file (e.g. ``GASTEIGER``)."""
-    return _mol2_charge_model_from_text(mol2_path.read_text())
-
-
 def _mol2_single_bond_ids(mol2_text: str) -> frozenset[frozenset[int]]:
     """Return the set of single (order ``'1'``) bonds from a mol2 BOND section.
 
@@ -635,6 +630,19 @@ def detect_nonstandard_residues(
     return results
 
 
+def _is_polymer_linking_ccd_type(ccd_type: Optional[str]) -> bool:
+    """Whether a CCD chemical-component type denotes a polymer-linking residue.
+
+    Returns True for modified amino acids, nucleotides, and saccharides
+    (e.g. "L-PEPTIDE LINKING", "DNA LINKING", "D-SACCHARIDE"), which are
+    expected to be covalently attached to a chain. Returns False for
+    "NON-POLYMER" small-molecule ligands and for unknown residues.
+    """
+    if not ccd_type:
+        return False
+    return "LINKING" in ccd_type or "SACCHARIDE" in ccd_type
+
+
 def _residue_names_with_cross_residue_bonds(
     atom_array: struc.AtomArray,
     spatial_cutoff: float = 1.8,
@@ -647,11 +655,16 @@ def _residue_names_with_cross_residue_bonds(
     covalently attached to a polymer or to other ligand instances.
 
     Detection runs two passes:
-    1. Explicit bonds in ``atom_array.bonds`` (if present).
-    2. Heavy-atom spatial proximity within ``spatial_cutoff`` Å. This
-       catches covalent attachments missing from the bond table — e.g.
-       CCD NON-POLYMER caps like ACE in a polypeptide, or files lacking
-       ``_struct_conn`` records.
+    1. Explicit bonds in ``atom_array.bonds`` (if present). Authoritative for
+       any residue type.
+    2. Heavy-atom spatial proximity within ``spatial_cutoff`` Å. This catches
+       covalent attachments missing from the bond table for *polymer-linking*
+       residues (modified amino acids/nucleotides, glycans) when files lack
+       ``_struct_conn`` records. NON-POLYMER and unknown small-molecule ligands
+       are deliberately *not* flagged by proximity: tight binding-pocket
+       contacts, hydrogen bonds, and clashes in unminimized models routinely
+       fall below a covalent-bond distance and would otherwise be misread as
+       covalent attachments and silently discarded.
     """
     chain_ids = atom_array.chain_id if hasattr(atom_array, "chain_id") else None
     res_ids = atom_array.res_id
@@ -659,22 +672,19 @@ def _residue_names_with_cross_residue_bonds(
 
     linked: set[str] = set()
 
-    def _record(a: int, b: int) -> None:
-        """Record a covalent connection spanning different residues.
-
-        Args:
-            a: Atom index for the first endpoint.
-            b: Atom index for the second endpoint.
-        """
+    def _spans_residues(a: int, b: int) -> bool:
+        """Whether atoms ``a`` and ``b`` belong to different residues."""
         same_chain = chain_ids is None or chain_ids[a] == chain_ids[b]
         if same_chain and res_ids[a] == res_ids[b] and res_names[a] == res_names[b]:
-            return
-        linked.add(res_names[a].strip())
-        linked.add(res_names[b].strip())
+            return False
+        return True
 
     if atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0:
         for a, b, _ in atom_array.bonds.as_array():
-            _record(int(a), int(b))
+            a, b = int(a), int(b)
+            if _spans_residues(a, b):
+                linked.add(res_names[a].strip())
+                linked.add(res_names[b].strip())
 
     if len(atom_array) > 1:
         heavy_mask = np.char.strip(atom_array.element.astype(str)) != "H"
@@ -684,6 +694,13 @@ def _residue_names_with_cross_residue_bonds(
             heavy_indices = np.nonzero(heavy_mask)[0]
             tree = cKDTree(atom_array.coord[heavy_mask])
             for i, j in tree.query_pairs(spatial_cutoff, output_type="ndarray"):
-                _record(int(heavy_indices[i]), int(heavy_indices[j]))
+                a = int(heavy_indices[i])
+                b = int(heavy_indices[j])
+                if not _spans_residues(a, b):
+                    continue
+                for idx in (a, b):
+                    name = res_names[idx].strip()
+                    if _is_polymer_linking_ccd_type(get_chem_comp_type(name)):
+                        linked.add(name)
 
     return frozenset(linked)

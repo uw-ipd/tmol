@@ -155,3 +155,15 @@ filterwarnings = [
 
 [tool.pytest-watch]
 ext = ".cpp,.hh,.h,.cu,.py,.yaml"
+
+# Coverage settings ------------------------------------------------------------
+# Vendored third-party ports are excluded from coverage measurement: driving
+# them to a coverage target via unit tests is not meaningful. Keep this list in
+# sync with the `ignore:` block in codecov.yml.
+[tool.coverage.run]
+omit = [
+    "*/tmol/ligand/external/*",
+    "*/tmol/ligand/dimorphite_dl.py",
+    "*/tmol/ligand/openbabel_compat.py",
+    "*/tmol/tests/ligand/build_pli_ligand_cifs.py",
+]

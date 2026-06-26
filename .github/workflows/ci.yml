@@ -22,6 +22,10 @@ env:
   SLURM_CPUS_PER_TASK: 16
   SLURM_MEM: 128G
   SLURM_TIME: 06:00:00
+  # Exclude GPU nodes with known hardware faults. g2548 hit an uncorrectable
+  # ECC memory error (cudaErrorECCUncorrectable) that erroring out the whole
+  # CUDA test lane; drop this once the node's GPU is reset/repaired.
+  SLURM_EXCLUDE: g2548
   SRUN_GPU_MAX_ATTEMPTS: 5
   SRUN_GPU_RETRY_SLEEP: 10
 

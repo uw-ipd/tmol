@@ -1259,19 +1259,6 @@ class TestFuncs:
         )
 
 
-def run(**kwargs: Any) -> None:
-    """Run Dimorphite-DL from another Python script.
-
-    Accepts keyword arguments matching the command-line parameters.
-    For passing/returning RDKit Mol objects, use :func:`run_with_mol_list`
-    instead.
-
-    Args:
-        **kwargs: Command-line parameters (see ``--help``).
-    """
-    main(kwargs)
-
-
 def protonate_mol_variants(
     mol: Chem.rdchem.Mol,
     min_ph: float = 6.4,
@@ -1343,63 +1330,6 @@ def protonate_mol_variants(
                 break
 
     return output_mols
-
-
-def run_with_mol_list(
-    mol_lst: list[Chem.rdchem.Mol], **kwargs: Any
-) -> list[Chem.rdchem.Mol]:
-    """Run Dimorphite-DL on a list of RDKit Mol objects.
-
-    Converts Mol objects to SMILES, protonates them, and converts back.
-    Properties from the original Mol objects are preserved.
-
-    Args:
-        mol_lst: Input RDKit Mol objects.
-        **kwargs: Additional command-line parameters (must not include
-            ``smiles``, ``smiles_file``, ``output_file``, or ``test``).
-
-    Returns:
-        A list of protonated RDKit Mol objects with properties preserved.
-
-    Raises:
-        Exception: If forbidden keyword arguments are provided.
-    """
-    for bad_arg in ["smiles", "smiles_file", "output_file", "test"]:
-        if bad_arg in kwargs:
-            msg = (
-                "You're using Dimorphite-DL's run_with_mol_list(mol_lst, "
-                + '**kwargs) function, but you also passed the "'
-                + bad_arg
-                + '" argument. Did you mean to use the '
-                + "run(**kwargs) function instead?"
-            )
-            UtilFuncs.eprint(msg)
-            raise Exception(msg)
-
-    mols: list[Chem.rdchem.Mol] = []
-    for m in mol_lst:
-        props = m.GetPropsAsDict()
-        variants = protonate_mol_variants(
-            m,
-            min_ph=float(kwargs.get("min_ph", 6.4)),
-            max_ph=float(kwargs.get("max_ph", 8.4)),
-            pka_precision=float(kwargs.get("pka_precision", 1.0)),
-            max_variants=int(kwargs.get("max_variants", 128)),
-            silent=bool(kwargs.get("silent", True)),
-        )
-        for v in variants:
-            for prop, val in props.items():
-                if type(val) is int:
-                    v.SetIntProp(prop, val)
-                elif type(val) is float:
-                    v.SetDoubleProp(prop, val)
-                elif type(val) is bool:
-                    v.SetBoolProp(prop, val)
-                else:
-                    v.SetProp(prop, str(val))
-            mols.append(v)
-
-    return mols
 
 
 if __name__ == "__main__":

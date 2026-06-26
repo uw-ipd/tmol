@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping
 
 import cattr
+import numpy as np
 import yaml
 
 from tmol.database.chemical import (
@@ -340,6 +341,19 @@ class _CompactDumper(yaml.SafeDumper):
 
 
 _CompactDumper.add_representer(_FlowList, _flow_list_representer)
+
+
+def _np_scalar_representer(dumper: Any, data: Any) -> Any:
+    """Represent numpy scalar types (np.str_, np.float64, ...) as native Python.
+
+    Residue data coming from biotite/numpy arrays carries numpy scalar types
+    (e.g. ``np.str_`` atom names) that PyYAML's SafeDumper cannot serialize.
+    Coerce each to its native Python equivalent before emission.
+    """
+    return dumper.represent_data(data.item())
+
+
+_CompactDumper.add_multi_representer(np.generic, _np_scalar_representer)
 
 
 def _flow_atom(d: dict[str, Any]) -> dict[str, Any]:

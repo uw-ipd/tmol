@@ -9,12 +9,33 @@ source .venv/bin/activate
 source .github/ci/gpu_env.sh
 strip_cuda_compat_from_ld_path
 
-uv pip compile pyproject.toml --all-extras --output-file requirements.txt
+# The GPU compute nodes have flaky outbound access to PyPI / download.pytorch.org
+# (intermittent "Connection reset by peer"). uv's own retries all fire within a
+# few seconds, so wrap network installs in a backoff loop to ride out short
+# outages instead of failing the whole CI run.
+retry() {
+  local -i attempt=1 max="${RETRY_MAX_ATTEMPTS:-5}" delay="${RETRY_BASE_DELAY:-15}"
+  while true; do
+    if "$@"; then
+      return 0
+    fi
+    if ((attempt >= max)); then
+      echo "retry: command failed after ${attempt} attempts: $*" >&2
+      return 1
+    fi
+    echo "retry: attempt ${attempt}/${max} failed; sleeping ${delay}s: $*" >&2
+    sleep "${delay}"
+    attempt+=1
+    delay=$((delay * 2))
+  done
+}
+
+retry uv pip compile pyproject.toml --all-extras --output-file requirements.txt
 grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|pandas|scipy)==" \
   requirements.txt > to_install.txt
-uv pip install -r to_install.txt
+retry uv pip install -r to_install.txt
 TORCH_CUDA_INDEX="${TMOL_CI_TORCH_CUDA_INDEX:-https://download.pytorch.org/whl/cu128}"
-uv pip install torch --index-url "${TORCH_CUDA_INDEX}"
+retry uv pip install torch --index-url "${TORCH_CUDA_INDEX}"
 assert_torch_cuda
 
 RUN_GPU=$(python -c "import torch; c=torch.cuda.get_device_capability(0); print(f'{c[0]}.{c[1]}')" 2>/dev/null || echo "n/a")
