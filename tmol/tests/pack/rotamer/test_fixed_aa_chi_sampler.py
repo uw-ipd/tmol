@@ -46,7 +46,7 @@ def test_annotate_packed_block_types_smoke(default_database, torch_device):
     sampler.annotate_packed_block_types(pbt)
 
 
-def test_chi_sampler_smoke(ubq_pdb, torch_device, default_restype_set):
+def test_chi_sampler_smoke(ubq_pdb, torch_device):
     torch_device = torch.device("cpu")
     p1 = no_termini_pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_start=5, residue_end=11
@@ -55,7 +55,7 @@ def test_chi_sampler_smoke(ubq_pdb, torch_device, default_restype_set):
         ubq_pdb, torch_device, residue_start=1, residue_end=8
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
-    palette = PackerPalette(default_restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 

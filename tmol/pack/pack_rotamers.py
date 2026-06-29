@@ -4,7 +4,7 @@ import time
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_function import ScoreFunction
 
-from tmol.pack.packer_task import PackerTask
+from tmol.pack.packer_task import PackerTask, SetPackerTask
 from tmol.pack.rotamer.build_rotamers import build_rotamers
 from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.simulated_annealing import run_simulated_annealing
@@ -21,6 +21,8 @@ def pack_rotamers(
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     start_time = time.perf_counter()
+
+    task = SetPackerTask.from_packer_task(task)
     pbt = pose_stack.packed_block_types
 
     pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)

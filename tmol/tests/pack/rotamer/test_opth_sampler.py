@@ -19,8 +19,7 @@ def test_optH_rotamer_sampler(ubq_pdb, torch_device):
     n_poses = 4
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    restype_set = pose_stack.packed_block_types.restype_set
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()
     task.add_conformer_sampler(IncludeCurrentSampler())
@@ -40,20 +39,27 @@ def test_optH_rotamer_sampler(ubq_pdb, torch_device):
     # or flipped by ~180 deg.
     from tmol.numeric.dihedrals import coord_dihedrals as _cd
 
-    pose_i = 0
-    for block_j, blt in enumerate(task.blts[pose_i]):
-        orig = blt.original_block_type
+    for i in range(task.allowed_bt_block_type.shape[0]):
+        # pose_i = 0
+        # for block_j, blt in enumerate(task.blts[pose_i]):
+        pose_i = task.allowed_bt_pose[i].item()
+        block_i = task.allowed_bt_block[i].item()
+        # block_type_i = task.allowed_bt_block_type[i].item()
+        # which_block_type = task.allowed_bt_which_block_type[i].item()
+        orig_bt = task.per_block_orig_block_type[pose_i, block_i].item()
+        orig = pose_stack.packed_block_types.active_block_types[orig_bt]
+        # bt = pose_stack.packed_block_types.active_block_types[block_type_i]
         if not hasattr(orig, "opth_sampler_cache"):
             continue
         cache = orig.opth_sampler_cache
         if cache.nhq_chi_col < 0:
             continue
         a4 = cache.nhq_chi_4atoms
-        off = int(pose_stack.block_coord_offset[pose_i, block_j].item())
+        off = int(pose_stack.block_coord_offset[pose_i, block_i].item())
         c = pose_stack.coords[pose_i][[off + int(a4[k]) for k in range(4)]].double()
         input_chi = float(_cd(c[0:1], c[1:2], c[2:3], c[3:4])[0])
-        n_rots = int(rotamer_set.n_rots_for_block[pose_i, block_j].item())
-        rot_off = int(rotamer_set.rot_offset_for_block[pose_i, block_j].item())
+        n_rots = int(rotamer_set.n_rots_for_block[pose_i, block_i].item())
+        rot_off = int(rotamer_set.rot_offset_for_block[pose_i, block_i].item())
         for r in range(n_rots):
             co = int(rotamer_set.coord_offset_for_rot[rot_off + r].item())
             rc4 = rotamer_set.coords[[co + int(a4[k]) for k in range(4)]].double()
@@ -62,6 +68,6 @@ def test_optH_rotamer_sampler(ubq_pdb, torch_device):
             delta = (delta + 180.0) % 360.0 - 180.0
             # assert deltas are only 0 or 180
             assert min(abs(delta), abs(abs(delta) - 180.0)) < 1.0, (
-                f"res {block_j} ({orig.name3}) rot {r}: "
+                f"res {block_i} ({orig.name3}) rot {r}: "
                 f"unexpected NHQ chi delta {delta:.2f} deg"
             )

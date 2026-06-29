@@ -1057,20 +1057,20 @@ class OptHSampler(ConformerSampler):
         # for each NHQ position in the input
         coords = pose_stack.coords.double()  # coord_dihedrals needs float64
         # TO DO: remove this call.
-        n_rots_for_gbt_list, max_n_chi_cols, pos_flip_chi = (
-            self._count_rots_and_measure_flips(pose_stack, task, coords)
-        )
-        n_rots_for_gbt2, max_n_chi_cols2, pos_flip_chi2 = (
+        # n_rots_for_gbt_list, max_n_chi_cols, pos_flip_chi = (
+        #     self._count_rots_and_measure_flips(pose_stack, task, coords)
+        # )
+        n_rots_for_gbt, max_n_chi_cols, pos_flip_chi = (
             self._count_rots_and_measure_all_flips(pose_stack, task, coords)
         )
 
-        n_rots_for_gbt = torch.tensor(
-            n_rots_for_gbt_list, dtype=torch.int32, device=pose_stack.device
-        )
-        torch.testing.assert_close(
-            n_rots_for_gbt, n_rots_for_gbt2, rtol=1e-5, atol=1e-5
-        )
-        n_rots_total = int(n_rots_for_gbt2.sum().item())
+        # n_rots_for_gbt = torch.tensor(
+        #     n_rots_for_gbt_list, dtype=torch.int32, device=pose_stack.device
+        # )
+        # torch.testing.assert_close(
+        #     n_rots_for_gbt, n_rots_for_gbt2, rtol=1e-5, atol=1e-5
+        # )
+        n_rots_total = int(n_rots_for_gbt.sum().item())
 
         if n_rots_total == 0:
             empty_chi = torch.zeros(
@@ -1108,37 +1108,37 @@ class OptHSampler(ConformerSampler):
             dtype=torch.float32,
             device=pose_stack.device,
         )
-        chi_defining_atom_for_rotamer2 = torch.full_like(
-            chi_defining_atom_for_rotamer, -1
-        )
-        chi_for_rotamers2 = torch.zeros_like(chi_for_rotamers)
+        # chi_defining_atom_for_rotamer2 = torch.full_like(
+        #     chi_defining_atom_for_rotamer, -1
+        # )
+        # chi_for_rotamers2 = torch.zeros_like(chi_for_rotamers)
 
-        # 2) fill chi tensors
-        self._fill_chi_tensors(
-            pose_stack,
-            task,
-            n_rots_for_gbt_list,
-            pos_flip_chi,
-            chi_defining_atom_for_rotamer,
-            chi_for_rotamers,
-        )
+        # # 2) fill chi tensors
+        # self._fill_chi_tensors(
+        #     pose_stack,
+        #     task,
+        #     n_rots_for_gbt_list,
+        #     pos_flip_chi,
+        #     chi_defining_atom_for_rotamer,
+        #     chi_for_rotamers,
+        # )
 
         self._fill_all_chi_tensors(
             pose_stack,
             task,
             rot_offset_for_gbt,
             gbt_for_rotamer,
-            pos_flip_chi2,
-            chi_defining_atom_for_rotamer2,
-            chi_for_rotamers2,
+            pos_flip_chi,
+            chi_defining_atom_for_rotamer,
+            chi_for_rotamers,
         )
         # diff = chi_for_rotamers - chi_for_rotamers2
         # is_sig_diff = torch.abs(diff) > 1e-5
         # pos_w_diffs = torch.nonzero(is_sig_diff, as_tuple=True)
 
-        torch.testing.assert_close(
-            chi_for_rotamers, chi_for_rotamers2, rtol=1e-5, atol=1e-5
-        )
+        # torch.testing.assert_close(
+        #     chi_for_rotamers, chi_for_rotamers2, rtol=1e-5, atol=1e-5
+        # )
 
         return (
             n_rots_for_gbt,

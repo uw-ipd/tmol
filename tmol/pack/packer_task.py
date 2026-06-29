@@ -1,13 +1,14 @@
-import numpy
+# import numpy
 import torch
 import attr
 
 from tmol.types.torch import Tensor
-from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
+from tmol.chemical.restypes import RefinedResidueType  # , ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.pack.rotamer.conformer_sampler import ConformerSampler
-from tmol.pack.rotamer.chi_sampler import ChiSampler
+
+# from tmol.pack.rotamer.chi_sampler import ChiSampler
 
 # Architecture is borrowed from Rosetta3:
 # PackerTask: a class holding data describing how the
@@ -50,14 +51,8 @@ class PackerPalleteAnnotation:
 
 
 class PackerPalette:
-    def __init__(self, rts: ResidueTypeSet):
-        # RTS argument to be deprecated!
-
-        self.rts = rts
-        # TEMP!
-        from tmol.pack.rotamer.fallback_sampler import FallbackSampler
-
-        self._default_conformer_samplers = [FallbackSampler()]
+    def __init__(self):
+        pass
 
     def block_types_from_original_old(self, orig: RefinedResidueType):
         # ok, this is where we figure out what the allowed restypes
@@ -191,11 +186,9 @@ class PackerPalette:
         other sampler are left to that sampler exclusively.
         Future versions of PackerPalette have the option to override this method.
         """
-        # TEMP from tmol.pack.rotamer.fallback_sampler import FallbackSampler
+        from tmol.pack.rotamer.fallback_sampler import FallbackSampler
 
-        # return [FallbackSampler()]
-        # TEMP!
-        return [self._default_conformer_samplers[0]]
+        return [FallbackSampler()]
 
 
 def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockTypes):
@@ -314,64 +307,64 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
 # PBT-assigned BLT indices trivially, and moreover, we can precompute
 # the logic of what "restrict to repacking" means for each BLT rather
 # than deciding over and over again based on string matching.
-class BlockLevelTask:
-    """Deprecated!"""
+# class BlockLevelTask:
+#     """Deprecated!"""
 
-    def __init__(
-        self, seqpos: int, block_type: RefinedResidueType, palette: PackerPalette
-    ):
-        self.seqpos = seqpos
-        self.original_block_type = block_type
-        self.considered_block_types = palette.block_types_from_original_old(block_type)
-        self.block_type_allowed = numpy.full(
-            len(self.considered_block_types), True, dtype=bool
-        )
-        self.conformer_samplers = palette.default_conformer_samplers()
-        self.is_chi_sampler = []
-        self.chi_expansion = numpy.zeros(
-            (len(self.considered_block_types), 4), dtype=numpy.int32
-        )
+#     def __init__(
+#         self, seqpos: int, block_type: RefinedResidueType, palette: PackerPalette
+#     ):
+#         self.seqpos = seqpos
+#         self.original_block_type = block_type
+#         self.considered_block_types = palette.block_types_from_original_old(block_type)
+#         self.block_type_allowed = numpy.full(
+#             len(self.considered_block_types), True, dtype=bool
+#         )
+#         self.conformer_samplers = palette.default_conformer_samplers()
+#         self.is_chi_sampler = []
+#         self.chi_expansion = numpy.zeros(
+#             (len(self.considered_block_types), 4), dtype=numpy.int32
+#         )
 
-    def restrict_to_repacking(self):
-        orig = self.original_block_type
-        for i, bt in enumerate(self.considered_block_types):
-            if bt.name3 != orig.name3:  # OOF
-                self.block_type_allowed[i] = False
+#     def restrict_to_repacking(self):
+#         orig = self.original_block_type
+#         for i, bt in enumerate(self.considered_block_types):
+#             if bt.name3 != orig.name3:  # OOF
+#                 self.block_type_allowed[i] = False
 
-    def disable_packing(self):
-        # Note: we will always include at least one rotamer from every block
-        # in the RotamerSet, falling back on the coordinates of the starting
-        # block if this block-level-task is marked as kept fixed.
-        self.block_type_allowed[:] = False
+#     def disable_packing(self):
+#         # Note: we will always include at least one rotamer from every block
+#         # in the RotamerSet, falling back on the coordinates of the starting
+#         # block if this block-level-task is marked as kept fixed.
+#         self.block_type_allowed[:] = False
 
-    def add_conformer_sampler(self, sampler: ConformerSampler):
-        self.conformer_samplers.append(sampler)
-        self.is_chi_sampler.append(isinstance(sampler, ChiSampler))
+#     def add_conformer_sampler(self, sampler: ConformerSampler):
+#         self.conformer_samplers.append(sampler)
+#         self.is_chi_sampler.append(isinstance(sampler, ChiSampler))
 
-    def restrict_absent_name3s(self, name3s):
-        for i, bt in enumerate(self.considered_block_types):
-            if bt.name3 not in name3s:
-                self.block_type_allowed[i] = False
+#     def restrict_absent_name3s(self, name3s):
+#         for i, bt in enumerate(self.considered_block_types):
+#             if bt.name3 not in name3s:
+#                 self.block_type_allowed[i] = False
 
-    def or_expand_chi(self, chi_ind: int):
-        self.chi_expansion[:, chi_ind] = 1
+#     def or_expand_chi(self, chi_ind: int):
+#         self.chi_expansion[:, chi_ind] = 1
 
-    def or_expand_chi_to(self, chi_ind: int, sample_level: int):
-        self.chi_expansion[:, chi_ind] = sample_level
+#     def or_expand_chi_to(self, chi_ind: int, sample_level: int):
+#         self.chi_expansion[:, chi_ind] = sample_level
 
 
 class PackerTask:
 
     def __init__(self, systems: PoseStack, palette: PackerPalette):
         # deprectated!
-        self.blts = [
-            [
-                BlockLevelTask(j, systems.block_type(i, j), palette)
-                for j in range(systems.max_n_blocks)
-                if systems.is_real_block(i, j)
-            ]
-            for i in range(systems.n_poses)
-        ]
+        # self.blts = [
+        #     [
+        #         BlockLevelTask(j, systems.block_type(i, j), palette)
+        #         for j in range(systems.max_n_blocks)
+        #         if systems.is_real_block(i, j)
+        #     ]
+        #     for i in range(systems.n_poses)
+        # ]
 
         self.pbt = systems.packed_block_types
         self.device = systems.device
@@ -425,9 +418,9 @@ class PackerTask:
 
     def restrict_to_repacking(self):
         # old way of doing things; soon to be removed
-        for one_pose_blts in self.blts:
-            for blt in one_pose_blts:
-                blt.restrict_to_repacking()
+        # for one_pose_blts in self.blts:
+        #     for blt in one_pose_blts:
+        #         blt.restrict_to_repacking()
 
         # new way of doing things:
         # Use the pre-calculated masks to disable packing for
@@ -438,11 +431,48 @@ class PackerTask:
             self.per_block_is_block_type_allowed, self.restrict_to_repacking_masks
         )
 
+    def restrict_absent_name3s(self, name3s):
+        """Disallow all block types at all positions except those with the given name3s.
+
+        This is somewhat slow and does not cache the relationship between name3s and
+        permitted block types, so consider writing your own version of this function
+        if you call with the same list of name3s many times.
+        """
+        bt_name3_matches = torch.tensor(
+            [bt.name3 in name3s for bt in self.pbt.active_block_types],
+            dtype=torch.bool,
+            device=self.device,
+        )
+        is_real_considered_block_type = self.per_block_considered_block_types != -1
+        (
+            nz_real_cons_bt_pose,
+            nz_real_cons_bt_block,
+            nz_real_cons_bt_which_block_type,
+        ) = torch.nonzero(is_real_considered_block_type, as_tuple=True)
+        self.per_block_is_block_type_allowed[
+            nz_real_cons_bt_pose,
+            nz_real_cons_bt_block,
+            nz_real_cons_bt_which_block_type,
+        ] = torch.logical_and(
+            self.per_block_is_block_type_allowed[
+                nz_real_cons_bt_pose,
+                nz_real_cons_bt_block,
+                nz_real_cons_bt_which_block_type,
+            ],
+            bt_name3_matches[
+                self.per_block_considered_block_types[
+                    nz_real_cons_bt_pose,
+                    nz_real_cons_bt_block,
+                    nz_real_cons_bt_which_block_type,
+                ]
+            ],
+        )
+
     def add_conformer_sampler(self, sampler: ConformerSampler):
         # old way of doing things; soon to be removed
-        for one_pose_blts in self.blts:
-            for blt in one_pose_blts:
-                blt.add_conformer_sampler(sampler)
+        # for one_pose_blts in self.blts:
+        #     for blt in one_pose_blts:
+        #         blt.add_conformer_sampler(sampler)
 
         # new way of doing things:
         self.conformer_samplers.append(sampler)
@@ -469,9 +499,9 @@ class PackerTask:
         assert block_type_mask.shape == self.per_block_n_considered_block_types
 
         # old way of doing things; soon to be removed
-        for one_pose_blts in self.blts:
-            for blt in one_pose_blts:
-                blt.add_conformer_sampler(sampler)
+        # for one_pose_blts in self.blts:
+        #     for blt in one_pose_blts:
+        #         blt.add_conformer_sampler(sampler)
 
         # new way of doing things:
         self.conformer_samplers.append(sampler)
@@ -494,18 +524,18 @@ class PackerTask:
 
     def or_expand_chi(self, chi_ind: int):
         # old way of doing things; soon to be removed
-        for one_pose_blts in self.blts:
-            for blt in one_pose_blts:
-                blt.or_expand_chi(chi_ind)
+        # for one_pose_blts in self.blts:
+        #     for blt in one_pose_blts:
+        #         blt.or_expand_chi(chi_ind)
 
         # new way of doing things
         self.per_block_chi_expansion[:, :, :, chi_ind] = 1
 
     def or_expand_chi_to(self, chi_ind: int, sample_level: int):
         # old way of doing things; soon to be removed
-        for one_pose_blts in self.blts:
-            for blt in one_pose_blts:
-                blt.or_expand_chi_to(chi_ind, sample_level)
+        # for one_pose_blts in self.blts:
+        #     for blt in one_pose_blts:
+        #         blt.or_expand_chi_to(chi_ind, sample_level)
 
         # new way of doing things: max over the current sample level
         # and the new sample level.
@@ -517,9 +547,9 @@ class PackerTask:
         assert block_type_mask.device == self.device
         assert block_type_mask.shape == self.per_block_is_block_type_allowed.shape[:2]
         # old way of doing things; soon to be removed
-        for one_pose_blts in self.blts:
-            for blt in one_pose_blts:
-                blt.disable_packing()
+        # for one_pose_blts in self.blts:
+        #     for blt in one_pose_blts:
+        #         blt.disable_packing()
 
         # new way of doing things:
         self.per_block_is_block_type_allowed = torch.logical_and(
@@ -537,7 +567,7 @@ class SetPackerTask:
     @classmethod
     def from_packer_task(cls, task: PackerTask):
         set_task = cls()
-        set_task.blts = task.blts  # DEPRECATED!!!
+        # set_task.blts = task.blts  # DEPRECATED!!!
         set_task.pbt = task.pbt
         set_task.device = task.device
         set_task.is_real_block = task.is_real_block
@@ -610,10 +640,11 @@ class SetPackerTask:
 
         # these non-zeros are indices in a one-dimensional tensor of
         # all (real) considered block types.
+        set_task.is_cons_bt_allowed = task.per_block_is_block_type_allowed[
+            cbt_pose, cbt_block, cbt_which_block_type
+        ]
         set_task.allowed_cons_bt = torch.nonzero(
-            task.per_block_is_block_type_allowed[
-                cbt_pose, cbt_block, cbt_which_block_type
-            ],
+            set_task.is_cons_bt_allowed,
             as_tuple=True,
         )[0]
 

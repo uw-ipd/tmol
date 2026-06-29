@@ -10,7 +10,7 @@ from tmol.pack.rotamer.build_rotamers import (
     exc_cumsum_from_inc_cumsum,
     measure_pose_dofs,
     measure_dofs_from_orig_coords,
-    rebuild_poses_if_necessary,
+    # rebuild_poses_if_necessary,
     annotate_everything,
     merge_conformer_samples,
     calculate_rotamer_coords,
@@ -29,7 +29,7 @@ from tmol.io import pose_stack_from_pdb
 
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pack.packer_task import PackerTask, PackerPalette
+from tmol.pack.packer_task import PackerTask, PackerPalette, SetPackerTask
 
 from tmol.kinematics.compiled.compiled_ops import forward_only_op
 
@@ -75,13 +75,13 @@ def test_build_rotamers_smoke(default_database, ubq_pdb, torch_device, dun_sampl
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
 
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
-    restype_set = poses.packed_block_types.restype_set
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
 
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
     assert rotamer_set is not None
@@ -660,8 +660,8 @@ def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_samp
 
     poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=25)
 
-    restype_set = poses.packed_block_types.restype_set
-    palette = PackerPalette(restype_set)
+    # restype_set = poses.packed_block_types.restype_set
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
@@ -741,14 +741,15 @@ def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sam
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
-    restype_set = poses.packed_block_types.restype_set
-    palette = PackerPalette(restype_set)
+    # restype_set = poses.packed_block_types.restype_set
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
     samplers = (dun_sampler, fixed_sampler)
 
     pbt = poses.packed_block_types
@@ -857,13 +858,13 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
         ubq_pdb, torch_device, residue_start=1, residue_end=4
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
-    restype_set = poses.packed_block_types.restype_set
+    # restype_set = poses.packed_block_types.restype_set
 
     pbt = poses.packed_block_types
     pbt_namelist = [x.name for x in pbt.active_block_types]
     # assert "LEU" not in pbt_namelist
 
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     leu_set = set(["LEU"])
     for one_pose_blts in task.blts:
@@ -873,8 +874,9 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
 
-    poses, samplers = rebuild_poses_if_necessary(poses, task)
+    samplers = tuple(task.conformer_samplers)
     pbt = poses.packed_block_types
 
     pbt_namelist = [x.name for x in pbt.active_block_types]
@@ -959,8 +961,8 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
 ):
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=6)
     poses = PoseStackBuilder.from_poses([p] * 3, torch_device)
-    restype_set = poses.packed_block_types.restype_set
-    palette = PackerPalette(restype_set)
+    # restype_set = poses.packed_block_types.restype_set
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
@@ -979,8 +981,9 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
 
-    poses, samplers = rebuild_poses_if_necessary(poses, task)
+    samplers = tuple(task.conformer_samplers)
     pbt = poses.packed_block_types
     annotate_everything(default_database.chemical, samplers, pbt)
 
@@ -1044,15 +1047,16 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
 def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
 
     poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=75)
-    restype_set = poses.packed_block_types.restype_set
+    # restype_set = poses.packed_block_types.restype_set
 
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
 
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
     pbt = poses.packed_block_types
@@ -1122,15 +1126,16 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    restype_set = poses.packed_block_types.restype_set
+    # restype_set = poses.packed_block_types.restype_set
 
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
 
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
     numpy.testing.assert_array_less(
@@ -1163,15 +1168,16 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     )
 
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    restype_set = poses.packed_block_types.restype_set
+    # restype_set = poses.packed_block_types.restype_set
 
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
 
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
     numpy.testing.assert_array_less(
@@ -1259,15 +1265,16 @@ def test_create_dofs_for_many_rotamers(
     n_poses = 6
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-    restype_set = p.packed_block_types.restype_set
+    # restype_set = p.packed_block_types.restype_set
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
     chem_db = default_database.chemical
 
     ###########################################
@@ -1275,7 +1282,7 @@ def test_create_dofs_for_many_rotamers(
     # up to the coordinate calc
     ###########################################
     # Step 1
-    poses, samplers = rebuild_poses_if_necessary(poses, task)
+    samplers = tuple(task.conformer_samplers)
     pbt = poses.packed_block_types
 
     # Step 2
@@ -1416,23 +1423,25 @@ def test_new_rotamer_building_logic1(
 ):
     n_poses = 6
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-    restype_set = p.packed_block_types.restype_set
+    # restype_set = p.packed_block_types.restype_set
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
+
     chem_db = default_database.chemical
     ###########################################
     # Now the contents of build rotamers right
     ###########################################
 
     # Step 1
-    poses, samplers = rebuild_poses_if_necessary(poses, task)
+    samplers = tuple(task.conformer_samplers)
     pbt = poses.packed_block_types
 
     # Step 2
@@ -1559,16 +1568,17 @@ def test_new_rotamer_building_logic2(
 ):
     n_poses = 6
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-    restype_set = p.packed_block_types.restype_set
+    # restype_set = p.packed_block_types.restype_set
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
     chem_db = default_database.chemical
     ###########################################
 
@@ -1580,10 +1590,10 @@ def test_new_rotamer_building_logic3(
 ):
     n_poses = 6
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-    restype_set = p.packed_block_types.restype_set
+    # restype_set = p.packed_block_types.restype_set
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
@@ -1620,6 +1630,8 @@ def test_new_rotamer_building_logic3(
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
+
     chem_db = default_database.chemical
     ###########################################
 

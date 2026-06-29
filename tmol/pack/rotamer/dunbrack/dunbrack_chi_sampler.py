@@ -347,25 +347,12 @@ class DunbrackChiSampler(ChiSampler):
         #    Dunbrack library has rotamer information about. ALA and GLY might both
         #    show up as dun-allowed, but the library will not build rotamers for them.)
 
+        pbt = pose_stack.packed_block_types
+        self_ind_in_packer_task = task.conformer_sampler_index[id(self)]
+
         # the subset of blocktypes which are allowed at the positions and
         # for which the block-level tasks include this DunbrackChiSampler
         # the "Dunbrack allowed" restypes
-        # OLD dun_allowed_blocktypes = numpy.array(
-        # OLD     [
-        # OLD         bt
-        # OLD         for one_pose_blts in task.blts
-        # OLD         for blt in one_pose_blts
-        # OLD         for i, bt in enumerate(blt.considered_block_types)
-        # OLD         if self in blt.conformer_samplers and blt.block_type_allowed[i]
-        # OLD     ],
-        # OLD     dtype=object,
-        # OLD )
-
-        # TEMP! Come back to this!
-        pbt = pose_stack.packed_block_types
-        self_ind_in_packer_task = task.conformer_sampler_index[id(self)]
-        # is_bt_dun_allowed = pbt.dun_sampler_cache.defines_rotamers_for_bts
-
         is_dun_allowed_gbt = torch.logical_and(
             task.per_block_conformer_sampler_allowed[
                 task.cons_bt_pose, task.cons_bt_block, self_ind_in_packer_task

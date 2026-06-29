@@ -60,20 +60,46 @@ def build_missing_sidechains(
     fixed_sampler = FixedAAChiSampler()
     opth_sampler = None if no_optH else OptHSampler()
 
+    cpu_device = torch.device("cpu")
+    blocks_for_dun_sampler = torch.zeros(
+        (pose_stack.n_poses, pose_stack.max_n_blocks),
+        dtype=torch.bool,
+        device=cpu_device,
+    )
+    blocks_for_fixed_sampler = torch.zeros_like(blocks_for_dun_sampler)
+    block_for_disable_packing = torch.zeros_like(blocks_for_dun_sampler)
+    block_for_opth_sampler = torch.zeros_like(blocks_for_dun_sampler)
+
+    # TO DO: vectorize these loops
     for pose_ind in range(block_has_missing_atoms.size(0)):
         for block_ind in range(block_has_missing_atoms.size(1)):
             if not pose_stack.is_real_block(pose_ind, block_ind):
                 continue
-            blt = task.blts[pose_ind][block_ind]
+            # blt = task.blts[pose_ind][block_ind]
             if block_has_missing_atoms[pose_ind, block_ind]:
                 # Missing heavy atoms: rebuild sidechain from Dunbrack library.
                 # Do not include the broken input conformation as a rotamer.
-                blt.add_conformer_sampler(dunbrack_sampler)
-                blt.add_conformer_sampler(fixed_sampler)
+                # blt.add_conformer_sampler(dunbrack_sampler)
+                blocks_for_dun_sampler[pose_ind, block_ind] = True
+                # blt.add_conformer_sampler(fixed_sampler)
+                blocks_for_fixed_sampler[pose_ind, block_ind] = True
             elif no_optH:
-                blt.disable_packing()
+                # blt.disable_packing()
+                block_for_disable_packing[pose_ind, block_ind] = True
             else:
                 # Complete heavy atoms: optimize proton placement with OptH.
-                blt.add_conformer_sampler(opth_sampler)
+                # blt.add_conformer_sampler(opth_sampler)
+                block_for_opth_sampler[pose_ind, block_ind] = True
+
+    blocks_for_dun_sampler = blocks_for_dun_sampler.to(pose_stack.device)
+    blocks_for_fixed_sampler = blocks_for_fixed_sampler.to(pose_stack.device)
+    block_for_disable_packing = block_for_disable_packing.to(pose_stack.device)
+    block_for_opth_sampler = block_for_opth_sampler.to(pose_stack.device)
+    task.add_conformer_sampler_by_block_mask(dunbrack_sampler, blocks_for_dun_sampler)
+    task.add_conformer_sampler_by_block_mask(fixed_sampler, blocks_for_fixed_sampler)
+    if not no_optH:
+        task.add_conformer_sampler_by_block_mask(opth_sampler, block_for_opth_sampler)
+    else:
+        task.disable_packing_by_block_mask(block_for_disable_packing)
 
     return pack_rotamers(pose_stack, sfxn, task, verbose=False)

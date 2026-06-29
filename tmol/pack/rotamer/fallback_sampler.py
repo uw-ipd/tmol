@@ -98,7 +98,7 @@ class FallbackSampler(ConformerSampler):
             id(self) in task.conformer_sampler_index
         ), "This sampler is not in the PackerTask's conformer samplers"
         self_ind_in_packer_task = task.conformer_sampler_index[id(self)]
-        print("FallbackSampler: self_ind_in_packer_task", self_ind_in_packer_task)
+
         # all_bts = torch.arange(
         #     pose_stack.packed_block_types.n_types, device=pose_stack.device
         # )
