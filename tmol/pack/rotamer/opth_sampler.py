@@ -770,6 +770,46 @@ class OptHSampler(ConformerSampler):
                         )
         return n_rots_for_gbt_list, max_n_chi_cols, pos_flip_chi
 
+    def _fill_proton_chi_for_all_blocks(
+        self,
+        pose_stack,
+        task,
+        rot_offset_for_gbt,
+        gbt_for_rotamer,
+        chi_for_rotamers,
+    ):
+        pbt = pose_stack.packed_block_types
+        opth_cache = pbt.opth_sample_cache
+
+        bt_for_rotamer = task.cons_bt_block_type[gbt_for_rotamer]
+        n_samples_for_rotamer = opth_cache.n_proton_samples[bt_for_rotamer].to(
+            torch.int64
+        )
+
+        rotamers_w_proton_chi_samples = torch.nonzero(
+            n_samples_for_rotamer > 1, as_tuple=True
+        )[0]
+        bt_for_proton_rotamer = bt_for_rotamer[rotamers_w_proton_chi_samples]
+        n_rotamers = gbt_for_rotamer.shape[0]
+        sample_ind_for_rotamer = (
+            torch.arange(n_rotamers, dtype=torch.int64, device=pose_stack.device)
+            - rot_offset_for_gbt[gbt_for_rotamer]
+        )
+        sample_ind_for_proton_rotamer = sample_ind_for_rotamer[
+            rotamers_w_proton_chi_samples
+        ]
+
+        # print("gbt_for_rotamer", gbt_for_rotamer.shape)
+        # print("rotamers_w_proton_chi_samples", rotamers_w_proton_chi_samples.shape)
+        # print("rotamers_w_proton_chi_samples[:10]", rotamers_w_proton_chi_samples[:10])
+        # print("chi_for_rotamers", chi_for_rotamers.shape)
+        # print("bt_for_proton_rotamer", bt_for_proton_rotamer.shape)
+        # print("sample_ind_for_proton_rotamer", sample_ind_for_proton_rotamer.shape)
+
+        chi_for_rotamers[rotamers_w_proton_chi_samples] = opth_cache.expanded_samples[
+            bt_for_proton_rotamer, :, sample_ind_for_proton_rotamer
+        ]
+
     def _fill_proton_chi_block(
         self,
         pose_stack,
@@ -789,6 +829,108 @@ class OptHSampler(ConformerSampler):
             bt_cache.expanded_samples[ci, :n_samp],
             dtype=torch.float32,
             device=pose_stack.device,
+        )
+
+    def _fill_all_nhq_blocks(
+        self,
+        pose_stack,
+        task,
+        gbt_for_rotamer,
+        pos_flip_chi,
+        chi_defining_atom_for_rotamer,
+        chi_for_rotamers,
+    ):
+        pbt = pose_stack.packed_block_types
+        opth_cache = pbt.opth_sample_cache
+
+        bt_for_rotamer = task.cons_bt_block_type[gbt_for_rotamer]
+        rotamer_nhq_chi_col = opth_cache.nhq_chi_col[bt_for_rotamer]
+        rotamer_is_flippable = rotamer_nhq_chi_col >= 0
+        flippable_rotamers = torch.nonzero(rotamer_is_flippable, as_tuple=True)[0]
+        n_flippable_rotamers = flippable_rotamers.shape[0]
+
+        flipped_flippable_rotamers = (
+            2
+            * torch.arange(
+                n_flippable_rotamers / 2, dtype=torch.int64, device=pose_stack.device
+            )
+            + 1
+        )
+        flipped_rotamers = flippable_rotamers[flipped_flippable_rotamers]
+        is_flipped_flippable_rotamer = torch.zeros(
+            (n_flippable_rotamers,), dtype=torch.bool, device=pose_stack.device
+        )
+        is_flipped_flippable_rotamer[flipped_flippable_rotamers] = True
+        is_unflipped_flippable_rotamer = torch.ones(
+            (n_flippable_rotamers,), dtype=torch.bool, device=pose_stack.device
+        )
+        is_unflipped_flippable_rotamer[flipped_flippable_rotamers] = False
+        unflipped_flippable_rotamers = flippable_rotamers[
+            is_unflipped_flippable_rotamer
+        ]
+
+        flipped_rot_chi = rotamer_nhq_chi_col[flipped_rotamers]
+        gbt_for_flipped_rotamer = gbt_for_rotamer[flipped_rotamers]
+        pose_for_flipped_rotamer = task.cons_bt_pose[gbt_for_flipped_rotamer]
+        block_for_flipped_rotamer = task.cons_bt_block[gbt_for_flipped_rotamer]
+        bt_for_flipped_rotamer = bt_for_rotamer[flipped_rotamers]
+
+        is_his_rotamer = opth_cache.is_his[bt_for_rotamer]
+        is_orig_bt_rotamer = bt_for_rotamer == (
+            pose_stack.block_type_ind64[
+                task.cons_bt_pose[gbt_for_rotamer], task.cons_bt_block[gbt_for_rotamer]
+            ]
+        )
+        is_his_taut_rotamer = torch.logical_and(is_his_rotamer, ~is_orig_bt_rotamer)
+        is_unflipped_rotamer = torch.zeros(
+            gbt_for_rotamer.shape[0], dtype=torch.bool, device=pose_stack.device
+        )
+        is_unflipped_rotamer[unflipped_flippable_rotamers] = True
+        is_his_taut_not_flipped_rotamer = torch.logical_and(
+            is_his_taut_rotamer, is_unflipped_rotamer
+        )
+        his_taut_not_flipped_rotamers = torch.nonzero(
+            is_his_taut_not_flipped_rotamer, as_tuple=True
+        )[0]
+        his_taut_not_flipped_rot_chi = rotamer_nhq_chi_col[
+            his_taut_not_flipped_rotamers
+        ]
+
+        gbt_for_his_taut_not_flipped_rotamer = gbt_for_rotamer[
+            his_taut_not_flipped_rotamers
+        ]
+        pose_for_his_taut_not_flipped_rotamer = task.cons_bt_pose[
+            gbt_for_his_taut_not_flipped_rotamer
+        ]
+        block_for_his_taut_not_flipped_rotamer = task.cons_bt_block[
+            gbt_for_his_taut_not_flipped_rotamer
+        ]
+        bt_for_his_taut_not_flipped_rotamer = bt_for_rotamer[
+            his_taut_not_flipped_rotamers
+        ]
+
+        # mark the chi for the HIS tautomer in its non-flipped state
+        # because we have to rebuild the ring from ideal geometry.
+        chi_for_rotamers[
+            his_taut_not_flipped_rotamers, his_taut_not_flipped_rot_chi
+        ] = pos_flip_chi[
+            pose_for_his_taut_not_flipped_rotamer,
+            block_for_his_taut_not_flipped_rotamer,
+        ]
+        chi_defining_atom_for_rotamer[
+            his_taut_not_flipped_rotamers, his_taut_not_flipped_rot_chi
+        ] = opth_cache.nhq_chi_atom[bt_for_his_taut_not_flipped_rotamer]
+
+        # mark the flipped chi for all NHQ rotamers
+        chi_for_rotamers[flipped_rotamers, flipped_rot_chi] = (
+            pos_flip_chi[
+                pose_for_flipped_rotamer,
+                block_for_flipped_rotamer,
+            ]
+            + math.pi
+        )
+        chi_defining_atom_for_rotamer[flipped_rotamers, flipped_rot_chi] = (
+            opth_cache.nhq_chi_atom[bt_for_flipped_rotamer]
         )
 
     def _fill_nhq_block(
@@ -820,6 +962,32 @@ class OptHSampler(ConformerSampler):
         # Offset 1: always the +180 deg flip, always marked.
         chi_defining_atom_for_rotamer[rot_offset + 1, chi_col] = bt_cache.nhq_chi_atom
         chi_for_rotamers[rot_offset + 1, chi_col] = float(flip_chi) + math.pi
+
+    def _fill_all_chi_tensors(
+        self,
+        pose_stack,
+        task,
+        rot_offset_for_gbt,
+        gbt_for_rotamer,
+        pos_flip_chi,
+        chi_defining_atom_for_rotamer,
+        chi_for_rotamers,
+    ):
+        self._fill_proton_chi_for_all_blocks(
+            pose_stack,
+            task,
+            rot_offset_for_gbt,
+            gbt_for_rotamer,
+            chi_for_rotamers,
+        )
+        self._fill_all_nhq_blocks(
+            pose_stack,
+            task,
+            gbt_for_rotamer,
+            pos_flip_chi,
+            chi_defining_atom_for_rotamer,
+            chi_for_rotamers,
+        )
 
     def _fill_chi_tensors(
         self,
@@ -904,10 +1072,10 @@ class OptHSampler(ConformerSampler):
         )
         n_rots_total = int(n_rots_for_gbt2.sum().item())
 
-        empty_chi = torch.zeros(
-            (0, max_n_chi_cols), dtype=torch.int32, device=pose_stack.device
-        )
         if n_rots_total == 0:
+            empty_chi = torch.zeros(
+                (0, max_n_chi_cols), dtype=torch.int32, device=pose_stack.device
+            )
             return (
                 n_rots_for_gbt,
                 torch.zeros(0, dtype=torch.int32, device=pose_stack.device),
@@ -922,6 +1090,7 @@ class OptHSampler(ConformerSampler):
         #     ),
         #     n_rots_for_gbt.to(torch.int64),
         # )
+        rot_offset_for_gbt = exclusive_cumsum1d(n_rots_for_gbt)
         gbt_for_rotamer = torch.repeat_interleave(
             torch.arange(
                 n_rots_for_gbt.shape[0], dtype=torch.int32, device=pose_stack.device
@@ -939,6 +1108,10 @@ class OptHSampler(ConformerSampler):
             dtype=torch.float32,
             device=pose_stack.device,
         )
+        chi_defining_atom_for_rotamer2 = torch.full_like(
+            chi_defining_atom_for_rotamer, -1
+        )
+        chi_for_rotamers2 = torch.zeros_like(chi_for_rotamers)
 
         # 2) fill chi tensors
         self._fill_chi_tensors(
@@ -948,6 +1121,23 @@ class OptHSampler(ConformerSampler):
             pos_flip_chi,
             chi_defining_atom_for_rotamer,
             chi_for_rotamers,
+        )
+
+        self._fill_all_chi_tensors(
+            pose_stack,
+            task,
+            rot_offset_for_gbt,
+            gbt_for_rotamer,
+            pos_flip_chi2,
+            chi_defining_atom_for_rotamer2,
+            chi_for_rotamers2,
+        )
+        # diff = chi_for_rotamers - chi_for_rotamers2
+        # is_sig_diff = torch.abs(diff) > 1e-5
+        # pos_w_diffs = torch.nonzero(is_sig_diff, as_tuple=True)
+
+        torch.testing.assert_close(
+            chi_for_rotamers, chi_for_rotamers2, rtol=1e-5, atol=1e-5
         )
 
         return (
