@@ -937,6 +937,7 @@ def test_chi_sampler_build_lots_of_rotamers(ubq_pdb, default_database, torch_dev
 
     n_rots_for_rt, rt_for_rotamer, chi_defining_atom, chi = chi_samples
 
+    assert n_rots_for_rt.shape[0] == 2100
     n_rots = chi_defining_atom.shape[0]
     n_rots_per_pose = n_rots // n_poses
     assert n_rots_per_pose * n_poses == n_rots

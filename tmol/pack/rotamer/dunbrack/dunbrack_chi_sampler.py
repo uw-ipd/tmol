@@ -276,13 +276,13 @@ class DunbrackChiSampler(ChiSampler):
             non_dunbrack_sample_counts[i, : rt_ndsc.shape[0], :] = torch.tensor(
                 rt_ndsc, dtype=torch.int32, device=cpu_device
             )
-            if rt_ndsc.shape[0] == 0 or rt_nds.shape[2] == 0:
-                continue
-            non_dunbrack_samples[i, : rt_ndsc.shape[0], :, : rt_nds.shape[2]] = (
-                torch.tensor(rt_nds, dtype=torch.float32, device=cpu_device)
-            )
             defines_rotamers_for_bts[i] = self.defines_rotamers_for_rt(rt)
             rottable_set_for_bt[i] = rt.dun_sampler_cache.rottable_set_for_bt
+            # de morgan this to avoid skipping any annotations appended below
+            if rt_ndsc.shape[0] != 0 and rt_nds.shape[2] != 0:
+                non_dunbrack_samples[i, : rt_ndsc.shape[0], :, : rt_nds.shape[2]] = (
+                    torch.tensor(rt_nds, dtype=torch.float32, device=cpu_device)
+                )
 
         def _d(x):
             return x.to(packed_block_types.device)
@@ -408,6 +408,7 @@ class DunbrackChiSampler(ChiSampler):
         # OLD         device=torch.device("cpu"),
         # OLD     ).squeeze(dim=0)
         # OLD )
+
         dun_allowed_bt = task.cons_bt_block_type[dun_allowed_bt_to_gbt]
         rottable_set_for_dun_allowed_bts = pbt.dun_sampler_cache.rottable_set_for_bt[
             dun_allowed_bt

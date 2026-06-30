@@ -114,7 +114,11 @@ class PackerPalette:
 
     def block_types_from_original(
         self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
-    ):
+    ) -> tuple[
+        Tensor[torch.int64][:, :],
+        Tensor[torch.int64][:, :, :],
+        Tensor[torch.bool][:, :, :],
+    ]:
         # initialize the list of allowed block types for a PoseStack based on the
         # original block types; the logic of which block types are allowed given
         # the original block type is pre-computed and cached in the PackedBlockTypes
@@ -302,80 +306,15 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
     setattr(pbt, "default_packer_palette_annotations", annotation)
 
 
-# TO DO: BLT should hold "considered block types" as a boolean vector
-# rather than a list of block types; then we can go back to the original
-# PBT-assigned BLT indices trivially, and moreover, we can precompute
-# the logic of what "restrict to repacking" means for each BLT rather
-# than deciding over and over again based on string matching.
-# class BlockLevelTask:
-#     """Deprecated!"""
-
-#     def __init__(
-#         self, seqpos: int, block_type: RefinedResidueType, palette: PackerPalette
-#     ):
-#         self.seqpos = seqpos
-#         self.original_block_type = block_type
-#         self.considered_block_types = palette.block_types_from_original_old(block_type)
-#         self.block_type_allowed = numpy.full(
-#             len(self.considered_block_types), True, dtype=bool
-#         )
-#         self.conformer_samplers = palette.default_conformer_samplers()
-#         self.is_chi_sampler = []
-#         self.chi_expansion = numpy.zeros(
-#             (len(self.considered_block_types), 4), dtype=numpy.int32
-#         )
-
-#     def restrict_to_repacking(self):
-#         orig = self.original_block_type
-#         for i, bt in enumerate(self.considered_block_types):
-#             if bt.name3 != orig.name3:  # OOF
-#                 self.block_type_allowed[i] = False
-
-#     def disable_packing(self):
-#         # Note: we will always include at least one rotamer from every block
-#         # in the RotamerSet, falling back on the coordinates of the starting
-#         # block if this block-level-task is marked as kept fixed.
-#         self.block_type_allowed[:] = False
-
-#     def add_conformer_sampler(self, sampler: ConformerSampler):
-#         self.conformer_samplers.append(sampler)
-#         self.is_chi_sampler.append(isinstance(sampler, ChiSampler))
-
-#     def restrict_absent_name3s(self, name3s):
-#         for i, bt in enumerate(self.considered_block_types):
-#             if bt.name3 not in name3s:
-#                 self.block_type_allowed[i] = False
-
-#     def or_expand_chi(self, chi_ind: int):
-#         self.chi_expansion[:, chi_ind] = 1
-
-#     def or_expand_chi_to(self, chi_ind: int, sample_level: int):
-#         self.chi_expansion[:, chi_ind] = sample_level
-
-
 class PackerTask:
 
     def __init__(self, systems: PoseStack, palette: PackerPalette):
-        # deprectated!
-        # self.blts = [
-        #     [
-        #         BlockLevelTask(j, systems.block_type(i, j), palette)
-        #         for j in range(systems.max_n_blocks)
-        #         if systems.is_real_block(i, j)
-        #     ]
-        #     for i in range(systems.n_poses)
-        # ]
-
         self.pbt = systems.packed_block_types
         self.device = systems.device
         self.is_real_block = systems.block_type_ind64 != -1
         self.real_block_pose, self.real_block_block = torch.nonzero(
             self.is_real_block, as_tuple=True
         )
-        # self.per_block_seqpos = torch.zeros(
-        #     (systems.n_poses, systems.max_n_blocks), dtype=torch.int32, device=systems.device)
-        # self.per_block_seqpos[self.real_block_pose, self.real_block_block] = torch.arange(
-        #     self.)
         self.per_block_orig_block_type = torch.zeros(
             (systems.n_poses, systems.max_n_blocks),
             dtype=torch.int32,
@@ -558,16 +497,15 @@ class PackerTask:
 
 
 class SetPackerTask:
-    """This is a class the packer will use that keeps mapping data
-    for the sets of buildable block types. The instructions of what
-    to build at which blocks are _set_, as in concrete: they are not
-    changing any more once this class is constructed.
+    """Set as in concrete. Once everything wrt the desired packing
+    task has been determined, pack_rotamers will construct this
+    object to create and hold the many mappings that the various
+    members of the packer need.
     """
 
     @classmethod
     def from_packer_task(cls, task: PackerTask):
         set_task = cls()
-        # set_task.blts = task.blts  # DEPRECATED!!!
         set_task.pbt = task.pbt
         set_task.device = task.device
         set_task.is_real_block = task.is_real_block
@@ -618,9 +556,6 @@ class SetPackerTask:
         set_task.cons_bt_block_type = cbt_block_type
         set_task.cons_bt_which_block_type = cbt_which_block_type
 
-        set_task.global_block_type_allowed = task.per_block_is_block_type_allowed[
-            cbt_pose, cbt_block, cbt_which_block_type
-        ]
         set_task.global_block_ind_for_considered_block_types = (
             max_n_blocks * cbt_pose + cbt_block
         )

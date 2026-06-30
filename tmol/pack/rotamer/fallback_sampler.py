@@ -89,7 +89,9 @@ class FallbackSampler(ConformerSampler):
         #     for blt in one_pose_blts
         #     for bt in blt.considered_block_types
         # ]
-        n_allowed_per_block = task.per_block_conformer_sampler_allowed.sum(dim=2)
+        n_allowed_per_block = task.per_block_is_block_type_allowed.to(torch.int32).sum(
+            dim=2
+        )
         gbt_block_allows_none = (n_allowed_per_block == 0)[
             task.cons_bt_pose, task.cons_bt_block
         ]

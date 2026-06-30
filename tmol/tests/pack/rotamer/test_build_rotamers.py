@@ -26,6 +26,7 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import (
 
 
 from tmol.io import pose_stack_from_pdb
+from tmol.io.pdb_parsing import to_pdb_lines
 
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
@@ -867,9 +868,10 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
     palette = PackerPalette()
     task = PackerTask(poses, palette)
     leu_set = set(["LEU"])
-    for one_pose_blts in task.blts:
-        for blt in one_pose_blts:
-            blt.restrict_absent_name3s(leu_set)
+    # for one_pose_blts in task.blts:
+    #     for blt in one_pose_blts:
+    #         blt.restrict_absent_name3s(leu_set)
+    task.restrict_absent_name3s(leu_set)
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
@@ -969,11 +971,19 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     gbt_for_rot_list = []
     count_gbt = 0
 
-    for i, one_pose_blts in enumerate(task.blts):
-        for j, blt in enumerate(one_pose_blts):
-            for k, bt in enumerate(blt.considered_block_types):
-                if blt.block_type_allowed[k]:
-                    # print("allowed block type", i, j, k, bt.name)
+    # for i, one_pose_blts in enumerate(task.blts):
+    #     for j, blt in enumerate(one_pose_blts):
+    #         for k, bt in enumerate(blt.considered_block_types):
+    #             if blt.block_type_allowed[k]:
+    #                 # print("allowed block type", i, j, k, bt.name)
+    #                 gbt_for_rot_list.append(count_gbt)
+    #                 gbt_for_rot_list.append(count_gbt)
+    #             count_gbt += 1
+
+    for i in range(3):
+        for j in range(poses.max_n_blocks):
+            for k in range(task.per_block_is_block_type_allowed.shape[2]):
+                if task.per_block_is_block_type_allowed[i, j, k]:
                     gbt_for_rot_list.append(count_gbt)
                     gbt_for_rot_list.append(count_gbt)
                 count_gbt += 1
@@ -1094,8 +1104,8 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
             atom_records[i_offset + j]["b"] = 0.0  # B-factor
 
     # uncomment if rotgen changes
-    # with open("test_build_rotamers.pdb", "w") as fid:
-    #    fid.writelines(to_pdb_lines(atom_records))
+    with open("test_build_rotamers_new_packer_task.pdb", "w") as fid:
+        fid.writelines(to_pdb_lines(atom_records))
 
     def parse_atom_coords(lines):
         coords = []
@@ -1289,19 +1299,7 @@ def test_create_dofs_for_many_rotamers(
     annotate_everything(chem_db, samplers, pbt)
 
     # Step 3
-    # create a list of the name of every considered block type at every block in every
-    # pose so that we can then create an integer version of that same data;
-    # the "global block type" (gbt) if you will. The order in which these block-
-    # types appear will be used as an index for talking about which rotamers are
-    # built where. This cannot be efficient. Perhaps worth thinking hard about the
-    # PackerTask's structure.
-    gbt_names = [
-        bt.name
-        for one_pose_blts in task.blts
-        for blt in one_pose_blts
-        for bt in blt.considered_block_types
-    ]
-    gbt_block_type_ind = pbt.restype_index.get_indexer(gbt_names).astype(numpy.int32)
+    gbt_block_type_ind = task.cons_bt_block_type.cpu().numpy().astype(numpy.int32)
 
     # Step 4
     conformer_samples = [
@@ -1448,13 +1446,7 @@ def test_new_rotamer_building_logic1(
     annotate_everything(chem_db, samplers, pbt)
 
     # Step 3
-    gbt_names = [
-        bt.name
-        for one_pose_blts in task.blts
-        for blt in one_pose_blts
-        for bt in blt.considered_block_types
-    ]
-    gbt_block_type_ind = pbt.restype_index.get_indexer(gbt_names).astype(numpy.int32)
+    gbt_block_type_ind = task.cons_bt_block_type.cpu().numpy().astype(numpy.int32)
 
     # Step 4
     conformer_samples = [
@@ -1625,7 +1617,7 @@ def test_new_rotamer_building_logic3(
         (1, 52),
     ]
     for pose, res in residues_to_fix:
-        task.blts[pose][res].disable_packing()
+        task.per_block_is_block_type_allowed[pose, res, :] = False
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)

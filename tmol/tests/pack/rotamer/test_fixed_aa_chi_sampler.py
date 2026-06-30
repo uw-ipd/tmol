@@ -80,7 +80,17 @@ def test_chi_sampler_smoke(ubq_pdb, torch_device):
     assert results[3].device == torch_device
 
     n_rots_for_rt_gold = numpy.zeros((21 * 13,), dtype=numpy.int32)
-    gly_ind = [bt.name for bt in task.blts[0][4].considered_block_types].index("GLY")
+    # gly_ind = [bt.name for bt in task.blts[0][4].considered_block_types].index("GLY")
+    pbt = poses.packed_block_types
+    gly_ind_in_pbt = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "GLY"
+    )
+    gly_ind = next(
+        i
+        for i in range(task.per_block_considered_block_types.shape[2])
+        if task.per_block_considered_block_types[0, 4, i] == gly_ind_in_pbt
+    )
+
     n_rots_for_rt_gold[4 * 21 + gly_ind] = 1
     numpy.testing.assert_equal(n_rots_for_rt_gold, results[0].cpu().numpy())
 

@@ -5,7 +5,7 @@ import cattr
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pack.packer_task import PackerTask, PackerPalette
+from tmol.pack.packer_task import PackerTask, PackerPalette, SetPackerTask
 from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
 
 from tmol.tests.data import no_termini_pose_stack_from_pdb
@@ -55,7 +55,6 @@ def test_include_current_sampler_smoke(ubq_pdb, torch_device):
         ubq_pdb, torch_device, residue_start=1, residue_end=8
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
-    pbt = poses.packed_block_types
     palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
@@ -64,8 +63,12 @@ def test_include_current_sampler_smoke(ubq_pdb, torch_device):
     task.add_conformer_sampler(sampler)
 
     disabled_residues = [(0, 0), (0, 2), (0, 4), (1, 1), (1, 3), (1, 5)]
-    for pose, res in disabled_residues:
-        task.blts[pose][res].disable_packing()
+    pose_ind, block_ind = tuple(
+        [torch.tensor([x[i] for x in disabled_residues]) for i in range(2)]
+    )
+    task.per_block_is_block_type_allowed[pose_ind, block_ind, :] = False
+
+    task = SetPackerTask.from_packer_task(task)
 
     for rt in poses.packed_block_types.active_block_types:
         sampler.annotate_residue_type(rt)
@@ -89,9 +92,11 @@ def test_include_current_sampler_smoke(ubq_pdb, torch_device):
     n_rots_for_rt_gold = numpy.zeros((21 * 13,), dtype=numpy.int32)
     rt_for_rot_gold = numpy.full((len(enabled_residues),), -1, dtype=numpy.int32)
     for i, (pose, res) in enumerate(enabled_residues):
-        curr_rt = pbt.active_block_types[poses.block_type_ind[pose, res]]
-        curr_rt_in_considered = task.blts[pose][res].considered_block_types.index(
-            curr_rt
+        curr_rt = poses.block_type_ind64[pose, res]
+        curr_rt_in_considered = next(
+            i
+            for i in range(task.per_block_considered_block_types.shape[2])
+            if task.per_block_considered_block_types[pose, res, i] == curr_rt
         )
         i_gbt = (pose * 6 + res) * 21 + curr_rt_in_considered
         n_rots_for_rt_gold[i_gbt] = 1
