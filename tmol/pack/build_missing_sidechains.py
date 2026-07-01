@@ -52,8 +52,7 @@ def build_missing_sidechains(
     """
     from tmol.pack.rotamer.opth_sampler import OptHSampler
 
-    restype_set = pose_stack.packed_block_types.restype_set
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()
 

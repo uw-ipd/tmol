@@ -360,6 +360,18 @@ class DunbrackChiSampler(ChiSampler):
             task.is_cons_bt_allowed,
         )
         dun_allowed_bt_to_gbt = torch.nonzero(is_dun_allowed_gbt, as_tuple=True)[0]
+        if dun_allowed_bt_to_gbt.shape[0] == 0:
+            # No positions allow this sampler, exit early
+            n_rots_for_gbt = torch.zeros(
+                task.cons_bt_pose.shape[0], dtype=torch.int32, device=pose_stack.device
+            )
+            empty_chi = torch.zeros((0, 4), dtype=torch.int32, device=pose_stack.device)
+            return (
+                n_rots_for_gbt,
+                torch.zeros(0, dtype=torch.int32, device=pose_stack.device),
+                empty_chi,
+                empty_chi.float(),
+            )
 
         n_gbt_total = task.cons_bt_pose.shape[0]
         # n_dun_allowed_bt = dun_allowed_bt_to_gbt.shape[0]

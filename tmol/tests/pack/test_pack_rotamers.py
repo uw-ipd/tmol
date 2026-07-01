@@ -310,7 +310,6 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
     pose_stack, task = setup_pose_stack_and_task(
         [p] * n_poses, torch_device, dun_sampler
     )
-    task = SetPackerTask.from_packer_task(task)
     task.or_expand_chi(1)
     sfxn = get_packer_sfxn(default_database, torch_device)
     pack_rotamers(pose_stack, sfxn, task)
@@ -328,6 +327,5 @@ def test_pack_rotamers_irregular_sized_poses(
     ]
     pose_stack, task = setup_pose_stack_and_task(poses, torch_device, dun_sampler)
     task.or_expand_chi(1)
-    task = SetPackerTask.from_packer_task(task)
     sfxn = get_packer_sfxn(default_database, torch_device)
     pack_rotamers(pose_stack, sfxn, task)

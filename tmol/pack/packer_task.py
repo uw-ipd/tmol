@@ -171,7 +171,9 @@ class PackerPalette:
         _annotate_packed_block_types_for_default_packer_palette(pbt)
         dppann = pbt.default_packer_palette_annotations
         rtr_mask_for_orig = torch.zeros(
-            (orig.shape[0], orig.shape[1], dppann.max_n_allowed), dtype=torch.bool
+            (orig.shape[0], orig.shape[1], dppann.max_n_allowed),
+            dtype=torch.bool,
+            device=pbt.device,
         )
         is_real_bt = orig >= 0
         rtr_mask = dppann.restrict_to_repacking_masks
@@ -435,12 +437,10 @@ class PackerTask:
     def add_conformer_sampler_by_block_mask(
         self, sampler: ConformerSampler, block_type_mask: Tensor[torch.bool][:, :]
     ):
-        assert block_type_mask.shape == self.per_block_n_considered_block_types
-
-        # old way of doing things; soon to be removed
-        # for one_pose_blts in self.blts:
-        #     for blt in one_pose_blts:
-        #         blt.add_conformer_sampler(sampler)
+        assert (
+            block_type_mask.shape == self.per_block_n_considered_block_types.shape[:2]
+        )
+        assert block_type_mask.device == self.per_block_conformer_sampler_allowed.device
 
         # new way of doing things:
         self.conformer_samplers.append(sampler)
@@ -448,15 +448,7 @@ class PackerTask:
         self.per_block_conformer_sampler_allowed = torch.cat(
             [
                 self.per_block_conformer_sampler_allowed,
-                torch.ones(
-                    (
-                        self.per_block_conformer_sampler_allowed.shape[0],
-                        self.per_block_conformer_sampler_allowed.shape[1],
-                        1,
-                    ),
-                    dtype=torch.bool,
-                    device=self.device,
-                ),
+                block_type_mask.unsqueeze(-1),
             ],
             dim=-1,
         )

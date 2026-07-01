@@ -879,9 +879,10 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         all_considered_restypes.shape[0], dtype=numpy.int32
     )
 
-    n_rots_for_gbt_gold[dun_allowed_bt_to_gbt[is_dun_allowed_bt_bbt.cpu().numpy()]] = (
-        n_rots_for_bbt.cpu().numpy()
-    )
+    dun_allowed_bt_to_gbt_np = dun_allowed_bt_to_gbt.cpu().numpy()
+    n_rots_for_gbt_gold[
+        dun_allowed_bt_to_gbt_np[is_dun_allowed_bt_bbt.cpu().numpy()]
+    ] = n_rots_for_bbt.cpu().numpy()
 
     rt_for_rot_gold = numpy.zeros((n_rots + 1,), dtype=numpy.int32)
     offsets_for_gbt_np = offsets_for_gbt.cpu().numpy()

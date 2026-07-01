@@ -211,11 +211,13 @@ struct DunbrackChiSampler {
       }
     };
 
+    // printf("Forall compute_backbone_dihedrals, %d\n",
+    // dihedral_offset_for_res.size(0));
     Dispatch<D>::forall(
         mgr, dihedral_offset_for_res.size(0), compute_backbone_dihedrals);
 
-    // std::cout << "4; n_possible_rotamers " << n_possible_rotamers <<
-    // std::endl;
+    // std::cout << "4; n_possible_rotamers " << n_possible_rotamers
+    // <<std::endl;
 
     auto brt_for_possible_rotamer_tp =
         TPack<Int, 1, D>::zeros(n_possible_rotamers);
@@ -259,6 +261,7 @@ struct DunbrackChiSampler {
     // std::cout << "6" << std::endl;
 
     // max_n_chi: reduction on max
+    // printf("reduce nchi_for_buildable_restype\n");
     Int max_n_chi = Dispatch<D>::reduce(
         mgr, nchi_for_buildable_restype, mgpu::maximum_t<Int>());
 
@@ -354,6 +357,7 @@ struct DunbrackChiSampler {
       n_possible_rotamers_per_brt[brt] = n_rotamers_for_tableset[rottable_set];
     };
 
+    // printf("forall lambda_determine_n_possible_rots %d\n", n_brt);
     Dispatch<D>::forall(mgr, n_brt, lambda_determine_n_possible_rots);
   }
 
@@ -378,6 +382,7 @@ struct DunbrackChiSampler {
           brt_for_possible_rotamer_start[offset] = buildable_restype;
         };
 
+    // printf("forall mark_possrot_boundary_beginnings %d\n", n_brt);
     Dispatch<D>::forall(mgr, n_brt, mark_possrot_boundary_beginnings);
 
     // Non-segmented scan on "max" to get the brt index for each possible
@@ -463,6 +468,8 @@ struct DunbrackChiSampler {
       rotamer_probability[possible_rotamer] =
           score::common::get<0>(prob_and_derivs);
     };
+    // printf("forall calculate_possible_rotamer_probability %d\n",
+    // n_possible_rotamers);
     Dispatch<D>::forall(
         mgr, n_possible_rotamers, calculate_possible_rotamer_probability);
   }
@@ -509,6 +516,7 @@ struct DunbrackChiSampler {
           build_possible_rotamer[possible_rotamer] = keep;
         };
 
+    // printf("forall decide_on_possible_rotamer %d\n", n_possible_rotamers);
     Dispatch<D>::forall(mgr, n_possible_rotamers, decide_on_possible_rotamer);
 
     // Let's count the number of possible rotamers we're keeping per restype
@@ -532,6 +540,7 @@ struct DunbrackChiSampler {
       n_rotamers_to_build_per_brt[brt] = brt_count;
     };
 
+    // printf("forall count_rots_to_build_per_brt %d\n", n_brt);
     Dispatch<D>::forall(mgr, n_brt, count_rots_to_build_per_brt);
   }
 
@@ -584,6 +593,7 @@ struct DunbrackChiSampler {
       n_rotamers_to_build_per_brt[brt] *= n_expansions;
     };
 
+    // printf("forall count_expansions_for_brt %d\n", n_brt);
     Dispatch<D>::forall(mgr, n_brt, count_expansions_for_brt);
 
     // Exclusive cumumaltive sum
@@ -612,6 +622,7 @@ struct DunbrackChiSampler {
       brt_for_rotamer_start[offset] = brt;
     };
 
+    // printf("forall mark_rot_brt_boundary_beginnings %d\n", n_brt);
     Dispatch<D>::forall(mgr, n_brt, mark_rot_brt_boundary_beginnings);
 
     // Now scan on max and record the restype for each rotamer
@@ -759,6 +770,7 @@ struct DunbrackChiSampler {
       }
     };
 
+    // printf("forall sample_chi_for_rotamer %d\n", n_rotamers);
     Dispatch<D>::forall(mgr, n_rotamers, sample_chi_for_rotamer);
   }
 };

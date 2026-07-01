@@ -11,7 +11,7 @@ def test_packer_palette_smoke():
 
 
 def test_packer_palette_design_to_canonical_aas(
-    fresh_default_restype_set, fresh_default_packed_block_types
+    fresh_default_restype_set, fresh_default_packed_block_types, torch_device
 ):
     pp = PackerPalette()
     pbt = fresh_default_packed_block_types
@@ -22,7 +22,7 @@ def test_packer_palette_design_to_canonical_aas(
         if rt.name == "ARG"
     )
     n_allowed, allowed_bts, allowed_is_orig = pp.block_types_from_original(
-        pbt, torch.tensor([[arg_index]], dtype=torch.int64)
+        pbt, torch.tensor([[arg_index]], dtype=torch.int64, device=torch_device)
     )
     assert n_allowed[0, 0] == 21
     assert allowed_bts.shape == (1, 1, 21)
@@ -30,7 +30,7 @@ def test_packer_palette_design_to_canonical_aas(
 
 
 def test_packer_palette_design_to_canonical_aas2_backward_compat(
-    fresh_default_restype_set, fresh_default_packed_block_types
+    fresh_default_restype_set, fresh_default_packed_block_types, torch_device
 ):
     pp = PackerPalette()
     pbt = fresh_default_packed_block_types
@@ -40,7 +40,7 @@ def test_packer_palette_design_to_canonical_aas2_backward_compat(
         if rt.name == "GLY"
     )
     n_allowed, allowed_bts, allowed_is_orig = pp.block_types_from_original(
-        pbt, torch.tensor([[gly_ind]], dtype=torch.int64)
+        pbt, torch.tensor([[gly_ind]], dtype=torch.int64, device=torch_device)
     )
     assert n_allowed[0, 0] == 21
     assert allowed_bts.shape == (1, 1, 21)
@@ -106,7 +106,7 @@ def test_residue_level_task_his_restrict_to_repacking_backward_compat(
     # blt.restrict_to_repacking()
     # assert sum(blt.block_type_allowed) == 2
     n_allowed, allowed_bts, allowed_is_orig = palette.block_types_from_original(
-        pbt, torch.tensor([[i]], dtype=torch.int64)
+        pbt, torch.tensor([[i]], dtype=torch.int64, device=torch_device)
     )
     restrict_to_repacking_masks = palette.create_restrict_to_repacking_mask(
         pbt, torch.tensor([[i]], dtype=torch.int64)
