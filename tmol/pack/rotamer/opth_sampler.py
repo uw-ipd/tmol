@@ -428,6 +428,7 @@ class OptHSampler(ConformerSampler):
         max_n_chi = 0
         for i, orig_bt in enumerate(packed_block_types.active_block_types):
             max_n_chi = max(max_n_chi, orig_bt.opth_sampler_cache.n_chi_total)
+        print("max_n_chi", max_n_chi)
 
         chi_defining_atom = torch.full(
             (packed_block_types.n_types, max_n_chi),
@@ -700,11 +701,12 @@ class OptHSampler(ConformerSampler):
             n_rots_for_allowed_and_buildable
         )
 
-        max_n_chi_cols = torch.max(
-            optH_cache.n_chi_needed_for_bt[
-                1 if self.flip_NHQ else 0, allowed_and_buildable_bt
-            ]
-        ).item()
+        # max_n_chi_cols = torch.max(
+        #     optH_cache.n_chi_needed_for_bt[
+        #         1 if self.flip_NHQ else 0, allowed_and_buildable_bt
+        #     ]
+        # ).item()
+        max_n_chi_cols = optH_cache.expanded_samples.shape[1]
 
         # now we need to figure out which residues are NHQ and measure their chi dihedrals
         if not self.flip_NHQ:
@@ -802,13 +804,23 @@ class OptHSampler(ConformerSampler):
         # print("gbt_for_rotamer", gbt_for_rotamer.shape)
         # print("rotamers_w_proton_chi_samples", rotamers_w_proton_chi_samples.shape)
         # print("rotamers_w_proton_chi_samples[:10]", rotamers_w_proton_chi_samples[:10])
-        # print("chi_for_rotamers", chi_for_rotamers.shape)
+        print("chi_for_rotamers", chi_for_rotamers.shape)
+        print("opth_cache.expanded_samples", opth_cache.expanded_samples.shape)
+        print(
+            "opth_cache.expanded_samples[bt_for_proton_rotamer, :, sample_ind_for_proton_rotamer]",
+            opth_cache.expanded_samples[
+                bt_for_proton_rotamer, :, sample_ind_for_proton_rotamer
+            ].shape,
+        )
         # print("bt_for_proton_rotamer", bt_for_proton_rotamer.shape)
         # print("sample_ind_for_proton_rotamer", sample_ind_for_proton_rotamer.shape)
 
-        chi_for_rotamers[rotamers_w_proton_chi_samples] = opth_cache.expanded_samples[
-            bt_for_proton_rotamer, :, sample_ind_for_proton_rotamer
-        ]
+        max_n_expanded_chi = opth_cache.expanded_samples.shape[1]
+        chi_for_rotamers[rotamers_w_proton_chi_samples, :max_n_expanded_chi] = (
+            opth_cache.expanded_samples[
+                bt_for_proton_rotamer, :, sample_ind_for_proton_rotamer
+            ]
+        )
 
     def _fill_proton_chi_block(
         self,
