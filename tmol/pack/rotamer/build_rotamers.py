@@ -84,7 +84,9 @@ def _build_chi_phi_c_corrections(pbt):
 
     chi4_table = _build_chi4_atom_table(pbt)  # (n_types, max_n_chi, 4)
     kfidx = pbt.rotamer_kinforest.kinforest_idx  # (n_types, max_n_atoms)
-    dofs_ideal = pbt.rotamer_kinforest.dofs_ideal  # (n_types, max_n_atoms, 9)
+    dofs_ideal = (
+        pbt.rotamer_kinforest.dofs_ideal.cpu().numpy()
+    )  # (n_types, max_n_atoms, 9)
     parent_arr = pbt.rotamer_kinforest.parent  # (n_types, max_n_atoms) KFO order
     doftype_arr = pbt.rotamer_kinforest.doftype  # (n_types, max_n_atoms) KFO order
 
@@ -873,20 +875,8 @@ def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatab
     annotate_everything(chem_db, samplers, pbt)
 
     # Step 3
-    # create a list of the name of every considered block type at every block in every
-    # pose so that we can then create an integer version of that same data;
-    # the "global block type" (gbt) if you will. The order in which these block-
-    # types appear will be used as an index for talking about which rotamers are
-    # built where. This cannot be efficient. Perhaps worth thinking hard about the
-    # PackerTask's structure.
-    # OLD gbt_names = [
-    # OLD     bt.name
-    # OLD     for one_pose_blts in task.blts
-    # OLD     for blt in one_pose_blts
-    # OLD     for bt in blt.considered_block_types
-    # OLD ]
-    # OLD gbt_block_type_ind = pbt.restype_index.get_indexer(gbt_names).astype(numpy.int32)
-
+    # the "global block type" (gbt) is the list of all considered block types
+    # at all positions in all poses.
     gbt_block_type_ind = task.cons_bt_block_type.cpu().numpy().astype(numpy.int32)
 
     # Step 4
@@ -948,10 +938,14 @@ def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatab
     conf_dofs_kto = torch.zeros(
         (n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device
     )
+
+    print(
+        "block_type_ind_for_conformer device:",
+        block_type_ind_for_conformer_torch.device,
+    )
     conf_dofs_kto[1:] = torch.tensor(
         pbt.rotamer_kinforest.dofs_ideal[block_type_ind_for_conformer].reshape((-1, 9))[
-            pbt.atom_is_real.cpu().numpy()[block_type_ind_for_conformer].reshape(-1)
-            != 0
+            pbt.atom_is_real[block_type_ind_for_conformer].reshape(-1) != 0
         ],
         dtype=torch.float32,
         device=pbt.device,

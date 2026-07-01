@@ -1369,8 +1369,7 @@ def test_create_dofs_for_many_rotamers(
     )
     conf_dofs_kto[1:] = torch.tensor(
         pbt.rotamer_kinforest.dofs_ideal[block_type_ind_for_conformer].reshape((-1, 9))[
-            pbt.atom_is_real.cpu().numpy()[block_type_ind_for_conformer].reshape(-1)
-            != 0
+            pbt.atom_is_real[block_type_ind_for_conformer].reshape(-1) != 0
         ],
         dtype=torch.float32,
         device=pbt.device,
@@ -1509,8 +1508,7 @@ def test_new_rotamer_building_logic1(
     )
     conf_dofs_kto[1:] = torch.tensor(
         pbt.rotamer_kinforest.dofs_ideal[block_type_ind_for_conformer].reshape((-1, 9))[
-            pbt.atom_is_real.cpu().numpy()[block_type_ind_for_conformer].reshape(-1)
-            != 0
+            pbt.atom_is_real[block_type_ind_for_conformer].reshape(-1) != 0
         ],
         dtype=torch.float32,
         device=pbt.device,

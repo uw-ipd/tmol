@@ -4,6 +4,7 @@ import torch
 
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
 from tmol.kinematics.datatypes import NodeType, KinForest
 from tmol.kinematics.scan_ordering import (
@@ -55,7 +56,7 @@ class PackedRotamerKintree:
     scans: NDArray[numpy.int32][:, :]
     gens: NDArray[numpy.int32][:, :]
     n_scans_per_gen: NDArray[numpy.int32][:, :]
-    dofs_ideal: NDArray[numpy.int32][:, :]
+    dofs_ideal: Tensor[torch.float32][:, :]
 
 
 @validate_args
@@ -275,6 +276,6 @@ def coalesce_single_residue_kinforests(pbt: PackedBlockTypes):
         scans=rt_scans,
         gens=rt_gens,
         n_scans_per_gen=rt_n_scans_per_gen,
-        dofs_ideal=rt_dofs_ideal,
+        dofs_ideal=torch.tensor(rt_dofs_ideal, dtype=torch.float32, device=pbt.device),
     )
     setattr(pbt, "rotamer_kinforest", packed_rotamer_kinforest)
