@@ -28,7 +28,6 @@ from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
 
 def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
     pose_stack = PoseStackBuilder.from_poses(poses, torch_device)
-    # restype_set = pose_stack.packed_block_types.restype_set
     palette = PackerPalette()
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()
@@ -141,7 +140,6 @@ def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
     n_poses = 4
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    # restype_set = pose_stack.packed_block_types.restype_set
     palette = PackerPalette()
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()
@@ -160,12 +158,8 @@ def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
     from tmol.numeric.dihedrals import coord_dihedrals as _cd
 
     for i in range(task.allowed_bt_block_type.shape[0]):
-        # pose_i = 0
-        # for block_j, blt in enumerate(task.blts[pose_i]):
         pose_i = task.allowed_bt_pose[i].item()
         block_i = task.allowed_bt_block[i].item()
-        # block_type_i = task.allowed_bt_block_type[i].item()
-        # which_block_type = task.allowed_bt_which_block_type[i].item()
         orig_bt = task.per_block_orig_block_type[pose_i, block_i].item()
         orig = pose_stack.packed_block_types.active_block_types[orig_bt]
         # bt = pose_stack.packed_block_types.active_block_types[block_type_i]

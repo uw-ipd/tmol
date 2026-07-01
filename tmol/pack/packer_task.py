@@ -3,22 +3,25 @@ import torch
 import attr
 
 from tmol.types.torch import Tensor
-from tmol.chemical.restypes import RefinedResidueType  # , ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.pack.rotamer.conformer_sampler import ConformerSampler
-
-# from tmol.pack.rotamer.chi_sampler import ChiSampler
 
 # Architecture is borrowed from Rosetta3:
 # PackerTask: a class holding data describing how the
 #   packer should behave. Each position in the
 #   PackerTask corresponds to a residue in the input
 #   PackedResidueSystem. For each residue, it holds
-#   a list of the allowed residue types that can be
-#   built at those positions. The PackerTask can be
-#   modified only by removing residue types from those
-#   list, not by adding new ones.
+#   a list of the indices of the considered
+#   block types that can be built at that position,
+#   and a mask representing which considered block
+#   types should be allowed. The PackerTask can be
+#   modified only by turning entries in these masks
+#   from True to False and not the other direction.
+#   Once the user has finalized all their instructions
+#   to the packer, it constructs a "SetPackerTask" which
+#   holds a set of mappings and indices relevant for the
+#   job.
 #
 # PackerPallete: a class that decides how to construct
 #   a PackerTask, deciding which residue types to allow
@@ -26,7 +29,8 @@ from tmol.pack.rotamer.conformer_sampler import ConformerSampler
 #   Different PackerPalletes will construct different
 #   starting points which can be refined towards the
 #   set of design choices that make sense for your
-#   application
+#   application. The default packer palette is primarily
+#   designed for L-AA redesign / repacking tasks.
 
 
 def set_compare(x, y):
@@ -54,63 +58,63 @@ class PackerPalette:
     def __init__(self):
         pass
 
-    def block_types_from_original_old(self, orig: RefinedResidueType):
-        # ok, this is where we figure out what the allowed restypes
-        # are for a residue; this might be complex logic.
-        # Derived versions of this class can override this method to
-        # implement different logic, e.g., to allow HIS_POS or D-AAs.
+    # def block_types_from_original_old(self, orig: RefinedResidueType):
+    #     # ok, this is where we figure out what the allowed restypes
+    #     # are for a residue; this might be complex logic.
+    #     # Derived versions of this class can override this method to
+    #     # implement different logic, e.g., to allow HIS_POS or D-AAs.
 
-        # TO BE DEPRECATED!
+    #     # TO BE DEPRECATED!
 
-        keepers = []
-        for bt in self.rts.residue_types:
-            if (
-                bt.properties.polymer.is_polymer == orig.properties.polymer.is_polymer
-                and bt.properties.polymer.polymer_type
-                == orig.properties.polymer.polymer_type
-                and bt.properties.polymer.backbone_type
-                == orig.properties.polymer.backbone_type
-                and bt.connections
-                == orig.connections  # fd  use this instead of terminal variant check
-                and set_compare(
-                    bt.properties.chemical_modifications,
-                    orig.properties.chemical_modifications,
-                )
-                and set_compare(
-                    bt.properties.connectivity, orig.properties.connectivity
-                )
-                and bt.properties.protonation.protonation_state
-                == orig.properties.protonation.protonation_state
-            ):
-                if (
-                    bt.properties.polymer.sidechain_chirality
-                    == orig.properties.polymer.sidechain_chirality
-                ):
-                    keepers.append(bt)
-                elif orig.properties.polymer.polymer_type == "amino_acid" and (
-                    (
-                        orig.properties.polymer.sidechain_chirality == "l"
-                        and bt.properties.polymer.sidechain_chirality == "achiral"
-                    )
-                    or (
-                        orig.properties.polymer.sidechain_chirality == "achiral"
-                        and bt.properties.polymer.sidechain_chirality == "l"
-                    )
-                ):
-                    # allow glycine <--> l-caa mutations
-                    keepers.append(bt)
-                elif (
-                    orig.properties.polymer.polymer_type == "amino_acid"
-                    and orig.properties.polymer.sidechain_chirality == "d"
-                    and bt.properties.polymer.sidechain_chirality == "achiral"
-                ):
-                    # allow d-caa --> glycine mutations;
-                    # dangerous because this packer pallete will allow
-                    # your d-caa to become glycine, and then later
-                    # to an l-caa, but not the other way around
-                    keepers.append(bt)
+    #     keepers = []
+    #     for bt in self.rts.residue_types:
+    #         if (
+    #             bt.properties.polymer.is_polymer == orig.properties.polymer.is_polymer
+    #             and bt.properties.polymer.polymer_type
+    #             == orig.properties.polymer.polymer_type
+    #             and bt.properties.polymer.backbone_type
+    #             == orig.properties.polymer.backbone_type
+    #             and bt.connections
+    #             == orig.connections  # fd  use this instead of terminal variant check
+    #             and set_compare(
+    #                 bt.properties.chemical_modifications,
+    #                 orig.properties.chemical_modifications,
+    #             )
+    #             and set_compare(
+    #                 bt.properties.connectivity, orig.properties.connectivity
+    #             )
+    #             and bt.properties.protonation.protonation_state
+    #             == orig.properties.protonation.protonation_state
+    #         ):
+    #             if (
+    #                 bt.properties.polymer.sidechain_chirality
+    #                 == orig.properties.polymer.sidechain_chirality
+    #             ):
+    #                 keepers.append(bt)
+    #             elif orig.properties.polymer.polymer_type == "amino_acid" and (
+    #                 (
+    #                     orig.properties.polymer.sidechain_chirality == "l"
+    #                     and bt.properties.polymer.sidechain_chirality == "achiral"
+    #                 )
+    #                 or (
+    #                     orig.properties.polymer.sidechain_chirality == "achiral"
+    #                     and bt.properties.polymer.sidechain_chirality == "l"
+    #                 )
+    #             ):
+    #                 # allow glycine <--> l-caa mutations
+    #                 keepers.append(bt)
+    #             elif (
+    #                 orig.properties.polymer.polymer_type == "amino_acid"
+    #                 and orig.properties.polymer.sidechain_chirality == "d"
+    #                 and bt.properties.polymer.sidechain_chirality == "achiral"
+    #             ):
+    #                 # allow d-caa --> glycine mutations;
+    #                 # dangerous because this packer pallete will allow
+    #                 # your d-caa to become glycine, and then later
+    #                 # to an l-caa, but not the other way around
+    #                 keepers.append(bt)
 
-        return keepers
+    #     return keepers
 
     def block_types_from_original(
         self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
@@ -358,12 +362,6 @@ class PackerTask:
         )
 
     def restrict_to_repacking(self):
-        # old way of doing things; soon to be removed
-        # for one_pose_blts in self.blts:
-        #     for blt in one_pose_blts:
-        #         blt.restrict_to_repacking()
-
-        # new way of doing things:
         # Use the pre-calculated masks to disable packing for
         # all block types that are not allowed except those which
         # meet the definition of "repacking" for the original
@@ -410,12 +408,6 @@ class PackerTask:
         )
 
     def add_conformer_sampler(self, sampler: ConformerSampler):
-        # old way of doing things; soon to be removed
-        # for one_pose_blts in self.blts:
-        #     for blt in one_pose_blts:
-        #         blt.add_conformer_sampler(sampler)
-
-        # new way of doing things:
         self.conformer_samplers.append(sampler)
         self.conformer_sampler_index[id(sampler)] = len(self.conformer_samplers) - 1
         self.per_block_conformer_sampler_allowed = torch.cat(
@@ -442,7 +434,6 @@ class PackerTask:
         )
         assert block_type_mask.device == self.per_block_conformer_sampler_allowed.device
 
-        # new way of doing things:
         self.conformer_samplers.append(sampler)
         self.conformer_sampler_index[id(sampler)] = len(self.conformer_samplers) - 1
         self.per_block_conformer_sampler_allowed = torch.cat(
@@ -454,22 +445,10 @@ class PackerTask:
         )
 
     def or_expand_chi(self, chi_ind: int):
-        # old way of doing things; soon to be removed
-        # for one_pose_blts in self.blts:
-        #     for blt in one_pose_blts:
-        #         blt.or_expand_chi(chi_ind)
-
-        # new way of doing things
         self.per_block_chi_expansion[:, :, :, chi_ind] = 1
 
     def or_expand_chi_to(self, chi_ind: int, sample_level: int):
-        # old way of doing things; soon to be removed
-        # for one_pose_blts in self.blts:
-        #     for blt in one_pose_blts:
-        #         blt.or_expand_chi_to(chi_ind, sample_level)
-
-        # new way of doing things: max over the current sample level
-        # and the new sample level.
+        # max over the current sample level and the new sample level.
         self.per_block_chi_expansion[:, :, :, chi_ind] = torch.max(
             self.per_block_chi_expansion[:, :, :, chi_ind], sample_level
         )
@@ -477,12 +456,6 @@ class PackerTask:
     def disable_packing_by_block_mask(self, block_type_mask: Tensor[torch.bool][:, :]):
         assert block_type_mask.device == self.device
         assert block_type_mask.shape == self.per_block_is_block_type_allowed.shape[:2]
-        # old way of doing things; soon to be removed
-        # for one_pose_blts in self.blts:
-        #     for blt in one_pose_blts:
-        #         blt.disable_packing()
-
-        # new way of doing things:
         self.per_block_is_block_type_allowed = torch.logical_and(
             self.per_block_is_block_type_allowed, ~block_type_mask.unsqueeze(-1)
         )

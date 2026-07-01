@@ -51,19 +51,6 @@ class IncludeCurrentSampler(ConformerSampler):
         Tensor[torch.int32][:],  # gbt_for_rotamer
         dict,  # anything else the sampler wants to save for later
     ]:
-        # OLD n_rots_for_gbt_list = [
-        # OLD     (
-        # OLD         1
-        # OLD         if bt is blt.original_block_type
-        # OLD         and self in blt.conformer_samplers
-        # OLD         and blt.block_type_allowed[i]
-        # OLD         else 0
-        # OLD     )
-        # OLD     for one_pose_blts in task.blts
-        # OLD     for blt in one_pose_blts
-        # OLD     for i, bt in enumerate(blt.considered_block_types)
-        # OLD ]
-
         assert (
             id(self) in task.conformer_sampler_index
         ), "This sampler is not in the PackerTask's conformer samplers"
@@ -83,31 +70,6 @@ class IncludeCurrentSampler(ConformerSampler):
                 task.cons_bt_pose, task.cons_bt_block, task.cons_bt_which_block_type
             ],
         ).to(torch.int32)
-
-        # new implementation #1
-        # is_gbt = task.per_block_considered_block_types
-        # is_orig_block_type = torch.zeros_like(is_gbt, dtype=torch.bool)
-
-        # is_real = task.per_block_orig_block_type_ind != -1
-        # is_real_pose, is_real_block = torch.nonzero(is_real, as_tuple=True)
-
-        # is_orig_block_type[is_real_pose, is_real_block, task.per_block_orig_block_type_ind[is_real].to(torch.int64)] = True
-        # self_builds_block_type = task.per_block_conformer_sampler_allowed[
-        #     :, :, self_ind_in_packer_task
-        # ].unsqueeze(-1).expand(-1, -1, pose_stack.packed_block_types.n_block_types)
-        # n_rots_for_block_type = torch.logical_and(
-        #     torch.logical_and(
-        #         is_gbt,
-        #         is_orig_block_type,
-        #     ),
-        #     self_builds_block_type
-        # ).to(torch.int32)
-        # n_rots_for_gbt = n_rots_for_block_type[is_gbt]
-
-        # old implementation
-        # n_rots_for_gbt = torch.tensor(
-        #     n_rots_for_gbt_list, dtype=torch.int32, device=pose_stack.device
-        # )
 
         gbt_for_rotamer = torch.nonzero(n_rots_for_gbt, as_tuple=True)[0]
         return (n_rots_for_gbt, gbt_for_rotamer, {})
@@ -193,17 +155,6 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
     )
 
     # get the residue index for each rotamer
-    # max_n_blocks = poses.block_coord_offset.shape[1]
-    # OLD res_ind_for_gbt = torch.tensor(
-    # OLD     [
-    # OLD         i * max_n_blocks + j
-    # OLD         for i, one_pose_blts in enumerate(task.blts)
-    # OLD         for j, blt in enumerate(one_pose_blts)
-    # OLD         for _ in blt.considered_block_types
-    # OLD     ],
-    # OLD     dtype=torch.int64,
-    # OLD     device=poses.device,
-    # OLD )
     res_ind_for_gbt = task.global_block_ind_for_considered_block_types
 
     gbt_for_samplers_rots = gbt_for_rot[conf_inds_for_sampler]

@@ -19,7 +19,6 @@ from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
-# from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import SetPackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.numeric.dihedrals import coord_dihedrals
@@ -793,31 +792,10 @@ def calculate_rotamer_coords(
 
 
 def get_rotamer_origin_data(task: SetPackerTask, gbt_for_rot: Tensor[torch.int32][:]):
-    n_poses = task.per_block_orig_block_type.shape[0]  # len(task.blts)
-    # OLD pose_for_gbt = torch.tensor(
-    # OLD     [
-    # OLD         i
-    # OLD         for i, one_pose_blts in enumerate(task.blts)
-    # OLD         for blts in one_pose_blts
-    # OLD         for blt in blts.considered_block_types
-    # OLD     ],
-    # OLD     dtype=torch.int32,
-    # OLD     device=gbt_for_rot.device,
-    # OLD )
+    n_poses = task.per_block_orig_block_type.shape[0]
     pose_for_gbt = task.cons_bt_pose.to(torch.int32)
 
-    # OLD block_ind_for_rt = torch.tensor(
-    # OLD     [
-    # OLD         j
-    # OLD         for one_pose_blts in task.blts
-    # OLD         for j, blts in enumerate(one_pose_blts)
-    # OLD         for blt in blts.considered_block_types
-    # OLD     ],
-    # OLD     dtype=torch.int32,
-    # OLD     device=gbt_for_rot.device,
-    # OLD )
     block_ind_for_rt = task.cons_bt_block.to(torch.int32)
-    # max_n_blocks = max(len(one_pose_blts) for one_pose_blts in task.blts)
     max_n_blocks = task.per_block_orig_block_type.shape[1]
 
     gbt_for_rot64 = gbt_for_rot.to(torch.int64)
@@ -939,10 +917,6 @@ def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatab
         (n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device
     )
 
-    print(
-        "block_type_ind_for_conformer device:",
-        block_type_ind_for_conformer_torch.device,
-    )
     conf_dofs_kto[1:] = torch.tensor(
         pbt.rotamer_kinforest.dofs_ideal[block_type_ind_for_conformer].reshape((-1, 9))[
             pbt.atom_is_real[block_type_ind_for_conformer].reshape(-1) != 0

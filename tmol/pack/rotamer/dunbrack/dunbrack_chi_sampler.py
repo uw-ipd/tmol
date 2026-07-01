@@ -336,7 +336,6 @@ class DunbrackChiSampler(ChiSampler):
         Tensor[torch.float32][:, :],  # chi_for_rotamers
     ]:
         assert self.device == pose_stack.coords.device
-        # max_n_blocks = pose_stack.block_type_ind.shape[1]
         # there are three sets of block types:
         # 1. the global-block-type list: all considered block-types at all positions (gbt)
         # 2. the dunbrack-allowed list: all allowed block types at all positions that

@@ -503,8 +503,6 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     # or something.
     rottable_set_for_buildable_restype = _ti32([[0, 12]])
     chi_expansion_for_buildable_restype = _ti32([[1, 1, 0, 0]])
-    # non_dunbrack_expansion_counts_for_buildable_restype = _ti32(numpy.zeros((1, 4)))
-    # non_dunbrack_expansion_counts_for_buildable_restype[0, 2] = 2
     non_dunbrack_expansion_for_buildable_restype = torch.tensor(
         numpy.array([[[numpy.nan, numpy.nan], [numpy.nan, numpy.nan], [0.25, 1.25]]]),
         dtype=torch.float32,
@@ -614,7 +612,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         dun_sampler.annotate_residue_type(rt)
     dun_sampler.annotate_packed_block_types(pose_stack.packed_block_types)
 
-    # pbt = pose_stack.packed_block_types
     self_ind_in_packer_task = task.conformer_sampler_index[id(dun_sampler)]
 
     # the subset of blocktypes which are allowed at the positions and
@@ -629,36 +626,9 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     dun_allowed_bt_to_gbt = torch.nonzero(is_dun_allowed_gbt, as_tuple=True)[0]
 
     n_gbt_total = task.cons_bt_pose.shape[0]
-    # n_dun_allowed_bt = dun_allowed_bt_to_gbt.shape[0]
-
-    # removing: dun_allowed_bt_to_gbt is equivalent to dun_allowed_gbt,
-    # dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[
-    #     is_gbt_dun_allowed
-    # ]
-    # dun_allowed_bt_to_gbt_torch = torch.tensor(
-    #     dun_allowed_bt_to_gbt, device=self.device
-    # )
-
-    # OLD dun_allowed_bt_names = numpy.array(
-    # OLD     [bt.name for bt in dun_allowed_blocktypes], dtype=object
-    # OLD )
-    # OLD dun_allowed_bt_base_names = numpy.array(
-    # OLD     [bt.name.partition(":")[0] for bt in dun_allowed_blocktypes], dtype=object
-    # OLD )
     pbt = pose_stack.packed_block_types
 
     # the source block for each dun-allowed block type
-    # OLD dun_allowed_bt_block = torch.tensor(
-    # OLD     [
-    # OLD         i * max_n_blocks + j
-    # OLD         for i, one_pose_blts in enumerate(task.blts)
-    # OLD         for j, blt in enumerate(one_pose_blts)
-    # OLD         for k, _ in enumerate(blt.considered_block_types)
-    # OLD         if blt.block_type_allowed[k] and self in blt.conformer_samplers
-    # OLD     ],
-    # OLD     dtype=torch.int32,
-    # OLD     device=self.device,
-    # OLD )
     dun_allowed_bt_block = task.global_block_ind_for_considered_block_types[
         dun_allowed_bt_to_gbt
     ]
@@ -668,32 +638,10 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     # TO DO: if the BLT holds a boolean vector for considered block types,
     # then we just know what the dun-rot-inds are for each PBT-assigned
     # block type index.
-    # OLD rottable_set_for_dun_allowed_bts_cpu = (
-    # OLD     self.dun_param_resolver._indices_from_names(
-    # OLD         self.dun_param_resolver.all_table_indices,
-    # OLD         dun_allowed_bt_base_names[None, :],
-    # OLD         device=torch.device("cpu"),
-    # OLD     ).squeeze(dim=0)
-    # OLD )
     dun_allowed_bt = task.cons_bt_block_type[dun_allowed_bt_to_gbt]
     rottable_set_for_dun_allowed_bts = pbt.dun_sampler_cache.rottable_set_for_bt[
         dun_allowed_bt
     ]
-
-    # rottable_set_for_dun_allowed_bts = rottable_set_for_dun_allowed_bts_cpu.to(
-    #     self.device
-    # )
-
-    # the pbt-assigned block-type indices for each buildable block type
-    # the subset of dun_rot_inds_for_dun_allowed_bts with a non-sentinel
-    # value represents the buildable block types
-    # block_type_ind_for_bbt = torch.tensor(
-    #     pbt.restype_index.get_indexer(
-    #         dun_allowed_bt_names[rottable_set_for_dun_allowed_bts_cpu.numpy() != -1]
-    #     ),
-    #     dtype=torch.int64,
-    #     device=self.device,
-    # )
 
     inds_of_phi = dun_sampler.atom_indices_for_backbone_dihedral(pose_stack, 0).reshape(
         -1, 4
@@ -743,8 +691,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         .to(device=dun_sampler.device)
     )
 
-    # phi_psi_res_inds = numpy.arange(n_sys * max_n_blocks, dtype=numpy.int32)
-
     n_sampling_blocks = global_block_ind_for_bubl.shape[0]
 
     # map the residue-numbered list of dihedral angles to their positions in
@@ -775,13 +721,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
 
     max_n_chi = pose_stack.packed_block_types.dun_sampler_cache.max_n_chi
 
-    # chi_expansion_for_gbt = torch.cat(
-    #     [
-    #         torch.tensor(blt.chi_expansion)
-    #         for one_pose_blts in task.blts
-    #         for blt in one_pose_blts
-    #     ],
-    # ).to(self.device)
     chi_expansion_for_gbt = task.per_block_chi_expansion[
         task.cons_bt_pose, task.cons_bt_block, task.cons_bt_which_block_type
     ]
@@ -789,7 +728,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     chi_expansion_for_bbt = (chi_expansion_for_gbt[dun_allowed_bt_to_gbt])[
         dun_allowed_bt_that_are_bbt
     ]
-    # chi_expansion_for_bbt = chi_expansion_for_bbt
 
     # ok, we'll go to the block types and look at their protonation
     # state expansions and we'll put that information into the

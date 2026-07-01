@@ -10,7 +10,6 @@ from tmol.pack.rotamer.build_rotamers import (
     exc_cumsum_from_inc_cumsum,
     measure_pose_dofs,
     measure_dofs_from_orig_coords,
-    # rebuild_poses_if_necessary,
     annotate_everything,
     merge_conformer_samples,
     calculate_rotamer_coords,
@@ -677,9 +676,6 @@ def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_samp
     annotate_packed_block_types(pbt)
 
     block_type_ind = poses.block_type_ind.view(-1)
-    # real_block_type_ind = block_type_ind != -1
-    # nz_real_block_type_ind = torch.nonzero(real_block_type_ind).flatten()
-    # real_block_type_ind_numpy = nz_real_block_type_ind.cpu().numpy().astype(numpy.int32)
     block_type_ind = block_type_ind[block_type_ind != -1]
     block_type_ind_numpy = block_type_ind.cpu().numpy()
     res_n_atoms = pbt.n_atoms[block_type_ind.to(torch.int64)]
@@ -742,7 +738,6 @@ def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sam
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
-    # restype_set = poses.packed_block_types.restype_set
     palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
@@ -760,7 +755,6 @@ def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sam
 
     block_type_ind = poses.block_type_ind.view(-1)
     real_block_type_ind = block_type_ind != -1
-    # nz_real_block_type_ind = torch.nonzero(real_block_type_ind).flatten()
     block_type_ind = block_type_ind[block_type_ind != -1]
     res_n_atoms = pbt.n_atoms[block_type_ind.to(torch.int64)]
     n_total_atoms = torch.sum(res_n_atoms).item()
@@ -868,9 +862,6 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
     palette = PackerPalette()
     task = PackerTask(poses, palette)
     leu_set = set(["LEU"])
-    # for one_pose_blts in task.blts:
-    #     for blt in one_pose_blts:
-    #         blt.restrict_absent_name3s(leu_set)
     task.restrict_absent_name3s(leu_set)
 
     fixed_sampler = FixedAAChiSampler()
@@ -970,15 +961,6 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
 
     gbt_for_rot_list = []
     count_gbt = 0
-
-    # for i, one_pose_blts in enumerate(task.blts):
-    #     for j, blt in enumerate(one_pose_blts):
-    #         for k, bt in enumerate(blt.considered_block_types):
-    #             if blt.block_type_allowed[k]:
-    #                 # print("allowed block type", i, j, k, bt.name)
-    #                 gbt_for_rot_list.append(count_gbt)
-    #                 gbt_for_rot_list.append(count_gbt)
-    #             count_gbt += 1
 
     for i in range(3):
         for j in range(poses.max_n_blocks):
@@ -1127,16 +1109,9 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
 
 def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     n_poses = 2
-
-    # fd TEMP: NO TERM VARIANTS
-    # p = no_termini_pose_stack_from_pdb(
-    #     ubq_pdb, torch_device, residue_start=1, residue_end=14
-    # )
-    # APL Actually, term variants are totally fine now
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    # restype_set = poses.packed_block_types.restype_set
 
     palette = PackerPalette()
     task = PackerTask(poses, palette)
@@ -1172,13 +1147,11 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
 def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     n_poses = 2
 
-    # fd TEMP: NO TERM VARIANTS
     p = no_termini_pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_start=1, residue_end=14
     )
 
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    # restype_set = poses.packed_block_types.restype_set
 
     palette = PackerPalette()
     task = PackerTask(poses, palette)
@@ -1275,7 +1248,6 @@ def test_create_dofs_for_many_rotamers(
     n_poses = 6
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-    # restype_set = p.packed_block_types.restype_set
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette()
     task = PackerTask(poses, palette)
@@ -1420,7 +1392,6 @@ def test_new_rotamer_building_logic1(
 ):
     n_poses = 6
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-    # restype_set = p.packed_block_types.restype_set
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette()
@@ -1558,7 +1529,6 @@ def test_new_rotamer_building_logic2(
 ):
     n_poses = 6
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-    # restype_set = p.packed_block_types.restype_set
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette()
@@ -1580,7 +1550,6 @@ def test_new_rotamer_building_logic3(
 ):
     n_poses = 6
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-    # restype_set = p.packed_block_types.restype_set
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette()

@@ -40,15 +40,10 @@ def test_optH_rotamer_sampler(ubq_pdb, torch_device):
     from tmol.numeric.dihedrals import coord_dihedrals as _cd
 
     for i in range(task.allowed_bt_block_type.shape[0]):
-        # pose_i = 0
-        # for block_j, blt in enumerate(task.blts[pose_i]):
         pose_i = task.allowed_bt_pose[i].item()
         block_i = task.allowed_bt_block[i].item()
-        # block_type_i = task.allowed_bt_block_type[i].item()
-        # which_block_type = task.allowed_bt_which_block_type[i].item()
         orig_bt = task.per_block_orig_block_type[pose_i, block_i].item()
         orig = pose_stack.packed_block_types.active_block_types[orig_bt]
-        # bt = pose_stack.packed_block_types.active_block_types[block_type_i]
         if not hasattr(orig, "opth_sampler_cache"):
             continue
         cache = orig.opth_sampler_cache

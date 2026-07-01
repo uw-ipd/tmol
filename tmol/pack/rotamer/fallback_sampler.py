@@ -33,9 +33,6 @@ class FallbackSampler(ConformerSampler):
     something to represent for fixed residues.
     """
 
-    def __init__(self):
-        print("instantiating FallbackSampler", id(self))
-
     @classmethod
     def sampler_name(cls):
         return "FallbackSampler"
@@ -70,25 +67,6 @@ class FallbackSampler(ConformerSampler):
         sampler that defines conformers for it. So the first step is to look at the other conformers stored
         in the SetPackerTask and ask them which block types they define rotamers for.
         """
-        # n_rots_for_gbt_list = [
-        #     (
-        #         1
-        #         if bt is blt.original_block_type
-        #         and (
-        #             not numpy.any(blt.block_type_allowed)
-        #             or not any(
-        #                 s
-        #                 for s in blt.conformer_samplers
-        #                 if not isinstance(s, FallbackSampler)
-        #                 and s.defines_rotamers_for_rt(bt)
-        #             )
-        #         )
-        #         else 0
-        #     )
-        #     for one_pose_blts in task.blts
-        #     for blt in one_pose_blts
-        #     for bt in blt.considered_block_types
-        # ]
         n_allowed_per_block = task.per_block_is_block_type_allowed.to(torch.int32).sum(
             dim=2
         )
@@ -101,14 +79,6 @@ class FallbackSampler(ConformerSampler):
         ), "This sampler is not in the PackerTask's conformer samplers"
         self_ind_in_packer_task = task.conformer_sampler_index[id(self)]
 
-        # all_bts = torch.arange(
-        #     pose_stack.packed_block_types.n_types, device=pose_stack.device
-        # )
-        # all_bts_at_all_pos = torch.arange(
-        #     pose_stack.packed_block_types.n_block_types, device=pose_stack.device
-        # ).unsqueeze(0).unsqueeze(0).expand(
-        #     pose_stack.n_poses, pose_stack.max_n_blocks_per_pose, -1
-        # )
         if len(task.conformer_samplers) > 1:
             pbt = pose_stack.packed_block_types
             do_other_samplers_build_for_gbt = torch.stack(
