@@ -16,10 +16,14 @@ def lbfgs_two_loop(grad, dirs, stps):
     """
     S, Y = stps, dirs
     g = -grad
-    a = S.mv(g)  # (m,)  a_i = s_i . g
-    b = Y.mv(g)  # (m,)  b_i = y_i . g
-    SY = S @ Y.t()  # (m,m) SY_ij = s_i . y_j
-    YY = Y @ Y.t()  # (m,m) YY_ij = y_i . y_j
+    # Triangular solves are:
+    #  a) imprecise on CUDA at float32
+    #  b) small matrices (M x M) where M is history length (typically 128)
+    # Therefore promote to float64
+    a = S.mv(g).double()  # (m,)  a_i = s_i . g
+    b = Y.mv(g).double()  # (m,)  b_i = y_i . g
+    SY = (S @ Y.t()).double()  # (m,m) SY_ij = s_i . y_j
+    YY = (Y @ Y.t()).double()  # (m,m) YY_ij = y_i . y_j
     R = torch.triu(SY)  # upper-triangular incl. diagonal
     D = SY.diagonal()  # (m,)  D_i = s_i . y_i
 
@@ -30,6 +34,9 @@ def lbfgs_two_loop(grad, dirs, stps):
     # p1 = R^-T v
     p1 = torch.linalg.solve_triangular(R.t(), v.unsqueeze(-1), upper=False).squeeze(-1)
     p2 = -u
+
+    p1 = p1.to(g.dtype)
+    p2 = p2.to(g.dtype)
 
     # result = g + S p1 + Y p2
     return g + p1 @ S + p2 @ Y
