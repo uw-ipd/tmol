@@ -160,7 +160,6 @@ def pose_stack_from_biotite(
             sfxn,
             dunbrack_sampler,
             block_has_missing_atoms,
-            context.restype_set,
             no_optH=no_optH,
         )
 

@@ -58,64 +58,6 @@ class PackerPalette:
     def __init__(self):
         pass
 
-    # def block_types_from_original_old(self, orig: RefinedResidueType):
-    #     # ok, this is where we figure out what the allowed restypes
-    #     # are for a residue; this might be complex logic.
-    #     # Derived versions of this class can override this method to
-    #     # implement different logic, e.g., to allow HIS_POS or D-AAs.
-
-    #     # TO BE DEPRECATED!
-
-    #     keepers = []
-    #     for bt in self.rts.residue_types:
-    #         if (
-    #             bt.properties.polymer.is_polymer == orig.properties.polymer.is_polymer
-    #             and bt.properties.polymer.polymer_type
-    #             == orig.properties.polymer.polymer_type
-    #             and bt.properties.polymer.backbone_type
-    #             == orig.properties.polymer.backbone_type
-    #             and bt.connections
-    #             == orig.connections  # fd  use this instead of terminal variant check
-    #             and set_compare(
-    #                 bt.properties.chemical_modifications,
-    #                 orig.properties.chemical_modifications,
-    #             )
-    #             and set_compare(
-    #                 bt.properties.connectivity, orig.properties.connectivity
-    #             )
-    #             and bt.properties.protonation.protonation_state
-    #             == orig.properties.protonation.protonation_state
-    #         ):
-    #             if (
-    #                 bt.properties.polymer.sidechain_chirality
-    #                 == orig.properties.polymer.sidechain_chirality
-    #             ):
-    #                 keepers.append(bt)
-    #             elif orig.properties.polymer.polymer_type == "amino_acid" and (
-    #                 (
-    #                     orig.properties.polymer.sidechain_chirality == "l"
-    #                     and bt.properties.polymer.sidechain_chirality == "achiral"
-    #                 )
-    #                 or (
-    #                     orig.properties.polymer.sidechain_chirality == "achiral"
-    #                     and bt.properties.polymer.sidechain_chirality == "l"
-    #                 )
-    #             ):
-    #                 # allow glycine <--> l-caa mutations
-    #                 keepers.append(bt)
-    #             elif (
-    #                 orig.properties.polymer.polymer_type == "amino_acid"
-    #                 and orig.properties.polymer.sidechain_chirality == "d"
-    #                 and bt.properties.polymer.sidechain_chirality == "achiral"
-    #             ):
-    #                 # allow d-caa --> glycine mutations;
-    #                 # dangerous because this packer pallete will allow
-    #                 # your d-caa to become glycine, and then later
-    #                 # to an l-caa, but not the other way around
-    #                 keepers.append(bt)
-
-    #     return keepers
-
     def block_types_from_original(
         self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
     ) -> tuple[
@@ -321,11 +263,7 @@ class PackerTask:
         self.real_block_pose, self.real_block_block = torch.nonzero(
             self.is_real_block, as_tuple=True
         )
-        self.per_block_orig_block_type = torch.zeros(
-            (systems.n_poses, systems.max_n_blocks),
-            dtype=torch.int32,
-            device=systems.device,
-        )
+        self.per_block_orig_block_type = systems.block_type_ind64.detach().clone()
         (
             self.per_block_n_considered_block_types,
             self.per_block_considered_block_types,

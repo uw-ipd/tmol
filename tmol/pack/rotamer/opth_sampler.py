@@ -370,7 +370,6 @@ class OptHSampler(ConformerSampler):
         for n in n_samples_per_chi:
             if n > 0:
                 n_proton_samples_total *= int(n)
-
         setattr(
             rt,
             "opth_sampler_cache",
@@ -774,27 +773,6 @@ class OptHSampler(ConformerSampler):
             ]
         )
 
-    # def _fill_proton_chi_block(
-    #     self,
-    #     pose_stack,
-    #     bt_cache,
-    #     rot_offset,
-    #     chi_defining_atom_for_rotamer,
-    #     chi_for_rotamers,
-    # ):
-    #     ci = next(
-    #         i for i in range(bt_cache.n_chi_total) if bt_cache.chi_defining_atom[i] >= 0
-    #     )
-    #     n_samp = int(bt_cache.n_samples_per_chi[ci])
-    #     chi_defining_atom_for_rotamer[rot_offset : rot_offset + n_samp, ci] = int(
-    #         bt_cache.chi_defining_atom[ci]
-    #     )
-    #     chi_for_rotamers[rot_offset : rot_offset + n_samp, ci] = torch.tensor(
-    #         bt_cache.expanded_samples[ci, :n_samp],
-    #         dtype=torch.float32,
-    #         device=pose_stack.device,
-    #     )
-
     def _fill_all_nhq_blocks(
         self,
         pose_stack,
@@ -897,36 +875,6 @@ class OptHSampler(ConformerSampler):
             opth_cache.nhq_chi_atom[bt_for_flipped_rotamer]
         )
 
-    # def _fill_nhq_block(
-    #     self,
-    #     bt,
-    #     blt,
-    #     bt_cache,
-    #     orig_cache,
-    #     flip_chi,
-    #     rot_offset,
-    #     chi_defining_atom_for_rotamer,
-    #     chi_for_rotamers,
-    # ):
-    #     # Two NHQ rotamers per (blt, considered-bt):
-    #     #   offset 0 = input chi  (no rotation)
-    #     #   offset 1 = input chi + 180 deg
-    #     # Setting chi_defining_atom_for_rotamer >= 0 marks a rotamer for
-    #     # chi-override + downstream-rebuild in _opth_fill_dofs; rotamers
-    #     # left at -1 inherit input DOFs unchanged.  So we only mark offsets
-    #     # whose chi actually differs from input.
-    #     chi_col = orig_cache.nhq_chi_col
-
-    #     # Offset 0: chi == input, so only mark on HIS<->HIS_D tautomer swap
-    #     # (atom layout differs, ring must be rebuilt from ideal).
-    #     if orig_cache.is_his and bt is not blt.original_block_type:
-    #         chi_defining_atom_for_rotamer[rot_offset, chi_col] = bt_cache.nhq_chi_atom
-    #         chi_for_rotamers[rot_offset, chi_col] = float(flip_chi)
-
-    #     # Offset 1: always the +180 deg flip, always marked.
-    #     chi_defining_atom_for_rotamer[rot_offset + 1, chi_col] = bt_cache.nhq_chi_atom
-    #     chi_for_rotamers[rot_offset + 1, chi_col] = float(flip_chi) + math.pi
-
     def _fill_all_chi_tensors(
         self,
         pose_stack,
@@ -952,57 +900,6 @@ class OptHSampler(ConformerSampler):
             chi_defining_atom_for_rotamer,
             chi_for_rotamers,
         )
-
-    # def _fill_chi_tensors(
-    #     self,
-    #     pose_stack,
-    #     task,
-    #     n_rots_for_gbt_list,
-    #     pos_flip_chi,
-    #     chi_defining_atom_for_rotamer,
-    #     chi_for_rotamers,
-    # ):
-    #     rot_offset = 0
-    #     gbt_idx = 0
-    #     for pose_i, one_pose_blts in enumerate(task.blts):
-    #         for block_j, blt in enumerate(one_pose_blts):
-    #             orig_cache = blt.original_block_type.opth_sampler_cache
-    #             flip_chi = pos_flip_chi.get((pose_i, block_j), None)
-    #             opth_assigned = self in blt.conformer_samplers
-
-    #             for bt in blt.considered_block_types:
-    #                 if not opth_assigned:
-    #                     gbt_idx += 1
-    #                     continue
-    #                 n_rots = n_rots_for_gbt_list[gbt_idx]
-    #                 gbt_idx += 1
-    #                 if n_rots == 0:
-    #                     continue
-
-    #                 bt_cache = bt.opth_sampler_cache
-    #                 # Proton chi (SER/THR/TYR/CYS) ... just flip chi
-    #                 if bt_cache.has_proton_chi and bt is blt.original_block_type:
-    #                     self._fill_proton_chi_block(
-    #                         pose_stack,
-    #                         bt_cache,
-    #                         rot_offset,
-    #                         chi_defining_atom_for_rotamer,
-    #                         chi_for_rotamers,
-    #                     )
-    #                 # NHQ: flip and (for flips/tautamer change) idealize downstream
-    #                 elif self.flip_NHQ and orig_cache.nhq_chi_col >= 0:
-    #                     self._fill_nhq_block(
-    #                         bt,
-    #                         blt,
-    #                         bt_cache,
-    #                         orig_cache,
-    #                         flip_chi,
-    #                         rot_offset,
-    #                         chi_defining_atom_for_rotamer,
-    #                         chi_for_rotamers,
-    #                     )
-
-    #                 rot_offset += n_rots
 
     def create_samples_for_poses(
         self,

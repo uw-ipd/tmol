@@ -14,7 +14,6 @@ def build_missing_sidechains(
     sfxn: ScoreFunction,
     dunbrack_sampler: DunbrackChiSampler,
     block_has_missing_atoms: Tensor[torch.bool][:, :],
-    rts,
     no_optH: bool = False,
 ) -> PoseStack:
     """Build missing sidechains and place hydrogens using per-block sampler assignment.
@@ -43,7 +42,6 @@ def build_missing_sidechains(
         dunbrack_sampler: DunbrackChiSampler configured from the parameter DB.
         block_has_missing_atoms: Boolean tensor [n_poses, max_n_blocks]; True
             for blocks that have missing non-leaf (heavy) atoms.
-        rts: ResidueTypeSet (unused directly; kept for API compatibility).
         no_optH: When True, skip OptH and preserve old Dunbrack-only behavior.
 
     Returns:

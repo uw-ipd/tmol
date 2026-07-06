@@ -97,9 +97,14 @@ auto AnnealerDispatch<D>::forward(
       // Initial assignment: assign a rotamer to every residue
       for (int i = 0; i < max_n_res; ++i) {
         int const i_n_rots = n_rotamers_for_res[pose][i];
-        int rand_rot = rand() % i_n_rots;
-        current_rotamer_assignments[pose][traj][i] = rand_rot;
-        best_rotamer_assignments[pose][traj][i] = rand_rot;
+        if (i_n_rots == 0) {
+          current_rotamer_assignments[pose][traj][i] = -1;
+          best_rotamer_assignments[pose][traj][i] = -1;
+        } else {
+          int rand_rot = rand() % i_n_rots;
+          current_rotamer_assignments[pose][traj][i] = rand_rot;
+          best_rotamer_assignments[pose][traj][i] = rand_rot;
+        }
       }
 
       float temperature = high_temp;
