@@ -137,7 +137,8 @@ class HBondParamResolver(ValidateAttrs):
                     {
                         "range": [p.xmin, p.xmax],
                         "bound": [p.min_val, p.max_val],
-                        "coeffs": [getattr(p, "c_" + i) for i in "abcdefghijk"],
+                        # polynomial.hh expects order `c_10, c_9, ..., c_0`
+                        "coeffs": [getattr(p, f"c_{n}") for n in range(10, -1, -1)],
                     }
                     for p in hbond_database.polynomial_parameters
                 ],

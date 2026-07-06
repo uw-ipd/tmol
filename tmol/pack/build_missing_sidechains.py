@@ -14,7 +14,6 @@ def build_missing_sidechains(
     sfxn: ScoreFunction,
     dunbrack_sampler: DunbrackChiSampler,
     block_has_missing_atoms: Tensor[torch.bool][:, :],
-    rts,
     no_optH: bool = False,
 ) -> PoseStack:
     """Build missing sidechains and place hydrogens using per-block sampler assignment.
@@ -43,7 +42,6 @@ def build_missing_sidechains(
         dunbrack_sampler: DunbrackChiSampler configured from the parameter DB.
         block_has_missing_atoms: Boolean tensor [n_poses, max_n_blocks]; True
             for blocks that have missing non-leaf (heavy) atoms.
-        rts: ResidueTypeSet (unused directly; kept for API compatibility).
         no_optH: When True, skip OptH and preserve old Dunbrack-only behavior.
 
     Returns:
@@ -52,28 +50,23 @@ def build_missing_sidechains(
     """
     from tmol.pack.rotamer.opth_sampler import OptHSampler
 
-    restype_set = pose_stack.packed_block_types.restype_set
-    palette = PackerPalette(restype_set)
+    assert block_has_missing_atoms.device == pose_stack.device
+
+    palette = PackerPalette()
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()
 
     fixed_sampler = FixedAAChiSampler()
     opth_sampler = None if no_optH else OptHSampler()
 
-    for pose_ind in range(block_has_missing_atoms.size(0)):
-        for block_ind in range(block_has_missing_atoms.size(1)):
-            if not pose_stack.is_real_block(pose_ind, block_ind):
-                continue
-            blt = task.blts[pose_ind][block_ind]
-            if block_has_missing_atoms[pose_ind, block_ind]:
-                # Missing heavy atoms: rebuild sidechain from Dunbrack library.
-                # Do not include the broken input conformation as a rotamer.
-                blt.add_conformer_sampler(dunbrack_sampler)
-                blt.add_conformer_sampler(fixed_sampler)
-            elif no_optH:
-                blt.disable_packing()
-            else:
-                # Complete heavy atoms: optimize proton placement with OptH.
-                blt.add_conformer_sampler(opth_sampler)
+    task.add_conformer_sampler_by_block_mask(dunbrack_sampler, block_has_missing_atoms)
+    task.add_conformer_sampler_by_block_mask(fixed_sampler, block_has_missing_atoms)
+    block_does_not_have_missing_atoms = torch.logical_not(block_has_missing_atoms)
+    if not no_optH:
+        task.add_conformer_sampler_by_block_mask(
+            opth_sampler, block_does_not_have_missing_atoms
+        )
+    else:
+        task.disable_packing_by_block_mask(block_does_not_have_missing_atoms)
 
     return pack_rotamers(pose_stack, sfxn, task, verbose=False)

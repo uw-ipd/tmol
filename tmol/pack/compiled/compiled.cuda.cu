@@ -532,7 +532,7 @@ struct Annealer {
   static auto run_simulated_annealing(
       ContextManager& mgr, IG ig, at::CUDAGeneratorImpl* gen)
       -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
-    printf("Run simulated annealing\n");
+    // printf("Run simulated annealing\n");
     int const n_poses = ig.n_poses_cpu();
     int const max_n_res = ig.max_n_res_cpu();
     int const n_rotamers_total = ig.n_rotamers_total_cpu();
@@ -858,13 +858,17 @@ struct Annealer {
       int const n_res = ig.n_res(pose);
       int const n_rotamers = ig.n_rotamers(pose);
 
+      if (g.thread_rank() == 0) {
+        sorted_fullquench_traj[pose][traj_id] = traj_id;
+      }
+
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         int i_rot = current_rotamer_assignments_lotemp[pose][source_traj][i];
         current_rotamer_assignments_fullquench[pose][traj_id][i] = i_rot;
         best_rotamer_assignments_fullquench[pose][traj_id][i] = i_rot;
       }
 
-      float after_full_quench_totalE = warp_wide_sim_annealing(
+      warp_wide_sim_annealing(
           pose,
           traj_id,
           &state,
@@ -880,8 +884,11 @@ struct Annealer {
           n_rotamers,
           true,
           false);
+      // rescore best assignment
+      float best_totalE = ig.total_energy_for_assignment_parallel(
+          pose, g, best_rotamer_assignments_fullquench[pose][traj_id]);
       if (g.thread_rank() == 0) {
-        scores_fullquench[pose][traj_id] = after_full_quench_totalE;
+        scores_fullquench[pose][traj_id] = best_totalE;
       }
     });
 
@@ -895,7 +902,7 @@ struct Annealer {
       int const source_traj = sorted_fullquench_traj[pose][traj_id];
       int const n_res = ig.n_res(pose);
       if (g.thread_rank() == 0) {
-        scores_final[pose][traj_id] = scores_fullquench[pose][source_traj];
+        scores_final[pose][traj_id] = scores_fullquench[pose][traj_id];
       }
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         rotamer_assignments_final[pose][traj_id][i] =
@@ -905,51 +912,49 @@ struct Annealer {
 
     std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
-    printf("hitemp_simulated_annealing %d\n", n_hitemp_simA_threads);
+    // printf("hitemp_simulated_annealing %d\n", n_hitemp_simA_threads);
     mgpu::transform<32, 1>(
         hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
 
-    printf("segmented_sort scores_hitemp\n");
+    // printf("segmented_sort scores_hitemp\n");
     mgpu::segmented_sort(
         scores_hitemp.data(),
         sorted_hitemp_traj.data(),
-        n_hitemp_simA_traj,
+        n_poses * n_hitemp_simA_traj,
         segment_heads_hitemp.data(),
         n_poses,
         mgpu::less_t<float>(),
         *context);
 
-    printf("lotemp_simulated_annealing %d\n", n_lotemp_simA_threads);
+    // printf("lotemp_simulated_annealing %d\n", n_lotemp_simA_threads);
     mgpu::transform<32, 1>(
         lotemp_simulated_annealing, n_lotemp_simA_threads, *context);
 
-    printf("segmented_sort scores_lotemp\n");
+    // printf("segmented_sort scores_lotemp\n");
     mgpu::segmented_sort(
         scores_lotemp.data(),
         sorted_lotemp_traj.data(),
-        n_lotemp_simA_traj,
+        n_poses * n_lotemp_simA_traj,
         segment_heads_lotemp.data(),
         n_poses,
         mgpu::less_t<float>(),
         *context);
 
-    printf("fullquence\n");
     mgpu::transform<32, 1>(fullquench, n_fullquench_threads, *context);
 
-    printf("segmented_sort scores_fullquench\n");
+    // printf("segmented_sort scores_fullquench\n");
     mgpu::segmented_sort(
         scores_fullquench.data(),
         sorted_fullquench_traj.data(),
-        n_fullquench_traj,
+        n_poses * n_fullquench_traj,
         segment_heads_fullquench.data(),
         n_poses,
         mgpu::less_t<float>(),
         *context);
 
-    printf("final_reindexing %d\n", n_fullquench_threads);
     mgpu::transform<32, 1>(final_reindexing, n_fullquench_threads, *context);
 
-    printf("Done!\n");
+    // printf("Done!\n");
     return {scores_final_t, rotamer_assignments_final_t};
   }
 };
@@ -970,7 +975,7 @@ auto AnnealerDispatch<D>::forward(
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
     -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
-  printf("AnnealerDispatch<D>::forward\n");
+  // printf("AnnealerDispatch<D>::forward\n");
   clock_t start = clock();
 
   int const n_poses_cpu = pose_n_res.size(0);
@@ -986,12 +991,11 @@ auto AnnealerDispatch<D>::forward(
 
   {
     int const count = n_poses_cpu * max_n_res_cpu;
-    printf("count num neighbors\n");
     mgpu::transform<128, 1>(
         [=] MGPU_DEVICE(int idx) {
-          if (idx == 0) {
-            printf("inside count num neighbors\n");
-          }
+          // if (idx == 0) {
+          //   printf("inside count num neighbors\n");
+          // }
           if (idx >= count) return;
           int pose = idx / max_n_res_cpu;
           int b = idx % max_n_res_cpu;
@@ -1007,7 +1011,6 @@ auto AnnealerDispatch<D>::forward(
         },
         count,
         *context);
-    printf("counted num neighbors\n");
   }
 
   auto neighbor_starts_t =
@@ -1015,17 +1018,6 @@ auto AnnealerDispatch<D>::forward(
   auto neighbor_starts = neighbor_starts_t.view;
   int total_neighbors;
   {
-    printf("cuda stream %p\n", context->stream());
-    CUDA_CHECK(cudaStreamSynchronize(context->stream()));
-    printf(
-        "scan neighbor starts; context %p stream %p \n",
-        context.get(),
-        context->stream());
-    printf(
-        "%d * %d = %d\n",
-        n_poses_cpu,
-        max_n_res_cpu,
-        n_poses_cpu * max_n_res_cpu);
     mgpu::mem_t<int> total(1, *context, mgpu::memory_space_host);
     mgpu::scan<mgpu::scan_type_exc>(
         n_neighbors.data(),
@@ -1036,7 +1028,6 @@ auto AnnealerDispatch<D>::forward(
         *context);
     CUDA_CHECK(cudaStreamSynchronize(context->stream()));
     total_neighbors = total.data()[0];
-    printf("total neighbors %d\n", total_neighbors);
   }
 
   auto neighbor_list_t =
@@ -1044,7 +1035,6 @@ auto AnnealerDispatch<D>::forward(
   auto neighbor_list = neighbor_list_t.view;
 
   {
-    printf("Record neighbors\n");
     int const count = n_poses_cpu * max_n_res_cpu;
     mgpu::transform<128, 1>(
         [=] MGPU_DEVICE(int idx) {

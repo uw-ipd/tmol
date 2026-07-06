@@ -68,7 +68,8 @@ struct lj_score {
       LJTypeParams<Real> i,
       LJTypeParams<Real> j,
       LJGlobalParams<Real> global) -> std::array<Real, 2> {
-    Real cpoly_dmax = 6.0;
+    Real cpoly_dmax = global.max_dis;
+    Real spline_start = global.max_dis - Real(1.5);
 
     Real weight;
     Real Vatr, Vrep;
@@ -79,10 +80,11 @@ struct lj_score {
     } else {
       Real sigma = lj_sigma<Real>(i, j, global);
       Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
-      Real d_lin = sigma * 0.6;
-      Real cpoly_dmin =
-          sigma > 4.5 ? (sigma > cpoly_dmax - 0.1 ? cpoly_dmax - 0.1 : sigma)
-                      : 4.5;
+      Real d_lin = sigma * global.lj_dlin_sigma_factor;
+      Real cpoly_dmin = sigma > spline_start ? (sigma > cpoly_dmax - Real(0.1)
+                                                    ? cpoly_dmax - Real(0.1)
+                                                    : sigma)
+                                             : spline_start;
 
       weight = connectivity_weight<Real, Real>(bonded_path_length);
       if (dist > cpoly_dmin) {
@@ -120,12 +122,15 @@ struct lj_score {
     Real weight = connectivity_weight<Real, Real>(bonded_path_length);
     Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
 
-    Real d_lin = sigma * 0.6;
-    Real cpoly_dmin = 4.5;
+    // Real d_lin = sigma * 0.6;
+    Real d_lin = sigma * global.lj_dlin_sigma_factor;
+
+    Real cpoly_dmax = global.max_dis;
+    Real cpoly_dmin = global.max_dis - Real(1.5);
     if (sigma > cpoly_dmin) cpoly_dmin = sigma;
 
-    Real cpoly_dmax = 6.0;
-    if (cpoly_dmin > cpoly_dmax - 0.1) cpoly_dmin = cpoly_dmax - 0.1;
+    if (cpoly_dmin > cpoly_dmax - Real(0.1))
+      cpoly_dmin = cpoly_dmax - Real(0.1);
 
     Real lj, d_lj_d_dist;
 

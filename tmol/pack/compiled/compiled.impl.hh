@@ -5,6 +5,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/context_manager.hh>
 
+// TEMP!
 #ifdef __NVCC__
 #include <tmol/utility/tensor/torch_context.hh>
 #endif
@@ -112,7 +113,12 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   assert(sparse_inds.size(0) == 3);
   assert(sparse_energies.size(0) == n_sparse_entries);
 
-  printf("Input block_ind_for_rot %p\n", block_ind_for_rot.data());
+  //  auto energy1b_tp = TPack<Real, 1, D>::zeros({n_rotamers});
+  //  auto energy1b = energy1b_tp.view;
+  //  auto n_chunks_for_block_tp =
+  //      TPack<int32_t, 2, D>::zeros({n_poses, max_n_blocks});
+  //  auto n_chunks_for_block = n_chunks_for_block_tp.view;
+  // printf("Input block_ind_for_rot %p\n", block_ind_for_rot.data());
 
   LAUNCH_BOX_32;
   CTA_REAL_REDUCE_T_TYPEDEF;
@@ -123,7 +129,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   // So we declare this tensor outside of the scope of the
   // first-pass construction.
   int64_t const keep_rotamer_default = bump_check ? 0 : 1;
-  printf("keep rotamer default %ld\n", keep_rotamer_default);
+  // printf("keep rotamer default %ld\n", keep_rotamer_default);
   auto keep_rotamer_tp =
       TPack<int64_t, 1, D>::full({n_rotamers}, keep_rotamer_default);
   auto keep_rotamer = keep_rotamer_tp.view;
@@ -706,9 +712,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto old_to_new_rotamer_index_tp =
       TPack<int64_t, 1, tmol::Device::CPU>::zeros({n_rotamers});
   auto old_to_new_rotamer_index = old_to_new_rotamer_index_tp.view;
-  printf(
-      "Allocated old_to_new_rotamer_index %p\n",
-      old_to_new_rotamer_index.data());
+  // printf(
+  //     "Allocated old_to_new_rotamer_index %p\n",
+  //     old_to_new_rotamer_index.data());
 
   // printf("scan_and_return_total keep_rotamer\n");
   int64_t const n_kept_rotamers =
@@ -1189,29 +1195,29 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto bg_bg_energies_tp = TPack<Real, 1, D>::zeros({n_poses});
   auto bg_bg_energies = bg_bg_energies_tp.view;
 
-  printf(
-      "Before record_e2b o2n %p bi4r %p b2mb %p bcoff4mb %p nbc4mb %p "
-      "cpoff_for_mbp %p\n",
-      old_to_new_rotamer_index.data(),
-      block_ind_for_rot.data(),
-      block_to_molten_block_inds.data(),
-      bc_rot_offset_for_molten_block.data(),
-      n_bc_rots_for_molten_block.data(),
-      chunk_pair_offset_for_block_pair.data());
+  // printf(
+  //     "Before record_e2b o2n %p bi4r %p b2mb %p bcoff4mb %p nbc4mb %p "
+  //     "cpoff_for_mbp %p\n",
+  //     old_to_new_rotamer_index.data(),
+  //     block_ind_for_rot.data(),
+  //     block_to_molten_block_inds.data(),
+  //     bc_rot_offset_for_molten_block.data(),
+  //     n_bc_rots_for_molten_block.data(),
+  //     chunk_pair_offset_for_block_pair.data());
 
   auto record_energies_in_energy1b_and_energy2b = ([=] TMOL_DEVICE_FUNC(
                                                        int64_t index) {
-    if (index == 0) {
-      printf(
-          "Inside record_e2b o2n %p bi4r %p b2mb %p bcoff4mb %p nbc4mb %p "
-          "cpoff_for_mbp %p\n",
-          old_to_new_rotamer_index.data(),
-          block_ind_for_rot.data(),
-          block_to_molten_block_inds.data(),
-          bc_rot_offset_for_molten_block.data(),
-          n_bc_rots_for_molten_block.data(),
-          chunk_pair_offset_for_block_pair.data());
-    }
+    // if (index == 0) {
+    //   printf(
+    //       "Inside record_e2b o2n %p bi4r %p b2mb %p bcoff4mb %p nbc4mb %p "
+    //       "cpoff_for_mbp %p\n",
+    //       old_to_new_rotamer_index.data(),
+    //       block_ind_for_rot.data(),
+    //       block_to_molten_block_inds.data(),
+    //       bc_rot_offset_for_molten_block.data(),
+    //       n_bc_rots_for_molten_block.data(),
+    //       chunk_pair_offset_for_block_pair.data());
+    // }
     int const pose = sparse_inds[0][index];
     int const rot1 = sparse_inds[1][index];
     int const rot2 = sparse_inds[2][index];

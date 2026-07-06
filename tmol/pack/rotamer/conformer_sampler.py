@@ -30,6 +30,11 @@ class ConformerSampler:
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         raise NotImplementedError()
 
+    def defines_rotamers_for_bts(
+        self, pbt: PackedBlockTypes, bt_inds: Tensor[torch.int64]
+    ) -> Tensor[torch.bool]:
+        raise NotImplementedError()
+
     @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         raise NotImplementedError()

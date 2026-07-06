@@ -20,7 +20,7 @@ def ubq_ig():
 
 
 def test_load_ig(ubq_ig):
-    print("test_load_ig")
+    # print("test_load_ig")
     oneb, twob = ubq_ig
     assert len(oneb) == 76
     nrots = numpy.zeros((76,), dtype=int)
@@ -279,7 +279,7 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
 
 
 def test_construct_rotamer_set_and_sparse_energies_table_from_ig(ubq_ig, torch_device):
-    print("test_construct_rotamer_set_and_sparse_energies_table_from_ig", torch_device)
+    # print("test_construct_rotamer_set_and_sparse_energies_table_from_ig", torch_device)
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
     # Step 1: convert the IG that we're getting from disk
@@ -356,7 +356,7 @@ def test_construct_rotamer_set_and_sparse_energies_table_from_ig(ubq_ig, torch_d
 
 
 def test_build_interaction_graph(ubq_ig, torch_device):
-    print("test_build_interaction_graph", torch_device)
+    # print("test_build_interaction_graph", torch_device)
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
     # Step 1: convert the IG that we're getting from disk
@@ -504,7 +504,7 @@ def test_build_interaction_graph(ubq_ig, torch_device):
 
 
 def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
-    print("test_build_multi_pose_interaction_graph", torch_device)
+    # print("test_build_multi_pose_interaction_graph", torch_device)
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
     # Step 1: convert the IG that we're getting from disk
@@ -654,7 +654,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
 
 
 def test_run_single_pose_simA(ubq_ig, torch_device):
-    print("test_run_single_pose_simA", torch_device)
+    # print("test_run_single_pose_simA", torch_device)
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
     # Step 1: convert the IG that we're getting from disk
@@ -729,7 +729,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
 
 
 def test_run_two_poses_simA(ubq_ig, torch_device):
-    print("test_run_two_poses_simA", torch_device)
+    # print("test_run_two_poses_simA", torch_device)
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
     ps, rotamer_set, energy1b, sparse_indices, energies = (

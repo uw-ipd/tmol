@@ -1,3 +1,4 @@
+import attr
 import torch
 
 from tmol.pose.constraint_set import ConstraintSet
@@ -189,3 +190,56 @@ def test_constraint_set_concatenate_constraints_2(torch_device, ubq_pdb):
     assert cs.constraint_num_unique_blocks.shape == (2,)
     assert cs.constraint_unique_blocks.shape == (2, 3)
     assert len(cs.constraint_functions) == 1
+
+
+def test_split_constraint_set(default_database, ubq_pdb, torch_device):
+    n_poses = 4
+    poses = [
+        pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20 + i)
+        for i in range(n_poses)
+    ]
+
+    # let's create a bunch of harmonic constraints between adjacent C-N pairs
+    # and set the distances to be slightly off from ideal, so that we generate
+    # a non-zero constraint energy
+    cst_energy = ConstraintEnergyTerm(default_database, torch_device)
+    individual_constraint_energies = []
+    for i in range(n_poses):
+        cnstr_atoms1 = torch.full(
+            (poses[i].max_n_blocks - 1, 2, 3), 0, dtype=torch.int32, device=torch_device
+        )
+        cnstr_params1 = torch.full(
+            (poses[i].max_n_blocks - 1, 2), 0, dtype=torch.float32, device=torch_device
+        )
+        for j in range(poses[i].max_n_blocks - 1):
+
+            ij_res1_type = poses[i].block_type(0, j)
+            ij_res2_type = poses[i].block_type(0, j + 1)
+            cnstr_atoms1[j, 0] = torch.tensor([0, j, ij_res1_type.atom_to_idx["C"]])
+            cnstr_atoms1[j, 1] = torch.tensor([0, j + 1, ij_res2_type.atom_to_idx["N"]])
+            cnstr_params1[j, 0] = 1.6  # instead of 1.47
+            cnstr_params1[j, 1] = 0.1
+        i_cst_set = ConstraintSet.create_empty(torch_device, 1).add_constraints(
+            ConstraintEnergyTerm.harmonic, cnstr_atoms1, cnstr_params1
+        )
+        poses[i] = attr.evolve(poses[i], constraint_set=i_cst_set)
+        i_whole_pose_energy = cst_energy.render_whole_pose_scoring_module(poses[i])
+        i_whole_pose_energy_value = i_whole_pose_energy(poses[i].coords)
+        individual_constraint_energies.append(i_whole_pose_energy_value)
+
+    pose_stack = PoseStackBuilder.from_poses(poses, torch_device)
+    cst_energy = ConstraintEnergyTerm(default_database, torch_device)
+    whole_stack_energy = cst_energy.render_whole_pose_scoring_module(pose_stack)
+    whole_stack_energy_value = whole_stack_energy(pose_stack.coords)
+    torch.testing.assert_close(
+        whole_stack_energy_value, torch.concat(individual_constraint_energies, dim=1)
+    )
+
+    # Now let's split the constraint set and PoseStack and rescore
+    for i in range(n_poses):
+        split_pose_stack = pose_stack.split(i)
+        split_cst_energy = cst_energy.render_whole_pose_scoring_module(split_pose_stack)
+        split_energy_value = split_cst_energy(split_pose_stack.coords)
+        torch.testing.assert_close(
+            split_energy_value, individual_constraint_energies[i]
+        )

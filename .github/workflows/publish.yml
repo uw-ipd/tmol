@@ -1,78 +1,212 @@
-# Build wheels + sdist, upload sdist to TestPyPI, upload wheels to GitHub Release.
+# Build wheels + sdist, upload sdist to PyPI, upload wheels to GitHub Release.
 #
-# Runs on push to master/kdidi/** or manual trigger.
-# Safe to run on every push: TestPyPI rejects duplicate versions,
-# so the upload step is a no-op if the version already exists.
+# Runs on version tag push or manual trigger.
 #
-# PyPI/TestPyPI rejects wheel filenames with "+" local version segments
+# PyPI rejects wheel filenames with "+" local version segments
 # (e.g. +cu128torch2.10), so wheels are distributed via GitHub Releases
-# and installed with: pip install tmol --find-links <release-url>
+# and installed via explicit wheel URL (or pinned local version with
+# --find-links).
 #
 # Three separate jobs so you can RE-RUN just the upload if it fails
 # without rebuilding wheels/sdist.
 
-name: Publish to TestPyPI
+name: Publish Release Artifacts
 
 on:
   push:
-    branches: [master, "kdidi/**"]
+    tags: ["v*"]
   workflow_dispatch:
 
 jobs:
+  verify_release_version:
+    name: Verify release tag matches project version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Ensure tag and pyproject version are aligned
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          ref_type = os.environ.get("GITHUB_REF_TYPE", "")
+          ref_name = os.environ.get("GITHUB_REF_NAME", "")
+          if ref_type != "tag":
+              print(
+                  "This workflow must run on a tag ref (e.g. v0.1.15). "
+                  f"Got ref_type={ref_type!r}, ref_name={ref_name!r}."
+              )
+              sys.exit(1)
+
+          if not ref_name.startswith("v"):
+              print(f"Release tag must start with 'v'. Got: {ref_name!r}.")
+              sys.exit(1)
+
+          tag_version = ref_name[1:]
+          pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          project_version = pyproject.get("project", {}).get("version")
+          if not project_version:
+              print("Could not parse [project].version from pyproject.toml.")
+              sys.exit(1)
+          if tag_version != project_version:
+              print(
+                  "Tag/version mismatch detected:\\n"
+                  f"  tag: v{tag_version}\\n"
+                  f"  pyproject.toml version: {project_version}\\n"
+                  "Update pyproject version or retag before publishing."
+              )
+              sys.exit(1)
+
+          print(f"Release version check passed: v{tag_version}")
+          PY
+
   # ── GPU wheels ───────────────────────────────────────────────────────
   build_wheels:
     name: "${{ matrix.label }}"
+    needs: verify_release_version
     strategy:
       fail-fast: false
       matrix:
         include:
-          # ── x86_64 cp312 (NGC native) ──
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
+          # ── x86_64 py3.11 (NGC native) ──
+          - python-version: "3.11"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            runs-on: ubuntu-22.04
+            label: "py3.11 pt2.12 x86_64 NGC"
+
+          # ── x86_64 py3.12 (NGC native) ──
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.8"
             runs-on: ubuntu-22.04
-            label: "cp312 pt2.8 x86_64 NGC"
-          - container-image: nvcr.io/nvidia/pytorch:25.10-py3
+            label: "py3.12 pt2.8 x86_64 NGC"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:25.10-py3
             torch-version: "2.9"
             runs-on: ubuntu-22.04
-            label: "cp312 pt2.9 x86_64 NGC"
-          - container-image: nvcr.io/nvidia/pytorch:26.01-py3
+            label: "py3.12 pt2.9 x86_64 NGC"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:26.01-py3
             torch-version: "2.10"
             runs-on: ubuntu-22.04
-            label: "cp312 pt2.10 x86_64 NGC"
+            label: "py3.12 pt2.10 x86_64 NGC"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:26.02-py3
+            torch-version: "2.11"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.11 x86_64 NGC"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.12 x86_64 NGC"
 
-          # ── x86_64 Colab (NGC 25.02 = CUDA 12.8, pip torch 2.10 cu128) ──
-          - container-image: nvcr.io/nvidia/pytorch:25.02-py3
+          # ── x86_64 py3.12 cu128 torch2.10 (foundry torch-2.10 upgrade path) ──
+          # Datacenter target (no sm_75); consumed by foundry upgrade_torch_cu12_to_210.sh.
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:25.02-py3
             torch-version: "2.10"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
             runs-on: ubuntu-22.04
-            label: "cp312 pt2.10 x86_64 Colab cu128"
+            label: "py3.12 pt2.10 x86_64 NGC cu128"
 
-          # ── ARM64 cp312 (NGC native) ──
-          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
+          # ── x86_64 py3.12 Colab wheel (T4/sm_75, torch 2.8 cu128) ──
+          # The ONLY wheel that carries sm_75. Matches Colab runtime 2025.10
+          # (Python 3.12, torch 2.8, T4); archs cover T4(75)/A100(80)/L4(89).
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:25.06-py3
+            torch-version: "2.8"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
+            cuda-archs: "75;80;89"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.8 x86_64 Colab cu128"
+
+          # ── ARM64 py3.11 (NGC native) ──
+          - python-version: "3.11"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.11 pt2.12 aarch64 NGC"
+
+          # ── ARM64 py3.12 (NGC native) ──
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.8"
             runs-on: ubuntu-24.04-arm
-            label: "cp312 pt2.8 aarch64 NGC"
-          - container-image: nvcr.io/nvidia/pytorch:25.10-py3
+            label: "py3.12 pt2.8 aarch64 NGC"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:25.10-py3
             torch-version: "2.9"
             runs-on: ubuntu-24.04-arm
-            label: "cp312 pt2.9 aarch64 NGC"
-          - container-image: nvcr.io/nvidia/pytorch:26.01-py3
+            label: "py3.12 pt2.9 aarch64 NGC"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:26.01-py3
             torch-version: "2.10"
             runs-on: ubuntu-24.04-arm
-            label: "cp312 pt2.10 aarch64 NGC"
+            label: "py3.12 pt2.10 aarch64 NGC"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:26.02-py3
+            torch-version: "2.11"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.12 pt2.11 aarch64 NGC"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.12 pt2.12 aarch64 NGC"
+
+          # ── x86_64 py3.13/py3.14 (NGC native, torch 2.12 only) ──
+          - python-version: "3.13"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            runs-on: ubuntu-22.04
+            label: "py3.13 pt2.12 x86_64 NGC"
+          - python-version: "3.14"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            runs-on: ubuntu-22.04
+            label: "py3.14 pt2.12 x86_64 NGC"
+
+          # ── ARM64 py3.13/py3.14 (NGC native, torch 2.12 only) ──
+          - python-version: "3.13"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.13 pt2.12 aarch64 NGC"
+          - python-version: "3.14"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.14 pt2.12 aarch64 NGC"
+
+          # ── Remaining py3.13/py3.14 GPU rows temporarily disabled ──
+          # Re-enable when matching CUDA PyTorch wheels are available for
+          # cp313/cp314 across the remaining torch/CUDA combinations.
 
     uses: ./.github/workflows/_build_wheel.yml
     with:
       runs-on: ${{ matrix.runs-on }}
       container-image: ${{ matrix.container-image }}
       torch-version: ${{ matrix.torch-version }}
+      python-version: ${{ matrix.python-version }}
       label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.pip-torch-cuda-url || '' }}
+      cuda-archs: ${{ matrix.cuda-archs || '' }}
+      use-manylinux-build: false
 
   # ── CPU-only wheel ─────────────────────────────────────────────────
   build_cpu_wheel:
-    name: "cp312 CPU-only"
+    name: "py${{ matrix.python-version }} CPU-only"
+    needs: verify_release_version
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -80,12 +214,16 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
+
+      - name: Compute Python wheel tag
+        id: cpu_py_tag
+        run: echo "tag=cp$(python -c 'import sys; print(f\"{sys.version_info.major}{sys.version_info.minor}\")')" >> "$GITHUB_OUTPUT"
 
       - name: Install build dependencies
         run: |
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
+          pip install 'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
 
       - name: Build wheel
         run: |
@@ -106,12 +244,13 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-cp312-cpu-x86_64
+          name: wheel-${{ steps.cpu_py_tag.outputs.tag }}-cpu-x86_64
           path: dist/*.whl
 
   # ── sdist ──────────────────────────────────────────────────────────
   build_sdist:
     name: Build sdist
+    needs: verify_release_version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -122,7 +261,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install "scikit-build-core>=0.10" ninja "packaging>=24.2" "pybind11>=2.12" build
+          pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja "packaging>=24.2" "pybind11>=2.12" build
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: Build sdist
@@ -139,12 +278,12 @@ jobs:
 
   # ── Upload ─────────────────────────────────────────────────────────
   #
-  # sdist -> TestPyPI  (no local version segment, PyPI accepts it)
+  # sdist -> PyPI  (no local version segment, PyPI accepts it)
   # wheels -> GitHub Release  (local version +cu... is fine here)
   #
   # If this job fails you can RE-RUN just this job from the Actions UI.
   upload:
-    name: Upload sdist to TestPyPI + wheels to GitHub Release
+    name: Upload sdist to PyPI + wheels to GitHub Release
     needs: [build_wheels, build_cpu_wheel, build_sdist]
     runs-on: ubuntu-latest
     steps:
@@ -175,11 +314,11 @@ jobs:
           echo "=== wheels ==="
           ls -lh wheels/ || echo "(no wheels)"
 
-      - name: Upload sdist to TestPyPI
+      - name: Upload sdist to PyPI
         env:
           TWINE_USERNAME: "__token__"
-          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload --skip-existing --repository-url https://upload.pypi.org/legacy/ dist/*
 
       - name: Determine version from sdist filename
         id: version

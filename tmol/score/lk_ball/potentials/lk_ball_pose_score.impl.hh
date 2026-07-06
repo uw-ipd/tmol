@@ -422,6 +422,7 @@ class LKBallPoseScoreDispatch {
 
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
+      Real max_dis,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
       bool output_block_pair_energies)
       -> std::tuple<TPack<Real, 4, Dev>, TPack<Int, 3, Dev>> {
@@ -670,7 +671,7 @@ class LKBallPoseScoreDispatch {
             first_rot_block_type,
             scratch_rot_spheres,
             scratch_rot_neighbors,
-            Real(5.5));
+            max_dis);
     // 3 Only the forward pass in this calculation
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         mgr, n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
@@ -1071,6 +1072,7 @@ class LKBallRotamerScoreDispatch {
 
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
+      Real max_dis,
       TView<Vec<Real, 3>, 2, Dev> water_coords,
       bool output_block_pair_energies)
       -> std::tuple<TPack<Real, 2, Dev>, TPack<Int, 2, Dev>> {
@@ -1175,7 +1177,7 @@ class LKBallRotamerScoreDispatch {
             first_rot_block_type,
             scratch_block_spheres,
             scratch_block_neighbors,
-            Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
+            max_dis);
 
     auto dispatch_indices_t = score::common::sphere_overlap::
         rot_neighbor_indices_from_block_neighbors<DeviceDispatch, Dev, Int>::f(

@@ -28,7 +28,7 @@ class PartialCharges:
     charge: float
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True)
+@attr.s(auto_attribs=True, slots=True, frozen=True)
 class ElecDatabase:
     global_parameters: GlobalParams
     atom_cp_reps_parameters: Tuple[CountPairReps, ...]

@@ -49,6 +49,7 @@ class LKBallGlobalParams(TensorGroup):
     lj_hbond_OH_donor_dis: Tensor[torch.float32][...]
     lj_hbond_hdis: Tensor[torch.float32][...]
     lkb_water_dist: Tensor[torch.float32][...]
+    distance_threshold: Tensor[torch.float32][...]
 
 
 def detach_maybe_requires_grad(
@@ -190,6 +191,8 @@ class LKBallScore:
             **cattr.unstructure(self.param_resolver.global_params),
             **cattr.unstructure(self.atom_resolver.params),
         }
+        # LKBall struct uses 'distance_threshold' for the lj/lk max-dis cutoff
+        params_global["distance_threshold"] = params_global["max_dis"]
         params_global = LKBallGlobalParams(
             **{x.name: params_global[x.name] for x in attr.fields(LKBallGlobalParams)}
         )

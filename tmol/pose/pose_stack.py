@@ -19,7 +19,14 @@ class PoseStack:
     constant over its lifetime; however, its coordinates are allowed
     to change. That is, a PoseStack may have its coords tensor written
     to without any negative consequences. Thus, you can minimize the
-    coordinates in a PoseStack.
+    coordinates in a PoseStack. The main way to change the chemistry or
+    connectivity or even the ConstraintSet of a PoseStack is to use
+    attr.evolve to return a completely new PoseStack but replacing
+    the datamember(s) that you want to change. Such a PoseStack will be
+    a shallow copy of the original PoseStack, so the coordinates tensor
+    must always be cloned / replaced when evolving a PoseStack, or two
+    PoseStacks may point to the same coordinates tensor, and then
+    changes to the coordinates in one PoseStack would affect the other.
 
     Datamembers:
     packed_block_types: a representation of the chemical space that this
@@ -228,6 +235,44 @@ class PoseStack:
             chain_id64=self.chain_id64.detach().clone(),
             pdb_info=self.pdb_info,
             constraint_set=new_constraint_set,
+            device=self.device,
+        )
+
+    def split(self, index) -> "PoseStack":
+        """Return a single PoseStack from one containing many"""
+        return PoseStack(
+            packed_block_types=self.packed_block_types,
+            coords=self.coords[index : index + 1].detach().clone(),
+            block_coord_offset=self.block_coord_offset[index : index + 1]
+            .detach()
+            .clone(),
+            block_coord_offset64=self.block_coord_offset64[index : index + 1]
+            .detach()
+            .clone(),
+            inter_residue_connections=self.inter_residue_connections[index : index + 1]
+            .detach()
+            .clone(),
+            inter_residue_connections64=self.inter_residue_connections64[
+                index : index + 1
+            ]
+            .detach()
+            .clone(),
+            inter_block_bondsep=self.inter_block_bondsep[index : index + 1]
+            .detach()
+            .clone(),
+            inter_block_bondsep64=self.inter_block_bondsep64[index : index + 1]
+            .detach()
+            .clone(),
+            block_type_ind=self.block_type_ind[index : index + 1].detach().clone(),
+            block_type_ind64=self.block_type_ind64[index : index + 1].detach().clone(),
+            chain_id=self.chain_id[index : index + 1].detach().clone(),
+            chain_id64=self.chain_id64[index : index + 1].detach().clone(),
+            pdb_info=self.pdb_info.split(index),
+            constraint_set=(
+                None
+                if self.constraint_set is None
+                else self.constraint_set.split(index)
+            ),
             device=self.device,
         )
 

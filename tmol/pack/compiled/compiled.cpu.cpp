@@ -52,7 +52,7 @@ auto AnnealerDispatch<D>::forward(
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
     -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> {
-  printf(" No Frills Simulated Annealing!\n");
+  // printf(" No Frills Simulated Annealing!\n");
   int const n_poses = pose_n_res.size(0);
   int const max_n_res = n_rotamers_for_res.size(1);
   int const n_rotamers = res_for_rot.size(0);
@@ -100,11 +100,14 @@ auto AnnealerDispatch<D>::forward(
       // Initial assignment: assign a rotamer to every residue
       for (int i = 0; i < n_res; ++i) {
         int const i_n_rots = n_rotamers_for_res[pose][i];
-        // printf("assign random rotamer to %d with %d rotamers\n", i,
-        // i_n_rots);
-        int rand_rot = rand() % i_n_rots;
-        current_rotamer_assignments[pose][traj][i] = rand_rot;
-        best_rotamer_assignments[pose][traj][i] = rand_rot;
+        if (i_n_rots == 0) {
+          current_rotamer_assignments[pose][traj][i] = -1;
+          best_rotamer_assignments[pose][traj][i] = -1;
+        } else {
+          int rand_rot = rand() % i_n_rots;
+          current_rotamer_assignments[pose][traj][i] = rand_rot;
+          best_rotamer_assignments[pose][traj][i] = rand_rot;
+        }
       }
 
       float temperature = high_temp;

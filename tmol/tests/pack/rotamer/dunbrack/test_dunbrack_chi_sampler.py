@@ -5,7 +5,7 @@ import torch
 import tmol.pack.rotamer.dunbrack.compiled  # noqa F401
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.io import pose_stack_from_pdb
-from tmol.pack.packer_task import PackerPalette, PackerTask
+from tmol.pack.packer_task import PackerPalette, PackerTask, SetPackerTask
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.dunbrack.params import DunbrackParamResolver
@@ -503,8 +503,6 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     # or something.
     rottable_set_for_buildable_restype = _ti32([[0, 12]])
     chi_expansion_for_buildable_restype = _ti32([[1, 1, 0, 0]])
-    # non_dunbrack_expansion_counts_for_buildable_restype = _ti32(numpy.zeros((1, 4)))
-    # non_dunbrack_expansion_counts_for_buildable_restype[0, 2] = 2
     non_dunbrack_expansion_for_buildable_restype = torch.tensor(
         numpy.array([[[numpy.nan, numpy.nan], [numpy.nan, numpy.nan], [0.25, 1.25]]]),
         dtype=torch.float32,
@@ -593,8 +591,6 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
 def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     dun_sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
 
-    rts = ResidueTypeSet.from_database(default_database.chemical)
-
     p1 = no_termini_pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_start=5, residue_end=11
     )
@@ -604,10 +600,11 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
     pbt = pose_stack.packed_block_types
 
-    palette = PackerPalette(rts)
+    palette = PackerPalette()
     task = PackerTask(pose_stack, palette)
     task.add_conformer_sampler(dun_sampler)
     task.restrict_to_repacking()
+    task = SetPackerTask.from_packer_task(task)
 
     ################ contents of sample_chi_for_poses
 
@@ -615,73 +612,36 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         dun_sampler.annotate_residue_type(rt)
     dun_sampler.annotate_packed_block_types(pose_stack.packed_block_types)
 
-    max_n_blocks = pose_stack.max_n_blocks
-    dun_allowed_blocktypes = numpy.array(
-        [
-            bt
-            for one_pose_blts in task.blts
-            for blt in one_pose_blts
-            for i, bt in enumerate(blt.considered_block_types)
-            if dun_sampler in blt.conformer_samplers and blt.block_type_allowed[i]
-        ],
-        dtype=object,
-    )
-    is_gbt_dun_allowed = numpy.array(
-        [
-            dun_sampler in blt.conformer_samplers and blt.block_type_allowed[i]
-            for one_pose_blts in task.blts
-            for blt in one_pose_blts
-            for i, bt in enumerate(blt.considered_block_types)
-        ],
-        dtype=bool,
-    )
-    n_gbt_total = is_gbt_dun_allowed.shape[0]
-    # equiv: numpy.nonzero(is_gbt_dun_allowed)
-    dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[
-        is_gbt_dun_allowed
-    ]
-    dun_allowed_bt_to_gbt_torch = torch.tensor(
-        dun_allowed_bt_to_gbt, device=dun_sampler.device
-    )
+    self_ind_in_packer_task = task.conformer_sampler_index[id(dun_sampler)]
 
-    dun_allowed_bt_names = numpy.array(
-        [bt.name for bt in dun_allowed_blocktypes], dtype=object
+    # the subset of blocktypes which are allowed at the positions and
+    # for which the block-level tasks include this DunbrackChiSampler
+    # the "Dunbrack allowed" restypes
+    is_dun_allowed_gbt = torch.logical_and(
+        task.per_block_conformer_sampler_allowed[
+            task.cons_bt_pose, task.cons_bt_block, self_ind_in_packer_task
+        ],
+        task.is_cons_bt_allowed,
     )
-    dun_allowed_bt_base_names = numpy.array(
-        [bt.name.partition(":")[0] for bt in dun_allowed_blocktypes], dtype=object
-    )
+    dun_allowed_bt_to_gbt = torch.nonzero(is_dun_allowed_gbt, as_tuple=True)[0]
+
+    n_gbt_total = task.cons_bt_pose.shape[0]
     pbt = pose_stack.packed_block_types
 
     # the source block for each dun-allowed block type
-    dun_allowed_bt_block = torch.tensor(
-        [
-            i * max_n_blocks + j
-            for i, one_pose_blts in enumerate(task.blts)
-            for j, blt in enumerate(one_pose_blts)
-            for k, _ in enumerate(blt.considered_block_types)
-            if blt.block_type_allowed[k] and dun_sampler in blt.conformer_samplers
-        ],
-        dtype=torch.int32,
-        device=dun_sampler.device,
-    )
+    dun_allowed_bt_block = task.global_block_ind_for_considered_block_types[
+        dun_allowed_bt_to_gbt
+    ]
 
-    dun_rot_inds_for_dun_allowed_bts = dun_sampler.dun_param_resolver._indices_from_names(
-        dun_sampler.dun_param_resolver.all_table_indices,
-        dun_allowed_bt_base_names[None, :],
-        # ??? torch.device("cpu"),
-        dun_sampler.device,
-    ).squeeze()
-
-    # the pbt-assigned block-type indices for each buildable block type
-    # the subset of dun_rot_inds_for_dun_allowed_bts with a non-sentinel
-    # value represents the buildable block types
-    block_type_ind_for_bbt = torch.tensor(
-        pbt.restype_index.get_indexer(
-            dun_allowed_bt_names[dun_rot_inds_for_dun_allowed_bts.cpu().numpy() != -1]
-        ),
-        dtype=torch.int64,
-        device=dun_sampler.device,
-    )
+    # the dunbrack-assigned table index for each dun-allowed block type;
+    # -1 if the block type is not built by any dunbrack table;
+    # TO DO: if the BLT holds a boolean vector for considered block types,
+    # then we just know what the dun-rot-inds are for each PBT-assigned
+    # block type index.
+    dun_allowed_bt = task.cons_bt_block_type[dun_allowed_bt_to_gbt]
+    rottable_set_for_dun_allowed_bts = pbt.dun_sampler_cache.rottable_set_for_bt[
+        dun_allowed_bt
+    ]
 
     inds_of_phi = dun_sampler.atom_indices_for_backbone_dihedral(pose_stack, 0).reshape(
         -1, 4
@@ -690,37 +650,46 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         -1, 4
     )
 
-    is_dun_allowed_bt_bbt = dun_rot_inds_for_dun_allowed_bts != -1
-    dun_allowed_bt_that_are_bbt = torch.nonzero(is_dun_allowed_bt_bbt)[:, 0]
-    bbt_to_gbt_torch = dun_allowed_bt_to_gbt_torch[dun_allowed_bt_that_are_bbt]
-    rottable_set_for_bbt = dun_rot_inds_for_dun_allowed_bts[dun_allowed_bt_that_are_bbt]
+    # what is the subset of dun-allowed block types that are buildable by the Dunbrack library?
+    is_dun_allowed_bt_bbt = rottable_set_for_dun_allowed_bts != -1
+
+    dun_allowed_bt_that_are_bbt = torch.nonzero(is_dun_allowed_bt_bbt, as_tuple=True)[0]
+    bbt_to_gbt_torch = dun_allowed_bt_to_gbt[dun_allowed_bt_that_are_bbt]
+    rottable_set_for_bbt = rottable_set_for_dun_allowed_bts[dun_allowed_bt_that_are_bbt]
+    block_type_ind_for_bbt = dun_allowed_bt[dun_allowed_bt_that_are_bbt]
 
     # the "indices" of the blocks that the block types we will be building come
     # from, assuming we are colapsing the n_sys x max_n_blocks into a single
     # numbering. We will need to keep this array as it will be used by the
     # caller to understand what block types we are defining samples for.
     # We will shortly be renumbering the residues to talk about only the ones
-    # that we will build rotamers for: BRT = "buildable residue type"
+    # that we will build rotamers for: BBT = "buildable block type"
     block_for_bbt = dun_allowed_bt_block[dun_allowed_bt_that_are_bbt]
 
-    global_block_ind_for_bubl, uniq_inds = torch.unique(
+    global_block_ind_for_bubl, bubl_for_bbt = torch.unique(
         block_for_bbt, return_inverse=True
     )
     global_block_ind_for_bubl = global_block_ind_for_bubl.to(torch.int64)
 
-    rottable_set_for_bbt = torch.tensor(
+    # There are two things we need to know about each BBT:
+    # 1. what BUildable-BLock index did it come from? (not all blocks are buildable,
+    #    and we only care about the subset that are. When we call "unique" above,
+    #    that reduces our focus to the subset of all blocks to the ones that are
+    #    buildable; later, when we measure phi/psi, we will only measure phi/psi
+    #    for the subset that are buildable.)
+    # 2. what rottable set does the Dunbrack library assign to it?
+    # We will put them together into a single tensor.
+    bubl_and_rottable_set_for_bbt = (
         torch.cat(
             (
-                uniq_inds.reshape(-1, 1),
+                bubl_for_bbt.reshape(-1, 1),
                 rottable_set_for_bbt.reshape(-1, 1),
             ),
             dim=1,
-        ),
-        dtype=torch.int32,
-        device=dun_sampler.device,
+        )
+        .to(torch.int32)
+        .to(device=dun_sampler.device)
     )
-
-    # phi_psi_res_inds = numpy.arange(n_sys * max_n_blocks, dtype=numpy.int32)
 
     n_sampling_blocks = global_block_ind_for_bubl.shape[0]
 
@@ -751,34 +720,54 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     n_bbts = dun_allowed_bt_that_are_bbt.shape[0]
 
     max_n_chi = pose_stack.packed_block_types.dun_sampler_cache.max_n_chi
-    chi_expansion_for_bbt = torch.full(
-        (n_bbts, max_n_chi), 0, dtype=torch.int32, device=dun_sampler.device
-    )
+
+    chi_expansion_for_gbt = task.per_block_chi_expansion[
+        task.cons_bt_pose, task.cons_bt_block, task.cons_bt_which_block_type
+    ]
+
+    chi_expansion_for_bbt = (chi_expansion_for_gbt[dun_allowed_bt_to_gbt])[
+        dun_allowed_bt_that_are_bbt
+    ]
 
     # ok, we'll go to the block types and look at their protonation
     # state expansions and we'll put that information into the
     # chi_expansions_for_buildable_restype tensor
 
-    sampling_db = dun_sampler.dun_param_resolver.sampling_db
-    n_chi_for_bbt = sampling_db.nchi_for_table_set[
-        rottable_set_for_bbt[:, 1].to(torch.int64)
-    ]
+    # Treat all residues as buried (index 1). Burial classification is not
+    # yet implemented; treating everything as buried is the conservative
+    # choice (more rotamers).
+    sc = pbt.dun_sampler_cache
 
-    non_dunbrack_expansion_counts_for_bbt = torch.zeros(
-        (n_bbts, max_n_chi), dtype=torch.int32, device=dun_sampler.device
+    # Use total chi count per residue type (Dunbrack chis + proton chis)
+    # rather than only the Dunbrack library's nchi. The C++ kernel loops
+    # over indices [n_dun_chi .. n_chi) to sample non-Dunbrack (proton)
+    # chis; if n_chi == n_dun_chi that loop never runs.
+    n_chi_for_bbt = (
+        (sc.chi_defining_atom[block_type_ind_for_bbt] >= 0).sum(dim=1).to(torch.int32)
     )
 
-    # TEMP! Treat everything as exposed (0)
-    sc = pbt.dun_sampler_cache
-    ndecfbbt = sc.non_dunbrack_sample_counts[block_type_ind_for_bbt, 0]
-    non_dunbrack_expansion_counts_for_bbt = ndecfbbt
+    non_dunbrack_expansion_counts_for_bbt = sc.non_dunbrack_sample_counts[
+        block_type_ind_for_bbt, :, 1  # dim2: burial state (0=exposed, 1=buried)
+    ]
 
-    # TEMP! Treat everything as exposed (0)
-    non_dunbrack_expansion_for_bbt = sc.non_dunbrack_samples[block_type_ind_for_bbt, 0]
+    # treat all residues as buried (index 1)
+    non_dunbrack_expansion_for_bbt = sc.non_dunbrack_samples[
+        block_type_ind_for_bbt, :, 1  # dim2: burial state (0=exposed, 1=buried)
+    ]
 
-    # treat all residues as if they are exposed
-    prob_cumsum_limit_for_bbt = torch.full(
-        (n_bbts,), 0.95, dtype=torch.float32, device=dun_sampler.device
+    # Rosetta defaults (buried): rotameric=0.98, semi-rotameric=0.95.
+    # Based on testing (alf) semi-rot should also be 0.98
+    # Table sets are ordered rotameric-first; semi-rotameric sets start at
+    # index n_rotameric_sets.
+    n_rotameric_sets = int(
+        dun_sampler.dun_param_resolver.rotameric_table_indices["dun_table_name"].max()
+        + 1
+    )
+    is_semi = bubl_and_rottable_set_for_bbt[:, 1].to(torch.int64) >= n_rotameric_sets
+    prob_cumsum_limit_for_bbt = torch.where(
+        is_semi,
+        torch.full((n_bbts,), 0.98, dtype=torch.float32, device=dun_sampler.device),
+        torch.full((n_bbts,), 0.98, dtype=torch.float32, device=dun_sampler.device),
     )
 
     # the sampled chi returned are a tuple containing info for BBTs:
@@ -789,13 +778,14 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         n_dihe_for_block,
         dihedral_offset_for_block,
         dihedral_atom_inds,
-        rottable_set_for_bbt,
+        bubl_and_rottable_set_for_bbt,
         chi_expansion_for_bbt,
         non_dunbrack_expansion_for_bbt,
         non_dunbrack_expansion_counts_for_bbt,
         prob_cumsum_limit_for_bbt,
         n_chi_for_bbt,
     )
+
     n_rots_for_bbt = sampled_chi[0]
     chi_for_rotamers = sampled_chi[3]
     n_rots = chi_for_rotamers.shape[0]
@@ -816,15 +806,7 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         chi_for_rotamers,
     ) = results
 
-    all_considered_restypes = numpy.array(
-        [
-            bt
-            for one_pose_blts in task.blts
-            for blt in one_pose_blts
-            for i, bt in enumerate(blt.considered_block_types)
-        ],
-        dtype=object,
-    )
+    all_considered_restypes = task.cons_bt_block_type.cpu().numpy()
     offsets_for_gbt = exclusive_cumsum1d(n_rots_for_gbt)
 
     n_rots_for_gbt_gold = numpy.zeros(
@@ -835,9 +817,10 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         all_considered_restypes.shape[0], dtype=numpy.int32
     )
 
-    n_rots_for_gbt_gold[dun_allowed_bt_to_gbt[is_dun_allowed_bt_bbt.cpu().numpy()]] = (
-        n_rots_for_bbt.cpu().numpy()
-    )
+    dun_allowed_bt_to_gbt_np = dun_allowed_bt_to_gbt.cpu().numpy()
+    n_rots_for_gbt_gold[
+        dun_allowed_bt_to_gbt_np[is_dun_allowed_bt_bbt.cpu().numpy()]
+    ] = n_rots_for_bbt.cpu().numpy()
 
     rt_for_rot_gold = numpy.zeros((n_rots + 1,), dtype=numpy.int32)
     offsets_for_gbt_np = offsets_for_gbt.cpu().numpy()
@@ -855,17 +838,18 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     numpy.testing.assert_equal(rt_for_rot_gold, results[1].cpu().numpy())
 
 
-def test_chi_sampler_smoke(ubq_pdb, default_database, default_restype_set):
+def test_chi_sampler_smoke(ubq_pdb, default_database):
     torch_device = torch.device("cpu")
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=5)
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=7)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
-    palette = PackerPalette(default_restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
     sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
     task.add_conformer_sampler(sampler)
+    task = SetPackerTask.from_packer_task(task)
 
     for rt in poses.packed_block_types.active_block_types:
         sampler.annotate_residue_type(rt)
@@ -873,18 +857,17 @@ def test_chi_sampler_smoke(ubq_pdb, default_database, default_restype_set):
     sampler.sample_chi_for_poses(poses, task)
 
 
-def test_chi_sampler_build_lots_of_rotamers(
-    ubq_pdb, default_database, default_restype_set, torch_device
-):
+def test_chi_sampler_build_lots_of_rotamers(ubq_pdb, default_database, torch_device):
     n_poses = 10
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    palette = PackerPalette(default_restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
     sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
     task.add_conformer_sampler(sampler)
+    task = SetPackerTask.from_packer_task(task)
 
     for rt in poses.packed_block_types.active_block_types:
         sampler.annotate_residue_type(rt)
@@ -893,6 +876,7 @@ def test_chi_sampler_build_lots_of_rotamers(
 
     n_rots_for_rt, rt_for_rotamer, chi_defining_atom, chi = chi_samples
 
+    assert n_rots_for_rt.shape[0] == 2100
     n_rots = chi_defining_atom.shape[0]
     n_rots_per_pose = n_rots // n_poses
     assert n_rots_per_pose * n_poses == n_rots
