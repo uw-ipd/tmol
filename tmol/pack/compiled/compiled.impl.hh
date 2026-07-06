@@ -723,40 +723,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           old_to_new_rotamer_index.data(),
           n_rotamers,
           mgpu::plus_t<int64_t>());
-  // CHECK_GPU;
-  if (verbose || true) {
-    printf(
-        "Bump Check kept %ld rotamers (eliminated %4.1f%%)\n",
-        n_kept_rotamers,
-        100.0 * (n_rotamers - n_kept_rotamers) / n_rotamers);
-  }
-#ifdef __NVCC__
-
-  {
-    CUDA_CHECK(cudaDeviceSynchronize());
-    auto old_to_new_rotamer_index_cpu_tp =
-        TPack<int64_t, 1, tmol::Device::CPU>::zeros({n_rotamers});
-    auto old_to_new_rotamer_index_cpu = old_to_new_rotamer_index_cpu_tp.view;
-    cudaMemcpy(
-        old_to_new_rotamer_index_cpu.data(),
-        old_to_new_rotamer_index.data(),
-        sizeof(int64_t) * n_rotamers,
-        cudaMemcpyDeviceToHost);
-    // for (int i = 0; i < n_rotamers; ++i) {
-    //   if (old_to_new_rotamer_index_cpu[i] < 0) {
-    //     printf(
-    //         "Weird! old_to_new_rotamer_index_cpu[%d] = %ld\n",
-    //         i,
-    //         old_to_new_rotamer_index_cpu[i]);
-    //   } else {
-    //     printf(
-    //         "       old_to_new_rotamer_index_cpu[%d] = %ld\n",
-    //         i,
-    //         old_to_new_rotamer_index_cpu[i]);
-    //   }
-    // }
-  }  // scope
-#endif
 
   auto new_to_old_rotamer_index_tp =
       TPack<int64_t, 1, D>::zeros({n_kept_rotamers});
@@ -768,7 +734,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       new_to_old_rotamer_index[new_index] = rot;
     }
   });
-  // printf("record_new_rotamer_indices\n");
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_rotamers, record_new_rotamer_indices);
   // CHECK_GPU;
