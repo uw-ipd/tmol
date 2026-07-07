@@ -3,20 +3,15 @@
 #include <ATen/cuda/CUDAGeneratorImpl.h>
 #include <ATen/cuda/PhiloxUtils.cuh>
 
-/*#include <THC/THCGenerator.hpp>
-#include <THC/THCTensorRandom.h>*/
-
 #include <tmol/score/common/device_operations.cuda.impl.cuh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/torch_context.hh>
 
-// ??? #include "annealer.hh"
 #include "simulated_annealing.hh"
 
 #include <moderngpu/cta_reduce.hxx>
 #include <moderngpu/kernel_compact.hxx>
-// #include <moderngpu/kernel_mergesort.hxx>
 #include <moderngpu/kernel_segsort.hxx>
 #include <moderngpu/transform.hxx>
 #include <cooperative_groups.h>
@@ -532,7 +527,6 @@ struct Annealer {
   static auto run_simulated_annealing(
       ContextManager& mgr, IG ig, at::CUDAGeneratorImpl* gen)
       -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
-    // printf("Run simulated annealing\n");
     int const n_poses = ig.n_poses_cpu();
     int const max_n_res = ig.max_n_res_cpu();
     int const n_rotamers_total = ig.n_rotamers_total_cpu();
@@ -910,13 +904,12 @@ struct Annealer {
       }
     });
 
+    // Now launch the kernels we have created
     std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
-    // printf("hitemp_simulated_annealing %d\n", n_hitemp_simA_threads);
     mgpu::transform<32, 1>(
         hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
 
-    // printf("segmented_sort scores_hitemp\n");
     mgpu::segmented_sort(
         scores_hitemp.data(),
         sorted_hitemp_traj.data(),
@@ -926,11 +919,9 @@ struct Annealer {
         mgpu::less_t<float>(),
         *context);
 
-    // printf("lotemp_simulated_annealing %d\n", n_lotemp_simA_threads);
     mgpu::transform<32, 1>(
         lotemp_simulated_annealing, n_lotemp_simA_threads, *context);
 
-    // printf("segmented_sort scores_lotemp\n");
     mgpu::segmented_sort(
         scores_lotemp.data(),
         sorted_lotemp_traj.data(),
@@ -942,7 +933,6 @@ struct Annealer {
 
     mgpu::transform<32, 1>(fullquench, n_fullquench_threads, *context);
 
-    // printf("segmented_sort scores_fullquench\n");
     mgpu::segmented_sort(
         scores_fullquench.data(),
         sorted_fullquench_traj.data(),
@@ -954,7 +944,6 @@ struct Annealer {
 
     mgpu::transform<32, 1>(final_reindexing, n_fullquench_threads, *context);
 
-    // printf("Done!\n");
     return {scores_final_t, rotamer_assignments_final_t};
   }
 };
@@ -975,7 +964,6 @@ auto AnnealerDispatch<D>::forward(
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
     -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
-  // printf("AnnealerDispatch<D>::forward\n");
   clock_t start = clock();
 
   int const n_poses_cpu = pose_n_res.size(0);
@@ -993,9 +981,6 @@ auto AnnealerDispatch<D>::forward(
     int const count = n_poses_cpu * max_n_res_cpu;
     mgpu::transform<128, 1>(
         [=] MGPU_DEVICE(int idx) {
-          // if (idx == 0) {
-          //   printf("inside count num neighbors\n");
-          // }
           if (idx >= count) return;
           int pose = idx / max_n_res_cpu;
           int b = idx % max_n_res_cpu;

@@ -4,7 +4,6 @@
 
 #include <tmol/score/common/device_operations.cpu.impl.hh>
 
-// ??? #include "annealer.hh"
 #include "simulated_annealing.hh"
 #include "compiled.impl.hh"
 
@@ -52,7 +51,6 @@ auto AnnealerDispatch<D>::forward(
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
     -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> {
-  // printf(" No Frills Simulated Annealing!\n");
   int const n_poses = pose_n_res.size(0);
   int const max_n_res = n_rotamers_for_res.size(1);
   int const n_rotamers = res_for_rot.size(0);
@@ -78,12 +76,9 @@ auto AnnealerDispatch<D>::forward(
   float const low_temp = 0.3;  // matches Rosetta SimAnnealerBase::lowtemp
 
   for (int pose = 0; pose < n_poses; ++pose) {
-    // printf("Start simA for pose %d\n", pose);
     int const n_res = pose_n_res[pose];
     int const pose_n_rotamers = n_rotamers_for_pose[pose];
     int const pose_rotamer_offset = rotamer_offset_for_pose[pose];
-    // printf("Pose w n_res %d, n rotamers %d pose rotamer offset %d\n", n_res,
-    // pose_n_rotamers, pose_rotamer_offset);
 
     // Build per-residue neighbor list for this pose
     std::vector<std::vector<int>> neighbors(max_n_res);
