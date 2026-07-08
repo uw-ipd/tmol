@@ -364,7 +364,8 @@ struct lk_ball_score {
         i.lk_dgfree,
         i.lk_lambda,
         j.lk_volume,
-        global.distance_threshold);
+        global.distance_threshold,
+        i.is_carbon_lk && j.is_carbon_lk);
     Real frac_IJ_desolv = lk_fraction<Real, MAX_WATER>::V(WI, J, j.lj_radius);
 
     Real frac_IJ_water_overlap;
@@ -417,7 +418,8 @@ struct lk_ball_score {
         i.lk_dgfree,
         i.lk_lambda,
         j.lk_volume,
-        global.distance_threshold);
+        global.distance_threshold,
+        i.is_carbon_lk && j.is_carbon_lk);
 
     Real frac_IJ_desolv = lk_fraction<Real, MAX_WATER>::V(WI, J, j.lj_radius);
     auto d_frac_IJ_desolv =

@@ -41,6 +41,7 @@ class LKBallTypeParams(TensorGroup):
     is_hydroxyl: Tensor[torch.float32][...]
     is_polarh: Tensor[torch.float32][...]
     is_acceptor: Tensor[torch.float32][...]
+    is_carbon_lk: Tensor[torch.float32][...]
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
