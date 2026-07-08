@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/unresolved_atom.hh>
@@ -42,6 +43,7 @@ template <
     typename Real,
     typename Int>
 auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 1, Dev> rot_coord_offset,
@@ -322,7 +324,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   });
 
   DeviceDispatch<Dev>::template forall<launch_t>(
-      n_poses * max_n_blocks, rama_omega_func);
+      mgr, n_poses * max_n_blocks, rama_omega_func);
 
   return {V_t, dV_dxyz_t};
 };
@@ -333,6 +335,7 @@ template <
     typename Real,
     typename Int>
 auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 1, Dev> rot_coord_offset,
@@ -602,7 +605,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   });
 
   DeviceDispatch<Dev>::template forall<launch_t>(
-      n_poses * max_n_blocks, rama_omega_func);
+      mgr, n_poses * max_n_blocks, rama_omega_func);
 
   return dV_dxyz_t;
 };
@@ -614,6 +617,7 @@ template <
     typename Int>
 auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     forward(
+        ContextManager& mgr,
         // common params
         TView<Vec<Real, 3>, 1, Dev> rot_coords,
         TView<Int, 1, Dev> rot_coord_offset,
@@ -755,13 +759,14 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     n_energies_for_block[pose_ind][block_ind] = n_rots * upper_n_rots;
   });
   DeviceDispatch<Dev>::template forall<launch_t>(
-      n_poses * max_n_blocks, count_n_rotamer_energies);
+      mgr, n_poses * max_n_blocks, count_n_rotamer_energies);
 
   auto n_energies_for_block_offset_t =
       TPack<Int, 2, Dev>::zeros({n_poses, max_n_blocks});
   auto n_energies_for_block_offset = n_energies_for_block_offset_t.view;
   int n_dispatch_total =
       DeviceDispatch<Dev>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
           n_energies_for_block.data(),
           n_energies_for_block_offset.data(),
           n_poses * max_n_blocks,
@@ -777,7 +782,10 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   auto dV_dxyz_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms});
 
   int const max_n_rots_per_block = DeviceDispatch<Dev>::reduce(
-      n_rots_for_block.data(), n_poses * max_n_blocks, mgpu::maximum_t<Int>());
+      mgr,
+      n_rots_for_block.data(),
+      n_poses * max_n_blocks,
+      mgpu::maximum_t<Int>());
 
   auto V = V_t.view;
   auto dV_dxyz = dV_dxyz_t.view;
@@ -842,6 +850,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     }
   });
   DeviceDispatch<Dev>::template forall<launch_t>(
+      mgr,
       n_poses * max_n_blocks * max_n_rots_per_block * max_n_rots_per_block,
       mark_dispatch_indices);
 
@@ -1012,7 +1021,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   });
 
   DeviceDispatch<Dev>::template forall<launch_t>(
-      n_dispatch_total, rama_omega_func);
+      mgr, n_dispatch_total, rama_omega_func);
 
   return {V_t, dV_dxyz_t, dispatch_indices_t};
 };
@@ -1024,6 +1033,7 @@ template <
     typename Int>
 auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     backward(
+        ContextManager& mgr,
         // common params
         TView<Vec<Real, 3>, 1, Dev> rot_coords,
         TView<Int, 1, Dev> rot_coord_offset,
@@ -1289,7 +1299,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   });
 
   DeviceDispatch<Dev>::template forall<launch_t>(
-      dispatch_indices.size(1), rama_omega_func);
+      mgr, dispatch_indices.size(1), rama_omega_func);
 
   return dV_dxyz_t;
 };

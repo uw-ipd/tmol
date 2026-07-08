@@ -300,26 +300,31 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
     WaterGenPoseContextData<Dev, Real, Int> const& context_dat,
     int tile_start) {
   Eigen::Matrix<Real, 3, 1> xyz{Real(0), Real(0), Real(0)};
-  if (bcat.atom != -1) {
-    bool in_smem = false;
-    if (bcat.block == single_res_dat.block_ind) {
-      int bcat_tile_ind = bcat.atom - tile_start;
-      if (bcat_tile_ind >= 0 && bcat_tile_ind < TILE_SIZE) {
-        in_smem = true;
-        xyz = common::coord_from_shared(single_res_dat.coords, bcat_tile_ind);
-      }
-    }
-    if (!in_smem) {
-      // outside of tile or on other res, retrieve from global coords
-      int coord_offset =
-          (bcat.block == single_res_dat.block_ind
-               ? single_res_dat.rot_coord_offset
-               : context_dat
-                     .rot_coord_offset[context_dat.first_rot_for_block
-                                           [context_dat.pose_ind][bcat.block]]);
+  bool atom_exists = bcat.atom != -1;
+  if (!atom_exists)
+    printf(
+        "Error: tried to load coordinate data from non-existent atom. This can "
+        "happen in situations such as an SP3 without any bonded hydrogens.\n");
+  assert(atom_exists);
 
-      xyz = context_dat.rot_coords[bcat.atom + coord_offset];
+  bool in_smem = false;
+  if (bcat.block == single_res_dat.block_ind) {
+    int bcat_tile_ind = bcat.atom - tile_start;
+    if (bcat_tile_ind >= 0 && bcat_tile_ind < TILE_SIZE) {
+      in_smem = true;
+      xyz = common::coord_from_shared(single_res_dat.coords, bcat_tile_ind);
     }
+  }
+  if (!in_smem) {
+    // outside of tile or on other res, retrieve from global coords
+    int coord_offset =
+        (bcat.block == single_res_dat.block_ind
+             ? single_res_dat.rot_coord_offset
+             : context_dat
+                   .rot_coord_offset[context_dat.first_rot_for_block
+                                         [context_dat.pose_ind][bcat.block]]);
+
+    xyz = context_dat.rot_coords[bcat.atom + coord_offset];
   }
   return xyz;
 }
@@ -409,6 +414,12 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
       res_dat.block_ind, res_dat.block_type, tile_start + acc_atom_tile_ind};
   auto acc_bases = hbond::RotamerCentricAcceptorBases<Int>::for_acceptor(
       A, hyb, bonds, context_dat.block_type_atom_is_hydrogen);
+
+  // No base (B==-1) or no distinct second base (B0==B): undefined water frame,
+  // generate none (slot stays NAN, skipped in scoring).
+  if (acc_bases.B.atom == -1 || acc_bases.B0 == acc_bases.B) {
+    return;
+  }
 
   Real3 Bxyz =
       load_coord<TILE_SIZE>(acc_bases.B, res_dat, context_dat, tile_start);
@@ -525,6 +536,12 @@ void TMOL_DEVICE_FUNC d_build_water_for_acc(
       res_dat.block_ind, res_dat.block_type, tile_start + acc_atom_tile_ind};
   auto acc_bases = hbond::RotamerCentricAcceptorBases<Int>::for_acceptor(
       A, hyb, bonds, context_dat.block_type_atom_is_hydrogen);
+
+  // No base (B==-1) or no distinct second base (B0==B): undefined water frame,
+  // generate none (slot stays NAN, skipped in scoring).
+  if (acc_bases.B.atom == -1 || acc_bases.B0 == acc_bases.B) {
+    return;
+  }
 
   Real3 Bxyz =
       load_coord<TILE_SIZE>(acc_bases.B, res_dat, context_dat, tile_start);

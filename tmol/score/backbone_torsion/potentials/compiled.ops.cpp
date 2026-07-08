@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 #include <tmol/utility/nvtx.hh>
 
@@ -15,6 +16,11 @@ namespace tmol {
 namespace score {
 namespace backbone_torsion {
 namespace potentials {
+
+// Cache the mgpu::standard_context_t objects
+// so as to avoid re-initializing them at each
+// kernel launch
+ContextManager mgr;
 
 using namespace tmol::score::common;
 
@@ -74,6 +80,7 @@ class BackboneTorsionPoseScoreOp
           auto result =
               BackboneTorsionPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   forward(
+                      mgr,
                       // common params
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
@@ -225,6 +232,7 @@ class BackboneTorsionPoseScoreOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
@@ -353,6 +361,7 @@ class BackboneTorsionRotamerScoreOp
               Real,
               Int>::
               forward(
+                  mgr,
                   // common params
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
@@ -506,6 +515,7 @@ class BackboneTorsionRotamerScoreOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),

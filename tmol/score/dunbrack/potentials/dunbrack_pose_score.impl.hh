@@ -44,6 +44,7 @@ template <
     typename Real,
     typename Int>
 auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -416,7 +417,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     }
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(n_poses * max_n_blocks, func);
+  DeviceDispatch<D>::template forall<launch_t>(
+      mgr, n_poses * max_n_blocks, func);
 
   return {V_t, dV_dx_t};
 }
@@ -427,6 +429,7 @@ template <
     typename Real,
     typename Int>
 auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -767,7 +770,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     }
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(n_poses * max_n_blocks, func);
+  DeviceDispatch<D>::template forall<launch_t>(
+      mgr, n_poses * max_n_blocks, func);
 
   return dV_dx_t;
 }  // namespace potentials
@@ -778,6 +782,7 @@ template <
     typename Real,
     typename Int>
 auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1150,7 +1155,7 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     }
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(n_rots, func);
+  DeviceDispatch<D>::template forall<launch_t>(mgr, n_rots, func);
   //   DeviceDispatch<D>::synchronize_device();
 
   return {V_t, dV_dx_t, dispatch_indices_t};
@@ -1162,6 +1167,7 @@ template <
     typename Real,
     typename Int>
 auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+    ContextManager& mgr,
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1497,7 +1503,7 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     }
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(n_rots, func);
+  DeviceDispatch<D>::template forall<launch_t>(mgr, n_rots, func);
 
   return dV_dx_t;
 }

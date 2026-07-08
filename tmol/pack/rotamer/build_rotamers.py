@@ -18,8 +18,8 @@ from tmol.kinematics.compiled.compiled_ops import forward_only_op
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pack.packer_task import PackerTask
+
+from tmol.pack.packer_task import SetPackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.numeric.dihedrals import coord_dihedrals
 
@@ -83,7 +83,9 @@ def _build_chi_phi_c_corrections(pbt):
 
     chi4_table = _build_chi4_atom_table(pbt)  # (n_types, max_n_chi, 4)
     kfidx = pbt.rotamer_kinforest.kinforest_idx  # (n_types, max_n_atoms)
-    dofs_ideal = pbt.rotamer_kinforest.dofs_ideal  # (n_types, max_n_atoms, 9)
+    dofs_ideal = (
+        pbt.rotamer_kinforest.dofs_ideal.cpu().numpy()
+    )  # (n_types, max_n_atoms, 9)
     parent_arr = pbt.rotamer_kinforest.parent  # (n_types, max_n_atoms) KFO order
     doftype_arr = pbt.rotamer_kinforest.doftype  # (n_types, max_n_atoms) KFO order
 
@@ -296,75 +298,6 @@ class RotamerSet(ValidateAttrs):
 # NOTE: sidechain samplers should be listed in the residue-level packer task
 # NOTE: all samplers should be given the same starting data and then a mask
 #       to indicate which residues they should operate on
-
-
-@validate_args
-def rebuild_poses_if_necessary(
-    poses: PoseStack, task: PackerTask
-):  # -> Tuple[PoseStack, Tuple[ChiSampler, ...]]:
-    """Examine the BlockTypes that the packer will entertain for the input PoseStack
-    and, if there are BlockTypes that the PoseStack is not currently using,
-    build a new PoseStack including thos BlockTypes in its PackedBlockTypes
-    datastore. Also return the set of ChiSamplers that are collectively
-    held in the PackerTask.
-
-    Note: the ChiSamplers are put into a set, as are the BlockTypes. Both
-    require the classes to implement stable __hash__ and __eq__ methods,
-    so that the order in which samplers and block types are used/listed
-    is consistent between runs (and will not change when the addresses
-    that these objects are allocated in changes between runs).
-
-    This code, in its reliance on the id() function, is currently "unstable"
-    in that it can produce different results between executions, even if the
-    same random seed is provided
-    """
-
-    all_restypes = {}
-    samplers = set([])
-
-    for one_pose_blts in task.blts:
-        for blt in one_pose_blts:
-            for sampler in blt.conformer_samplers:
-                samplers.add(sampler)
-            for bt in blt.considered_block_types:
-                if id(bt) not in all_restypes:
-                    all_restypes[id(bt)] = bt
-
-    samplers = tuple(samplers)
-
-    # rebuild the poses, perhaps, if there are residue types in the task
-    # that are absent from the poses' PBT
-
-    pose_rts = set([id(bt) for bt in poses.packed_block_types.active_block_types])
-    needs_rebuilding = False
-    for bt_id in all_restypes:
-        if bt_id not in pose_rts:
-            needs_rebuilding = True
-            break
-
-    if needs_rebuilding:
-        # make sure all the pose's residue types are also included
-        for i in range(poses.n_poses):
-            for j in range(poses.max_n_blocks):
-                if not poses.is_real_block(i, j):
-                    continue
-                bt = poses.block_type(i, j)
-                if id(bt) not in all_restypes:
-                    all_restypes[id(bt)] = bt
-
-        pbt = PackedBlockTypes.from_restype_list(
-            poses.packed_block_types.chem_db,
-            poses.packed_block_types.restype_set,
-            [bt for bt_id, bt in all_restypes.items()],
-            poses.packed_block_types.device,
-        )
-
-        # rebuild the PoseStack with a new packed_block_types
-        poses = PoseStackBuilder.rebuild_with_new_packed_block_types(
-            poses, packed_block_types=pbt
-        )
-
-    return poses, samplers
 
 
 def annotate_restype(
@@ -634,7 +567,7 @@ def construct_kinforest_for_conformers(
 def measure_dofs_from_orig_coords(
     coords: Tensor[torch.float32][:, :, :], kinforest: KinForest
 ):
-    from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
+    from tmol.kinematics.compiled import inverse_kin
 
     kinforest_coords = coords.view(-1, 3)[kinforest.id.to(torch.int64)]
     kinforest_coords[0, :] = 0  # reset root
@@ -858,34 +791,16 @@ def calculate_rotamer_coords(
     return new_coords_rto
 
 
-def get_rotamer_origin_data(task: PackerTask, gbt_for_rot: Tensor[torch.int32][:]):
-    n_poses = len(task.blts)
-    pose_for_gbt = torch.tensor(
-        [
-            i
-            for i, one_pose_blts in enumerate(task.blts)
-            for blts in one_pose_blts
-            for blt in blts.considered_block_types
-        ],
-        dtype=torch.int32,
-        device=gbt_for_rot.device,
-    )
+def get_rotamer_origin_data(task: SetPackerTask, gbt_for_rot: Tensor[torch.int32][:]):
+    n_poses = task.per_block_orig_block_type.shape[0]
+    pose_for_gbt = task.cons_bt_pose.to(torch.int32)
 
-    block_ind_for_rt = torch.tensor(
-        [
-            j
-            for one_pose_blts in task.blts
-            for j, blts in enumerate(one_pose_blts)
-            for blt in blts.considered_block_types
-        ],
-        dtype=torch.int32,
-        device=gbt_for_rot.device,
-    )
-    max_n_blocks = max(len(one_pose_blts) for one_pose_blts in task.blts)
+    block_ind_for_rt = task.cons_bt_block.to(torch.int32)
+    max_n_blocks = task.per_block_orig_block_type.shape[1]
 
     gbt_for_rot64 = gbt_for_rot.to(torch.int64)
     pose_for_rot = pose_for_gbt[gbt_for_rot64].to(torch.int64)
-    n_rots_for_pose = torch.bincount(pose_for_rot, minlength=len(task.blts))
+    n_rots_for_pose = torch.bincount(pose_for_rot, minlength=n_poses)
     rot_offset_for_pose = exclusive_cumsum1d(n_rots_for_pose)
     block_ind_for_rot = block_ind_for_rt[gbt_for_rot64]
     block_ind_for_rt_global = max_n_blocks * pose_for_gbt + block_ind_for_rt
@@ -907,7 +822,7 @@ def get_rotamer_origin_data(task: PackerTask, gbt_for_rot: Tensor[torch.int32][:
     )
 
 
-def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase):
+def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatabase):
     # step 1: replace the existing PBT in the Pose w/ a new one in case
     #     there will possibly be new block types in the repacked Pose;
     #     but since PoseStack should not be altered after construction,
@@ -931,26 +846,16 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     # step 11: refold
 
     # Step 1
-    poses, samplers = rebuild_poses_if_necessary(poses, task)
+    samplers = tuple(task.conformer_samplers)
     pbt = poses.packed_block_types
 
     # Step 2
     annotate_everything(chem_db, samplers, pbt)
 
     # Step 3
-    # create a list of the name of every considered block type at every block in every
-    # pose so that we can then create an integer version of that same data;
-    # the "global block type" (gbt) if you will. The order in which these block-
-    # types appear will be used as an index for talking about which rotamers are
-    # built where. This cannot be efficient. Perhaps worth thinking hard about the
-    # PackerTask's structure.
-    gbt_names = [
-        bt.name
-        for one_pose_blts in task.blts
-        for blt in one_pose_blts
-        for bt in blt.considered_block_types
-    ]
-    gbt_block_type_ind = pbt.restype_index.get_indexer(gbt_names).astype(numpy.int32)
+    # the "global block type" (gbt) is the list of all considered block types
+    # at all positions in all poses.
+    gbt_block_type_ind = task.cons_bt_block_type.cpu().numpy().astype(numpy.int32)
 
     # Step 4
     conformer_samples = [
@@ -1011,10 +916,10 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     conf_dofs_kto = torch.zeros(
         (n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device
     )
+
     conf_dofs_kto[1:] = torch.tensor(
         pbt.rotamer_kinforest.dofs_ideal[block_type_ind_for_conformer].reshape((-1, 9))[
-            pbt.atom_is_real.cpu().numpy()[block_type_ind_for_conformer].reshape(-1)
-            != 0
+            pbt.atom_is_real[block_type_ind_for_conformer].reshape(-1) != 0
         ],
         dtype=torch.float32,
         device=pbt.device,

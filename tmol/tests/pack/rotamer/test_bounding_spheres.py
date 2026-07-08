@@ -27,7 +27,7 @@
 #     assert p1.packed_block_types is p3.packed_block_types
 #
 #     poses = PoseStackBuilder.from_poses([p1, p2, p3], torch_device)
-#     palette = PackerPalette(poses.packed_block_types.restype_set)
+#     palette = PackerPalette()
 #     task = PackerTask(poses, palette)
 #     task.restrict_to_repacking()
 #     task.rlts[0][1].disable_packing()
@@ -86,7 +86,7 @@
 #     )
 #     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 #
-#     palette = PackerPalette(poses.packed_block_types.restype_set)
+#     palette = PackerPalette()
 #     task = PackerTask(poses, palette)
 #     task.restrict_to_repacking()
 #

@@ -25,3 +25,4 @@ get_block_parent_connectivity_from_toposort = (
 get_kinforest_scans_from_stencils = _ops.get_kinforest_scans_from_stencils
 get_kinforest_scans_from_stencils2 = _ops.get_kinforest_scans_from_stencils2
 minimizer_map_from_movemap = _ops.minimizer_map_from_movemap
+inverse_kin = _ops.inverse_kin

@@ -20,6 +20,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 template <tmol::Device D, typename Real, typename Int>
 struct ForwardKinDispatch {
   static auto f(
+      ContextManager&,
       TView<KintreeDof, 1, D> dofs,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
@@ -84,6 +85,7 @@ struct ForwardKinDispatch {
 template <tmol::Device D, typename Real, typename Int>
 struct InverseKinDispatch {
   static auto f(
+      ContextManager&,
       TView<Coord, 1, D> coords,
       TView<Int, 1, D> parent,
       TView<Int, 1, D> frame_x,
@@ -141,6 +143,7 @@ struct InverseKinDispatch {
 template <tmol::Device D, typename Real, typename Int>
 struct KinDerivDispatch {
   static auto f(
+      ContextManager&,
       TView<Coord, 1, D> dVdx,
       TView<HomogeneousTransform, 1, D> hts,
       TView<KintreeDof, 1, D> dofs,

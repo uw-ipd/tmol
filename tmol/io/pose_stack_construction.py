@@ -223,6 +223,14 @@ def pose_stack_from_canonical_form(
         atom_b_factor,
     )
 
+    if res_types.shape[1] == 0:
+        raise ValueError(
+            "pose_stack_from_canonical_form: no recognized residues found in input. "
+            "Check that residue names match entries in the CanonicalOrdering and that "
+            "the structure was parsed via biotite (HETATM records are supported) rather "
+            "than the internal PDB parser (ATOM records only)."
+        )
+
     # 3
     found_disulfides, res_type_variants = find_disulfides(
         canonical_ordering, res_types, coords, disulfides, find_additional_disulfides

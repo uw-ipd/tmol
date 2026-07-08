@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
@@ -16,6 +17,11 @@ namespace tmol {
 namespace score {
 namespace ljlk {
 namespace potentials {
+
+// Cache the mgpu::standard_context_t objects
+// so as to avoid re-initializing them at each
+// kernel launch
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -56,6 +62,7 @@ class LJLKPoseScoreOp
 
       Tensor type_params,
       Tensor global_params,
+      double max_dis,  // host scalar; needed by detect-neighbors call
       bool output_block_pair_energies) {
     at::Tensor score, dscore_dcoords, block_neighbors;
 
@@ -68,6 +75,7 @@ class LJLKPoseScoreOp
 
           auto result =
               LJLKPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
+                  mgr,
                   // common params
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
@@ -96,6 +104,7 @@ class LJLKPoseScoreOp
 
                   TCAST(type_params),
                   TCAST(global_params),
+                  (Real)max_dis,
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
@@ -211,6 +220,7 @@ class LJLKPoseScoreOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
@@ -260,7 +270,8 @@ class LJLKPoseScoreOp
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor()};
   }
 };
 
@@ -298,6 +309,7 @@ class LJLKRotamerScoreOp
 
       Tensor type_params,
       Tensor global_params,
+      double max_dis,  // host scalar; needed by detect-neighbors call
       bool output_block_pair_energies) {
     at::Tensor score, dscore_dcoords, dispatch_indices;
 
@@ -310,6 +322,7 @@ class LJLKRotamerScoreOp
 
           auto result =
               LJLKRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
+                  mgr,
                   // common params
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
@@ -338,6 +351,7 @@ class LJLKRotamerScoreOp
 
                   TCAST(type_params),
                   TCAST(global_params),
+                  (Real)max_dis,
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
@@ -452,6 +466,7 @@ class LJLKRotamerScoreOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
@@ -501,7 +516,8 @@ class LJLKRotamerScoreOp
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor()};
   }
 };
 
@@ -535,6 +551,7 @@ std::vector<Tensor> ljlk_pose_scores_op(
 
     Tensor ljlk_type_params,
     Tensor global_params,
+    double max_dis,
     bool output_block_pair_energies) {
   return LJLKPoseScoreOp<DispatchMethod>::apply(
       // common params
@@ -565,6 +582,7 @@ std::vector<Tensor> ljlk_pose_scores_op(
 
       ljlk_type_params,
       global_params,
+      max_dis,
       output_block_pair_energies);
 }
 
@@ -598,6 +616,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
 
     Tensor ljlk_type_params,
     Tensor global_params,
+    double max_dis,
     bool output_block_pair_energies) {
   return LJLKRotamerScoreOp<DispatchMethod>::apply(
       // common params
@@ -628,6 +647,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
 
       ljlk_type_params,
       global_params,
+      max_dis,
       output_block_pair_energies);
 }
 

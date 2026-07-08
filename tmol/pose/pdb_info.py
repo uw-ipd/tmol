@@ -38,7 +38,7 @@ class PDBInfo:
     atom_occupancy: NDArray[numpy.float32][:, :]
     atom_b_factor: NDArray[numpy.float32][:, :]
 
-    def split(self, index: int) -> "PDBInfo":
+    def split(self, index) -> "PDBInfo":
         """Split out a single pose's worth of PDBInfo from a batch."""
         return PDBInfo(
             residue_labels=self.residue_labels[index : index + 1].copy(),

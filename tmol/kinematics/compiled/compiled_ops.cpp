@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
@@ -13,6 +14,11 @@
 
 namespace tmol {
 namespace kinematics {
+
+// Cache the mgpu::standard_context_t objects
+// so as to avoid re-initializing them at each
+// kernel launch
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -42,6 +48,7 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
 
                                     auto result =
                                         ForwardKinDispatch<Dev, Real, Int>::f(
+                                            mgr,
                                             TCAST(dofs),
                                             TCAST(nodes_f),
                                             TCAST(scans_f),
@@ -76,6 +83,7 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
 
                                     auto result =
                                         KinDerivDispatch<Dev, Real, Int>::f(
+                                            mgr,
                                             TCAST(dVdx),
                                             TCAST(HTs),
                                             TCAST(dofs),
@@ -130,6 +138,7 @@ Tensor forward_only_op(
 
                                   auto result =
                                       ForwardKinDispatch<Dev, Real, Int>::f(
+                                          mgr,
                                           TCAST(dofs),
                                           TCAST(nodes_f),
                                           TCAST(scans_f),
@@ -161,6 +170,7 @@ auto get_kfo_indices_for_atoms(
         auto result =
             KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
                 get_kfo_indices_for_atoms(
+                    mgr,
                     TCAST(pose_stack_block_coord_offset),
                     TCAST(pose_stack_block_type),
                     TCAST(block_type_n_atoms),
@@ -194,6 +204,7 @@ auto get_kfo_atom_parents(
         auto result =
             KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
                 get_kfo_atom_parents(
+                    mgr,
                     TCAST(pose_stack_block_type),
                     TCAST(pose_stack_inter_residue_connections),
                     TCAST(pose_stack_ff_parent),
@@ -233,6 +244,7 @@ auto get_children(
         auto result =
             KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
                 get_children(
+                    mgr,
                     TCAST(pose_stack_block_type),
                     TCAST(pose_stack_block_in_and_first_out),
                     TCAST(kfo_2_orig_mapping),
@@ -271,6 +283,7 @@ auto get_id_and_frame_xyz(
         auto result =
             KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
                 get_id_and_frame_xyz(
+                    mgr,
                     max_n_pose_atoms,
                     TCAST(pose_stack_block_coord_offset),
                     TCAST(kfo_2_orig_mapping),
@@ -316,6 +329,7 @@ auto calculate_ff_edge_delays(
         auto result =
             KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
                 calculate_ff_edge_delays(
+                    mgr,
                     TCAST(pose_stack_block_coord_offset),
                     TCAST(pose_stack_block_type),
                     TCAST(ff_edges_cpu),
@@ -360,6 +374,7 @@ auto get_jump_atom_indices(
         auto result =
             KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
                 get_jump_atom_indices(
+                    mgr,
                     TCAST(ff_edges),
                     TCAST(pose_stack_block_type),
                     TCAST(block_type_jump_atom));
@@ -392,6 +407,7 @@ auto get_block_parent_connectivity_from_toposort(
         auto result =
             KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
                 get_block_parent_connectivity_from_toposort(
+                    mgr,
                     TCAST(pose_stack_block_type),  // P x L
                     TCAST(
                         pose_stack_inter_residue_connections),  // P x L x C x 2
@@ -455,6 +471,7 @@ auto get_scans2(
         auto result =
             KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
                 get_scans2(
+                    mgr,
                     max_n_atoms_per_pose,
                     TCAST(pose_stack_block_coord_offset),
                     TCAST(pose_stack_block_type),
@@ -543,6 +560,7 @@ auto minimizer_map_from_movemap(
         auto result =
             KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
                 create_minimizer_map(
+                    mgr,
                     TCAST(kinforest_id),
                     max_n_atoms_per_pose,
                     TCAST(pose_stack_block_coord_offset),
@@ -590,6 +608,37 @@ auto minimizer_map_from_movemap(
   return minimizer_map;
 }
 
+auto inv_kin_dispatch(
+    Tensor coords,
+    Tensor parent,
+    Tensor frame_x,
+    Tensor frame_y,
+    Tensor frame_z,
+    Tensor doftype) -> Tensor {
+  at::Tensor dofs;
+
+  using Int = int32_t;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(coords.options(), "inverse_kin_op", ([&] {
+                                  using Real = scalar_t;
+                                  constexpr tmol::Device Dev = device_t;
+
+                                  auto result =
+                                      InverseKinDispatch<Dev, Real, Int>::f(
+                                          mgr,
+                                          TCAST(coords),
+                                          TCAST(parent),
+                                          TCAST(frame_x),
+                                          TCAST(frame_y),
+                                          TCAST(frame_z),
+                                          TCAST(doftype));
+
+                                  dofs = result.tensor;
+                                }));
+
+  return dofs;
+}
+
 // See https://stackoverflow.com/a/3221914
 
 TORCH_LIBRARY(tmol_kin, m) {
@@ -607,6 +656,7 @@ TORCH_LIBRARY(tmol_kin, m) {
   m.def("get_kinforest_scans_from_stencils", &get_scans2);
   m.def("get_kinforest_scans_from_stencils2", &get_scans2);
   m.def("minimizer_map_from_movemap", &minimizer_map_from_movemap);
+  m.def("inverse_kin", &inv_kin_dispatch);
 }
 
 }  // namespace kinematics

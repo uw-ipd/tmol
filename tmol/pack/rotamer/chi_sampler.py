@@ -188,17 +188,8 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
     )
 
     # get the residue index for each rotamer
-    max_n_blocks = poses.block_coord_offset.shape[1]
-    res_ind_for_gbt = torch.tensor(
-        [
-            i * max_n_blocks + j
-            for i, one_pose_blts in enumerate(task.blts)
-            for j, blt in enumerate(one_pose_blts)
-            for _ in blt.considered_block_types
-        ],
-        dtype=torch.int64,
-        device=poses.device,
-    )
+    res_ind_for_gbt = task.global_block_ind_for_considered_block_types
+
     gbt_for_samplers_rots = gbt_for_rot[conf_inds_for_sampler]
     res_ind_for_samplers_rots = res_ind_for_gbt[gbt_for_samplers_rots]
     real_res_ind_for_samplers_rots = poses_res_to_real_poses_res[

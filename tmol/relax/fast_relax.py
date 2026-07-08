@@ -110,7 +110,7 @@ def _normalize_schedule(
     return normalized
 
 
-def _default_min_fn(pose_stack, sfxn, *, fold_forest, move_map, verbose):
+def _default_kin_min_fn(pose_stack, sfxn, *, fold_forest, move_map, verbose):
     """Default minimization function: kinematic (torsion-space) LBFGS."""
     return run_kin_min(
         pose_stack,
@@ -152,7 +152,7 @@ def fast_relax(
     fold_forest: FoldForest,
     *,
     task_operations=None,
-    num_repeats=5,
+    num_repeats=2,
     ramp_constraints: Optional[bool] = None,  # default True
     schedule=None,
     min_fn=None,
@@ -187,7 +187,7 @@ def fast_relax(
             Default: True. A warning message is printed if you specify
             ramp_constraints=True but the "constraint" weight is 0.
         num_repeats: Number of times to repeat the full schedule of pack-min
-            steps (default: 5).
+            steps (default: 2).
         schedule: The fa_rep / constraint ramp schedule — a list of per-step entries
             controlling the fa_rep weight and constraints used during packing and
             minimization. Each entry is either:
@@ -217,8 +217,8 @@ def fast_relax(
             arguments so that Cartesian minimizers can accept and ignore them
             via ``**kwargs``.
 
-            If None, the default kinematic (torsion-space) LBFGS minimizer
-            is used (``run_kin_min``).
+            If None, the default Cartesian minimizer is used
+            (``run_cart_min`` via :func:`_default_cart_min_fn`).
 
             Examples::
 
@@ -241,7 +241,7 @@ def fast_relax(
         The relaxed PoseStack (best-scoring across all repeats).
     """
     if min_fn is None:
-        min_fn = _default_min_fn
+        min_fn = _default_cart_min_fn
     if schedule is None:
         schedule = DEFAULT_RELAX_SCHEDULE
 

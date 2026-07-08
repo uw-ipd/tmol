@@ -9,6 +9,7 @@
 #include <tmol/score/common/device_operations.cuda.impl.cuh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/torch_context.hh>
 
 // ??? #include "annealer.hh"
 #include "simulated_annealing.hh"
@@ -528,7 +529,8 @@ MGPU_DEVICE float warp_wide_sim_annealing(
 
 template <tmol::Device D, class IG>
 struct Annealer {
-  static auto run_simulated_annealing(IG ig, at::CUDAGeneratorImpl* gen)
+  static auto run_simulated_annealing(
+      ContextManager& mgr, IG ig, at::CUDAGeneratorImpl* gen)
       -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
     int const n_poses = ig.n_poses_cpu();
     int const max_n_res = ig.max_n_res_cpu();
@@ -855,13 +857,17 @@ struct Annealer {
       int const n_res = ig.n_res(pose);
       int const n_rotamers = ig.n_rotamers(pose);
 
+      if (g.thread_rank() == 0) {
+        sorted_fullquench_traj[pose][traj_id] = traj_id;
+      }
+
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         int i_rot = current_rotamer_assignments_lotemp[pose][source_traj][i];
         current_rotamer_assignments_fullquench[pose][traj_id][i] = i_rot;
         best_rotamer_assignments_fullquench[pose][traj_id][i] = i_rot;
       }
 
-      float after_full_quench_totalE = warp_wide_sim_annealing(
+      warp_wide_sim_annealing(
           pose,
           traj_id,
           &state,
@@ -877,8 +883,11 @@ struct Annealer {
           n_rotamers,
           true,
           false);
+      // rescore best assignment
+      float best_totalE = ig.total_energy_for_assignment_parallel(
+          pose, g, best_rotamer_assignments_fullquench[pose][traj_id]);
       if (g.thread_rank() == 0) {
-        scores_fullquench[pose][traj_id] = after_full_quench_totalE;
+        scores_fullquench[pose][traj_id] = best_totalE;
       }
     });
 
@@ -892,7 +901,7 @@ struct Annealer {
       int const source_traj = sorted_fullquench_traj[pose][traj_id];
       int const n_res = ig.n_res(pose);
       if (g.thread_rank() == 0) {
-        scores_final[pose][traj_id] = scores_fullquench[pose][source_traj];
+        scores_final[pose][traj_id] = scores_fullquench[pose][traj_id];
       }
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         rotamer_assignments_final[pose][traj_id][i] =
@@ -900,44 +909,44 @@ struct Annealer {
       }
     });
 
-    mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
     mgpu::transform<32, 1>(
-        hitemp_simulated_annealing, n_hitemp_simA_threads, context);
+        hitemp_simulated_annealing, n_hitemp_simA_threads, *context);
 
     mgpu::segmented_sort(
         scores_hitemp.data(),
         sorted_hitemp_traj.data(),
-        n_hitemp_simA_traj,
+        n_poses * n_hitemp_simA_traj,
         segment_heads_hitemp.data(),
         n_poses,
         mgpu::less_t<float>(),
-        context);
+        *context);
 
     mgpu::transform<32, 1>(
-        lotemp_simulated_annealing, n_lotemp_simA_threads, context);
+        lotemp_simulated_annealing, n_lotemp_simA_threads, *context);
 
     mgpu::segmented_sort(
         scores_lotemp.data(),
         sorted_lotemp_traj.data(),
-        n_lotemp_simA_traj,
+        n_poses * n_lotemp_simA_traj,
         segment_heads_lotemp.data(),
         n_poses,
         mgpu::less_t<float>(),
-        context);
+        *context);
 
-    mgpu::transform<32, 1>(fullquench, n_fullquench_threads, context);
+    mgpu::transform<32, 1>(fullquench, n_fullquench_threads, *context);
 
     mgpu::segmented_sort(
         scores_fullquench.data(),
         sorted_fullquench_traj.data(),
-        n_fullquench_traj,
+        n_poses * n_fullquench_traj,
         segment_heads_fullquench.data(),
         n_poses,
         mgpu::less_t<float>(),
-        context);
+        *context);
 
-    mgpu::transform<32, 1>(final_reindexing, n_fullquench_threads, context);
+    mgpu::transform<32, 1>(final_reindexing, n_fullquench_threads, *context);
 
     return {scores_final_t, rotamer_assignments_final_t};
   }
@@ -945,6 +954,7 @@ struct Annealer {
 
 template <tmol::Device D>
 auto AnnealerDispatch<D>::forward(
+    ContextManager& mgr,
     int max_n_rotamers_per_pose,
     TView<int, 1, D> pose_n_res,
     TView<int, 1, D> pose_n_rotamers,
@@ -969,10 +979,10 @@ auto AnnealerDispatch<D>::forward(
 
   auto n_neighbors_t = TPack<int, 2, D>::zeros({n_poses_cpu, max_n_res_cpu});
   auto n_neighbors = n_neighbors_t.view;
+  std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
   {
     int const count = n_poses_cpu * max_n_res_cpu;
-    mgpu::standard_context_t ctx;
     mgpu::transform<128, 1>(
         [=] MGPU_DEVICE(int idx) {
           if (idx >= count) return;
@@ -986,7 +996,7 @@ auto AnnealerDispatch<D>::forward(
           n_neighbors[pose][b] = cnt;
         },
         count,
-        ctx);
+        *context);
   }
 
   auto neighbor_starts_t =
@@ -994,15 +1004,14 @@ auto AnnealerDispatch<D>::forward(
   auto neighbor_starts = neighbor_starts_t.view;
   int total_neighbors;
   {
-    mgpu::standard_context_t ctx;
-    mgpu::mem_t<int> total(1, ctx, mgpu::memory_space_host);
+    mgpu::mem_t<int> total(1, *context, mgpu::memory_space_host);
     mgpu::scan<mgpu::scan_type_exc>(
         n_neighbors.data(),
         n_poses_cpu * max_n_res_cpu,
         neighbor_starts.data(),
         mgpu::plus_t<int>(),
         total.data(),
-        ctx);
+        *context);
     cudaStreamSynchronize(0);
     total_neighbors = total.data()[0];
   }
@@ -1013,7 +1022,6 @@ auto AnnealerDispatch<D>::forward(
 
   {
     int const count = n_poses_cpu * max_n_res_cpu;
-    mgpu::standard_context_t ctx;
     mgpu::transform<128, 1>(
         [=] MGPU_DEVICE(int idx) {
           if (idx >= count) return;
@@ -1028,7 +1036,7 @@ auto AnnealerDispatch<D>::forward(
           }
         },
         count,
-        ctx);
+        *context);
   }
 
   InteractionGraph<D, int, float> ig(
@@ -1053,7 +1061,7 @@ auto AnnealerDispatch<D>::forward(
 
   auto result =
       Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
-          ig, gen);
+          mgr, ig, gen);
 
   return result;
 }

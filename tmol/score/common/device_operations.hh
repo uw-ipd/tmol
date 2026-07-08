@@ -5,6 +5,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <moderngpu/scan_types.hxx>  // CPU-friendly
+#include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
 namespace score {
@@ -13,26 +14,28 @@ namespace common {
 template <tmol::Device D>
 struct DeviceOperations {
   template <typename launch_t, typename Func>
-  static void forall(int N, Func f);
+  static void forall(ContextManager& mgr, int N, Func f);
 
   template <typename Int, typename Func>
-  static void forall_stacks(Int Nstacks, Int N, Func f);
+  static void forall_stacks(ContextManager& mgr, Int Nstacks, Int N, Func f);
 
   template <typename Int, typename Func>
-  static void foreach_combination_triple(Int dim1, Int dim2, Int dim3, Func f);
+  static void foreach_combination_triple(
+      ContextManager& mgr, Int dim1, Int dim2, Int dim3, Func f);
 
   template <typename launch_t, typename Func>
-  static void foreach_workgroup(int n_workgroups, Func f);
+  static void foreach_workgroup(ContextManager& mgr, int n_workgroups, Func f);
 
   // Note that dst[0] should be initialized to the identity value (e.g. 0) if
   // scan_type is exclusive.
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
-  static void scan(T* src, T* dst, int n, OP op);
+  static void scan(ContextManager& mgr, T* src, T* dst, int n, OP op);
 
   // Note that dst[0] should be initialized to the identity value (e.g. 0) if
   // scan_type is exclusive.a
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
-  static T scan_and_return_total(T* src, T* dst, int n, OP op);
+  static T scan_and_return_total(
+      ContextManager& mgr, T* src, T* dst, int n, OP op);
 
   // Construct load-balanced-search mapping of work items to their generator
   // index; see https://moderngpu.github.io/loadbalance.html
@@ -44,6 +47,7 @@ struct DeviceOperations {
   //.  - n_generators: the number of generators / length of exc_scan_offset
   template <typename launch_t, typename Int>
   static TPack<Int, 1, D> load_balancing_search(
+      ContextManager& mgr,
       int n_work_units_total,  // The count of the total number of work units
       Int* exc_scan_offsets,
       int n_generators);
@@ -51,7 +55,7 @@ struct DeviceOperations {
   // Perform a reduction on a given device array and return the result to the
   // CPU. n must be greater than zero.
   template <typename T, typename OP>
-  static T reduce(T* src, int n, OP op);
+  static T reduce(ContextManager& mgr, T* src, int n, OP op);
 
   // Segmented scan expects the indices for the beginning of each segment rather
   // than, e.g., a boolean tensor indicating the start of each segment.
@@ -64,8 +68,13 @@ struct DeviceOperations {
       typename Int,
       typename OP>
   static auto segmented_scan(
-      T* src, Int* seg_start_inds, int n, int n_segs, OP op, T identity)
-      -> TPack<T, 1, D>;
+      ContextManager& mgr,
+      T* src,
+      Int* seg_start_inds,
+      int n,
+      int n_segs,
+      OP op,
+      T identity) -> TPack<T, 1, D>;
 
   template <int N_T, int WIDTH, typename T>
   static void copy_contiguous_data(

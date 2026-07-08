@@ -20,6 +20,7 @@ template <
     typename Int>
 struct ResolveHisTaut {
   static auto f(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 3, Dev> coords,
       TView<Int, 2, Dev> res_types,
       TView<Int, 2, Dev> res_type_variants,

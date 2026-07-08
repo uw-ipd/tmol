@@ -5,9 +5,10 @@ import pytest
 import torch
 import torch.cuda
 
-cuda_available = torch.cuda.is_available()
-
-requires_cuda = pytest.mark.skipif(not cuda_available, reason="Requires cuda.")
+requires_cuda = pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="Requires cuda.",
+)
 
 
 def zero_padded_counts(counts):

@@ -10,6 +10,7 @@
 #include <tmol/score/common/launch_box_macros.hh>
 
 #include <moderngpu/operators.hxx>
+#include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
 namespace score {
@@ -26,6 +27,7 @@ template <
     typename Int>
 struct compute_rot_spheres {
   static void f(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
       TView<Int, 1, D> block_type_ind_for_rot,
@@ -100,7 +102,7 @@ struct compute_rot_spheres {
     });
 
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        rot_coord_offset.size(0), compute_spheres);
+        mgr, rot_coord_offset.size(0), compute_spheres);
   }
 };
 
@@ -111,6 +113,7 @@ template <
     typename Int>
 struct compute_block_spheres {
   static void f(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
       TView<Int, 1, D> block_ind_for_rot,
@@ -188,7 +191,7 @@ struct compute_block_spheres {
     });
 
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        block_ind_for_rot.size(0), compute_spheres);
+        mgr, block_ind_for_rot.size(0), compute_spheres);
   }
 };
 
@@ -199,6 +202,7 @@ template <
     typename Int>
 struct detect_rot_neighbors {
   static void f(
+      ContextManager& mgr,
       Int max_n_rots_per_pose,
       TView<Int, 1, D> block_ind_for_rot,
       TView<Int, 1, D> block_type_ind_for_rot,
@@ -275,7 +279,8 @@ struct detect_rot_neighbors {
     std::uint64_t n_rot_pairs = std::uint64_t(n_rots_for_block.size(0))
                                 * max_n_rots_per_pose * max_n_rots_per_pose;
 
-    DeviceDispatch<D>::template forall<launch_t>(n_rot_pairs, detect_neighbors);
+    DeviceDispatch<D>::template forall<launch_t>(
+        mgr, n_rot_pairs, detect_neighbors);
   }
 };
 
@@ -286,6 +291,7 @@ template <
     typename Int>
 struct detect_block_neighbors {
   static void f(
+      ContextManager& mgr,
       TView<Int, 2, D> pose_stack_block_type,
       TView<Real, 3, D> block_spheres,
       TView<Int, 3, D> block_neighbors,
@@ -340,7 +346,7 @@ struct detect_block_neighbors {
                         * pose_stack_block_type.size(1);
 
     DeviceDispatch<D>::template forall<launch_t>(
-        n_block_pairs, detect_neighbors);
+        mgr, n_block_pairs, detect_neighbors);
   }
 };
 
@@ -350,8 +356,9 @@ template <
     typename Int>
 struct rot_neighbor_indices {
   static auto f(
-      TView<Int, 3, D> rot_neighbors, TView<Int, 1, D> rot_offset_for_pose)
-      -> TPack<Int, 2, D> {
+      ContextManager& mgr,
+      TView<Int, 3, D> rot_neighbors,
+      TView<Int, 1, D> rot_offset_for_pose) -> TPack<Int, 2, D> {
     LAUNCH_BOX_32;
 
     int n_pose = rot_neighbors.size(0);
@@ -363,6 +370,7 @@ struct rot_neighbor_indices {
 
     int n_dispatch_total =
         DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+            mgr,
             rot_neighbors.data(),
             offset_for_cell.data(),
             n_cells,
@@ -386,7 +394,7 @@ struct rot_neighbor_indices {
       }
     });
 
-    DeviceDispatch<D>::template forall<launch_t>(n_cells, fill_indices);
+    DeviceDispatch<D>::template forall<launch_t>(mgr, n_cells, fill_indices);
 
     return rot_neighbor_indices;
   }
@@ -397,7 +405,8 @@ template <
     tmol::Device D,
     typename Int>
 struct block_neighbor_indices {
-  static auto f(TView<Int, 3, D> block_neighbors) -> TPack<Int, 2, D> {
+  static auto f(ContextManager& mgr, TView<Int, 3, D> block_neighbors)
+      -> TPack<Int, 2, D> {
     LAUNCH_BOX_32;
 
     int n_pose = block_neighbors.size(0);
@@ -409,6 +418,7 @@ struct block_neighbor_indices {
 
     int n_dispatch_total =
         DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+            mgr,
             block_neighbors.data(),
             offset_for_cell.data(),
             n_cells,
@@ -432,7 +442,7 @@ struct block_neighbor_indices {
       }
     });
 
-    DeviceDispatch<D>::template forall<launch_t>(n_cells, fill_indices);
+    DeviceDispatch<D>::template forall<launch_t>(mgr, n_cells, fill_indices);
 
     return block_neighbor_indices;
   }
@@ -449,6 +459,7 @@ template <
     typename Int>
 struct compute_block_spheres_from_rot_spheres {
   static void f(
+      ContextManager& mgr,
       TView<Real, 2, D> rot_spheres,          // [n_rots_global, 4]
       TView<Int, 2, D> n_rots_for_block,      // [n_poses, max_n_blocks]
       TView<Int, 2, D> rot_offset_for_block,  // [n_poses, max_n_blocks] global
@@ -494,7 +505,7 @@ struct compute_block_spheres_from_rot_spheres {
     });
 
     DeviceDispatch<D>::template forall<launch_t>(
-        n_poses * max_n_blocks, compute);
+        mgr, n_poses * max_n_blocks, compute);
   }
 };
 
@@ -508,7 +519,8 @@ template <
     typename Int>
 struct rot_neighbor_indices_from_block_neighbors {
   static auto
-  f(TView<Int, 3, D> block_neighbors,   // [n_poses, max_n_blocks, max_n_blocks]
+  f(ContextManager& mgr,
+    TView<Int, 3, D> block_neighbors,   // [n_poses, max_n_blocks, max_n_blocks]
     TView<Int, 2, D> n_rots_for_block,  // [n_poses, max_n_blocks]
     TView<Int, 2, D> rot_offset_for_block  // [n_poses, max_n_blocks] global
     ) -> TPack<Int, 2, D> {
@@ -538,7 +550,7 @@ struct rot_neighbor_indices_from_block_neighbors {
         }
       }
     });
-    DeviceDispatch<D>::template forall<launch_t>(n_cells, compute_counts);
+    DeviceDispatch<D>::template forall<launch_t>(mgr, n_cells, compute_counts);
 
     // Step 2: prefix scan → per-block-pair offsets and total
     auto pair_offsets_t = TPack<Int, 3, D>::zeros_like(block_neighbors);
@@ -546,6 +558,7 @@ struct rot_neighbor_indices_from_block_neighbors {
 
     int const total =
         DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+            mgr,
             pair_counts.data(),
             pair_offsets.data(),
             n_cells,
@@ -590,7 +603,7 @@ struct rot_neighbor_indices_from_block_neighbors {
         }
       }
     });
-    DeviceDispatch<D>::template forall<launch_t>(n_cells, fill);
+    DeviceDispatch<D>::template forall<launch_t>(mgr, n_cells, fill);
 
     return indices_t;
   }

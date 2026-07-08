@@ -1260,6 +1260,9 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
 
 
 def _annotate_packed_block_type_with_gen_scan_path_segs(pbt):
+    if hasattr(pbt, "gen_seg_scan_path_segs"):
+        return
+
     for bt in pbt.active_block_types:
         _annotate_block_type_with_gen_scan_path_segs(bt)
     max_n_input_types = max(

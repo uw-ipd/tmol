@@ -4,6 +4,7 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
 namespace score {
@@ -39,6 +40,7 @@ template <
     typename Int>
 struct GenerateHBondBases {
   static auto forward(
+      ContextManager& mgr,
       // common pose params
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,

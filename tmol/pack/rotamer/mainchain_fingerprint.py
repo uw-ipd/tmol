@@ -327,6 +327,11 @@ def annotate_residue_type_with_sampler_fingerprints(
     samplers: Tuple[ChiSampler, ...],
     chem_db: PatchedChemicalDatabase,
 ):
+    # Mainchain fingerprints describe how to transfer sidechain DOFs across
+    # mainchains; they require polymer.mainchain_atoms and are meaningless for
+    # non-polymer residues (e.g. ligands).
+    if not restype.properties.polymer.is_polymer:
+        return
     for sampler in samplers:
         if sampler.defines_rotamers_for_rt(restype):
             if hasattr(restype, "mc_fingerprints"):

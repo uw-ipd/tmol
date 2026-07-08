@@ -109,7 +109,8 @@ struct lk_isotropic_pair {
       Real lj_radius_i,
       Real lk_dgfree_i,
       Real lk_lambda_i,
-      Real lk_volume_j) -> Real {
+      Real lk_volume_j,
+      Real max_dis) -> Real {
     Real d_min = lj_sigma_ij * .89;
 
     Real cpoly_close_dmin = d_min * d_min - 1.45;
@@ -118,8 +119,8 @@ struct lk_isotropic_pair {
 
     Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
 
-    Real cpoly_far_dmin = 4.5;
-    Real cpoly_far_dmax = 6.0;
+    Real cpoly_far_dmax = max_dis;
+    Real cpoly_far_dmin = max_dis - Real(1.5);
 
     Real weight = connectivity_weight<Real>(bonded_path_length);
 
@@ -168,7 +169,8 @@ struct lk_isotropic_pair {
       Real lj_radius_i,
       Real lk_dgfree_i,
       Real lk_lambda_i,
-      Real lk_volume_j) -> V_dV_t {
+      Real lk_volume_j,
+      Real max_dis) -> V_dV_t {
     Real d_min = lj_sigma_ij * .89;
 
     Real cpoly_close_dmin = d_min * d_min - 1.45;
@@ -177,8 +179,8 @@ struct lk_isotropic_pair {
 
     Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
 
-    Real cpoly_far_dmin = 4.5;
-    Real cpoly_far_dmax = 6.0;
+    Real cpoly_far_dmax = max_dis;
+    Real cpoly_far_dmin = max_dis - Real(1.5);
 
     Real weight = connectivity_weight<Real>(bonded_path_length);
 
@@ -253,8 +255,8 @@ struct lk_isotropic_score {
     cpoly_close_dmin = std::sqrt(cpoly_close_dmin);
     Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
 
-    Real cpoly_far_dmin = 4.5;
-    Real cpoly_far_dmax = 6.0;
+    Real cpoly_far_dmax = global.max_dis;
+    Real cpoly_far_dmin = global.max_dis - Real(1.5);
 
     Real weight = connectivity_weight<Real>(bonded_path_length);
 
@@ -331,7 +333,8 @@ struct lk_isotropic_score {
         i.lj_radius,
         i.lk_dgfree,
         i.lk_lambda,
-        j.lk_volume);
+        j.lk_volume,
+        global.max_dis);
 
     auto ji = lk_isotropic_pair<Real>::V_dV(
         dist,
@@ -340,7 +343,8 @@ struct lk_isotropic_score {
         j.lj_radius,
         j.lk_dgfree,
         j.lk_lambda,
-        i.lk_volume);
+        i.lk_volume,
+        global.max_dis);
 
     return {ij.V + ji.V, ij.dV_ddist + ji.dV_ddist};
   }

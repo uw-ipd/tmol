@@ -94,6 +94,15 @@ class EnergyTerm:
         """
         pass
 
+    def set_options(self, options: dict):
+        """Receive a dictionary of options from the ScoreFunction.
+
+        Subclasses may override this method to extract configuration values
+        that affect scoring behavior, such as boolean flags, numeric
+        parameters, or other settings. The base implementation is a no-op.
+        """
+        pass
+
     def get_score_term_attributes(self, pose_stack: PoseStack):
         raise NotImplementedError()
 
