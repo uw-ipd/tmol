@@ -129,6 +129,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
                     self.type_params.is_hydroxyl,
                     self.type_params.is_polarh,
                     self.type_params.is_acceptor,
+                    self.type_params.is_carbon_lk,
                 ]
             ),
             dim=1,

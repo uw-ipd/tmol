@@ -18,6 +18,7 @@ struct LKBallTypeParams {
   Real is_hydroxyl;
   Real is_polarh;
   Real is_acceptor;
+  Real is_carbon_lk;
 };
 
 template <typename Real>

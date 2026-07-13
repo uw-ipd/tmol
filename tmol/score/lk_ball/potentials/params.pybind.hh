@@ -35,6 +35,7 @@ struct type_caster<tmol::score::lk_ball::potentials::LKBallTypeParams<Real>> {
     CAST_ATTR(src, value, is_hydroxyl);
     CAST_ATTR(src, value, is_polarh);
     CAST_ATTR(src, value, is_acceptor);
+    CAST_ATTR(src, value, is_carbon_lk);
 
     return true;
   }

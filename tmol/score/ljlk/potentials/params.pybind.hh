@@ -76,6 +76,7 @@ struct type_caster<tmol::score::ljlk::potentials::LKTypeParams<Real>> {
     CAST_ATTR(src, value, is_acceptor);
     CAST_ATTR(src, value, is_hydroxyl);
     CAST_ATTR(src, value, is_polarh);
+    CAST_ATTR(src, value, is_carbon_lk);
 
     return true;
   }
@@ -99,6 +100,7 @@ struct type_caster<tmol::score::ljlk::potentials::LKTypeParamTensors<Real, D>> {
     CAST_ATTR(src, value, is_acceptor);
     CAST_ATTR(src, value, is_hydroxyl);
     CAST_ATTR(src, value, is_polarh);
+    CAST_ATTR(src, value, is_carbon_lk);
 
     return true;
   }
