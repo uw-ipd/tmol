@@ -1,3 +1,4 @@
+import attr
 import cattr
 import numpy
 
@@ -6,6 +7,7 @@ from tmol.chemical.restypes import (
     RefinedResidueType,
     ResidueTypeSet,
 )
+from tmol.database.chemical import RawResidueType
 
 
 def test_refined_residue_construction_smoke(default_database):
@@ -93,6 +95,40 @@ def test_residue_type_set_get_default():
     restype_set1 = ResidueTypeSet.get_default()
     restype_set2 = ResidueTypeSet.get_default()
     assert restype_set1 is restype_set2
+
+
+def test_from_database_reuses_default_refined_objects(default_database):
+    """Standard residues reuse the cached RefinedResidueType objects."""
+    default_ids = {id(rt) for rt in ResidueTypeSet.get_default().residue_types}
+
+    s = ResidueTypeSet.from_database(default_database.chemical)
+    # every standard residue is the already-built (cached) refined object
+    for rt in s.residue_types:
+        assert id(rt) in default_ids
+
+    # a second build reuses the same objects rather than rebuilding them
+    s2 = ResidueTypeSet.from_database(default_database.chemical)
+    assert all(a is b for a, b in zip(s.residue_types, s2.residue_types))
+
+
+def test_from_database_builds_non_default_residue_fresh(default_database):
+    """A residue not among the default (immortal) objects is built fresh."""
+    chem = default_database.chemical
+    # a distinct copy of an existing residue: identical content, new object id,
+    # standing in for an injected ligand (which is likewise a new RawResidueType).
+    original = chem.residues[0]
+    copy = cattr.structure(cattr.unstructure(original), RawResidueType)
+    assert copy is not original
+    extended = attr.evolve(chem, residues=(*chem.residues, copy))
+
+    default_ids = {id(rt) for rt in ResidueTypeSet.get_default().residue_types}
+    s = ResidueTypeSet.from_database(extended)
+
+    # standard residues still reuse the cached objects ...
+    for rt in s.residue_types[: len(chem.residues)]:
+        assert id(rt) in default_ids
+    # ... and the appended non-default residue is a freshly built object
+    assert id(s.residue_types[-1]) not in default_ids
 
 
 def test_build_ideal_coords_smoke(default_database):
