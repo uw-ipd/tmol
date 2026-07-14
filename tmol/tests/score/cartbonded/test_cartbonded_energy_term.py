@@ -205,6 +205,16 @@ class TestCartBondedEnergyTerm(EnergyTermTestBase):
         )
 
     @classmethod
+    def test_disulfide_scoring(cls, pdb_6DMZ, default_database, torch_device):
+        return super().test_block_scoring(
+            pdb_6DMZ,
+            default_database,
+            torch_device,
+            override_baseline_name=cls.test_disulfide_scoring.__name__,
+            update_baseline=False,
+        )
+
+    @classmethod
     def test_block_scoring_reweighted_gradcheck(
         cls, ubq_pdb, default_database, torch_device
     ):
