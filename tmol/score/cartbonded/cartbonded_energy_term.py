@@ -219,11 +219,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
 
         # Fetch the params from the database, updating the atom id store if necessary
-        temp_hack_base_name = (
-            block_type.base_name if block_type.base_name != "CYD" else "CYS"
-        )
-        temp_hack_base_name = block_type.base_name
-        cartbonded_params = self.get_params_for_res(temp_hack_base_name)
+        cartbonded_params = self.get_params_for_res(block_type.base_name)
         cb_block_ann = CartBondedBlockAnnotations(
             cartbonded_subgraphs=cart_subgraphs,
             cartbonded_subgraph_type_counts=cart_subgraph_type_counts,
