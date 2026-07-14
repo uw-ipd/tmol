@@ -24,9 +24,15 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class BiotitePoseBuildContext:
-    """Immutable context for canonical-form-based pose construction."""
+    """Immutable, structure-independent construction context.
 
-    canonical_form: CanonicalForm
+    Holds only the pieces that depend on the parameter database / ligand set
+    (not on any particular input structure), so it can be built once and reused
+    across many structures that share the same ligand(s). The per-structure
+    canonical form is computed separately by ``pose_stack_from_biotite`` for
+    each input structure.
+    """
+
     canonical_ordering: CanonicalOrdering
     packed_block_types: PackedBlockTypes
     parameter_database: ParameterDatabase
@@ -38,7 +44,6 @@ def build_context_from_biotite(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     torch_device: torch.device,
     param_db: ParameterDatabase | None = None,
-    missing_density_distance_threshold: float = 2.4,
     prepare_ligands: bool = False,
     ligand_ph: float = 7.4,
     strict_atom_types: bool = False,
@@ -49,19 +54,22 @@ def build_context_from_biotite(
     # (OptHSampler). Opt in explicitly once that is fixed.
     sample_proton_chi: bool = False,
 ) -> BiotitePoseBuildContext:
-    """Build immutable construction context from a Biotite structure.
+    """Build the structure-independent construction context.
+
+    The returned context holds only database/ligand-derived pieces (canonical
+    ordering, residue-type set, packed block types, parameter database); it does
+    not depend on the input structure's coordinates and can be reused across
+    structures sharing the same ligand(s). ``biotite_structure`` is used only to
+    detect and prepare ligands (when ``prepare_ligands=True``).
 
     Args:
-        biotite_structure: Input AtomArray or AtomArrayStack.
+        biotite_structure: Input AtomArray or AtomArrayStack. Used only for
+            ligand detection/preparation when ``prepare_ligands=True``.
         torch_device: Target torch device.
         param_db: Optional parameter database. When provided, canonical ordering,
             residue types, and packed block types are built from this database.
             If prepare_ligands=True, it is extended with ligand data. If None,
             defaults are used.
-        missing_density_distance_threshold: Distance threshold in Angstroms.
-            Adjacent residues whose closest inter-atom distance exceeds this
-            value are treated as disconnected (upper/lower connects broken).
-            Set to 0 to disable. Default is 2.4.
         prepare_ligands: If True, detect and prepare non-standard residues
             (via ``tmol.ligand``, which uses RDKit for atom typing and
             residue-type construction).
@@ -83,8 +91,8 @@ def build_context_from_biotite(
             used when prepare_ligands=True).
 
     Returns:
-        BiotitePoseBuildContext containing canonical form, ordering,
-        packed block types, parameter database, and residue type set.
+        BiotitePoseBuildContext containing canonical ordering, packed block
+        types, parameter database, and residue type set.
     """
     if prepare_ligands:
         from tmol.ligand import prepare_ligands as _prepare_ligands
@@ -101,18 +109,11 @@ def build_context_from_biotite(
             sample_proton_chi=sample_proton_chi,
             strict_ligands=strict_ligands,
         )
-        cf = canonical_form_from_biotite(
-            biotite_structure,
-            torch_device,
-            co=co,
-            missing_density_distance_threshold=missing_density_distance_threshold,
-        )
         rts = ResidueTypeSet.from_database(param_db.chemical)
         pbt = PackedBlockTypes.from_restype_list(
-            rts.chem_db, rts, rts.residue_types, cf.coords.device
+            rts.chem_db, rts, rts.residue_types, torch_device
         )
         return BiotitePoseBuildContext(
-            canonical_form=cf,
             canonical_ordering=co,
             packed_block_types=pbt,
             parameter_database=param_db,
@@ -121,26 +122,13 @@ def build_context_from_biotite(
 
     if param_db is None:
         co = canonical_ordering_for_biotite()
-        cf = canonical_form_from_biotite(
-            biotite_structure,
-            torch_device,
-            co=co,
-            missing_density_distance_threshold=missing_density_distance_threshold,
-        )
-        pbt = packed_block_types_for_biotite(cf.coords.device)
+        pbt = packed_block_types_for_biotite(torch_device)
         db = _paramdb_for_biotite()
         rts = _restype_set_for_biotite()
     else:
         db = param_db
         co, rts, pbt = _derived_types_for_param_db(db, torch_device)
-        cf = canonical_form_from_biotite(
-            biotite_structure,
-            torch_device,
-            co=co,
-            missing_density_distance_threshold=missing_density_distance_threshold,
-        )
     return BiotitePoseBuildContext(
-        canonical_form=cf,
         canonical_ordering=co,
         packed_block_types=pbt,
         parameter_database=db,
@@ -164,16 +152,28 @@ def pose_stack_from_biotite(
     # produce NaN pose coordinates (OptHSampler). Opt in once that is fixed.
     sample_proton_chi: bool = False,
     return_context: bool = False,
+    context: BiotitePoseBuildContext | None = None,
     **kwargs: object,
 ) -> PoseStack | tuple[PoseStack, dict] | tuple[PoseStack, BiotitePoseBuildContext]:
     """Build a PoseStack from the output generated by Biotite.
+
+    To score many structures that share the same ligand(s) efficiently, build
+    the (expensive, structure-independent) context once and reuse it::
+
+        context = build_context_from_biotite(struct0, dev, prepare_ligands=True)
+        for struct in structures:
+            pose_stack = pose_stack_from_biotite(struct, dev, context=context)
+
+    Reusing a context skips rebuilding the parameter database, canonical
+    ordering, residue-type set, and packed block types; only the per-structure
+    canonical form is recomputed (see the ``context`` arg).
 
     Args:
         biotite_structure: A Biotite AtomArray or AtomArrayStack.
         torch_device: Target PyTorch device.
         param_db: Optional ParameterDatabase. When provided, conversion and pose
             construction use this database. If prepare_ligands=True, it is
-            extended with ligand data.
+            extended with ligand data. Mutually exclusive with ``context``.
         missing_density_distance_threshold: Distance threshold in Angstroms.
             Adjacent residues whose closest inter-atom distance exceeds this
             value are treated as disconnected (upper/lower connects broken).
@@ -212,23 +212,49 @@ def pose_stack_from_biotite(
         create_dunbrack_sampler_from_database,
     )
 
-    context = build_context_from_biotite(
+    if context is not None:
+        if param_db is not None:
+            raise ValueError(
+                "Pass either context= or param_db=, not both; the context "
+                "already carries its parameter database."
+            )
+        if prepare_ligands:
+            raise ValueError(
+                "context= already contains prepared ligands; do not also pass "
+                "prepare_ligands=True."
+            )
+        if context.packed_block_types.device.type != torch_device.type:
+            raise ValueError(
+                "context was built for device "
+                f"'{context.packed_block_types.device}' but torch_device is "
+                f"'{torch_device}'; they must match."
+            )
+    else:
+        context = build_context_from_biotite(
+            biotite_structure,
+            torch_device,
+            param_db=param_db,
+            prepare_ligands=prepare_ligands,
+            ligand_ph=ligand_ph,
+            strict_atom_types=strict_atom_types,
+            strict_ligands=strict_ligands,
+            ligand_params_files=ligand_params_files,
+            sample_proton_chi=sample_proton_chi,
+        )
+
+    # The canonical form is per-structure, so it is always computed here for the
+    # given structure (never carried in the reusable context).
+    cf = canonical_form_from_biotite(
         biotite_structure,
         torch_device,
-        param_db=param_db,
+        co=context.canonical_ordering,
         missing_density_distance_threshold=missing_density_distance_threshold,
-        prepare_ligands=prepare_ligands,
-        ligand_ph=ligand_ph,
-        strict_atom_types=strict_atom_types,
-        strict_ligands=strict_ligands,
-        ligand_params_files=ligand_params_files,
-        sample_proton_chi=sample_proton_chi,
     )
 
     result = pose_stack_from_canonical_form(
         context.canonical_ordering,
         context.packed_block_types,
-        *context.canonical_form,
+        *cf,
         return_block_has_missing_atoms=True,
         **kwargs,
     )

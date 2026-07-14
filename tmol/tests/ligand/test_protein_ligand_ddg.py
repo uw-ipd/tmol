@@ -80,17 +80,17 @@ def _load_complex_cif(target: str):
     return structure
 
 
-def _ligand_block_mask(pose_stack, context, torch_device: torch.device) -> torch.Tensor:
-    co = context.canonical_ordering
-    res_types = context.canonical_form.res_types[0]
+def _ligand_block_mask(pose_stack, torch_device: torch.device) -> torch.Tensor:
+    pbt = pose_stack.packed_block_types
+    block_type_ind = pose_stack.block_type_ind[0]
     n_blocks = pose_stack.max_n_blocks
     ligand_mask = torch.zeros((1, n_blocks), dtype=torch.bool, device=torch_device)
     found = False
-    for block_idx in range(min(n_blocks, res_types.shape[0])):
-        res_type_id = int(res_types[block_idx])
-        if res_type_id < 0:
+    for block_idx in range(n_blocks):
+        bt_ind = int(block_type_ind[block_idx])
+        if bt_ind < 0:
             continue
-        if co.restype_io_equiv_classes[res_type_id] == LIGAND_RES_NAME:
+        if pbt.active_block_types[bt_ind].name3 == LIGAND_RES_NAME:
             ligand_mask[0, block_idx] = True
             found = True
     assert found, f"{LIGAND_RES_NAME} ligand block not found in pose"
@@ -117,7 +117,7 @@ def _weighted_ddg_from_fixtures(target: str, torch_device: torch.device) -> floa
         return_context=True,
     )
 
-    ligand_mask = _ligand_block_mask(pose_stack, context, torch_device)
+    ligand_mask = _ligand_block_mask(pose_stack, torch_device)
     sfxn = beta2016_score_function(torch_device, param_db=context.parameter_database)
     ddg = calculate_block_pair_ddg(
         pose_stack,

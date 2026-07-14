@@ -196,19 +196,19 @@ def test_ddg_from_cif_complex_with_onthefly_ligand_prep(
         return_context=True,
     )
 
-    # Locate the ligand (PSE) block(s) via the canonical form rather than
+    # Locate the ligand (PSE) block(s) from the pose's block types rather than
     # assuming a fixed position in the pose.
-    co = context.canonical_ordering
-    res_types = context.canonical_form.res_types[0]
+    pbt = pose_stack.packed_block_types
+    block_type_ind = pose_stack.block_type_ind[0]
     n_blocks = pose_stack.max_n_blocks
 
     ligand_mask = torch.zeros((1, n_blocks), dtype=torch.bool, device=torch_device)
     block_names = []
-    for block_idx in range(min(n_blocks, res_types.shape[0])):
-        res_type_id = int(res_types[block_idx])
-        if res_type_id < 0:
+    for block_idx in range(n_blocks):
+        bt_ind = int(block_type_ind[block_idx])
+        if bt_ind < 0:
             continue
-        name = co.restype_io_equiv_classes[res_type_id]
+        name = pbt.active_block_types[bt_ind].name3
         block_names.append(name)
         if name == "PSE":
             ligand_mask[0, block_idx] = True

@@ -49,7 +49,7 @@ def test_load_score_roundtrip_cif(pdb_code, tmp_path):
 
 def test_build_context_from_biotite_smoke(biotite_1ubq, torch_device):
     context = build_context_from_biotite(biotite_1ubq, torch_device=torch_device)
-    assert context.canonical_form.coords.device == torch_device
+    assert context.packed_block_types.device.type == torch_device.type
 
 
 def test_canonical_form_from_biotite_smoke(biotite_1r21, torch_device):
