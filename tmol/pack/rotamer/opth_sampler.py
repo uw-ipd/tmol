@@ -140,6 +140,9 @@ def _opth_fill_dofs(
 
     pbt = pose_stack.packed_block_types
     dev = conf_dofs_kto.device
+    dofs_ideal_t = torch.as_tensor(
+        pbt.rotamer_kinforest.dofs_ideal, dtype=torch.float32, device=dev
+    )
 
     # Per-sampler-rotamer lookup vectors (torch, length n_rots)
     bt_inds = block_type_ind_for_conformer[conf_inds_for_sampler]
@@ -177,16 +180,23 @@ def _opth_fill_dofs(
     real_mask = dummy < n_atoms_per_rot.unsqueeze(1)
     dst = (at_offs.unsqueeze(1).expand(-1, pbt.max_n_atoms) + dummy)[real_mask]
     src = (orig_at_offs.unsqueeze(1).expand(-1, pbt.max_n_atoms) + dummy)[real_mask]
-    conf_dofs_kto[dst + 1, :] = orig_dofs_kto[src + 1, :]
+    copied_dofs = orig_dofs_kto[src + 1, :]
+    nonfinite = ~torch.isfinite(copied_dofs).all(dim=1)
+    if torch.any(nonfinite):
+        flat_bt_inds = bt_inds.unsqueeze(1).expand(-1, pbt.max_n_atoms)[real_mask]
+        flat_kfo = dummy[real_mask]
+        copied_dofs = copied_dofs.clone()
+        copied_dofs[nonfinite] = dofs_ideal_t[
+            flat_bt_inds[nonfinite],
+            flat_kfo[nonfinite],
+        ]
+    conf_dofs_kto[dst + 1, :] = copied_dofs
 
     # Steps 2 & 3: only for rotamers that have a chi override
     if chi_atoms.shape[0] == 0 or not (chi_atoms >= 0).any():
         return
 
     kfidx = pbt.rotamer_kinforest.kinforest_idx  # (n_types, max_n_atoms) numpy
-    dofs_ideal_t = torch.as_tensor(
-        pbt.rotamer_kinforest.dofs_ideal, dtype=torch.float32, device=dev
-    )
     corrections = _build_chi_phi_c_corrections(pbt)  # (n_types, max_n_chi) numpy
 
     reset_kto, reset_bt, reset_k = [], [], []
@@ -746,35 +756,60 @@ class OptHSampler(ConformerSampler):
         task,
         rot_offset_for_gbt,
         gbt_for_rotamer,
+        chi_defining_atom_for_rotamer,
         chi_for_rotamers,
     ):
         pbt = pose_stack.packed_block_types
         opth_cache = pbt.opth_sample_cache
 
         bt_for_rotamer = task.cons_bt_block_type[gbt_for_rotamer]
-        n_samples_for_rotamer = opth_cache.n_proton_samples[bt_for_rotamer].to(
-            torch.int64
-        )
-
         rotamers_w_proton_chi_samples = torch.nonzero(
-            n_samples_for_rotamer > 1, as_tuple=True
+            opth_cache.has_proton_chi[bt_for_rotamer], as_tuple=True
         )[0]
+        if rotamers_w_proton_chi_samples.shape[0] == 0:
+            return
+
         bt_for_proton_rotamer = bt_for_rotamer[rotamers_w_proton_chi_samples]
         n_rotamers = gbt_for_rotamer.shape[0]
         sample_ind_for_rotamer = (
             torch.arange(n_rotamers, dtype=torch.int64, device=pose_stack.device)
             - rot_offset_for_gbt[gbt_for_rotamer]
         )
-        sample_ind_for_proton_rotamer = sample_ind_for_rotamer[
-            rotamers_w_proton_chi_samples
-        ]
-
-        max_n_expanded_chi = opth_cache.expanded_samples.shape[1]
-        chi_for_rotamers[rotamers_w_proton_chi_samples, :max_n_expanded_chi] = (
-            opth_cache.expanded_samples[
-                bt_for_proton_rotamer, :, sample_ind_for_proton_rotamer
-            ]
+        remaining_sample_ind = sample_ind_for_rotamer[rotamers_w_proton_chi_samples]
+        n_samples_per_chi = opth_cache.n_samples_per_chi[bt_for_proton_rotamer].to(
+            torch.int64
         )
+
+        n_chi_cols = min(
+            chi_for_rotamers.shape[1],
+            opth_cache.expanded_samples.shape[1],
+        )
+        for chi_col in range(n_chi_cols):
+            n_samples = n_samples_per_chi[:, chi_col]
+            active = n_samples > 0
+            if not torch.any(active):
+                continue
+
+            active_rotamers = rotamers_w_proton_chi_samples[active]
+            active_bt = bt_for_proton_rotamer[active]
+            active_n_samples = n_samples[active]
+            active_sample_ind = torch.remainder(
+                remaining_sample_ind[active],
+                active_n_samples,
+            )
+            chi_for_rotamers[active_rotamers, chi_col] = opth_cache.expanded_samples[
+                active_bt,
+                chi_col,
+                active_sample_ind,
+            ]
+            chi_defining_atom_for_rotamer[active_rotamers, chi_col] = (
+                opth_cache.chi_defining_atom[active_bt, chi_col]
+            )
+            remaining_sample_ind[active] = torch.div(
+                remaining_sample_ind[active],
+                active_n_samples,
+                rounding_mode="floor",
+            )
 
     def _fill_all_nhq_blocks(
         self,
@@ -893,6 +928,7 @@ class OptHSampler(ConformerSampler):
             task,
             rot_offset_for_gbt,
             gbt_for_rotamer,
+            chi_defining_atom_for_rotamer,
             chi_for_rotamers,
         )
         self._fill_all_nhq_blocks(

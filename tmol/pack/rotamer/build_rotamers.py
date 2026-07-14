@@ -53,7 +53,10 @@ def _build_chi4_atom_table(pbt):
 
     table = numpy.full((n_types, max_n_chi, 4), -1, dtype=numpy.int32)
     for ti, rt in enumerate(pbt.active_block_types):
-        chi_names = sorted(k for k in rt.torsion_to_uaids if k.startswith("chi"))
+        chi_names = sorted(
+            (k for k in rt.torsion_to_uaids if k.startswith("chi")),
+            key=lambda name: int(name[3:]),
+        )
         for ci, chi_name in enumerate(chi_names):
             uaids = rt.torsion_to_uaids[chi_name]
             table[ti, ci] = [int(u[0]) for u in uaids]

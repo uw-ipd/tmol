@@ -49,10 +49,7 @@ def build_context_from_biotite(
     strict_atom_types: bool = False,
     strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
-    # Stays False even though ligand-prep now defaults proton-chi sampling on:
-    # sampled polar hydrogens produce NaN coordinates during pose construction
-    # (OptHSampler). Opt in explicitly once that is fixed.
-    sample_proton_chi: bool = False,
+    sample_proton_chi: bool = True,
 ) -> BiotitePoseBuildContext:
     """Build the structure-independent construction context.
 
@@ -85,10 +82,8 @@ def build_context_from_biotite(
             Residues defined in these files skip the RDKit/OB pipeline.
         sample_proton_chi: If True, prepared ligands emit PROTON_CHI
             ``chi_samples`` for polar-hydrogen rotations (driving OptHSampler).
-            Default False: heavy + proton-chi torsions are always emitted, but
-            the samples are opt-in because emitting them by default makes pose
-            construction place sampled polar hydrogens at NaN coordinates (only
-            used when prepare_ligands=True).
+            Enabled by default; pass False to suppress proton-chi samples. Only
+            used when prepare_ligands=True.
 
     Returns:
         BiotitePoseBuildContext containing canonical ordering, packed block
@@ -148,9 +143,7 @@ def pose_stack_from_biotite(
     strict_atom_types: bool = False,
     strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
-    # Stays False (unlike the ligand-prep default): sampled polar hydrogens
-    # produce NaN pose coordinates (OptHSampler). Opt in once that is fixed.
-    sample_proton_chi: bool = False,
+    sample_proton_chi: bool = True,
     return_context: bool = False,
     context: BiotitePoseBuildContext | None = None,
     **kwargs: object,
@@ -196,7 +189,7 @@ def pose_stack_from_biotite(
         ligand_params_files: Optional list of tmol YAML params file paths.
         sample_proton_chi: If True, prepared ligands emit PROTON_CHI
             ``chi_samples`` so OptHSampler samples ligand polar-H rotamers
-            (default False; see ``build_context_from_biotite``). Only used when
+            (enabled by default; pass False to disable). Only used when
             prepare_ligands=True.
         return_context: If True, return ``(pose_stack, BiotitePoseBuildContext)``.
         **kwargs: Additional arguments passed to pose_stack_from_canonical_form.

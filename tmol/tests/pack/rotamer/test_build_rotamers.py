@@ -1,7 +1,9 @@
 import numpy
 import torch
+from types import SimpleNamespace
 
 from tmol.pack.rotamer.build_rotamers import (
+    _build_chi4_atom_table,
     annotate_restype,
     annotate_packed_block_types,
     build_rotamers,
@@ -43,6 +45,31 @@ from tmol.score.hbond.hbond_energy_term import (
 
 # TEMP
 from tmol.io.pdb_parsing import atom_record_dtype
+
+
+def test_chi_atom_table_orders_double_digit_chis_numerically():
+    restype = SimpleNamespace(
+        torsion_to_uaids={
+            "chi1": ((1,), (2,), (3,), (4,)),
+            "chi10": ((9,), (10,), (11,), (12,)),
+            "chi2": ((5,), (6,), (7,), (8,)),
+        }
+    )
+    pbt = SimpleNamespace(n_types=1, active_block_types=[restype])
+
+    table = _build_chi4_atom_table(pbt)
+
+    numpy.testing.assert_array_equal(
+        table[0],
+        numpy.array(
+            [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12],
+            ],
+            dtype=numpy.int32,
+        ),
+    )
 
 
 def test_annotate_restypes(
