@@ -1,3 +1,4 @@
+import copy
 from enum import IntEnum
 
 from frozendict import frozendict
@@ -613,13 +614,12 @@ class ResidueTypeSet:
 
     @classmethod
     def _default_refined_cache(cls) -> Mapping[int, RefinedResidueType]:
-        """``id(raw residue) -> RefinedResidueType`` for the default DB's residues.
+        """``id(raw residue) -> RefinedResidueType`` prototype for the default DB.
 
         Refining a residue is expensive, and ligand-extended DBs reuse the
-        default residue objects by reference, so caching lets them skip
-        rebuilding the standard residues. Only the default DB's (immortal,
-        singleton) objects are cached, so ids are stable and differently-defined
-        ligands sharing a name are always rebuilt.
+        default residue objects, so caching them here.
+
+        These are prototypes only: callers get a shallow copy.
         """
         if cls.__refined_cache is None:
             default_residues = ParameterDatabase.get_default().chemical.residues
@@ -628,9 +628,11 @@ class ResidueTypeSet:
 
     @classmethod
     def from_database(cls, chemical_db: PatchedChemicalDatabase):
+        # Load and copy the default cache
+        #   -> copy so later mutations do not modify cache
         cache = cls._default_refined_cache()
         residue_types = [
-            cache[id(r)] if id(r) in cache else cls._refine(r)
+            copy.copy(cache[id(r)]) if id(r) in cache else cls._refine(r)
             for r in chemical_db.residues
         ]
         restype_map = groupby(lambda restype: restype.name3, residue_types)
