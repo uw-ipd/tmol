@@ -170,9 +170,12 @@ struct lk_bridge_fraction {
     Real overlapfrac;
     if (wted_d2_delta > overlap_width_A2) {
       overlapfrac = 0;
-    } else {
+    } else if (wted_d2_delta > 0) {
       // square-square -> 1 as x -> 0
       overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
+    } else {
+      // clamp the fraction to 1.
+      overlapfrac = 1;
     }
     // base angle
     Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
