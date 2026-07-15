@@ -46,6 +46,11 @@ def disulfide_pdb():
     return pdb.data["3plc"]
 
 
+@pytest.fixture(scope="session")
+def pdb_6DMZ():
+    return pdb.data["6DMZ_A"]
+
+
 @pytest.fixture()
 def water_box_pdb():
     return pdb.data["water_box"]
