@@ -216,7 +216,12 @@ jobs:
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             ${TARGET_VENV}/bin/pip install \
-              'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
+              'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2'
+            # Force pybind11 into the target venv itself. With a --system-site-packages
+            # venv, a plain 'pip install pybind11' is skipped when the NGC image already
+            # ships pybind11 in system dist-packages (e.g. NGC 26.06), leaving the venv
+            # without pybind11's CMake config so find_package(pybind11 CONFIG) fails.
+            ${TARGET_VENV}/bin/pip install --force-reinstall --no-deps 'pybind11>=2.12'
           "
 
       - name: Build wheel
@@ -241,7 +246,13 @@ jobs:
             else
               CUDA_ARCHS="75;80;86;89;90"
             fi
-            export CMAKE_PREFIX_PATH=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.utils.cmake_prefix_path)")
+            # Include both torch and pybind11 cmake dirs: this step overrides
+            # CMAKE_PREFIX_PATH (torch only by default), so pybind11 must be added
+            # explicitly or find_package(pybind11 CONFIG) fails on images that do not
+            # auto-inject it via scikit-build-core (e.g. NGC 26.06).
+            TORCH_CMAKE_DIR=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.utils.cmake_prefix_path)")
+            PYBIND11_CMAKE_DIR=$('"${TARGET_VENV}"'/bin/python -c "import pybind11; print(pybind11.get_cmake_dir())")
+            export CMAKE_PREFIX_PATH="${TORCH_CMAKE_DIR};${PYBIND11_CMAKE_DIR}"
             '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
               -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
               -Ccmake.define.TMOL_NVCC_THREADS=1
