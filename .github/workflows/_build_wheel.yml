@@ -142,6 +142,7 @@ jobs:
                 2.10) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu128" ;;
                 2.11) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu131" ;;
                 2.12) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu132" ;;
+                2.13) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu133" ;;
                 *)
                   echo "ERROR: set pip-torch-cuda-url for torch ${{ inputs.torch-version }}"
                   exit 1
