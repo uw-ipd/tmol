@@ -39,7 +39,6 @@ CI currently uploads these wheel variants to [GitHub Releases](https://github.co
     - `+cu128torch2.10` (x86_64 manylinux default)
     - `+cu131torch2.11`
     - `+cu132torch2.12`
-    - `+cu133torch2.13` (NGC `26.06-py3`)
   - some `aarch64` lanes may additionally publish `+cu131torch2.10` depending on NGC base image CUDA
 - CPU wheels (Linux `x86_64`) for:
   - Python `cp311`, `cp312`, `cp313`, `cp314`
