@@ -56,6 +56,101 @@ def _mol_to_smiles(mol: Chem.Mol) -> str | None:
     return smiles or None
 
 
+# Below this, a C-O bond reads as double/delocalized rather than a hydroxyl
+# single bond (carboxylate ~1.25 A, C=O ~1.21, C-OH ~1.31, diol C-O ~1.41).
+_CARBOXYL_CO_MAX = 1.36
+# Sum of the three bond angles at an sp2 (planar) carbon is 360; sp3 ~328.5.
+_SP2_ANGLE_SUM_MIN = 355.0
+
+
+def _sp2_angle_sum(conf, center: int, neighbors: list[int]) -> float | None:
+    """Sum of the three bond angles at ``center`` (deg); None if degenerate."""
+    cpos = np.asarray(conf.GetAtomPosition(center))
+    vecs = [np.asarray(conf.GetAtomPosition(n)) - cpos for n in neighbors]
+    if any(np.linalg.norm(v) == 0 for v in vecs):
+        return None
+    units = [v / np.linalg.norm(v) for v in vecs]
+    total = 0.0
+    for i in range(len(units)):
+        for j in range(i + 1, len(units)):
+            total += np.degrees(
+                np.arccos(np.clip(np.dot(units[i], units[j]), -1.0, 1.0))
+            )
+    return total
+
+
+def _infer_carboxylate_bonds(rw: Chem.RWMol, conf) -> int:
+    """Correct carboxylates mis-encoded as geminal diols; return #corrected.
+
+    A carbon bonded to exactly two terminal oxygens whose geometry is planar
+    with short C-O bonds is a delocalized carboxylate, not a diol. Some inputs
+    (CIFs with SING/SING C-O, mol2s with non-ring ``ar`` bonds) drop the double
+    bond, so the derived SMILES protonates both oxygens. Rewrite each such
+    center to ``C(=O)[O-]`` from the input geometry.
+    """
+    n_fixed = 0
+    for atom in rw.GetAtoms():
+        if atom.GetAtomicNum() != 6 or atom.GetDegree() != 3:
+            continue
+        c = atom.GetIdx()
+        term_os = [
+            nb.GetIdx()
+            for nb in atom.GetNeighbors()
+            if nb.GetAtomicNum() == 8 and nb.GetDegree() == 1
+        ]
+        if len(term_os) != 2:
+            continue
+        cpos = np.asarray(conf.GetAtomPosition(c))
+        co_dists = [
+            float(np.linalg.norm(np.asarray(conf.GetAtomPosition(o)) - cpos))
+            for o in term_os
+        ]
+        if any(d > _CARBOXYL_CO_MAX for d in co_dists):
+            continue
+        nbrs = [nb.GetIdx() for nb in atom.GetNeighbors()]
+        angle_sum = _sp2_angle_sum(conf, c, nbrs)
+        if angle_sum is None or angle_sum < _SP2_ANGLE_SUM_MIN:
+            continue
+
+        oa, ob = term_os
+        for idx in (c, oa, ob):
+            rw.GetAtomWithIdx(idx).SetIsAromatic(False)
+        b_oa = rw.GetBondBetweenAtoms(c, oa)
+        b_ob = rw.GetBondBetweenAtoms(c, ob)
+        b_oa.SetIsAromatic(False)
+        b_ob.SetIsAromatic(False)
+        b_oa.SetBondType(Chem.BondType.DOUBLE)
+        b_ob.SetBondType(Chem.BondType.SINGLE)
+        rw.GetAtomWithIdx(ob).SetFormalCharge(-1)
+        n_fixed += 1
+        logger.info("inferring COO- from geometry (carbon atom idx %d)", c)
+    return n_fixed
+
+
+def apply_geometry_bond_corrections(mol: Chem.Mol) -> Chem.Mol:
+    """Repair input bond orders that disagree with the 3D geometry.
+
+    Runs each geometry-based correction rule (carboxylate only, for now) and
+    re-sanitizes. Returns the input unchanged when there is no conformer or no
+    correction applies. More rules (nitro, phosphate, sulfonate, ...) can be
+    added as separate ``_infer_*`` functions and dispatched here.
+    """
+    if mol.GetNumConformers() == 0:
+        return mol
+    rw = Chem.RWMol(mol)
+    conf = rw.GetConformer()
+    n_fixed = _infer_carboxylate_bonds(rw, conf)
+    if n_fixed == 0:
+        return mol
+    out = rw.GetMol()
+    try:
+        Chem.SanitizeMol(out)
+    except Exception:
+        logger.debug("geometry bond correction failed to sanitize", exc_info=True)
+        return mol
+    return out
+
+
 def ligand_smiles_candidates_from_atom_array(
     atom_array: AtomArray,
     *,
@@ -83,12 +178,14 @@ def ligand_smiles_candidates_from_atom_array(
         if smiles and smiles not in candidates:
             candidates.append(smiles)
 
-    # 1. Existing bonds from the AtomArray.
+    # 1. Existing bonds from the AtomArray, with geometry-based bond-order
+    #    corrections for motifs the input encodes inconsistently (carboxylates).
     if _has_bonds(atom_array):
         try:
             mol = atom_array_to_rdkit(
                 atom_array, infer_bonds=False, hydrogen_policy="remove"
             )
+            mol = apply_geometry_bond_corrections(mol)
             _add(_mol_to_smiles(mol))
         except Exception:
             logger.debug(

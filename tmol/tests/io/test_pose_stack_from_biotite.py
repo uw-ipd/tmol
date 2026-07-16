@@ -271,4 +271,62 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
     lg1_on = _lg1(context_on)
     assert lg1_on.torsions
     assert lg1_on.chi_samples
+
+    clear_cache()
+
+
+def test_sample_proton_chi_ligand_build_from_mol2(torch_device):
+    # Parallel to the CIF-source test above, but sources LG1 from the Tripos
+    # mol2 (ace.lig.mol2). The mol2 encodes the carboxylates correctly (O.co2 /
+    # C.2 sybyl types => C(=O)[O-]), whereas ace.ligand.cif declares those C-O
+    # bonds as SING/SING and over-protonates the carboxyls. Both go through the
+    # same unified build; the mol2's correct bonds must not yield hydroxyl H on
+    # the carboxylate oxygens.
+    import pathlib
+
+    from tmol.database import ParameterDatabase
+    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand.registry import clear_cache
+
+    mol2_path = (
+        pathlib.Path(__file__).resolve().parents[1]
+        / "data"
+        / "protein_ligand_test"
+        / "ace.lig.mol2"
+    )
+    # Reuse the mol2 reader for its correct bond orders, then run the same
+    # biotite build path as the CIF test (which re-derives charges via MMFF).
+    bt_struct = nonstandard_residue_info_from_mol2(
+        str(mol2_path), res_name="LG1"
+    ).atom_array
+
+    clear_cache()
+    pose_on, context_on = pose_stack_from_biotite(
+        bt_struct,
+        torch_device,
+        prepare_ligands=True,
+        param_db=ParameterDatabase.get_default(),
+        return_context=True,
+    )
+    assert torch.isfinite(pose_on.coords[pose_on.real_atoms]).all()
+
+    lg1 = next(
+        rt for rt in context_on.parameter_database.chemical.residues if rt.name == "LG1"
+    )
+    # No hydrogen bonded to any oxygen: this ligand has only carboxylate/amide/
+    # amine chemistry (no genuine hydroxyls), so any H-O bond is spurious
+    # carboxylate over-protonation.
+    chem = context_on.parameter_database.chemical
+    element_of_type = {at.name: at.element for at in chem.atom_types}
+    type_of_atom = {a.name: a.atom_type for a in lg1.atoms}
+
+    def _element(name):
+        return element_of_type[type_of_atom[name]]
+
+    h_on_o = [
+        (b[0], b[1])
+        for b in lg1.bonds
+        if {_element(b[0]), _element(b[1])} == {"H", "O"}
+    ]
+    assert not h_on_o, f"spurious hydroxyl H (carboxylate over-protonation): {h_on_o}"
     clear_cache()

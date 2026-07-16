@@ -140,9 +140,6 @@ def _opth_fill_dofs(
 
     pbt = pose_stack.packed_block_types
     dev = conf_dofs_kto.device
-    dofs_ideal_t = torch.as_tensor(
-        pbt.rotamer_kinforest.dofs_ideal, dtype=torch.float32, device=dev
-    )
 
     # Per-sampler-rotamer lookup vectors (torch, length n_rots)
     bt_inds = block_type_ind_for_conformer[conf_inds_for_sampler]
@@ -180,23 +177,16 @@ def _opth_fill_dofs(
     real_mask = dummy < n_atoms_per_rot.unsqueeze(1)
     dst = (at_offs.unsqueeze(1).expand(-1, pbt.max_n_atoms) + dummy)[real_mask]
     src = (orig_at_offs.unsqueeze(1).expand(-1, pbt.max_n_atoms) + dummy)[real_mask]
-    copied_dofs = orig_dofs_kto[src + 1, :]
-    nonfinite = ~torch.isfinite(copied_dofs).all(dim=1)
-    if torch.any(nonfinite):
-        flat_bt_inds = bt_inds.unsqueeze(1).expand(-1, pbt.max_n_atoms)[real_mask]
-        flat_kfo = dummy[real_mask]
-        copied_dofs = copied_dofs.clone()
-        copied_dofs[nonfinite] = dofs_ideal_t[
-            flat_bt_inds[nonfinite],
-            flat_kfo[nonfinite],
-        ]
-    conf_dofs_kto[dst + 1, :] = copied_dofs
+    conf_dofs_kto[dst + 1, :] = orig_dofs_kto[src + 1, :]
 
     # Steps 2 & 3: only for rotamers that have a chi override
     if chi_atoms.shape[0] == 0 or not (chi_atoms >= 0).any():
         return
 
     kfidx = pbt.rotamer_kinforest.kinforest_idx  # (n_types, max_n_atoms) numpy
+    dofs_ideal_t = torch.as_tensor(
+        pbt.rotamer_kinforest.dofs_ideal, dtype=torch.float32, device=dev
+    )
     corrections = _build_chi_phi_c_corrections(pbt)  # (n_types, max_n_chi) numpy
 
     reset_kto, reset_bt, reset_k = [], [], []
