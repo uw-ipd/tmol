@@ -144,10 +144,10 @@ def test_pose_stack_from_biotite_missing_single_sidechain_smoke(
 def test_sample_proton_chi_forwarded_to_prepare_ligands(
     entry, sample_proton_chi, torch_device, monkeypatch
 ):
-    # The sample_proton_chi opt-in (default False, matching the ligand-prep
-    # gate) must reach tmol.ligand.prepare_ligands from the integrated
-    # pose-build path. Spy on prepare_ligands to capture the kwarg, then
-    # short-circuit before the heavy canonical-form build.
+    # An explicit sample_proton_chi setting must reach
+    # tmol.ligand.prepare_ligands from the integrated pose-build path. Spy on
+    # prepare_ligands to capture the kwarg, then short-circuit before the heavy
+    # canonical-form build.
     import tmol.ligand
 
     captured: dict = {}
@@ -178,16 +178,41 @@ def test_sample_proton_chi_forwarded_to_prepare_ligands(
     assert captured.get("sample_proton_chi") is sample_proton_chi
 
 
+@pytest.mark.parametrize("entry", ["build_context", "pose_stack"])
+def test_sample_proton_chi_enabled_by_default(entry, torch_device, monkeypatch):
+    import tmol.ligand
+
+    captured: dict = {}
+
+    class _Stop(Exception):
+        pass
+
+    def fake_prepare_ligands(structure, **kwargs):
+        captured.update(kwargs)
+        raise _Stop
+
+    monkeypatch.setattr(tmol.ligand, "prepare_ligands", fake_prepare_ligands)
+
+    structure = biotite.structure.AtomArray(1)
+    func = (
+        build_context_from_biotite
+        if entry == "build_context"
+        else pose_stack_from_biotite
+    )
+
+    with pytest.raises(_Stop):
+        func(structure, torch_device, prepare_ligands=True)
+    assert captured.get("sample_proton_chi") is True
+
+
 def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
     # End-to-end behavior of the gate through the integrated pose-build path
     # (forwarding alone cannot prove this):
-    #   - default (sample_proton_chi=False): the pose builds with finite ligand
+    #   - sample_proton_chi=False: the pose builds with finite ligand
     #     coordinates, and the prepared LG1 residue carries torsions but no
     #     chi_samples;
-    #   - opt-in (sample_proton_chi=True): the prepared LG1 residue gains
-    #     proton chi_samples. The opt-in is checked via build_context_from_biotite
-    #     (which stops before pose construction), since sampled polar hydrogens
-    #     would otherwise hit the known pose-build NaN.
+    #   - sample_proton_chi=True: the full pose build remains finite and the
+    #     prepared LG1 residue gains proton chi_samples.
     import pathlib
 
     import biotite.structure
@@ -216,7 +241,8 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
             if rt.name == "LG1"
         )
 
-    # Default gate: a full pose builds NaN-free; LG1 has torsions, no chi_samples.
+    # Explicit opt-out: a full pose builds NaN-free; LG1 has torsions, no
+    # chi_samples.
     clear_cache()
     pose_stack, context = pose_stack_from_biotite(
         bt_struct,
@@ -229,18 +255,78 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
     assert torch.isfinite(pose_stack.coords[pose_stack.real_atoms]).all()
     lg1_default = _lg1(context)
     assert lg1_default.torsions  # heavy + proton-chi torsions always emitted
-    assert lg1_default.chi_samples == ()  # samples gated off by default
+    assert lg1_default.chi_samples == ()  # explicit opt-out suppresses samples
 
-    # Opt-in: the prepared LG1 residue carries proton chi_samples.
+    # Default-on: the full pose remains finite and the prepared LG1 residue
+    # carries proton chi_samples.
     clear_cache()
-    context_on = build_context_from_biotite(
+    pose_on, context_on = pose_stack_from_biotite(
         bt_struct,
         torch_device,
         prepare_ligands=True,
-        sample_proton_chi=True,
         param_db=ParameterDatabase.get_default(),
+        return_context=True,
     )
+    assert torch.isfinite(pose_on.coords[pose_on.real_atoms]).all()
     lg1_on = _lg1(context_on)
     assert lg1_on.torsions
-    assert lg1_on.chi_samples  # opt-in -> proton chi_samples present
+    assert lg1_on.chi_samples
+
+    clear_cache()
+
+
+def test_sample_proton_chi_ligand_build_from_mol2(torch_device):
+    # Parallel to the CIF-source test above, but sources LG1 from the Tripos
+    # mol2 (ace.lig.mol2). The mol2 encodes the carboxylates correctly (O.co2 /
+    # C.2 sybyl types => C(=O)[O-]), whereas ace.ligand.cif declares those C-O
+    # bonds as SING/SING and over-protonates the carboxyls. Both go through the
+    # same unified build; the mol2's correct bonds must not yield hydroxyl H on
+    # the carboxylate oxygens.
+    import pathlib
+
+    from tmol.database import ParameterDatabase
+    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand.registry import clear_cache
+
+    mol2_path = (
+        pathlib.Path(__file__).resolve().parents[1]
+        / "data"
+        / "protein_ligand_test"
+        / "ace.lig.mol2"
+    )
+    # Reuse the mol2 reader for its correct bond orders, then run the same
+    # biotite build path as the CIF test (which re-derives charges via MMFF).
+    bt_struct = nonstandard_residue_info_from_mol2(
+        str(mol2_path), res_name="LG1"
+    ).atom_array
+
+    clear_cache()
+    pose_on, context_on = pose_stack_from_biotite(
+        bt_struct,
+        torch_device,
+        prepare_ligands=True,
+        param_db=ParameterDatabase.get_default(),
+        return_context=True,
+    )
+    assert torch.isfinite(pose_on.coords[pose_on.real_atoms]).all()
+
+    lg1 = next(
+        rt for rt in context_on.parameter_database.chemical.residues if rt.name == "LG1"
+    )
+    # No hydrogen bonded to any oxygen: this ligand has only carboxylate/amide/
+    # amine chemistry (no genuine hydroxyls), so any H-O bond is spurious
+    # carboxylate over-protonation.
+    chem = context_on.parameter_database.chemical
+    element_of_type = {at.name: at.element for at in chem.atom_types}
+    type_of_atom = {a.name: a.atom_type for a in lg1.atoms}
+
+    def _element(name):
+        return element_of_type[type_of_atom[name]]
+
+    h_on_o = [
+        (b[0], b[1])
+        for b in lg1.bonds
+        if {_element(b[0]), _element(b[1])} == {"H", "O"}
+    ]
+    assert not h_on_o, f"spurious hydroxyl H (carboxylate over-protonation): {h_on_o}"
     clear_cache()

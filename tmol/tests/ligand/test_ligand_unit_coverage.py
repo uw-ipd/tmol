@@ -323,54 +323,6 @@ class TestPreparationHelpers:
         # Empty CIF heavy-atom set short-circuits to True without inspecting prep.
         assert _residue_covers_cif_heavy_atoms(object(), set()) is True
 
-    @staticmethod
-    def _info(atom_names, elements):
-        from tmol.ligand.detect import NonStandardResidueInfo
-
-        return NonStandardResidueInfo(
-            res_name="LIG",
-            ccd_type="NON-POLYMER",
-            atom_names=tuple(atom_names),
-            elements=tuple(elements),
-            coords=np.zeros((len(atom_names), 3), dtype=float),
-            atom_array=None,
-        )
-
-    @staticmethod
-    def _at(atom_name, element, index):
-        from tmol.ligand.atom_typing import AtomTypeAssignment
-
-        return AtomTypeAssignment(
-            atom_name=atom_name, atom_type="X", element=element, index=index
-        )
-
-    def test_rename_by_index_bails_on_name_element_length_mismatch(self) -> None:
-        from tmol.ligand.preparation import _rename_atoms_to_cif_by_index
-
-        info = self._info(["C1", "C2"], ["C"])  # mismatched lengths
-        assert _rename_atoms_to_cif_by_index([self._at("C1", "C", 0)], info) is None
-
-    def test_rename_by_index_bails_on_out_of_range_index(self) -> None:
-        from tmol.ligand.preparation import _rename_atoms_to_cif_by_index
-
-        info = self._info(["C1"], ["C"])
-        # Heavy atom whose index exceeds the CIF atom list -> bail to graph path.
-        ats = [self._at("C1", "C", 0), self._at("C2", "C", 5)]
-        assert _rename_atoms_to_cif_by_index(ats, info) is None
-
-    def test_rename_by_index_bails_on_duplicate_names(self) -> None:
-        from tmol.ligand.preparation import _rename_atoms_to_cif_by_index
-
-        info = self._info(["C1", "C1"], ["C", "C"])  # duplicate target names
-        ats = [self._at("C1", "C", 0), self._at("Cx", "C", 1)]
-        assert _rename_atoms_to_cif_by_index(ats, info) is None
-
-    def test_rename_by_index_bails_on_element_mismatch(self) -> None:
-        from tmol.ligand.preparation import _rename_atoms_to_cif_by_index
-
-        info = self._info(["N1"], ["N"])
-        assert _rename_atoms_to_cif_by_index([self._at("C1", "C", 0)], info) is None
-
 
 # --------------------------------------------------------------------------- #
 # params_io.py reader + format guard

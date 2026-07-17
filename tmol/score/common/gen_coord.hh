@@ -50,8 +50,8 @@ struct build_coordinate {
     Real M2_norm = M.col(2).norm();
     if (M2_norm == 0) {
       // if a/b/c collinear, set M[:,2] to an arbitrary vector perp to
-      // M[:,0]
-      if (M(0, 0) != 1) {
+      // M[:,0].
+      if (M(0, 0) != 1 && M(0, 0) != -1) {
         M.col(1) = Real3({1, 0, 0});
         M.col(2) = M.col(0).cross(M.col(1));
       } else {
@@ -91,6 +91,13 @@ struct build_coordinate {
     Real c_m_b = CB.norm();
     Real3 ABXCB = AB.cross(CB);
     Real abxcb2 = ABXCB.squaredNorm();
+
+    if (abxcb2 == 0) {
+      // A, B, C collinear: set deriv to 0
+      dV_t dcoord = dV_t::Zero();
+      dcoord.dp = RealMat::Identity();
+      return dcoord;
+    }
 
     dV_t dcoord;
     dcoord.dp(0, 0) =

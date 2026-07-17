@@ -53,7 +53,10 @@ def _build_chi4_atom_table(pbt):
 
     table = numpy.full((n_types, max_n_chi, 4), -1, dtype=numpy.int32)
     for ti, rt in enumerate(pbt.active_block_types):
-        chi_names = sorted(k for k in rt.torsion_to_uaids if k.startswith("chi"))
+        chi_names = sorted(
+            (k for k in rt.torsion_to_uaids if k.startswith("chi")),
+            key=lambda name: int(name[3:]),
+        )
         for ci, chi_name in enumerate(chi_names):
             uaids = rt.torsion_to_uaids[chi_name]
             table[ti, ci] = [int(u[0]) for u in uaids]
@@ -917,12 +920,12 @@ def build_rotamers(poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatab
         (n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device
     )
 
-    conf_dofs_kto[1:] = torch.tensor(
-        pbt.rotamer_kinforest.dofs_ideal[block_type_ind_for_conformer].reshape((-1, 9))[
+    conf_dofs_kto[1:] = (
+        pbt.rotamer_kinforest.dofs_ideal[block_type_ind_for_conformer]
+        .reshape((-1, 9))[
             pbt.atom_is_real[block_type_ind_for_conformer].reshape(-1) != 0
-        ],
-        dtype=torch.float32,
-        device=pbt.device,
+        ]
+        .to(dtype=torch.float32, device=pbt.device)
     )
 
     for i, sampler in enumerate(samplers):
