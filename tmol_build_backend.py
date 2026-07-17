@@ -175,9 +175,9 @@ def _candidate_local_tags() -> list[str]:
             # fallback for older/aarch64 release lanes.
             candidates.extend(["cu128torch2.8", "cu129torch2.8"])
         if torch_mm == "2.10":
-            # x86_64 manylinux uses cu128 for torch 2.10; some aarch64/legacy
-            # release lanes may still publish cu131.
-            candidates.extend(["cu128torch2.10", "cu131torch2.10"])
+            # x86_64 also has a cu128 foundry wheel; the standard release
+            # matrix uses stable cu130 wheels on both architectures.
+            candidates.extend(["cu128torch2.10", "cu130torch2.10"])
     elif torch_mm and not cuda_tag:
         candidates.append("cpu")
     elif _env_true(_ALLOW_CPU_FALLBACK_ENV):
@@ -197,12 +197,9 @@ def _candidate_wheel_filenames() -> list[str]:
     py_tag = _python_tag()
     platform_tags: list[str]
     if arch == "x86_64":
-        # Current published x86_64 wheels are auditwheel-repaired manylinux.
         platform_tags = ["manylinux_2_28_x86_64", "linux_x86_64"]
     else:
-        # aarch64 releases are currently native Linux; keep manylinux fallback
-        # for forward compatibility if ARM auditwheel lanes are enabled.
-        platform_tags = ["linux_aarch64", "manylinux_2_34_aarch64"]
+        platform_tags = ["manylinux_2_28_aarch64", "linux_aarch64"]
 
     candidates: list[str] = []
     for local_tag in _candidate_local_tags():
