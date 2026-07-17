@@ -133,9 +133,12 @@ jobs:
                 PYBIN=$(uv python find "${PYVER}")
               fi
               VENV="/tmp/tmol-venv-${PYVER}"
-              SYS_PYVER=$(python3 -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")")
+              SYS_PYVER=""
+              if command -v python3 >/dev/null 2>&1; then
+                SYS_PYVER=$(python3 -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")")
+              fi
               TARGET_PYVER=$("${PYBIN}" -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")")
-              if [ "${TARGET_PYVER}" = "${SYS_PYVER}" ]; then
+              if [ -n "${SYS_PYVER}" ] && [ "${TARGET_PYVER}" = "${SYS_PYVER}" ]; then
                 "${PYBIN}" -m venv --system-site-packages "${VENV}"
               else
                 "${PYBIN}" -m venv "${VENV}"
