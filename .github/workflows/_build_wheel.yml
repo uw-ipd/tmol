@@ -306,32 +306,22 @@ jobs:
             dnf config-manager --add-repo \
               https://developer.download.nvidia.com/compute/cuda/repos/rhel8/\${CUDA_REPO_ARCH}/cuda-rhel8.repo
             dnf clean expire-cache
-            if ! dnf install -y --nobest \
+            install_cuda_component() {
+              PRIMARY=\$1
+              FALLBACK=\$2
+              if ! dnf install -y --nobest "\${PRIMARY}-\${CUDA_PKG_VERSION}"; then
+                dnf install -y --nobest "\${FALLBACK}-\${CUDA_PKG_VERSION}"
+              fi
+            }
+            dnf install -y --nobest \
               cuda-nvcc-\${CUDA_PKG_VERSION} \
               cuda-cudart-devel-\${CUDA_PKG_VERSION} \
-              cuda-cccl-\${CUDA_PKG_VERSION} \
-              cuda-nvtx-devel-\${CUDA_PKG_VERSION} \
-              cuda-libraries-devel-\${CUDA_PKG_VERSION}; then
-              dnf install -y --nobest \
-                cuda-nvcc-\${CUDA_PKG_VERSION} \
-                cuda-cudart-devel-\${CUDA_PKG_VERSION} \
-                cuda-cccl-\${CUDA_PKG_VERSION}
-              if dnf repoquery --available cuda-nvtx-devel-\${CUDA_PKG_VERSION} >/dev/null 2>&1; then
-                dnf install -y --nobest cuda-nvtx-devel-\${CUDA_PKG_VERSION}
-              else
-                dnf install -y --nobest cuda-nvtx-\${CUDA_PKG_VERSION}
-              fi
-              if dnf repoquery --available cuda-nvrtc-devel-\${CUDA_PKG_VERSION} >/dev/null 2>&1; then
-                dnf install -y --nobest cuda-nvrtc-devel-\${CUDA_PKG_VERSION}
-              else
-                dnf install -y --nobest libnvrtc-devel-\${CUDA_PKG_VERSION}
-              fi
-              if dnf repoquery --available libcublas-devel-\${CUDA_PKG_VERSION} >/dev/null 2>&1; then
-                dnf install -y --nobest libcublas-devel-\${CUDA_PKG_VERSION}
-              else
-                dnf install -y --nobest cuda-cublas-devel-\${CUDA_PKG_VERSION}
-              fi
+              cuda-cccl-\${CUDA_PKG_VERSION}
+            if ! dnf install -y --nobest cuda-libraries-devel-\${CUDA_PKG_VERSION}; then
+              install_cuda_component cuda-nvrtc-devel libnvrtc-devel
+              install_cuda_component libcublas-devel cuda-cublas-devel
             fi
+            install_cuda_component cuda-nvtx-devel cuda-nvtx
             CUDA_HOME=/usr/local/cuda-\${CUDA_MAJOR}.\${CUDA_MINOR}
             test -x \"\${CUDA_HOME}/bin/nvcc\"
             test -f \"\${CUDA_HOME}/include/cublas_v2.h\"
