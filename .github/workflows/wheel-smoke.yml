@@ -578,9 +578,12 @@ jobs:
             --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
             --pwd "$GITHUB_WORKSPACE" \
             "$SIF" bash -euo pipefail -c '
-              python3 -m venv --system-site-packages /tmp/tmol-wheel-smoke
+              rm -rf /tmp/tmol-wheel-smoke
+              python3 -m venv /tmp/tmol-wheel-smoke
               source /tmp/tmol-wheel-smoke/bin/activate
               python -m pip install --upgrade pip
+              python -m pip install "torch==2.8.0" \
+                --index-url https://download.pytorch.org/whl/cu129
               python -m pip install wheels/*.whl
               cd /tmp
               python - <<'"'"'PY'"'"'
@@ -588,6 +591,8 @@ jobs:
           import tmol
           from tmol._cpp_lib import _ensure_loaded
 
+          assert torch.__version__.startswith("2.8.")
+          assert torch.version.cuda == "12.9"
           assert torch.cuda.is_available()
           _ensure_loaded()
           print("tmol", tmol.__version__)

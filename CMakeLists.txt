@@ -238,6 +238,16 @@ endif()
 # Helper functions
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# Torch's CMake targets advertise optional CUDA libraries such as NVRTC even
+# when an extension does not use them.  Keep those libraries out of DT_NEEDED
+# so wheels remain loadable with PyTorch distributions that do not ship every
+# optional CUDA component (notably the monolithic aarch64 wheels).
+function(tmol_set_portable_link_flags TARGET)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_options(${TARGET} PRIVATE "-Wl,--as-needed")
+  endif()
+endfunction()
+
 # Common compile options for CUDA extensions
 function(tmol_set_cuda_flags TARGET)
   target_compile_options(${TARGET} PRIVATE
@@ -253,6 +263,7 @@ function(tmol_set_cuda_flags TARGET)
     >
   )
   target_include_directories(${TARGET} PRIVATE ${TMOL_INCLUDE_DIRS})
+  tmol_set_portable_link_flags(${TARGET})
   target_link_libraries(${TARGET} PRIVATE ${TORCH_LIBRARIES})
 endfunction()
 
@@ -262,6 +273,7 @@ function(tmol_set_cpp_flags TARGET)
     $<$<COMPILE_LANGUAGE:CXX>:-O3 -w -DWITH_NVTX>
   )
   target_include_directories(${TARGET} PRIVATE ${TMOL_INCLUDE_DIRS})
+  tmol_set_portable_link_flags(${TARGET})
   target_link_libraries(${TARGET} PRIVATE ${TORCH_LIBRARIES})
 endfunction()
 
