@@ -29,7 +29,16 @@ Use the mode that fits your needs:
 - **Convenience install:** `pip install tmol` (best-effort wheel auto-fetch, source-build fallback).
 - **Forced source build:** disable fetch and compile locally.
 
-The v0.1.42 release uploads these wheel variants to [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
+> [!IMPORTANT]
+> **Published release status (checked 2026-07-17):** the latest GitHub and PyPI
+> release is **v0.1.40**. Its 19 GitHub wheel assets use native `linux_*` tags;
+> it does not include Torch 2.13 wheels, and its Python 3.14 GPU wheels target
+> Torch 2.12 only. The v0.1.42 matrix below has passed CI and wheel portability
+> validation but is not published until the release PR is approved and tagged.
+> Always confirm availability on the
+> [GitHub Releases page](https://github.com/uw-ipd/tmol/releases).
+
+Starting with v0.1.42, tmol publishes these wheel variants to GitHub Releases:
 
 - GPU wheels (`manylinux_2_28_x86_64` and `manylinux_2_28_aarch64`) for:
   - Python `cp311`: torch 2.12

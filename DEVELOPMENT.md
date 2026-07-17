@@ -183,6 +183,7 @@ tmol uses GitHub Actions for all CI:
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
+| `wheel-smoke.yml` | Push to wheel feature branches, manual | Builds and installs the complete 32-wheel manylinux matrix, checks auditwheel metadata and glibc-2.28 portability, and loads a representative wheel on the self-hosted GPU runner. |
 | `publish.yml` | Push `v*` tag, manual | Builds manylinux wheels (GPU + CPU) + sdist, uploads sdist to PyPI, uploads wheels to a GitHub Release. |
 
 ### CI architecture
@@ -215,6 +216,11 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
 ```
 
 ## Releasing
+
+The version in a development checkout is not proof that a release has been
+published. As of 2026-07-17, GitHub Releases and PyPI contain v0.1.40; v0.1.42
+is the next validated release candidate. Check the GitHub Releases page before
+using a versioned wheel URL.
 
 1. Bump `project.version` in `pyproject.toml`.
 2. Commit the version bump and ensure both `CI` and `Wheel smoke test` pass.
