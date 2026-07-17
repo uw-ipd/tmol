@@ -197,9 +197,11 @@ jobs:
           python -m pip install "${wheels[0]}"
 
       - name: Load native extensions
+        working-directory: /tmp
         run: |
           python - <<'PY'
           import importlib.metadata
+          import os
           import re
           import tomllib
           from pathlib import Path
@@ -217,7 +219,8 @@ jobs:
           assert actual_torch == expected_torch, (actual_torch, expected_torch)
           assert actual_cuda == expected_cuda, (actual_cuda, expected_cuda)
 
-          project = tomllib.loads(Path("pyproject.toml").read_text())
+          pyproject_path = Path(os.environ["GITHUB_WORKSPACE"]) / "pyproject.toml"
+          project = tomllib.loads(pyproject_path.read_text())
           expected_dependencies = {
               canonicalize_name(Requirement(value).name)
               for value in project["project"]["dependencies"]
