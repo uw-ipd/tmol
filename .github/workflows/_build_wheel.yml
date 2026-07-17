@@ -10,10 +10,17 @@ on:
       container-image:
         required: true
         type: string
-        description: "NGC PyTorch container (provides nvcc, torch, Python)"
+        description: "CUDA/PyTorch build container"
       torch-version:
         required: true
         type: string
+      torch-package-version:
+        required: false
+        type: string
+        default: ""
+        description: >
+          Exact torch package version to install. When empty, install the
+          requested major/minor series (for example 2.12.*).
       python-version:
         required: true
         type: string
@@ -109,7 +116,19 @@ jobs:
               if command -v "python${PYVER}" >/dev/null 2>&1; then
                 PYBIN=$(command -v "python${PYVER}")
               else
-                python3 -m pip install --break-system-packages --upgrade uv
+                if ! command -v uv >/dev/null 2>&1; then
+                  if command -v python3 >/dev/null 2>&1 && python3 -m pip --version >/dev/null 2>&1; then
+                    python3 -m pip install --break-system-packages --upgrade uv
+                  else
+                    if ! command -v curl >/dev/null 2>&1; then
+                      apt-get update
+                      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl ca-certificates
+                      rm -rf /var/lib/apt/lists/*
+                    fi
+                    curl -LsSf https://astral.sh/uv/install.sh |
+                      env UV_INSTALL_DIR=/usr/local/bin sh
+                  fi
+                fi
                 uv python install "${PYVER}"
                 PYBIN=$(uv python find "${PYVER}")
               fi
@@ -166,6 +185,10 @@ jobs:
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             NEED_INSTALL=${NEED_INSTALL}
+            TORCH_PACKAGE_VERSION='${{ inputs.torch-package-version }}'
+            if [ -z \"\${TORCH_PACKAGE_VERSION}\" ]; then
+              TORCH_PACKAGE_VERSION='${{ inputs.torch-version }}.*'
+            fi
             if [ '${{ inputs.use-manylinux-build }}' != 'true' ] && [ -z '${{ inputs.pip-torch-cuda-url }}' ]; then
               if ${TARGET_VENV}/bin/python -c \"import torch, sys; v='.'.join(torch.__version__.split('.')[:2]); sys.exit(0 if v=='${{ inputs.torch-version }}' else 1)\"; then
                 NEED_INSTALL=0
@@ -176,7 +199,7 @@ jobs:
             if [ \$NEED_INSTALL -eq 1 ]; then
               unset PIP_CONSTRAINT
               PIP_CONFIG_FILE=/dev/null env -u PIP_CONSTRAINT ${TARGET_VENV}/bin/pip install --force-reinstall \
-                torch==${{ inputs.torch-version }}.* \
+                \"torch==\${TORCH_PACKAGE_VERSION}\" \
                 --index-url ${TORCH_INDEX_URL}
             fi
 
@@ -241,8 +264,10 @@ jobs:
               CUDA_ARCHS="75;80;86;89;90"
             fi
             export CMAKE_PREFIX_PATH=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.utils.cmake_prefix_path)")
+            PYBIND11_CMAKE_DIR=$('"${TARGET_VENV}"'/bin/python -c "import pybind11; print(pybind11.get_cmake_dir())")
             '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
               -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
+              -Ccmake.define.pybind11_DIR="${PYBIND11_CMAKE_DIR}" \
               -Ccmake.define.TMOL_NVCC_THREADS=1
           '
 

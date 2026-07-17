@@ -106,6 +106,31 @@ if(NOT _TMOL_PYTHON_INCLUDE_DIRS)
 endif()
 message(STATUS "tmol: Python include dirs = ${_TMOL_PYTHON_INCLUDE_DIRS}")
 
+# PyTorch 2.13 and newer require C++20 for third-party extensions. Keep the
+# older release lanes on C++17 so their established CUDA toolchains remain
+# unchanged.
+execute_process(
+  COMMAND ${Python_EXECUTABLE} -c "import torch; v=torch.__version__.split('.'); print(f'{v[0]};{v[1]}')"
+  OUTPUT_VARIABLE _TORCH_VERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+list(GET _TORCH_VERSION 0 TORCH_VERSION_MAJOR)
+list(GET _TORCH_VERSION 1 TORCH_VERSION_MINOR)
+
+if(TORCH_VERSION_MAJOR GREATER 2
+    OR (TORCH_VERSION_MAJOR EQUAL 2 AND TORCH_VERSION_MINOR GREATER_EQUAL 13))
+  set(_TMOL_CXX_STANDARD 20)
+else()
+  set(_TMOL_CXX_STANDARD 17)
+endif()
+set(CMAKE_CXX_STANDARD ${_TMOL_CXX_STANDARD})
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(TMOL_HAS_CUDA)
+  set(CMAKE_CUDA_STANDARD ${_TMOL_CXX_STANDARD})
+  set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+endif()
+message(STATUS "tmol: PyTorch ${TORCH_VERSION_MAJOR}.${TORCH_VERSION_MINOR}, using C++${_TMOL_CXX_STANDARD}")
+
 if(TMOL_HAS_CUDA)
   # Save CMAKE_CUDA_ARCHITECTURES before find_package(Torch) — Caffe2 sets it to OFF.
   get_property(_TMOL_CUDA_ARCHITECTURES CACHE CMAKE_CUDA_ARCHITECTURES PROPERTY VALUE)
@@ -173,22 +198,6 @@ endif()
 # TORCH_CXX_FLAGS contains -D_GLIBCXX_USE_CXX11_ABI=0 or =1
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 message(STATUS "tmol: TORCH_CXX_FLAGS = ${TORCH_CXX_FLAGS}")
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-if(TMOL_HAS_CUDA)
-  set(CMAKE_CUDA_STANDARD 17)
-  set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-endif()
-
-# Get torch version for compile-time macros
-execute_process(
-  COMMAND ${Python_EXECUTABLE} -c "import torch; v=torch.__version__.split('.'); print(f'{v[0]};{v[1]}')"
-  OUTPUT_VARIABLE _TORCH_VERSION
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-list(GET _TORCH_VERSION 0 TORCH_VERSION_MAJOR)
-list(GET _TORCH_VERSION 1 TORCH_VERSION_MINOR)
 
 if(TMOL_HAS_CUDA)
   set(TMOL_NVCC_THREADS "4" CACHE STRING "Threads per nvcc invocation")

@@ -104,6 +104,13 @@ jobs:
             torch-version: "2.12"
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.12 x86_64 NGC"
+          - python-version: "3.12"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.13 x86_64 cu130"
 
           # ── x86_64 py3.12 cu128 torch2.10 (foundry torch-2.10 upgrade path) ──
           # Datacenter target (no sm_75); consumed by foundry upgrade_torch_cu12_to_210.sh.
@@ -158,40 +165,72 @@ jobs:
             torch-version: "2.12"
             runs-on: ubuntu-24.04-arm
             label: "py3.12 pt2.12 aarch64 NGC"
+          - python-version: "3.12"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.12 pt2.13 aarch64 cu130"
 
-          # ── x86_64 py3.13/py3.14 (NGC native, torch 2.12 only) ──
+          # ── x86_64 py3.13/py3.14 ──
           - python-version: "3.13"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
             runs-on: ubuntu-22.04
             label: "py3.13 pt2.12 x86_64 NGC"
+          - python-version: "3.13"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-22.04
+            label: "py3.13 pt2.13 x86_64 cu130"
           - python-version: "3.14"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
             runs-on: ubuntu-22.04
             label: "py3.14 pt2.12 x86_64 NGC"
+          - python-version: "3.14"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-22.04
+            label: "py3.14 pt2.13 x86_64 cu130"
 
-          # ── ARM64 py3.13/py3.14 (NGC native, torch 2.12 only) ──
+          # ── ARM64 py3.13/py3.14 ──
           - python-version: "3.13"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
             runs-on: ubuntu-24.04-arm
             label: "py3.13 pt2.12 aarch64 NGC"
+          - python-version: "3.13"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.13 pt2.13 aarch64 cu130"
           - python-version: "3.14"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
             runs-on: ubuntu-24.04-arm
             label: "py3.14 pt2.12 aarch64 NGC"
-
-          # ── Remaining py3.13/py3.14 GPU rows temporarily disabled ──
-          # Re-enable when matching CUDA PyTorch wheels are available for
-          # cp313/cp314 across the remaining torch/CUDA combinations.
+          - python-version: "3.14"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.14 pt2.13 aarch64 cu130"
 
     uses: ./.github/workflows/_build_wheel.yml
     with:
       runs-on: ${{ matrix.runs-on }}
       container-image: ${{ matrix.container-image }}
       torch-version: ${{ matrix.torch-version }}
+      torch-package-version: ${{ matrix.torch-package-version || '' }}
       python-version: ${{ matrix.python-version }}
       label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.pip-torch-cuda-url || '' }}
@@ -218,7 +257,10 @@ jobs:
 
       - name: Compute Python wheel tag
         id: cpu_py_tag
-        run: echo "tag=cp$(python -c 'import sys; print(f\"{sys.version_info.major}{sys.version_info.minor}\")')" >> "$GITHUB_OUTPUT"
+        run: |
+          python_tag=$(python -c 'import sys; print(f"{sys.version_info.major}{sys.version_info.minor}")')
+          test -n "$python_tag"
+          echo "tag=cp${python_tag}" >> "$GITHUB_OUTPUT"
 
       - name: Install build dependencies
         run: |

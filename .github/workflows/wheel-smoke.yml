@@ -1,0 +1,206 @@
+name: Wheel smoke test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/torch-2.13-wheels
+      - fix/manylinux-wheels
+
+concurrency:
+  group: wheel-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.12"
+            python-tag: "312"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-22.04
+            arch: x86_64
+            label: "smoke py3.12 pt2.13 x86_64"
+          - python-version: "3.13"
+            python-tag: "313"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-22.04
+            arch: x86_64
+            label: "smoke py3.13 pt2.13 x86_64"
+          - python-version: "3.14"
+            python-tag: "314"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-22.04
+            arch: x86_64
+            label: "smoke py3.14 pt2.13 x86_64"
+          - python-version: "3.12"
+            python-tag: "312"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+            label: "smoke py3.12 pt2.13 aarch64"
+          - python-version: "3.13"
+            python-tag: "313"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+            label: "smoke py3.13 pt2.13 aarch64"
+          - python-version: "3.14"
+            python-tag: "314"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+            label: "smoke py3.14 pt2.13 aarch64"
+          - python-version: "3.12"
+            python-tag: "312"
+            torch-version: "2.12"
+            torch-package-version: ""
+            torch-index-url: ""
+            cuda-tag: "132"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            runs-on: ubuntu-22.04
+            arch: x86_64
+            label: "control py3.12 pt2.12 x86_64"
+    uses: ./.github/workflows/_build_wheel.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      container-image: ${{ matrix.container-image }}
+      torch-version: ${{ matrix.torch-version }}
+      torch-package-version: ${{ matrix.torch-package-version }}
+      python-version: ${{ matrix.python-version }}
+      label: ${{ matrix.label }}
+      pip-torch-cuda-url: ${{ matrix.torch-index-url }}
+      use-manylinux-build: false
+
+  test:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.12"
+            python-tag: "312"
+            torch-version: "2.13.0"
+            torch-minor: "2.13"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+          - python-version: "3.13"
+            python-tag: "313"
+            torch-version: "2.13.0"
+            torch-minor: "2.13"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+          - python-version: "3.14"
+            python-tag: "314"
+            torch-version: "2.13.0"
+            torch-minor: "2.13"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+          - python-version: "3.12"
+            python-tag: "312"
+            torch-version: "2.13.0"
+            torch-minor: "2.13"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+          - python-version: "3.13"
+            python-tag: "313"
+            torch-version: "2.13.0"
+            torch-minor: "2.13"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+          - python-version: "3.14"
+            python-tag: "314"
+            torch-version: "2.13.0"
+            torch-minor: "2.13"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            cuda-tag: "130"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+          - python-version: "3.12"
+            python-tag: "312"
+            torch-version: "2.12.0"
+            torch-minor: "2.12"
+            torch-index-url: "https://download.pytorch.org/whl/cu132"
+            cuda-tag: "132"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-cp${{ matrix.python-tag }}-pt${{ matrix.torch-minor }}-cu${{ matrix.cuda-tag }}-${{ matrix.arch }}
+          path: wheels
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Verify filename and install wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          wheels=(wheels/*.whl)
+          test "${#wheels[@]}" -eq 1
+          wheel_name=$(basename "${wheels[0]}")
+          expected="tmol-*+cu${{ matrix.cuda-tag }}torch${{ matrix.torch-minor }}-cp${{ matrix.python-tag }}-cp${{ matrix.python-tag }}-linux_${{ matrix.arch }}.whl"
+          case "$wheel_name" in
+            $expected) ;;
+            *)
+              echo "Unexpected wheel filename: $wheel_name (expected $expected)"
+              exit 1
+              ;;
+          esac
+          python -m pip install --upgrade pip
+          python -m pip install "torch==${{ matrix.torch-version }}" \
+            --index-url "${{ matrix.torch-index-url }}"
+          python -m pip install "${wheels[0]}"
+          python -m pip check
+
+      - name: Load native extensions
+        run: |
+          python - <<'PY'
+          import torch
+          import tmol
+          from tmol._cpp_lib import _ensure_loaded
+
+          _ensure_loaded()
+          print("tmol", tmol.__version__)
+          print("torch", torch.__version__, "cuda", torch.version.cuda)
+          PY
