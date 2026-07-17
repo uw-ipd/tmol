@@ -329,6 +329,8 @@ jobs:
     needs: [build_wheels, build_cpu_wheel, build_sdist]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -355,6 +357,24 @@ jobs:
           ls -lh dist/
           echo "=== wheels ==="
           ls -lh wheels/ || echo "(no wheels)"
+
+      - name: Validate release wheel manifest
+        run: |
+          python scripts/validate_release_manifest.py wheels \
+            --gpu-count 24 \
+            --cpu-count 4 \
+            --platform linux_x86_64 \
+            --platform linux_aarch64 \
+            --require cu130torch2.13:cp312:x86_64 \
+            --require cu130torch2.13:cp313:x86_64 \
+            --require cu130torch2.13:cp314:x86_64 \
+            --require cu130torch2.13:cp312:aarch64 \
+            --require cu130torch2.13:cp313:aarch64 \
+            --require cu130torch2.13:cp314:aarch64 \
+            --require cpu:cp311:x86_64 \
+            --require cpu:cp312:x86_64 \
+            --require cpu:cp313:x86_64 \
+            --require cpu:cp314:x86_64
 
       - name: Upload sdist to PyPI
         env:

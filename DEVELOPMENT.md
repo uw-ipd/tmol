@@ -217,23 +217,24 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
 ## Releasing
 
 1. Bump `project.version` in `pyproject.toml`.
-2. Commit and push to `master` or `kdidi/ligand_clean`:
-   - `publish.yml` auto-triggers on push for these two branches.
-   - You can also run `publish.yml` manually with `workflow_dispatch`.
-3. Wait for workflow completion:
+2. Commit the version bump and ensure both `CI` and `Wheel smoke test` pass.
+3. Create and push the matching version tag (for example `v0.1.41`):
+   - `publish.yml` triggers only from a pushed `v*` tag.
+   - The workflow rejects tags that do not match `project.version`.
+4. Wait for workflow completion:
    - `build_wheels` (GPU matrix)
    - `build_cpu_wheel`
    - `build_sdist`
+   - release manifest validation
    - `upload`
-4. Verify release artifacts:
-   - TestPyPI sdist upload succeeds.
+5. Verify release artifacts:
+   - PyPI sdist upload succeeds.
    - GitHub prerelease `vX.Y.Z` exists and contains all wheel files.
-5. Install using explicit wheel files (recommended):
+6. Install using explicit wheel files (recommended):
    - Install matching PyTorch/CUDA first.
    - Install from GitHub release wheel URL (or pinned `tmol==X.Y.Z+...` with `--find-links`).
-6. TestPyPI install path (sdist):
-   - `pip install tmol --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/`
-   - This compiles extensions at install time.
+7. Verify the PyPI sdist path in a clean environment; this fetches a matching
+   GitHub Release wheel when available and otherwise compiles from source.
 
 ## Code Style
 
