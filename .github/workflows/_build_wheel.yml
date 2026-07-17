@@ -113,6 +113,11 @@ jobs:
               "$PYBIN" -m venv "$VENV"
             else
               source /etc/bash.bashrc 2>/dev/null || true
+              FORCE_ISOLATED=false
+              if [ -n "${{ inputs.torch-package-version }}" ] ||
+                  [ -n "${{ inputs.pip-torch-cuda-url }}" ]; then
+                FORCE_ISOLATED=true
+              fi
               if command -v "python${PYVER}" >/dev/null 2>&1; then
                 PYBIN=$(command -v "python${PYVER}")
               else
@@ -138,7 +143,9 @@ jobs:
                 SYS_PYVER=$(python3 -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")")
               fi
               TARGET_PYVER=$("${PYBIN}" -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")")
-              if [ -n "${SYS_PYVER}" ] && [ "${TARGET_PYVER}" = "${SYS_PYVER}" ]; then
+              if [ "${FORCE_ISOLATED}" != "true" ] &&
+                  [ -n "${SYS_PYVER}" ] &&
+                  [ "${TARGET_PYVER}" = "${SYS_PYVER}" ]; then
                 "${PYBIN}" -m venv --system-site-packages "${VENV}"
               else
                 "${PYBIN}" -m venv "${VENV}"
