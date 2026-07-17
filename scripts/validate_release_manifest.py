@@ -87,10 +87,27 @@ def main() -> None:
     if unexpected:
         raise SystemExit(f"unexpected platform tags: {sorted(unexpected)}")
 
-    wheel_keys = {wheel.key for wheel in wheels}
-    missing = set(args.require) - wheel_keys
-    if missing:
-        raise SystemExit(f"missing required wheel variants: {sorted(missing)}")
+    wheel_keys = [wheel.key for wheel in wheels]
+    if len(wheel_keys) != len(set(wheel_keys)):
+        raise SystemExit("duplicate Python/local-version/architecture variants found")
+
+    required_keys = set(args.require)
+    if len(required_keys) != len(args.require):
+        raise SystemExit("duplicate --require variants supplied to validator")
+    if len(required_keys) != len(wheels):
+        raise SystemExit(
+            f"expected an exact {len(wheels)}-variant manifest, "
+            f"but {len(required_keys)} required variants were supplied"
+        )
+
+    found_keys = set(wheel_keys)
+    missing = required_keys - found_keys
+    extra = found_keys - required_keys
+    if missing or extra:
+        raise SystemExit(
+            f"release manifest mismatch; missing={sorted(missing)}, "
+            f"extra={sorted(extra)}"
+        )
 
     print(
         f"Validated {len(wheels)} wheels for tmol {versions.pop()}: "

@@ -13,6 +13,7 @@ concurrency:
 
 jobs:
   build:
+    name: ${{ matrix.label }}
     strategy:
       fail-fast: false
       matrix:
@@ -80,8 +81,8 @@ jobs:
           - python-version: "3.12"
             python-tag: "312"
             torch-version: "2.12"
-            torch-package-version: ""
-            torch-index-url: ""
+            torch-package-version: "2.12.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu132"
             cuda-tag: "132"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             runs-on: ubuntu-22.04
@@ -99,6 +100,7 @@ jobs:
       use-manylinux-build: false
 
   test:
+    name: "install cp${{ matrix.python-tag }} torch${{ matrix.torch-minor }} ${{ matrix.arch }}"
     needs: build
     strategy:
       fail-fast: false
@@ -162,6 +164,8 @@ jobs:
             arch: x86_64
     runs-on: ${{ matrix.runs-on }}
     steps:
+      - uses: actions/checkout@v5
+
       - uses: actions/download-artifact@v4
         with:
           name: wheel-cp${{ matrix.python-tag }}-pt${{ matrix.torch-minor }}-cu${{ matrix.cuda-tag }}-${{ matrix.arch }}
@@ -195,11 +199,40 @@ jobs:
       - name: Load native extensions
         run: |
           python - <<'PY'
+          import importlib.metadata
+          import re
+          import tomllib
+          from pathlib import Path
+
           import torch
           import tmol
+          from packaging.requirements import Requirement
+          from packaging.utils import canonicalize_name
           from tmol._cpp_lib import _ensure_loaded
+
+          expected_torch = "${{ matrix.torch-minor }}"
+          expected_cuda = "${{ matrix.cuda-tag }}"
+          actual_torch = ".".join(torch.__version__.split(".")[:2])
+          actual_cuda = re.sub(r"[^0-9]", "", torch.version.cuda or "")[:3]
+          assert actual_torch == expected_torch, (actual_torch, expected_torch)
+          assert actual_cuda == expected_cuda, (actual_cuda, expected_cuda)
+
+          project = tomllib.loads(Path("pyproject.toml").read_text())
+          expected_dependencies = {
+              canonicalize_name(Requirement(value).name)
+              for value in project["project"]["dependencies"]
+          }
+          wheel_dependencies = {
+              canonicalize_name(Requirement(value).name)
+              for value in importlib.metadata.requires("tmol") or []
+              if "extra ==" not in value
+          }
+          assert wheel_dependencies == expected_dependencies, (
+              wheel_dependencies ^ expected_dependencies
+          )
 
           _ensure_loaded()
           print("tmol", tmol.__version__)
           print("torch", torch.__version__, "cuda", torch.version.cuda)
+          print("dependencies", sorted(wheel_dependencies))
           PY

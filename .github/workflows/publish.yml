@@ -75,6 +75,8 @@ jobs:
           - python-version: "3.11"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-22.04
             label: "py3.11 pt2.12 x86_64 NGC"
 
@@ -102,6 +104,8 @@ jobs:
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.12 x86_64 NGC"
           - python-version: "3.12"
@@ -136,6 +140,8 @@ jobs:
           - python-version: "3.11"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-24.04-arm
             label: "py3.11 pt2.12 aarch64 NGC"
 
@@ -163,6 +169,8 @@ jobs:
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-24.04-arm
             label: "py3.12 pt2.12 aarch64 NGC"
           - python-version: "3.12"
@@ -177,6 +185,8 @@ jobs:
           - python-version: "3.13"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-22.04
             label: "py3.13 pt2.12 x86_64 NGC"
           - python-version: "3.13"
@@ -189,6 +199,8 @@ jobs:
           - python-version: "3.14"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-22.04
             label: "py3.14 pt2.12 x86_64 NGC"
           - python-version: "3.14"
@@ -203,6 +215,8 @@ jobs:
           - python-version: "3.13"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-24.04-arm
             label: "py3.13 pt2.12 aarch64 NGC"
           - python-version: "3.13"
@@ -215,6 +229,8 @@ jobs:
           - python-version: "3.14"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-24.04-arm
             label: "py3.14 pt2.12 aarch64 NGC"
           - python-version: "3.14"
@@ -365,11 +381,29 @@ jobs:
             --cpu-count 4 \
             --platform linux_x86_64 \
             --platform linux_aarch64 \
+            --require cu132torch2.12:cp311:x86_64 \
+            --require cu129torch2.8:cp312:x86_64 \
+            --require cu128torch2.8:cp312:x86_64 \
+            --require cu130torch2.9:cp312:x86_64 \
+            --require cu131torch2.10:cp312:x86_64 \
+            --require cu128torch2.10:cp312:x86_64 \
+            --require cu131torch2.11:cp312:x86_64 \
+            --require cu132torch2.12:cp312:x86_64 \
             --require cu130torch2.13:cp312:x86_64 \
+            --require cu132torch2.12:cp313:x86_64 \
             --require cu130torch2.13:cp313:x86_64 \
+            --require cu132torch2.12:cp314:x86_64 \
             --require cu130torch2.13:cp314:x86_64 \
+            --require cu132torch2.12:cp311:aarch64 \
+            --require cu129torch2.8:cp312:aarch64 \
+            --require cu130torch2.9:cp312:aarch64 \
+            --require cu131torch2.10:cp312:aarch64 \
+            --require cu131torch2.11:cp312:aarch64 \
+            --require cu132torch2.12:cp312:aarch64 \
             --require cu130torch2.13:cp312:aarch64 \
+            --require cu132torch2.12:cp313:aarch64 \
             --require cu130torch2.13:cp313:aarch64 \
+            --require cu132torch2.12:cp314:aarch64 \
             --require cu130torch2.13:cp314:aarch64 \
             --require cpu:cp311:x86_64 \
             --require cpu:cp312:x86_64 \
