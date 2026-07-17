@@ -82,7 +82,8 @@ def _find_nbr_atom(
             continue
         if atom.GetAtomicNum() == 1:
             continue
-        if atom.GetDegree() < 2:
+        # count heavyatoms only
+        if sum(1 for n in atom.GetNeighbors() if n.GetAtomicNum() != 1) < 2:
             continue
         if dists_sq[idx] < best_dist:
             best_dist = dists_sq[idx]
@@ -171,21 +172,24 @@ def _build_atom_tree(
         adj[a].append(b)
         adj[b].append(a)
 
+    # Ensure heavy atoms are first in the BFS
     while queue:
         current = queue.popleft()
         order.append(current)
-        # heavy neighbors first: keeps the 3 seed atoms (no dihedral) heavy and
-        # gives H a proper dihedral placement
-        nbrs = sorted(
-            adj[current],
-            key=lambda n: (mol.GetAtomWithIdx(n).GetAtomicNum() == 1, n),
-        )
-        for nbr in nbrs:
-            if visited[nbr]:
+        for nbr in sorted(adj[current]):
+            if visited[nbr] or not _is_heavy(mol, nbr):
                 continue
             visited[nbr] = True
             parent[nbr] = current
             queue.append(nbr)
+
+    for heavy_idx in list(order):
+        for nbr in sorted(adj[heavy_idx]):
+            if visited[nbr]:
+                continue
+            visited[nbr] = True
+            parent[nbr] = heavy_idx
+            order.append(nbr)
 
     bfs_position = {idx: i for i, idx in enumerate(order)}
     n_order = len(order)
@@ -599,4 +603,7 @@ def build_residue_type(
         properties=properties,
         chi_samples=chi_samples,
         default_jump_connection_atom=atom_names[nbr_idx],
+        # Autogen re-protonates: input H names/coords are stale, so pose build
+        # must rebuild them (see take_block_type_atoms_from_canonical).
+        hydrogens_regenerated=True,
     )

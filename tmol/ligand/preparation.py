@@ -235,9 +235,15 @@ def prepare_single_ligand(
         )
 
     from tmol.ligand.atom_typing import sanitize_tolerant
+    from tmol.ligand.generated_geometry import correct_generated_geometry
 
     protonated = ligand_atom_array_to_rdkit_mol(ligand_info, keep_hydrogens=True)
     sanitize_tolerant(protonated)
+
+    # The generated conformer has correct chemistry but wrong local geometry.
+    # Repair it before computing icoors
+    for applied in correct_generated_geometry(protonated):
+        logger.info("%s: %s", ligand_info.res_name, applied)
 
     atom_types, typing_state = assign_tmol_atom_types(protonated, return_state=True)
 
@@ -413,6 +419,54 @@ def _prepare_ligand_via_smiles(
     ) from last_error
 
 
+def _supported_elements(param_db: ParameterDatabase) -> set[str]:
+    """Element symbols tmol has atom types for."""
+    return {
+        at.element.strip().capitalize()
+        for at in param_db.chemical.atom_types
+        if at.element and at.element.strip()
+    }
+
+
+def _ligand_unsupported_reason(
+    lig: NonStandardResidueInfo, supported_elements: set[str]
+) -> str | None:
+    """Why this ligand cannot be prepared, or None if it can."""
+    metals_present = sorted(
+        {
+            e.strip().capitalize()
+            for e in lig.elements
+            if e.strip().capitalize() in _METAL_SYMBOLS
+        }
+    )
+    if metals_present:
+        return (
+            f"{lig.res_name}: ligands containing metal atoms "
+            f"({metals_present}) are not supported"
+        )
+
+    unsupported = sorted(
+        {
+            e.strip().capitalize()
+            for e in lig.elements
+            if e and e.strip() and e.strip().capitalize() not in supported_elements
+        }
+    )
+    if unsupported:
+        return (
+            f"{lig.res_name}: ligands containing unsupported element(s) "
+            f"({', '.join(unsupported)}) are not supported; tmol has no atom "
+            "types for them"
+        )
+
+    if lig.covalently_linked:
+        return (
+            f"{lig.res_name}: ligand is covalently linked to another residue "
+            "(e.g. glycan attached to protein) — not supported"
+        )
+    return None
+
+
 def prepare_ligands(
     atom_array: struc.AtomArray,
     param_db: Optional[ParameterDatabase] = None,
@@ -493,29 +547,13 @@ def prepare_ligands(
 
     logger.info("Found %d non-standard residue type(s) to prepare", len(ligands))
 
+    supported_elements = _supported_elements(param_db)
+
     preparations: list[LigandPreparation] = []
     for lig in ligands:
-        metals_present = sorted(
-            {
-                e.strip().capitalize()
-                for e in lig.elements
-                if e.strip().capitalize() in _METAL_SYMBOLS
-            }
-        )
-        if metals_present:
-            _skip_or_raise(
-                strict_ligands,
-                f"{lig.res_name}: ligands containing metal atoms "
-                f"({metals_present}) are not supported",
-            )
-            continue
-
-        if lig.covalently_linked:
-            _skip_or_raise(
-                strict_ligands,
-                f"{lig.res_name}: ligand is covalently linked to another residue "
-                "(e.g. glycan attached to protein) — not supported",
-            )
+        reason = _ligand_unsupported_reason(lig, supported_elements)
+        if reason:
+            _skip_or_raise(strict_ligands, reason)
             continue
 
         cache_key = (
