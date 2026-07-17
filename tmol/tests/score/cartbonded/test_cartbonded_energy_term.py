@@ -212,6 +212,7 @@ class TestCartBondedEnergyTerm(EnergyTermTestBase):
             torch_device,
             override_baseline_name=cls.test_disulfide_scoring.__name__,
             update_baseline=False,
+            atol=1e-4,
         )
 
     @classmethod

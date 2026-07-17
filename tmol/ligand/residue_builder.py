@@ -82,7 +82,8 @@ def _find_nbr_atom(
             continue
         if atom.GetAtomicNum() == 1:
             continue
-        if atom.GetDegree() < 2:
+        # count heavyatoms only
+        if sum(1 for n in atom.GetNeighbors() if n.GetAtomicNum() != 1) < 2:
             continue
         if dists_sq[idx] < best_dist:
             best_dist = dists_sq[idx]
@@ -103,6 +104,47 @@ def _find_nbr_atom(
         raise ValueError("No valid root atom found (mol has no heavy atoms)")
 
     return best_idx
+
+
+def _is_heavy(mol: Chem.Mol, i: int) -> bool:
+    """Return whether atom index ``i`` is a heavy (non-hydrogen) atom."""
+    return mol.GetAtomWithIdx(i).GetAtomicNum() != 1
+
+
+def _pick_neighbor(
+    mol: Chem.Mol,
+    adj: dict[int, list[int]],
+    bfs_position: dict[int, int],
+    n_order: int,
+    of: int,
+    exclude: set[int],
+    heavy_only: bool = False,
+    before: int | None = None,
+) -> int | None:
+    """Pick a preferred neighbor index for internal-coordinate parents.
+
+    Args:
+        of: Source atom index.
+        exclude: Neighbor indices to skip.
+        heavy_only: Prefer heavy-atom candidates (soft: yields when the only
+            already-placed candidates are hydrogens).
+        before: If given, a hard restriction to candidates placed before this
+            BFS position.
+
+    Returns:
+        Chosen neighbor index, or ``None`` if no candidate exists.
+    """
+    candidates = [n for n in adj[of] if n not in exclude]
+    if before is not None:
+        candidates = [n for n in candidates if bfs_position.get(n, n_order) < before]
+    if not candidates:
+        return None
+    if heavy_only:
+        heavy = [n for n in candidates if _is_heavy(mol, n)]
+        if heavy:
+            candidates = heavy
+    candidates.sort(key=lambda n: bfs_position.get(n, n_order))
+    return candidates[0]
 
 
 def _build_atom_tree(
@@ -130,64 +172,89 @@ def _build_atom_tree(
         adj[a].append(b)
         adj[b].append(a)
 
+    # Ensure heavy atoms are first in the BFS
     while queue:
         current = queue.popleft()
         order.append(current)
-        for nbr in adj[current]:
-            if visited[nbr]:
+        for nbr in sorted(adj[current]):
+            if visited[nbr] or not _is_heavy(mol, nbr):
                 continue
             visited[nbr] = True
             parent[nbr] = current
             queue.append(nbr)
 
+    for heavy_idx in list(order):
+        for nbr in sorted(adj[heavy_idx]):
+            if visited[nbr]:
+                continue
+            visited[nbr] = True
+            parent[nbr] = heavy_idx
+            order.append(nbr)
+
     bfs_position = {idx: i for i, idx in enumerate(order)}
-
-    def _is_heavy(i: int) -> bool:
-        """Return whether an atom index points to a heavy atom.
-
-        Args:
-            i: Atom index in ``mol``.
-
-        Returns:
-            ``True`` if the atom is not hydrogen.
-        """
-        return mol.GetAtomWithIdx(i).GetAtomicNum() != 1
-
-    def _pick_neighbor(
-        of: int, exclude: set[int], heavy_only: bool = False
-    ) -> int | None:
-        """Pick a preferred neighbor index for internal-coordinate parents.
-
-        Args:
-            of: Source atom index.
-            exclude: Neighbor indices to skip.
-            heavy_only: Whether to restrict candidates to heavy atoms.
-
-        Returns:
-            Chosen neighbor index, or ``None`` if no candidate exists.
-        """
-        candidates = [n for n in adj[of] if n not in exclude]
-        if heavy_only:
-            candidates = [n for n in candidates if _is_heavy(n)]
-        if not candidates:
-            return None
-        candidates.sort(key=lambda n: bfs_position.get(n, len(order)))
-        return candidates[0]
+    n_order = len(order)
 
     grandparents: dict[int, tuple[int, int]] = {}
     for idx in order:
-        idx_heavy = _is_heavy(idx)
+        idx_heavy = _is_heavy(mol, idx)
         par = parent[idx]
+        before = bfs_position[idx]
         gp = parent.get(par, par)
+
+        # degenerate case 1: gp == par -> use a sibling as the angle reference
         if gp == par and idx != root_idx:
-            sub = _pick_neighbor(par, exclude={idx, par}, heavy_only=idx_heavy)
+            sub = _pick_neighbor(
+                mol,
+                adj,
+                bfs_position,
+                n_order,
+                par,
+                exclude={idx, par},
+                heavy_only=idx_heavy,
+                before=before,
+            )
             if sub is not None:
                 gp = sub
         ggp = parent.get(gp, gp)
-        if ggp == gp and idx != root_idx:
-            sub = _pick_neighbor(par, exclude={idx, par, gp}, heavy_only=idx_heavy)
+
+        # H torsion ref: parent's other heavy neighbor (sibling), not down-chain
+        if not idx_heavy and idx != root_idx:
+            sib = _pick_neighbor(
+                mol,
+                adj,
+                bfs_position,
+                n_order,
+                par,
+                exclude={idx, gp},
+                heavy_only=True,
+                before=before,
+            )
+            if sib is not None:
+                ggp = sib
+
+        # degenerate case 2: ggp collides with par/gp/idx -> use a distinct atom
+        if ggp in (gp, par, idx) and idx != root_idx:
+            sub = _pick_neighbor(
+                mol,
+                adj,
+                bfs_position,
+                n_order,
+                par,
+                exclude={idx, par, gp},
+                heavy_only=idx_heavy,
+                before=before,
+            )
             if sub is None:
-                sub = _pick_neighbor(gp, exclude={par, gp, idx}, heavy_only=idx_heavy)
+                sub = _pick_neighbor(
+                    mol,
+                    adj,
+                    bfs_position,
+                    n_order,
+                    gp,
+                    exclude={par, gp, idx},
+                    heavy_only=idx_heavy,
+                    before=before,
+                )
             if sub is not None:
                 ggp = sub
         grandparents[idx] = (gp, ggp)
@@ -283,7 +350,9 @@ def _compute_icoors(
             d = _distance(coords[idx], coords[par_idx])
             angle_val = _angle(coords[idx], coords[par_idx], coords[gp_idx])
             theta = 180.0 - angle_val
-            phi = _dihedral(
+            # Negated: build_coords_from_icoors' rot_z(phi) uses the opposite
+            # sign convention to the standard dihedral.
+            phi = -_dihedral(
                 coords[idx], coords[par_idx], coords[gp_idx], coords[ggp_idx]
             )
 
@@ -534,4 +603,7 @@ def build_residue_type(
         properties=properties,
         chi_samples=chi_samples,
         default_jump_connection_atom=atom_names[nbr_idx],
+        # Autogen re-protonates: input H names/coords are stale, so pose build
+        # must rebuild them (see take_block_type_atoms_from_canonical).
+        hydrogens_regenerated=True,
     )

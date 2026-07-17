@@ -1,7 +1,8 @@
 # import attrs
-# import torch
 import math
+from types import SimpleNamespace
 
+import torch
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 # from tmol.score.score_function import ScoreFunction
@@ -13,6 +14,54 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import (
 from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
 from tmol.pack.rotamer.opth_sampler import OptHSampler
 from tmol.io import pose_stack_from_pdb
+
+
+def test_opth_builds_cartesian_product_for_multiple_proton_chis():
+    opth_cache = SimpleNamespace(
+        has_proton_chi=torch.tensor([True]),
+        n_proton_samples=torch.tensor([6], dtype=torch.int32),
+        n_samples_per_chi=torch.tensor([[2, 3]], dtype=torch.int32),
+        expanded_samples=torch.tensor(
+            [[[10.0, 11.0, 0.0], [20.0, 21.0, 22.0]]],
+            dtype=torch.float32,
+        ),
+        chi_defining_atom=torch.tensor([[4, 5]], dtype=torch.int32),
+    )
+    pose_stack = SimpleNamespace(
+        packed_block_types=SimpleNamespace(opth_sample_cache=opth_cache),
+        device=torch.device("cpu"),
+    )
+    task = SimpleNamespace(cons_bt_block_type=torch.tensor([0], dtype=torch.int64))
+    gbt_for_rotamer = torch.zeros(6, dtype=torch.int64)
+    chi_defining_atom = torch.full((6, 2), -1, dtype=torch.int32)
+    chi_values = torch.zeros((6, 2), dtype=torch.float32)
+
+    OptHSampler()._fill_proton_chi_for_all_blocks(
+        pose_stack,
+        task,
+        rot_offset_for_gbt=torch.tensor([0], dtype=torch.int32),
+        gbt_for_rotamer=gbt_for_rotamer,
+        chi_defining_atom_for_rotamer=chi_defining_atom,
+        chi_for_rotamers=chi_values,
+    )
+
+    torch.testing.assert_close(
+        chi_values,
+        torch.tensor(
+            [
+                [10.0, 20.0],
+                [11.0, 20.0],
+                [10.0, 21.0],
+                [11.0, 21.0],
+                [10.0, 22.0],
+                [11.0, 22.0],
+            ]
+        ),
+    )
+    torch.testing.assert_close(
+        chi_defining_atom,
+        torch.tensor([[4, 5]] * 6, dtype=torch.int32),
+    )
 
 
 def test_optH_rotamer_sampler_flipNHQ(ubq_pdb, torch_device):

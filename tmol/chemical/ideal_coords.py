@@ -82,21 +82,26 @@ def build_coords_from_icoors(icoors_ancestors, icoors_geom):
     coords = numpy.zeros((n_atoms, 3), dtype=numpy.float32)
     coords[1, 0] = icoors_geom[1, 2]
 
-    # coord 2 in the x-y plane
-    # imagine a coordinate frame at p1
-    # with the x axis aligned with the global x axis,
-    # same for y and z. We want p2 to be in the
-    # first quadrant of the x-y plane, so we
-    # will point the x axis of this coordinate frame
-    # at where p2 will lie (by performing positive rotation
-    # about the z axis) and then we will walk along the new
-    # x axis.
-    ht_1 = eye4()
-    ht_1[:3, 3] = coords[1, :]
-    rot_2 = rot_z(icoors_geom[2, 1])
+    # coord 2 in the x-y plane. Atom 2 is bonded to either atom 1 or atom 0
+    # (its only two possible predecessors); its parent is whichever it is
+    # bonded to and the geometry (d, theta) is measured against that parent.
+    #
+    # parent == atom 1 (chain 0->1->2, the canonical case): walk d from atom 1,
+    #   angle taken against the atom1->atom0 direction.
+    # parent == atom 0 (atom 2 is a sibling of atom 1 off the root): walk d from
+    #   the origin, angle taken against the atom0->atom1 direction (rotate by
+    #   pi - theta so atom 2 still lands in the +y half plane).
+    if icoors_ancestors[2, 0] == 1:
+        ht_base = eye4()
+        ht_base[:3, 3] = coords[1, :]
+        rot_2 = rot_z(icoors_geom[2, 1])
+    else:
+        ht_base = eye4()
+        ht_base[:3, 3] = coords[0, :]
+        rot_2 = rot_z(numpy.pi - icoors_geom[2, 1])
     trans_2 = eye4()
     trans_2[0, 3] = icoors_geom[2, 2]
-    ht_2 = ht_1 @ rot_2 @ trans_2
+    ht_2 = ht_base @ rot_2 @ trans_2
 
     coords[2, :] = ht_2[:3, 3]
 
