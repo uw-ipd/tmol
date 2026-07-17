@@ -306,12 +306,31 @@ jobs:
             dnf config-manager --add-repo \
               https://developer.download.nvidia.com/compute/cuda/repos/rhel8/\${CUDA_REPO_ARCH}/cuda-rhel8.repo
             dnf clean expire-cache
-            dnf install -y \
+            if ! dnf install -y --nobest \
               cuda-nvcc-\${CUDA_PKG_VERSION} \
               cuda-cudart-devel-\${CUDA_PKG_VERSION} \
-              cuda-cccl-\${CUDA_PKG_VERSION}
+              cuda-cccl-\${CUDA_PKG_VERSION} \
+              cuda-libraries-devel-\${CUDA_PKG_VERSION}; then
+              dnf install -y --nobest \
+                cuda-nvcc-\${CUDA_PKG_VERSION} \
+                cuda-cudart-devel-\${CUDA_PKG_VERSION} \
+                cuda-cccl-\${CUDA_PKG_VERSION}
+              if dnf repoquery --available cuda-nvrtc-devel-\${CUDA_PKG_VERSION} >/dev/null 2>&1; then
+                dnf install -y --nobest cuda-nvrtc-devel-\${CUDA_PKG_VERSION}
+              else
+                dnf install -y --nobest libnvrtc-devel-\${CUDA_PKG_VERSION}
+              fi
+              if dnf repoquery --available libcublas-devel-\${CUDA_PKG_VERSION} >/dev/null 2>&1; then
+                dnf install -y --nobest libcublas-devel-\${CUDA_PKG_VERSION}
+              else
+                dnf install -y --nobest cuda-cublas-devel-\${CUDA_PKG_VERSION}
+              fi
+            fi
             CUDA_HOME=/usr/local/cuda-\${CUDA_MAJOR}.\${CUDA_MINOR}
             test -x \"\${CUDA_HOME}/bin/nvcc\"
+            test -f \"\${CUDA_HOME}/include/cublas_v2.h\"
+            find \"\${CUDA_HOME}\" -name 'libnvrtc.so*' -print -quit > /tmp/tmol_nvrtc_path
+            test -s /tmp/tmol_nvrtc_path
             \"\${CUDA_HOME}/bin/nvcc\" --version
             echo \"\${CUDA_HOME}\" > /tmp/tmol_cuda_home
           "
@@ -346,6 +365,11 @@ jobs:
             if [ -n "${CUDA_HOME}" ]; then
               export PATH="${CUDA_HOME}/bin:${PATH}"
               export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH:-}"
+              CUDA_TARGET_LIB=$(find "${CUDA_HOME}/targets" -mindepth 2 -maxdepth 2 -type d -name lib -print -quit 2>/dev/null || true)
+              if [ -n "${CUDA_TARGET_LIB}" ]; then
+                export LD_LIBRARY_PATH="${CUDA_TARGET_LIB}:${LD_LIBRARY_PATH}"
+                export LIBRARY_PATH="${CUDA_TARGET_LIB}:${LIBRARY_PATH:-}"
+              fi
               CUDA_COMPILER_DEFINE=(-Ccmake.define.CMAKE_CUDA_COMPILER="${CUDA_HOME}/bin/nvcc")
             else
               CUDA_COMPILER_DEFINE=()
