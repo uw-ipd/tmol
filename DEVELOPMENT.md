@@ -69,7 +69,7 @@ When neither variable is set, tmol tries to load the precompiled library and rai
 
 ### Pre-built wheel compatibility
 
-Linux x86_64 release wheels are built in **manylinux_2_28** with **auditwheel** repair so they depend only on glibc/libstdc++ symbols allowed by that policy. Extensions are compiled with the same **`_GLIBCXX_USE_CXX11_ABI`** flag as the target PyTorch build (`TORCH_CXX_FLAGS` from CMake).
+Linux x86_64 and aarch64 release wheels are built in **manylinux_2_28** with **auditwheel** repair so they depend only on glibc/libstdc++ symbols allowed by that policy. Extensions are compiled with the same **`_GLIBCXX_USE_CXX11_ABI`** flag as the target PyTorch build (`TORCH_CXX_FLAGS` from CMake). Torch and NVIDIA CUDA shared libraries remain supplied by the required PyTorch package rather than being bundled into tmol wheels.
 
 If `import tmol` fails with `GLIBCXX_* not found`, the host `libstdc++` is too old for the wheel — use a newer GCC module, conda `libstdcxx-ng`, a container, `TMOL_DISABLE_WHEEL_FETCH=1 pip install -e .`, or `TMOL_JIT_FALLBACK=1`.
 
@@ -154,7 +154,7 @@ On Google Colab (Python 3.12, torch 2.8, Turing T4) use the `+cu128torch2.8`
 wheel — it is the only variant built with `sm_75`:
 
 ```bash
-pip install "https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-linux_x86_64.whl"
+pip install "https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-manylinux_2_28_x86_64.whl"
 ```
 
 ## Containers
@@ -183,7 +183,7 @@ tmol uses GitHub Actions for all CI:
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
-| `publish.yml` | Push to `master`/`kdidi/ligand_clean`, manual | Builds wheels (GPU + CPU) + sdist, uploads sdist to TestPyPI, uploads wheels to a GitHub Release. |
+| `publish.yml` | Push `v*` tag, manual | Builds manylinux wheels (GPU + CPU) + sdist, uploads sdist to PyPI, uploads wheels to a GitHub Release. |
 
 ### CI architecture
 
@@ -218,7 +218,7 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
 
 1. Bump `project.version` in `pyproject.toml`.
 2. Commit the version bump and ensure both `CI` and `Wheel smoke test` pass.
-3. Create and push the matching version tag (for example `v0.1.41`):
+3. Create and push the matching version tag (for example `v0.1.42`):
    - `publish.yml` triggers only from a pushed `v*` tag.
    - The workflow rejects tags that do not match `project.version`.
 4. Wait for workflow completion:
@@ -229,7 +229,7 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
    - `upload`
 5. Verify release artifacts:
    - PyPI sdist upload succeeds.
-   - GitHub prerelease `vX.Y.Z` exists and contains all wheel files.
+   - GitHub prerelease `vX.Y.Z` exists and contains exactly 32 manylinux wheel files: 24 GPU and 8 CPU.
 6. Install using explicit wheel files (recommended):
    - Install matching PyTorch/CUDA first.
    - Install from GitHub release wheel URL (or pinned `tmol==X.Y.Z+...` with `--find-links`).
@@ -263,5 +263,4 @@ Pre-commit runs `clang-format` (C++) and `black` (Python) on staged files. If fo
 ### Pull requests
 
 All changes to master go through pull requests. PRs are merged via squash or rebase to keep a linear history. Each PR should be an atomic unit of work.
-
 

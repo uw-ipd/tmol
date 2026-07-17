@@ -18,72 +18,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            label: "smoke py3.12 pt2.13 x86_64"
-          - python-version: "3.13"
-            python-tag: "313"
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            label: "smoke py3.13 pt2.13 x86_64"
-          - python-version: "3.14"
-            python-tag: "314"
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            runs-on: ubuntu-22.04
-            arch: x86_64
-            label: "smoke py3.14 pt2.13 x86_64"
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-            label: "smoke py3.12 pt2.13 aarch64"
-          - python-version: "3.13"
-            python-tag: "313"
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-            label: "smoke py3.13 pt2.13 aarch64"
-          - python-version: "3.14"
-            python-tag: "314"
-            torch-version: "2.13"
-            torch-package-version: "2.13.0"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-            label: "smoke py3.14 pt2.13 aarch64"
           - python-version: "3.11"
             python-tag: "311"
             torch-version: "2.12"
             torch-package-version: "2.12.0"
             torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
+            local-tag: "cu132torch2.12"
+            enable-cuda: true
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             runs-on: ubuntu-22.04
             arch: x86_64
@@ -93,17 +34,20 @@ jobs:
             torch-version: "2.8"
             torch-package-version: "2.8.0"
             torch-index-url: "https://download.pytorch.org/whl/cu129"
-            cuda-tag: "129"
+            local-tag: "cu129torch2.8"
+            enable-cuda: true
             container-image: nvcr.io/nvidia/pytorch:25.06-py3
             runs-on: ubuntu-22.04
             arch: x86_64
+            gpu-runtime: true
             label: "smoke py3.12 pt2.8 cu129 x86_64"
           - python-version: "3.12"
             python-tag: "312"
             torch-version: "2.8"
             torch-package-version: "2.8.0"
             torch-index-url: "https://download.pytorch.org/whl/cu128"
-            cuda-tag: "128"
+            local-tag: "cu128torch2.8"
+            enable-cuda: true
             cuda-archs: "75;80;89"
             container-image: nvcr.io/nvidia/pytorch:25.02-py3
             runs-on: ubuntu-22.04
@@ -114,7 +58,8 @@ jobs:
             torch-version: "2.9"
             torch-package-version: "2.9.1"
             torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
+            local-tag: "cu130torch2.9"
+            enable-cuda: true
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             runs-on: ubuntu-22.04
             arch: x86_64
@@ -124,7 +69,8 @@ jobs:
             torch-version: "2.10"
             torch-package-version: "2.10.0"
             torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
+            local-tag: "cu130torch2.10"
+            enable-cuda: true
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             runs-on: ubuntu-22.04
             arch: x86_64
@@ -134,7 +80,8 @@ jobs:
             torch-version: "2.10"
             torch-package-version: "2.10.0"
             torch-index-url: "https://download.pytorch.org/whl/cu128"
-            cuda-tag: "128"
+            local-tag: "cu128torch2.10"
+            enable-cuda: true
             container-image: nvcr.io/nvidia/pytorch:25.02-py3
             runs-on: ubuntu-22.04
             arch: x86_64
@@ -144,37 +91,86 @@ jobs:
             torch-version: "2.11"
             torch-package-version: "2.11.0"
             torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
+            local-tag: "cu130torch2.11"
+            enable-cuda: true
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             runs-on: ubuntu-22.04
             arch: x86_64
             label: "smoke py3.12 pt2.11 cu130 x86_64"
+          - python-version: "3.12"
+            python-tag: "312"
+            torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu132"
+            local-tag: "cu132torch2.12"
+            enable-cuda: true
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            runs-on: ubuntu-22.04
+            arch: x86_64
+            label: "smoke py3.12 pt2.12 cu132 x86_64"
+          - python-version: "3.12"
+            python-tag: "312"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            local-tag: "cu130torch2.13"
+            enable-cuda: true
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-22.04
+            arch: x86_64
+            portability: true
+            label: "smoke py3.12 pt2.13 cu130 x86_64"
           - python-version: "3.13"
             python-tag: "313"
             torch-version: "2.12"
             torch-package-version: "2.12.0"
             torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
+            local-tag: "cu132torch2.12"
+            enable-cuda: true
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             runs-on: ubuntu-22.04
             arch: x86_64
             label: "smoke py3.13 pt2.12 cu132 x86_64"
+          - python-version: "3.13"
+            python-tag: "313"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            local-tag: "cu130torch2.13"
+            enable-cuda: true
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-22.04
+            arch: x86_64
+            label: "smoke py3.13 pt2.13 cu130 x86_64"
           - python-version: "3.14"
             python-tag: "314"
             torch-version: "2.12"
             torch-package-version: "2.12.0"
             torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
+            local-tag: "cu132torch2.12"
+            enable-cuda: true
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             runs-on: ubuntu-22.04
             arch: x86_64
             label: "smoke py3.14 pt2.12 cu132 x86_64"
+          - python-version: "3.14"
+            python-tag: "314"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            local-tag: "cu130torch2.13"
+            enable-cuda: true
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-22.04
+            arch: x86_64
+            label: "smoke py3.14 pt2.13 cu130 x86_64"
           - python-version: "3.11"
             python-tag: "311"
             torch-version: "2.12"
             torch-package-version: "2.12.0"
             torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
+            local-tag: "cu132torch2.12"
+            enable-cuda: true
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             runs-on: ubuntu-24.04-arm
             arch: aarch64
@@ -184,7 +180,8 @@ jobs:
             torch-version: "2.8"
             torch-package-version: "2.8.0"
             torch-index-url: "https://download.pytorch.org/whl/cu129"
-            cuda-tag: "129"
+            local-tag: "cu129torch2.8"
+            enable-cuda: true
             container-image: nvcr.io/nvidia/pytorch:25.06-py3
             runs-on: ubuntu-24.04-arm
             arch: aarch64
@@ -194,7 +191,8 @@ jobs:
             torch-version: "2.9"
             torch-package-version: "2.9.1"
             torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
+            local-tag: "cu130torch2.9"
+            enable-cuda: true
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             runs-on: ubuntu-24.04-arm
             arch: aarch64
@@ -204,7 +202,8 @@ jobs:
             torch-version: "2.10"
             torch-package-version: "2.10.0"
             torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
+            local-tag: "cu130torch2.10"
+            enable-cuda: true
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             runs-on: ubuntu-24.04-arm
             arch: aarch64
@@ -214,7 +213,8 @@ jobs:
             torch-version: "2.11"
             torch-package-version: "2.11.0"
             torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
+            local-tag: "cu130torch2.11"
+            enable-cuda: true
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             runs-on: ubuntu-24.04-arm
             arch: aarch64
@@ -224,41 +224,158 @@ jobs:
             torch-version: "2.12"
             torch-package-version: "2.12.0"
             torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
+            local-tag: "cu132torch2.12"
+            enable-cuda: true
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             runs-on: ubuntu-24.04-arm
             arch: aarch64
             label: "smoke py3.12 pt2.12 cu132 aarch64"
+          - python-version: "3.12"
+            python-tag: "312"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            local-tag: "cu130torch2.13"
+            enable-cuda: true
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+            portability: true
+            label: "smoke py3.12 pt2.13 cu130 aarch64"
           - python-version: "3.13"
             python-tag: "313"
             torch-version: "2.12"
             torch-package-version: "2.12.0"
             torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
+            local-tag: "cu132torch2.12"
+            enable-cuda: true
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             runs-on: ubuntu-24.04-arm
             arch: aarch64
             label: "smoke py3.13 pt2.12 cu132 aarch64"
+          - python-version: "3.13"
+            python-tag: "313"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            local-tag: "cu130torch2.13"
+            enable-cuda: true
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+            label: "smoke py3.13 pt2.13 cu130 aarch64"
           - python-version: "3.14"
             python-tag: "314"
             torch-version: "2.12"
             torch-package-version: "2.12.0"
             torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
+            local-tag: "cu132torch2.12"
+            enable-cuda: true
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             runs-on: ubuntu-24.04-arm
             arch: aarch64
             label: "smoke py3.14 pt2.12 cu132 aarch64"
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.12"
-            torch-package-version: "2.12.0"
-            torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+          - python-version: "3.14"
+            python-tag: "314"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            local-tag: "cu130torch2.13"
+            enable-cuda: true
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+            label: "smoke py3.14 pt2.13 cu130 aarch64"
+          - python-version: "3.11"
+            python-tag: "311"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cpu"
+            local-tag: "cpu"
+            enable-cuda: false
+            container-image: unused-for-manylinux-cpu
             runs-on: ubuntu-22.04
             arch: x86_64
-            label: "control py3.12 pt2.12 x86_64"
+            label: "smoke py3.11 cpu x86_64"
+          - python-version: "3.12"
+            python-tag: "312"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cpu"
+            local-tag: "cpu"
+            enable-cuda: false
+            container-image: unused-for-manylinux-cpu
+            runs-on: ubuntu-22.04
+            arch: x86_64
+            portability: true
+            label: "smoke py3.12 cpu x86_64"
+          - python-version: "3.13"
+            python-tag: "313"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cpu"
+            local-tag: "cpu"
+            enable-cuda: false
+            container-image: unused-for-manylinux-cpu
+            runs-on: ubuntu-22.04
+            arch: x86_64
+            label: "smoke py3.13 cpu x86_64"
+          - python-version: "3.14"
+            python-tag: "314"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cpu"
+            local-tag: "cpu"
+            enable-cuda: false
+            container-image: unused-for-manylinux-cpu
+            runs-on: ubuntu-22.04
+            arch: x86_64
+            label: "smoke py3.14 cpu x86_64"
+          - python-version: "3.11"
+            python-tag: "311"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cpu"
+            local-tag: "cpu"
+            enable-cuda: false
+            container-image: unused-for-manylinux-cpu
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+            label: "smoke py3.11 cpu aarch64"
+          - python-version: "3.12"
+            python-tag: "312"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cpu"
+            local-tag: "cpu"
+            enable-cuda: false
+            container-image: unused-for-manylinux-cpu
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+            portability: true
+            label: "smoke py3.12 cpu aarch64"
+          - python-version: "3.13"
+            python-tag: "313"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cpu"
+            local-tag: "cpu"
+            enable-cuda: false
+            container-image: unused-for-manylinux-cpu
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+            label: "smoke py3.13 cpu aarch64"
+          - python-version: "3.14"
+            python-tag: "314"
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cpu"
+            local-tag: "cpu"
+            enable-cuda: false
+            container-image: unused-for-manylinux-cpu
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+            label: "smoke py3.14 cpu aarch64"
     uses: ./.github/workflows/_build_wheel.yml
     with:
       runs-on: ${{ matrix.runs-on }}
@@ -268,222 +385,64 @@ jobs:
       python-version: ${{ matrix.python-version }}
       label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.torch-index-url }}
+      enable-cuda: ${{ matrix.enable-cuda }}
       cuda-archs: ${{ matrix.cuda-archs || '' }}
-      use-manylinux-build: false
+      use-manylinux-build: true
+      target-arch: ${{ matrix.arch }}
 
   test:
-    name: "install cp${{ matrix.python-tag }} torch${{ matrix.torch-minor }} ${{ matrix.arch }}"
+    name: "install cp${{ matrix.python-tag }} ${{ matrix.local-tag }} ${{ matrix.arch }}"
     needs: build
     strategy:
       fail-fast: false
       matrix:
         include:
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.13.0"
-            torch-minor: "2.13"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.13"
-            python-tag: "313"
-            torch-version: "2.13.0"
-            torch-minor: "2.13"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.14"
-            python-tag: "314"
-            torch-version: "2.13.0"
-            torch-minor: "2.13"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.13.0"
-            torch-minor: "2.13"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.13"
-            python-tag: "313"
-            torch-version: "2.13.0"
-            torch-minor: "2.13"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.14"
-            python-tag: "314"
-            torch-version: "2.13.0"
-            torch-minor: "2.13"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.11"
-            python-tag: "311"
-            torch-version: "2.12.0"
-            torch-minor: "2.12"
-            torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.8.0"
-            torch-minor: "2.8"
-            torch-index-url: "https://download.pytorch.org/whl/cu129"
-            cuda-tag: "129"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.8.0"
-            torch-minor: "2.8"
-            torch-index-url: "https://download.pytorch.org/whl/cu128"
-            cuda-tag: "128"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.9.1"
-            torch-minor: "2.9"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.10.0"
-            torch-minor: "2.10"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.10.0"
-            torch-minor: "2.10"
-            torch-index-url: "https://download.pytorch.org/whl/cu128"
-            cuda-tag: "128"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.11.0"
-            torch-minor: "2.11"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.13"
-            python-tag: "313"
-            torch-version: "2.12.0"
-            torch-minor: "2.12"
-            torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.14"
-            python-tag: "314"
-            torch-version: "2.12.0"
-            torch-minor: "2.12"
-            torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
-            runs-on: ubuntu-22.04
-            arch: x86_64
-          - python-version: "3.11"
-            python-tag: "311"
-            torch-version: "2.12.0"
-            torch-minor: "2.12"
-            torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.8.0"
-            torch-minor: "2.8"
-            torch-index-url: "https://download.pytorch.org/whl/cu129"
-            cuda-tag: "129"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.9.1"
-            torch-minor: "2.9"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.10.0"
-            torch-minor: "2.10"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.11.0"
-            torch-minor: "2.11"
-            torch-index-url: "https://download.pytorch.org/whl/cu130"
-            cuda-tag: "130"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.12.0"
-            torch-minor: "2.12"
-            torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.13"
-            python-tag: "313"
-            torch-version: "2.12.0"
-            torch-minor: "2.12"
-            torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.14"
-            python-tag: "314"
-            torch-version: "2.12.0"
-            torch-minor: "2.12"
-            torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
-            runs-on: ubuntu-24.04-arm
-            arch: aarch64
-          - python-version: "3.12"
-            python-tag: "312"
-            torch-version: "2.12.0"
-            torch-minor: "2.12"
-            torch-index-url: "https://download.pytorch.org/whl/cu132"
-            cuda-tag: "132"
-            runs-on: ubuntu-24.04
-            arch: x86_64
+          - { python-version: "3.11", python-tag: "311", torch-package-version: "2.12.0", torch-minor: "2.12", torch-index-url: "https://download.pytorch.org/whl/cu132", local-tag: "cu132torch2.12", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.8.0", torch-minor: "2.8", torch-index-url: "https://download.pytorch.org/whl/cu129", local-tag: "cu129torch2.8", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64, gpu-runtime: true }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.8.0", torch-minor: "2.8", torch-index-url: "https://download.pytorch.org/whl/cu128", local-tag: "cu128torch2.8", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.9.1", torch-minor: "2.9", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.9", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.10.0", torch-minor: "2.10", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.10", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.10.0", torch-minor: "2.10", torch-index-url: "https://download.pytorch.org/whl/cu128", local-tag: "cu128torch2.10", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.11.0", torch-minor: "2.11", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.11", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.12.0", torch-minor: "2.12", torch-index-url: "https://download.pytorch.org/whl/cu132", local-tag: "cu132torch2.12", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.13", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64, portability: true }
+          - { python-version: "3.13", python-tag: "313", torch-package-version: "2.12.0", torch-minor: "2.12", torch-index-url: "https://download.pytorch.org/whl/cu132", local-tag: "cu132torch2.12", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.13", python-tag: "313", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.13", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.14", python-tag: "314", torch-package-version: "2.12.0", torch-minor: "2.12", torch-index-url: "https://download.pytorch.org/whl/cu132", local-tag: "cu132torch2.12", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.14", python-tag: "314", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.13", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.11", python-tag: "311", torch-package-version: "2.12.0", torch-minor: "2.12", torch-index-url: "https://download.pytorch.org/whl/cu132", local-tag: "cu132torch2.12", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.8.0", torch-minor: "2.8", torch-index-url: "https://download.pytorch.org/whl/cu129", local-tag: "cu129torch2.8", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.9.1", torch-minor: "2.9", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.9", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.10.0", torch-minor: "2.10", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.10", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.11.0", torch-minor: "2.11", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.11", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.12.0", torch-minor: "2.12", torch-index-url: "https://download.pytorch.org/whl/cu132", local-tag: "cu132torch2.12", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.13", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64, portability: true }
+          - { python-version: "3.13", python-tag: "313", torch-package-version: "2.12.0", torch-minor: "2.12", torch-index-url: "https://download.pytorch.org/whl/cu132", local-tag: "cu132torch2.12", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.13", python-tag: "313", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.13", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.14", python-tag: "314", torch-package-version: "2.12.0", torch-minor: "2.12", torch-index-url: "https://download.pytorch.org/whl/cu132", local-tag: "cu132torch2.12", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.14", python-tag: "314", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.13", enable-cuda: true, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.11", python-tag: "311", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64, portability: true }
+          - { python-version: "3.13", python-tag: "313", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.14", python-tag: "314", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.11", python-tag: "311", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64, portability: true }
+          - { python-version: "3.13", python-tag: "313", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { python-version: "3.14", python-tag: "314", torch-package-version: "2.13.0", torch-minor: "2.13", torch-index-url: "https://download.pytorch.org/whl/cpu", local-tag: "cpu", enable-cuda: false, runs-on: ubuntu-24.04-arm, arch: aarch64 }
     runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v5
 
       - uses: actions/download-artifact@v4
         with:
-          name: wheel-cp${{ matrix.python-tag }}-pt${{ matrix.torch-minor }}-cu${{ matrix.cuda-tag }}-${{ matrix.arch }}
+          name: wheel-cp${{ matrix.python-tag }}-${{ matrix.local-tag }}-${{ matrix.arch }}
           path: wheels
 
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Verify filename and install wheel
+      - name: Verify manylinux filename and auditwheel metadata
         shell: bash
         run: |
           set -euo pipefail
@@ -491,7 +450,7 @@ jobs:
           wheels=(wheels/*.whl)
           test "${#wheels[@]}" -eq 1
           wheel_name=$(basename "${wheels[0]}")
-          expected="tmol-*+cu${{ matrix.cuda-tag }}torch${{ matrix.torch-minor }}-cp${{ matrix.python-tag }}-cp${{ matrix.python-tag }}-linux_${{ matrix.arch }}.whl"
+          expected="tmol-*+${{ matrix.local-tag }}-cp${{ matrix.python-tag }}-cp${{ matrix.python-tag }}-manylinux_2_28_${{ matrix.arch }}.whl"
           case "$wheel_name" in
             $expected) ;;
             *)
@@ -499,13 +458,33 @@ jobs:
               exit 1
               ;;
           esac
+          case "$wheel_name" in
+            *-linux_*.whl)
+              echo "Native linux tag is not allowed: $wheel_name"
+              exit 1
+              ;;
+          esac
           python -m pip install --upgrade pip
-          python -m pip install "torch==${{ matrix.torch-version }}" \
+          python -m pip install auditwheel packaging
+          python -m auditwheel show "${wheels[0]}" > auditwheel.txt
+          cat auditwheel.txt
+          grep -q "manylinux_2_28_${{ matrix.arch }}" auditwheel.txt
+
+      - name: Install wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          wheels=(wheels/*.whl)
+          python -m pip install "torch==${{ matrix.torch-package-version }}" \
             --index-url "${{ matrix.torch-index-url }}"
           python -m pip install "${wheels[0]}"
 
       - name: Load native extensions
         working-directory: /tmp
+        env:
+          EXPECTED_LOCAL_TAG: ${{ matrix.local-tag }}
+          EXPECTED_TORCH: ${{ matrix.torch-minor }}
         run: |
           python - <<'PY'
           import importlib.metadata
@@ -520,12 +499,15 @@ jobs:
           from packaging.utils import canonicalize_name
           from tmol._cpp_lib import _ensure_loaded
 
-          expected_torch = "${{ matrix.torch-minor }}"
-          expected_cuda = "${{ matrix.cuda-tag }}"
+          expected_torch = os.environ["EXPECTED_TORCH"]
+          expected_local_tag = os.environ["EXPECTED_LOCAL_TAG"]
           actual_torch = ".".join(torch.__version__.split(".")[:2])
-          actual_cuda = re.sub(r"[^0-9]", "", torch.version.cuda or "")[:3]
           assert actual_torch == expected_torch, (actual_torch, expected_torch)
-          assert actual_cuda == expected_cuda, (actual_cuda, expected_cuda)
+
+          if expected_local_tag != "cpu":
+              expected_cuda = re.search(r"cu(\d+)torch", expected_local_tag).group(1)
+              actual_cuda = re.sub(r"[^0-9]", "", torch.version.cuda or "")[:3]
+              assert actual_cuda == expected_cuda, (actual_cuda, expected_cuda)
 
           pyproject_path = Path(os.environ["GITHUB_WORKSPACE"]) / "pyproject.toml"
           project = tomllib.loads(pyproject_path.read_text())
@@ -547,3 +529,68 @@ jobs:
           print("torch", torch.__version__, "cuda", torch.version.cuda)
           print("dependencies", sorted(wheel_dependencies))
           PY
+
+      - name: Check representative glibc 2.28 container install
+        if: matrix.portability == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          py_tag="${{ matrix.python-tag }}"
+          docker run --rm \
+            -v "$PWD/wheels:/wheels:ro" \
+            "quay.io/pypa/manylinux_2_28_${{ matrix.arch }}" \
+            bash -euo pipefail -c "
+              PY=/opt/python/cp${py_tag}-cp${py_tag}/bin/python
+              \"\$PY\" -m venv /tmp/tmol-smoke
+              /tmp/tmol-smoke/bin/pip install --upgrade pip
+              /tmp/tmol-smoke/bin/pip install \
+                'torch==${{ matrix.torch-package-version }}' \
+                --index-url '${{ matrix.torch-index-url }}'
+              /tmp/tmol-smoke/bin/pip install /wheels/*.whl
+              cd /tmp
+              /tmp/tmol-smoke/bin/python - <<'PY'
+          import tmol
+          from tmol._cpp_lib import _ensure_loaded
+          _ensure_loaded()
+          print(tmol.__version__)
+          PY
+            "
+
+  gpu-runtime-smoke:
+    name: "self-hosted gpu runtime wheel smoke"
+    needs: build
+    runs-on: [self-hosted, gpu]
+    env:
+      SIF: /home/bench/git_ci_apptainer/tmol.sif
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-cp312-cu129torch2.8-x86_64
+          path: wheels
+
+      - name: Install representative wheel in GPU CI container
+        shell: bash
+        run: |
+          set -euo pipefail
+          apptainer exec --nv --fakeroot --containall \
+            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
+            --pwd "$GITHUB_WORKSPACE" \
+            "$SIF" bash -euo pipefail -c '
+              python3 -m venv --system-site-packages /tmp/tmol-wheel-smoke
+              source /tmp/tmol-wheel-smoke/bin/activate
+              python -m pip install --upgrade pip
+              python -m pip install wheels/*.whl
+              cd /tmp
+              python - <<'"'"'PY'"'"'
+          import torch
+          import tmol
+          from tmol._cpp_lib import _ensure_loaded
+
+          assert torch.cuda.is_available()
+          _ensure_loaded()
+          print("tmol", tmol.__version__)
+          print("torch", torch.__version__, "cuda", torch.version.cuda)
+          PY
+            '

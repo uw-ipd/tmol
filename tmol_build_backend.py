@@ -197,12 +197,9 @@ def _candidate_wheel_filenames() -> list[str]:
     py_tag = _python_tag()
     platform_tags: list[str]
     if arch == "x86_64":
-        # Current published x86_64 wheels are auditwheel-repaired manylinux.
         platform_tags = ["manylinux_2_28_x86_64", "linux_x86_64"]
     else:
-        # aarch64 releases are currently native Linux; keep manylinux fallback
-        # for forward compatibility if ARM auditwheel lanes are enabled.
-        platform_tags = ["linux_aarch64", "manylinux_2_34_aarch64"]
+        platform_tags = ["manylinux_2_28_aarch64", "linux_aarch64"]
 
     candidates: list[str] = []
     for local_tag in _candidate_local_tags():

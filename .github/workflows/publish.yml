@@ -71,16 +71,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # ── x86_64 py3.11 (NGC native) ──
+          # ── x86_64 py3.11 ──
           - python-version: "3.11"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
             torch-package-version: "2.12.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-22.04
-            label: "py3.11 pt2.12 x86_64 NGC"
+            label: "py3.11 pt2.12 x86_64 manylinux"
 
-          # ── x86_64 py3.12 (NGC native) ──
+          # ── x86_64 py3.12 ──
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.8"
@@ -115,7 +115,7 @@ jobs:
             torch-package-version: "2.12.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-22.04
-            label: "py3.12 pt2.12 x86_64 NGC"
+            label: "py3.12 pt2.12 x86_64 manylinux"
           - python-version: "3.12"
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.13"
@@ -132,7 +132,7 @@ jobs:
             torch-package-version: "2.10.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
             runs-on: ubuntu-22.04
-            label: "py3.12 pt2.10 x86_64 NGC cu128"
+            label: "py3.12 pt2.10 x86_64 manylinux cu128"
 
           # ── x86_64 py3.12 Colab wheel (T4/sm_75, torch 2.8 cu128) ──
           # The ONLY wheel that carries sm_75. Matches Colab runtime 2025.10
@@ -146,16 +146,16 @@ jobs:
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.8 x86_64 Colab cu128"
 
-          # ── ARM64 py3.11 (NGC native) ──
+          # ── ARM64 py3.11 ──
           - python-version: "3.11"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
             torch-package-version: "2.12.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-24.04-arm
-            label: "py3.11 pt2.12 aarch64 NGC"
+            label: "py3.11 pt2.12 aarch64 manylinux"
 
-          # ── ARM64 py3.12 (NGC native) ──
+          # ── ARM64 py3.12 ──
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.8"
@@ -190,7 +190,7 @@ jobs:
             torch-package-version: "2.12.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.12 aarch64 NGC"
+            label: "py3.12 pt2.12 aarch64 manylinux"
           - python-version: "3.12"
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.13"
@@ -206,7 +206,7 @@ jobs:
             torch-package-version: "2.12.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-22.04
-            label: "py3.13 pt2.12 x86_64 NGC"
+            label: "py3.13 pt2.12 x86_64 manylinux"
           - python-version: "3.13"
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.13"
@@ -220,7 +220,7 @@ jobs:
             torch-package-version: "2.12.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-22.04
-            label: "py3.14 pt2.12 x86_64 NGC"
+            label: "py3.14 pt2.12 x86_64 manylinux"
           - python-version: "3.14"
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.13"
@@ -236,7 +236,7 @@ jobs:
             torch-package-version: "2.12.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-24.04-arm
-            label: "py3.13 pt2.12 aarch64 NGC"
+            label: "py3.13 pt2.12 aarch64 manylinux"
           - python-version: "3.13"
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.13"
@@ -250,7 +250,7 @@ jobs:
             torch-package-version: "2.12.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-24.04-arm
-            label: "py3.14 pt2.12 aarch64 NGC"
+            label: "py3.14 pt2.12 aarch64 manylinux"
           - python-version: "3.14"
             container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.13"
@@ -268,60 +268,55 @@ jobs:
       python-version: ${{ matrix.python-version }}
       label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.pip-torch-cuda-url || '' }}
+      enable-cuda: true
       cuda-archs: ${{ matrix.cuda-archs || '' }}
-      use-manylinux-build: false
+      use-manylinux-build: true
+      target-arch: ${{ contains(matrix.runs-on, 'arm') && 'aarch64' || 'x86_64' }}
 
   # ── CPU-only wheel ─────────────────────────────────────────────────
   build_cpu_wheel:
-    name: "py${{ matrix.python-version }} CPU-only"
+    name: "py${{ matrix.python-version }} CPU-only ${{ matrix.arch }}"
     needs: verify_release_version
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          submodules: recursive
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Compute Python wheel tag
-        id: cpu_py_tag
-        run: |
-          python_tag=$(python -c 'import sys; print(f"{sys.version_info.major}{sys.version_info.minor}")')
-          test -n "$python_tag"
-          echo "tag=cp${python_tag}" >> "$GITHUB_OUTPUT"
-
-      - name: Install build dependencies
-        run: |
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install 'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12'
-
-      - name: Build wheel
-        run: |
-          pip wheel . --no-build-isolation --no-deps -w dist \
-            -Ccmake.define.TMOL_ENABLE_CUDA=OFF
-
-      - name: Rename wheel with CPU tag
-        run: |
-          cd dist
-          for whl in *.whl; do
-            new_name=$(echo "$whl" | sed 's/-/+cpu-/2')
-            mv "$whl" "$new_name"
-          done
-
-      - name: Log built wheels
-        run: ls -lh dist/
-
-      - name: Upload wheel artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheel-${{ steps.cpu_py_tag.outputs.tag }}-cpu-x86_64
-          path: dist/*.whl
+        include:
+          - python-version: "3.11"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+          - python-version: "3.12"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+          - python-version: "3.13"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+          - python-version: "3.14"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+          - python-version: "3.11"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+          - python-version: "3.12"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+          - python-version: "3.13"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+          - python-version: "3.14"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+    uses: ./.github/workflows/_build_wheel.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      container-image: unused-for-manylinux-cpu
+      torch-version: "2.13"
+      torch-package-version: "2.13.0"
+      python-version: ${{ matrix.python-version }}
+      label: "py${{ matrix.python-version }} CPU-only ${{ matrix.arch }}"
+      pip-torch-cuda-url: "https://download.pytorch.org/whl/cpu"
+      enable-cuda: false
+      use-manylinux-build: true
+      target-arch: ${{ matrix.arch }}
 
   # ── sdist ──────────────────────────────────────────────────────────
   build_sdist:
@@ -396,9 +391,9 @@ jobs:
         run: |
           python scripts/validate_release_manifest.py wheels \
             --gpu-count 24 \
-            --cpu-count 4 \
-            --platform linux_x86_64 \
-            --platform linux_aarch64 \
+            --cpu-count 8 \
+            --platform manylinux_2_28_x86_64 \
+            --platform manylinux_2_28_aarch64 \
             --require cu132torch2.12:cp311:x86_64 \
             --require cu129torch2.8:cp312:x86_64 \
             --require cu128torch2.8:cp312:x86_64 \
@@ -426,7 +421,11 @@ jobs:
             --require cpu:cp311:x86_64 \
             --require cpu:cp312:x86_64 \
             --require cpu:cp313:x86_64 \
-            --require cpu:cp314:x86_64
+            --require cpu:cp314:x86_64 \
+            --require cpu:cp311:aarch64 \
+            --require cpu:cp312:aarch64 \
+            --require cpu:cp313:aarch64 \
+            --require cpu:cp314:aarch64
 
       - name: Upload sdist to PyPI
         env:
