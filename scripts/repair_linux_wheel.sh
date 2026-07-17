@@ -77,6 +77,7 @@ trap 'rm -rf "$repair_dir"' EXIT
 
 "$python_bin" -m auditwheel repair \
   --plat "$plat" \
+  --only-plat \
   "${exclude_args[@]}" \
   -w "$repair_dir" \
   "${wheels[0]}"
