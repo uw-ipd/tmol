@@ -37,6 +37,20 @@ def test_candidate_wheels_include_native_aarch64_then_manylinux_fallback(
     ]
 
 
+def test_candidate_wheels_include_stable_torch_210_variants(monkeypatch):
+    monkeypatch.setattr(backend.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(backend, "_linux_arch_tag", lambda: "x86_64")
+    monkeypatch.setattr(backend, "_read_project_version", lambda: "0.1.41")
+    monkeypatch.setattr(backend, "_python_tag", lambda: "cp312")
+    monkeypatch.setattr(backend, "_torch_major_minor", lambda: "2.10")
+    monkeypatch.setattr(backend, "_torch_cuda_tag", lambda: "cu130")
+
+    filenames = backend._candidate_wheel_filenames()
+    assert all("cu131" not in filename for filename in filenames)
+    assert any("+cu130torch2.10-" in filename for filename in filenames)
+    assert any("+cu128torch2.10-" in filename for filename in filenames)
+
+
 def test_build_wheel_uses_downloaded_wheel_when_available(monkeypatch, tmp_path):
     monkeypatch.setattr(backend, "_is_repo_checkout", lambda: False)
     monkeypatch.setattr(backend, "_is_isolated_build_environment", lambda: False)

@@ -84,23 +84,31 @@ jobs:
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.8"
+            torch-package-version: "2.8.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu129"
             runs-on: ubuntu-22.04
-            label: "py3.12 pt2.8 x86_64 NGC"
+            label: "py3.12 pt2.8 cu129 x86_64"
           - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:25.10-py3
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.9"
+            torch-package-version: "2.9.1"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-22.04
-            label: "py3.12 pt2.9 x86_64 NGC"
+            label: "py3.12 pt2.9 cu130 x86_64"
           - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:26.01-py3
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.10"
+            torch-package-version: "2.10.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-22.04
-            label: "py3.12 pt2.10 x86_64 NGC"
+            label: "py3.12 pt2.10 cu130 x86_64"
           - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:26.02-py3
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.11"
+            torch-package-version: "2.11.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-22.04
-            label: "py3.12 pt2.11 x86_64 NGC"
+            label: "py3.12 pt2.11 cu130 x86_64"
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
@@ -121,6 +129,7 @@ jobs:
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:25.02-py3
             torch-version: "2.10"
+            torch-package-version: "2.10.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.10 x86_64 NGC cu128"
@@ -129,8 +138,9 @@ jobs:
           # The ONLY wheel that carries sm_75. Matches Colab runtime 2025.10
           # (Python 3.12, torch 2.8, T4); archs cover T4(75)/A100(80)/L4(89).
           - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:25.06-py3
+            container-image: nvcr.io/nvidia/pytorch:25.02-py3
             torch-version: "2.8"
+            torch-package-version: "2.8.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
             cuda-archs: "75;80;89"
             runs-on: ubuntu-22.04
@@ -149,23 +159,31 @@ jobs:
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.8"
+            torch-package-version: "2.8.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu129"
             runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.8 aarch64 NGC"
+            label: "py3.12 pt2.8 cu129 aarch64"
           - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:25.10-py3
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.9"
+            torch-package-version: "2.9.1"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.9 aarch64 NGC"
+            label: "py3.12 pt2.9 cu130 aarch64"
           - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:26.01-py3
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.10"
+            torch-package-version: "2.10.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.10 aarch64 NGC"
+            label: "py3.12 pt2.10 cu130 aarch64"
           - python-version: "3.12"
-            container-image: nvcr.io/nvidia/pytorch:26.02-py3
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
             torch-version: "2.11"
+            torch-package-version: "2.11.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
             runs-on: ubuntu-24.04-arm
-            label: "py3.12 pt2.11 aarch64 NGC"
+            label: "py3.12 pt2.11 cu130 aarch64"
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
@@ -385,9 +403,9 @@ jobs:
             --require cu129torch2.8:cp312:x86_64 \
             --require cu128torch2.8:cp312:x86_64 \
             --require cu130torch2.9:cp312:x86_64 \
-            --require cu131torch2.10:cp312:x86_64 \
+            --require cu130torch2.10:cp312:x86_64 \
             --require cu128torch2.10:cp312:x86_64 \
-            --require cu131torch2.11:cp312:x86_64 \
+            --require cu130torch2.11:cp312:x86_64 \
             --require cu132torch2.12:cp312:x86_64 \
             --require cu130torch2.13:cp312:x86_64 \
             --require cu132torch2.12:cp313:x86_64 \
@@ -397,8 +415,8 @@ jobs:
             --require cu132torch2.12:cp311:aarch64 \
             --require cu129torch2.8:cp312:aarch64 \
             --require cu130torch2.9:cp312:aarch64 \
-            --require cu131torch2.10:cp312:aarch64 \
-            --require cu131torch2.11:cp312:aarch64 \
+            --require cu130torch2.10:cp312:aarch64 \
+            --require cu130torch2.11:cp312:aarch64 \
             --require cu132torch2.12:cp312:aarch64 \
             --require cu130torch2.13:cp312:aarch64 \
             --require cu132torch2.12:cp313:aarch64 \

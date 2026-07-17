@@ -37,12 +37,13 @@ CI currently uploads these wheel variants to [GitHub Releases](https://github.co
   - Python `cp313` and `cp314`: torch 2.12 and 2.13
   - Torch/CUDA tags:
     - `+cu128torch2.8` (Google Colab / Turing **T4** wheel — the only variant built with `sm_75`; matches Colab runtime 2025.10: Python 3.12, torch 2.8)
+    - `+cu129torch2.8`
     - `+cu130torch2.9`
     - `+cu128torch2.10` (x86_64 foundry upgrade lane)
-    - `+cu131torch2.11`
+    - `+cu130torch2.10`
+    - `+cu130torch2.11`
     - `+cu132torch2.12`
     - `+cu130torch2.13`
-  - some `aarch64` lanes may additionally publish `+cu131torch2.10` depending on NGC base image CUDA
 - CPU wheels (Linux `x86_64`) for:
   - Python `cp311`, `cp312`, `cp313`, `cp314`
   - local version tag `+cpu`
