@@ -38,6 +38,9 @@ from tmol.io.canonical_ordering import (
 from tmol.io.pose_stack_construction import (
     pose_stack_from_canonical_form,
 )
+from tmol.io.pose_stack_from_biotite import (
+    pose_stack_from_biotite,
+)
 from tmol.io.pose_stack_from_openfold import (
     canonical_form_from_openfold,
     canonical_ordering_for_openfold,
@@ -65,6 +68,7 @@ from tmol.optimization.minimizers import (
 )
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score import beta2016_score_function
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType

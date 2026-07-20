@@ -1,6 +1,6 @@
 import attr
 import torch
-from typing import Optional
+from typing import Optional, Union
 
 from tmol.types.torch import Tensor
 from tmol.chemical.restypes import RefinedResidueType
@@ -275,6 +275,12 @@ class PoseStack:
             ),
             device=self.device,
         )
+
+    def to(self, dtype=Union[torch.float32, torch.float64]) -> "PoseStack":
+        """Create a new PoseStack with the dtype of the coords tensor changed to the requested dtype."""
+        if self.coords.dtype == dtype:
+            return self
+        return attr.evolve(self, coords=self.coords.to(dtype=dtype))
 
     def expand_coords(self):
         """Load the coordinates into a 4D tensor:
