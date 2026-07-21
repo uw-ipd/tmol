@@ -62,9 +62,12 @@ class LigandFragmentBlockMapping:
     chain_label: str
     insertion_code: str
     fragment_id: int
-    fragment_name: str
     block_index: int
     atom_names: tuple[str, ...]
+
+    @property
+    def fragment_name(self) -> str:
+        return f"{self.ligand_name}.{self.fragment_id}"
 
 
 @dataclass(frozen=True)
@@ -601,7 +604,6 @@ def expand_fragmented_ligands(
                     chain_label=str(representative.chain_id[start]),
                     insertion_code=str(representative.ins_code[start]),
                     fragment_id=fragment_id,
-                    fragment_name=fragment_name,
                     block_index=output_block_index,
                     atom_names=tuple(
                         str(representative.atom_name[i]) for i in selected

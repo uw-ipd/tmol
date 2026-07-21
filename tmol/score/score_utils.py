@@ -58,35 +58,22 @@ def calculate_fragment_interactions(
 
     scorer = sfxn.render_block_pair_scoring_module(pose_stack)
     block_pair_scores = scorer(pose_stack.coords, sum_terms=False)
+    # apply_fragment_connections makes block topology canonical across poses, so
+    # the pose-0 records define one column layout (keyed by the synthetic,
+    # per-fragment residue label) that every pose must share.
     fragment_records = tuple(
         sorted(
             (record for record in mapping.blocks if record.pose_index == 0),
             key=lambda record: record.block_index,
         )
     )
-    fragment_columns = {
-        (
-            record.ligand_name,
-            record.residue_label,
-            record.pose_residue_label,
-            record.chain_label,
-            record.insertion_code,
-            record.fragment_id,
-        ): record.block_index
-        for record in fragment_records
+    expected_columns = {
+        record.pose_residue_label: record.block_index for record in fragment_records
     }
     records_per_pose = [0] * pose_stack.n_poses
     for record in mapping.blocks:
         records_per_pose[record.pose_index] += 1
-        key = (
-            record.ligand_name,
-            record.residue_label,
-            record.pose_residue_label,
-            record.chain_label,
-            record.insertion_code,
-            record.fragment_id,
-        )
-        if fragment_columns.get(key) != record.block_index:
+        if expected_columns.get(record.pose_residue_label) != record.block_index:
             raise ValueError(
                 "Fragment mappings must use identical block topology in every pose"
             )
