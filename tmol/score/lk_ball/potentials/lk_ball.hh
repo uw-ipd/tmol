@@ -170,9 +170,12 @@ struct lk_bridge_fraction {
     Real overlapfrac;
     if (wted_d2_delta > overlap_width_A2) {
       overlapfrac = 0;
-    } else {
+    } else if (wted_d2_delta > 0) {
       // square-square -> 1 as x -> 0
       overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
+    } else {
+      // clamp the fraction to 1.
+      overlapfrac = 1;
     }
     // base angle
     Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
@@ -364,7 +367,8 @@ struct lk_ball_score {
         i.lk_dgfree,
         i.lk_lambda,
         j.lk_volume,
-        global.distance_threshold);
+        global.distance_threshold,
+        i.is_carbon_lk && j.is_carbon_lk);
     Real frac_IJ_desolv = lk_fraction<Real, MAX_WATER>::V(WI, J, j.lj_radius);
 
     Real frac_IJ_water_overlap;
@@ -417,7 +421,8 @@ struct lk_ball_score {
         i.lk_dgfree,
         i.lk_lambda,
         j.lk_volume,
-        global.distance_threshold);
+        global.distance_threshold,
+        i.is_carbon_lk && j.is_carbon_lk);
 
     Real frac_IJ_desolv = lk_fraction<Real, MAX_WATER>::V(WI, J, j.lj_radius);
     auto d_frac_IJ_desolv =

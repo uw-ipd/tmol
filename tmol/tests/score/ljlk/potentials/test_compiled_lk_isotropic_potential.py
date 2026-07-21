@@ -16,8 +16,11 @@ def params(default_database):
     )
 
 
+CARBON_LK_TYPES = ("CH1", "CH2", "CH3", "Caro")
+
 parametrize_atom_pairs = pytest.mark.parametrize(
-    "iname,jname", [("CNH2", "COO"), ("Ntrp", "OOC")]  # standard, donor/acceptor
+    "iname,jname",
+    [("CNH2", "COO"), ("Ntrp", "OOC"), ("CH3", "CH3")],  # std, don/acc, carbon
 )
 
 
@@ -60,8 +63,11 @@ def test_lk_spotcheck(params, iname, jname):
     sigma = compiled.lj_sigma(i, j, g)
 
     d_min = sigma * 0.89
-    cpoly_close_dmin = numpy.sqrt(d_min * d_min - 1.45)
-    cpoly_close_dmax = numpy.sqrt(d_min * d_min + 1.05)
+    if iname in CARBON_LK_TYPES and jname in CARBON_LK_TYPES:
+        d_min = max(d_min, 4.2)
+    n = numpy.floor(20.0 * d_min * d_min)
+    cpoly_close_dmin = numpy.sqrt(max(0.0, n - 29.0) / 20.0)
+    cpoly_close_dmax = numpy.sqrt(min(n + 21.0, 405.0) / 20.0)
 
     def eval_f_desolv(d):
         return compiled.f_desolv_V(

@@ -28,6 +28,7 @@ struct LKTypeParams {
   Real is_hydroxyl;
   Real is_polarh;
   Real is_acceptor;
+  Real is_carbon_lk;
 };
 
 template <typename Real>
@@ -41,6 +42,7 @@ struct LJLKTypeParams {
   Real is_hydroxyl;
   Real is_polarh;
   Real is_acceptor;
+  Real is_carbon_lk;
 
   LJTypeParams<Real> EIGEN_DEVICE_FUNC lj_params() {
     return LJTypeParams<Real>(
@@ -56,7 +58,8 @@ struct LJLKTypeParams {
          is_donor,
          is_hydroxyl,
          is_polarh,
-         is_acceptor});
+         is_acceptor,
+         is_carbon_lk});
   }
 };
 
@@ -100,6 +103,7 @@ struct LKTypeParamTensors {
   TView<bool, 1, D> is_hydroxyl;
   TView<bool, 1, D> is_polarh;
   TView<bool, 1, D> is_acceptor;
+  TView<bool, 1, D> is_carbon_lk;
 
   template <typename Idx>
   auto operator[](Idx i) const {
@@ -111,7 +115,8 @@ struct LKTypeParamTensors {
         is_donor[i],
         is_hydroxyl[i],
         is_polarh[i],
-        is_acceptor[i]};
+        is_acceptor[i],
+        is_carbon_lk[i]};
   }
 };
 

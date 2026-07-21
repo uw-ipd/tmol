@@ -39,6 +39,49 @@ class OpenBabelUnavailableError(RuntimeError):
     """Raised when an OB-fallback helper is called but ``openbabel`` is missing."""
 
 
+# Non-tetrahedral stereo classes. RDKit emits these for hypervalent centers
+# (e.g. "[P@TB17]" on a lambda-5 phosphorane), but OpenBabel's SMILES parser
+# does not support them and rejects the whole string.
+_NONTETRAHEDRAL_CHIRAL_TAGS = tuple(
+    tag
+    for tag in (
+        getattr(Chem.ChiralType, "CHI_TRIGONALBIPYRAMIDAL", None),
+        getattr(Chem.ChiralType, "CHI_SQUAREPLANAR", None),
+        getattr(Chem.ChiralType, "CHI_OCTAHEDRAL", None),
+    )
+    if tag is not None
+)
+
+
+def strip_nontetrahedral_stereo(smiles: str) -> str:
+    """Drop stereo descriptors OpenBabel cannot parse, keeping the rest.
+
+    Returns ``smiles`` unchanged if it has no such markers or cannot be parsed.
+    """
+    if not _NONTETRAHEDRAL_CHIRAL_TAGS:
+        return smiles
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return smiles
+    stripped = [
+        atom
+        for atom in mol.GetAtoms()
+        if atom.GetChiralTag() in _NONTETRAHEDRAL_CHIRAL_TAGS
+    ]
+    if not stripped:
+        return smiles
+    for atom in stripped:
+        atom.SetChiralTag(Chem.ChiralType.CHI_UNSPECIFIED)
+    out = Chem.MolToSmiles(mol)
+    logger.info(
+        "stripped non-tetrahedral stereo from %d center(s) for OpenBabel: %s -> %s",
+        len(stripped),
+        smiles,
+        out,
+    )
+    return out
+
+
 def _import_openbabel() -> tuple:
     """Return ``(openbabel, pybel)`` modules, or raise a clear error.
 
@@ -141,6 +184,45 @@ def _conformer_search(
     return True
 
 
+# mmff94 fails on pentavalent phosphorous.
+# fallback to eem in these cases
+_CHARGE_MODEL_FALLBACKS = ("eem",)
+
+
+def _compute_charges_with_fallback(openbabel, pymol, forcefield: str, smiles: str):
+    """Compute charges for molecule, falling back on failure.
+
+    Returns the name of the model actually used.
+
+    Raises:
+        ValueError: If neither the primary model nor any fallback succeeds.
+    """
+    primary = openbabel.OBChargeModel.FindType(forcefield)
+    if primary is not None and primary.ComputeCharges(pymol.OBMol):
+        return forcefield
+
+    for name in _CHARGE_MODEL_FALLBACKS:
+        model = openbabel.OBChargeModel.FindType(name)
+        if model is None or not model.ComputeCharges(pymol.OBMol):
+            continue
+        logger.warning(
+            "%s partial charges are unavailable for SMILES %r; falling back to "
+            "%r. These charges come from a different model and are not directly "
+            "comparable to %s charges.",
+            forcefield,
+            smiles,
+            name,
+            forcefield,
+        )
+        return name
+
+    raise ValueError(
+        f"OpenBabel could not compute {forcefield} partial charges for "
+        f"SMILES {smiles!r}, and no fallback model "
+        f"({', '.join(_CHARGE_MODEL_FALLBACKS)}) could parameterize it either"
+    )
+
+
 def _build_charged_3d_mol2_mol(
     smiles: str,
     *,
@@ -156,9 +238,14 @@ def _build_charged_3d_mol2_mol(
     ligand-prep protocol: add explicit hydrogens, embed 3D coordinates with the
     named force field, optionally run a rotor conformer search to find a
     low-energy geometry (``conformer_search``, default on), minimize, compute
-    its partial charges (so the mol2 ``charge_type`` is ``MMFF94_CHARGES``), and
-    assign generic atom names. MMFF94 charges are topological (graph-determined),
-    so the exact conformer does not affect them — only the atom coordinates.
+    its partial charges (so the mol2 ``charge_type`` is normally
+    ``MMFF94_CHARGES``), and assign generic atom names. MMFF94 charges are
+    topological (graph-determined), so the exact conformer does not affect
+    them — only the atom coordinates.
+
+    If the named model cannot parameterize the molecule at all (e.g. MMFF94 has
+    no types for a lambda-5 phosphorane), charges come from a fallback model
+    instead — see :func:`_compute_charges_with_fallback`, which warns loudly.
 
     Args:
         conformer_search: When ``True`` (default), run a rotor conformer search
@@ -172,6 +259,7 @@ def _build_charged_3d_mol2_mol(
             compute partial charges.
     """
     openbabel, pybel = _import_openbabel()
+    smiles = strip_nontetrahedral_stereo(smiles)
     try:
         pymol = pybel.readstring("smi", smiles)
     except Exception as exc:
@@ -193,12 +281,7 @@ def _build_charged_3d_mol2_mol(
         raise ValueError(
             f"OpenBabel failed to generate 3D coordinates for SMILES {smiles!r}"
         ) from exc
-    charge_model = openbabel.OBChargeModel.FindType(forcefield)
-    if charge_model is None or not charge_model.ComputeCharges(pymol.OBMol):
-        raise ValueError(
-            f"OpenBabel could not compute {forcefield} partial charges for "
-            f"SMILES {smiles!r}"
-        )
+    _compute_charges_with_fallback(openbabel, pymol, forcefield, smiles)
     _assign_generic_atom_names(openbabel, pymol.OBMol)
     return pymol
 

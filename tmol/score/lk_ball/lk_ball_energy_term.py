@@ -153,6 +153,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         bt_is_hydroxyl = type_params.is_hydroxyl[at].numpy()
         bt_is_polarh = type_params.is_polarh[at].numpy()
         bt_is_acceptor = type_params.is_acceptor[at].numpy()
+        bt_is_carbon_lk = type_params.is_carbon_lk[at].numpy()
 
         bt_lk_ball_at_params = numpy.stack(
             (
@@ -164,11 +165,12 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
                 bt_is_hydroxyl,
                 bt_is_polarh,
                 bt_is_acceptor,
+                bt_is_carbon_lk,
             ),
             axis=1,
         )
         tiled_bt_lk_ball_at_params = numpy.zeros(
-            (n_tiles, tile_size, 8), dtype=numpy.float32
+            (n_tiles, tile_size, 9), dtype=numpy.float32
         )
         tiled_bt_lk_ball_at_params[is_pol_or_occ] = bt_lk_ball_at_params[
             tiled_pols_and_occs[is_pol_or_occ]
@@ -207,7 +209,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             (n_types, n_tiles, tile_size), -1, dtype=numpy.int32
         )
         tile_lk_ball_params = numpy.full(
-            (n_types, n_tiles, tile_size, 8), 0, dtype=numpy.float32
+            (n_types, n_tiles, tile_size, 9), 0, dtype=numpy.float32
         )
 
         for i, bt in enumerate(packed_block_types.active_block_types):
