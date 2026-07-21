@@ -37,6 +37,10 @@ class BiotitePoseBuildContext:
     packed_block_types: PackedBlockTypes
     parameter_database: ParameterDatabase
     restype_set: ResidueTypeSet
+    # Definitions derived from tmol_fragment_id annotations. These are carried
+    # by reusable contexts so each compatible structure can be expanded without
+    # repeating ligand preparation.
+    fragment_definitions: tuple = ()
 
 
 @validate_args
@@ -95,7 +99,7 @@ def build_context_from_biotite(
         if param_db is None:
             param_db = ParameterDatabase.get_default()
 
-        param_db, co = _prepare_ligands(
+        param_db, co, fragment_definitions = _prepare_ligands(
             biotite_structure,
             param_db=param_db,
             ph=ligand_ph,
@@ -103,6 +107,7 @@ def build_context_from_biotite(
             params_files=ligand_params_files,
             sample_proton_chi=sample_proton_chi,
             strict_ligands=strict_ligands,
+            return_fragment_definitions=True,
         )
         rts = ResidueTypeSet.from_database(param_db.chemical)
         pbt = PackedBlockTypes.from_restype_list(
@@ -113,6 +118,7 @@ def build_context_from_biotite(
             packed_block_types=pbt,
             parameter_database=param_db,
             restype_set=rts,
+            fragment_definitions=fragment_definitions,
         )
 
     if param_db is None:
@@ -198,6 +204,8 @@ def pose_stack_from_biotite(
         PoseStack when no optional values requested and return_context is False.
         ``(PoseStack, BiotitePoseBuildContext)`` when return_context is True.
         ``(PoseStack, dict)`` when optional return values were requested via kwargs.
+        Fragmented poses expose their block mapping as
+        ``pose_stack.fragmented_ligand_mapping``.
     """
     from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
     from tmol.pack.build_missing_sidechains import build_missing_sidechains
@@ -235,6 +243,14 @@ def pose_stack_from_biotite(
             sample_proton_chi=sample_proton_chi,
         )
 
+    fragment_mapping = None
+    if context.fragment_definitions:
+        from tmol.ligand.fragmentation import expand_fragmented_ligands
+
+        biotite_structure, fragment_mapping = expand_fragmented_ligands(
+            biotite_structure, context.fragment_definitions
+        )
+
     # The canonical form is per-structure, so it is always computed here for the
     # given structure (never carried in the reusable context).
     cf = canonical_form_from_biotite(
@@ -253,6 +269,11 @@ def pose_stack_from_biotite(
     )
 
     pose_stack, opt_return_vals = result
+    if fragment_mapping is not None:
+        from tmol.ligand.fragmentation import apply_fragment_connections
+
+        pose_stack = apply_fragment_connections(pose_stack, fragment_mapping)
+        fragment_mapping = pose_stack.fragmented_ligand_mapping
     block_has_missing_atoms = opt_return_vals["block_has_missing_atoms"]
 
     if block_has_missing_atoms is not None and torch.any(block_has_missing_atoms):
@@ -279,6 +300,8 @@ def pose_stack_from_biotite(
             no_optH=no_optH,
         )
 
+    if fragment_mapping is not None:
+        pose_stack.fragmented_ligand_mapping = fragment_mapping
     _assert_no_nan_coords(pose_stack)
 
     # This code tries to faithfully return what the caller expects based on the optional

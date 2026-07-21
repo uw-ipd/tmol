@@ -415,7 +415,7 @@ def _ligand_unsupported_reason(
     return None
 
 
-def prepare_ligands(
+def prepare_ligands(  # noqa: C901
     atom_array: struc.AtomArray,
     param_db: Optional[ParameterDatabase] = None,
     ph: float = 7.4,
@@ -425,7 +425,8 @@ def prepare_ligands(
     params_output: str | None = None,
     sample_proton_chi: bool = True,
     strict_ligands: bool = True,
-) -> tuple[ParameterDatabase, CanonicalOrdering]:
+    return_fragment_definitions: bool = False,
+):
     """Detect, prepare, and register all non-standard residues.
 
     Scans the input AtomArray for residues not in the ParameterDatabase,
@@ -454,9 +455,14 @@ def prepare_ligands(
             covalently linked) or fails preparation, instead of silently
             dropping it. If False, such residues are logged as warnings and
             skipped, leaving them to be filtered out during pose construction.
+        return_fragment_definitions: Internal/context-building option. If True,
+            include definitions derived from ``tmol_fragment_id`` annotations
+            as the third return value.
 
     Returns:
-        A (ParameterDatabase, CanonicalOrdering) tuple. The returned
+        A (ParameterDatabase, CanonicalOrdering) tuple. When
+        ``return_fragment_definitions`` is true, a third element containing
+        the structure-independent ligand fragment definitions is returned. The returned
         ParameterDatabase is a new instance with all detected ligands
         injected; the input ``param_db`` is not modified.
 
@@ -478,19 +484,85 @@ def prepare_ligands(
     if cache is None:
         cache = get_default_cache()
 
-    if params_files:
-        from tmol.ligand.params_file import inject_params_files
+    from tmol.ligand.fragmentation import (
+        FRAGMENT_ID_ANNOTATION,
+        build_ligand_fragment_definition,
+        fragment_ids_from_atom_array,
+    )
 
-        param_db = inject_params_files(
-            param_db, params_files, strict_atom_types=strict_atom_types
+    fragment_layouts_by_name = {}
+    starts = struc.get_residue_starts(atom_array)
+    ends = np.append(starts[1:], atom_array.array_length())
+    for start, end in zip(starts, ends):
+        residue = atom_array[start:end]
+        fragment_ids = fragment_ids_from_atom_array(residue)
+        layout = (
+            None
+            if fragment_ids is None
+            else tuple(sorted(zip(map(str, residue.atom_name), map(int, fragment_ids))))
+        )
+        ligand_name = str(residue.res_name[0])
+        if (
+            ligand_name in fragment_layouts_by_name
+            and fragment_layouts_by_name[ligand_name] != layout
+        ):
+            raise LigandPreparationError(
+                f"{ligand_name}: all residues with the same name must use the "
+                f"same {FRAGMENT_ID_ANNOTATION} annotation"
+            )
+        fragment_layouts_by_name[ligand_name] = layout
+
+    params_preparations: list[LigandPreparation] = []
+    if params_files:
+        from tmol.ligand.params_file import load_params_file
+
+        for params_file in params_files:
+            params_preparations.extend(load_params_file(params_file))
+        param_db = inject_ligand_preparations(
+            param_db,
+            params_preparations,
+            strict_atom_types=strict_atom_types,
         )
 
     canonical_ordering = rebuild_canonical_ordering(param_db)
+    fragment_definitions_by_name = {}
+
+    def add_fragment_definition(ligand_name, definition):
+        if ligand_name in fragment_definitions_by_name or definition is None:
+            return False
+        fragment_definitions_by_name[ligand_name] = definition
+        return True
+
+    if params_preparations:
+        for prep in params_preparations:
+            for start, end in zip(starts, ends):
+                if str(atom_array.res_name[start]) == prep.residue_type.name:
+                    definition = build_ligand_fragment_definition(
+                        prep, atom_array[start:end]
+                    )
+                    add_fragment_definition(prep.residue_type.name, definition)
+        if fragment_definitions_by_name:
+            param_db = inject_ligand_preparations(
+                param_db,
+                [
+                    fragment_prep
+                    for definition in fragment_definitions_by_name.values()
+                    for fragment_prep in definition.fragment_preparations
+                ],
+                strict_atom_types=strict_atom_types,
+            )
+            canonical_ordering = rebuild_canonical_ordering(param_db)
 
     ligands = detect_nonstandard_residues(atom_array, canonical_ordering)
 
     if not ligands:
         logger.info("No non-standard residues detected")
+        if return_fragment_definitions:
+            return (
+                param_db,
+                canonical_ordering,
+                tuple(fragment_definitions_by_name.values()),
+            )
         return param_db, canonical_ordering
 
     logger.info("Found %d non-standard residue type(s) to prepare", len(ligands))
@@ -498,6 +570,7 @@ def prepare_ligands(
     supported_elements = _supported_elements(param_db)
 
     preparations: list[LigandPreparation] = []
+    prepared_ligands: list[tuple[NonStandardResidueInfo, LigandPreparation]] = []
     for lig in ligands:
         reason = _ligand_unsupported_reason(lig, supported_elements)
         if reason:
@@ -518,14 +591,14 @@ def prepare_ligands(
             # Cache predates the unified struct, so it stores
             # (restype, charges) only. Rebuild the cartbonded slice
             # from the cached residue type's icoors here.
-            preparations.append(
-                LigandPreparation(
-                    residue_type=cached_rt,
-                    partial_charges=cached_q,
-                    cartbonded_params=_build_cartbonded_params(cached_rt),
-                    atom_type_elements=None,
-                )
+            prep = LigandPreparation(
+                residue_type=cached_rt,
+                partial_charges=cached_q,
+                cartbonded_params=_build_cartbonded_params(cached_rt),
+                atom_type_elements=None,
             )
+            preparations.append(prep)
+            prepared_ligands.append((lig, prep))
             continue
 
         logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)
@@ -554,6 +627,19 @@ def prepare_ligands(
             cache=cache,
         )
         preparations.append(prep)
+        prepared_ligands.append((lig, prep))
+
+    if prepared_ligands:
+        for lig, prep in prepared_ligands:
+            try:
+                definition = build_ligand_fragment_definition(prep, lig.atom_array)
+            except Exception as err:
+                raise LigandPreparationError(
+                    f"{lig.res_name}: invalid {FRAGMENT_ID_ANNOTATION} annotation "
+                    f"({err})"
+                ) from err
+            if add_fragment_definition(lig.res_name, definition):
+                preparations.extend(definition.fragment_preparations)
 
     if strict_ligands and not preparations:
         raise LigandPreparationError(
@@ -573,9 +659,21 @@ def prepare_ligands(
         if params_output:
             from tmol.ligand.params_io import write_params_file
 
-            write_params_file(preparations, params_output, format="tmol")
+            # Fragment residue types are an in-memory representation in this
+            # first API version. Persist only the fully prepared source ligand.
+            write_params_file(
+                [prep for _, prep in prepared_ligands],
+                params_output,
+                format="tmol",
+            )
             logger.info("Wrote params to %s", params_output)
 
+    if return_fragment_definitions:
+        return (
+            param_db,
+            canonical_ordering,
+            tuple(fragment_definitions_by_name.values()),
+        )
     return param_db, canonical_ordering
 
 

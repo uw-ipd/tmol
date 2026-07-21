@@ -1,4 +1,5 @@
 import torch
+from dataclasses import dataclass
 
 from tmol import run_cart_min
 from tmol.pack.pack_rotamers import pack_rotamers
@@ -8,6 +9,115 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
     create_dunbrack_sampler_from_database,
 )
+
+
+@dataclass(frozen=True)
+class FragmentInteractionScores:
+    """Per-fragment interactions with an explicitly selected partner."""
+
+    scores: torch.Tensor
+    mapping: tuple
+    score_types: tuple
+
+
+def calculate_fragment_interactions(
+    pose_stack,
+    partner_mask,
+    *,
+    mapping=None,
+    sfxn=None,
+    sum_terms=False,
+):
+    """Return each ligand fragment's interaction with ``partner_mask``.
+
+    The connected multi-block pose is scored once. Fragment-fragment entries
+    remain in the block-pair matrix and are not silently assigned to either
+    fragment.
+
+    Returns:
+        :class:`FragmentInteractionScores`. ``scores`` has shape
+        ``[n_terms, n_poses, n_fragments]`` or ``[n_poses, n_fragments]`` when
+        ``sum_terms`` is true.
+    """
+
+    if mapping is None:
+        mapping = getattr(pose_stack, "fragmented_ligand_mapping", None)
+    if mapping is None or not mapping.blocks:
+        raise ValueError(
+            "No fragmented-ligand mapping was supplied or attached to the pose"
+        )
+    if partner_mask.shape != pose_stack.block_type_ind.shape:
+        raise ValueError(
+            "partner_mask must have shape [n_poses, max_n_blocks]; got "
+            f"{tuple(partner_mask.shape)}"
+        )
+    if sfxn is None:
+        from tmol.score import beta2016_score_function
+
+        sfxn = beta2016_score_function(pose_stack.device)
+
+    scorer = sfxn.render_block_pair_scoring_module(pose_stack)
+    block_pair_scores = scorer(pose_stack.coords, sum_terms=False)
+    fragment_records = tuple(
+        sorted(
+            (record for record in mapping.blocks if record.pose_index == 0),
+            key=lambda record: record.block_index,
+        )
+    )
+    fragment_columns = {
+        (
+            record.ligand_name,
+            record.residue_label,
+            record.pose_residue_label,
+            record.chain_label,
+            record.insertion_code,
+            record.fragment_id,
+        ): record.block_index
+        for record in fragment_records
+    }
+    records_per_pose = [0] * pose_stack.n_poses
+    for record in mapping.blocks:
+        records_per_pose[record.pose_index] += 1
+        key = (
+            record.ligand_name,
+            record.residue_label,
+            record.pose_residue_label,
+            record.chain_label,
+            record.insertion_code,
+            record.fragment_id,
+        )
+        if fragment_columns.get(key) != record.block_index:
+            raise ValueError(
+                "Fragment mappings must use identical block topology in every pose"
+            )
+        if bool(partner_mask[record.pose_index, record.block_index]):
+            raise ValueError("partner_mask must not include ligand fragment blocks")
+    if any(count != len(fragment_records) for count in records_per_pose):
+        raise ValueError("Fragment mappings must contain every fragment in every pose")
+    n_terms, n_poses, _, _ = block_pair_scores.shape
+    result = torch.zeros(
+        (n_terms, n_poses, len(fragment_records)),
+        dtype=block_pair_scores.dtype,
+        device=block_pair_scores.device,
+    )
+    for fragment_index, record in enumerate(fragment_records):
+        block_index = record.block_index
+        # Sum both orientations, exactly as calculate_block_pair_ddg does.
+        result[:, :, fragment_index] = (
+            block_pair_scores[:, :, block_index, :] * partner_mask.unsqueeze(0)
+        ).sum(dim=2) + (
+            block_pair_scores[:, :, :, block_index] * partner_mask.unsqueeze(0)
+        ).sum(
+            dim=2
+        )
+
+    if sum_terms:
+        result = result.sum(dim=0)
+    return FragmentInteractionScores(
+        scores=result,
+        mapping=fragment_records,
+        score_types=tuple(sfxn.all_score_types()),
+    )
 
 
 def residue_mask_from_chain(pose_stack, chain_id):
