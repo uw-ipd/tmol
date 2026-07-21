@@ -60,7 +60,7 @@ atom_types:
   - { name: Haro, element: H }
 
   - { name: Hpol, element: H, is_polarh : true }
-  - { name: HS  , element: H } # not polar in rosetta
+  - { name: HS  , element: H, is_polarh : true } # polar in rosetta (POLAR_HYDROGEN)
   - { name: HNbb, element: H, is_polarh : true }
   - { name: Hwat, element: H, is_polarh : true }
   - { name: Vrt, element: Vr}

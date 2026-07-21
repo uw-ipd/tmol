@@ -4,7 +4,7 @@ import torch
 from .params import LKBallBlockTypeParams, LKBallPackedBlockTypesParams
 
 from ..atom_type_dependent_term import AtomTypeDependentTerm
-from ..hbond.hbond_dependent_term import HBondDependentTerm
+from ..hbond.hbond_dependent_term import HBondDependentTerm, attached_H_for_don
 from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver
 from tmol.database import ParameterDatabase
 
@@ -93,13 +93,51 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
         hbbt_params = block_type.hbbt_params
         n_tiles = hbbt_params.tile_donH_inds.shape[0]
+        tile_size = LKBallEnergyTerm.tile_size
+
+        # while _acceptor_ waters duplicate hbond logic, lk _donor_ waters are built
+        #   following distinct logic (any polar H, regardless of it's ability to make
+        #   a hydrogen bond).  Main outlier is CYS -SH.
+        # Build _all_ those donor indices here
+        at = block_type.atom_types
+        type_params = self.ljlk_param_resolver.type_params.to(torch.device("cpu"))
+        atom_is_polarh = type_params.is_polarh[at].numpy() != 0
+        atom_is_hydrogen = hbbt_params.is_hydrogen == 1
+        atom_is_polar_H = numpy.logical_and(atom_is_polarh, atom_is_hydrogen)
+
+        indexed_bonds = block_type.intrares_indexed_bonds
+        all_heavy_inds = numpy.nonzero(numpy.invert(atom_is_hydrogen))[0].astype(
+            numpy.int32
+        )
+        donH_idx, donH_hvy_for_H, which_donH_for_hvy, n_H_per_heavy = (
+            attached_H_for_don(
+                atom_is_polar_H,
+                all_heavy_inds,
+                indexed_bonds.bonds.cpu().numpy()[0],
+                indexed_bonds.bond_spans.cpu().numpy()[0],
+            )
+        )
+        lk_don_hvy_inds = all_heavy_inds[n_H_per_heavy > 0]
+
+        tiled_donH_orig_inds, tile_n_donH = arg_tile_subset_indices(
+            donH_idx, tile_size, block_type.n_atoms - 1
+        )
+        tiled_donH_orig_inds = tiled_donH_orig_inds.reshape((n_tiles, tile_size))
+        is_tiled_donH = tiled_donH_orig_inds != -1
+
+        tile_donH_inds = numpy.full((n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_donH_hvy_inds = numpy.copy(tile_donH_inds)
+        tile_which_donH_of_donH_hvy = numpy.copy(tile_donH_inds)
+        tile_donH_inds[is_tiled_donH] = donH_idx % tile_size
+
+        # NB block-local (not tile-local) heavy index (see hbond)
+        tile_donH_hvy_inds[is_tiled_donH] = donH_hvy_for_H
+        tile_which_donH_of_donH_hvy[is_tiled_donH] = which_donH_for_hvy
 
         atom_is_polar = numpy.full((block_type.n_atoms,), False, dtype=bool)
-        atom_is_polar[hbbt_params.don_hvy_inds] = True
+        atom_is_polar[lk_don_hvy_inds] = True
         atom_is_polar[hbbt_params.acc_inds] = True
         polar_inds = numpy.nonzero(atom_is_polar)[0].astype(numpy.int32)
-
-        tile_size = LKBallEnergyTerm.tile_size
         tiled_polar_orig_inds, tile_n_polar = arg_tile_subset_indices(
             polar_inds, tile_size, block_type.n_atoms - 1
         )
@@ -142,16 +180,13 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
         # ok, now let's collect the properties of the atoms in this block
         # needed for LKBallTypeParams (see properties/params.hh)
-        assert hasattr(block_type, "atom_types")
-        at = block_type.atom_types
-        type_params = self.ljlk_param_resolver.type_params.to(torch.device("cpu"))
         bt_lj_radius = type_params.lj_radius[at].numpy()
         bt_lk_dgfree = type_params.lk_dgfree[at].numpy()
         bt_lk_lambda = type_params.lk_lambda[at].numpy()
         bt_lk_volume = type_params.lk_volume[at].numpy()
         bt_is_donor = type_params.is_donor[at].numpy()
         bt_is_hydroxyl = type_params.is_hydroxyl[at].numpy()
-        bt_is_polarh = type_params.is_polarh[at].numpy()
+        bt_is_polarh = atom_is_polarh
         bt_is_acceptor = type_params.is_acceptor[at].numpy()
         bt_is_carbon_lk = type_params.is_carbon_lk[at].numpy()
 
@@ -192,6 +227,10 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             tile_n_occluder_atoms=tile_n_occ,
             tile_pol_occ_inds=tile_pol_occ_inds,
             tile_lk_ball_params=tiled_bt_lk_ball_at_params,
+            tile_n_donH=tile_n_donH,
+            tile_donH_inds=tile_donH_inds,
+            tile_donH_hvy_inds=tile_donH_hvy_inds,
+            tile_which_donH_of_donH_hvy=tile_which_donH_of_donH_hvy,
         )
         setattr(block_type, "lk_ball_params", bt_lk_ball_params)
 
@@ -211,6 +250,16 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         tile_lk_ball_params = numpy.full(
             (n_types, n_tiles, tile_size, 9), 0, dtype=numpy.float32
         )
+        tile_n_donH = numpy.full((n_types, n_tiles), 0, dtype=numpy.int32)
+        tile_donH_inds = numpy.full(
+            (n_types, n_tiles, tile_size), -1, dtype=numpy.int32
+        )
+        tile_donH_hvy_inds = numpy.full(
+            (n_types, n_tiles, tile_size), -1, dtype=numpy.int32
+        )
+        tile_which_donH_of_donH_hvy = numpy.full(
+            (n_types, n_tiles, tile_size), -1, dtype=numpy.int32
+        )
 
         for i, bt in enumerate(packed_block_types.active_block_types):
             i_lkbp = bt.lk_ball_params
@@ -220,6 +269,12 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             tile_n_occluder_atoms[i, :i_n_tiles] = i_lkbp.tile_n_occluder_atoms
             tile_pol_occ_inds[i, :i_n_tiles] = i_lkbp.tile_pol_occ_inds
             tile_lk_ball_params[i, :i_n_tiles] = i_lkbp.tile_lk_ball_params
+            tile_n_donH[i, :i_n_tiles] = i_lkbp.tile_n_donH
+            tile_donH_inds[i, :i_n_tiles] = i_lkbp.tile_donH_inds
+            tile_donH_hvy_inds[i, :i_n_tiles] = i_lkbp.tile_donH_hvy_inds
+            tile_which_donH_of_donH_hvy[i, :i_n_tiles] = (
+                i_lkbp.tile_which_donH_of_donH_hvy
+            )
 
         def _t(t):
             return torch.tensor(t, device=packed_block_types.device)
@@ -229,6 +284,10 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             tile_n_occluder_atoms=_t(tile_n_occluder_atoms),
             tile_pol_occ_inds=_t(tile_pol_occ_inds),
             tile_lk_ball_params=_t(tile_lk_ball_params),
+            tile_n_donH=_t(tile_n_donH),
+            tile_donH_inds=_t(tile_donH_inds),
+            tile_donH_hvy_inds=_t(tile_donH_hvy_inds),
+            tile_which_donH_of_donH_hvy=_t(tile_which_donH_of_donH_hvy),
         )
         setattr(packed_block_types, "lk_ball_params", lk_ball_params)
 
@@ -254,11 +313,11 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.n_all_bonds,
             pose_stack.packed_block_types.all_bonds,
             pose_stack.packed_block_types.atom_all_bond_ranges,
-            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
+            pose_stack.packed_block_types.lk_ball_params.tile_n_donH,
             pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
-            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_donH_hvy_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_which_donH_of_donH_hvy,
+            pose_stack.packed_block_types.lk_ball_params.tile_donH_inds,
+            pose_stack.packed_block_types.lk_ball_params.tile_donH_hvy_inds,
+            pose_stack.packed_block_types.lk_ball_params.tile_which_donH_of_donH_hvy,
             pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_n_attached_H,
@@ -316,11 +375,11 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.n_all_bonds,
             pose_stack.packed_block_types.all_bonds,
             pose_stack.packed_block_types.atom_all_bond_ranges,
-            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
+            pose_stack.packed_block_types.lk_ball_params.tile_n_donH,
             pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
-            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_donH_hvy_inds,
-            pose_stack.packed_block_types.hbpbt_params.tile_which_donH_of_donH_hvy,
+            pose_stack.packed_block_types.lk_ball_params.tile_donH_inds,
+            pose_stack.packed_block_types.lk_ball_params.tile_donH_hvy_inds,
+            pose_stack.packed_block_types.lk_ball_params.tile_which_donH_of_donH_hvy,
             pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
             pose_stack.packed_block_types.hbpbt_params.tile_acceptor_n_attached_H,
