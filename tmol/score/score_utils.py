@@ -24,8 +24,8 @@ def calculate_fragment_interactions(
     pose_stack,
     partner_mask,
     *,
+    sfxn,
     mapping=None,
-    sfxn=None,
     sum_terms=False,
 ):
     """Return each ligand fragment's interaction with ``partner_mask``.
@@ -33,6 +33,9 @@ def calculate_fragment_interactions(
     The connected multi-block pose is scored once. Fragment-fragment entries
     remain in the block-pair matrix and are not silently assigned to either
     fragment.
+
+    ``sfxn`` is required and must be built from the same ligand-extended
+    parameter database used to construct ``pose_stack``.
 
     Returns:
         :class:`FragmentInteractionScores`. ``scores`` has shape
@@ -51,16 +54,11 @@ def calculate_fragment_interactions(
             "partner_mask must have shape [n_poses, max_n_blocks]; got "
             f"{tuple(partner_mask.shape)}"
         )
-    if sfxn is None:
-        from tmol.score import beta2016_score_function
-
-        sfxn = beta2016_score_function(pose_stack.device)
 
     scorer = sfxn.render_block_pair_scoring_module(pose_stack)
     block_pair_scores = scorer(pose_stack.coords, sum_terms=False)
     # apply_fragment_connections makes block topology canonical across poses, so
-    # the pose-0 records define one column layout (keyed by the synthetic,
-    # per-fragment residue label) that every pose must share.
+    # the pose-0 records define one column layout that every pose must share.
     fragment_records = tuple(
         sorted(
             (record for record in mapping.blocks if record.pose_index == 0),
@@ -68,19 +66,21 @@ def calculate_fragment_interactions(
         )
     )
     expected_columns = {
-        record.pose_residue_label: record.block_index for record in fragment_records
+        (record.pose_residue_label, record.block_index) for record in fragment_records
     }
-    records_per_pose = [0] * pose_stack.n_poses
-    for record in mapping.blocks:
-        records_per_pose[record.pose_index] += 1
-        if expected_columns.get(record.pose_residue_label) != record.block_index:
+    for pose_index in range(pose_stack.n_poses):
+        pose_columns = {
+            (record.pose_residue_label, record.block_index)
+            for record in mapping.blocks
+            if record.pose_index == pose_index
+        }
+        if pose_columns != expected_columns:
             raise ValueError(
                 "Fragment mappings must use identical block topology in every pose"
             )
+    for record in mapping.blocks:
         if bool(partner_mask[record.pose_index, record.block_index]):
             raise ValueError("partner_mask must not include ligand fragment blocks")
-    if any(count != len(fragment_records) for count in records_per_pose):
-        raise ValueError("Fragment mappings must contain every fragment in every pose")
     n_terms, n_poses, _, _ = block_pair_scores.shape
     result = torch.zeros(
         (n_terms, n_poses, len(fragment_records)),

@@ -343,7 +343,9 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
     # Packed-block-types setup
     # ------------------------------------------------------------------
 
-    def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+    def setup_packed_block_types(  # noqa: C901
+        self, packed_block_types: PackedBlockTypes
+    ):
         super(GenBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
         if hasattr(packed_block_types, "genbonded_intra_subgraphs"):
             assert hasattr(packed_block_types, "genbonded_intra_subgraph_offsets")
@@ -427,7 +429,10 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         }
         source_block_type_index = numpy.empty(n_block_types, dtype=numpy.int32)
         for bt_idx, bt in enumerate(block_types):
-            source = source_by_base.get(bt.base_name, bt)
+            if bt.is_ligand_fragment:
+                source = source_by_base.get(bt.base_name, bt)
+            else:
+                source = bt
             source_block_type_index[bt_idx] = block_type_index_by_name[source.name]
             for atom_idx, atom in enumerate(bt.atoms):
                 source_atom_index[bt_idx, atom_idx] = source.atom_to_idx.get(

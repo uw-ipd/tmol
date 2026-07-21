@@ -88,7 +88,7 @@ struct ElecPoseScoreDispatch {
       // Entry i, j stores path_dist[rep(i), rep(j)]
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_intra_repr_path_distance,
-      TView<Int, 1, D> block_type_is_nonpolymer,
+      TView<Int, 1, D> block_type_is_ligand_fragment,
       //////////////////////
 
       // LJ parameters
@@ -157,7 +157,7 @@ struct ElecPoseScoreDispatch {
       // Entry i, j stores path_dist[rep(i), rep(j)]
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_intra_repr_path_distance,
-      TView<Int, 1, D> block_type_is_nonpolymer,
+      TView<Int, 1, D> block_type_is_ligand_fragment,
       //////////////////////
 
       // LJ parameters
@@ -231,7 +231,7 @@ struct ElecRotamerScoreDispatch {
       // Entry i, j stores path_dist[rep(i), rep(j)]
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_intra_repr_path_distance,
-      TView<Int, 1, D> block_type_is_nonpolymer,
+      TView<Int, 1, D> block_type_is_ligand_fragment,
       //////////////////////
 
       // LJ parameters
@@ -300,7 +300,7 @@ struct ElecRotamerScoreDispatch {
       // Entry i, j stores path_dist[rep(i), rep(j)]
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_intra_repr_path_distance,
-      TView<Int, 1, D> block_type_is_nonpolymer,
+      TView<Int, 1, D> block_type_is_ligand_fragment,
       //////////////////////
 
       // LJ parameters

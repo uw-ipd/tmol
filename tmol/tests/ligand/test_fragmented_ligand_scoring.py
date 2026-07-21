@@ -348,6 +348,9 @@ def test_fragmented_ligand_ddg_and_total_pose_parity(
     # for the seven-fragment case. The observed differences remain below 0.05%.
     torch.testing.assert_close(fragment_ddg, whole_ddg, rtol=1e-3, atol=1e-3)
     torch.testing.assert_close(
+        attributed.scores.sum(dim=2), fragment_ddg, rtol=1e-5, atol=1e-5
+    )
+    torch.testing.assert_close(
         attributed.scores.sum(dim=2), whole_ddg, rtol=1e-3, atol=1e-3
     )
     torch.testing.assert_close(
@@ -388,9 +391,41 @@ def test_fragmented_ligand_ddg_and_total_pose_parity(
     torch.testing.assert_close(fragment_weighted, whole_weighted, rtol=1e-3, atol=1e-3)
 
     if target == "ace" and fragmentation == "bridge":
-        coords = fragmented.coords.detach().clone().requires_grad_(True)
-        score = fragment_sfxn.render_whole_pose_scoring_module(fragmented)(
-            coords, sum_terms=True, apply_weights=True
+        whole_coords = whole.coords.detach().clone().requires_grad_(True)
+        fragment_coords = fragmented.coords.detach().clone().requires_grad_(True)
+        whole_score = whole_sfxn.render_whole_pose_scoring_module(whole)(
+            whole_coords, sum_terms=True, apply_weights=True
         ).sum()
-        (gradient,) = torch.autograd.grad(score, (coords,))
-        assert torch.isfinite(gradient).all()
+        fragment_score = fragment_sfxn.render_whole_pose_scoring_module(fragmented)(
+            fragment_coords, sum_terms=True, apply_weights=True
+        ).sum()
+        (whole_gradient,) = torch.autograd.grad(whole_score, (whole_coords,))
+        (fragment_gradient,) = torch.autograd.grad(fragment_score, (fragment_coords,))
+        assert torch.isfinite(whole_gradient).all()
+        assert torch.isfinite(fragment_gradient).all()
+
+        # Atom order is preserved within each fragment block, but blocks are
+        # reordered relative to the whole ligand. Compare by atom name.
+        whole_block = int(torch.nonzero(whole_ligand[0], as_tuple=False)[0])
+        whole_bt = whole.packed_block_types.active_block_types[
+            int(whole.block_type_ind[0, whole_block])
+        ]
+        whole_offset = int(whole.block_coord_offset[0, whole_block])
+        whole_by_name = {
+            atom.name: whole_gradient[0, whole_offset + atom_index]
+            for atom_index, atom in enumerate(whole_bt.atoms)
+        }
+        for record in mapping.blocks:
+            if record.pose_index != 0:
+                continue
+            fragment_bt = fragmented.packed_block_types.active_block_types[
+                int(fragmented.block_type_ind[0, record.block_index])
+            ]
+            fragment_offset = int(fragmented.block_coord_offset[0, record.block_index])
+            for atom_index, atom in enumerate(fragment_bt.atoms):
+                torch.testing.assert_close(
+                    fragment_gradient[0, fragment_offset + atom_index],
+                    whole_by_name[atom.name],
+                    rtol=1e-3,
+                    atol=1e-3,
+                )
