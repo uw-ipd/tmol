@@ -426,7 +426,7 @@ def prepare_ligands(  # noqa: C901
     sample_proton_chi: bool = True,
     strict_ligands: bool = True,
     return_fragment_definitions: bool = False,
-):
+) -> tuple:
     """Detect, prepare, and register all non-standard residues.
 
     Scans the input AtomArray for residues not in the ParameterDatabase,
@@ -491,6 +491,7 @@ def prepare_ligands(  # noqa: C901
     )
 
     fragment_layouts_by_name = {}
+    first_residue_by_name: dict[str, struc.AtomArray] = {}
     starts = struc.get_residue_starts(atom_array)
     ends = np.append(starts[1:], atom_array.array_length())
     for start, end in zip(starts, ends):
@@ -511,6 +512,7 @@ def prepare_ligands(  # noqa: C901
                 f"same {FRAGMENT_ID_ANNOTATION} annotation"
             )
         fragment_layouts_by_name[ligand_name] = layout
+        first_residue_by_name.setdefault(ligand_name, residue)
 
     params_preparations: list[LigandPreparation] = []
     if params_files:
@@ -535,12 +537,11 @@ def prepare_ligands(  # noqa: C901
 
     if params_preparations:
         for prep in params_preparations:
-            for start, end in zip(starts, ends):
-                if str(atom_array.res_name[start]) == prep.residue_type.name:
-                    definition = build_ligand_fragment_definition(
-                        prep, atom_array[start:end]
-                    )
-                    add_fragment_definition(prep.residue_type.name, definition)
+            source = first_residue_by_name.get(prep.residue_type.name)
+            if source is None:
+                continue
+            definition = build_ligand_fragment_definition(prep, source)
+            add_fragment_definition(prep.residue_type.name, definition)
         if fragment_definitions_by_name:
             param_db = inject_ligand_preparations(
                 param_db,
