@@ -32,6 +32,11 @@ def ubq_pdb():
 
 
 @pytest.fixture(scope="session")
+def kin_minimized_ubq_pdb():
+    return pdb.data["kin_minimized_1ubq"]
+
+
+@pytest.fixture(scope="session")
 def pdb_1r21():
     return pdb.data["1R21"]
 

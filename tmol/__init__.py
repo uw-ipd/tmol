@@ -65,9 +65,13 @@ from tmol.optimization.minimizers import (
 )
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+from tmol.pose.constraint_set import ConstraintSet
 from tmol.score import beta2016_score_function
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
+from tmol.score.constraint.constraint_energy_term import (
+    ConstraintEnergyTerm,
+)
 from tmol.score.constraint.utility import create_mainchain_coordinate_constraints
 from tmol.relax.fast_relax import fast_relax
 
