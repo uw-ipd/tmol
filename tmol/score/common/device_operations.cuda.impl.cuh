@@ -6,6 +6,8 @@ error_this_should_not_be_compiled();  // gcc should not include this file
 
 #include <moderngpu/transform.hxx>
 #include <moderngpu/loadstore.hxx>
+#include <moderngpu/kernel_load_balance.hxx>
+#include <moderngpu/kernel_reduce.hxx>
 #include <moderngpu/kernel_scan.hxx>
 #include <moderngpu/cta_reduce.hxx>
 
@@ -13,22 +15,35 @@ error_this_should_not_be_compiled();  // gcc should not include this file
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/kinematics/compiled/kernel_segscan.cuh>
+#include <tmol/utility/tensor/context_manager.hh>
+#include <tmol/utility/tensor/torch_context.hh>
 
 namespace tmol {
 namespace score {
 namespace common {
 
+#define CUDA_CHECK(call)                                               \
+  do {                                                                 \
+    cudaError_t err = call;                                            \
+    if (err != cudaSuccess) {                                          \
+      std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at " \
+                << __FILE__ << ":" << __LINE__ << std::endl;           \
+      std::exit(EXIT_FAILURE);                                         \
+    }                                                                  \
+  } while (0)
+
 template <>
 struct DeviceOperations<tmol::Device::CUDA> {
   template <typename launch_t, typename Func>
-  static void forall(int N, Func f) {
-    mgpu::standard_context_t context;
-    mgpu::transform<launch_t>(f, N, context);
+  static void forall(ContextManager& mgr, int N, Func f) {
+    std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
+    mgpu::transform<launch_t>(f, N, *context);
   }
 
   template <typename Int, typename Func>
-  static void forall_stacks(Int Nstacks, Int N, Func f) {
-    mgpu::standard_context_t context;
+  static void forall_stacks(ContextManager& mgr, Int Nstacks, Int N, Func f) {
+    std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
+    // mgpu::standard_context_t context;
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
           int stack = index / N;
@@ -36,12 +51,14 @@ struct DeviceOperations<tmol::Device::CUDA> {
           f(stack, i);
         },
         N * Nstacks,
-        context);
+        *context);
   }
 
   template <typename Int, typename Func>
-  static void foreach_combination_triple(Int dim1, Int dim2, Int dim3, Func f) {
-    mgpu::standard_context_t context;
+  static void foreach_combination_triple(
+      ContextManager& mgr, Int dim1, Int dim2, Int dim3, Func f) {
+    // mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
           int i = index / (dim2 * dim3);
@@ -51,29 +68,73 @@ struct DeviceOperations<tmol::Device::CUDA> {
           f(i, j, k);
         },
         dim1 * dim2 * dim3,
-        context);
+        *context);
   }
 
   template <typename launch_t, typename Func>
-  static void foreach_workgroup(int n_workgroups, Func f) {
+  static void foreach_workgroup(ContextManager& mgr, int n_workgroups, Func f) {
     auto wrapper = ([=] __device__(int tid, int cta) { f(cta); });
-    mgpu::standard_context_t context;
-    mgpu::cta_launch<launch_t>(wrapper, n_workgroups, context);
+    // mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
+    mgpu::cta_launch<launch_t>(wrapper, n_workgroups, *context);
   }
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
-  static void scan(T* src, T* dst, int n, OP op) {
-    mgpu::standard_context_t context;
+  static void scan(ContextManager& mgr, T* src, T* dst, int n, OP op) {
+    // mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
     mgpu::scan<scan_type>(
-        src, n, dst, op, mgpu::discard_iterator_t<T>(), context);
+        src, n, dst, op, mgpu::discard_iterator_t<T>(), *context);
   }
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
-  static T scan_and_return_total(T* src, T* dst, int n, OP op) {
-    mgpu::standard_context_t context;
-    mgpu::mem_t<T> total(1, context, mgpu::memory_space_host);
-    mgpu::scan<scan_type>(src, n, dst, op, total.data(), context);
-    cudaStreamSynchronize(0);
+  static T scan_and_return_total(
+      ContextManager& mgr, T* src, T* dst, int n, OP op) {
+    // mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
+    mgpu::mem_t<T> total(1, *context, mgpu::memory_space_host);
+    mgpu::scan<scan_type>(src, n, dst, op, total.data(), *context);
+    CUDA_CHECK(cudaStreamSynchronize(context->stream()));
+    return total.data()[0];
+  }
+
+  // Construct load-balanced-search mapping of work items to their generator
+  // index; see https://moderngpu.github.io/loadbalance.html
+  // Arguments:
+  //   - n_work_units_total: the sum of the number of work units
+  //
+  //   - exc_scan_offsets: the result of running exclusive scan on the
+  //     the number of work units that each generator produces
+  //.  - n_generators: the number of generators / length of exc_scan_offset
+  template <typename launch_t, typename Int>
+  static TPack<Int, 1, tmol::Device::CUDA> load_balancing_search(
+      ContextManager& mgr,
+      int n_work_units_total,  // The count of the total number of work units
+      Int* exc_scan_offsets,
+      int n_generators) {
+    std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
+    // mgpu::standard_context_t context;
+
+    auto gen_for_work_item_t =
+        TPack<Int, 1, tmol::Device::CUDA>::zeros({n_work_units_total});
+    auto gen_for_work_item = gen_for_work_item_t.view;
+
+    load_balance_search(
+        n_work_units_total,
+        exc_scan_offsets,
+        n_generators,
+        gen_for_work_item.data(),
+        *context);
+    return gen_for_work_item_t;
+  }
+
+  template <typename T, typename OP>
+  static T reduce(ContextManager& mgr, T* src, int n, OP op) {
+    std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
+    // mgpu::standard_context_t context;
+    mgpu::mem_t<T> total(1, *context, mgpu::memory_space_host);
+    mgpu::reduce(src, n, total.data(), op, *context);
+    CUDA_CHECK(cudaStreamSynchronize(context->stream()));
     return total.data()[0];
   }
 
@@ -88,9 +149,15 @@ struct DeviceOperations<tmol::Device::CUDA> {
       typename Int,
       typename OP>
   static auto segmented_scan(
-      T* src, Int* seg_start_inds, int n, int n_segs, OP op, T identity)
-      -> TPack<T, 1, tmol::Device::CUDA> {
-    mgpu::standard_context_t context;
+      ContextManager& mgr,
+      T* src,
+      Int* seg_start_inds,
+      int n,
+      int n_segs,
+      OP op,
+      T identity) -> TPack<T, 1, tmol::Device::CUDA> {
+    // mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
 
     int const nt = launch_t::nt;
     int const vt = launch_t::vt;
@@ -131,7 +198,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
         &LBS.data()[0],
         op,
         identity,
-        context);
+        *context);
     return dst_scan_t;
   }
 
@@ -173,7 +240,8 @@ struct DeviceOperations<tmol::Device::CUDA> {
   __device__ static T shuffle_reduce_in_workgroup(T val, OP op) {
     assert(N_T <= 32);
     auto g = cooperative_groups::coalesced_threads();
-    return reduce<tmol::Device::CUDA, T>::reduce_to_head(g, val, op);
+    return tmol::score::common::reduce<tmol::Device::CUDA, T>::reduce_to_head(
+        g, val, op);
   }
 
   // See comments for shuffle_reduce_in_workgroup above
@@ -181,10 +249,20 @@ struct DeviceOperations<tmol::Device::CUDA> {
   __device__ static T shuffle_reduce_and_broadcast_in_workgroup(T val, OP op) {
     assert(N_T <= 32);
     auto g = cooperative_groups::coalesced_threads();
-    return reduce<tmol::Device::CUDA, T>::reduce_to_all(g, val, op);
+    return tmol::score::common::reduce<tmol::Device::CUDA, T>::reduce_to_all(
+        g, val, op);
   }
 
   __device__ static void synchronize_workgroup() { __syncthreads(); }
+
+  // No op on 1-core CPU
+  static void synchronize_device() { CUDA_CHECK(cudaStreamSynchronize(0)); }
+
+ private:
+  static std::shared_ptr<mgpu::standard_context_t> _get_context(
+      ContextManager& mgr) {
+    return current_context(mgr);
+  }
 };
 
 }  // namespace common

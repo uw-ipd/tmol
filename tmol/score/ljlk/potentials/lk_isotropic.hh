@@ -33,8 +33,7 @@ struct f_desolv {
       Real lj_radius_i,
       Real lk_dgfree_i,
       Real lk_lambda_i,
-      Real lk_volume_j)
-      ->Real {
+      Real lk_volume_j) -> Real {
     using std::exp;
     using std::pow;
     const Real pi = EIGEN_PI;
@@ -56,8 +55,7 @@ struct f_desolv {
       Real lj_radius_i,
       Real lk_dgfree_i,
       Real lk_lambda_i,
-      Real lk_volume_j)
-      ->V_dV_t {
+      Real lk_volume_j) -> V_dV_t {
     using std::exp;
     using std::pow;
     const Real pi = EIGEN_PI;
@@ -111,18 +109,20 @@ struct lk_isotropic_pair {
       Real lj_radius_i,
       Real lk_dgfree_i,
       Real lk_lambda_i,
-      Real lk_volume_j)
-      ->Real {
+      Real lk_volume_j,
+      Real max_dis,
+      bool is_cc_pair) -> Real {
     Real d_min = lj_sigma_ij * .89;
+    if (is_cc_pair)
+      d_min = std::max(d_min, Real(4.2));  // C-C modifypot flatten
 
-    Real cpoly_close_dmin = d_min * d_min - 1.45;
-    if (cpoly_close_dmin < 0.01) cpoly_close_dmin = 0.01;
-    cpoly_close_dmin = std::sqrt(cpoly_close_dmin);
+    // close-spline knots lie on etable bins spaced 1/20 A^2 apart
+    Real const n = std::floor(Real(20) * d_min * d_min);
+    Real cpoly_close_dmin = std::sqrt(std::max(Real(0), n - 29) / 20);
+    Real cpoly_close_dmax = std::sqrt(std::min(n + 21, Real(405)) / 20);
 
-    Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
-
-    Real cpoly_far_dmin = 4.5;
-    Real cpoly_far_dmax = 6.0;
+    Real cpoly_far_dmax = max_dis;
+    Real cpoly_far_dmin = max_dis - Real(1.5);
 
     Real weight = connectivity_weight<Real>(bonded_path_length);
 
@@ -171,18 +171,20 @@ struct lk_isotropic_pair {
       Real lj_radius_i,
       Real lk_dgfree_i,
       Real lk_lambda_i,
-      Real lk_volume_j)
-      ->V_dV_t {
+      Real lk_volume_j,
+      Real max_dis,
+      bool is_cc_pair) -> V_dV_t {
     Real d_min = lj_sigma_ij * .89;
+    if (is_cc_pair)
+      d_min = std::max(d_min, Real(4.2));  // C-C modifypot flatten
 
-    Real cpoly_close_dmin = d_min * d_min - 1.45;
-    if (cpoly_close_dmin < 0.01) cpoly_close_dmin = 0.01;
-    cpoly_close_dmin = std::sqrt(cpoly_close_dmin);
+    // close-spline knots lie on etable bins spaced 1/20 A^2 apart
+    Real const n = std::floor(Real(20) * d_min * d_min);
+    Real cpoly_close_dmin = std::sqrt(std::max(Real(0), n - 29) / 20);
+    Real cpoly_close_dmax = std::sqrt(std::min(n + 21, Real(405)) / 20);
 
-    Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
-
-    Real cpoly_far_dmin = 4.5;
-    Real cpoly_far_dmax = 6.0;
+    Real cpoly_far_dmax = max_dis;
+    Real cpoly_far_dmin = max_dis - Real(1.5);
 
     Real weight = connectivity_weight<Real>(bonded_path_length);
 
@@ -247,19 +249,21 @@ struct lk_isotropic_score {
       Real bonded_path_length,
       LKTypeParams<Real> i,
       LKTypeParams<Real> j,
-      LJGlobalParams<Real> global)
-      ->Real {
+      LJGlobalParams<Real> global) -> Real {
     Real lj_sigma_ij = lj_sigma<Real>(i, j, global);
 
+    bool is_cc_pair = i.is_carbon_lk && j.is_carbon_lk;
     Real d_min = lj_sigma_ij * .89;
+    if (is_cc_pair)
+      d_min = std::max(d_min, Real(4.2));  // C-C modifypot flatten
 
-    Real cpoly_close_dmin = d_min * d_min - 1.45;
-    cpoly_close_dmin = cpoly_close_dmin < 0.01 ? 0.01 : cpoly_close_dmin;
-    cpoly_close_dmin = std::sqrt(cpoly_close_dmin);
-    Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
+    // close-spline knots lie on etable bins spaced 1/20 A^2 apart
+    Real const n = std::floor(Real(20) * d_min * d_min);
+    Real cpoly_close_dmin = std::sqrt(std::max(Real(0), n - 29) / 20);
+    Real cpoly_close_dmax = std::sqrt(std::min(n + 21, Real(405)) / 20);
 
-    Real cpoly_far_dmin = 4.5;
-    Real cpoly_far_dmax = 6.0;
+    Real cpoly_far_dmax = global.max_dis;
+    Real cpoly_far_dmin = global.max_dis - Real(1.5);
 
     Real weight = connectivity_weight<Real>(bonded_path_length);
 
@@ -326,9 +330,9 @@ struct lk_isotropic_score {
       Real bonded_path_length,
       LKTypeParams<Real> i,
       LKTypeParams<Real> j,
-      LJGlobalParams<Real> global)
-      ->V_dV_t {
+      LJGlobalParams<Real> global) -> V_dV_t {
     Real sigma = lj_sigma<Real>(i, j, global);
+    bool is_cc_pair = i.is_carbon_lk && j.is_carbon_lk;
 
     auto ij = lk_isotropic_pair<Real>::V_dV(
         dist,
@@ -337,7 +341,9 @@ struct lk_isotropic_score {
         i.lj_radius,
         i.lk_dgfree,
         i.lk_lambda,
-        j.lk_volume);
+        j.lk_volume,
+        global.max_dis,
+        is_cc_pair);
 
     auto ji = lk_isotropic_pair<Real>::V_dV(
         dist,
@@ -346,7 +352,9 @@ struct lk_isotropic_score {
         j.lj_radius,
         j.lk_dgfree,
         j.lk_lambda,
-        i.lk_volume);
+        i.lk_volume,
+        global.max_dis,
+        is_cc_pair);
 
     return {ij.V + ji.V, ij.dV_ddist + ji.dV_ddist};
   }

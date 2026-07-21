@@ -1,16 +1,19 @@
 import pytest
-
 import torch
-
-from tmol.utility.cpp_extension import load, relpaths, modulename
 
 from tmol.tests.torch import requires_cuda
 
 
-@requires_cuda
 @pytest.fixture
 def extension():
-    return load(modulename(f"{__name__}.cuda"), relpaths(__file__, "segscan.cu"))
+    from tmol._load_ext import load_module
+
+    return load_module(
+        f"{__name__}.cuda",
+        __file__,
+        "segscan.cu",
+        "tmol.tests.kinematics.segscan._ext",
+    )
 
 
 @requires_cuda

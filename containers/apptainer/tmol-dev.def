@@ -1,0 +1,88 @@
+Bootstrap: localimage
+From: /net/software/containers/versions/modelhub/pytorch_25.11-py3.sif
+IncludeCmd: yes
+
+# tmol Development Container - Dependencies only (tmol itself is bind-mounted for development)
+
+# To build this Apptainer, from the project root, run:
+# apptainer build tmol-dev.sif containers/apptainer/tmol-dev.def
+
+%labels
+    Author Institute for Protein Design
+    Version 1.0-dev
+    Description tmol - Dependencies only (for development and scoring)
+
+%setup
+    # Create a directory in the container to bind the host's current working directory
+    mkdir ${APPTAINER_ROOTFS}/tmol_host
+    # ... for mounting `/projects` with --bind
+    mkdir ${APPTAINER_ROOTFS}/projects
+
+%files
+    /etc/localtime
+    /etc/hosts
+    pyproject.toml /opt/tmol_pyproject.toml
+
+%post
+    ## GENERAL SETUP
+
+    # Common symlinks (within container)
+    ln -s /home /mnt/home
+    ln -s /projects /mnt/projects
+
+    # Update system and install essential packages
+    apt-get update && apt-get install -y \
+        build-essential \
+        git \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Fix CUDA compat warning in Apptainer (read-only filesystem)
+    # The base image's shinit_v2 tries to rm a symlink which fails in Apptainer
+    sed -i 's|rm -f "${_CUDA_COMPAT_SYMLINK}"|rm -f "${_CUDA_COMPAT_SYMLINK}" 2>/dev/null|g' /etc/shinit_v2
+
+    ## PYTHON DEPENDENCY INSTALLATION
+
+    # Upgrade pip
+    python -m pip install --upgrade pip
+
+    # Install uv for fast dependency resolution
+    pip install uv
+
+    # Compile dependency list from pyproject.toml (with all extras)
+    mv /opt/tmol_pyproject.toml /opt/pyproject.toml
+    uv pip compile /opt/pyproject.toml --output-file /opt/tmol_requirements.txt --all-extras
+    rm /opt/pyproject.toml
+
+    # Filter out packages already provided by the NGC base image to avoid conflicts
+    # (torch, numpy, nvidia-*, triton are pre-installed in the container)
+    cat /opt/tmol_requirements.txt | \
+        grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|pynvml|packaging|triton)==" | \
+        awk -F'==' '!seen[$1]++' > /opt/combined_requirements.txt
+
+    # Print requirements for debugging
+    echo "=== tmol requirements to install ==="
+    cat /opt/combined_requirements.txt
+    echo "===================================="
+
+    # Install the cleaned requirements
+    uv pip install --system --break-system-packages -r /opt/combined_requirements.txt
+
+    # Clean up to minimize container size
+    uv cache clean
+    pip cache purge
+    apt-get clean
+    rm -rf /var/lib/apt/lists/* 2>/dev/null || true
+    rm -rf /root/.cache 2>/dev/null || true
+    rm -rf /opt/*.txt 2>/dev/null || true
+
+%environment
+    # (Flag to increase accessible GPU memory)
+    export PYTORCH_ALLOC_CONF=expandable_segments:True
+
+%runscript
+   # NOTE: The %runscript is invoked when the container is run without specifying a different command.
+   exec python "$@"
+
+%help
+    tmol development container with dependencies only.
+    Bind-mount your tmol checkout to /tmol_host and run: pip install -e .

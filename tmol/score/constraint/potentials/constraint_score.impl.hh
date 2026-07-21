@@ -41,12 +41,11 @@ using CoordQuad = Eigen::Matrix<Real, 4, 3>;
 #define Real3 Vec<Real, 3>
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real>
 auto GetTorsionAngleDispatch<DeviceDispatch, D, Real>::forward(
-    TView<Vec<Real, 3>, 2, D> coords)
+    ContextManager& mgr, TView<Vec<Real, 3>, 2, D> coords)
     -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>> {
   using tmol::score::common::accumulate;
 
@@ -80,7 +79,7 @@ auto GetTorsionAngleDispatch<DeviceDispatch, D, Real>::forward(
     accumulate<D, Vec<Real, 3>>::add(dV_dx[angle_index][3], torsion.dV_dL);
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(n_angles, func);
+  DeviceDispatch<D>::template forall<launch_t>(mgr, n_angles, func);
 
   return {V_t, dV_dx_t};
 }

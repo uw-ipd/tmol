@@ -3,7 +3,6 @@ import torch
 
 from tmol.chemical.restypes import ResidueTypeSet
 
-from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pack.rotamer.single_residue_kinforest import (
     construct_single_residue_kinforest,
@@ -16,7 +15,9 @@ from tmol.pack.rotamer.mainchain_fingerprint import (
     find_unique_fingerprints,
 )
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+    create_dunbrack_sampler_from_database,
+)
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 
@@ -94,10 +95,7 @@ def test_annotate_rt_w_mainchain_fingerprint(default_database):
     torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
     leu_rt = rts.restype_map["LEU"][0]
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
-    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    dun_sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
 
     construct_single_residue_kinforest(leu_rt)
     annotate_residue_type_with_sampler_fingerprints(
@@ -142,10 +140,7 @@ def test_merge_fingerprints(default_database):
     torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
-    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    dun_sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
     fixed_sampler = FixedAAChiSampler()
 
     canonical_aas = [

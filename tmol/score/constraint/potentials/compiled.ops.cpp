@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 #include <tmol/utility/nvtx.hh>
 
@@ -16,6 +17,8 @@ namespace tmol {
 namespace score {
 namespace constraint {
 namespace potentials {
+
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -41,7 +44,7 @@ class GetTorsionAngleOp
 
           auto result =
               GetTorsionAngleDispatch<DispatchMethod, Dev, Real>::forward(
-                  TCAST(coords));
+                  mgr, TCAST(coords));
 
           angle = std::get<0>(result).tensor;
           dangle_dcoords = std::get<1>(result).tensor;
@@ -85,10 +88,8 @@ Tensor get_torsion_angle_op(Tensor coords) {
   return GetTorsionAngleOp<DispatchMethod>::apply(coords);
 }
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_constraint, m) {
   m.def("get_torsion_angle", &get_torsion_angle_op<DeviceOperations>);
 }
 

@@ -24,13 +24,13 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <tmol::Device>
-    class DeviceOps,
+    template <tmol::Device> class DeviceOps,
     tmol::Device Dev,
     typename Real,
     typename Int>
 struct GeneratePoseLeafAtoms {
   static auto forward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 2, Dev> orig_coords,
       TView<bool, 3, Dev> orig_coords_atom_missing,
       TView<bool, 2, Dev> pose_stack_atom_missing,
@@ -144,6 +144,13 @@ struct GeneratePoseLeafAtoms {
         Vec<Real, 3> coord1 = orig_coords[pose_ind][geom.anc1];
         Vec<Real, 3> coord2 = orig_coords[pose_ind][geom.anc2];
 
+        // Early exit if any base atoms have NaN coordinates
+        if (isnan(coord0[0]) || isnan(coord0[1]) || isnan(coord0[2])
+            || isnan(coord1[0]) || isnan(coord1[1]) || isnan(coord1[2])
+            || isnan(coord2[0]) || isnan(coord2[1]) || isnan(coord2[2])) {
+          return;
+        }
+
         Vec<Real, 3> new_coord = score::common::build_coordinate<Real>::V(
             coord0, coord1, coord2, geom.D, geom.theta, geom.phi);
 
@@ -157,12 +164,13 @@ struct GeneratePoseLeafAtoms {
     });
 
     int const n_atoms = n_poses * max_n_blocks * max_n_block_atoms;
-    DeviceOps<Dev>::template forall<launch_t>(n_atoms, f_coord_builder);
+    DeviceOps<Dev>::template forall<launch_t>(mgr, n_atoms, f_coord_builder);
 
     return new_coords_t;
   };
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 2, Dev> dE_d_new_coords,
       TView<Vec<Real, 3>, 2, Dev> new_coords,
       TView<Vec<Real, 3>, 2, Dev> orig_coords,
@@ -278,6 +286,13 @@ struct GeneratePoseLeafAtoms {
         Vec<Real, 3> coord1 = orig_coords[pose_ind][geom.anc1];
         Vec<Real, 3> coord2 = orig_coords[pose_ind][geom.anc2];
 
+        // Early exit if any base atoms have NaN coordinates
+        if (isnan(coord0[0]) || isnan(coord0[1]) || isnan(coord0[2])
+            || isnan(coord1[0]) || isnan(coord1[1]) || isnan(coord1[2])
+            || isnan(coord2[0]) || isnan(coord2[1]) || isnan(coord2[2])) {
+          return;
+        }
+
         auto coord_derivs = score::common::build_coordinate<Real>::dV(
             coord0, coord1, coord2, geom.D, geom.theta, geom.phi);
 
@@ -303,7 +318,8 @@ struct GeneratePoseLeafAtoms {
     });
 
     int const n_atoms = n_poses * max_n_blocks * max_n_block_atoms;
-    DeviceOps<Dev>::template forall<launch_t>(n_atoms, f_coord_builder_derivs);
+    DeviceOps<Dev>::template forall<launch_t>(
+        mgr, n_atoms, f_coord_builder_derivs);
 
     return dE_d_orig_coords_t;
   };

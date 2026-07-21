@@ -1,0 +1,325 @@
+import attrs
+import torch
+import math
+
+from tmol.pose.constraint_set import ConstraintSet
+from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.score.score_function import ScoreFunction
+from tmol.score.score_types import ScoreType
+
+from tmol.pack.compiled.compiled import build_interaction_graph
+from tmol.pack.packer_task import PackerTask, PackerPalette, SetPackerTask
+from tmol.pack.rotamer.build_rotamers import build_rotamers
+from tmol.pack.rotamer.fixed_aa_chi_sampler import (
+    FixedAAChiSampler,
+)
+from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
+from tmol.pack.rotamer.opth_sampler import OptHSampler
+from tmol.pack.datatypes import PackerEnergyTables
+from tmol.pack.simulated_annealing import run_simulated_annealing
+from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
+
+from tmol.io import pose_stack_from_pdb
+
+from tmol.pack.pack_rotamers import pack_rotamers
+
+from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
+
+
+def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
+    pose_stack = PoseStackBuilder.from_poses(poses, torch_device)
+    palette = PackerPalette()
+    task = PackerTask(pose_stack, palette)
+    task.restrict_to_repacking()
+    task.add_conformer_sampler(IncludeCurrentSampler())
+    fixed_sampler = FixedAAChiSampler()
+    task.add_conformer_sampler(dun_sampler)
+    task.add_conformer_sampler(fixed_sampler)
+    return pose_stack, task
+
+
+def build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=16):
+    rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
+    energies = rotamer_scoring_module(rotamer_set.coords).coalesce()
+    energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b = (
+        build_interaction_graph(
+            chunk_size,
+            rotamer_set.n_rots_for_pose,
+            rotamer_set.rot_offset_for_pose,
+            rotamer_set.n_rots_for_block,
+            rotamer_set.rot_offset_for_block,
+            rotamer_set.pose_for_rot,
+            rotamer_set.block_type_ind_for_rot,
+            rotamer_set.block_ind_for_rot,
+            energies.indices().to(torch.int32),
+            energies.values(),
+        )
+    )
+    return PackerEnergyTables(
+        max_n_rotamers_per_pose=rotamer_set.max_n_rots_per_pose,
+        pose_n_res=pose_stack.n_res_per_pose,
+        pose_n_rotamers=rotamer_set.n_rots_for_pose,
+        pose_rotamer_offset=rotamer_set.rot_offset_for_pose,
+        nrotamers_for_res=rotamer_set.n_rots_for_block,
+        oneb_offsets=rotamer_set.rot_offset_for_block,
+        res_for_rot=rotamer_set.block_ind_for_rot,
+        chunk_size=chunk_size,
+        chunk_offset_offsets=chunk_pair_offset_for_block_pair,
+        chunk_offsets=chunk_pair_offset,
+        energy1b=energy1b,
+        energy2b=energy2b,
+    )
+
+
+def run_pack_and_assert_scores(pose_stack, rotamer_set, packer_energy_tables, sfxn):
+    scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+    new_pose_stack = impose_top_rotamer_assignments(
+        pose_stack, rotamer_set, rotamer_assignments
+    )
+    wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
+    new_scores = wpsm(new_pose_stack.coords)
+    torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)
+    return new_pose_stack, scores
+
+
+def get_packer_sfxn(default_database, torch_device):
+    sfxn = ScoreFunction(param_db=default_database, device=torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
+    sfxn.set_weight(ScoreType.fa_lk, 1.0)
+    sfxn.set_weight(ScoreType.fa_elec, 1.0)
+    sfxn.set_weight(ScoreType.hbond, 1.0)
+    sfxn.set_weight(ScoreType.hbond, 1.0)
+    sfxn.set_weight(ScoreType.lk_ball_iso, -0.38)
+    sfxn.set_weight(ScoreType.lk_ball, 0.92)
+    sfxn.set_weight(ScoreType.lk_bridge, -0.33)
+    sfxn.set_weight(ScoreType.lk_bridge_uncpl, -0.33)
+    sfxn.set_weight(ScoreType.dunbrack_rot, 0.76)
+    sfxn.set_weight(ScoreType.dunbrack_rotdev, 0.69)
+    sfxn.set_weight(ScoreType.dunbrack_semirot, 0.78)
+    sfxn.set_weight(ScoreType.cart_lengths, 0.5)
+    sfxn.set_weight(ScoreType.cart_angles, 0.5)
+    sfxn.set_weight(ScoreType.cart_torsions, 0.5)
+    sfxn.set_weight(ScoreType.cart_impropers, 0.5)
+    sfxn.set_weight(ScoreType.cart_hxltorsions, 0.5)
+    sfxn.set_weight(ScoreType.omega, 0.48)
+    sfxn.set_weight(ScoreType.rama, 0.50)
+    sfxn.set_weight(ScoreType.ref, 1.0)
+    sfxn.set_weight(ScoreType.disulfide, 1.0)
+    sfxn.set_weight(ScoreType.constraint, 1.0)
+
+    return sfxn
+
+
+def get_constraints_only_sfxn(default_database, torch_device):
+    sfxn = ScoreFunction(param_db=default_database, device=torch_device)
+    sfxn.set_weight(ScoreType.constraint, 1.0)
+
+    return sfxn
+
+
+def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
+    n_poses = 4
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    pose_stack, task = setup_pose_stack_and_task(
+        [p] * n_poses, torch_device, dun_sampler
+    )
+    task = SetPackerTask.from_packer_task(task)
+
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+    packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    _, _ = run_pack_and_assert_scores(
+        pose_stack, rotamer_set, packer_energy_tables, sfxn
+    )
+
+
+def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
+    n_poses = 4
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
+    palette = PackerPalette()
+    task = PackerTask(pose_stack, palette)
+    task.restrict_to_repacking()
+    task.add_conformer_sampler(IncludeCurrentSampler())
+    task.add_conformer_sampler(OptHSampler())
+    task.add_conformer_sampler(FixedAAChiSampler())
+    task = SetPackerTask.from_packer_task(task)
+
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+
+    # NHQ flip rotamers must have chi either matching the input (~0 deg)
+    # or flipped by ~180 deg.
+    from tmol.numeric.dihedrals import coord_dihedrals as _cd
+
+    for i in range(task.allowed_bt_block_type.shape[0]):
+        pose_i = task.allowed_bt_pose[i].item()
+        block_i = task.allowed_bt_block[i].item()
+        orig_bt = task.per_block_orig_block_type[pose_i, block_i].item()
+        orig = pose_stack.packed_block_types.active_block_types[orig_bt]
+        assert hasattr(orig, "opth_sampler_cache")
+        cache = orig.opth_sampler_cache
+        if cache.nhq_chi_col >= 0:
+            a4 = cache.nhq_chi_4atoms
+            off = int(pose_stack.block_coord_offset[pose_i, block_i].item())
+            c = pose_stack.coords[pose_i][[off + int(a4[k]) for k in range(4)]].double()
+            input_chi = float(_cd(c[0:1], c[1:2], c[2:3], c[3:4])[0])
+            n_rots = int(rotamer_set.n_rots_for_block[pose_i, block_i].item())
+            rot_off = int(rotamer_set.rot_offset_for_block[pose_i, block_i].item())
+            for r in range(n_rots):
+                co = int(rotamer_set.coord_offset_for_rot[rot_off + r].item())
+                rc4 = rotamer_set.coords[[co + int(a4[k]) for k in range(4)]].double()
+                rot_chi = float(_cd(rc4[0:1], rc4[1:2], rc4[2:3], rc4[3:4])[0])
+                delta = math.degrees(rot_chi - input_chi)
+                delta = (delta + 180.0) % 360.0 - 180.0
+                # assert deltas are only 0 or 180
+                assert min(abs(delta), abs(abs(delta) - 180.0)) < 1.0, (
+                    f"res {block_i} ({orig.name3}) rot {r}: "
+                    f"unexpected NHQ chi delta {delta:.2f} deg"
+                )
+        else:
+            n_rots = int(rotamer_set.n_rots_for_block[pose_i, block_i].item())
+            assert cache.n_proton_samples == 0 or n_rots == cache.n_proton_samples + 1
+
+    packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    _, _ = run_pack_and_assert_scores(
+        pose_stack, rotamer_set, packer_energy_tables, sfxn
+    )
+
+
+def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_device):
+    n_poses = 4
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    pose_stack, task = setup_pose_stack_and_task(
+        [p] * n_poses, torch_device, dun_sampler
+    )
+    task = SetPackerTask.from_packer_task(task)
+
+    sfxn = get_constraints_only_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+    constraints = ConstraintSet.create_empty(device=torch_device, n_poses=n_poses)
+
+    # a distance constraint
+    cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
+    cnstr_params = torch.full((1, 2), 0, dtype=torch.float32, device=torch_device)
+
+    res1_type = pose_stack.block_type(0, 3)
+    res2_type = pose_stack.block_type(0, 4)
+    cnstr_atoms[0, 0] = torch.tensor([0, 3, res1_type.atom_to_idx["C"]])
+    cnstr_atoms[0, 1] = torch.tensor([0, 4, res2_type.atom_to_idx["N"]])
+    cnstr_params[0, 0] = 1.47
+    cnstr_params[0, 1] = 0.1
+
+    constraints = constraints.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
+    )
+
+    # a distance constraint
+    cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
+    cnstr_params = torch.full((1, 2), 0, dtype=torch.float32, device=torch_device)
+
+    res1_type = pose_stack.block_type(0, 5)
+    res2_type = pose_stack.block_type(0, 6)
+    cnstr_atoms[0, 0] = torch.tensor([0, 5, res1_type.atom_to_idx["C"]])
+    cnstr_atoms[0, 1] = torch.tensor([0, 6, res2_type.atom_to_idx["N"]])
+    cnstr_params[0, 0] = 1.47
+    cnstr_params[0, 1] = 0.1
+
+    constraints = constraints.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
+    )
+
+    # a circular harmonic constraint
+    cnstr_atoms = torch.full((1, 4, 3), 0, dtype=torch.int32, device=torch_device)
+    cnstr_params = torch.full((1, 3), 0, dtype=torch.float32, device=torch_device)
+
+    # get the omega between res1 and res2
+    res1_type = pose_stack.block_type(0, 0)
+    res2_type = pose_stack.block_type(0, 1)
+    cnstr_atoms[0, 0] = torch.tensor([0, 0, res1_type.atom_to_idx["CA"]])
+    cnstr_atoms[0, 1] = torch.tensor([0, 0, res1_type.atom_to_idx["C"]])
+    cnstr_atoms[0, 2] = torch.tensor([0, 1, res2_type.atom_to_idx["N"]])
+    cnstr_atoms[0, 3] = torch.tensor([0, 1, res2_type.atom_to_idx["CA"]])
+    cnstr_params[0, 0] = math.pi
+    cnstr_params[0, 1] = 0.1
+    cnstr_params[0, 2] = 0.0
+
+    constraints = constraints.add_constraints(
+        ConstraintEnergyTerm.circularharmonic, cnstr_atoms, cnstr_params
+    )
+
+    pose_stack = attrs.evolve(pose_stack, constraint_set=constraints)
+    packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    run_pack_and_assert_scores(pose_stack, rotamer_set, packer_energy_tables, sfxn)
+    if torch_device == torch.device("cuda"):
+        torch.cuda.synchronize()
+
+
+def test_pack_rotamers_w_empty_interaction_graph(
+    default_database, disulfide_pdb, dun_sampler, torch_device
+):
+    n_poses = 4
+    p = pose_stack_from_pdb(disulfide_pdb, torch_device)
+    pose_stack, task = setup_pose_stack_and_task(
+        [p] * n_poses, torch_device, dun_sampler
+    )
+    task = SetPackerTask.from_packer_task(task)
+    sfxn = get_constraints_only_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+    packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    run_pack_and_assert_scores(pose_stack, rotamer_set, packer_energy_tables, sfxn)
+
+
+def test_pack_rotamers_w_dslf(
+    default_database, disulfide_pdb, dun_sampler, torch_device
+):
+    n_poses = 4
+    p = pose_stack_from_pdb(disulfide_pdb, torch_device)
+    pose_stack, task = setup_pose_stack_and_task(
+        [p] * n_poses, torch_device, dun_sampler
+    )
+    task = SetPackerTask.from_packer_task(task)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+    packer_energy_tables = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    run_pack_and_assert_scores(pose_stack, rotamer_set, packer_energy_tables, sfxn)
+
+
+def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
+    if torch_device == torch.device("cpu"):
+        return
+    n_poses = 10
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    pose_stack, task = setup_pose_stack_and_task(
+        [p] * n_poses, torch_device, dun_sampler
+    )
+    task.or_expand_chi(1)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pack_rotamers(pose_stack, sfxn, task)
+
+
+def test_pack_rotamers_irregular_sized_poses(
+    default_database, ubq_pdb, dun_sampler, torch_device
+):
+    if torch_device == torch.device("cpu"):
+        return
+    n_poses = 20
+    poses = [
+        pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20 + i)
+        for i in range(n_poses)
+    ]
+    pose_stack, task = setup_pose_stack_and_task(poses, torch_device, dun_sampler)
+    task.or_expand_chi(1)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pack_rotamers(pose_stack, sfxn, task)

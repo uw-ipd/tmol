@@ -1,14 +1,31 @@
-import pathlib
 import os
-from functools import wraps
+import pathlib
 import warnings
+from functools import wraps
 
-from ..extern import include_paths as extern_include_paths
-from .. import include_paths as tmol_include_paths
 
-import torch.utils.cpp_extension
-from torch.utils.cpp_extension import _is_cuda_file
+# Avoid importing from parent package (..) to prevent circular import issues
+# when this module is imported during package initialization.
+# Compute tmol include paths directly.
+def _tmol_include_paths():
+    """C++/CUDA include paths for tmol components."""
+    return [os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))]
 
+
+from .._cuda_env import get_cccl_include as _get_cccl_include  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Auto-configure CUDA for pip-installed toolkit BEFORE torch reads CUDA_HOME.
+# This must happen before `import torch.utils.cpp_extension` because PyTorch
+# evaluates CUDA_HOME at module-load time.
+# ---------------------------------------------------------------------------
+from .._cuda_env import setup as _cuda_env_setup  # noqa: E402
+from ..extern import include_paths as extern_include_paths  # noqa: E402
+
+_cuda_env_setup()
+
+import torch.utils.cpp_extension  # noqa: E402
+from torch.utils.cpp_extension import _is_cuda_file  # noqa: E402
 
 # Add warning filter for use of c++ (rather than g++) for extension
 # compilation. c++ is provided by g++ on our platform.
@@ -19,7 +36,12 @@ warnings.filterwarnings(
     r"is not compatible with the compiler Pytorch(\n|.)*",
 )
 
-_default_include_paths = list(tmol_include_paths() + extern_include_paths())
+_default_include_paths = list(_tmol_include_paths() + extern_include_paths())
+
+# Add CCCL include path (nv/target, cub/, thrust/) from pip-installed nvidia-cuda-cccl
+_cccl_include = _get_cccl_include()
+if _cccl_include:
+    _default_include_paths.append(_cccl_include)
 
 _required_flags = ["--std=c++17", "-DWITH_NVTX", "-w"]
 
@@ -47,8 +69,8 @@ _required_cuda_flags = [
     "-DWITH_NVTX",
     "-w",
     # "-G",
-    "-DTORCH_VERSION_MAJOR=%s" % torch_major,
-    "-DTORCH_VERSION_MINOR=%s" % torch_minor,
+    f"-DTORCH_VERSION_MAJOR={torch_major}",
+    f"-DTORCH_VERSION_MINOR={torch_minor}",
 ]
 
 
@@ -70,6 +92,28 @@ if torch.cuda.is_available():
         _major, _minor = arch_list.replace(" ", ";").split(";")[0].split(".")
     _required_cuda_flags.append(f"--gpu-architecture=sm_{_major}{_minor}")
 
+    # we need to add the search path for nvtx3
+    # which should be installed relative to nvcc
+
+    import subprocess
+    import sys
+
+    # Find nvtx include path — works for both pip and conda layouts
+    try:
+        import nvidia.nvtx as _nvtx
+
+        _nvtx_include = os.path.join(_nvtx.__path__[0], "include")
+        if os.path.isdir(_nvtx_include):
+            _default_include_paths.append(_nvtx_include)
+    except ImportError:
+        # Fallback: guess relative to nvcc location (conda layout)
+        path = subprocess.run(["which", "nvcc"], capture_output=True, text=True)
+        nvcc_dir = os.path.dirname(path.stdout.strip())
+        ver_info = sys.version_info
+        _default_include_paths.append(
+            f"{nvcc_dir}/../lib/python{ver_info.major}.{ver_info.minor}"
+            f"/site-packages/nvidia/nvtx/include"
+        )
 
 _default_cuda_flags = []
 
@@ -90,7 +134,7 @@ def _augment_kwargs(name, sources, **kwargs):
         list(kwargs.get("extra_include_flags", [])) + _default_include_paths
     )
 
-    if kwargs.get("with_cuda", None) is None:
+    if kwargs.get("with_cuda") is None:
         with_cuda = any(map(_is_cuda_file, sources))
         kwargs["with_cuda"] = with_cuda
 
@@ -135,7 +179,7 @@ def relpaths(src_path, paths):
         srcs = relpaths(__file__, ["sibling.cpp", "sibling.cu"])
     """
 
-    if isinstance(paths, (str, bytes)):
+    if isinstance(paths, str | bytes):
         paths = [paths]
 
     return [str(pathlib.Path(src_path).parent / s) for s in paths]

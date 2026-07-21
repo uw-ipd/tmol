@@ -1,7 +1,17 @@
 import numpy
-from tmol.utility.cpp_extension import load, relpaths, modulename
 
-_geom = load(modulename(__name__), relpaths(__file__, "geom.pybind.cpp"))
+from tmol._load_ext import load_module
+
+_geom = load_module(
+    __name__,
+    __file__,
+    "geom.pybind.cpp",
+    "tmol.tests.score.common.geom._ext",
+)
+
+# Wrap pybind11 scalar functions with numpy.vectorize so they broadcast
+# over arrays of inputs and provide the gufunc signature needed by
+# VectorizedOp in the test autograd harness.
 
 distance_V = numpy.vectorize(_geom.distance_V, signature="(3),(3)->()")
 distance_V_dV = numpy.vectorize(_geom.distance_V_dV, signature="(3),(3)->(),(3),(3)")

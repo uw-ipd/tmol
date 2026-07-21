@@ -1,5 +1,8 @@
+import copy
+from enum import IntEnum
+
 from frozendict import frozendict
-from toolz.curried import concat, map, compose, groupby
+from toolz.curried import concat, compose, groupby
 import typing
 from typing import Mapping, Optional, NewType, Tuple, Sequence, List, Set, Union
 import attr
@@ -18,10 +21,30 @@ from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
 from tmol.chemical.ideal_coords import build_coords_from_icoors
 from tmol.chemical.all_bonds import bonds_and_bond_ranges
 
-
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
 BondCount = NewType("BondCount", int)
+
+
+class BondType(IntEnum):
+    SINGLE = 1
+    DOUBLE = 2
+    TRIPLE = 3
+    AROMATIC = 4
+
+
+BOND_TYPE_FROM_STR = {
+    "SINGLE": BondType.SINGLE,
+    "DOUBLE": BondType.DOUBLE,
+    "TRIPLE": BondType.TRIPLE,
+    "AROMATIC": BondType.AROMATIC,
+}
+
+# As of cattr 24.1.0, more types must be explicitly registered in order to
+# use cattr.structure. We use that here
+cattr.register_structure_hook(numpy.dtype, lambda d, _: numpy.dtype(d))
+cattr.register_structure_hook(numpy.ndarray, lambda d, _: numpy.array(d))
+
 
 # perhaps deserving of its own file
 UnresolvedAtomID = Tuple[AtomIndex, ConnectionIndex, BondCount]
@@ -147,12 +170,44 @@ class RefinedResidueType(RawResidueType):
     def _setup_bond_indices(self):
         bondi = compose(list, sorted, set, concat)(
             [(ai, bi), (bi, ai)]
-            for ai, bi in map(map(self.atom_to_idx.get), self.bonds)
+            for ai, bi in (
+                (self.atom_to_idx.get(b[0]), self.atom_to_idx.get(b[1]))
+                for b in self.bonds
+            )
         )
-
         bond_array = numpy.array(bondi, dtype=numpy.int32)
         bond_array.flags.writeable = False
         return bond_array
+
+    bond_to_type: Mapping = attr.ib()
+
+    @bond_to_type.default
+    def _setup_bond_to_type(self):
+        bt_map = {}
+        for b in self.bonds:
+            a0, a1, btype_str = b[0], b[1], b[2]
+            ai = self.atom_to_idx.get(a0)
+            bi = self.atom_to_idx.get(a1)
+            if ai is not None and bi is not None:
+                bt_int = int(BOND_TYPE_FROM_STR.get(btype_str, BondType.SINGLE))
+                bt_map[(ai, bi)] = bt_int
+                bt_map[(bi, ai)] = bt_int
+        return frozendict(bt_map)
+
+    bond_to_ringness: Mapping = attr.ib()
+
+    @bond_to_ringness.default
+    def _setup_bond_to_ringness(self):
+        ring_map = {}
+        for b in self.bonds:
+            a0, a1 = b[0], b[1]
+            is_ring = bool(b[3]) if len(b) > 3 else False
+            ai = self.atom_to_idx.get(a0)
+            bi = self.atom_to_idx.get(a1)
+            if ai is not None and bi is not None:
+                ring_map[(ai, bi)] = is_ring
+                ring_map[(bi, ai)] = is_ring
+        return frozendict(ring_map)
 
     @property
     def n_conn(self):
@@ -179,6 +234,20 @@ class RefinedResidueType(RawResidueType):
         return numpy.array(
             [self.atom_to_idx[c.atom] for c in self.connections], dtype=numpy.int32
         )
+
+    connection_bond_types: numpy.ndarray = attr.ib()
+
+    @connection_bond_types.default
+    def _setup_connection_bond_types(self):
+        arr = numpy.array(
+            [
+                int(BOND_TYPE_FROM_STR.get(c.type, BondType.SINGLE))
+                for c in self.connections
+            ],
+            dtype=numpy.int32,
+        )
+        arr.flags.writeable = False
+        return arr
 
     # The set of "all-bonds" includes both inter- and intra- block chemical bonds
     # Each all-bond (think of "all" here as an adjective like "inter" or "intra")
@@ -472,7 +541,7 @@ class RefinedResidueType(RawResidueType):
     def _setup_icoors_index(self):
         return {icoor.name: i for i, icoor in enumerate(self.icoors)}
 
-    at_to_icoor_ind: numpy.array = attr.ib()
+    at_to_icoor_ind: numpy.ndarray = attr.ib()
 
     @at_to_icoor_ind.default
     def _setup_at_to_icoor_ind(self):
@@ -530,6 +599,7 @@ class RefinedResidueType(RawResidueType):
 @attr.s(auto_attribs=True)
 class ResidueTypeSet:
     __default = None
+    __refined_cache = None
 
     @classmethod
     def get_default(cls) -> "ResidueTypeSet":
@@ -539,9 +609,30 @@ class ResidueTypeSet:
         return cls.__default
 
     @classmethod
+    def _refine(cls, r: RawResidueType) -> RefinedResidueType:
+        return cattr.structure(cattr.unstructure(r), RefinedResidueType)
+
+    @classmethod
+    def _default_refined_cache(cls) -> Mapping[int, RefinedResidueType]:
+        """``id(raw residue) -> RefinedResidueType`` prototype for the default DB.
+
+        Refining a residue is expensive, and ligand-extended DBs reuse the
+        default residue objects, so caching them here.
+
+        These are prototypes only: callers get a shallow copy.
+        """
+        if cls.__refined_cache is None:
+            default_residues = ParameterDatabase.get_default().chemical.residues
+            cls.__refined_cache = {id(r): cls._refine(r) for r in default_residues}
+        return cls.__refined_cache
+
+    @classmethod
     def from_database(cls, chemical_db: PatchedChemicalDatabase):
+        # Load and copy the default cache
+        #   -> copy so later mutations do not modify cache
+        cache = cls._default_refined_cache()
         residue_types = [
-            cattr.structure(cattr.unstructure(r), RefinedResidueType)
+            copy.copy(cache[id(r)]) if id(r) in cache else cls._refine(r)
             for r in chemical_db.residues
         ]
         restype_map = groupby(lambda restype: restype.name3, residue_types)

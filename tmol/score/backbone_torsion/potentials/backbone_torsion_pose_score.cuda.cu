@@ -17,6 +17,17 @@ template struct BackboneTorsionPoseScoreDispatch<
     double,
     int>;
 
+template struct BackboneTorsionRotamerScoreDispatch<
+    common::DeviceOperations,
+    tmol::Device::CUDA,
+    float,
+    int>;
+template struct BackboneTorsionRotamerScoreDispatch<
+    common::DeviceOperations,
+    tmol::Device::CUDA,
+    double,
+    int>;
+
 }  // namespace potentials
 }  // namespace backbone_torsion
 }  // namespace score

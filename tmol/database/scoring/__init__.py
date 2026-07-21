@@ -2,6 +2,7 @@ import os
 import attr
 
 from .cartbonded import CartBondedDatabase
+from .genbonded import GenBondedDatabase
 from .disulfide import DisulfideDatabase
 from .dunbrack_libraries import DunbrackRotamerLibrary
 from .elec import ElecDatabase
@@ -15,6 +16,7 @@ from .ref import RefDatabase
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class ScoringDatabase:
     cartbonded: CartBondedDatabase
+    genbonded: GenBondedDatabase
     disulfide: DisulfideDatabase
     dun: DunbrackRotamerLibrary
     elec: ElecDatabase
@@ -26,23 +28,20 @@ class ScoringDatabase:
 
     @classmethod
     def from_file(cls, path=os.path.dirname(__file__)):  # noqa
+
         return cls(
             cartbonded=CartBondedDatabase.from_file(
                 os.path.join(path, "cartbonded.yaml")
             ),
+            genbonded=GenBondedDatabase.from_file(os.path.join(path, "genbonded.yaml")),
             disulfide=DisulfideDatabase.from_file(os.path.join(path, "disulfide.yaml")),
-            dun=DunbrackRotamerLibrary.from_zarr_archive(
-                os.path.join(path, "dunbrack.yaml"), os.path.join(path, "dunbrack.bin")
-            ),
+            dun=DunbrackRotamerLibrary.from_file(os.path.join(path, "dunbrack.bin")),
             elec=ElecDatabase.from_file(os.path.join(path, "elec.yaml")),
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),
             ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")),
-            omega_bbdep=OmegaBBDepDatabase.from_files(
-                os.path.join(path, "omega_bbdep.yaml"),
-                os.path.join(path, "omega_bbdep.zip"),
+            omega_bbdep=OmegaBBDepDatabase.from_file(
+                os.path.join(path, "omega_bbdep.zip")
             ),
-            rama=RamaDatabase.from_files(
-                os.path.join(path, "rama.yaml"), os.path.join(path, "rama.zip")
-            ),
+            rama=RamaDatabase.from_file(os.path.join(path, "rama.zip")),
             ref=RefDatabase.from_file(os.path.join(path, "ref.yaml")),
         )

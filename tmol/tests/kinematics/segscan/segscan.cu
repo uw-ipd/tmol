@@ -52,7 +52,7 @@ template <typename Real>
 struct enable_tensor_view<tests::utility::cpp_extension::HTRawBuffer<Real>> {
   static const bool enabled = enable_tensor_view<Real>::enabled;
   static const at::ScalarType scalar_type() {
-    enable_tensor_view<Real>::scalar_type();
+    return enable_tensor_view<Real>::scalar_type();
   }
 
   static const int nconsumed_dims = 1;

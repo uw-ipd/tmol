@@ -1,22 +1,15 @@
-import torch
-from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
+from tmol._load_ext import load_ops
 
-
-_compiled = load(
-    modulename(__name__),
-    cuda_if_available(
-        relpaths(
-            __file__,
-            [
-                "compiled.ops.cpp",
-                "backbone_torsion_pose_score.cpu.cpp",
-                "backbone_torsion_pose_score.cuda.cu",
-            ],
-        )
-    ),
-    is_python_module=False,
+_ops = load_ops(
+    __name__,
+    __file__,
+    [
+        "compiled.ops.cpp",
+        "backbone_torsion_pose_score.cpu.cpp",
+        "backbone_torsion_pose_score.cuda.cu",
+    ],
+    "tmol_bb_torsion",
 )
 
-_ops = getattr(torch.ops, modulename(__name__))
-
 backbone_torsion_pose_score = _ops.backbone_torsion_pose_score
+backbone_torsion_rotamer_score = _ops.backbone_torsion_rotamer_score

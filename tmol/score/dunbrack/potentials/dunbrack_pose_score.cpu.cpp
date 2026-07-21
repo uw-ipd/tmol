@@ -17,6 +17,17 @@ template struct DunbrackPoseScoreDispatch<
     double,
     int>;
 
+template struct DunbrackRotamerScoreDispatch<
+    DeviceOperations,
+    tmol::Device::CPU,
+    float,
+    int>;
+template struct DunbrackRotamerScoreDispatch<
+    DeviceOperations,
+    tmol::Device::CPU,
+    double,
+    int>;
+
 }  // namespace potentials
 }  // namespace dunbrack
 }  // namespace score

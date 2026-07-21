@@ -1,30 +1,168 @@
 [project]
 name = "tmol"
-dynamic = ["version", "readme", "dependencies", "optional-dependencies"]
-requires-python = ">=3.9"
+description = "GPU-accelerated PyTorch reimplementation of the Rosetta energy function"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.11"
+authors = [
+    { name = "Institute for Protein Design", email = "contact@ipd.uw.edu" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+version = "0.1.42"
 
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.in"]}
-readme = {file = "README.md"}
-optional-dependencies = {dev = {file = ["requirements-dev.in"]}}
+dependencies = [
+    # Core ML framework
+    "torch>=2.5",
+    "numpy>=1.24",
+    "scipy>=1.11",
+    # Data structures & serialization
+    "attrs>=21.0",
+    "attrs_strict>=1.0,<2",
+    "cattrs>=22.0",
+    "frozendict>=2.4",
+    "pandas>=2.0,<3",
+    "pyarrow>=12",
+    "pyyaml>=6.0",
+    # Graphs & algorithms
+    "networkx>=3.0",
+    # Utilities
+    "toolz>=0.12.0,<2",
+    # decorator floor kept low (>=4.0) for Google Colab, which ships an old version
+    "decorator>=4.0",
+    "typing_extensions>=4.0,<5",
+    "typing_inspect>=0.9",
+    "pint>=0.23,<1",
+    "psutil>=5.9",
+    "requests>=2.28,<3",
+    # Sparse arrays (requires SPARSE_AUTO_DENSIFY=1 for sparse>0.3.1)
+    "sparse>=0.13",
+    # numba/llvmlite
+    "numba>=0.56",
+    "llvmlite>=0.39",
+    # Testing (hypothesis is used at runtime for property-based data generation)
+    "hypothesis>=5.35",
+    # AST manipulation (used by tmol.utility.args)
+    "astor>=0.8",
+    # Structure I/O
+    "biotite>=1.4.0",
+    # Ligand preparation
+    "rdkit>=2024.3",
+]
 
-[tool.setuptools]
-packages = ["tmol"]
+[project.optional-dependencies]
+# OpenBabel powers the SMILES -> 3D mol2 ligand-preparation path (conformer
+# search + MMFF94 charges). The CIF/mol2 paths use RDKit and do not need it;
+# it is imported lazily (see tmol.ligand.openbabel_compat), so it stays an
+# opt-in extra rather than a core dependency.
+ligand = [
+    "openbabel-wheel==3.1.1.22",
+]
+dev = [
+    # Linters & formatters
+    # Keep in sync with the black pin in .pre-commit-config.yaml (CI lint)
+    "black==26.3.1",
+    "flake8==7.3.0",
+    "pre-commit>=4.0",
+    "clang-format==21.1.8",
+    # Testing
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "pytest-benchmark>=5.1",
+    "pytest-forked>=1.6",
+    "pytest-instafail>=0.5",
+    "pytest-repeat>=0.9",
+    "pytest-watch>=4.2",
+    # Interactive
+    "ipython>=8.0",
+    # Visualization
+    "seaborn>=0.13",
+    # Ligand SMILES-prep path and its tests require OpenBabel
+    "tmol[ligand]",
+]
+cuda = [
+    # CUDA nvcc compiler for JIT compilation of custom kernels.
+    # Only the unsuffixed (cu13) package ships the full nvcc binary;
+    # nvidia-cuda-nvcc-cu12 only contains ptxas.
+    "nvidia-cuda-nvcc>=13",
+    # CCCL headers (nv/target, cub/, thrust/) needed by nvcc
+    "nvidia-cuda-cccl>=13",
+]
 
-[tool.setuptools.package-data]
-"*" = ["*.hh", "*.cpp", "*.cu", "*.cuh", "*.cc", ".hpp", "*.h", "*.hxx"]
-"tmol.database.default.chemical" = ["**/*.yaml"]
-"tmol.database.default.scoring" = ["**/*.yaml"]
-"tmol.tests.data.pdb" = ["**/*.pdb"]
-"tmol.tests.data.rosetta_baselines" = ["**/*.pickle"]
-"tmol.tests.data.constraints" = ["**/*.fa", "**/*.npz"]
+[project.urls]
+repository = "https://github.com/uw-ipd/tmol"
 
+# Build settings ---------------------------------------------------------------
 [build-system]
-requires = ["setuptools >= 65", "setuptools_scm[toml]>=6.2"]
-build-backend = 'setuptools.build_meta'
+requires = [
+    "scikit-build-core>=0.10",
+    "torch>=2.5",
+    "pybind11>=2.12",
+    "ninja",
+    "packaging",
+]
+build-backend = "tmol_build_backend"
+backend-path = ["."]
 
-[tool.setuptools_scm]
-search_parent_directories = true
-version_scheme = "no-guess-dev"
-local_scheme = "node-and-date"
-fallback_version = "0.0.0"
+[tool.scikit-build]
+minimum-version = "0.10"
+build-dir = "build/{wheel_tag}"
+cmake.build-type = "Release"
+cmake.version = ">=3.18,<4"
+wheel.packages = ["tmol"]
+wheel.install-dir = "."
+sdist.cmake = false
+editable.mode = "inplace"
+
+[tool.scikit-build.cmake.define]
+CMAKE_CUDA_ARCHITECTURES = {env = "CMAKE_CUDA_ARCHITECTURES", default = "80;86;89;90"}
+TMOL_BUILD_TESTS = {env = "TMOL_BUILD_TESTS", default = "OFF"}
+
+[tool.cibuildwheel]
+build = "cp3{11,12,13,14}-*"
+skip = "*-musllinux_*"
+manylinux-x86_64-image = "quay.io/pypa/manylinux_2_28_x86_64"
+manylinux-aarch64-image = "quay.io/pypa/manylinux_2_28_aarch64"
+
+# Test settings ----------------------------------------------------------------
+[tool.pytest.ini_options]
+addopts = "--benchmark-disable --benchmark-columns=ops,mean,iqr -m 'not slow'"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+filterwarnings = [
+    "ignore:(?s).*is not compatible with the compiler Pytorch.*:",
+    "ignore:(?s).*Benchmark fixture was not used.*:",
+    "ignore:(?s).*one of the inputs that requires gradient is not of double precision.*:",
+    "ignore:(?s).*Distutils was imported before Setuptools*:",
+    "ignore:(?s).*To copy construct from a tensor, it is recommended to use*:",
+    "ignore:(?s).*pkg_resources is deprecated*:",
+    "ignore:(?s).*Deprecated call to `pkg_resources.declare_namespace*:",
+]
+
+[tool.pytest-watch]
+ext = ".cpp,.hh,.h,.cu,.py,.yaml"
+
+# Coverage settings ------------------------------------------------------------
+# Vendored third-party ports are excluded from coverage measurement: driving
+# them to a coverage target via unit tests is not meaningful. Keep this list in
+# sync with the `ignore:` block in codecov.yml.
+[tool.coverage.run]
+omit = [
+    "*/tmol/ligand/external/*",
+    "*/tmol/ligand/dimorphite_dl.py",
+    "*/tmol/ligand/openbabel_compat.py",
+    "*/tmol/tests/ligand/build_pli_ligand_cifs.py",
+]

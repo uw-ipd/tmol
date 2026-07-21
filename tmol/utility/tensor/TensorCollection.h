@@ -25,7 +25,7 @@ class TCollection {
  public:
   AT_HOST TCollection() {}
 
-  AT_HOST TCollection(std::vector<at::Tensor> &tviews) {
+  AT_HOST TCollection(std::vector<at::Tensor>& tviews) {
     int n = tviews.size();
 
     tensors.resize(n);

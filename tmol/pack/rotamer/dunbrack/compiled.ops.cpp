@@ -1,8 +1,8 @@
 #include <torch/script.h>
-// #include <tmol/utility/autograd.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 #include <tmol/score/common/complex_dispatch.hh>
 
@@ -14,6 +14,8 @@ namespace tmol {
 namespace pack {
 namespace rotamer {
 namespace dunbrack {
+
+ContextManager mgr;
 
 using torch::Tensor;
 
@@ -53,7 +55,8 @@ std::vector<Tensor> dun_sample_chi(
     Tensor dihedral_offset_for_res,  // nres x 1
     Tensor dihedral_atom_inds,       // ndihe x 4
 
-    Tensor rottable_set_for_buildable_restype,  // n-buildable-restypes x 2
+    Tensor bubl_and_rottable_set_for_buildable_restype,  // n-buildable-restypes
+                                                         // x 2
     Tensor chi_expansion_for_buildable_restype,
     Tensor non_dunbrack_expansion_for_buildable_restype,
     Tensor non_dunbrack_expansion_counts_for_buildable_restype,
@@ -75,6 +78,7 @@ std::vector<Tensor> dun_sample_chi(
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
           auto result = DunbrackChiSampler<DispatchMethod, Dev, Real, Int>::f(
+              mgr,
               TCAST(coords),
               // TCAST(res_coord_start_ind),
               TCAST(rotameric_prob_tables),
@@ -109,7 +113,7 @@ std::vector<Tensor> dun_sample_chi(
               TCAST(dihedral_offset_for_res),
               TCAST(dihedral_atom_inds),
 
-              TCAST(rottable_set_for_buildable_restype),
+              TCAST(bubl_and_rottable_set_for_buildable_restype),
               TCAST(chi_expansion_for_buildable_restype),
               TCAST(non_dunbrack_expansion_for_buildable_restype),
               TCAST(non_dunbrack_expansion_counts_for_buildable_restype),
@@ -142,11 +146,9 @@ std::vector<Tensor> dun_sample_chi(
       chi_for_rotamers};
 };
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_dun_sampler, m) {
   m.def("dun_sample_chi", &dun_sample_chi<score::common::ComplexDispatch>);
 }
 

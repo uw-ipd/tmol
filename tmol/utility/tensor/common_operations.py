@@ -32,7 +32,7 @@ def stretch2(t: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]], cou
 
 @validate_args
 def exclusive_cumsum1d(
-    inds: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]]
+    inds: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]],
 ) -> Union[Tensor[torch.int32][:], Tensor[torch.int64][:]]:
     return torch.cat(
         (
@@ -44,7 +44,7 @@ def exclusive_cumsum1d(
 
 @validate_args
 def exclusive_cumsum2d(
-    inds: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]]
+    inds: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]],
 ) -> Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]]:
     return torch.cat(
         (
@@ -57,7 +57,7 @@ def exclusive_cumsum2d(
 
 @validate_args
 def exclusive_cumsum2d_and_totals(
-    inds: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]]
+    inds: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]],
 ) -> Union[
     Tuple[Tensor[torch.int32][:, :], Tensor[torch.int32][:]],
     Tuple[Tensor[torch.int64][:, :], Tensor[torch.int64][:]],

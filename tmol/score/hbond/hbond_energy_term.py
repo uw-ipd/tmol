@@ -6,8 +6,6 @@ from ..atom_type_dependent_term import AtomTypeDependentTerm
 
 from tmol.database import ParameterDatabase
 
-from tmol.score.hbond.hbond_whole_pose_module import HBondWholePoseScoringModule
-
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -21,8 +19,29 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         super(HBondEnergyTerm, self).__init__(param_db=param_db, device=device)
         self.tile_size = HBondEnergyTerm.tile_size
         self.hb_param_db = CompactedHBondDatabase.from_database(
-            param_db.chemical, param_db.scoring.hbond, device=device
+            param_db.chemical, param_db.scoring.hbond, device
         )
+        # Cache of parameter tables converted to whichever coord dtype is used
+        # in scoring. Avoids a per-forward .to(coords_dtype) on three tensors.
+        # Keyed by dtype; stored value is a (pair_param, pair_poly, global_param) tuple.
+        # pair_poly_table is always kept at float64 — the C++ kernel templates
+        # HBondPolynomials on double independently of the Real coord dtype.
+        self._param_tables_by_dtype: dict = {}
+
+    def _param_tables(self, coords_dtype):
+        tables = self._param_tables_by_dtype.get(coords_dtype)
+        if tables is None:
+            tables = (
+                self.hb_param_db.pair_param_table.to(coords_dtype),
+                self.hb_param_db.pair_poly_table.to(torch.float64),
+                self.hb_param_db.global_param_table.to(coords_dtype),
+            )
+            self._param_tables_by_dtype[coords_dtype] = tables
+        return tables
+
+    @classmethod
+    def class_name(cls):
+        return "HBond"
 
     @classmethod
     def score_types(cls):
@@ -42,30 +61,146 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     def setup_poses(self, poses: PoseStack):
         super(HBondEnergyTerm, self).setup_poses(poses)
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-        pbt = pose_stack.packed_block_types
-        return HBondWholePoseScoringModule(
-            pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-            pose_stack_block_type=pose_stack.block_type_ind,
-            pose_stack_inter_residue_connections=pose_stack.inter_residue_connections,
-            pose_stack_min_bond_separation=pose_stack.min_block_bondsep,
-            pose_stack_inter_block_bondsep=pose_stack.inter_block_bondsep,
-            bt_n_atoms=pbt.n_atoms,
-            bt_n_interblock_bonds=pbt.n_conn,
-            bt_atoms_forming_chemical_bonds=pbt.conn_atom,
-            bt_n_all_bonds=pbt.n_all_bonds,
-            bt_all_bonds=pbt.all_bonds,
-            bt_atom_all_bond_ranges=pbt.atom_all_bond_ranges,
-            bt_tile_n_donH=pbt.hbpbt_params.tile_n_donH,
-            bt_tile_n_acc=pbt.hbpbt_params.tile_n_acc,
-            bt_tile_donH_inds=pbt.hbpbt_params.tile_donH_inds,
-            bt_tile_acc_inds=pbt.hbpbt_params.tile_acc_inds,
-            bt_tile_donor_type=pbt.hbpbt_params.tile_donorH_type,
-            bt_tile_acceptor_type=pbt.hbpbt_params.tile_acceptor_type,
-            bt_tile_acceptor_hybridization=pbt.hbpbt_params.tile_acceptor_hybridization,
-            bt_atom_is_hydrogen=pbt.hbpbt_params.is_hydrogen,
-            bt_path_distance=pbt.bond_separation,
-            pair_params=self.hb_param_db.pair_param_table,
-            pair_polynomials=self.hb_param_db.pair_poly_table,
-            global_params=self.hb_param_db.global_param_table,
+    def pose_score_hbond(self, *args):
+        from tmol.score.hbond.potentials.compiled import (
+            hbond_pose_scores,
+            gen_hbond_bases,
         )
+
+        common_args = args[:-2]
+        pose_stack = args[-2]
+        block_pair_scoring = args[-1]
+        coords_dtype = common_args[0].dtype
+        pair_param_table, pair_poly_table, global_param_table = self._param_tables(
+            coords_dtype
+        )
+
+        # Derived atom coords do not need gradients - gradients for hbond
+        # energies flow through derived_atom_inds back to the source atoms
+        # inside the pairwise kernel directly.
+        with torch.no_grad():
+            derived_coords, derived_atom_inds = gen_hbond_bases(
+                common_args[0],
+                common_args[1],
+                common_args[3],
+                common_args[4],
+                common_args[5],
+                common_args[6],
+                common_args[7],
+                pose_stack.inter_residue_connections,
+                pose_stack.packed_block_types.n_atoms,
+                pose_stack.packed_block_types.n_conn,
+                pose_stack.packed_block_types.conn_atom,
+                pose_stack.packed_block_types.n_all_bonds,
+                pose_stack.packed_block_types.all_bonds,
+                pose_stack.packed_block_types.atom_all_bond_ranges,
+                pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
+                pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
+                pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
+                pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
+                pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
+                pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            )
+
+        return hbond_pose_scores(
+            *common_args,
+            pose_stack.inter_residue_connections,
+            pose_stack.min_block_bondsep,
+            pose_stack.inter_block_bondsep,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.n_all_bonds,
+            pose_stack.packed_block_types.all_bonds,
+            pose_stack.packed_block_types.atom_all_bond_ranges,
+            pose_stack.packed_block_types.bond_separation,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
+            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_donorH_type,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_type,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
+            pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            pair_param_table,
+            pair_poly_table,
+            global_param_table,
+            derived_coords,
+            derived_atom_inds,
+            block_pair_scoring,
+        )
+
+    def rotamer_score_hbond(self, *args):
+        from tmol.score.hbond.potentials.compiled import (
+            hbond_rotamer_scores,
+            gen_hbond_bases,
+        )
+
+        common_args = args[:-2]
+        pose_stack = args[-2]
+        block_pair_scoring = args[-1]
+        coords_dtype = common_args[0].dtype
+        pair_param_table, pair_poly_table, global_param_table = self._param_tables(
+            coords_dtype
+        )
+
+        with torch.no_grad():
+            derived_coords, derived_atom_inds = gen_hbond_bases(
+                common_args[0],
+                common_args[1],
+                common_args[3],
+                common_args[4],
+                common_args[5],
+                common_args[6],
+                common_args[7],
+                pose_stack.inter_residue_connections,
+                pose_stack.packed_block_types.n_atoms,
+                pose_stack.packed_block_types.n_conn,
+                pose_stack.packed_block_types.conn_atom,
+                pose_stack.packed_block_types.n_all_bonds,
+                pose_stack.packed_block_types.all_bonds,
+                pose_stack.packed_block_types.atom_all_bond_ranges,
+                pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
+                pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
+                pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
+                pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
+                pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
+                pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            )
+
+        return hbond_rotamer_scores(
+            *common_args,
+            pose_stack.inter_residue_connections,
+            pose_stack.min_block_bondsep,
+            pose_stack.inter_block_bondsep,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.n_all_bonds,
+            pose_stack.packed_block_types.all_bonds,
+            pose_stack.packed_block_types.atom_all_bond_ranges,
+            pose_stack.packed_block_types.bond_separation,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
+            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_donorH_type,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_type,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
+            pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            pair_param_table,
+            pair_poly_table,
+            global_param_table,
+            derived_coords,
+            derived_atom_inds,
+            block_pair_scoring,
+        )
+
+    def get_pose_score_term_function(self):
+        return self.pose_score_hbond
+
+    def get_rotamer_score_term_function(self):
+        return self.rotamer_score_hbond
+
+    def get_score_term_attributes(self, pose_stack: PoseStack):
+        return [pose_stack]

@@ -6,12 +6,8 @@ import numpy
 from ..energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
-from tmol.score.dunbrack.dunbrack_whole_pose_module import (
-    DunbrackWholePoseScoringModule,
-)
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.score.dunbrack.params import ScoringDunbrackDatabaseView
-
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -37,6 +33,22 @@ class DunbrackBlockAttrs:
     semirotameric_tableset_offset: int
 
 
+def _empty_dunbrack_attrs() -> "DunbrackBlockAttrs":
+    return DunbrackBlockAttrs(
+        n_dihedrals=0,
+        dih_uaids=numpy.full((0, 4, 3), -1, dtype=numpy.int32),
+        rotamer_table_set=-1,
+        rotameric_index=-1,
+        semirotameric_index=-1,
+        n_chi=0,
+        n_rotameric_chi=0,
+        probability_table_offset=-1,
+        mean_table_offset=-1,
+        rotamer_index_to_table_index_offset=-1,
+        semirotameric_tableset_offset=numpy.array(-1),
+    )
+
+
 class DunbrackEnergyTerm(EnergyTerm):
     device: torch.device  # = attr.ib()
 
@@ -53,6 +65,10 @@ class DunbrackEnergyTerm(EnergyTerm):
         self.device = device
 
     @classmethod
+    def class_name(cls):
+        return "Dunbrack"
+
+    @classmethod
     def score_types(cls):
         import tmol.score.terms.dunbrack_creator
 
@@ -65,6 +81,18 @@ class DunbrackEnergyTerm(EnergyTerm):
         super(DunbrackEnergyTerm, self).setup_block_type(block_type)
 
         if hasattr(block_type, "dunbrack_attrs"):
+            return
+
+        # Dunbrack rotamer libraries cover alpha amino acids only. For ligands
+        # and other non-AA block types, install a sentinel with
+        # rotamer_table_set=-1 so the C++ kernel short-circuits the block.
+        polymer = block_type.properties.polymer
+        if (
+            not polymer.is_polymer
+            or polymer.polymer_type != "amino_acid"
+            or polymer.backbone_type != "alpha"
+        ):
+            setattr(block_type, "dunbrack_attrs", _empty_dunbrack_attrs())
             return
 
         inds = self.global_params.all_table_indices.index.get_indexer(
@@ -98,6 +126,8 @@ class DunbrackEnergyTerm(EnergyTerm):
             else self.global_params.scoring_db_aux.semirotameric_tableset_offsets[
                 s_inds[s_inds != -1]
             ][0]
+            .cpu()
+            .numpy()
         )
 
         empty_tor = numpy.full((4, 3), -1, dtype=numpy.int32)
@@ -117,25 +147,27 @@ class DunbrackEnergyTerm(EnergyTerm):
 
         dih_uaids = numpy.array([phi_uaids] + [psi_uaids] + chis)
 
-        n_chi = self.global_params.scoring_db_aux.nchi_for_table_set[rotamer_table_set]
+        n_chi = self.global_params.scoring_db_aux.nchi_for_table_set[
+            rotamer_table_set
+        ].item()
         n_rotameric_chi = n_chi - (1 if semirotameric else 0)
         n_dihedrals = n_chi + 2
 
-        probability_table_offset = (
+        probability_table_offset = int(
             self.global_params.scoring_db_aux.rotameric_prob_tableset_offsets[
                 rotameric_index
-            ]
+            ].item()
         )
 
-        mean_table_offset = (
+        mean_table_offset = int(
             self.global_params.scoring_db_aux.rotameric_meansdev_tableset_offsets[
                 rotamer_table_set
-            ]
+            ].item()
         )
-        rotamer_index_to_table_index_offset = (
+        rotamer_index_to_table_index_offset = int(
             self.global_params.scoring_db_aux.rotameric_chi_ri2ti_offsets[
                 rotamer_table_set
-            ]
+            ].item()
         )
 
         dunbrack_attrs = DunbrackBlockAttrs(
@@ -171,6 +203,7 @@ class DunbrackEnergyTerm(EnergyTerm):
             packed_block_types.active_block_types,
             device=self.device,
         )
+
         packed_data = [
             pack(lambda f: getattr(f.dunbrack_attrs, field.name))
             for field in dataclasses.fields(DunbrackBlockAttrs)
@@ -190,7 +223,7 @@ class DunbrackEnergyTerm(EnergyTerm):
             cur = numpy.shape(bt_data)
             if max_size is None:
                 max_size = cur
-                dtype = bt_data.dtype
+                dtype = bt_data.dtype if not isinstance(bt_data, int) else int
             max_size = numpy.maximum(max_size, cur)
 
         n_block_types = (len(active_block_types),)
@@ -215,8 +248,12 @@ class DunbrackEnergyTerm(EnergyTerm):
             bt_data = field_getter(bt)
             if bt_data is None:
                 continue
-            slices = [i] + [*map(dim_slices, bt_data.shape)]
-            tensor[slices] = torch.tensor(
+            slices = [i] + (
+                [*map(dim_slices, bt_data.shape)]
+                if not isinstance(bt_data, int)
+                else []
+            )
+            tensor[tuple(slices)] = torch.tensor(
                 bt_data, dtype=dtype_conversion[dtype], device=device
             )
 
@@ -225,14 +262,22 @@ class DunbrackEnergyTerm(EnergyTerm):
     def setup_poses(self, poses: PoseStack):
         super(DunbrackEnergyTerm, self).setup_poses(poses)
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+    def get_pose_score_term_function(self):
+        from tmol.score.dunbrack.potentials.compiled import dunbrack_pose_scores
+
+        return dunbrack_pose_scores
+
+    def get_rotamer_score_term_function(self):
+        from tmol.score.dunbrack.potentials.compiled import dunbrack_rotamer_scores
+
+        return dunbrack_rotamer_scores
+
+    def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types
 
-        return DunbrackWholePoseScoringModule(
-            pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-            pose_stack_block_types=pose_stack.block_type_ind,
-            pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
-            bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
-            global_params=self.dunbrack_db,
-            dunbrack_packed_block_data=pbt.dunbrack_packed_block_data,
-        )
+        return [
+            pose_stack.inter_residue_connections,
+            pbt.atom_downstream_of_conn,
+            *self.dunbrack_db,
+            *pbt.dunbrack_packed_block_data,
+        ]

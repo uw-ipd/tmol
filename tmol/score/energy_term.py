@@ -1,11 +1,21 @@
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+from tmol.pack.rotamer.build_rotamers import RotamerSet
+from tmol.score.common.scoring_module import (
+    TermWholePoseScoringModule,
+    TermBlockPairScoringModule,
+    TermRotamerScoringModule,
+)
 
 
 class EnergyTerm:
     def __init__(self, **kwargs):
         pass
+
+    @classmethod
+    def class_name(self):
+        raise NotImplementedError()
 
     def score_types(self):
         """Return the list of score types that this EnergyTerm computes
@@ -84,5 +94,54 @@ class EnergyTerm:
         """
         pass
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+    def set_options(self, options: dict):
+        """Receive a dictionary of options from the ScoreFunction.
+
+        Subclasses may override this method to extract configuration values
+        that affect scoring behavior, such as boolean flags, numeric
+        parameters, or other settings. The base implementation is a no-op.
+        """
         pass
+
+    def get_score_term_attributes(self, pose_stack: PoseStack):
+        raise NotImplementedError()
+
+    def get_pose_score_term_function(self):
+        raise NotImplementedError()
+
+    def get_rotamer_score_term_function(self):
+        raise NotImplementedError()
+
+    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+        f = self.get_pose_score_term_function()
+
+        return TermWholePoseScoringModule(
+            self.class_name(),
+            pose_stack,
+            self.get_score_term_attributes(pose_stack),
+            f,
+        )
+
+    def render_block_pair_scoring_module(self, pose_stack: PoseStack):
+        f = self.get_pose_score_term_function()
+        return TermBlockPairScoringModule(
+            self.class_name(),
+            pose_stack,
+            self.get_score_term_attributes(pose_stack),
+            f,
+        )
+
+    def render_rotamer_scoring_module(
+        self, pose_stack: PoseStack, rotamer_set: RotamerSet
+    ):
+        try:
+            f = self.get_rotamer_score_term_function()
+        except NotImplementedError:
+            f = self.get_score_term_function()
+
+        return TermRotamerScoringModule(
+            self.class_name(),
+            rotamer_set,
+            self.get_score_term_attributes(pose_stack),
+            f,
+        )

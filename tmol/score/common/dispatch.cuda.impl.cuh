@@ -72,7 +72,7 @@ struct ExhaustiveDispatch<tmol::Device::CUDA> {
 
   int _n_i, _n_j;
 
-  ExhaustiveDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j){};
+  ExhaustiveDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j) {};
 
   template <typename Real>
   int scan(
@@ -106,7 +106,7 @@ struct ExhaustiveTriuDispatch<tmol::Device::CUDA> {
 
   int _n_i, _n_j;
 
-  ExhaustiveTriuDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j){};
+  ExhaustiveTriuDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j) {};
 
   template <typename Real>
   int scan(

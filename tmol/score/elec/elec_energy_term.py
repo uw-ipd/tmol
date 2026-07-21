@@ -5,8 +5,6 @@ from ..bond_dependent_term import BondDependentTerm
 
 from tmol.database import ParameterDatabase
 from tmol.score.elec.params import ElecParamResolver, ElecGlobalParams
-from tmol.score.elec.elec_whole_pose_module import ElecWholePoseScoringModule
-
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -23,6 +21,10 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(ElecEnergyTerm, self).__init__(param_db=param_db, device=device)
         self.param_resolver = param_resolver
         self.global_params = self.param_resolver.global_params
+
+    @classmethod
+    def class_name(cls):
+        return "Elec"
 
     @classmethod
     def score_types(cls):
@@ -64,6 +66,17 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
 
         inter_rep_path_dist = block_type.path_distance[:, representative_mapping]
         intra_rep_path_dist = inter_rep_path_dist[representative_mapping, :]
+
+        # Ligands (non-polymer residues) use CP_CROSSOVER_3FULL: 1-4 pairs get
+        # full weight (1.0) rather than the standard 0.2. Encode these pairs as
+        # distance 5 so connectivity_weight() returns 1.0 without C++ changes.
+        if not block_type.properties.polymer.is_polymer:
+            intra_rep_path_dist = intra_rep_path_dist.copy()
+            # CP_CROSSOVER_3FULL: path_dist >= 3 bonds counts at weight 1.0.
+            # Encode path_dist 3 and 4 as 5 so connectivity_weight returns 1.0.
+            intra_rep_path_dist[
+                (intra_rep_path_dist == 3) | (intra_rep_path_dist == 4)
+            ] = 5
 
         setattr(block_type, "elec_partial_charge", partial_charge)
         setattr(block_type, "elec_inter_repr_path_distance", inter_rep_path_dist)
@@ -121,18 +134,42 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     def setup_poses(self, poses: PoseStack):
         super(ElecEnergyTerm, self).setup_poses(poses)
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-        pbt = pose_stack.packed_block_types
-        return ElecWholePoseScoringModule(
-            pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-            pose_stack_block_types=pose_stack.block_type_ind,
-            pose_stack_min_block_bondsep=pose_stack.min_block_bondsep,
-            pose_stack_inter_block_bondsep=pose_stack.inter_block_bondsep,
-            bt_n_atoms=pbt.n_atoms,
-            bt_partial_charge=pbt.elec_partial_charge,
-            bt_n_interblock_bonds=pbt.n_conn,
-            bt_atoms_forming_chemical_bonds=pbt.conn_atom,
-            bt_inter_repr_path_distance=pbt.elec_inter_repr_path_distance,
-            bt_intra_repr_path_distance=pbt.elec_intra_repr_path_distance,
-            global_params=self.global_params,
-        )
+    def get_pose_score_term_function(self):
+        from tmol.score.elec.potentials.compiled import elec_pose_scores
+
+        return elec_pose_scores
+
+    def get_rotamer_score_term_function(self):
+        from tmol.score.elec.potentials.compiled import elec_rotamer_scores
+
+        return elec_rotamer_scores
+
+    def get_score_term_attributes(self, pose_stack):
+        def _t(ts):
+            return tuple(map(lambda t: t.to(torch.float), ts))
+
+        global_params = torch.tensor(
+            [
+                self.global_params.elec_sigmoidal_die_D,
+                self.global_params.elec_sigmoidal_die_D0,
+                self.global_params.elec_sigmoidal_die_S,
+                self.global_params.elec_min_dis,
+                self.global_params.elec_max_dis,
+            ],
+            dtype=torch.float32,
+            device=pose_stack.device,
+        )[None, :]
+
+        return [
+            pose_stack.min_block_bondsep,
+            pose_stack.inter_block_bondsep,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.elec_partial_charge,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.elec_inter_repr_path_distance,
+            pose_stack.packed_block_types.elec_intra_repr_path_distance,
+            global_params,
+            # elec_max_dis as host scalar for detect-neighbors call
+            float(self.global_params.elec_max_dis),
+        ]

@@ -7,17 +7,10 @@ from .params import LJLKTypeParams, LJLKGlobalParams
 from tmol.database import ParameterDatabase
 from tmol.score.common.stack_condense import tile_subset_indices
 from tmol.score.ljlk.params import LJLKParamResolver
-from tmol.score.ljlk.ljlk_whole_pose_module import LJLKWholePoseScoringModule
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.types.torch import Tensor
-
-from tmol.score.ljlk.potentials.compiled import (
-    score_ljlk_inter_system_scores,
-    register_lj_lk_rotamer_pair_energy_eval,
-)
 
 
 class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
@@ -33,6 +26,11 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         self.type_params = ljlk_param_resolver.type_params
         self.global_params = ljlk_param_resolver.global_params
         self.tile_size = LJLKEnergyTerm.tile_size
+        self.soft_repulsive = False
+
+    @classmethod
+    def class_name(cls):
+        return "LJLK"
 
     @classmethod
     def score_types(cls):
@@ -42,6 +40,10 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
 
     def n_bodies(self):
         return 2
+
+    def set_options(self, options: dict):
+        if "soft_rep" in options:
+            self.soft_repulsive = options["soft_rep"]
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(LJLKEnergyTerm, self).setup_block_type(block_type)
@@ -58,6 +60,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(LJLKEnergyTerm, self).setup_packed_block_types(packed_block_types)
         if hasattr(packed_block_types, "ljlk_heavy_atoms_in_tile"):
             assert hasattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile")
+            assert hasattr(packed_block_types, "ljlk_bond_separation")
             return
         max_n_tiles = (packed_block_types.max_n_atoms - 1) // self.tile_size + 1
         heavy_atoms_in_tile = torch.full(
@@ -85,303 +88,80 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         setattr(packed_block_types, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
         setattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile", n_heavy_ats_in_tile)
 
+        # Ligands (non-polymer) use CP_CROSSOVER_3FULL: 1-4 pairs get full
+        # weight (1.0). Build a modified bond_separation where path_dist=4 is
+        # encoded as 5 for non-polymer block types so connectivity_weight
+        # returns 1.0. Keep bond_separation unchanged for hbond (binary excl.).
+        ljlk_bond_separation = packed_block_types.bond_separation.clone()
+        for i, bt in enumerate(packed_block_types.active_block_types):
+            if not bt.properties.polymer.is_polymer:
+                n = packed_block_types.n_atoms[i]
+                slab = ljlk_bond_separation[i, :n, :n]
+                slab[(slab == 3) | (slab == 4)] = 5
+        setattr(packed_block_types, "ljlk_bond_separation", ljlk_bond_separation)
+
     def setup_poses(self, poses: PoseStack):
         super(LJLKEnergyTerm, self).setup_poses(poses)
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-        pbt = pose_stack.packed_block_types
-        return LJLKWholePoseScoringModule(
-            pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-            pose_stack_block_types=pose_stack.block_type_ind,
-            pose_stack_min_block_bondsep=pose_stack.min_block_bondsep,
-            pose_stack_inter_block_bondsep=pose_stack.inter_block_bondsep,
-            bt_n_atoms=pbt.n_atoms,
-            bt_n_heavy_atoms=pbt.n_heavy_atoms,
-            bt_n_heavy_atoms_in_tile=pbt.ljlk_n_heavy_atoms_in_tile,
-            bt_heavy_atoms_in_tile=pbt.ljlk_heavy_atoms_in_tile,
-            bt_atom_types=pbt.atom_types,
-            bt_heavy_atom_inds=pbt.heavy_atom_inds,
-            bt_n_interblock_bonds=pbt.n_conn,
-            bt_atoms_forming_chemical_bonds=pbt.conn_atom,
-            bt_path_distance=pbt.bond_separation,
-            ljlk_type_params=self.type_params,
-            global_params=self.global_params,
-        )
+    def get_pose_score_term_function(self):
+        from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores
 
-    def render_inter_module(
-        self,
-        packed_block_types: PackedBlockTypes,
-        systems: PoseStack,
-        context_system_ids: Tensor[int][:, :],
-        system_bounding_spheres: Tensor[float][:, :, 4],
-        weights,  # map string->Real
-    ):
-        system_neighbor_list = self.create_block_neighbor_lists(
-            systems, system_bounding_spheres
-        )
-        lj_lk_weights = torch.zeros((2,), dtype=torch.float32, device=self.device)
-        lj_lk_weights[0] = weights["lj"] if "lj" in weights else 0
-        lj_lk_weights[1] = weights["lk"] if "lk" in weights else 0
+        return ljlk_pose_scores
 
-        pbt = packed_block_types
-        return LJLKInterSystemModule(
-            context_system_ids=context_system_ids,
-            system_min_block_bondsep=systems.min_block_bondsep,
-            system_inter_block_bondsep=systems.inter_block_bondsep,
-            system_neighbor_list=system_neighbor_list,
-            bt_n_atoms=pbt.n_atoms,
-            bt_n_heavy_atoms=pbt.n_heavy_atoms,
-            bt_n_heavy_atoms_in_tile=pbt.ljlk_n_heavy_atoms_in_tile,
-            bt_heavy_atoms_in_tile=pbt.ljlk_heavy_atoms_in_tile,
-            bt_atom_types=pbt.atom_types,
-            bt_heavy_atom_inds=pbt.heavy_atom_inds,
-            bt_n_interblock_bonds=pbt.n_conn,
-            bt_atoms_forming_chemical_bonds=pbt.conn_atom,
-            bt_path_distance=pbt.bond_separation,
-            type_params=self.type_params,
-            global_params=self.global_params,
-            lj_lk_weights=lj_lk_weights,
-        )
+    def get_rotamer_score_term_function(self):
+        from tmol.score.ljlk.potentials.compiled import ljlk_rotamer_scores
 
-    def create_block_neighbor_lists(
-        self, systems: PoseStack, system_bounding_spheres: Tensor[float][:, :, 4]
-    ):
-        # we need to make lists of all block pairs within
-        # striking distances of each other that we will use to
-        # decide which atom-pair calculations to perform during
-        # rotamer substititions
-        sphere_centers = system_bounding_spheres[:, :, :3].clone().detach()
-        n_sys = system_bounding_spheres.shape[0]
-        max_n_blocks = system_bounding_spheres.shape[1]
-        sphere_centers_1 = sphere_centers.view((n_sys, -1, max_n_blocks, 3))
-        sphere_centers_2 = sphere_centers.view((n_sys, max_n_blocks, -1, 3))
-        sphere_dists = torch.norm(sphere_centers_1 - sphere_centers_2, dim=3)
-        expanded_radii = (
-            system_bounding_spheres[:, :, 3] + self.global_params.max_dis / 2
-        )
-        expanded_radii_1 = expanded_radii.view(n_sys, -1, max_n_blocks)
-        expanded_radii_2 = expanded_radii.view(n_sys, max_n_blocks, -1)
-        radii_sum = expanded_radii_1 + expanded_radii_2
-        spheres_overlap = sphere_dists < radii_sum
+        return ljlk_rotamer_scores
 
-        # great -- now how tf are we going to condense this into the lists
-        # of neighbors for each block?
-
-        neighbor_counts = torch.sum(spheres_overlap, dim=2)
-        max_n_neighbors = torch.max(neighbor_counts)
-
-        neighbor_list = torch.full(
-            (n_sys, max_n_blocks, max_n_neighbors),
-            -1,
-            dtype=torch.int32,
-            device=self.device,
-        )
-        nz_spheres_overlap = torch.nonzero(spheres_overlap)
-        inc_inds = (
-            torch.arange(max_n_neighbors, device=self.device)
-            .repeat(n_sys * max_n_blocks)
-            .view(n_sys, max_n_blocks, max_n_neighbors)
-        )
-        store_neighbor = inc_inds < neighbor_counts.view(n_sys, max_n_blocks, 1)
-
-        neighbor_list[
-            nz_spheres_overlap[:, 0],
-            nz_spheres_overlap[:, 1],
-            inc_inds[store_neighbor].view(-1),
-        ] = nz_spheres_overlap[:, 2].type(torch.int32)
-
-        return neighbor_list
-
-
-# class LJLKInterSystemModule(torch.jit.ScriptModule):
-class LJLKInterSystemModule:
-    def __init__(
-        self,
-        context_system_ids,
-        system_min_block_bondsep,
-        system_inter_block_bondsep,
-        system_neighbor_list,
-        bt_n_atoms,
-        bt_n_heavy_atoms,
-        bt_n_heavy_atoms_in_tile,
-        bt_heavy_atoms_in_tile,
-        bt_atom_types,
-        bt_heavy_atom_inds,
-        bt_n_interblock_bonds,
-        bt_atoms_forming_chemical_bonds,
-        bt_path_distance,
-        type_params,
-        global_params,
-        lj_lk_weights,
-    ):
-        super().__init__()
-
-        def _p(t):
-            return torch.nn.Parameter(t, requires_grad=False)
-
+    def get_score_term_attributes(self, pose_stack):
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))
 
-        self.context_system_ids = _p(context_system_ids)
-        self.system_min_block_bondsep = _p(system_min_block_bondsep)
-        self.system_inter_block_bondsep = _p(system_inter_block_bondsep)
-        self.system_neighbor_list = _p(system_neighbor_list)
-        self.bt_n_atoms = _p(bt_n_atoms)
-        self.bt_n_heavy_atoms = _p(bt_n_heavy_atoms)
-        self.bt_n_heavy_atoms_in_tile = _p(bt_n_heavy_atoms_in_tile)
-        self.bt_heavy_atoms_in_tile = _p(bt_heavy_atoms_in_tile)
-        self.bt_atom_types = _p(bt_atom_types)
-        self.bt_heavy_atom_inds = _p(bt_heavy_atom_inds)
-        self.bt_n_interblock_bonds = _p(bt_n_interblock_bonds)
-        self.bt_atoms_forming_chemical_bonds = _p(bt_atoms_forming_chemical_bonds)
-        self.bt_path_distance = _p(bt_path_distance)
-
-        # Pack parameters into dense tensor. Parameter ordering must match
-        # struct layout declared in `potentials/params.hh`.
-        self.lj_type_params = _p(
-            torch.stack(
-                _t(
-                    [
-                        type_params.lj_radius,
-                        type_params.lj_wdepth,
-                        type_params.is_donor,
-                        type_params.is_hydroxyl,
-                        type_params.is_polarh,
-                        type_params.is_acceptor,
-                    ]
-                ),
-                dim=1,
-            )
+        type_params = torch.stack(
+            _t(
+                [
+                    self.type_params.lj_radius,
+                    self.type_params.lj_wdepth,
+                    self.type_params.lk_dgfree,
+                    self.type_params.lk_lambda,
+                    self.type_params.lk_volume,
+                    self.type_params.is_donor,
+                    self.type_params.is_hydroxyl,
+                    self.type_params.is_polarh,
+                    self.type_params.is_acceptor,
+                    self.type_params.is_carbon_lk,
+                ]
+            ),
+            dim=1,
         )
-
-        # Pack parameters into dense tensor. Parameter ordering must match
-        # struct layout declared in `potentials/params.hh`.
-        self.lk_type_params = _p(
-            torch.stack(
-                _t(
-                    [
-                        type_params.lj_radius,
-                        type_params.lk_dgfree,
-                        type_params.lk_lambda,
-                        type_params.lk_volume,
-                        type_params.is_donor,
-                        type_params.is_hydroxyl,
-                        type_params.is_polarh,
-                        type_params.is_acceptor,
-                    ]
-                ),
-                dim=1,
-            )
+        global_params = torch.stack(
+            _t(
+                [
+                    self.global_params.max_dis,
+                    (
+                        self.global_params.lj_dlin_sigma_factor_soft
+                        if self.soft_repulsive
+                        else self.global_params.lj_dlin_sigma_factor
+                    ),
+                    self.global_params.lj_hbond_dis,
+                    self.global_params.lj_hbond_OH_donor_dis,
+                    self.global_params.lj_hbond_hdis,
+                ]
+            ),
+            dim=1,
         )
-
-        self.ljlk_type_params = _p(
-            torch.stack(
-                _t(
-                    [
-                        type_params.lj_radius,
-                        type_params.lj_wdepth,
-                        type_params.lk_dgfree,
-                        type_params.lk_lambda,
-                        type_params.lk_volume,
-                        type_params.is_donor,
-                        type_params.is_hydroxyl,
-                        type_params.is_polarh,
-                        type_params.is_acceptor,
-                    ]
-                ),
-                dim=1,
-            )
-        )
-
-        self.global_params = _p(
-            torch.stack(
-                _t(
-                    [
-                        global_params.lj_hbond_dis,
-                        global_params.lj_hbond_OH_donor_dis,
-                        global_params.lj_hbond_hdis,
-                    ]
-                ),
-                dim=1,
-            )
-        )
-        self.lj_lk_weights = _p(lj_lk_weights)
-
-    def register_with_sim_annealer(
-        self,
-        context_coords,
-        context_coord_offsets,
-        context_block_type,
-        alternate_coords,
-        alternate_coord_offsets,
-        alternate_ids,
-        output_energies,
-        score_event_tensor,
-        annealer_event_tensor,
-        annealer,
-    ):
-        register_lj_lk_rotamer_pair_energy_eval(
-            context_coords,
-            context_coord_offsets,
-            context_block_type,
-            alternate_coords,
-            alternate_coord_offsets,
-            alternate_ids,
-            self.context_system_ids,
-            self.system_min_block_bondsep,
-            self.system_inter_block_bondsep,
-            self.system_neighbor_list,
-            self.bt_n_atoms,
-            self.bt_n_heavy_atoms,
-            self.bt_n_heavy_atoms_in_tile,
-            self.bt_heavy_atoms_in_tile,
-            self.bt_atom_types,
-            self.bt_heavy_atom_inds,
-            self.bt_n_interblock_bonds,
-            self.bt_atoms_forming_chemical_bonds,
-            self.bt_path_distance,
-            self.ljlk_type_params,
-            self.global_params,
-            self.lj_lk_weights,
-            output_energies,
-            score_event_tensor,
-            annealer_event_tensor,
-            annealer,
-        )
-
-    # deprecated
-    # @torch.jit.script_method
-    # def forward(
-    def go(
-        self,
-        context_coords,
-        context_coord_offsets,
-        context_block_type,
-        alternate_coords,
-        alternate_coord_offsets,
-        alternate_ids,
-    ):
-        return score_ljlk_inter_system_scores(
-            context_coords,
-            context_coord_offsets,
-            context_block_type,
-            alternate_coords,
-            alternate_coord_offsets,
-            alternate_ids,
-            self.context_system_ids,
-            self.system_min_block_bondsep,
-            self.system_inter_block_bondsep,
-            self.system_neighbor_list,
-            self.bt_n_atoms,
-            self.bt_n_heavy_atoms,
-            self.bt_n_heavy_atoms_in_tile,
-            self.bt_heavy_atoms_in_tile,
-            self.bt_atom_types,
-            self.bt_heavy_atom_inds,
-            self.bt_n_interblock_bonds,
-            self.bt_atoms_forming_chemical_bonds,
-            self.bt_path_distance,
-            self.ljlk_type_params,
-            self.global_params,
-            self.lj_lk_weights,
-        )
+        return [
+            pose_stack.min_block_bondsep,
+            pose_stack.inter_block_bondsep,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.ljlk_n_heavy_atoms_in_tile,
+            pose_stack.packed_block_types.ljlk_heavy_atoms_in_tile,
+            pose_stack.packed_block_types.atom_types,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.ljlk_bond_separation,
+            type_params,
+            global_params,
+            # max_dis as host scalar for detect-neighbors call
+            float(self.global_params.max_dis.item()),
+        ]

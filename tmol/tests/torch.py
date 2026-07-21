@@ -5,9 +5,10 @@ import pytest
 import torch
 import torch.cuda
 
-cuda_available = torch.cuda.is_available()
-
-requires_cuda = pytest.mark.skipif(not cuda_available, reason="Requires cuda.")
+requires_cuda = pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="Requires cuda.",
+)
 
 
 def zero_padded_counts(counts):
@@ -54,7 +55,7 @@ def cuda_not_implemented(f):
 
 
 @pytest.fixture
-def torch_backward_coverage(cov):
+def torch_backward_coverage(request):
     """Torch hook to enable coverage in backward pass.
 
     Returns a hook function used to enable coverage tracing during
@@ -72,6 +73,9 @@ def torch_backward_coverage(cov):
     # call backward via sum so hook fires before custom_op backward
     result.sum().backward()
     """
+
+    cov = request.config.pluginmanager.get_plugin("_cov")
+    cov = getattr(cov, "cov", None) if cov else None
 
     if cov:
         print("cov collector???", hasattr(cov, "collector"))

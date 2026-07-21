@@ -9,7 +9,6 @@ from tmol.io.canonical_ordering import (
 from tmol.io.details.disulfide_search import find_disulfides
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
-
 # ATOM    160  N   CYS L  23     -60.489 -22.492  -9.505  1.00 63.92           N
 # ATOM    161  CA  CYS L  23     -60.175 -22.416  -8.082  1.00 64.85           C
 # ATOM    162  C   CYS L  23     -58.707 -22.056  -7.882  1.00 66.35           C
@@ -54,11 +53,7 @@ from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 def cf_as_tuple_from_pdb_lines(co, pdblines, device):
     cf = canonical_form_from_pdb(co, pdblines, device)
-    return (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
-    )
+    return tuple([*cf])
 
 
 def test_find_disulfide_pairs():
@@ -126,8 +121,8 @@ def test_find_disulfide_pairs():
 
 def test_find_disulf_in_pdb(pertuzumab_pdb):
     co = default_canonical_ordering()
-    chain_id, res_types, coords = cf_as_tuple_from_pdb_lines(
-        co, pertuzumab_pdb, torch.device("cpu")
+    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf, dslf, rnc = (
+        cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch.device("cpu"))
     )
 
     found_dslf, restype_variants = find_disulfides(co, res_types, coords)
@@ -149,8 +144,8 @@ def test_find_disulf_in_pdb(pertuzumab_pdb):
 
 def test_find_disulf_w_some_provided(pertuzumab_pdb):
     co = default_canonical_ordering()
-    chain_id, res_types, coords = cf_as_tuple_from_pdb_lines(
-        co, pertuzumab_pdb, torch.device("cpu")
+    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf, dslf, rnc = (
+        cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch.device("cpu"))
     )
 
     # let's imagine that [0, 213, 435] is a surprise disulfide!
@@ -178,8 +173,8 @@ def test_find_disulf_w_some_provided(pertuzumab_pdb):
 
 def test_find_disulf_w_some_provided_but_rest_skipped(pertuzumab_pdb):
     co = default_canonical_ordering()
-    chain_id, res_types, coords = cf_as_tuple_from_pdb_lines(
-        co, pertuzumab_pdb, torch.device("cpu")
+    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf, dslf, rnc = (
+        cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch.device("cpu"))
     )
 
     # let's imagine that [0, 213, 435] is a surprise disulfide!
@@ -203,8 +198,8 @@ def test_find_disulf_w_some_provided_but_rest_skipped(pertuzumab_pdb):
 
 def test_find_disulf_w_all_provided(pertuzumab_pdb):
     co = default_canonical_ordering()
-    chain_id, res_types, coords = cf_as_tuple_from_pdb_lines(
-        co, pertuzumab_pdb, torch.device("cpu")
+    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf, dslf, rnc = (
+        cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch.device("cpu"))
     )
 
     # we will provide all the disulfides but in an order the
@@ -239,8 +234,8 @@ def test_find_disulf_w_all_provided(pertuzumab_pdb):
 
 def test_find_disulf_w_no_cys(ubq_pdb):
     co = default_canonical_ordering()
-    chain_id, res_types, coords = cf_as_tuple_from_pdb_lines(
-        co, ubq_pdb, torch.device("cpu")
+    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf, dslf, rnc = (
+        cf_as_tuple_from_pdb_lines(co, ubq_pdb, torch.device("cpu"))
     )
 
     found_dslf, restype_variants = find_disulfides(co, res_types, coords)
@@ -260,8 +255,8 @@ def test_find_disulf_w_no_cys_in_canonical_ordering(
     small_co = CanonicalOrdering.from_chemdb(small_patched_chem_db)
     cf = canonical_form_from_pdb(small_co, ubq_pdb, torch_device, residue_end=1)
 
-    res_types = cf["res_types"]
-    coords = cf["coords"]
+    res_types = cf.res_types
+    coords = cf.coords
 
     found_dslf, restype_variants = find_disulfides(small_co, res_types, coords)
     assert (0, 3) == found_dslf.shape

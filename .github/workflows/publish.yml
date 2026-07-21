@@ -1,0 +1,455 @@
+# Build wheels + sdist, upload sdist to PyPI, upload wheels to GitHub Release.
+#
+# Runs on version tag push or manual trigger.
+#
+# PyPI rejects wheel filenames with "+" local version segments
+# (e.g. +cu128torch2.10), so wheels are distributed via GitHub Releases
+# and installed via explicit wheel URL (or pinned local version with
+# --find-links).
+#
+# Three separate jobs so you can RE-RUN just the upload if it fails
+# without rebuilding wheels/sdist.
+
+name: Publish Release Artifacts
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  verify_release_version:
+    name: Verify release tag matches project version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Ensure tag and pyproject version are aligned
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          ref_type = os.environ.get("GITHUB_REF_TYPE", "")
+          ref_name = os.environ.get("GITHUB_REF_NAME", "")
+          if ref_type != "tag":
+              print(
+                  "This workflow must run on a tag ref (e.g. v0.1.15). "
+                  f"Got ref_type={ref_type!r}, ref_name={ref_name!r}."
+              )
+              sys.exit(1)
+
+          if not ref_name.startswith("v"):
+              print(f"Release tag must start with 'v'. Got: {ref_name!r}.")
+              sys.exit(1)
+
+          tag_version = ref_name[1:]
+          pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          project_version = pyproject.get("project", {}).get("version")
+          if not project_version:
+              print("Could not parse [project].version from pyproject.toml.")
+              sys.exit(1)
+          if tag_version != project_version:
+              print(
+                  "Tag/version mismatch detected:\\n"
+                  f"  tag: v{tag_version}\\n"
+                  f"  pyproject.toml version: {project_version}\\n"
+                  "Update pyproject version or retag before publishing."
+              )
+              sys.exit(1)
+
+          print(f"Release version check passed: v{tag_version}")
+          PY
+
+  # ── GPU wheels ───────────────────────────────────────────────────────
+  build_wheels:
+    name: "${{ matrix.label }}"
+    needs: verify_release_version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ── x86_64 py3.11 ──
+          - python-version: "3.11"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-22.04
+            label: "py3.11 pt2.12 x86_64 manylinux"
+
+          # ── x86_64 py3.12 ──
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:25.06-py3
+            torch-version: "2.8"
+            torch-package-version: "2.8.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu129"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.8 cu129 x86_64"
+          - python-version: "3.12"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.9"
+            torch-package-version: "2.9.1"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.9 cu130 x86_64"
+          - python-version: "3.12"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.10"
+            torch-package-version: "2.10.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.10 cu130 x86_64"
+          - python-version: "3.12"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.11"
+            torch-package-version: "2.11.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.11 cu130 x86_64"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.12 x86_64 manylinux"
+          - python-version: "3.12"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.13 x86_64 cu130"
+
+          # ── x86_64 py3.12 cu128 torch2.10 (foundry torch-2.10 upgrade path) ──
+          # Datacenter target (no sm_75); consumed by foundry upgrade_torch_cu12_to_210.sh.
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:25.02-py3
+            torch-version: "2.10"
+            torch-package-version: "2.10.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.10 x86_64 manylinux cu128"
+
+          # ── x86_64 py3.12 Colab wheel (T4/sm_75, torch 2.8 cu128) ──
+          # The ONLY wheel that carries sm_75. Matches Colab runtime 2025.10
+          # (Python 3.12, torch 2.8, T4); archs cover T4(75)/A100(80)/L4(89).
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:25.02-py3
+            torch-version: "2.8"
+            torch-package-version: "2.8.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
+            cuda-archs: "75;80;89"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.8 x86_64 Colab cu128"
+
+          # ── ARM64 py3.11 ──
+          - python-version: "3.11"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.11 pt2.12 aarch64 manylinux"
+
+          # ── ARM64 py3.12 ──
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:25.06-py3
+            torch-version: "2.8"
+            torch-package-version: "2.8.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu129"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.12 pt2.8 cu129 aarch64"
+          - python-version: "3.12"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.9"
+            torch-package-version: "2.9.1"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.12 pt2.9 cu130 aarch64"
+          - python-version: "3.12"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.10"
+            torch-package-version: "2.10.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.12 pt2.10 cu130 aarch64"
+          - python-version: "3.12"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.11"
+            torch-package-version: "2.11.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.12 pt2.11 cu130 aarch64"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.12 pt2.12 aarch64 manylinux"
+          - python-version: "3.12"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.12 pt2.13 aarch64 cu130"
+
+          # ── x86_64 py3.13/py3.14 ──
+          - python-version: "3.13"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-22.04
+            label: "py3.13 pt2.12 x86_64 manylinux"
+          - python-version: "3.13"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-22.04
+            label: "py3.13 pt2.13 x86_64 cu130"
+          - python-version: "3.14"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-22.04
+            label: "py3.14 pt2.12 x86_64 manylinux"
+          - python-version: "3.14"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-22.04
+            label: "py3.14 pt2.13 x86_64 cu130"
+
+          # ── ARM64 py3.13/py3.14 ──
+          - python-version: "3.13"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.13 pt2.12 aarch64 manylinux"
+          - python-version: "3.13"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.13 pt2.13 aarch64 cu130"
+          - python-version: "3.14"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.14 pt2.12 aarch64 manylinux"
+          - python-version: "3.14"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+            torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-24.04-arm
+            label: "py3.14 pt2.13 aarch64 cu130"
+
+    uses: ./.github/workflows/_build_wheel.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      container-image: ${{ matrix.container-image }}
+      torch-version: ${{ matrix.torch-version }}
+      torch-package-version: ${{ matrix.torch-package-version || '' }}
+      python-version: ${{ matrix.python-version }}
+      label: ${{ matrix.label }}
+      pip-torch-cuda-url: ${{ matrix.pip-torch-cuda-url || '' }}
+      enable-cuda: true
+      cuda-archs: ${{ matrix.cuda-archs || '' }}
+      use-manylinux-build: true
+      target-arch: ${{ contains(matrix.runs-on, 'arm') && 'aarch64' || 'x86_64' }}
+
+  # ── CPU-only wheel ─────────────────────────────────────────────────
+  build_cpu_wheel:
+    name: "py${{ matrix.python-version }} CPU-only ${{ matrix.arch }}"
+    needs: verify_release_version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.11"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+          - python-version: "3.12"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+          - python-version: "3.13"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+          - python-version: "3.14"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+          - python-version: "3.11"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+          - python-version: "3.12"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+          - python-version: "3.13"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+          - python-version: "3.14"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+    uses: ./.github/workflows/_build_wheel.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      container-image: unused-for-manylinux-cpu
+      torch-version: "2.13"
+      torch-package-version: "2.13.0"
+      python-version: ${{ matrix.python-version }}
+      label: "py${{ matrix.python-version }} CPU-only ${{ matrix.arch }}"
+      pip-torch-cuda-url: "https://download.pytorch.org/whl/cpu"
+      enable-cuda: false
+      use-manylinux-build: true
+      target-arch: ${{ matrix.arch }}
+
+  # ── sdist ──────────────────────────────────────────────────────────
+  build_sdist:
+    name: Build sdist
+    needs: verify_release_version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install "cmake>=3.18,<4" "scikit-build-core>=0.10" ninja "packaging>=24.2" "pybind11>=2.12" build
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Build sdist
+        run: python -m build --sdist --no-isolation --outdir dist
+
+      - name: Log sdist
+        run: ls -lh dist/
+
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  # ── Upload ─────────────────────────────────────────────────────────
+  #
+  # sdist -> PyPI  (no local version segment, PyPI accepts it)
+  # wheels -> GitHub Release  (local version +cu... is fine here)
+  #
+  # If this job fails you can RE-RUN just this job from the Actions UI.
+  upload:
+    name: Upload sdist to PyPI + wheels to GitHub Release
+    needs: [build_wheels, build_cpu_wheel, build_sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install twine
+        run: pip install twine
+
+      - name: Download sdist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: wheels/
+          pattern: wheel-*
+          merge-multiple: true
+
+      - name: List all packages
+        run: |
+          echo "=== sdist ==="
+          ls -lh dist/
+          echo "=== wheels ==="
+          ls -lh wheels/ || echo "(no wheels)"
+
+      - name: Validate release wheel manifest
+        run: |
+          python scripts/validate_release_manifest.py wheels \
+            --gpu-count 24 \
+            --cpu-count 8 \
+            --platform manylinux_2_28_x86_64 \
+            --platform manylinux_2_28_aarch64 \
+            --require cu132torch2.12:cp311:x86_64 \
+            --require cu129torch2.8:cp312:x86_64 \
+            --require cu128torch2.8:cp312:x86_64 \
+            --require cu130torch2.9:cp312:x86_64 \
+            --require cu130torch2.10:cp312:x86_64 \
+            --require cu128torch2.10:cp312:x86_64 \
+            --require cu130torch2.11:cp312:x86_64 \
+            --require cu132torch2.12:cp312:x86_64 \
+            --require cu130torch2.13:cp312:x86_64 \
+            --require cu132torch2.12:cp313:x86_64 \
+            --require cu130torch2.13:cp313:x86_64 \
+            --require cu132torch2.12:cp314:x86_64 \
+            --require cu130torch2.13:cp314:x86_64 \
+            --require cu132torch2.12:cp311:aarch64 \
+            --require cu129torch2.8:cp312:aarch64 \
+            --require cu130torch2.9:cp312:aarch64 \
+            --require cu130torch2.10:cp312:aarch64 \
+            --require cu130torch2.11:cp312:aarch64 \
+            --require cu132torch2.12:cp312:aarch64 \
+            --require cu130torch2.13:cp312:aarch64 \
+            --require cu132torch2.12:cp313:aarch64 \
+            --require cu130torch2.13:cp313:aarch64 \
+            --require cu132torch2.12:cp314:aarch64 \
+            --require cu130torch2.13:cp314:aarch64 \
+            --require cpu:cp311:x86_64 \
+            --require cpu:cp312:x86_64 \
+            --require cpu:cp313:x86_64 \
+            --require cpu:cp314:x86_64 \
+            --require cpu:cp311:aarch64 \
+            --require cpu:cp312:aarch64 \
+            --require cpu:cp313:aarch64 \
+            --require cpu:cp314:aarch64
+
+      - name: Upload sdist to PyPI
+        env:
+          TWINE_USERNAME: "__token__"
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload --skip-existing --repository-url https://upload.pypi.org/legacy/ dist/*
+
+      - name: Determine version from sdist filename
+        id: version
+        run: |
+          SDIST=$(ls dist/*.tar.gz | head -1 | xargs basename)
+          VERSION=$(echo "$SDIST" | sed 's/^tmol-//;s/\.tar\.gz$//')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Create or get GitHub Release
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.version.outputs.version }}"
+          name: "v${{ steps.version.outputs.version }}"
+          draft: false
+          prerelease: true
+          generate_release_notes: false
+          files: wheels/*.whl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

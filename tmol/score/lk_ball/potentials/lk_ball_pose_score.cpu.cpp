@@ -17,6 +17,17 @@ template struct LKBallPoseScoreDispatch<
     double,
     int>;
 
+template struct LKBallRotamerScoreDispatch<
+    common::DeviceOperations,
+    tmol::Device::CPU,
+    float,
+    int>;
+template struct LKBallRotamerScoreDispatch<
+    common::DeviceOperations,
+    tmol::Device::CPU,
+    double,
+    int>;
+
 }  // namespace potentials
 }  // namespace lk_ball
 }  // namespace score

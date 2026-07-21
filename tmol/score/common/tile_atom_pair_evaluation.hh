@@ -7,30 +7,46 @@ namespace tmol {
 namespace score {
 namespace common {
 
-// Implements n_atoms1 and n_atoms2 to load data out of a templated class
-// "InterPairData" that should have data members "r1" and "r2" both
-// of which have a data member named "n_atoms."
+// Returns the count of items to iterate over within a single tile of block 1
+// or block 2. The selector knows the meaning of `n_atoms` / `n_heavy` in the
+// surrounding data structure and how those map to a per-tile count.
+//
+// For AllAtomPairSelector, `r{1,2}.n_atoms` is the *total* number of atoms in
+// the block, and the per-tile count is `min(TILE, n_atoms - start_atom)`.
+//
+// For HeavyAtomPairSelector, `r{1,2}.n_heavy` is *already* the count of heavy
+// atoms in the current tile (loaded from
+// block_type_n_heavy_atoms_in_tile[bt][tile_ind]), so the per-tile count is
+// simply `n_heavy` and start_atom is irrelevant. Earlier code incorrectly
+// subtracted start_atom from n_heavy here; this caused the LK loop to be
+// silently skipped for any tile past the first whenever a block spanned
+// multiple tiles (e.g. ligands with > TILE_SIZE atoms).
 template <template <typename T> typename InterPairData, typename T>
 class AllAtomPairSelector {
  public:
-  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const &inter_data) {
-    return inter_data.r1.n_atoms;
+  template <int TILE>
+  static EIGEN_DEVICE_FUNC int n_remain1(
+      InterPairData<T> const& inter_data, int start_atom1) {
+    return min(int(TILE), int(inter_data.r1.n_atoms - start_atom1));
   }
-  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const &inter_data) {
-    return inter_data.r2.n_atoms;
+  template <int TILE>
+  static EIGEN_DEVICE_FUNC int n_remain2(
+      InterPairData<T> const& inter_data, int start_atom2) {
+    return min(int(TILE), int(inter_data.r2.n_atoms - start_atom2));
   }
 };
 
-// Implements n_atoms1 and n_atoms2 to load data out of a templated class
-// "InterPairData" that should have data members "r1" and "r2" both
-// of which have a data member named "n_heavy."
 template <template <typename T> typename InterPairData, typename T>
 class HeavyAtomPairSelector {
  public:
-  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const &inter_data) {
+  template <int TILE>
+  static EIGEN_DEVICE_FUNC int n_remain1(
+      InterPairData<T> const& inter_data, int /*start_atom1*/) {
     return inter_data.r1.n_heavy;
   }
-  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const &inter_data) {
+  template <int TILE>
+  static EIGEN_DEVICE_FUNC int n_remain2(
+      InterPairData<T> const& inter_data, int /*start_atom2*/) {
     return inter_data.r2.n_heavy;
   }
 };
@@ -61,10 +77,8 @@ TMOL_DEVICE_FUNC void for_(F func) {
 // across only the heavy-atom pairs. The AllAtomPairSelector or
 // HeavyAtomPairSelectors defined above can be used for this purpose.
 template <
-    template <typename>
-    typename InterEnergyData,
-    template <template <typename> typename, typename>
-    typename PairSelector,
+    template <typename> typename InterEnergyData,
+    template <template <typename> typename, typename> typename PairSelector,
     tmol::Device D,
     int TILE,
     int nt,
@@ -79,14 +93,17 @@ class InterResBlockEvaluation {
       int start_atom1,
       int start_atom2,
       AtomPairFunc f,
-      InterEnergyData<Real> const &inter_dat) {
+      InterEnergyData<Real> const& inter_dat) {
     std::array<Real, NTERMS> score_total = {};
-    int const n_remain1 = min(
-        TILE,
-        PairSelector<InterEnergyData, Real>::n_atoms1(inter_dat) - start_atom1);
-    int const n_remain2 = min(
-        TILE,
-        PairSelector<InterEnergyData, Real>::n_atoms2(inter_dat) - start_atom2);
+    int const n_remain1 =
+        PairSelector<InterEnergyData, Real>::template n_remain1<TILE>(
+            inter_dat, start_atom1);
+    int const n_remain2 =
+        PairSelector<InterEnergyData, Real>::template n_remain2<TILE>(
+            inter_dat, start_atom2);
+    if (n_remain1 <= 0 || n_remain2 <= 0) {
+      return score_total;
+    }
     int const n_pairs = n_remain1 * n_remain2;
     for (int i = tid; i < n_pairs; i += nt) {
       int const atom_tile_ind1 = i / n_remain2;
@@ -107,10 +124,8 @@ class InterResBlockEvaluation {
 // so if the atom1 index is >= the atom2 index, the work is skipped.
 // TO DO: replace with upper-triangle indexing to reduce idle threads
 template <
-    template <typename>
-    typename IntraEnergyData,
-    template <template <typename> typename, typename>
-    typename PairSelector,
+    template <typename> typename IntraEnergyData,
+    template <template <typename> typename, typename> typename PairSelector,
     tmol::Device D,
     int TILE,
     int nt,
@@ -125,14 +140,17 @@ class IntraResBlockEvaluation {
       int start_atom1,
       int start_atom2,
       AtomPairFunc f,
-      IntraEnergyData<Real> const &intra_dat) {
+      IntraEnergyData<Real> const& intra_dat) {
     std::array<Real, NTERMS> score_total = {};
-    int const n_remain1 = min(
-        TILE,
-        PairSelector<IntraEnergyData, Real>::n_atoms1(intra_dat) - start_atom1);
-    int const n_remain2 = min(
-        TILE,
-        PairSelector<IntraEnergyData, Real>::n_atoms2(intra_dat) - start_atom2);
+    int const n_remain1 =
+        PairSelector<IntraEnergyData, Real>::template n_remain1<TILE>(
+            intra_dat, start_atom1);
+    int const n_remain2 =
+        PairSelector<IntraEnergyData, Real>::template n_remain2<TILE>(
+            intra_dat, start_atom2);
+    if (n_remain1 <= 0 || n_remain2 <= 0) {
+      return score_total;
+    }
     int const n_pairs = n_remain1 * n_remain2;
     for (int i = tid; i < n_pairs; i += nt) {
       int const atom_tile_ind1 = i / n_remain2;
@@ -197,8 +215,7 @@ class IntraResBlockEvaluation {
 // "block1" data in the "LoadInterDataFunc1" or in the
 // "LoadIntraSharedDatFunc."
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename InterResScoringData,
     typename IntraResScoringData,
@@ -217,7 +234,7 @@ template <
     typename CalcIntraFunc,
     typename StoreEnergyFunc>
 TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
-    SharedMemData &shared_data,
+    SharedMemData& shared_data,
     int pose_ind,
     int block_ind1,
     int block_ind2,
@@ -237,11 +254,9 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
     LoadIntraSharedDatFunc load_intrares_data_from_shared,
     CalcIntraFunc eval_intrares_atom_pair_scores,
     StoreEnergyFunc store_calculated_intrares_energies) {
-  // printf("starting %d %d\n", block_ind1, block_ind2);
   if (block_ind1 != block_ind2) {
     // Step 1: load any data that is consistent across all tile pairs
     InterResScoringData interres_data;
-    // printf("calling load_tile_invariant_interres_data\n");
     load_tile_invariant_interres_data(
         pose_ind,
         block_ind1,
@@ -267,7 +282,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
 
       int const i_n_atoms_to_load1 =
           max(0, min(int(TILE), int((n_atoms1 - TILE * i))));
-      // printf("calling load_interres1_tile_data_to_shared\n");
       load_interres1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, interres_data, shared_data);
       for (int j = 0; j < n_iterations2; ++j) {
@@ -280,7 +294,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
           DeviceDispatch<D>::synchronize_workgroup();
         }
         int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
-        // printf("calling load_interres2_tile_data_to_shared\n");
         load_interres2_tile_data_to_shared(
             j, TILE * j, j_n_atoms_to_load2, interres_data, shared_data);
 
@@ -289,10 +302,8 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
         DeviceDispatch<D>::synchronize_workgroup();
 
         // Step 3: initialize combo shared/
-        // printf("calling load_interres_data_from_shared\n");
         load_interres_data_from_shared(i, j, shared_data, interres_data);
 
-        // printf("calling eval_interres_atom_pair_scores\n");
         eval_interres_atom_pair_scores(interres_data, i * TILE, j * TILE);
       }
     }
@@ -302,7 +313,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
   } else {
     // Step 1: load any data that is consistent across all tile pairs
     IntraResScoringData intrares_data;
-    // printf("calling load_tile_invariant_intrares_data\n");
     load_tile_invariant_intrares_data(
         pose_ind,
         block_ind1,
@@ -319,7 +329,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
       // we overwrite the contents of shared memory
       DeviceDispatch<D>::synchronize_workgroup();
       int const i_n_atoms_to_load1 = min(int(TILE), int((n_atoms1 - TILE * i)));
-      // printf("calling load_intrares1_tile_data_to_shared\n");
       load_intrares1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, intrares_data, shared_data);
       for (int j = i; j < n_iterations; ++j) {
@@ -331,16 +340,162 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
           // completed before we overwrite the contents of shared
           // memory
           DeviceDispatch<D>::synchronize_workgroup();
-          // printf("calling load_intrares2_tile_data_to_shared\n");
           load_intrares2_tile_data_to_shared(
               j, TILE * j, j_n_atoms_to_load2, intrares_data, shared_data);
         }
         // Make sure that all the data has been loaded into shared memory
         // before we start any calculations
         DeviceDispatch<D>::synchronize_workgroup();
-        // printf("calling load_intrares_data_from_shared\n");
         load_intrares_data_from_shared(i, j, shared_data, intrares_data);
-        // printf("calling eval_intrares_atom_pair_scores\n");
+        eval_intrares_atom_pair_scores(intrares_data, i * TILE, j * TILE);
+      }
+    }
+    DeviceDispatch<D>::synchronize_workgroup();
+    store_calculated_intrares_energies(intrares_data, shared_data);
+  }
+};
+
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device D,
+    typename InterResScoringData,
+    typename IntraResScoringData,
+    typename Real,
+    int TILE,
+    typename SharedMemData,
+    typename LoadInvarInterFunc,
+    typename LoadInvarIntraFunc,
+    typename LoadInterDatFunc1,
+    typename LoadInterDatFunc2,
+    typename LoadIntraDatFunc1,
+    typename LoadIntraDatFunc2,
+    typename LoadInterSharedDatFunc,
+    typename LoadIntraSharedDatFunc,
+    typename CalcInterFunc,
+    typename CalcIntraFunc,
+    typename StoreEnergyFunc>
+TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
+    SharedMemData& shared_data,
+    int pose_ind,
+    int rot_ind1,
+    int rot_ind2,
+    int block_ind1,
+    int block_ind2,
+    int block_type1,
+    int block_type2,
+    int n_atoms1,
+    int n_atoms2,
+    LoadInvarInterFunc load_tile_invariant_interres_data,
+    LoadInterDatFunc1 load_interres1_tile_data_to_shared,
+    LoadInterDatFunc2 load_interres2_tile_data_to_shared,
+    LoadInterSharedDatFunc load_interres_data_from_shared,
+    CalcInterFunc eval_interres_atom_pair_scores,
+    StoreEnergyFunc store_calculated_interres_energies,
+    LoadInvarIntraFunc load_tile_invariant_intrares_data,
+    LoadIntraDatFunc1 load_intrares1_tile_data_to_shared,
+    LoadIntraDatFunc2 load_intrares2_tile_data_to_shared,
+    LoadIntraSharedDatFunc load_intrares_data_from_shared,
+    CalcIntraFunc eval_intrares_atom_pair_scores,
+    StoreEnergyFunc store_calculated_intrares_energies) {
+  assert(
+      !(block_ind1 == block_ind2
+        && rot_ind1 != rot_ind2));  // working under this assumption
+  if (block_ind1 != block_ind2) {
+    // Step 1: load any data that is consistent across all tile pairs
+    InterResScoringData interres_data;
+    load_tile_invariant_interres_data(
+        pose_ind,
+        rot_ind1,
+        rot_ind2,
+        block_ind1,
+        block_ind2,
+        block_type1,
+        block_type2,
+        n_atoms1,
+        n_atoms2,
+        interres_data,
+        shared_data);
+
+    // Step 2: Tile data loading
+    int const n_iterations1 = (n_atoms1 - 1) / TILE + 1;
+    int const n_iterations2 = (n_atoms2 - 1) / TILE + 1;
+
+    for (int i = 0; i < n_iterations1; ++i) {
+      // Make sure the tile-invariant inter-res data has been loaded
+      // if i is 0 before loading the tile data in, and make
+      // sure that the calculations from the previous iteration
+      // have completed before overwriting the data in shared
+      // memory if i > 0
+      DeviceDispatch<D>::synchronize_workgroup();
+
+      int const i_n_atoms_to_load1 =
+          max(0, min(int(TILE), int((n_atoms1 - TILE * i))));
+      load_interres1_tile_data_to_shared(
+          i, TILE * i, i_n_atoms_to_load1, interres_data, shared_data);
+      for (int j = 0; j < n_iterations2; ++j) {
+        if (j != 0) {
+          // We can safely move into the loading of tile data for j == 0
+          // because we synchronized at the top of the "for i" loop above
+          // but for j > 0, we have to wait for the calculations from the
+          // previous iteration to complete  before overwriting the data
+          // in shared memory
+          DeviceDispatch<D>::synchronize_workgroup();
+        }
+        int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
+        load_interres2_tile_data_to_shared(
+            j, TILE * j, j_n_atoms_to_load2, interres_data, shared_data);
+
+        // Wait for all loading to complete before moving on to any
+        // energy calculations;
+        DeviceDispatch<D>::synchronize_workgroup();
+
+        // Step 3: initialize combo shared/
+        load_interres_data_from_shared(i, j, shared_data, interres_data);
+
+        eval_interres_atom_pair_scores(interres_data, i * TILE, j * TILE);
+      }
+    }
+    DeviceDispatch<D>::synchronize_workgroup();
+    store_calculated_interres_energies(interres_data, shared_data);
+
+  } else {
+    // Step 1: load any data that is consistent across all tile pairs
+    IntraResScoringData intrares_data;
+    load_tile_invariant_intrares_data(
+        pose_ind,
+        rot_ind1,
+        block_ind1,
+        block_type1,
+        n_atoms1,
+        intrares_data,
+        shared_data);
+
+    // Step 2: Tile data loading
+    int const n_iterations = (n_atoms1 - 1) / TILE + 1;
+    for (int i = 0; i < n_iterations; ++i) {
+      // make sure the calculatixons for the previous iteration
+      // or from the tile-independent load have completed before
+      // we overwrite the contents of shared memory
+      DeviceDispatch<D>::synchronize_workgroup();
+      int const i_n_atoms_to_load1 = min(int(TILE), int((n_atoms1 - TILE * i)));
+      load_intrares1_tile_data_to_shared(
+          i, TILE * i, i_n_atoms_to_load1, intrares_data, shared_data);
+      for (int j = i; j < n_iterations; ++j) {
+        int const j_n_atoms_to_load2 =
+            min(int(TILE), int((n_atoms1 - TILE * j)));
+
+        if (j != i) {
+          // make sure calculations from the previous iteration have
+          // completed before we overwrite the contents of shared
+          // memory
+          DeviceDispatch<D>::synchronize_workgroup();
+          load_intrares2_tile_data_to_shared(
+              j, TILE * j, j_n_atoms_to_load2, intrares_data, shared_data);
+        }
+        // Make sure that all the data has been loaded into shared memory
+        // before we start any calculations
+        DeviceDispatch<D>::synchronize_workgroup();
+        load_intrares_data_from_shared(i, j, shared_data, intrares_data);
         eval_intrares_atom_pair_scores(intrares_data, i * TILE, j * TILE);
       }
     }

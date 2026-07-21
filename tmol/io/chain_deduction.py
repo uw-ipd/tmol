@@ -99,9 +99,10 @@ def chain_inds_for_pose_stack(
     )
 
     labels = labels.reshape(n_poses, max_n_blocks)
-    n_ccs = numpy.amax(labels, axis=1) + 1
+    n_ccs = numpy.amax(labels, axis=1) - numpy.amin(labels, axis=1) + 1
     cc_offsets = exclusive_cumsum1d(n_ccs)
     labels = labels - cc_offsets.reshape(n_poses, 1)
+
     # now re-label the gap residues with a chain ind of -1
     labels[unreal_blocks] = -1
 

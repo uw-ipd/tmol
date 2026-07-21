@@ -1,7 +1,7 @@
 import os
 import torch
 
-
+from tmol.io.canonical_form import CanonicalForm
 from tmol.io.pose_stack_from_openfold import (
     pose_stack_from_openfold,
     canonical_form_from_openfold,
@@ -26,15 +26,22 @@ def test_create_canonical_form_from_openfold_stability(
     openfold_ubq_and_sumo_pred, torch_device
 ):
     cf = canonical_form_from_openfold(openfold_ubq_and_sumo_pred)
+    cf_dict = cf.as_dict()
     gold_cf_path = os.path.join(
         __file__.rpartition("/")[0], "gold_ubq_and_sumo_openfold_canform.pt"
     )
     # if torch_device == torch.device("cpu"):
-    #     torch.save(cf, gold_cf_path)
-    gold_cf = torch.load(gold_cf_path)
-    for n, t in gold_cf.items():
-        assert n in cf
-        torch.testing.assert_close(t, cf[n].cpu(), equal_nan=True, atol=1e-5, rtol=1e-5)
+    #     torch.save(cf.as_dict(), gold_cf_path)
+    gold_cf = CanonicalForm(**torch.load(gold_cf_path))
+    gold_cf_dict = gold_cf.as_dict()
+    for n, t in gold_cf_dict.items():
+        assert n in cf_dict
+        if cf_dict[n] is not None:
+            torch.testing.assert_close(
+                t, cf_dict[n].cpu(), equal_nan=True, atol=1e-5, rtol=1e-5
+            )
+        else:
+            assert gold_cf_dict[n] is None
 
 
 def test_memoization_of_openfold_paramdb():

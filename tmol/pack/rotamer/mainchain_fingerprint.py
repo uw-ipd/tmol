@@ -16,7 +16,6 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms_jit
 
-
 # what atoms should we copy over?
 # everything north of "first sidechain atom"?
 # let's have a map from rt x bb-type --> atom-indices on that rt for those bb
@@ -84,6 +83,7 @@ class AtomFingerprint:
     mc_bond_dist: int
     chirality: int
     element: int
+    duplicate_index: int = 0
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -142,6 +142,7 @@ def create_non_sidechain_fingerprint(
     # chiralities = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
     non_sc_atom_fingerprints = []
     at_for_fingerprint = {}
+    fp_seen_count = {}
 
     for nsc_at in non_sc_atoms:
         # find the index of the mc atom this branches from using the kinforest
@@ -221,11 +222,20 @@ def create_non_sidechain_fingerprint(
         atomic_number = next(
             el.atomic_number for el in chem_db.element_types if el.name == elem_name
         )
+        base_fp = AtomFingerprint(
+            mc_ind=mc_anc,
+            mc_bond_dist=bonds_from_mc,
+            chirality=chirality,
+            element=atomic_number,
+        )
+        dup_idx = fp_seen_count.get(base_fp, 0)
+        fp_seen_count[base_fp] = dup_idx + 1
         at_fingerprint = AtomFingerprint(
             mc_ind=mc_anc,
             mc_bond_dist=bonds_from_mc,
             chirality=chirality,
             element=atomic_number,
+            duplicate_index=dup_idx,
         )
 
         non_sc_atom_fingerprints.append(at_fingerprint)
@@ -317,6 +327,11 @@ def annotate_residue_type_with_sampler_fingerprints(
     samplers: Tuple[ChiSampler, ...],
     chem_db: PatchedChemicalDatabase,
 ):
+    # Mainchain fingerprints describe how to transfer sidechain DOFs across
+    # mainchains; they require polymer.mainchain_atoms and are meaningless for
+    # non-polymer residues (e.g. ligands).
+    if not restype.properties.polymer.is_polymer:
+        return
     for sampler in samplers:
         if sampler.defines_rotamers_for_rt(restype):
             if hasattr(restype, "mc_fingerprints"):

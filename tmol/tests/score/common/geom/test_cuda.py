@@ -4,14 +4,21 @@ import pytest
 import torch
 import torch.testing
 
-from tmol.utility.cpp_extension import load, relpaths, modulename
 from tmol.tests.torch import requires_cuda
 
 
-@requires_cuda
 @pytest.fixture
 def geom():
-    return load(modulename(__name__) + ".geom", relpaths(__file__, "geom.cu"))
+    from tmol._load_ext import load_module
+
+    # The module_name "_ext_cuda" must match PYBIND11_MODULE(_ext_cuda, m) in
+    # geom.cu; modulename() is a no-op here (no dots to replace).
+    return load_module(
+        "_ext_cuda",
+        __file__,
+        "geom.cu",
+        "tmol.tests.score.common.geom._ext_cuda",
+    )
 
 
 @requires_cuda

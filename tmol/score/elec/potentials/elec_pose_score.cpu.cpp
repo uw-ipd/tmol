@@ -17,6 +17,17 @@ template struct ElecPoseScoreDispatch<
     double,
     int>;
 
+template struct ElecRotamerScoreDispatch<
+    DeviceOperations,
+    tmol::Device::CPU,
+    float,
+    int>;
+template struct ElecRotamerScoreDispatch<
+    DeviceOperations,
+    tmol::Device::CPU,
+    double,
+    int>;
+
 }  // namespace potentials
 }  // namespace elec
 }  // namespace score

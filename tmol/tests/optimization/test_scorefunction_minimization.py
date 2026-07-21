@@ -1,8 +1,6 @@
 import torch
-import numpy
 import pytest
 
-# from tmol.pose.pose_stack import PoseStack
 from tmol.io import pose_stack_from_pdb
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
@@ -54,9 +52,8 @@ def test_kin_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_dev
     sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
     sfxn.set_weight(ScoreType.fa_lk, 0.8)
 
-    n_res = pose_stack5.max_n_blocks
     kin_module = PoseStackKinematicsModule(
-        pose_stack5, FoldForest.polymeric_forest(numpy.full(5, n_res))
+        pose_stack5, FoldForest.reasonable_fold_forest(pose_stack5)
     )
 
     assert kin_module.kmd.forest.id.device == torch_device
