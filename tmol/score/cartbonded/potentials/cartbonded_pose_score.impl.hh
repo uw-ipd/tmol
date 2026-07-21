@@ -154,6 +154,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 1, D> block_type_is_fragment,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -450,13 +451,22 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           Int resA_size = (resA_atom_indices.array() != -1).count();
           Int resB_size = (resB_atom_indices.array() != -1).count();
 
-          // Try both unique and wildcard IDs for block A
-          for (bool wildcard : {false, true}) {
-            // Get the lookup tables for atom ID
+          // Prefer exact parameters when both blocks share a residue base name,
+          // then fall back to the historical unique/wildcard and
+          // wildcard/wildcard lookups used by polymer connections.
+          int const first_lookup_mode =
+              block_type_is_fragment[block_typeA]
+                      && block_type_is_fragment[block_typeB]
+                  ? 0
+                  : 1;
+          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
+               ++lookup_mode) {
             const auto& resA_atom_id_table =
-                (wildcard) ? atom_wildcard_ids[block_typeA]
-                           : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = atom_wildcard_ids[block_typeB];
+                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
+                                   : atom_unique_ids[block_typeA];
+            const auto& resB_atom_id_table =
+                (lookup_mode == 0) ? atom_unique_ids[block_typeB]
+                                   : atom_wildcard_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =
@@ -595,6 +605,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 1, D> block_type_is_fragment,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -858,13 +869,20 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           Int resA_size = (resA_atom_indices.array() != -1).count();
           Int resB_size = (resB_atom_indices.array() != -1).count();
 
-          // Try both unique and wildcard IDs for block A
-          for (bool wildcard : {false, true}) {
-            // Get the lookup tables for atom ID
+          // Prefer exact unique/unique parameters across generic connections.
+          int const first_lookup_mode =
+              block_type_is_fragment[block_typeA]
+                      && block_type_is_fragment[block_typeB]
+                  ? 0
+                  : 1;
+          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
+               ++lookup_mode) {
             const auto& resA_atom_id_table =
-                (wildcard) ? atom_wildcard_ids[block_typeA]
-                           : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = atom_wildcard_ids[block_typeB];
+                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
+                                   : atom_unique_ids[block_typeA];
+            const auto& resB_atom_id_table =
+                (lookup_mode == 0) ? atom_unique_ids[block_typeB]
+                                   : atom_wildcard_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =
@@ -953,6 +971,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 1, D> block_type_is_fragment,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -1337,13 +1356,20 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           Int resA_size = (resA_atom_indices.array() != -1).count();
           Int resB_size = (resB_atom_indices.array() != -1).count();
 
-          // Try both unique and wildcard IDs for block A
-          for (bool wildcard : {false, true}) {
-            // Get the lookup tables for atom ID
+          // Prefer exact unique/unique parameters across generic connections.
+          int const first_lookup_mode =
+              block_type_is_fragment[block_typeA]
+                      && block_type_is_fragment[block_typeB]
+                  ? 0
+                  : 1;
+          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
+               ++lookup_mode) {
             const auto& resA_atom_id_table =
-                (wildcard) ? atom_wildcard_ids[block_typeA]
-                           : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = atom_wildcard_ids[block_typeB];
+                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
+                                   : atom_unique_ids[block_typeA];
+            const auto& resB_atom_id_table =
+                (lookup_mode == 0) ? atom_unique_ids[block_typeB]
+                                   : atom_wildcard_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =
@@ -1466,6 +1492,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 1, D> block_type_is_fragment,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -1724,13 +1751,20 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           Int resA_size = (resA_atom_indices.array() != -1).count();
           Int resB_size = (resB_atom_indices.array() != -1).count();
 
-          // Try both unique and wildcard IDs for block A
-          for (bool wildcard : {false, true}) {
-            // Get the lookup tables for atom ID
+          // Prefer exact unique/unique parameters across generic connections.
+          int const first_lookup_mode =
+              block_type_is_fragment[block_typeA]
+                      && block_type_is_fragment[block_typeB]
+                  ? 0
+                  : 1;
+          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
+               ++lookup_mode) {
             const auto& resA_atom_id_table =
-                (wildcard) ? atom_wildcard_ids[block_typeA]
-                           : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = atom_wildcard_ids[block_typeB];
+                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
+                                   : atom_unique_ids[block_typeA];
+            const auto& resB_atom_id_table =
+                (lookup_mode == 0) ? atom_unique_ids[block_typeB]
+                                   : atom_wildcard_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =

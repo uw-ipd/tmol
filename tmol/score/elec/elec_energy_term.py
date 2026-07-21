@@ -87,6 +87,7 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         if hasattr(packed_block_types, "elec_inter_repr_path_distance"):
             assert hasattr(packed_block_types, "elec_intra_repr_path_distance")
             assert hasattr(packed_block_types, "elec_partial_charge")
+            assert hasattr(packed_block_types, "elec_is_nonpolymer")
             return
 
         def _ti(arr):
@@ -120,6 +121,18 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             )
 
         setattr(packed_block_types, "elec_partial_charge", elec_partial_charge)
+        setattr(
+            packed_block_types,
+            "elec_is_nonpolymer",
+            torch.tensor(
+                [
+                    not bt.properties.polymer.is_polymer
+                    for bt in packed_block_types.active_block_types
+                ],
+                dtype=torch.int32,
+                device=self.device,
+            ),
+        )
         setattr(
             packed_block_types,
             "elec_inter_repr_path_distance",
@@ -169,6 +182,7 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack.packed_block_types.conn_atom,
             pose_stack.packed_block_types.elec_inter_repr_path_distance,
             pose_stack.packed_block_types.elec_intra_repr_path_distance,
+            pose_stack.packed_block_types.elec_is_nonpolymer,
             global_params,
             # elec_max_dis as host scalar for detect-neighbors call
             float(self.global_params.elec_max_dis),

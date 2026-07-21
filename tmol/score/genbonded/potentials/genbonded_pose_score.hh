@@ -51,6 +51,8 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 //                                    per-atom type-index hierarchy
 //     gen_connection_bond_types    : (N_block_types, max_n_conns) Int
 //                                    bond-type int for each connection
+//     gen_source_atom_index        : (N_block_types, max_n_atoms) Int
+//                                    atom order in the prepared whole ligand
 //     gen_inter_torsion_hash_keys  : (N_hash_entries,) Vec<Int,6>
 //                                    {t1,t2,t3,t4,bond_type,val_idx}
 //     gen_inter_torsion_hash_values: (N_torsion_entries,) Vec<Real,5>
@@ -94,8 +96,12 @@ struct GenBondedPoseScoreDispatch {
       // Inter-block torsions (hash table)
       TView<Vec<Int, 3>, 2, D> gen_atom_type_hierarchy,
       TView<Int, 2, D> gen_connection_bond_types,
+      TView<Int, 2, D> gen_source_atom_index,
+      TView<Int, 1, D> gen_source_block_type_index,
       TView<Vec<Int, 6>, 1, D> gen_inter_torsion_hash_keys,
       TView<Vec<Real, 5>, 1, D> gen_inter_torsion_hash_values,
+      TView<Vec<Int, 5>, 1, D> gen_inter_improper_hash_keys,
+      TView<Vec<Real, 5>, 1, D> gen_inter_improper_hash_values,
 
       bool output_block_pair_energies,
       bool compute_derivs)
@@ -127,8 +133,12 @@ struct GenBondedPoseScoreDispatch {
       TView<Vec<Real, 5>, 1, D> gen_intra_params,
       TView<Vec<Int, 3>, 2, D> gen_atom_type_hierarchy,
       TView<Int, 2, D> gen_connection_bond_types,
+      TView<Int, 2, D> gen_source_atom_index,
+      TView<Int, 1, D> gen_source_block_type_index,
       TView<Vec<Int, 6>, 1, D> gen_inter_torsion_hash_keys,
       TView<Vec<Real, 5>, 1, D> gen_inter_torsion_hash_values,
+      TView<Vec<Int, 5>, 1, D> gen_inter_improper_hash_keys,
+      TView<Vec<Real, 5>, 1, D> gen_inter_improper_hash_values,
 
       TView<Real, 4, D> dTdV) -> TPack<Vec<Real, 3>, 2, D>;
 };
@@ -165,8 +175,12 @@ struct GenBondedRotamerScoreDispatch {
       TView<Vec<Real, 5>, 1, D> gen_intra_params,
       TView<Vec<Int, 3>, 2, D> gen_atom_type_hierarchy,
       TView<Int, 2, D> gen_connection_bond_types,
+      TView<Int, 2, D> gen_source_atom_index,
+      TView<Int, 1, D> gen_source_block_type_index,
       TView<Vec<Int, 6>, 1, D> gen_inter_torsion_hash_keys,
       TView<Vec<Real, 5>, 1, D> gen_inter_torsion_hash_values,
+      TView<Vec<Int, 5>, 1, D> gen_inter_improper_hash_keys,
+      TView<Vec<Real, 5>, 1, D> gen_inter_improper_hash_values,
 
       bool output_block_pair_energies,
       bool compute_derivs)
@@ -201,8 +215,12 @@ struct GenBondedRotamerScoreDispatch {
       TView<Vec<Real, 5>, 1, D> gen_intra_params,
       TView<Vec<Int, 3>, 2, D> gen_atom_type_hierarchy,
       TView<Int, 2, D> gen_connection_bond_types,
+      TView<Int, 2, D> gen_source_atom_index,
+      TView<Int, 1, D> gen_source_block_type_index,
       TView<Vec<Int, 6>, 1, D> gen_inter_torsion_hash_keys,
       TView<Vec<Real, 5>, 1, D> gen_inter_torsion_hash_values,
+      TView<Vec<Int, 5>, 1, D> gen_inter_improper_hash_keys,
+      TView<Vec<Real, 5>, 1, D> gen_inter_improper_hash_values,
 
       TView<Int, 2, D> dispatch_indices,
       TView<Int, 1, D> n_output_intxns_for_rot_conn_offset,

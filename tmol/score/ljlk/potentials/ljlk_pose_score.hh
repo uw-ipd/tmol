@@ -85,6 +85,7 @@ struct LJLKPoseScoreDispatch {
       // what is the path distance between pairs of atoms in the block
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_path_distance,
+      TView<Int, 1, D> block_type_is_nonpolymer,
       //////////////////////
 
       // LJ parameters
@@ -156,6 +157,7 @@ struct LJLKPoseScoreDispatch {
       // what is the path distance between pairs of atoms in the block
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_path_distance,
+      TView<Int, 1, D> block_type_is_nonpolymer,
       //////////////////////
 
       // LJ parameters
@@ -227,6 +229,7 @@ struct LJLKRotamerScoreDispatch {
       // what is the path distance between pairs of atoms in the block
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_path_distance,
+      TView<Int, 1, D> block_type_is_nonpolymer,
       //////////////////////
 
       // LJ parameters
@@ -298,6 +301,7 @@ struct LJLKRotamerScoreDispatch {
       // what is the path distance between pairs of atoms in the block
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_path_distance,
+      TView<Int, 1, D> block_type_is_nonpolymer,
       //////////////////////
 
       // LJ parameters
