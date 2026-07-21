@@ -1,5 +1,7 @@
 [flake8]
-exclude=tmol/extern,.conda
+# tmol/ligand/external holds vendored third-party code (atomworks RDKit
+# conversion, xyz2mol_tm) kept close to upstream; do not lint/reformat it.
+exclude=tmol/extern,tmol/ligand/external,.conda
 
 # Black-compatible config from
 # https://github.com/ambv/black/blob/master/.flake8

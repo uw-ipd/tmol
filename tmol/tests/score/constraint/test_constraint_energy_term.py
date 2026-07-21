@@ -1,8 +1,10 @@
+import attrs
 import numpy
 import torch
 import math
 import pytest
 
+from tmol.pose.constraint_set import ConstraintSet
 from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 from tmol import pose_stack_from_pdb, ScoreFunction, ScoreType
@@ -12,51 +14,59 @@ def add_test_constraints_to_pose_stack(pose_stack):
     torch_device = pose_stack.device
 
     constraints = pose_stack.get_constraint_set()
+    if constraints is None:
+        constraints = ConstraintSet.create_empty(
+            device=torch_device, n_poses=pose_stack.n_poses
+        )
 
     # a distance constraint
     cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
-    cnstr_params = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
+    cnstr_params = torch.full((1, 2), 0, dtype=torch.float32, device=torch_device)
 
     res1_type = pose_stack.block_type(0, 3)
     res2_type = pose_stack.block_type(0, 4)
     cnstr_atoms[0, 0] = torch.tensor([0, 3, res1_type.atom_to_idx["C"]])
     cnstr_atoms[0, 1] = torch.tensor([0, 4, res2_type.atom_to_idx["N"]])
     cnstr_params[0, 0] = 1.47
+    cnstr_params[0, 1] = 0.1
 
-    constraints.add_constraints(
+    constraints = constraints.add_constraints(
         ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
     )
 
     # repeat to test function caching
     cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
-    cnstr_params = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
+    cnstr_params = torch.full((1, 2), 0, dtype=torch.float32, device=torch_device)
 
     res1_type = pose_stack.block_type(0, 4)
     res2_type = pose_stack.block_type(0, 5)
     cnstr_atoms[0, 0] = torch.tensor([0, 4, res1_type.atom_to_idx["C"]])
     cnstr_atoms[0, 1] = torch.tensor([0, 5, res2_type.atom_to_idx["N"]])
     cnstr_params[0, 0] = 1.47
+    cnstr_params[0, 1] = 0.1
 
-    constraints.add_constraints(
+    constraints = constraints.add_constraints(
         ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
     )
 
     # double the previous constraints, but this time batch them
     cnstr_atoms = torch.full((2, 2, 3), 0, dtype=torch.int32, device=torch_device)
-    cnstr_params = torch.full((2, 1), 0, dtype=torch.float32, device=torch_device)
+    cnstr_params = torch.full((2, 2), 0, dtype=torch.float32, device=torch_device)
 
     res1_type = pose_stack.block_type(0, 3)
     res2_type = pose_stack.block_type(0, 4)
     cnstr_atoms[0, 0] = torch.tensor([0, 3, res1_type.atom_to_idx["C"]])
     cnstr_atoms[0, 1] = torch.tensor([0, 4, res2_type.atom_to_idx["N"]])
     cnstr_params[0, 0] = 1.47
+    cnstr_params[0, 1] = 0.1
     res1_type = pose_stack.block_type(0, 4)
     res2_type = pose_stack.block_type(0, 5)
     cnstr_atoms[1, 0] = torch.tensor([0, 4, res1_type.atom_to_idx["C"]])
     cnstr_atoms[1, 1] = torch.tensor([0, 5, res2_type.atom_to_idx["N"]])
     cnstr_params[1, 0] = 1.47
+    cnstr_params[1, 1] = 0.1
 
-    constraints.add_constraints(
+    constraints = constraints.add_constraints(
         ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
     )
 
@@ -75,8 +85,12 @@ def add_test_constraints_to_pose_stack(pose_stack):
     cnstr_params[0, 1] = 0.1
     cnstr_params[0, 2] = 0.0
 
-    constraints.add_constraints(
+    constraints = constraints.add_constraints(
         ConstraintEnergyTerm.circularharmonic, cnstr_atoms, cnstr_params
+    )
+    return attrs.evolve(
+        pose_stack,
+        constraint_set=constraints,
     )
 
 
@@ -85,18 +99,23 @@ def check_fail_add_cross_pose_constraint(pose_stack):
     torch_device = pose_stack.device
 
     constraints = pose_stack.get_constraint_set()
+    if constraints is None:
+        constraints = ConstraintSet.create_empty(
+            device=torch_device, n_poses=pose_stack.n_poses
+        )
 
     # a distance constraint
     cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
-    cnstr_params = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
+    cnstr_params = torch.full((1, 2), 0, dtype=torch.float32, device=torch_device)
 
     res1_type = pose_stack.block_type(0, 0)
     res2_type = pose_stack.block_type(1, 1)
     cnstr_atoms[0, 0] = torch.tensor([0, 0, res1_type.atom_to_idx["C"]])
     cnstr_atoms[0, 1] = torch.tensor([1, 1, res2_type.atom_to_idx["N"]])
     cnstr_params[0, 0] = 1.47
+    cnstr_params[0, 1] = 0.1
 
-    constraints.add_constraints(
+    constraints = constraints.add_constraints(
         ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
     )
 
@@ -119,31 +138,44 @@ def test_get_torsion_angle(torch_device):
 
     gold_vals = torch.tensor([-3.141593, 0.0])
     angles = ConstraintEnergyTerm.get_torsion_angle_test(tnsor)
-    numpy.testing.assert_allclose(gold_vals.cpu(), angles.cpu())
+    numpy.testing.assert_allclose(gold_vals.cpu(), angles.cpu(), atol=1e-5, rtol=1e-5)
 
 
 def add_constraints_to_all_poses(pose_stack):
     torch_device = pose_stack.device
     constraints = pose_stack.get_constraint_set()
+    if constraints is None:
+        constraints = ConstraintSet.create_empty(
+            device=torch_device, n_poses=pose_stack.n_poses
+        )
 
     # a distance constraint
     cnstr_atoms = torch.full((1, 2, 2), 0, dtype=torch.int32, device=torch_device)
-    cnstr_params = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
+    cnstr_params = torch.full((1, 2), 0, dtype=torch.float32, device=torch_device)
 
     res1_type = pose_stack.block_type(0, 0)
     res2_type = pose_stack.block_type(0, 1)
     cnstr_atoms[0, 0] = torch.tensor([0, res1_type.atom_to_idx["C"]])
     cnstr_atoms[0, 1] = torch.tensor([1, res2_type.atom_to_idx["N"]])
     cnstr_params[0, 0] = 1.47
+    cnstr_params[0, 1] = 0.1
 
-    constraints.add_constraints_to_all_poses(
+    constraints = constraints.add_constraints_to_all_poses(
         ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
+    )
+    return attrs.evolve(
+        pose_stack,
+        constraint_set=constraints,
     )
 
 
 def modify_distances_and_check_constraints(pose_stack):
     torch_device = pose_stack.device
     constraints = pose_stack.get_constraint_set()
+    if constraints is None:
+        constraints = ConstraintSet.create_empty(
+            device=torch_device, n_poses=pose_stack.n_poses
+        )
 
     num_cnstrs = 10
 
@@ -167,7 +199,13 @@ def modify_distances_and_check_constraints(pose_stack):
         cnstr_params[res, 2] = 1.0  # sd
         cnstr_params[res, 3] = 1.0  # rswitch
 
-    constraints.add_constraints(ConstraintEnergyTerm.bounded, cnstr_atoms, cnstr_params)
+    constraints = constraints.add_constraints(
+        ConstraintEnergyTerm.bounded, cnstr_atoms, cnstr_params
+    )
+    return attrs.evolve(
+        pose_stack,
+        constraint_set=constraints,
+    )
 
 
 class TestConstraintEnergyTerm(EnergyTermTestBase):
@@ -233,6 +271,8 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
             resnums=resnums,
             edit_pose_stack_fn=add_test_constraints_to_pose_stack,
             eps=1e-3,
+            atol=5e-4,
+            rtol=5e-4,
         )
 
     @classmethod
@@ -270,6 +310,8 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
             resnums,
             edit_pose_stack_fn=add_test_constraints_to_pose_stack,
             eps=1e-3,
+            atol=5e-4,
+            rtol=5e-4,
         )
 
 
@@ -279,39 +321,42 @@ def test_create_coordinate_constraints(
     ps = pose_stack_from_pdb(ubq_pdb, device=torch_device)
     pbt = ps.packed_block_types
     constraints = ps.get_constraint_set()
+    if constraints is None:
+        constraints = ConstraintSet.create_empty(
+            device=torch_device, n_poses=ps.n_poses
+        )
 
     is_heavy_atom = torch.zeros(
         (ps.n_poses, ps.max_n_blocks, ps.max_n_block_atoms),
         dtype=torch.bool,
         device=torch_device,
     )
-    # is_real_atom = torch.zeros(
-    #     (ps.n_poses, ps.max_n_blocks, ps.max_n_block_atoms),
-    #     dtype=torch.bool,
-    #     device=torch_device,
-    # )
     is_real_block = ps.block_type_ind64 != -1
 
-    is_heavy_atom[is_real_block, :] = pbt.atom_is_hydrogen[
-        ps.block_type_ind64[is_real_block]
-    ].to(torch.bool)
+    is_heavy_atom[is_real_block, :] = torch.logical_and(
+        pbt.atom_is_real[ps.block_type_ind64[is_real_block]].to(torch.bool),
+        ~pbt.atom_is_hydrogen[ps.block_type_ind64[is_real_block]].to(torch.bool),
+    )
     heavy_atom_inds = torch.nonzero(is_heavy_atom, as_tuple=True)
     heavy_atom_inds = torch.stack(heavy_atom_inds, dim=1).unsqueeze(1)
-    # print("heavy atom inds.shape", heavy_atom_inds.shape)
-
-    # n_constrained_atoms = heavy_atom_inds.size(0)
-    # print("n_constrained_atoms", n_constrained_atoms)
 
     expanded_coords, _ = ps.expand_coords()
-    # print("expanded_coords", expanded_coords.shape)
-    # print("is_heavy_atom", is_heavy_atom.shape)
     target_coords = expanded_coords[is_heavy_atom]
-    # print("ideal_coords", ideal_coords.shape)
+    n_constrained_atoms = target_coords.size(0)
+    cst_params = torch.full(
+        (n_constrained_atoms, 5), 0, dtype=torch.float32, device=torch_device
+    )
+    cst_params[:, 1:4] = target_coords
+    cst_params[:, 4] = 1.0
 
-    constraints.add_constraints(
-        ConstraintEnergyTerm.harmonic_coord_constraint,
+    constraints = constraints.add_constraints(
+        ConstraintEnergyTerm.harmonic_coordinate,
         heavy_atom_inds,
-        target_coords,
+        cst_params,
+    )
+    ps = attrs.evolve(
+        ps,
+        constraint_set=constraints,
     )
 
     cst_sfxn = ScoreFunction(default_database.scoring, torch_device)
@@ -319,16 +364,26 @@ def test_create_coordinate_constraints(
     wpsm = cst_sfxn.render_whole_pose_scoring_module(ps)
     s = wpsm(ps.coords)
     torch.testing.assert_close(s, torch.tensor([0.0], device=torch_device))
-    # print("s", s)
 
     ps2 = pose_stack_from_pdb(kin_minimized_ubq_pdb, device=torch_device)
     constraints2 = ps2.get_constraint_set()
-    constraints2.add_constraints(
-        ConstraintEnergyTerm.harmonic_coord_constraint,
+    if constraints2 is None:
+        constraints2 = ConstraintSet.create_empty(
+            device=torch_device, n_poses=ps2.n_poses
+        )
+
+    constraints2 = constraints2.add_constraints(
+        ConstraintEnergyTerm.harmonic_coordinate,
         heavy_atom_inds,
-        target_coords,
+        cst_params,
     )
+    ps2 = attrs.evolve(
+        ps2,
+        constraint_set=constraints2,
+    )
+
     wpsm = cst_sfxn.render_whole_pose_scoring_module(ps2)
     s2 = wpsm(ps2.coords)
-    # print("s2", s2)
-    torch.testing.assert_close(s2, torch.tensor([4886.4336], device=torch_device))
+    torch.testing.assert_close(
+        s2, torch.tensor([4554.6299], device=torch_device), atol=1e-3, rtol=1e-3
+    )

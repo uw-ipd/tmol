@@ -1,7 +1,11 @@
 import torch
+import numpy
+
 from tmol.types.torch import Tensor
+from tmol.types.array import NDArray
 from typing import Optional
 from tmol.types.functional import validate_args
+from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.io.canonical_ordering import CanonicalOrdering
@@ -14,12 +18,18 @@ def pose_stack_from_canonical_form(
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
-    *,
+    res_labels: Optional[NDArray[int][:, :]],
+    res_ins_codes: Optional[NDArray[object][:, :]],
+    chain_labels: Optional[NDArray[object][:, :]],
+    atom_occupancy: Optional[NDArray[numpy.float32][:, :, :]] = None,
+    atom_b_factor: Optional[NDArray[numpy.float32][:, :, :]] = None,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
-    find_additional_disulfides: Optional[bool] = True,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
+    *,
+    find_additional_disulfides: Optional[bool] = True,
     return_chain_ind: bool = False,
     return_atom_mapping: bool = False,
+    return_block_has_missing_atoms: bool = False,
 ):
     """Create a PoseStack, resolving which block type is requested by the
     presence and absence of the provided atoms for each residue type.
@@ -41,7 +51,8 @@ def pose_stack_from_canonical_form(
         ordered amino acid index for each residue. A sentinel value of "-1"
         should be used to indicate that a given position does not contain
         a residue (perhaps because it belongs to a pose with fewer than
-        max-n-residue residues).
+        max-n-residue residues; each pose in the PoseStack is allowed to
+        have fewer than max-n-residue residues).
     coords: an n-pose x max-n-residue x max-n-atoms-per-residue tensor
         providing the coordinates of some or all of the atoms. The order
         in which atoms should appear in this tensor is given by the
@@ -89,32 +100,46 @@ def pose_stack_from_canonical_form(
         nonsense dihdral angles and will keep the cart-bonded term from scoring
         nonsense bond lengths and angles.
 
-    return_chain_ind: return the chain-index tensor that has been "left-justified"
-        from the chain
 
-    return_atom_mapping: return the mapping for atoms in the canonical-form tensor
-        to their PoseStack index; this could be used to update the coordinates
-        in a PoseStack without rebuilding it (as long as the chemical identity
-        is meant to be unchanged) or to perhaps remap derivatives to or from
-        pose stack ordering. If requested, the atom mapping will be the last two
-        arguments returned by this function, as two tensors:
-            ps, t1, t2 = pose_stack_from_canonical_form(
-                ...,
-                return_atom_mapping=True
-            )
-            can_ord_coords[
-                t1[:, 0], t1[:, 1], t1[:, 2]
-            ] = ps.coords[
-                t2[:, 0], t2[:, 1]
-            ]
-        where t1 is a tensor nats x 3 where
-        - position [i, 0] is the pose index
-        - position [i, 1] is the residue index, and
-        - position [i, 2] is the canonical-ordering atom index
-        and t2 is a tensor nats x 2 where
-        - position [i, 0] is the pose index, and
-        - position [i, 1] is the pose-ordered atom index
+    Optional return values:
+        If any of the following flags are provided, this function will return a tuple
+        instead of just a pose stack, with the first argument being the pose stack and
+        the second argument being a dictionary with keys corresponding to the requested
+        values.
 
+        return_chain_ind: return the chain-index tensor as "chain_ind" that has been
+            "left-justified" from the chain
+
+        return_atom_mapping: return the mapping for atoms in the canonical-form tensor
+            to their PoseStack index; this could be used to update the coordinates
+            in a PoseStack without rebuilding it (as long as the chemical identity
+            is meant to be unchanged) or to perhaps remap derivatives to or from
+            pose stack ordering. If requested, the atom mapping will returned as two tensors
+            under the keys "ps_atom_mapping" and "can_atom_mapping" by this function:
+                ps, opt_vals = pose_stack_from_canonical_form(
+                    ...,
+                    return_atom_mapping=True
+                )
+                t1 = opt_vals["can_atom_mapping"]
+                t2 = opt_vals["ps_atom_mapping"]
+                can_ord_coords[
+                    t1[:, 0], t1[:, 1], t1[:, 2]
+                ] = ps.coords[
+                    t2[:, 0], t2[:, 1]
+                ]
+            where can_atom_mapping is a tensor nats x 3 where
+            - position [i, 0] is the pose index
+            - position [i, 1] is the residue index, and
+            - position [i, 2] is the canonical-ordering atom index
+            and ps_atom_mapping is a tensor nats x 2 where
+            - position [i, 0] is the pose index, and
+            - position [i, 1] is the pose-ordered atom index
+
+        return_block_has_missing_atoms: returns a [n_pose x max_n_res] bool
+            tensor in the dictionary under the key "block_has_missing_atoms" with
+            elements being true iff any non-leaf atoms were missing (NaN). To be used
+            with a packer to build these missing atoms. If this argument is False, an
+            exception will be thrown when these missing atoms are encountered.
     """
 
     from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
@@ -128,6 +153,24 @@ def pose_stack_from_canonical_form(
 
     assert chain_id.device == res_types.device
     assert chain_id.device == coords.device
+
+    assert chain_id.shape[0] == res_types.shape[0]
+    assert chain_id.shape[1] == res_types.shape[1]
+    assert chain_id.shape[0] == coords.shape[0]
+    assert chain_id.shape[1] == coords.shape[1]
+    assert coords.shape[2] == canonical_ordering.max_n_canonical_atoms
+    assert res_labels is None or res_labels.shape[0] == chain_id.shape[0]
+    assert res_labels is None or res_labels.shape[1] == chain_id.shape[1]
+    assert res_ins_codes is None or res_ins_codes.shape[0] == chain_id.shape[0]
+    assert res_ins_codes is None or res_ins_codes.shape[1] == chain_id.shape[1]
+    assert chain_labels is None or chain_labels.shape[0] == chain_id.shape[0]
+    assert chain_labels is None or chain_labels.shape[1] == chain_id.shape[1]
+    assert atom_occupancy is None or atom_occupancy.shape[0] == chain_id.shape[0]
+    assert atom_occupancy is None or atom_occupancy.shape[1] == chain_id.shape[1]
+    assert atom_b_factor is None or atom_b_factor.shape[0] == chain_id.shape[0]
+    assert atom_b_factor is None or atom_b_factor.shape[1] == chain_id.shape[1]
+    assert res_not_connected is None or res_not_connected.shape[0] == chain_id.shape[0]
+    assert res_not_connected is None or res_not_connected.shape[1] == chain_id.shape[1]
 
     # step 1: record which atoms the user has given us by looking for NaNs
     #         in the input coordinate tensor.
@@ -161,9 +204,32 @@ def pose_stack_from_canonical_form(
         atom_is_present,
         disulfides,
         res_not_connected,
+        res_labels,
+        res_ins_codes,
+        chain_labels,
+        atom_occupancy,
+        atom_b_factor,
     ) = left_justify_canonical_form(
-        chain_id, res_types, coords, atom_is_present, disulfides, res_not_connected
+        chain_id,
+        res_types,
+        coords,
+        atom_is_present,
+        disulfides,
+        res_not_connected,
+        res_labels,
+        res_ins_codes,
+        chain_labels,
+        atom_occupancy,
+        atom_b_factor,
     )
+
+    if res_types.shape[1] == 0:
+        raise ValueError(
+            "pose_stack_from_canonical_form: no recognized residues found in input. "
+            "Check that residue names match entries in the CanonicalOrdering and that "
+            "the structure was parsed via biotite (HETATM records are supported) rather "
+            "than the internal PDB parser (ATOM records only)."
+        )
 
     # 3
     found_disulfides, res_type_variants = find_disulfides(
@@ -202,19 +268,28 @@ def pose_stack_from_canonical_form(
         missing_atoms,
         real_atoms,
         real_canonical_atom_inds,
+        atom_occupancy,
+        atom_b_factor,
     ) = take_block_type_atoms_from_canonical(
-        pbt, block_types64, coords, atom_is_present
+        pbt, block_types64, coords, atom_is_present, atom_occupancy, atom_b_factor
     )
 
     # 7
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
-    pose_stack_coords, block_coord_offset = build_missing_leaf_atoms(
+    (
+        pose_stack_coords,
+        block_coord_offset,
+        real_block_atoms,
+        pose_at_is_real,
+        block_has_missing_atoms,
+    ) = build_missing_leaf_atoms(
         pbt,
         block_types64,
         real_atoms,
         block_coords,
         missing_atoms,
         inter_residue_connections,
+        fail_on_missing_nonleaf_atoms=not return_block_has_missing_atoms,
     )
 
     def i64(x):
@@ -224,6 +299,30 @@ def pose_stack_from_canonical_form(
         return x.to(torch.int32)
 
     # 8
+    if atom_occupancy is not None or atom_b_factor is not None:
+        real_block_atoms = real_block_atoms.cpu().numpy()
+        pose_at_is_real = pose_at_is_real.cpu().numpy()
+    if atom_occupancy is not None:
+        atom_occupancy_pose_layout = numpy.full(
+            pose_stack_coords.shape[:2], 1.0, dtype=numpy.float32
+        )
+        atom_occupancy_pose_layout[pose_at_is_real] = atom_occupancy[real_block_atoms]
+        atom_occupancy = atom_occupancy_pose_layout
+    if atom_b_factor is not None:
+        atom_b_factor_pose_layout = numpy.full(
+            pose_stack_coords.shape[:2], 0.0, dtype=numpy.float32
+        )
+        atom_b_factor_pose_layout[pose_at_is_real] = atom_b_factor[real_block_atoms]
+        atom_b_factor = atom_b_factor_pose_layout
+
+    pdb_info = PDBInfo(
+        residue_labels=res_labels,
+        residue_insertion_codes=res_ins_codes,
+        chain_labels=chain_labels,
+        atom_occupancy=atom_occupancy,
+        atom_b_factor=atom_b_factor,
+    )
+
     block_coord_offset64 = i64(block_coord_offset)
     ps = PoseStack(
         packed_block_types=pbt,
@@ -236,6 +335,10 @@ def pose_stack_from_canonical_form(
         inter_block_bondsep64=i64(inter_block_bondsep),
         block_type_ind=i32(block_types64),
         block_type_ind64=block_types64,
+        chain_id=chain_id,
+        chain_id64=i64(chain_id),
+        pdb_info=pdb_info,
+        constraint_set=None,
         device=pbt.device,
     )
 
@@ -270,18 +373,17 @@ def pose_stack_from_canonical_form(
             dim=1,
         )
 
+    # return the optional arguments in a dictionary
+    opt_return_vals = {}
     if return_chain_ind:
-        if return_atom_mapping:
-            return (
-                ps,
-                chain_id,
-                can_atom_mapping,
-                ps_atom_mapping,
-            )
-        else:
-            return (ps, chain_id)
+        opt_return_vals["chain_ind"] = chain_id
+    if return_atom_mapping:
+        opt_return_vals["can_atom_mapping"] = can_atom_mapping
+        opt_return_vals["ps_atom_mapping"] = ps_atom_mapping
+    if return_block_has_missing_atoms:
+        opt_return_vals["block_has_missing_atoms"] = block_has_missing_atoms
+
+    if len(opt_return_vals) > 0:
+        return ps, opt_return_vals
     else:
-        if return_atom_mapping:
-            return (ps, can_atom_mapping, ps_atom_mapping)
-        else:
-            return ps
+        return ps

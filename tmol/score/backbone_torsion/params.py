@@ -80,7 +80,7 @@ class BackboneTorsionParamResolver(ValidateAttrs):
 
         for i, t_i in enumerate(rama_database.rama_tables):
             tables[i, ...] = BSplineInterpolation.from_coordinates(
-                torch.tensor(t_i.table, dtype=torch.float)
+                t_i.table.detach().clone().to(dtype=torch.float)
             ).coeffs
 
         rama_params = PackedRamaDatabase(
@@ -116,10 +116,10 @@ class BackboneTorsionParamResolver(ValidateAttrs):
 
         for i, t_i in enumerate(bbdep_omega_database.bbdep_omega_tables):
             tables[i, 0, ...] = BSplineInterpolation.from_coordinates(
-                torch.tensor(t_i.mu, dtype=torch.float)
+                t_i.mu.detach().clone().to(dtype=torch.float)
             ).coeffs
             tables[i, 1, ...] = BSplineInterpolation.from_coordinates(
-                torch.tensor(t_i.sigma, dtype=torch.float)
+                t_i.sigma.detach().clone().to(dtype=torch.float)
             ).coeffs
 
         # assumes bbstep is the same for both tables

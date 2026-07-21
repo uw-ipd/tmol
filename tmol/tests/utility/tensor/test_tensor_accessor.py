@@ -1,17 +1,20 @@
-import pytest
-import torch
 import math
 
-import tmol.utility.cpp_extension as cpp_extension
-from tmol.utility.cpp_extension import relpaths, modulename
+import pytest
+import torch
 
 from tmol.tests.torch import requires_cuda
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def tensor_accessor():
-    return cpp_extension.load(
-        modulename(__name__), relpaths(__file__, "tensor_accessor.cpp"), verbose=True
+    from tmol._load_ext import load_module
+
+    return load_module(
+        __name__,
+        __file__,
+        "tensor_accessor.cpp",
+        "tmol.tests.utility.tensor._tensor_accessor",
     )
 
 

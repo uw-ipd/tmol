@@ -29,7 +29,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define Real3 Vec<Real, 3>
 
-def connectivity_weight(Real bonded_path_length)->Real {
+def connectivity_weight(Real bonded_path_length) -> Real {
   if (bonded_path_length > 4) {
     return 1.0;
   } else if (bonded_path_length == 4) {
@@ -40,14 +40,14 @@ def connectivity_weight(Real bonded_path_length)->Real {
 }
 
 // sigmoidal distance-dependant dielectric
-def eps(Real dist, float D, float D0, float S)->Real {
+def eps(Real dist, float D, float D0, float S) -> Real {
   return (
       D
       - 0.5 * (D - D0) * (2 + 2 * dist * S + dist * dist * S * S)
             * std::exp(-dist * S));
 }
 
-def deps_ddist(Real dist, float D, float D0, float S)->Real {
+def deps_ddist(Real dist, float D, float D0, float S) -> Real {
   return (0.5 * (D - D0) * dist * dist * S * S * S * std::exp(-dist * S));
 }
 
@@ -60,8 +60,7 @@ def elec_delec_ddist(
     float D0,
     float S,
     float min_dis,
-    float max_dis)
-    ->tuple<Real, Real> {
+    float max_dis) -> tuple<Real, Real> {
   Real low_poly_start = min_dis - 0.25;
   Real low_poly_end = min_dis + 0.25;
   Real hi_poly_start = max_dis - 1.0;
@@ -69,7 +68,7 @@ def elec_delec_ddist(
 
   Real weight = connectivity_weight<Real>(bonded_path_length);
 
-  Real C1 = 322.0637;  // electrostatic energy constant
+  Real C1 = 322.0637;  // electrostatic energy constant (matches Rosetta C0_)
   Real C2 = C1 / (max_dis * eps(max_dis, D, D0, S));
 
   Real eiej = e_i * e_j;
@@ -105,7 +104,7 @@ def elec_delec_ddist(
         0.0,
         low_poly_end,
         dmax_elec,
-        deps_elec_d_dist);
+        dmax_elec_d_dist);
 
   } else if (dist < hi_poly_start) {
     // Coulombic part
@@ -141,8 +140,7 @@ def elec(
     float D0,
     float S,
     float min_dis,
-    float max_dis)
-    ->Real {
+    float max_dis) -> Real {
   Real low_poly_start = min_dis - 0.25;
   Real low_poly_end = min_dis + 0.25;
   Real hi_poly_start = max_dis - 1.0;
@@ -150,7 +148,7 @@ def elec(
 
   Real weight = connectivity_weight<Real>(bonded_path_length);
 
-  Real C1 = 322.0637;  // electrostatic energy constant
+  Real C1 = 322.0637;  // electrostatic energy constant (matches Rosetta C0_)
   Real C2 = C1 / (max_dis * eps(max_dis, D, D0, S));
 
   Real eiej = e_i * e_j;
@@ -173,6 +171,9 @@ def elec(
     Real eps_elec = eps(low_poly_end, D, D0, S);
     Real deps_elec_d_dist = deps_ddist(low_poly_end, D, D0, S);
     Real dmax_elec = eiej * (C1 / (low_poly_end * eps_elec) - C2);
+    Real dmax_elec_d_dist =
+        -C1 * eiej * (eps_elec + low_poly_end * deps_elec_d_dist)
+        / (low_poly_end * low_poly_end * eps_elec * eps_elec);
 
     elecE = interpolate<Real>(
         dist,
@@ -181,7 +182,7 @@ def elec(
         0.0,
         low_poly_end,
         dmax_elec,
-        deps_elec_d_dist);
+        dmax_elec_d_dist);
 
   } else if (dist < hi_poly_start) {
     // Coulombic part

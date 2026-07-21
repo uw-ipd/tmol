@@ -2,10 +2,10 @@ import torch
 import numpy
 import toolz
 
-from typing import Mapping
 from tmol.types.functional import validate_args
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.database import ParameterDatabase
+from tmol.io.canonical_form import CanonicalForm
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -32,13 +32,13 @@ def pose_stack_from_openfold(openfold_result_dictionary, **kwargs) -> PoseStack:
     cf = canonical_form_from_openfold(openfold_result_dictionary)
 
     co = canonical_ordering_for_openfold()
-    pbt = packed_block_types_for_openfold(cf["coords"].device)
+    pbt = packed_block_types_for_openfold(cf.coords.device)
 
-    return pose_stack_from_canonical_form(co, pbt, **cf, **kwargs)
+    return pose_stack_from_canonical_form(co, pbt, *cf, **kwargs)
 
 
 @validate_args
-def canonical_form_from_openfold(openfold_result_dictionary) -> Mapping:
+def canonical_form_from_openfold(openfold_result_dictionary) -> CanonicalForm:
     """The canonical form is intended to represent a stable, serializable intermediate format
     for a structure so that it can be created today and then be read in years from now
     and be used to construct a PoseStack in tmol. As residue types (aatype) are integers,
@@ -56,7 +56,7 @@ def canonical_form_from_openfold(openfold_result_dictionary) -> Mapping:
         cf2 = {x: y.to(device) for x,y in torch.load("saved_canonical_form.pt")}
         co = canonical_ordering_for_openfold()
         pbt = packed_block_types_for_openfold(device)
-        pose_stack = tmol.pose_stack_from_canonical_form(co, pbt, **cf2)
+        pose_stack = tmol.pose_stack_from_canonical_form(co, pbt, *cf2)
 
     """
 
@@ -112,10 +112,17 @@ def canonical_form_from_openfold(openfold_result_dictionary) -> Mapping:
         atom_mapping[of_at_is_real],
     ] = of_coords[of_at_is_real]
 
-    return dict(
+    return CanonicalForm(
         chain_id=of_chain_ind.to(torch.int32),
         res_types=tmol_restypes.to(torch.int32),
         coords=tmol_coords,
+        chain_labels=None,
+        res_labels=None,
+        residue_insertion_codes=None,
+        atom_occupancy=None,
+        atom_b_factor=None,
+        disulfides=None,
+        res_not_connected=None,
     )
 
 
@@ -125,6 +132,14 @@ def _paramdb_for_openfold() -> ParameterDatabase:
     are "used" in OpenFold: the canonical amino acids (including the
     two histidine tautomers and the disulfid-bonded cysteine) and
     the canonical n- and c-termini patches.
+
+    Note: HIS_POS was added 2026/02 but will not affect the OpenFold
+    CanonicalOrdering or CanonicalForm objects constructed from the
+    OpenFold CanonicalOrdering. This is an example of the stability
+    that CanonicalOrdering / CanonicalForm offer, or would be if the
+    nature of CanonicalForm hadn't been altered quite radically at
+    the same time to include the other parts of describing a system
+    that are needed for good I/O (e.g. PDBInfo data).
     """
 
     from tmol.chemical.restypes import one2three

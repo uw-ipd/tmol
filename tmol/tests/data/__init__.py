@@ -1,8 +1,19 @@
 import pytest
 import os
 import torch
+import biotite.structure.io
 
 from . import pdb
+
+_CIF_DATA_DIR = os.path.join(os.path.dirname(__file__), "cif")
+
+
+def load_cif(pdb_code):
+    """Load a CIF from the bundled test data directory."""
+    path = os.path.join(_CIF_DATA_DIR, f"{pdb_code}.cif")
+    return biotite.structure.io.load_structure(
+        path, extra_fields=["occupancy", "b_factor"]
+    )
 
 
 @pytest.fixture(scope="session")
@@ -26,8 +37,23 @@ def kin_minimized_ubq_pdb():
 
 
 @pytest.fixture(scope="session")
+def pdb_1r21():
+    return pdb.data["1R21"]
+
+
+@pytest.fixture(scope="session")
+def pdb_10VB():
+    return pdb.data["10VB"]
+
+
+@pytest.fixture(scope="session")
 def disulfide_pdb():
     return pdb.data["3plc"]
+
+
+@pytest.fixture(scope="session")
+def pdb_6DMZ():
+    return pdb.data["6DMZ_A"]
 
 
 @pytest.fixture()
@@ -143,6 +169,112 @@ def rosettafold2_ubq_pred(torch_device):
 def rosettafold2_sumo_pred(torch_device):
     fname = os.path.join(__file__.rpartition("/")[0], "rosettafold2", "sumo.pt")
     return torch.load(fname, map_location=torch_device)
+
+
+@pytest.fixture()
+def biotite_1ubq():
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1ubq.pdb")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
+def biotite_1ubq_err():
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1ubq_err.pdb")
+    if not os.path.exists(fname):
+        pytest.skip(f"Test data file not found: {fname}")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
+def biotite_1ubq_cif():
+    fname = os.path.join(__file__.rpartition("/")[0], "cif", "1UBQ.cif")
+    if not os.path.exists(fname):
+        pytest.skip(f"Test data file not found: {fname}")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
+def biotite_1r21():
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1R21.pdb")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
+def biotite_1bl8():
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1BL8.pdb")
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
+def cif_184l_with_i4b():
+    """Lysozyme 184L with I4B ligand."""
+    import biotite.structure.io.pdbx
+
+    fname = os.path.join(__file__.rpartition("/")[0], "cif", "184l__1__1.A__1.E.cif")
+    pdbx_file = biotite.structure.io.pdbx.CIFFile.read(fname)
+    return biotite.structure.io.pdbx.get_structure(
+        pdbx_file, model=1, include_bonds=True
+    )
+
+
+@pytest.fixture()
+def cif_155c_with_hem():
+    """Cytochrome c 155C with HEM ligand."""
+    import biotite.structure.io.pdbx
+
+    fname = os.path.join(__file__.rpartition("/")[0], "cif", "155c__1__1.A__1.B.cif")
+    pdbx_file = biotite.structure.io.pdbx.CIFFile.read(fname)
+    return biotite.structure.io.pdbx.get_structure(
+        pdbx_file, model=1, include_bonds=True
+    )
+
+
+@pytest.fixture()
+def cif_1a25_with_pse():
+    """1A25 with PSE ligand (partial occupancy)."""
+    import biotite.structure.io.pdbx
+
+    fname = os.path.join(__file__.rpartition("/")[0], "cif", "1a25__1__1.B__1.I.cif")
+    pdbx_file = biotite.structure.io.pdbx.CIFFile.read(fname)
+    return biotite.structure.io.pdbx.get_structure(
+        pdbx_file, model=1, include_bonds=True
+    )
+
+
+@pytest.fixture()
+def cif_1a0i_with_atp():
+    """1A0I with ATP ligand (>32-atom tile edge case)."""
+    import biotite.structure.io.pdbx
+
+    fname = os.path.join(__file__.rpartition("/")[0], "cif", "1A0I.cif")
+    pdbx_file = biotite.structure.io.pdbx.CIFFile.read(fname)
+    return biotite.structure.io.pdbx.get_structure(
+        pdbx_file, model=1, include_bonds=True
+    )
+
+
+@pytest.fixture()
+def pdb_1a0i_with_atp():
+    """1A0I (PDB format) with ATP ligand."""
+    import biotite.structure.io.pdb
+
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1A0I.pdb")
+    pdb_file = biotite.structure.io.pdb.PDBFile.read(fname)
+    return pdb_file.get_structure(
+        model=1,
+        include_bonds=True,
+        extra_fields=["occupancy", "b_factor"],
+    )
 
 
 def no_termini_pose_stack_from_pdb(pdb, torch_device, residue_start, residue_end):

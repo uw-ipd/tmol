@@ -10,6 +10,13 @@ TMol Documentation
 
 TMol is a tensor-based molecular modeling library for use on GPUs and CPUs.
 
+Ligand preparation (detecting, parameterizing, and scoring non-standard
+residues such as small-molecule ligands) is documented in the
+`ligand preparation guide
+<https://github.com/uw-ipd/tmol/blob/main/tmol/ligand/README.md>`_, which
+covers the CIF/SMILES/mol2 pipeline, the ``strict_ligands`` failure mode, and a
+protein-ligand ddG quickstart.
+
 .. The toctree entry declares the document's location, and children, inside the
   table-of-contents entry. We want two captioned toc constructs on the front,
   "Notes", containing freeform documentation, and "Packages", docstring based

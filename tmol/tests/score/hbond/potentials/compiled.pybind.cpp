@@ -23,13 +23,14 @@ struct type_caster<hbond_score_V_dV_t<Real>> {
       hbond_score_V_dV_t<Real> src,
       return_value_policy /* policy */,
       handle /* parent */) {
-    return py::cast(std::make_tuple(
-                        src.V,
-                        src.dV_dD,
-                        src.dV_dH,
-                        src.dV_dA,
-                        src.dV_dB,
-                        src.dV_dB0))
+    return py::cast(
+               std::make_tuple(
+                   src.V,
+                   src.dV_dD,
+                   src.dV_dH,
+                   src.dV_dA,
+                   src.dV_dB,
+                   src.dV_dB0))
         .release();
   }
 };

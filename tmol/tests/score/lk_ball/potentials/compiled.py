@@ -10,9 +10,25 @@ from tmol.types.tensor import TensorGroup
 from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.score.chemical_database import AtomTypeParamResolver
 
-from tmol.utility.cpp_extension import load, relpaths, modulename
+from tmol._load_ext import load_module
 
-_compiled = load(modulename(__name__), relpaths(__file__, ["compiled.pybind.cpp"]))
+_compiled = load_module(
+    __name__,
+    __file__,
+    "compiled.pybind.cpp",
+    "tmol.tests.score.lk_ball.potentials._ext",
+)
+
+build_acc_water_V = _compiled.build_acc_water_V
+build_acc_water_dV = _compiled.build_acc_water_dV
+build_don_water_V = _compiled.build_don_water_V
+build_don_water_dV = _compiled.build_don_water_dV
+lk_fraction_V = _compiled.lk_fraction_V
+lk_fraction_dV = _compiled.lk_fraction_dV
+lk_bridge_fraction_V = _compiled.lk_bridge_fraction_V
+lk_bridge_fraction_dV = _compiled.lk_bridge_fraction_dV
+lk_ball_score_V = _compiled.lk_ball_score_V
+lk_ball_score_dV = _compiled.lk_ball_score_dV
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -25,6 +41,7 @@ class LKBallTypeParams(TensorGroup):
     is_hydroxyl: Tensor[torch.float32][...]
     is_polarh: Tensor[torch.float32][...]
     is_acceptor: Tensor[torch.float32][...]
+    is_carbon_lk: Tensor[torch.float32][...]
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -33,6 +50,7 @@ class LKBallGlobalParams(TensorGroup):
     lj_hbond_OH_donor_dis: Tensor[torch.float32][...]
     lj_hbond_hdis: Tensor[torch.float32][...]
     lkb_water_dist: Tensor[torch.float32][...]
+    distance_threshold: Tensor[torch.float32][...]
 
 
 def detach_maybe_requires_grad(
@@ -63,14 +81,12 @@ class BuildAcceptorWater(torch.autograd.Function):
         if rgrad:
             ctx.inputs = inputs
 
-        return torch.from_numpy(_compiled.build_acc_water_V(*inputs))
+        return torch.from_numpy(build_acc_water_V(*inputs))
 
     @staticmethod
     def backward(ctx, dE_dW: Tensor[float][:, 3]):
         inputs = ctx.inputs
-        dW_dA, dW_dB, dW_dB0 = map(
-            torch.from_numpy, _compiled.build_acc_water_dV(*inputs)
-        )
+        dW_dA, dW_dB, dW_dB0 = map(torch.from_numpy, build_acc_water_dV(*inputs))
 
         return dW_dA @ dE_dW, dW_dB @ dE_dW, dW_dB0 @ dE_dW, None, None, None
 
@@ -86,13 +102,13 @@ class BuildDonorWater(torch.autograd.Function):
         if rgrad:
             ctx.inputs = inputs
 
-        return torch.from_numpy(_compiled.build_don_water_V(*inputs))
+        return torch.from_numpy(build_don_water_V(*inputs))
 
     @staticmethod
     def backward(ctx, dE_dW: Tensor[float][:, 3]):
         inputs = ctx.inputs
 
-        dW_dD, dW_dH = map(torch.from_numpy, _compiled.build_don_water_dV(*inputs))
+        dW_dD, dW_dH = map(torch.from_numpy, build_don_water_dV(*inputs))
 
         return dW_dD @ dE_dW, dW_dH @ dE_dW, None
 
@@ -106,12 +122,12 @@ class LKFraction(torch.autograd.Function):
         if rgrad:
             ctx.args = args
 
-        return torch.tensor(_compiled.lk_fraction_V(*args)).to(args[0].dtype)
+        return torch.tensor(lk_fraction_V(*args)).to(args[0].dtype)
 
     @staticmethod
     def backward(ctx, dE_dF: Tensor[float]):
         args = ctx.args
-        d_grad_args = map(torch.from_numpy, _compiled.lk_fraction_dV(*args))
+        d_grad_args = map(torch.from_numpy, lk_fraction_dV(*args))
 
         return tuple(a * dE_dF for a in d_grad_args) + tuple(None for a in args[2:])
 
@@ -125,12 +141,12 @@ class LKBridgeFraction(torch.autograd.Function):
         if rgrad:
             ctx.args = args
 
-        return torch.tensor(_compiled.lk_bridge_fraction_V(*args)).to(args[0].dtype)
+        return torch.tensor(lk_bridge_fraction_V(*args)).to(args[0].dtype)
 
     @staticmethod
     def backward(ctx, dE_dF: Tensor[float]):
         args = ctx.args
-        d_grad_args = map(torch.from_numpy, _compiled.lk_bridge_fraction_dV(*args))
+        d_grad_args = map(torch.from_numpy, lk_bridge_fraction_dV(*args))
 
         return tuple(a * dE_dF for a in d_grad_args) + tuple(None for a in args[4:])
 
@@ -150,8 +166,6 @@ class LKBallScore:
         atom_type_i,
         atom_type_j,
     ):
-        # Cast parameter tensors to precision required for input tensors.
-        # Required to support double-precision inputs for gradcheck tests.
         type_params = self.param_resolver.type_params
         if coord_i.dtype != type_params.lj_radius.dtype:
             type_params = attr.evolve(
@@ -162,14 +176,14 @@ class LKBallScore:
                 },
             )
 
-        idx_i = self.param_resolver.atom_type_index.get_loc(atom_type_i)
-        params_i = cattr.unstructure(type_params[idx_i])
+        iidx = self.param_resolver.atom_type_index.get_loc(atom_type_i)
+        params_i = cattr.unstructure(type_params[iidx])
         params_i = LKBallTypeParams(
             **{x.name: params_i[x.name] for x in attr.fields(LKBallTypeParams)}
         )
 
-        idx_j = self.param_resolver.atom_type_index.get_loc(atom_type_j)
-        params_j = cattr.unstructure(type_params[idx_j])
+        jidx = self.param_resolver.atom_type_index.get_loc(atom_type_j)
+        params_j = cattr.unstructure(type_params[jidx])
         params_j = LKBallTypeParams(
             **{x.name: params_j[x.name] for x in attr.fields(LKBallTypeParams)}
         )
@@ -178,6 +192,8 @@ class LKBallScore:
             **cattr.unstructure(self.param_resolver.global_params),
             **cattr.unstructure(self.atom_resolver.params),
         }
+        # LKBall struct uses 'distance_threshold' for the lj/lk max-dis cutoff
+        params_global["distance_threshold"] = params_global["max_dis"]
         params_global = LKBallGlobalParams(
             **{x.name: params_global[x.name] for x in attr.fields(LKBallGlobalParams)}
         )
@@ -203,16 +219,13 @@ class LKBallScoreFun(torch.autograd.Function):
         if rgrad:
             ctx.args = args
 
-        return torch.tensor(_compiled.lk_ball_score_V(*args)).to(args[0].dtype)
+        return torch.tensor(lk_ball_score_V(*args)).to(args[0].dtype)
 
     @staticmethod
     def backward(ctx, dE_dV: Tensor[float]):
         args = ctx.args
 
-        # Output grads [arg_index, out_shape, ...arg_shape] Unpack into
-        # tuple-by-arg-index, then transpose into [...arg_shape, out_shape] to
-        # allow broadcast mult and reduce.
-        dargs = map(torch.tensor, _compiled.lk_ball_score_dV(*args))
+        dargs = map(torch.tensor, lk_ball_score_dV(*args))
 
         return tuple((d.transpose(0, -1) * dE_dV).sum(dim=-1) for d in dargs) + tuple(
             None for _ in args[4:]

@@ -37,7 +37,7 @@ struct AcceptorHybridization {
 
 template <typename Real>
 def AH_dist_V_dV(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly)
-    ->tuple<Real, Real3, Real3> {
+    -> tuple<Real, Real3, Real3> {
   auto dist = distance<Real>::V_dV(A, H);
   auto poly = bound_poly<11, double>::V_dV(
       dist.V, AHdist_poly.coeffs, AHdist_poly.range, AHdist_poly.bound);
@@ -46,7 +46,7 @@ def AH_dist_V_dV(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly)
 }
 
 template <typename Real>
-def AH_dist_V(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly)->Real {
+def AH_dist_V(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly) -> Real {
   Real dist = distance<Real>::V(A, H);
   return bound_poly<11, double>::V(
       dist, AHdist_poly.coeffs, AHdist_poly.range, AHdist_poly.bound);
@@ -55,7 +55,7 @@ def AH_dist_V(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly)->Real {
 template <typename Real>
 def AHD_angle_V_dV(
     Real3 A, Real3 H, Real3 D, HBondPoly<double> const& cosAHD_poly)
-    ->tuple<Real, Real3, Real3, Real3> {
+    -> tuple<Real, Real3, Real3, Real3> {
   // In non-cos space
   auto AHD = pt_interior_angle<Real>::V_dV(A, H, D);
   auto poly = bound_poly<11, double>::V_dV(
@@ -70,7 +70,7 @@ def AHD_angle_V_dV(
 
 template <typename Real>
 def AHD_angle_V(Real3 A, Real3 H, Real3 D, HBondPoly<double> const& cosAHD_poly)
-    ->Real {
+    -> Real {
   // In non-cos space
   Real AHD = pt_interior_angle<Real>::V(A, H, D);
   return bound_poly<11, double>::V(
@@ -80,7 +80,7 @@ def AHD_angle_V(Real3 A, Real3 H, Real3 D, HBondPoly<double> const& cosAHD_poly)
 template <typename Real>
 def _BAH_angle_base_form_V_dV(
     Real3 B, Real3 A, Real3 H, HBondPoly<double> const& cosBAH_poly)
-    ->tuple<Real, Real3, Real3, Real3> {
+    -> tuple<Real, Real3, Real3, Real3> {
   Real3 AH = H - A;
   Real3 BA = A - B;
 
@@ -97,8 +97,7 @@ def _BAH_angle_base_form_V_dV(
 
 template <typename Real>
 def _BAH_angle_base_form_V(
-    Real3 B, Real3 A, Real3 H, HBondPoly<double> const& cosBAH_poly)
-    ->Real {
+    Real3 B, Real3 A, Real3 H, HBondPoly<double> const& cosBAH_poly) -> Real {
   Real3 AH = H - A;
   Real3 BA = A - B;
 
@@ -115,8 +114,7 @@ def BAH_angle_V_dV(
     Real3 H,
     Int acceptor_hybridization,
     HBondPoly<double> const& cosBAH_poly,
-    Real hb_sp3_softmax_fade)
-    ->tuple<Real, Real3, Real3, Real3, Real3> {
+    Real hb_sp3_softmax_fade) -> tuple<Real, Real3, Real3, Real3, Real3> {
   using std::exp;
   using std::log;
 
@@ -179,8 +177,7 @@ def BAH_angle_V(
     Real3 H,
     Int acceptor_hybridization,
     HBondPoly<double> const& cosBAH_poly,
-    Real hb_sp3_softmax_fade)
-    ->Real {
+    Real hb_sp3_softmax_fade) -> Real {
   using std::exp;
   using std::log;
 
@@ -209,7 +206,7 @@ def BAH_angle_V(
 
 template <typename Real>
 def sp2chi_energy_V_dV(Real ang, Real chi, Real d, Real m, Real l)
-    ->tuple<Real, Real, Real> {
+    -> tuple<Real, Real, Real> {
   const Real pi = EIGEN_PI;
 
   using std::cos;
@@ -253,7 +250,7 @@ def sp2chi_energy_V_dV(Real ang, Real chi, Real d, Real m, Real l)
 }
 
 template <typename Real>
-def sp2chi_energy_V(Real ang, Real chi, Real d, Real m, Real l)->Real {
+def sp2chi_energy_V(Real ang, Real chi, Real d, Real m, Real l) -> Real {
   const Real pi = EIGEN_PI;
 
   using std::cos;
@@ -291,8 +288,7 @@ def B0BAH_chi_V_dV(
     Int acceptor_hybridization,
     Real hb_sp2_BAH180_rise,
     Real hb_sp2_range_span,
-    Real hb_sp2_outer_width)
-    ->tuple<Real, Real3, Real3, Real3, Real3> {
+    Real hb_sp2_outer_width) -> tuple<Real, Real3, Real3, Real3, Real3> {
   if (acceptor_hybridization == AcceptorHybridization::sp2) {
     // SP-2 Chi Angle
     Real BAH;
@@ -335,8 +331,7 @@ def B0BAH_chi_V(
     Int acceptor_hybridization,
     Real hb_sp2_BAH180_rise,
     Real hb_sp2_range_span,
-    Real hb_sp2_outer_width)
-    ->Real {
+    Real hb_sp2_outer_width) -> Real {
   if (acceptor_hybridization == AcceptorHybridization::sp2) {
     // SP-2 Chi Angle
     Real BAH = pt_interior_angle<Real>::V(B, A, H);
@@ -375,8 +370,7 @@ struct hbond_score {
 
       HBondPairParams<Real> const& pair_params,
       HBondPolynomials<double> const& polynomials,
-      HBondGlobalParams<Real> global_params)
-      ->hbond_score_V_dV_t<Real> {
+      HBondGlobalParams<Real> global_params) -> hbond_score_V_dV_t<Real> {
     Real E = 0.0;
     Real3 dE_dD = {0, 0, 0};
     Real3 dE_dH = {0, 0, 0};
@@ -458,8 +452,7 @@ struct hbond_score {
 
       HBondPairParams<Real> const& pair_params,
       HBondPolynomials<double> const& polynomials,
-      HBondGlobalParams<Real> global_params)
-      ->Real {
+      HBondGlobalParams<Real> global_params) -> Real {
     Real E = 0.0;
 
     // A-H Distance Component

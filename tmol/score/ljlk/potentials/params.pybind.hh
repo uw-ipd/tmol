@@ -76,6 +76,7 @@ struct type_caster<tmol::score::ljlk::potentials::LKTypeParams<Real>> {
     CAST_ATTR(src, value, is_acceptor);
     CAST_ATTR(src, value, is_hydroxyl);
     CAST_ATTR(src, value, is_polarh);
+    CAST_ATTR(src, value, is_carbon_lk);
 
     return true;
   }
@@ -99,6 +100,7 @@ struct type_caster<tmol::score::ljlk::potentials::LKTypeParamTensors<Real, D>> {
     CAST_ATTR(src, value, is_acceptor);
     CAST_ATTR(src, value, is_hydroxyl);
     CAST_ATTR(src, value, is_polarh);
+    CAST_ATTR(src, value, is_carbon_lk);
 
     return true;
   }
@@ -114,6 +116,8 @@ struct type_caster<tmol::score::ljlk::potentials::LJGlobalParams<Real>> {
   bool load(handle src, bool convert) {
     nvtx_range_function();
 
+    CAST_ATTR(src, value, max_dis);
+    CAST_ATTR(src, value, lj_dlin_sigma_factor);
     CAST_ATTR(src, value, lj_hbond_dis);
     CAST_ATTR(src, value, lj_hbond_OH_donor_dis);
     CAST_ATTR(src, value, lj_hbond_hdis);
@@ -133,6 +137,8 @@ struct type_caster<
   bool load(handle src, bool convert) {
     nvtx_range_function();
 
+    CAST_ATTR(src, value, max_dis);
+    CAST_ATTR(src, value, lj_dlin_sigma_factor);
     CAST_ATTR(src, value, lj_hbond_dis);
     CAST_ATTR(src, value, lj_hbond_OH_donor_dis);
     CAST_ATTR(src, value, lj_hbond_hdis);

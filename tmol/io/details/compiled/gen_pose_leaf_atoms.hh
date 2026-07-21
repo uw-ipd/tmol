@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/score/unresolved_atom.hh>
 
 namespace tmol {
@@ -11,13 +13,13 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <tmol::Device>
-    class Dispatch,
+    template <tmol::Device> class Dispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
 struct GeneratePoseLeafAtoms {
   static auto forward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 2, Dev> coords,
       TView<bool, 3, Dev> orig_coords_atom_missing,
       TView<bool, 2, Dev> pose_stack_atom_missing,
@@ -52,6 +54,7 @@ struct GeneratePoseLeafAtoms {
       ) -> TPack<Vec<Real, 3>, 2, Dev>;
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 2, Dev> dE_d_new_coords,
       TView<Vec<Real, 3>, 2, Dev> new_coords,
       TView<Vec<Real, 3>, 2, Dev> orig_coords,

@@ -1,14 +1,18 @@
 import numpy
 import torch
 import attr
+import logging
 
 from collections import defaultdict
 from typing import Optional, Tuple
 from tmol.types.torch import Tensor
+from tmol.types.array import NDArray
 from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+
+logger = logging.getLogger(__name__)
 
 
 @validate_args
@@ -488,6 +492,11 @@ def select_best_block_type_candidate(
     real_candidate_should_be_excluded = torch.any(
         real_candidate_provided_atoms_absent, dim=1
     )
+
+    real_candidate_n_extraneous_atoms_provided = torch.count_nonzero(
+        real_candidate_provided_atoms_absent, dim=1
+    )
+
     atom_is_absent = torch.logical_not(atom_is_present)
     real_candidate_non_term_patch_atom_is_present = (
         can_ann.bt_non_term_patch_added_canonical_atom_is_present[
@@ -505,19 +514,19 @@ def select_best_block_type_candidate(
     real_candidate_n_canonical_atoms_not_provided = torch.sum(
         real_candidate_canonical_atom_was_not_provided, dim=1
     )
+    warning_threshold = 2 * (canonical_ordering.max_n_canonical_atoms + 1)
     real_candidate_misalignment_score = (
         2 * real_candidate_n_canonical_atoms_not_provided
+        + warning_threshold * real_candidate_n_extraneous_atoms_provided
         + real_candidate_is_non_default_term
     )
-    failure_score = 2 * (canonical_ordering.max_n_canonical_atoms + 1)
-    real_candidate_misalignment_score[real_candidate_should_be_excluded] = failure_score
     candidate_misalignment_score2 = torch.full(
         (
             n_poses,
             max_n_res,
             max_n_candidates,
         ),
-        failure_score,
+        warning_threshold,
         dtype=torch.int64,
         device=device,
     )
@@ -536,8 +545,7 @@ def select_best_block_type_candidate(
         nz_is_real_res[:, 1],
         best_candidate_ind2[is_real_res],
     ]
-
-    if torch.any(best_candidate_score >= failure_score):
+    if torch.any(best_candidate_score >= warning_threshold):
 
         nz_is_real_candidate = torch.nonzero(is_real_candidate)
         err_msg = []
@@ -546,7 +554,7 @@ def select_best_block_type_candidate(
             j = nz_is_real_candidate[cand_ind, 1]
             k = nz_is_real_candidate[cand_ind, 2]
 
-            if best_candidate_score[i, j] < failure_score:
+            if best_candidate_score[i, j] < warning_threshold:
                 continue
             ij_equiv_class = canonical_ordering.restype_io_equiv_classes[
                 res_types64[i, j]
@@ -594,25 +602,39 @@ def select_best_block_type_candidate(
                                 )
                             ]
                         )
-            # should there be an `else:` here??
-            # No.
-            # If there is at least one canonical atom that does not
-            # belong to a given block type, then its score will be less than
-            # the failure-score cutoff. We would only arrive at this "else"
-            # condition if an block type had every single atom across all
-            # variants of that atom, and the largest number of atoms of all
-            # block types and it were not the default termini type and the
-            # user had provided not a single one of its atoms to us, but still
-            # claimed that there was a residue.
 
-        raise RuntimeError(
-            " ".join(
-                [
-                    "failed to resolve a block type from the candidates available\n",
-                    *err_msg,
-                ]
-            )
+            if real_candidate_canonical_atom_was_not_provided[cand_ind].any():
+                equiv_class = cand_bt.io_equiv_class
+                for l in range(
+                    len(canonical_ordering.restypes_ordered_atom_names[equiv_class])
+                ):
+                    if real_candidate_canonical_atom_was_not_provided[cand_ind, l]:
+                        err_msg.extend(
+                            [
+                                str(x)
+                                for x in (
+                                    " atom",
+                                    canonical_ordering.restypes_ordered_atom_names[
+                                        equiv_class
+                                    ][l],
+                                    "missing but present in candidate",
+                                    cand_bt.name + "\n",
+                                )
+                            ]
+                        )
+
+        err_msg = " ".join(
+            [
+                "failed to resolve a block type from the candidates available\n",
+                *err_msg,
+            ]
         )
+
+        failure_threshold = 2 * warning_threshold
+        if torch.any(best_candidate_score >= failure_threshold):
+            raise RuntimeError(err_msg + "Best candidate exceeds failure threshold")
+        else:
+            logger.warning(err_msg)
 
     block_type_ind64_2 = torch.full_like(res_types64, -1)
     block_type_ind64_2[is_real_res] = block_type_candidates[
@@ -630,6 +652,8 @@ def take_block_type_atoms_from_canonical(
     block_types64: Tensor[torch.int64][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Tensor[torch.bool][:, :, :],
+    atom_occupancy: Optional[NDArray[numpy.float32][:, :, :]] = None,
+    atom_b_factor: Optional[NDArray[numpy.float32][:, :, :]] = None,
 ):
     """Now that we have decided which block type each canonical residue
     is, we want to select only those atoms from the canonically-ordered
@@ -679,7 +703,53 @@ def take_block_type_atoms_from_canonical(
         atom_is_present[nz_real_pose_ind, nz_real_block_ind, real_canonical_atom_inds]
     )
 
-    return (block_coords, missing_atoms, real_atoms, real_canonical_atom_inds)
+    # autogen-ligand hydrogens were regenerated by re-protonation
+    # _always_ regenerate, do not use input, as the names no longer match
+    regen_by_type = torch.tensor(
+        [bool(bt.hydrogens_regenerated) for bt in pbt.active_block_types],
+        dtype=torch.bool,
+        device=device,
+    )
+    block_is_regen = torch.zeros(
+        (n_poses, max_n_blocks), dtype=torch.bool, device=device
+    )
+    block_is_regen[real_block_types] = regen_by_type[block_types64[real_block_types]]
+    atom_is_h = torch.zeros(
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=device
+    )
+    atom_is_h[real_block_types] = pbt.atom_is_hydrogen[
+        block_types64[real_block_types]
+    ].to(torch.bool)
+    missing_atoms |= block_is_regen.unsqueeze(-1) & atom_is_h & real_atoms
+
+    canonical_atom_occupancy = numpy.zeros(
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
+    )
+    canonical_atom_b_factor = numpy.zeros(
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
+    )
+
+    if atom_occupancy is not None:
+        canonical_atom_occupancy[real_atoms.cpu().numpy()] = atom_occupancy[
+            nz_real_pose_ind.cpu().numpy(),
+            nz_real_block_ind.cpu().numpy(),
+            real_canonical_atom_inds.cpu().numpy(),
+        ]
+    if atom_b_factor is not None:
+        canonical_atom_b_factor[real_atoms.cpu().numpy()] = atom_b_factor[
+            nz_real_pose_ind.cpu().numpy(),
+            nz_real_block_ind.cpu().numpy(),
+            real_canonical_atom_inds.cpu().numpy(),
+        ]
+
+    return (
+        block_coords,
+        missing_atoms,
+        real_atoms,
+        real_canonical_atom_inds,
+        canonical_atom_occupancy,
+        canonical_atom_b_factor,
+    )
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -718,10 +788,12 @@ def _map_term_to_int(is_down_term, is_up_term):
     return 1
 
 
-def _map_spcase_var_to_int(is_cyd, is_hisd):
+def _map_spcase_var_to_int(is_cyd, is_hisd, is_hispos):
     # spcase == SPecial CASE
     if is_cyd or is_hisd:
         return 1
+    if is_hispos:
+        return 2
     return 0
 
 
@@ -741,6 +813,7 @@ def _assign_var_inds_for_bt(co, bt):
     bt_is_non_default_term = False
     bt_is_cyd = bt.base_name == "CYD"
     bt_is_hisd = bt.base_name == "HIS_D"
+    bt_is_hispos = bt.base_name == "HIS_POS"
     for var_name in bt_vars[1:]:
         if var_name in co.down_termini_patches:
             bt_is_down_term = True
@@ -751,7 +824,7 @@ def _assign_var_inds_for_bt(co, bt):
             if var_name != co.restypes_default_termini_mapping[bt.io_equiv_class][1]:
                 bt_is_non_default_term = True
     term_ind = _map_term_to_int(bt_is_down_term, bt_is_up_term)
-    spcase_var_ind = _map_spcase_var_to_int(bt_is_cyd, bt_is_hisd)
+    spcase_var_ind = _map_spcase_var_to_int(bt_is_cyd, bt_is_hisd, bt_is_hispos)
     return term_ind, spcase_var_ind, bt_is_non_default_term
 
 
@@ -909,7 +982,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
 
     max_n_termini_types = 4  # 0=down-term, 1=mid, 2=up-term, 3=down+up
     max_n_special_case_aa_variant_types = (
-        2  # CYS=0, CYD=1; HISE=0, HISD=1; all others, 0
+        3  # CYS=0, CYD=1; HISE=0, HISD=1; HIS_POS=2; all others, 0
     )
 
     pbt_io_equiv_class_name_set = set(
@@ -969,11 +1042,11 @@ def _annotate_packed_block_types_w_canonical_res_order(
         pbt_io_equiv_class_candidates,
     )
 
-    (bt_canonical_atom_is_absent, bt_non_term_patch_added_canonical_atom_is_present) = (
+    bt_canonical_atom_is_absent, bt_non_term_patch_added_canonical_atom_is_present = (
         _note_atoms_present_and_absent_from_variants(co, pbt)
     )
 
-    (bt_ind_to_canonical_ind, bt_canonical_atom_ind) = (
+    bt_ind_to_canonical_ind, bt_canonical_atom_ind = (
         _create_bt_to_canonical_atom_mapping(co, pbt)
     )
 

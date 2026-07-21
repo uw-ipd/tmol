@@ -1,0 +1,94 @@
+# CI — one job on the fela self-hosted runner (user bench).
+#
+# Checkout + venv bootstrap on the runner; lint before Slurm. One gpu-train srun
+# runs build → CPU tests → CUDA tests → benchmarks (see run_ci_gpu_work.sh).
+
+name: CI
+
+on:
+  push:
+    branches: [master, "kdidi/**"]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SIF: /home/bench/git_ci_apptainer/tmol.sif
+  SLURM_PARTITION: gpu-train
+  SLURM_GRES: gpu:1
+  SLURM_CPUS_PER_TASK: 16
+  SLURM_MEM: 128G
+  SLURM_TIME: 06:00:00
+  # Exclude GPU nodes with known hardware faults. g2548 hit an uncorrectable
+  # ECC memory error (cudaErrorECCUncorrectable) that erroring out the whole
+  # CUDA test lane; drop this once the node's GPU is reset/repaired.
+  SLURM_EXCLUDE: g2548
+  SRUN_GPU_MAX_ATTEMPTS: 5
+  SRUN_GPU_RETRY_SLEEP: 10
+
+jobs:
+  ci:
+    name: ci
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 720
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - run: .github/ci/restore_source_timestamps.sh
+      - run: .github/ci/setup_ci_venv.sh
+
+      - name: lint
+        run: |
+          apptainer exec --nv --fakeroot --containall \
+            --bind "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
+            --pwd "$GITHUB_WORKSPACE" \
+            "$SIF" bash <<'LINT'
+          set -ex
+          source .venv/bin/activate
+          uv pip install pre-commit
+          pre-commit run --all-files --show-diff-on-failure
+          LINT
+
+      - name: build and test
+        env:
+          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
+        run: |
+          rm -f "$GPU_ALLOC_SENTINEL"
+          .github/ci/srun_gpu_retry.sh <<SCRIPT
+          .github/ci/exec_gpu_apptainer.sh .github/ci/run_ci_gpu_work.sh
+          SCRIPT
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            testing.cpu.junit.xml
+            testing.cuda.junit.xml
+            coverage.xml
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results
+          path: benchmark/**/*
+          if-no-files-found: ignore
+
+      - uses: test-summary/action@v2
+        if: always()
+        with:
+          paths: |
+            testing.*.junit.xml
+
+      - uses: codecov/codecov-action@v5
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ github.workspace }}/coverage.xml
+          fail_ci_if_error: true

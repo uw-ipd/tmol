@@ -49,10 +49,20 @@ def test_default_canonical_form_from_pdb(pertuzumab_pdb, torch_device):
         chain_id,
         res_types,
         coords,
+        res_labels,
+        res_ins_codes,
+        chain_labels,
+        atom_occupancy,
+        atom_b_factor,
     ) = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.res_labels,
+        cf.residue_insertion_codes,
+        cf.chain_labels,
+        cf.atom_occupancy,
+        cf.atom_b_factor,
     )
     def_co = default_canonical_ordering()
     assert chain_id.device == torch_device
@@ -64,6 +74,14 @@ def test_default_canonical_form_from_pdb(pertuzumab_pdb, torch_device):
     assert chain_id.shape[1] == coords.shape[1]
     assert coords.shape[2] == def_co.max_n_canonical_atoms
     assert coords.shape[3] == 3
+    assert res_labels.shape == res_types.shape
+    assert res_ins_codes.shape == res_types.shape
+    assert chain_labels.shape == res_types.shape
+    assert atom_occupancy.shape == coords.shape[:3]
+    assert atom_b_factor.shape == coords.shape[:3]
+    assert atom_occupancy.dtype == numpy.float32
+    assert atom_b_factor.dtype == numpy.float32
+
     chain_id_gold = numpy.zeros(res_types.shape, dtype=numpy.int32)
     chain_id_gold[0, 214:] = 1
 
@@ -134,9 +152,9 @@ def test_canonical_form_w_unk(torch_device):
         res_types,
         coords,
     ) = (
-        co["chain_id"],
-        co["res_types"],
-        co["coords"],
+        co.chain_id,
+        co.res_types,
+        co.coords,
     )
     def_co = default_canonical_ordering()
 

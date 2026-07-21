@@ -1,0 +1,207 @@
+import io
+from pathlib import Path
+from urllib.error import URLError
+
+import tmol_build_backend as backend
+
+
+def test_candidate_wheels_include_torch_213_cu130_x86_64_fallback(
+    monkeypatch,
+):
+    monkeypatch.setattr(backend.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(backend, "_linux_arch_tag", lambda: "x86_64")
+    monkeypatch.setattr(backend, "_read_project_version", lambda: "0.1.42")
+    monkeypatch.setattr(backend, "_python_tag", lambda: "cp314")
+    monkeypatch.setattr(backend, "_torch_major_minor", lambda: "2.13")
+    monkeypatch.setattr(backend, "_torch_cuda_tag", lambda: "cu130")
+
+    assert backend._candidate_wheel_filenames() == [
+        "tmol-0.1.42+cu130torch2.13-cp314-cp314-manylinux_2_28_x86_64.whl",
+        "tmol-0.1.42+cu130torch2.13-cp314-cp314-linux_x86_64.whl",
+    ]
+
+
+def test_candidate_wheels_include_manylinux_aarch64_then_native_fallback(
+    monkeypatch,
+):
+    monkeypatch.setattr(backend.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(backend, "_linux_arch_tag", lambda: "aarch64")
+    monkeypatch.setattr(backend, "_read_project_version", lambda: "0.1.42")
+    monkeypatch.setattr(backend, "_python_tag", lambda: "cp313")
+    monkeypatch.setattr(backend, "_torch_major_minor", lambda: "2.13")
+    monkeypatch.setattr(backend, "_torch_cuda_tag", lambda: "cu130")
+
+    assert backend._candidate_wheel_filenames() == [
+        "tmol-0.1.42+cu130torch2.13-cp313-cp313-manylinux_2_28_aarch64.whl",
+        "tmol-0.1.42+cu130torch2.13-cp313-cp313-linux_aarch64.whl",
+    ]
+
+
+def test_candidate_wheels_include_stable_torch_210_variants(monkeypatch):
+    monkeypatch.setattr(backend.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(backend, "_linux_arch_tag", lambda: "x86_64")
+    monkeypatch.setattr(backend, "_read_project_version", lambda: "0.1.42")
+    monkeypatch.setattr(backend, "_python_tag", lambda: "cp312")
+    monkeypatch.setattr(backend, "_torch_major_minor", lambda: "2.10")
+    monkeypatch.setattr(backend, "_torch_cuda_tag", lambda: "cu130")
+
+    filenames = backend._candidate_wheel_filenames()
+    assert all("cu131" not in filename for filename in filenames)
+    assert any("+cu130torch2.10-" in filename for filename in filenames)
+    assert any("+cu128torch2.10-" in filename for filename in filenames)
+
+
+def test_build_wheel_uses_downloaded_wheel_when_available(monkeypatch, tmp_path):
+    monkeypatch.setattr(backend, "_is_repo_checkout", lambda: False)
+    monkeypatch.setattr(backend, "_is_isolated_build_environment", lambda: False)
+    monkeypatch.setattr(
+        backend, "_candidate_wheel_filenames", lambda: ["candidate.whl"]
+    )
+    monkeypatch.setattr(
+        backend, "_release_download_base", lambda: "https://example.invalid"
+    )
+    monkeypatch.setattr(backend, "_release_tag", lambda: "v0.0.0")
+
+    download_calls: list[tuple[str, Path]] = []
+
+    def fake_download(url, out_path):
+        download_calls.append((url, out_path))
+        return True
+
+    monkeypatch.setattr(backend, "_download_to_path", fake_download)
+    monkeypatch.setattr(
+        backend._skbuild_backend,
+        "build_wheel",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("build_wheel fallback should not run when download succeeds")
+        ),
+    )
+
+    wheel_name = backend.build_wheel(str(tmp_path))
+
+    assert wheel_name == "candidate.whl"
+    assert download_calls == [
+        ("https://example.invalid/v0.0.0/candidate.whl", tmp_path / "candidate.whl")
+    ]
+
+
+def test_build_wheel_falls_back_when_no_prebuilt_match(monkeypatch, tmp_path):
+    monkeypatch.setattr(backend, "_is_repo_checkout", lambda: False)
+    monkeypatch.setattr(backend, "_is_isolated_build_environment", lambda: False)
+    monkeypatch.setattr(
+        backend, "_candidate_wheel_filenames", lambda: ["candidate.whl"]
+    )
+    monkeypatch.setattr(
+        backend, "_release_download_base", lambda: "https://example.invalid"
+    )
+    monkeypatch.setattr(backend, "_release_tag", lambda: "v0.0.0")
+    monkeypatch.setattr(backend, "_download_to_path", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(
+        backend._skbuild_backend,
+        "build_wheel",
+        lambda *args, **kwargs: "built-locally.whl",
+    )
+
+    wheel_name = backend.build_wheel(str(tmp_path))
+
+    assert wheel_name == "built-locally.whl"
+
+
+def test_build_wheel_skips_fetch_in_repo_checkout(monkeypatch, tmp_path):
+    monkeypatch.delenv("TMOL_ENABLE_LOCAL_FETCH", raising=False)
+    monkeypatch.setattr(backend, "_is_repo_checkout", lambda: True)
+    monkeypatch.setattr(
+        backend,
+        "_candidate_wheel_filenames",
+        lambda: (_ for _ in ()).throw(AssertionError("fetch path should be skipped")),
+    )
+    monkeypatch.setattr(
+        backend._skbuild_backend,
+        "build_wheel",
+        lambda *args, **kwargs: "built-locally.whl",
+    )
+
+    wheel_name = backend.build_wheel(str(tmp_path))
+
+    assert wheel_name == "built-locally.whl"
+
+
+def test_build_wheel_force_build_env_skips_fetch(monkeypatch, tmp_path):
+    monkeypatch.setenv("TMOL_FORCE_BUILD", "1")
+    monkeypatch.setattr(backend, "_is_repo_checkout", lambda: False)
+    monkeypatch.setattr(backend, "_is_isolated_build_environment", lambda: False)
+    monkeypatch.setattr(
+        backend,
+        "_candidate_wheel_filenames",
+        lambda: (_ for _ in ()).throw(AssertionError("fetch path should be skipped")),
+    )
+    monkeypatch.setattr(
+        backend._skbuild_backend,
+        "build_wheel",
+        lambda *args, **kwargs: "built-locally.whl",
+    )
+
+    wheel_name = backend.build_wheel(str(tmp_path))
+
+    assert wheel_name == "built-locally.whl"
+
+
+def test_build_wheel_attempts_autodetect_in_isolated_build_by_default(
+    monkeypatch, tmp_path
+):
+    monkeypatch.delenv("TMOL_WHEEL_LOCAL_TAG", raising=False)
+    monkeypatch.setattr(backend, "_is_repo_checkout", lambda: False)
+    monkeypatch.setattr(backend, "_is_isolated_build_environment", lambda: True)
+    monkeypatch.setattr(
+        backend, "_candidate_wheel_filenames", lambda: ["candidate.whl"]
+    )
+    monkeypatch.setattr(
+        backend, "_release_download_base", lambda: "https://example.invalid"
+    )
+    monkeypatch.setattr(backend, "_release_tag", lambda: "v0.0.0")
+    monkeypatch.setattr(backend, "_download_to_path", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(
+        backend._skbuild_backend,
+        "build_wheel",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("build_wheel fallback should not run when download succeeds")
+        ),
+    )
+
+    wheel_name = backend.build_wheel(str(tmp_path))
+
+    assert wheel_name == "candidate.whl"
+
+
+def test_download_retries_then_succeeds(monkeypatch, tmp_path):
+    out_path = tmp_path / "wheel.whl"
+    monkeypatch.setenv("TMOL_WHEEL_FETCH_RETRIES", "2")
+    monkeypatch.setenv("TMOL_WHEEL_FETCH_BACKOFF_S", "0")
+    monkeypatch.setenv("TMOL_WHEEL_FETCH_TIMEOUT_S", "1")
+
+    attempts = {"count": 0}
+
+    class _Response(io.BytesIO):
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            self.close()
+            return False
+
+    def fake_urlopen(_request, timeout):
+        assert timeout == 1.0
+        attempts["count"] += 1
+        if attempts["count"] < 3:
+            raise URLError("temporary network error")
+        return _Response(b"wheel-bytes")
+
+    monkeypatch.setattr(backend, "urlopen", fake_urlopen)
+
+    assert (
+        backend._download_to_path("https://example.invalid/wheel.whl", out_path) is True
+    )
+    assert attempts["count"] == 3
+    assert out_path.read_bytes() == b"wheel-bytes"

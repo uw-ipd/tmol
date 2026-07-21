@@ -1,23 +1,11 @@
-from tmol.utility.cpp_extension import load, modulename, relpaths
+from tmol._load_ext import load_module
 
+_mod = load_module(
+    __name__,
+    __file__,
+    "uaid_util.pybind.cc",
+    "tmol.tests.score.common._uaid_util",
+)
+resolve_uaids = _mod.resolve_uaids
 
-# ok, we are going to load the uaid_util.pybind.cc file
-def resolve_uaids(
-    uaids,
-    block_inds,
-    pose_inds,
-    pose_stack_block_coord_offset,
-    pose_stack_block_type,
-    pose_stack_inter_block_connections,
-    block_type_atom_downstream_of_conn,
-):
-    compiled = load(modulename(__name__), relpaths(__file__, "uaid_util.pybind.cc"))
-    return compiled.resolve_uaids(
-        uaids,
-        block_inds,
-        pose_inds,
-        pose_stack_block_coord_offset,
-        pose_stack_block_type,
-        pose_stack_inter_block_connections,
-        block_type_atom_downstream_of_conn,
-    )
+__all__ = ["resolve_uaids"]

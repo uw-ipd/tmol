@@ -1,20 +1,19 @@
+import numpy
 import pytest
 import torch
-import numpy
-
-import tmol.utility.cpp_extension as cpp_extension
-from tmol.utility.cpp_extension import relpaths, modulename, cuda_if_available
 
 from tmol.tests.torch import requires_cuda
 
 
 @pytest.fixture
 def warp_stride_reduce():
-    return cpp_extension.load(
-        modulename(__name__),
-        cuda_if_available(
-            relpaths(__file__, ["warp_stride_reduce.cpp", "warp_stride_reduce.cuda.cu"])
-        ),
+    from tmol._load_ext import load_module
+
+    return load_module(
+        __name__,
+        __file__,
+        ["warp_stride_reduce.cpp", "warp_stride_reduce.cuda.cu"],
+        "tmol.tests.score.common._warp_stride_reduce",
     )
 
 

@@ -20,11 +20,11 @@ from ..chemical_database import AtomTypeParamResolver
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class LJLKGlobalParams(TensorGroup):
     max_dis: Tensor[torch.float32][...]
-    spline_start: Tensor[torch.float32][...]
+    lj_dlin_sigma_factor: Tensor[torch.float32][...]
+    lj_dlin_sigma_factor_soft: Tensor[torch.float32][...]
     lj_hbond_OH_donor_dis: Tensor[torch.float32][...]
     lj_hbond_dis: Tensor[torch.float32][...]
     lj_hbond_hdis: Tensor[torch.float32][...]
-    lj_switch_dis2sigma: Tensor[torch.float32][...]
     lk_min_dis2sigma: Tensor[torch.float32][...]
 
     # not clear if this belongs here or in a separate class
@@ -55,6 +55,9 @@ class LJLKTypeParams(TensorGroup):
     is_polarh: Tensor[bool][...]
 
     is_hydrogen: Tensor[bool][...]
+
+    # atom types Rosetta flattens LK desolvation for in C-C pairs
+    is_carbon_lk: Tensor[bool][...]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -125,6 +128,13 @@ class LJLKParamResolver(ValidateAttrs):
             .reindex(index=atom_type_index)
         )
 
+        # Rosetta's Etable::initialize_carbontypes_to_linearize_fasol
+        is_carbon_lk = torch.tensor(
+            atom_type_index.isin(("CH1", "CH2", "CH3", "Caro")),
+            dtype=torch.bool,
+            device=device,
+        )
+
         # Convert the param record dataframe into typed TensorGroup
         type_params = LJLKTypeParams(
             # Reference parameters from atom_type_resolver
@@ -142,6 +152,7 @@ class LJLKParamResolver(ValidateAttrs):
                 in ("lj_radius", "lj_wdepth", "lk_dgfree", "lk_lambda", "lk_volume")
             },
             is_hydrogen=atom_type_resolver.params.is_hydrogen,
+            is_carbon_lk=is_carbon_lk,
         )
 
         return cls(

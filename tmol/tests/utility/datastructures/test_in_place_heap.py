@@ -1,15 +1,17 @@
+import numpy
 import pytest
 import torch
-import numpy
-
-import tmol.utility.cpp_extension as cpp_extension
-from tmol.utility.cpp_extension import relpaths, modulename
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def in_place_heap():
-    return cpp_extension.load(
-        modulename(__name__), relpaths(__file__, "in_place_heap.cpp"), verbose=True
+    from tmol._load_ext import load_module
+
+    return load_module(
+        __name__,
+        __file__,
+        "in_place_heap.cpp",
+        "tmol.tests.utility.datastructures._in_place_heap",
     )
 
 

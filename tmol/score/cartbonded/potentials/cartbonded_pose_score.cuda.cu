@@ -17,6 +17,17 @@ template struct CartBondedPoseScoreDispatch<
     double,
     int>;
 
+template struct CartBondedRotamerScoreDispatch<
+    DeviceOperations,
+    tmol::Device::CUDA,
+    float,
+    int>;
+template struct CartBondedRotamerScoreDispatch<
+    DeviceOperations,
+    tmol::Device::CUDA,
+    double,
+    int>;
+
 }  // namespace potentials
 }  // namespace cartbonded
 }  // namespace score
