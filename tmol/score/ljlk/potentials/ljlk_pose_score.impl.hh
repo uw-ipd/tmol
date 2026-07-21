@@ -79,26 +79,26 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //     LJLKScoringData<Real> const &score_dat
 //     int cp_separation)
 //   ->std::array<Real, 2>
-#define SCORE_INTER_LJ_ATOM_PAIR(atom_pair_func)                   \
-  TMOL_DEVICE_FUNC(                                                \
-      int start_atom1,                                             \
-      int start_atom2,                                             \
-      int atom_tile_ind1,                                          \
-      int atom_tile_ind2,                                          \
-      LJLKScoringData<Real> const& inter_dat) {                    \
-    int separation = interres_count_pair_separation<TILE_SIZE>(    \
-        inter_dat,                                                 \
-        atom_tile_ind1,                                            \
-        atom_tile_ind2,                                            \
-        block_type_is_nonpolymer[inter_dat.r1.block_type]          \
-            && block_type_is_nonpolymer[inter_dat.r2.block_type]); \
-    return atom_pair_func(                                         \
-        atom_tile_ind1,                                            \
-        atom_tile_ind2,                                            \
-        start_atom1,                                               \
-        start_atom2,                                               \
-        inter_dat,                                                 \
-        separation);                                               \
+#define SCORE_INTER_LJ_ATOM_PAIR(atom_pair_func)                        \
+  TMOL_DEVICE_FUNC(                                                     \
+      int start_atom1,                                                  \
+      int start_atom2,                                                  \
+      int atom_tile_ind1,                                               \
+      int atom_tile_ind2,                                               \
+      LJLKScoringData<Real> const& inter_dat) {                         \
+    int separation = interres_count_pair_separation<TILE_SIZE>(         \
+        inter_dat,                                                      \
+        atom_tile_ind1,                                                 \
+        atom_tile_ind2,                                                 \
+        block_type_is_ligand_fragment[inter_dat.r1.block_type]          \
+            && block_type_is_ligand_fragment[inter_dat.r2.block_type]); \
+    return atom_pair_func(                                              \
+        atom_tile_ind1,                                                 \
+        atom_tile_ind2,                                                 \
+        start_atom1,                                                    \
+        start_atom2,                                                    \
+        inter_dat,                                                      \
+        separation);                                                    \
   }
 
 // SCORE_INTRA_LJ_ATOM_PAIR
@@ -158,8 +158,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         inter_dat,                                                            \
         atom_tile_ind1,                                                       \
         atom_tile_ind2,                                                       \
-        block_type_is_nonpolymer[inter_dat.r1.block_type]                     \
-            && block_type_is_nonpolymer[inter_dat.r2.block_type]);            \
+        block_type_is_ligand_fragment[inter_dat.r1.block_type]                \
+            && block_type_is_ligand_fragment[inter_dat.r2.block_type]);       \
     Real lk = atom_pair_func(                                                 \
         atom_tile_ind1,                                                       \
         atom_tile_ind2,                                                       \
@@ -684,7 +684,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     // what is the path distance between pairs of atoms in the block
     // Dimsize: n_block_types x max_n_atoms x max_n_atoms
     TView<Int, 3, D> block_type_path_distance,
-    TView<Int, 1, D> block_type_is_nonpolymer,
+    TView<Int, 1, D> block_type_is_ligand_fragment,
     //////////////////////
 
     // LJ parameters
@@ -1216,7 +1216,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
     // what is the path distance between pairs of atoms in the block
     // Dimsize: n_block_types x max_n_atoms x max_n_atoms
     TView<Int, 3, D> block_type_path_distance,
-    TView<Int, 1, D> block_type_is_nonpolymer,
+    TView<Int, 1, D> block_type_is_ligand_fragment,
     //////////////////////
 
     // LJ parameters
@@ -1535,7 +1535,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     // what is the path distance between pairs of atoms in the block
     // Dimsize: n_block_types x max_n_atoms x max_n_atoms
     TView<Int, 3, D> block_type_path_distance,
-    TView<Int, 1, D> block_type_is_nonpolymer,
+    TView<Int, 1, D> block_type_is_ligand_fragment,
     //////////////////////
 
     // LJ parameters
@@ -1877,7 +1877,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
     // what is the path distance between pairs of atoms in the block
     // Dimsize: n_block_types x max_n_atoms x max_n_atoms
     TView<Int, 3, D> block_type_path_distance,
-    TView<Int, 1, D> block_type_is_nonpolymer,
+    TView<Int, 1, D> block_type_is_ligand_fragment,
     //////////////////////
 
     // LJ parameters

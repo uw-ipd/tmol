@@ -61,7 +61,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         if hasattr(packed_block_types, "ljlk_heavy_atoms_in_tile"):
             assert hasattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile")
             assert hasattr(packed_block_types, "ljlk_bond_separation")
-            assert hasattr(packed_block_types, "ljlk_is_nonpolymer")
+            assert hasattr(packed_block_types, "ljlk_is_ligand_fragment")
             return
         max_n_tiles = (packed_block_types.max_n_atoms - 1) // self.tile_size + 1
         heavy_atoms_in_tile = torch.full(
@@ -102,12 +102,9 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         setattr(packed_block_types, "ljlk_bond_separation", ljlk_bond_separation)
         setattr(
             packed_block_types,
-            "ljlk_is_nonpolymer",
+            "ljlk_is_ligand_fragment",
             torch.tensor(
-                [
-                    not bt.properties.polymer.is_polymer
-                    for bt in packed_block_types.active_block_types
-                ],
+                [bt.is_ligand_fragment for bt in packed_block_types.active_block_types],
                 dtype=torch.int32,
                 device=self.device,
             ),
@@ -173,7 +170,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,
             pose_stack.packed_block_types.ljlk_bond_separation,
-            pose_stack.packed_block_types.ljlk_is_nonpolymer,
+            pose_stack.packed_block_types.ljlk_is_ligand_fragment,
             type_params,
             global_params,
             # max_dis as host scalar for detect-neighbors call

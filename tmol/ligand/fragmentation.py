@@ -374,7 +374,15 @@ def build_ligand_fragment_definition(
         }
     )
 
-    fragment_ids = sorted(set(atom_to_fragment.values()))
+    # Only prepared atoms define fragment blocks. Source-only names may retain
+    # orphan IDs in the public mapping but cannot create empty blocks.
+    fragment_ids = sorted({atom_to_fragment[atom.name] for atom in restype.atoms})
+    orphan_ids = set(atom_to_fragment.values()) - set(fragment_ids)
+    if orphan_ids:
+        raise ValueError(
+            f"{restype.name}: fragment id(s) {sorted(orphan_ids)} have no "
+            "prepared atoms"
+        )
     cut_bonds = [
         bond
         for bond in restype.bonds

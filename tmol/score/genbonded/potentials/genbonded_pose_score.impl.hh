@@ -274,6 +274,16 @@ TMOL_DEVICE_FUNC int source_torsion_param_index(
 }
 
 template <typename Int, tmol::Device D>
+TMOL_DEVICE_FUNC bool same_source_ligand_fragments(
+    Int block_type1,
+    Int block_type2,
+    TView<Int, 1, D> source_block_type_index) {
+  Int source1 = source_block_type_index[block_type1];
+  Int source2 = source_block_type_index[block_type2];
+  return source1 == source2 && source1 != block_type1 && source2 != block_type2;
+}
+
+template <typename Int, tmol::Device D>
 TMOL_DEVICE_FUNC int inter_block_torsion_parameter(
     Vec<Int, 3> path_a,
     Vec<Int, 3> path_b,
@@ -339,17 +349,16 @@ TMOL_DEVICE_FUNC int inter_block_torsion_parameter(
     }
   }
 
-  Int source_bt1 = source_block_type_index[block_type1];
-  Int source_bt2 = source_block_type_index[block_type2];
-  if (source_bt1 == source_bt2
-      && (source_bt1 != block_type1 || source_bt2 != block_type2)) {
+  Int source_bt = source_block_type_index[block_type1];
+  if (same_source_ligand_fragments<Int, D>(
+          block_type1, block_type2, source_block_type_index)) {
     Vec<Int, 4> source_atoms;
     for (int pos = 0; pos < 4; ++pos) {
       source_atoms[pos] =
           source_atom_index[local_block_types[pos]][local_indices[pos]];
     }
     int source_index = source_torsion_param_index<Int, D>(
-        source_bt1,
+        source_bt,
         source_atoms,
         intra_subgraphs,
         intra_subgraph_offsets,
@@ -625,9 +634,13 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
       // connection atom. It then has exactly two local neighbors and the
       // partner connection atom as its third neighbor. Evaluate either side as
       // the center; only one side can satisfy this condition for a given
-      // original three-coordinate atom.
+      // original three-coordinate atom. Restrict to fragments of one source
+      // ligand so polymer connections are unchanged.
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
         if (tid >= 2) return;
+        if (!same_source_ligand_fragments<Int, D>(
+                block_type1, block_type2, gen_source_block_type_index))
+          return;
         Vec<Int, 4> atoms;
         int val_idx = inter_block_improper_for_side<Int, D>(
             tid,
@@ -888,6 +901,9 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::backward(
 
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
         if (tid >= 2) return;
+        if (!same_source_ligand_fragments<Int, D>(
+                block_type1, block_type2, gen_source_block_type_index))
+          return;
         Vec<Int, 4> atoms;
         int val_idx = inter_block_improper_for_side<Int, D>(
             tid,
@@ -1202,6 +1218,9 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
 
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
         if (tid >= 2) return;
+        if (!same_source_ligand_fragments<Int, D>(
+                block_type1, block_type2, gen_source_block_type_index))
+          return;
         Vec<Int, 4> atoms;
         int val_idx = inter_block_improper_for_side<Int, D>(
             tid,
@@ -1429,6 +1448,9 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::backward(
 
       auto eval_inter_improper = ([&] TMOL_DEVICE_FUNC(int tid) {
         if (tid >= 2) return;
+        if (!same_source_ligand_fragments<Int, D>(
+                block_type1, block_type2, gen_source_block_type_index))
+          return;
         Vec<Int, 4> atoms;
         int val_idx = inter_block_improper_for_side<Int, D>(
             tid,

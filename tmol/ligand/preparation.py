@@ -69,6 +69,33 @@ def _skip_or_raise(strict_ligands: bool, message: str) -> None:
     logger.warning("Skipping %s", message)
 
 
+def _residue_chemistry_signature(restype) -> tuple:
+    return (
+        restype.base_name,
+        tuple((atom.name, atom.atom_type) for atom in restype.atoms),
+        tuple(tuple(bond) for bond in restype.bonds),
+        tuple(
+            (connection.name, connection.atom, getattr(connection, "type", None))
+            for connection in restype.connections
+        ),
+    )
+
+
+def _assert_fragment_names_available(param_db, fragment_preparations) -> None:
+    existing = {residue.name: residue for residue in param_db.chemical.residues}
+    for prep in fragment_preparations:
+        previous = existing.get(prep.residue_type.name)
+        if previous is None:
+            continue
+        if _residue_chemistry_signature(previous) != _residue_chemistry_signature(
+            prep.residue_type
+        ):
+            raise LigandPreparationError(
+                f"{prep.residue_type.name}: generated fragment name already "
+                "exists with different chemistry"
+            )
+
+
 def _build_cif_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.Mol:
     """Build a Chem.Mol from the CIF ligand for heavy-atom graph matching.
 
@@ -543,13 +570,15 @@ def prepare_ligands(  # noqa: C901
             definition = build_ligand_fragment_definition(prep, source)
             add_fragment_definition(prep.residue_type.name, definition)
         if fragment_definitions_by_name:
+            fragment_preparations = [
+                fragment_prep
+                for definition in fragment_definitions_by_name.values()
+                for fragment_prep in definition.fragment_preparations
+            ]
+            _assert_fragment_names_available(param_db, fragment_preparations)
             param_db = inject_ligand_preparations(
                 param_db,
-                [
-                    fragment_prep
-                    for definition in fragment_definitions_by_name.values()
-                    for fragment_prep in definition.fragment_preparations
-                ],
+                fragment_preparations,
                 strict_atom_types=strict_atom_types,
             )
             canonical_ordering = rebuild_canonical_ordering(param_db)
@@ -652,6 +681,12 @@ def prepare_ligands(  # noqa: C901
         )
 
     if preparations:
+        fragment_preparations = [
+            fragment_prep
+            for definition in fragment_definitions_by_name.values()
+            for fragment_prep in definition.fragment_preparations
+        ]
+        _assert_fragment_names_available(param_db, fragment_preparations)
         param_db = inject_ligand_preparations(
             param_db, preparations, strict_atom_types=strict_atom_types
         )
