@@ -234,6 +234,25 @@ def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
     kop_gradcheck_report(func, start_dofs)
 
 
+def test_pose_stack_kinematic_torch_op_gradcheck_perturbed2(
+    pose_stack_gradcheck_test_system2, coord_weights, torch_device
+):
+    pose_stack, kinematics_module, kincoords, dofs = pose_stack_gradcheck_test_system2
+
+    torch.random.manual_seed(1663)
+    start_dofs = (
+        (dofs.raw + ((torch.rand_like(dofs.raw) - 0.5) * 0.01))
+        .clone()
+        .detach()
+        .requires_grad_(True)
+    )
+
+    def func(dofs):
+        return torch.sum(coord_weights * kinematics_module(dofs)[:, :])
+
+    kop_gradcheck_report(func, start_dofs)
+
+
 def test_pose_stack_kinematic_torch_op_gradcheck(
     pose_stack_gradcheck_test_system1, torch_device
 ):
