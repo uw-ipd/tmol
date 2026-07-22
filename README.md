@@ -29,18 +29,31 @@ Use the mode that fits your needs:
 - **Convenience install:** `pip install tmol` (best-effort wheel auto-fetch, source-build fallback).
 - **Forced source build:** disable fetch and compile locally.
 
-CI currently uploads these wheel variants to [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
+> [!IMPORTANT]
+> **Published release status (checked 2026-07-17):** the latest GitHub and PyPI
+> release is **v0.1.40**. Its 19 GitHub wheel assets use native `linux_*` tags;
+> it does not include Torch 2.13 wheels, and its Python 3.14 GPU wheels target
+> Torch 2.12 only. The v0.1.42 matrix below has passed CI and wheel portability
+> validation but is not published until the release PR is approved and tagged.
+> Always confirm availability on the
+> [GitHub Releases page](https://github.com/uw-ipd/tmol/releases).
 
-- GPU wheels (Linux `x86_64` and `aarch64`) for:
-  - Python `cp311`, `cp312`, `cp313`, `cp314`
+Starting with v0.1.42, tmol publishes these wheel variants to GitHub Releases:
+
+- GPU wheels (`manylinux_2_28_x86_64` and `manylinux_2_28_aarch64`) for:
+  - Python `cp311`: torch 2.12
+  - Python `cp312`: torch 2.8 through 2.13
+  - Python `cp313` and `cp314`: torch 2.12 and 2.13
   - Torch/CUDA tags:
     - `+cu128torch2.8` (Google Colab / Turing **T4** wheel — the only variant built with `sm_75`; matches Colab runtime 2025.10: Python 3.12, torch 2.8)
+    - `+cu129torch2.8`
     - `+cu130torch2.9`
-    - `+cu128torch2.10` (x86_64 manylinux default)
-    - `+cu131torch2.11`
+    - `+cu128torch2.10` (x86_64 foundry upgrade lane)
+    - `+cu130torch2.10`
+    - `+cu130torch2.11`
     - `+cu132torch2.12`
-  - some `aarch64` lanes may additionally publish `+cu131torch2.10` depending on NGC base image CUDA
-- CPU wheels (Linux `x86_64`) for:
+    - `+cu130torch2.13`
+- CPU wheels (`manylinux_2_28_x86_64` and `manylinux_2_28_aarch64`) for:
   - Python `cp311`, `cp312`, `cp313`, `cp314`
   - local version tag `+cpu`
 
@@ -52,15 +65,18 @@ tmol-{VERSION}+{LOCAL_TAG}-cp{PYTAG}-cp{PYTAG}-manylinux_2_28_{ARCH}.whl
 
 Examples:
 
-- `tmol-0.1.22+cu132torch2.12-cp313-cp313-manylinux_2_28_x86_64.whl`
-- `tmol-0.1.22+cpu-cp314-cp314-manylinux_2_28_x86_64.whl`
+- `tmol-0.1.42+cu130torch2.13-cp313-cp313-manylinux_2_28_x86_64.whl`
+- `tmol-0.1.42+cpu-cp314-cp314-manylinux_2_28_aarch64.whl`
 
 > [!TIP]
 > CUDA wheels are forward-compatible within a major family (e.g. `cu132` wheels run on appropriate CUDA 13.x driver stacks).
 
 ### System requirements (Linux wheels)
 
-Pre-built Linux wheels are built for **manylinux_2_28** (glibc ≥ 2.28, typical minimum: **Ubuntu 20.04**, RHEL/CentOS 8+, or equivalent).
+The v0.1.42 GPU and CPU wheels use `manylinux_2_28` platform tags on both
+`x86_64` and `aarch64`. They require a Linux distribution with glibc 2.28 or
+newer. Torch and NVIDIA CUDA shared libraries are supplied by the matching
+PyTorch package, not bundled into tmol wheels.
 
 Wheel tags such as `cp312` and `+cu130torch2.9` select **Python**, **PyTorch**, and **CUDA** — they do not override your system's C++ runtime (`libstdc++`). If `import tmol` fails with `GLIBCXX_3.4.xx not found`, your **libstdc++ is older than the wheel was built for** (not a wrong CUDA wheel tag).
 
@@ -86,13 +102,13 @@ Install torch first so it matches your chosen wheel tag:
 
 ```bash
 pip install "torch==2.12.*" --index-url https://download.pytorch.org/whl/cu132
-# or e.g. cu131/cu130/cu128 depending on the wheel you pick
+# or torch 2.13 from cu130, depending on the wheel you pick
 ```
 
 #### Install by direct wheel URL (recommended)
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.12-cp313-cp313-manylinux_2_28_x86_64.whl"
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu130torch2.13-cp313-cp313-manylinux_2_28_x86_64.whl"
 ```
 
 #### Google Colab (Turing T4)
@@ -101,7 +117,7 @@ Colab ships Python 3.12 + torch 2.8 on a T4 (`sm_75`). Use the `+cu128torch2.8`
 wheel — it is the only variant compiled for `sm_75` (it also covers A100/L4):
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-linux_x86_64.whl"
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-manylinux_2_28_x86_64.whl"
 ```
 
 #### Auto-fetch matching wheel, fallback to source build

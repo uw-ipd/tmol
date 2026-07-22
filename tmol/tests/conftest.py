@@ -12,6 +12,7 @@ from .data import (  # noqa: F401
     big_pdb,
     water_box_pdb,
     ubq_pdb,
+    kin_minimized_ubq_pdb,
     pdb_1r21,
     pdb_10VB,
     pdb_6DMZ,

@@ -31,10 +31,12 @@ import pytest
 FIXTURE_DIR = Path(__file__).parent.parent / "data" / "ligand_cif_fixtures"
 
 # stem -> (CCD residue code, reference canonical SMILES from the PLINDER SDF)
+#   note (fd) this contains COO- fix
 _LIGANDS: dict[str, tuple[str, str]] = {
     "vww": (
         "VWW",
-        "N[C@@H](CCC(=O)N[C@@H](CSCc1ccccc1)C(=O)N[C@@H](C(=O)O)c1ccccc1)C(=O)O",
+        "N[C@@H](CCC(=O)N[C@@H](CSCc1ccccc1)C(=O)N[C@@H](C(=O)[O-])c1ccccc1)"
+        "C(=O)[O-]",
     ),
     "sah": (
         "SAH",

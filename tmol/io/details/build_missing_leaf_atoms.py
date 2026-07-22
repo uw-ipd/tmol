@@ -58,6 +58,17 @@ def build_missing_leaf_atoms(
         inter_residue_connections,
     )
 
+    # For autogen ligands, added H whose dihedral came from a different
+    # conformer than the placed heavy atoms can collide with a neighbor; snap
+    # such (geometrically determined) H to their parent's open vertex.
+    new_pose_coords = _apply_h_geometric_completion(
+        packed_block_types,
+        new_pose_coords,
+        block_leaf_atom_is_missing,
+        block_coord_offset,
+        block_types,
+    )
+
     return (
         new_pose_coords,
         block_coord_offset,
@@ -88,6 +99,7 @@ def _setup_for_leaf_atom_coord_building(
     # make sure we have all the data we need
     _annotate_packed_block_types_atom_is_leaf_atom(pbt)
     _annotate_packed_block_types_w_leaf_atom_icoors(pbt)
+    _annotate_packed_block_types_w_h_completion(pbt)
 
     n_atoms = torch.zeros((n_poses, max_n_blocks), dtype=torch.int32, device=device)
     real_blocks = block_types64 != -1
@@ -491,3 +503,164 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
     )
     setattr(bt, "leaf_atom_icoor_ann", ann)
     # return bt_icoor_geom, bt_icoor_uaids, bt_icoor_geom_backup, bt_icoor_uaids_backup
+
+
+# Max heavy neighbors a parent can have while still carrying a single H
+# (4-coordinate center: 3 heavy + 1 H).
+_H_COMPLETION_MAX_NEIGH = 3
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class BlockTypeHCompletionAnnotation:
+    # For each atom: is it a hydrogen whose position should be re-derived from
+    # its parent's heavy-neighbor geometry (rather than a stored dihedral)?
+    eligible: NDArray[bool][:]
+    parent: NDArray[numpy.int32][:]
+    neigh: NDArray[numpy.int32][:, 3]
+    n_neigh: NDArray[numpy.int32][:]
+    dist: NDArray[numpy.float32][:]
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class PackedBlockTypesHCompletionAnnotation:
+    eligible: Tensor[torch.bool][:, :]
+    parent: Tensor[torch.int64][:, :]
+    neigh: Tensor[torch.int64][:, :, 3]
+    n_neigh: Tensor[torch.int64][:, :]
+    dist: Tensor[torch.float32][:, :]
+
+
+def _determine_h_completion_for_block_type(bt, atom_is_hydrogen):
+    """Flag, per block type, which added H should be placed from geometry.
+
+    An autogen ligand mixes two conformers: heavy atoms come from the input
+    structure, H icoors from the OpenBabel one.
+     - At an invertible center the stored dihedral can aim the H at a neighbor.
+     - We flag such "inversion centers" here.
+    """
+    if hasattr(bt, "h_completion_ann"):
+        return
+    n = bt.n_atoms
+    is_h = numpy.asarray(atom_is_hydrogen).astype(bool)[:n]
+    eligible = numpy.zeros(n, dtype=bool)
+    parent = numpy.full(n, -1, dtype=numpy.int32)
+    neigh = numpy.full((n, _H_COMPLETION_MAX_NEIGH), -1, dtype=numpy.int32)
+    n_neigh = numpy.zeros(n, dtype=numpy.int32)
+    dist = numpy.zeros(n, dtype=numpy.float32)
+
+    # Only autogen-regenerated ligands suffer the conformer mismatch; canonical
+    # residues keep their (well-tested) dihedral-built hydrogens untouched.
+    if getattr(bt, "hydrogens_regenerated", False):
+        adj = [[] for _ in range(n)]
+        for a0, a1 in bt.bond_indices:
+            adj[int(a0)].append(int(a1))
+        for j in range(n):
+            if not is_h[j]:
+                continue
+            j_neighbors = adj[j]
+            if len(j_neighbors) != 1:
+                continue  # only ordinary terminal H
+            par = j_neighbors[0]
+            if is_h[par]:
+                continue
+            par_heavy = [k for k in adj[par] if not is_h[k]]
+            par_n_h = sum(1 for k in adj[par] if is_h[k])
+            if len(par_heavy) < 2 or par_n_h != 1:
+                continue
+            par_heavy = par_heavy[:_H_COMPLETION_MAX_NEIGH]
+            eligible[j] = True
+            parent[j] = par
+            n_neigh[j] = len(par_heavy)
+            neigh[j, : len(par_heavy)] = par_heavy
+            dist[j] = float(bt.icoors[bt.icoors_index[bt.atoms[j].name]].d)
+
+    setattr(
+        bt,
+        "h_completion_ann",
+        BlockTypeHCompletionAnnotation(
+            eligible=eligible,
+            parent=parent,
+            neigh=neigh,
+            n_neigh=n_neigh,
+            dist=dist,
+        ),
+    )
+
+
+def _annotate_packed_block_types_w_h_completion(pbt: PackedBlockTypes):
+    """Stack the per-block-type h-completion flags into padded PBT tensors."""
+    if hasattr(pbt, "h_completion_ann"):
+        return
+    assert hasattr(pbt, "atom_is_hydrogen")
+    eligible = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=bool)
+    parent = numpy.full((pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int64)
+    neigh = numpy.full(
+        (pbt.n_types, pbt.max_n_atoms, _H_COMPLETION_MAX_NEIGH), -1, dtype=numpy.int64
+    )
+    n_neigh = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=numpy.int64)
+    dist = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=numpy.float32)
+    atom_is_hydrogen_cpu = pbt.atom_is_hydrogen.cpu()
+    for i, bt in enumerate(pbt.active_block_types):
+        _determine_h_completion_for_block_type(bt, atom_is_hydrogen_cpu[i, :])
+        ann = bt.h_completion_ann
+        eligible[i, : bt.n_atoms] = ann.eligible
+        parent[i, : bt.n_atoms] = ann.parent
+        neigh[i, : bt.n_atoms] = ann.neigh
+        n_neigh[i, : bt.n_atoms] = ann.n_neigh
+        dist[i, : bt.n_atoms] = ann.dist
+
+    dev = pbt.device
+    setattr(
+        pbt,
+        "h_completion_ann",
+        PackedBlockTypesHCompletionAnnotation(
+            eligible=torch.tensor(eligible, dtype=torch.bool, device=dev),
+            parent=torch.tensor(parent, dtype=torch.int64, device=dev),
+            neigh=torch.tensor(neigh, dtype=torch.int64, device=dev),
+            n_neigh=torch.tensor(n_neigh, dtype=torch.int64, device=dev),
+            dist=torch.tensor(dist, dtype=torch.float32, device=dev),
+        ),
+    )
+
+
+def _apply_h_geometric_completion(
+    pbt,
+    pose_coords,
+    block_leaf_atom_is_missing,
+    block_coord_offset,
+    block_types,
+):
+    """Place eligible rebuilt H opposite the mean direction of the parent's heavy
+    neighbors, replacing the conformer-specific dihedral placement.
+
+    Only touches H flagged eligible by _determine_h_completion_for_block_type
+    that were actually rebuilt.
+    """
+    ann = pbt.h_completion_ann
+    real = block_types >= 0
+    bt64 = block_types.to(torch.int64).clamp_min(0)
+
+    # (n_poses, max_n_blocks, max_n_atoms): eligible & rebuilt in a real block
+    elig = ann.eligible[bt64] & block_leaf_atom_is_missing & real.unsqueeze(-1)
+    idx = torch.nonzero(elig)
+    if idx.shape[0] == 0:
+        return pose_coords
+
+    new_coords = pose_coords.clone()
+    for row in range(idx.shape[0]):
+        p = int(idx[row, 0])
+        b = int(idx[row, 1])
+        a = int(idx[row, 2])
+        bt_ind = int(bt64[p, b])
+        off = int(block_coord_offset[p, b])
+        par_pos = pose_coords[p, off + int(ann.parent[bt_ind, a])]
+        nn = int(ann.n_neigh[bt_ind, a])
+        acc = torch.zeros(3, dtype=pose_coords.dtype, device=pose_coords.device)
+        for k in range(nn):
+            na = int(ann.neigh[bt_ind, a, k])
+            v = pose_coords[p, off + na] - par_pos
+            acc = acc + v / torch.linalg.norm(v)
+        d = ann.dist[bt_ind, a]
+        h_pos = par_pos - d * acc / torch.linalg.norm(acc)
+        new_coords[p, off + a] = h_pos
+    return new_coords

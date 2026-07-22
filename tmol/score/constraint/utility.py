@@ -12,7 +12,7 @@ def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
     constraint_set = pose_stack.constraint_set
 
     cnstr_atoms = torch.full((0, 1, 3), 0, dtype=torch.int32, device=pose_stack.device)
-    cnstr_params = torch.full((0, 3), 0, dtype=torch.float32, device=pose_stack.device)
+    cnstr_params = torch.full((0, 4), 0, dtype=torch.float32, device=pose_stack.device)
 
     for pose_ind in range(pose_stack.n_poses):
         for block_ind in range(pose_stack.max_n_blocks):
@@ -20,7 +20,10 @@ def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
                 block_type = pose_stack.block_type(pose_ind, block_ind)
 
                 ca_ind = block_type.atom_to_idx["CA"]
-                ca_coords = pose_stack.coords[pose_ind][
+                ca_params = torch.full(
+                    (1, 5), 0.0, dtype=torch.float32, device=pose_stack.device
+                )
+                ca_params[0, 1:4] = pose_stack.coords[pose_ind][
                     pose_stack.block_coord_offset[pose_ind, block_ind] + ca_ind
                 ]
 
@@ -34,7 +37,8 @@ def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
                         ),
                     ]
                 )
-                cnstr_params = torch.cat([cnstr_params, ca_coords.unsqueeze(0)])
+                cnstr_params = torch.cat([cnstr_params, ca_params])
+    cnstr_params[:, 4] = 0.5  # Set standard deviation to 0.5A to match R3 FastRelax
     if constraint_set is None:
         constraint_set = ConstraintSet.create_empty(
             pose_stack.device, pose_stack.n_poses

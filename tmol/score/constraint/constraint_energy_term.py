@@ -427,13 +427,10 @@ class ConstraintEnergyTerm(EnergyTerm):
         else:
             add_non_rotamerized_cnstrs()
 
-        # print("rotamerized_atoms:", rotamerized_atoms)
-
         def score_cnstrs(functions, types, atom_coords, params):
             cnstr_scores = torch.full(
                 (len(types),), 0, dtype=torch.float32, device=coords.device
             )
-
             for ind, fn in enumerate(functions):
 
                 # get the constraints that match this constraint type

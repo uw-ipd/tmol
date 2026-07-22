@@ -35,7 +35,7 @@ import logging
 import os
 import sys
 from io import StringIO
-from typing import Any, IO
+from typing import Any, IO, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -745,10 +745,13 @@ class ProtSubstructFuncs:
         for item in subs:
             smart = item["mol"]
             if mol_used_to_idx_sites.HasSubstructMatch(smart):
-                matches = ProtectUnprotectFuncs.get_unprotected_matches(
-                    mol_used_to_idx_sites, smart
-                )
                 prot = item["prot_states_for_pH"]
+                # Only this rule's own protonation sites can be blocked by a
+                # higher-priority rule; shared context atoms must not block.
+                site_indices = [int(site[0]) for site in prot]
+                matches = ProtectUnprotectFuncs.get_unprotected_matches(
+                    mol_used_to_idx_sites, smart, site_indices
+                )
                 for match in matches:
                     for site in prot:
                         proton = int(site[0])
@@ -901,13 +904,18 @@ class ProtectUnprotectFuncs:
 
     @staticmethod
     def get_unprotected_matches(
-        mol: Chem.rdchem.Mol, substruct: Chem.rdchem.Mol
+        mol: Chem.rdchem.Mol,
+        substruct: Chem.rdchem.Mol,
+        site_indices: Optional[list[int]] = None,
     ) -> list[tuple[int, ...]]:
-        """Find substructure matches that contain only unprotected atoms.
+        """Find matches this rule is still allowed to ionize.
 
         Args:
             mol: The molecule to search.
             substruct: The SMARTS substructure pattern.
+            site_indices: Positions within the match that this rule would
+                actually ionize. When given, only those atoms are checked for
+                protection (see :func:`is_match_unprotected`).
 
         Returns:
             A list of matches (each a tuple of atom indices).
@@ -915,22 +923,35 @@ class ProtectUnprotectFuncs:
         matches = mol.GetSubstructMatches(substruct)
         unprotected_matches = []
         for match in matches:
-            if ProtectUnprotectFuncs.is_match_unprotected(mol, match):
+            if ProtectUnprotectFuncs.is_match_unprotected(mol, match, site_indices):
                 unprotected_matches.append(match)
         return unprotected_matches
 
     @staticmethod
-    def is_match_unprotected(mol: Chem.rdchem.Mol, match: tuple[int, ...]) -> bool:
-        """Check whether all atoms in a match are unprotected.
+    def is_match_unprotected(
+        mol: Chem.rdchem.Mol,
+        match: tuple[int, ...],
+        site_indices: Optional[list[int]] = None,
+    ) -> bool:
+        """Check whether the atoms this rule would ionize are unprotected.
+
+        (fd) ONLY protonation sites can block it;
+             protected context atoms (carbons) carry no ionization decision.
 
         Args:
             mol: The RDKit Mol object.
             match: Tuple of atom indices to check.
+            site_indices: Positions within ``match`` that this rule ionizes.
+                When None, every matched atom is checked (legacy behavior).
 
         Returns:
-            True if none of the matched atoms are protected.
+            True if none of the checked atoms are protected.
         """
-        for idx in match:
+        if site_indices is None:
+            to_check = match
+        else:
+            to_check = [match[i] for i in site_indices if i < len(match)]
+        for idx in to_check:
             atom = mol.GetAtomWithIdx(idx)
             protected = atom.GetProp("_protected")
             if protected == "1":
