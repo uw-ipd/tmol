@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -128,6 +127,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         return;
       }
       // Assert: block1 < block2
+      // All terms must report scores in the upper triangle of the
+      // (hypothetical) n-rotamers x n-rotamers matrix of energies;
+      // Code below relies on this.
       if (block1 > block2) {
         printf(
             "Assumption violated! block1 %d < block2 %d for index %d (pose "
@@ -135,10 +137,10 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
             block1,
             block2,
             index,
-            rot1,
-            rot2);
+            pose);
+      } else {
+        respair_is_adjacent[pose][block1][block2] = 1;
       }
-      respair_is_adjacent[pose][block1][block2] = 1;
     });
     DeviceDispatch<D>::template forall<launch_t>(
         mgr, n_sparse_entries, note_adjacent_respairs);
