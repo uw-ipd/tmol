@@ -17,8 +17,6 @@ from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.utility.biotite_util import get_all_residue_positions
 
-from tmol import beta2016_score_function
-
 logger = logging.getLogger(__name__)
 
 
@@ -204,6 +202,7 @@ def pose_stack_from_biotite(
     from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
         create_dunbrack_sampler_from_database,
     )
+    from tmol import beta2016_score_function
 
     if context is not None:
         if param_db is not None:
