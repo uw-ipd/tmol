@@ -76,7 +76,10 @@ from tmol.score.score_types import ScoreType
 from tmol.score.constraint.constraint_energy_term import (
     ConstraintEnergyTerm,
 )
-from tmol.score.constraint.utility import create_mainchain_coordinate_constraints
+from tmol.score.constraint.utility import (
+    constrain_all_ca,
+    create_mainchain_coordinate_constraints,
+)
 from tmol.relax.fast_relax import fast_relax
 
 try:

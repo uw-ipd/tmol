@@ -12,12 +12,14 @@ def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
     constraint_set = pose_stack.constraint_set
 
     cnstr_atoms = torch.full((0, 1, 3), 0, dtype=torch.int32, device=pose_stack.device)
-    cnstr_params = torch.full((0, 4), 0, dtype=torch.float32, device=pose_stack.device)
+    cnstr_params = torch.full((0, 5), 0, dtype=torch.float32, device=pose_stack.device)
 
     for pose_ind in range(pose_stack.n_poses):
         for block_ind in range(pose_stack.max_n_blocks):
             if pose_stack.is_real_block(pose_ind, block_ind):
                 block_type = pose_stack.block_type(pose_ind, block_ind)
+                if "CA" not in block_type.atom_names_set:
+                    continue
 
                 ca_ind = block_type.atom_to_idx["CA"]
                 ca_params = torch.full(
@@ -150,14 +152,10 @@ def create_mainchain_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
         (n_mc_ats, 5), 0, dtype=torch.float32, device=pose_stack.device
     )
 
-    print("pose_ind_for_real_mc_at", pose_ind_for_real_mc_at.shape)
-    print("block_for_real_mc_at", block_for_real_mc_at.shape)
-    print("local_atom_ind_for_real_mc_at", local_atom_ind_for_real_mc_at.shape)
     cnstr_atoms = torch.stack(
         [pose_ind_for_real_mc_at, block_for_real_mc_at, local_atom_ind_for_real_mc_at],
         dim=-1,
     ).unsqueeze(1)
-    print("constr_atoms", cnstr_atoms.shape)
     cnstr_params[:, 1:4] = pose_stack.coords[
         pose_ind_for_real_mc_at, atom_ind_for_real_mc_at
     ]
