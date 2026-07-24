@@ -233,6 +233,15 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
+        if not hasattr(packed_block_types, "cartbonded_is_fragment"):
+            packed_block_types.cartbonded_is_fragment = torch.tensor(
+                [
+                    block_type.is_ligand_fragment
+                    for block_type in packed_block_types.active_block_types
+                ],
+                dtype=torch.int32,
+                device=self.device,
+            )
         if (
             hasattr(packed_block_types, "cartbonded_annotations")
             and self.hash in packed_block_types.cartbonded_annotations
@@ -373,6 +382,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             pbt.atom_paths_from_conn,
             pbt.atom_unique_ids,
             pbt.atom_wildcard_ids,
+            pbt.cartbonded_is_fragment,
             pbt_cb_ann.cartbonded_params_hash_keys,
             pbt_cb_ann.cartbonded_params_hash_values,
             pbt_cb_ann.cartbonded_subgraphs,

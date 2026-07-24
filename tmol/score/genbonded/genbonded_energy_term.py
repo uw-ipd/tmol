@@ -18,6 +18,7 @@ Key differences from CartBondedEnergyTerm:
 """
 
 import math
+from itertools import permutations
 
 import torch
 import numpy
@@ -342,15 +343,21 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
     # Packed-block-types setup
     # ------------------------------------------------------------------
 
-    def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+    def setup_packed_block_types(  # noqa: C901
+        self, packed_block_types: PackedBlockTypes
+    ):
         super(GenBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
         if hasattr(packed_block_types, "genbonded_intra_subgraphs"):
             assert hasattr(packed_block_types, "genbonded_intra_subgraph_offsets")
             assert hasattr(packed_block_types, "genbonded_intra_params")
             assert hasattr(packed_block_types, "genbonded_atom_type_hierarchy")
             assert hasattr(packed_block_types, "genbonded_connection_bond_types")
+            assert hasattr(packed_block_types, "genbonded_source_atom_index")
+            assert hasattr(packed_block_types, "genbonded_source_block_type_index")
             assert hasattr(packed_block_types, "genbonded_inter_torsion_hash_keys")
             assert hasattr(packed_block_types, "genbonded_inter_torsion_hash_values")
+            assert hasattr(packed_block_types, "genbonded_inter_improper_hash_keys")
+            assert hasattr(packed_block_types, "genbonded_inter_improper_hash_values")
             return
 
         block_types = packed_block_types.active_block_types
@@ -413,6 +420,25 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             if n_conns > 0:
                 conn_bond_types[bt_idx, :n_conns] = bt.connection_bond_types
 
+        source_atom_index = numpy.full(
+            (n_block_types, max(max_atoms, 1)), -1, dtype=numpy.int32
+        )
+        source_by_base = {bt.name: bt for bt in block_types if bt.name == bt.base_name}
+        block_type_index_by_name = {
+            bt.name: bt_idx for bt_idx, bt in enumerate(block_types)
+        }
+        source_block_type_index = numpy.empty(n_block_types, dtype=numpy.int32)
+        for bt_idx, bt in enumerate(block_types):
+            if bt.is_ligand_fragment:
+                source = source_by_base.get(bt.base_name, bt)
+            else:
+                source = bt
+            source_block_type_index[bt_idx] = block_type_index_by_name[source.name]
+            for atom_idx, atom in enumerate(bt.atoms):
+                source_atom_index[bt_idx, atom_idx] = source.atom_to_idx.get(
+                    atom.name, atom_idx
+                )
+
         # ------------------------------------------------------------------
         # 4. Inter-block torsion hash table.
         #
@@ -462,6 +488,40 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             hash_keys = numpy.full((2, 6), -1, dtype=numpy.int32)
             hash_values = numpy.zeros((1, 5), dtype=numpy.float32)
 
+        # Inter-block impropers are keyed by center type followed by an ordered
+        # permutation of the three neighbor types. Store all six permutations;
+        # the kernel can then use the same hierarchy walk as proper torsions
+        # without special-casing unordered neighbors.
+        n_improper_entries = len(self.gen_database.impropers) * 6
+        if n_improper_entries:
+            improper_hash_keys, improper_hash_values = make_hashtable_keys_values(
+                n_improper_entries, SCALE, key_len=5, value_len=5
+            )
+            improper_val_idx = 0
+            for entry in self.gen_database.impropers:
+                center, n1, n2, n3 = entry.atoms
+                if any(
+                    atom_type not in type_to_idx for atom_type in (center, n1, n2, n3)
+                ):
+                    continue
+                for neighbors in permutations((n1, n2, n3)):
+                    key = (
+                        type_to_idx[center],
+                        *(type_to_idx[neighbor] for neighbor in neighbors),
+                    )
+                    values = (entry.k, entry.delta, 0.0, 0.0, 0.0)
+                    add_to_hashtable(
+                        improper_hash_keys,
+                        improper_hash_values,
+                        improper_val_idx,
+                        key,
+                        values,
+                    )
+                    improper_val_idx += 1
+        else:
+            improper_hash_keys = numpy.full((2, 5), -1, dtype=numpy.int32)
+            improper_hash_values = numpy.zeros((1, 5), dtype=numpy.float32)
+
         # ------------------------------------------------------------------
         # 5. Store everything on packed_block_types.
         # ------------------------------------------------------------------
@@ -495,6 +555,16 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         )
         setattr(
             packed_block_types,
+            "genbonded_source_atom_index",
+            to_dev(source_atom_index),
+        )
+        setattr(
+            packed_block_types,
+            "genbonded_source_block_type_index",
+            to_dev(source_block_type_index),
+        )
+        setattr(
+            packed_block_types,
             "genbonded_inter_torsion_hash_keys",
             to_dev(hash_keys),
         )
@@ -502,6 +572,16 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             packed_block_types,
             "genbonded_inter_torsion_hash_values",
             to_dev(hash_values),
+        )
+        setattr(
+            packed_block_types,
+            "genbonded_inter_improper_hash_keys",
+            to_dev(improper_hash_keys),
+        )
+        setattr(
+            packed_block_types,
+            "genbonded_inter_improper_hash_values",
+            to_dev(improper_hash_values),
         )
 
     # ------------------------------------------------------------------
@@ -532,6 +612,10 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             pbt.genbonded_intra_params,
             pbt.genbonded_atom_type_hierarchy,
             pbt.genbonded_connection_bond_types,
+            pbt.genbonded_source_atom_index,
+            pbt.genbonded_source_block_type_index,
             pbt.genbonded_inter_torsion_hash_keys,
             pbt.genbonded_inter_torsion_hash_values,
+            pbt.genbonded_inter_improper_hash_keys,
+            pbt.genbonded_inter_improper_hash_values,
         ]
