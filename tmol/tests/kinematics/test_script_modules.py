@@ -33,7 +33,10 @@ def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
         dofsfull[:, :6] = dofs_x
         return kop(dofsfull)
 
-    torch.autograd.gradcheck(eval_kin, minimizable_dofs, atol=atol, rtol=rtol)
+    # fd allow a small nondeterminism tolerance
+    torch.autograd.gradcheck(
+        eval_kin, minimizable_dofs, atol=atol, rtol=rtol, nondet_tol=1e-6
+    )
 
 
 def kincoords_and_dofs_for_pose_stack_system(
