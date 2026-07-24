@@ -518,7 +518,7 @@ def nonstandard_residue_info_from_smiles_via_mol2(
     *,
     ph: float = 7.4,
     protonate: bool = True,
-    conformer_search: bool = True,
+    seed: int | None = None,
 ) -> NonStandardResidueInfo:
     """Construct ``NonStandardResidueInfo`` from a SMILES via the mol2 route.
 
@@ -542,9 +542,7 @@ def nonstandard_residue_info_from_smiles_via_mol2(
         ph: Target pH for the Dimorphite protonation step.
         protonate: When ``True`` (default) run Dimorphite on ``smiles`` first;
             set ``False`` to pin an already-protonated SMILES verbatim.
-        conformer_search: When ``True`` (default) run a rotor conformer search
-            during the 3D mol2 generation (matching the reference pipeline);
-            set ``False`` for faster single-conformer generation.
+        seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is random.
 
     Raises:
         OpenBabelUnavailableError: If the ``openbabel`` package is missing
@@ -555,9 +553,7 @@ def nonstandard_residue_info_from_smiles_via_mol2(
 
     smiles = _normalize_radical_oxygens(smiles)
     prep_smiles = _dimorphite_protonate_smiles(smiles, ph) if protonate else smiles
-    mol2_block = obabel_smiles_to_mol2_block(
-        prep_smiles, conformer_search=conformer_search
-    )
+    mol2_block = obabel_smiles_to_mol2_block(prep_smiles, seed=seed)
     return nonstandard_residue_info_from_mol2_block(mol2_block, res_name=res_name)
 
 

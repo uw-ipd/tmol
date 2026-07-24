@@ -673,7 +673,7 @@ def prepare_ligand_from_smiles(
     res_name: str | None = None,
     protonate: bool = True,
     sample_proton_chi: bool = True,
-    conformer_search: bool = True,
+    seed: int | None = None,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a SMILES string and inject it into a database.
 
@@ -687,16 +687,14 @@ def prepare_ligand_from_smiles(
     Args:
         protonate: When ``True`` (default) Dimorphite protonates ``smiles``
             first; set ``False`` to pin an already-protonated SMILES verbatim.
-        conformer_search: When ``True`` (default) run a rotor conformer search
-            during 3D mol2 generation (matching the reference pipeline); set
-            ``False`` for faster single-conformer generation.
+        seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is random.
     """
     lig = nonstandard_residue_info_from_smiles_via_mol2(
         smiles,
         res_name=res_name,
         ph=ph,
         protonate=protonate,
-        conformer_search=conformer_search,
+        seed=seed,
     )
     prep = prepare_single_ligand(lig, sample_proton_chi=sample_proton_chi)
     return _inject_single(prep, param_db, strict_atom_types)

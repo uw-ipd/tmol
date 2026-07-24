@@ -215,7 +215,6 @@ def test_prepare_ligand_from_smiles_registers(name: str) -> None:
         smiles,
         param_db=ParameterDatabase.get_default(),
         res_name="LG1",
-        conformer_search=False,
     )
     residue = next((r for r in param_db.chemical.residues if r.name == "LG1"), None)
     assert residue is not None, f"{name} ({smiles}) did not register"
