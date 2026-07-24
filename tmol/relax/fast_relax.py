@@ -149,7 +149,7 @@ def fast_relax(
     sfxn: ScoreFunction,
     packer_pallete: PackerPalette,
     move_map: Union[MoveMap, CartesianMoveMap],
-    fold_forest: FoldForest,
+    fold_forest: Optional[FoldForest],
     *,
     task_operations=None,
     num_repeats=2,
@@ -442,3 +442,68 @@ def accept_best(
         return new_best_pose_stack, new_best_pose_score
     else:  # no change
         return best_pose_stack, best_pose_score
+
+
+def kin_fast_relax(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    packer_pallete: PackerPalette,
+    move_map: MoveMap,
+    fold_forest: FoldForest,
+    *,
+    task_operations=None,
+    num_repeats=2,
+    ramp_constraints: Optional[bool] = None,  # default True
+    schedule=None,
+    min_fn=_default_kin_min_fn,
+    verbose: bool = False,
+):
+    """Run the FastRelax protocol using kinematic (torsion-space) minimization.
+
+    See documentation for fast_relax.
+    """
+    return fast_relax(
+        pose_stack,
+        sfxn,
+        packer_pallete,
+        move_map,
+        fold_forest,
+        task_operations=task_operations,
+        num_repeats=num_repeats,
+        ramp_constraints=ramp_constraints,
+        schedule=schedule,
+        min_fn=min_fn or _default_kin_min_fn,
+        verbose=verbose,
+    )
+
+
+def cartesian_fast_relax(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    packer_pallete: PackerPalette,
+    move_map: CartesianMoveMap,
+    *,
+    task_operations=None,
+    num_repeats=2,
+    ramp_constraints: Optional[bool] = None,  # default True
+    schedule=None,
+    min_fn=_default_cart_min_fn,
+    verbose: bool = False,
+):
+    """Run the FastRelax protocol using Cartesian (coordinate-space) minimization.
+
+    See documentation for fast_relax.
+    """
+    return fast_relax(
+        pose_stack,
+        sfxn,
+        packer_pallete,
+        move_map,
+        None,
+        task_operations=task_operations,
+        num_repeats=num_repeats,
+        ramp_constraints=ramp_constraints,
+        schedule=schedule,
+        min_fn=min_fn or _default_kin_min_fn,
+        verbose=verbose,
+    )

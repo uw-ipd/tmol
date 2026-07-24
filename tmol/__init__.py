@@ -80,7 +80,21 @@ from tmol.score.constraint.utility import (
     constrain_all_ca,
     create_mainchain_coordinate_constraints,
 )
-from tmol.relax.fast_relax import fast_relax
+from tmol.pack.packer_task import PackerPalette, PackerTask
+from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
+from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
+from tmol.pack.rotamer.opth_sampler import OptHSampler
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+    create_dunbrack_sampler_from_database,
+)
+from tmol.pack.pack_rotamers import pack_rotamers
+
+
+from tmol.relax.fast_relax import (
+    fast_relax,
+    kin_fast_relax,
+    cartesian_fast_relax,
+)
 
 try:
     __version__ = version("tmol")
