@@ -27,7 +27,6 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import (
 
 
 from tmol.io import pose_stack_from_pdb
-from tmol.io.pdb_parsing import to_pdb_lines
 
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
@@ -1113,8 +1112,8 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
             atom_records[i_offset + j]["b"] = 0.0  # B-factor
 
     # uncomment if rotgen changes
-    with open("test_build_rotamers_new_packer_task.pdb", "w") as fid:
-        fid.writelines(to_pdb_lines(atom_records))
+    # with open("test_build_rotamers_new_packer_task.pdb", "w") as fid:
+    #     fid.writelines(to_pdb_lines(atom_records))
 
     def parse_atom_coords(lines):
         coords = []

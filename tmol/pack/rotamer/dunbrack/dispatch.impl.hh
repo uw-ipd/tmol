@@ -224,6 +224,7 @@ struct DunbrackChiSampler {
     fill_in_brt_for_possrots(
         mgr, possible_rotamer_offset_for_brt, brt_for_possible_rotamer);
 
+    // std::cout << "5" << std::endl;
     // Write down the probabilities for each base rotamer in this tensor
     auto rotamer_probability_tp = TPack<Real, 1, D>::empty(n_possible_rotamers);
     auto rotamer_probability = rotamer_probability_tp.view;
@@ -329,6 +330,7 @@ struct DunbrackChiSampler {
 
         expansion_dim_prods_for_brt,
         chi_for_rotamers);
+    // std::cout << "9" << std::endl;
 
     return {
         n_rotamers_to_build_per_brt_tp,
@@ -364,9 +366,14 @@ struct DunbrackChiSampler {
     auto brt_for_possible_rotamer_start =
         brt_for_possible_rotamer_start_tp.view;
 
+    // std::cout << "n_brt: "<< n_brt << " n possible rotamers " <<
+    // n_possible_rotamers << std::endl;
     auto mark_possrot_boundary_beginnings =
         [=] EIGEN_DEVICE_FUNC(int buildable_restype) {
+          // printf("    mark_possrot_boundary beginnings %d\n",
+          // buildable_restype);
           Int const offset = possible_rotamer_offset_for_brt[buildable_restype];
+          // printf("    offset %d\n", offset);
           brt_for_possible_rotamer_start[offset] = buildable_restype;
         };
 
@@ -374,11 +381,14 @@ struct DunbrackChiSampler {
 
     // Non-segmented scan on "max" to get the brt index for each possible
     // rotamer
+    // std::cout << "inclusive_scan brt_for_possible_rotamer_start" <<
+    // std::endl;
     Dispatch<D>::inclusive_scan(
         mgr,
         brt_for_possible_rotamer_start,
         brt_for_possible_rotamer,
         mgpu::maximum_t<Int>());
+    // std::cout << "done with fill_in_brt_for_possrots" << std::endl;
   }
 
   static void interpolate_probabilities_for_possible_rotamers(
@@ -396,6 +406,8 @@ struct DunbrackChiSampler {
       TView<Int, 1, D> possible_rotamer_offset_for_brt,
       TView<Real, 1, D> backbone_dihedrals,
       TView<Real, 1, D> rotamer_probability) {
+    // std::cout << "interpolate_probabilities_for_possible_rotamers" <<
+    // std::endl;
     int const n_possible_rotamers = brt_for_possible_rotamer.size(0);
 
     auto calculate_possible_rotamer_probability = [=] EIGEN_DEVICE_FUNC(
@@ -455,6 +467,7 @@ struct DunbrackChiSampler {
       rotamer_probability[possible_rotamer] =
           score::common::get<0>(prob_and_derivs);
     };
+    // std::cout << "calculate_possible_rotamer_probability" << std::endl;
     Dispatch<D>::forall(
         mgr, n_possible_rotamers, calculate_possible_rotamer_probability);
   }
@@ -481,6 +494,7 @@ struct DunbrackChiSampler {
         TPack<Real, 1, D>::empty(n_possible_rotamers);
     auto rotamer_probability_cumsum = rotamer_probability_cumsum_tp.view;
 
+    // std::cout << "exclusive_segmented_scan rotamer_probability" << std::endl;
     Dispatch<D>::exclusive_segmented_scan(
         mgr,
         rotamer_probability,
@@ -509,6 +523,7 @@ struct DunbrackChiSampler {
     auto count_rotamers_to_build = count_rotamers_to_build_tp.view;
 
     // *in*clusive segmented scan on the build_possible_rotamer array
+    // std::cout << "inclusive segscan build_possible_rotamer" << std::endl;
     Dispatch<D>::inclusive_segmented_scan(
         mgr,
         build_possible_rotamer,

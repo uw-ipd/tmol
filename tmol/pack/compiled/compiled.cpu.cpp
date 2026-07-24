@@ -4,7 +4,6 @@
 
 #include <tmol/score/common/device_operations.cpu.impl.hh>
 
-// ??? #include "annealer.hh"
 #include "simulated_annealing.hh"
 #include "compiled.impl.hh"
 
@@ -52,7 +51,6 @@ auto AnnealerDispatch<D>::forward(
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
     -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> {
-  // No Frills Simulated Annealing!
   int const n_poses = pose_n_res.size(0);
   int const max_n_res = n_rotamers_for_res.size(1);
   int const n_rotamers = res_for_rot.size(0);
@@ -95,7 +93,7 @@ auto AnnealerDispatch<D>::forward(
 
     for (int traj = 0; traj < n_traj; ++traj) {
       // Initial assignment: assign a rotamer to every residue
-      for (int i = 0; i < max_n_res; ++i) {
+      for (int i = 0; i < n_res; ++i) {
         int const i_n_rots = n_rotamers_for_res[pose][i];
         if (i_n_rots == 0) {
           current_rotamer_assignments[pose][traj][i] = -1;

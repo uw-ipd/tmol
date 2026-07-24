@@ -298,6 +298,7 @@ class PackerTask:
             dtype=torch.int32,
             device=systems.device,
         )
+        self._bump_check = False
 
     def restrict_to_repacking(self):
         # Use the pre-calculated masks to disable packing for
@@ -398,6 +399,33 @@ class PackerTask:
             self.per_block_is_block_type_allowed, ~block_type_mask.unsqueeze(-1)
         )
 
+    def or_bump_check(self, setting=True):
+        self._bump_check |= setting
+
+    @property
+    def bump_check(self):
+        """bump_check eliminates rotamers from consideration if
+        they have a high interaction energy with "the background,"
+        which is computed by taking the best energy a rotamer has
+        with each neighbor across all the neighbor's rotamers.
+
+        bump_check removes ~40% of all rotamers and can significantly
+        improve running time, but, this comes at the expense of
+        eliminating rotamers that are sometimes the best option
+        when all others are bad in ways that bump-check's rosie
+        estimation cannot predict. In ~10% of tested crystal
+        structures packed with only the base rotamers (no ex flags),
+        bump_check increased the energy of the final rotamer
+        rotamer assignment by >20 kcal/mol.
+
+        bump_check's logic: eliminate a rotamer if it has a
+        best possible energy with its neighbors and itself
+        >5 kcal/mol and at least one other rotamer of the same
+        block type at that residue has an energy less than
+        5 kcal/mol.
+        """
+        return self._bump_check
+
 
 class SetPackerTask:
     """Set as in concrete. Once everything wrt the desired packing
@@ -485,5 +513,6 @@ class SetPackerTask:
             set_task.is_cons_bt_allowed,
             as_tuple=True,
         )[0]
+        set_task.bump_check = task.bump_check
 
         return set_task

@@ -521,22 +521,31 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
       if (tid == 0) {
         // straight assignment in the block-pair scoring case; atomic add
-        // otherwise
+        // otherwise;
         if (output_block_pair_energies) {
+          // We cannot just perform assignment here because it is possible that
+          // a residue may form more than one bond to another residue,
+          // e.g. i to i+1 disulfide
           if (cta_length_score != 0.0) {
-            V[0][pose_ind][block_ind1][block_ind2] = cta_length_score;
+            accumulate<D, Real>::add(
+                V[0][pose_ind][block_ind1][block_ind2], cta_length_score);
           }
           if (cta_angle_score != 0.0) {
-            V[1][pose_ind][block_ind1][block_ind2] = cta_angle_score;
+            accumulate<D, Real>::add(
+                V[1][pose_ind][block_ind1][block_ind2], cta_angle_score);
           }
           if (cta_torsion_score != 0.0) {
-            V[2][pose_ind][block_ind1][block_ind2] = cta_torsion_score;
+            accumulate<D, Real>::add(
+                V[2][pose_ind][block_ind1][block_ind2], cta_torsion_score);
           }
           if (cta_improper_torsion_score != 0.0) {
-            V[3][pose_ind][block_ind1][block_ind2] = cta_improper_torsion_score;
+            accumulate<D, Real>::add(
+                V[3][pose_ind][block_ind1][block_ind2],
+                cta_improper_torsion_score);
           }
           if (cta_hxyl_torsion_score != 0.0) {
-            V[4][pose_ind][block_ind1][block_ind2] = cta_hxyl_torsion_score;
+            accumulate<D, Real>::add(
+                V[4][pose_ind][block_ind1][block_ind2], cta_hxyl_torsion_score);
           }
         } else {
           if (cta_length_score != 0.0) {

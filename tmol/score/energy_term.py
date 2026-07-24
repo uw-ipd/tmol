@@ -1,7 +1,7 @@
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.pack.rotamer.build_rotamers import RotamerSet
+from tmol.pack.rotamer.rotamer_set import RotamerSet
 from tmol.score.common.scoring_module import (
     TermWholePoseScoringModule,
     TermBlockPairScoringModule,
