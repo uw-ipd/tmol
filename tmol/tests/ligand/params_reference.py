@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from tmol.ligand.equivalence import EquivalenceResult
+    from tmol.tests.ligand.equivalence import EquivalenceResult
 
 
 @dataclass(frozen=True)
@@ -387,10 +387,10 @@ def compare_semantic(
 ) -> "EquivalenceResult":
     """Heavy-atom isomorphism comparison of two ``LigandPreparation`` objects.
 
-    Thin wrapper over :func:`tmol.ligand.equivalence.compare_ligand_preparations`
+    Thin wrapper over :func:`tmol.tests.ligand.equivalence.compare_ligand_preparations`
     so the parity harness has a single import surface for all comparison modes;
     no new isomorphism logic is introduced here.
     """
-    from tmol.ligand.equivalence import compare_ligand_preparations
+    from tmol.tests.ligand.equivalence import compare_ligand_preparations
 
     return compare_ligand_preparations(generated, reference, **kwargs)  # type: ignore[arg-type]

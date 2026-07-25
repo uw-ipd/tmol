@@ -7,8 +7,7 @@ parameter generation.
 
 Param-generation parity (SMILES -> Rosetta ``.params``) is covered separately
 by the guanfeng SMILES suite (``test_smiles_semantic.py``,
-``test_serialization_consistency.py``, ``test_params_reference.py``) and
-``scripts/ligand_prep/validate_dud80.py``.
+``test_serialization_consistency.py``, ``test_params_reference.py``).
 """
 
 from pathlib import Path

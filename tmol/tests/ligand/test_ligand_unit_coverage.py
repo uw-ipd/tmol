@@ -231,7 +231,7 @@ class TestAuthoritativeCharges:
 # --------------------------------------------------------------------------- #
 class TestEquivalenceElementFromName:
     def test_infer_element_from_name(self) -> None:
-        from tmol.ligand.equivalence import _infer_element_from_name
+        from tmol.tests.ligand.equivalence import _infer_element_from_name
 
         assert _infer_element_from_name("CB") == "C"
         assert _infer_element_from_name("CA") == "Ca"

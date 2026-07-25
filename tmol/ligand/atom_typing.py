@@ -190,33 +190,6 @@ def sanitize_tolerant(mol: Chem.Mol) -> None:
         Chem.SanitizeMol(mol, sanitizeOps=ops)
 
 
-_IS_STRAINED_RING_ATOM_PROP = "_tmol_is_strained_ring_atom"
-
-
-def _annotate_strained_ring_atoms(mol: Chem.Mol) -> None:
-    """Mark atoms in 3/4-membered rings for Rosetta-aligned CSQ typing."""
-    for atom in mol.GetAtoms():
-        atom.SetIntProp(_IS_STRAINED_RING_ATOM_PROP, 0)
-    for ring in mol.GetRingInfo().AtomRings():
-        if len(ring) <= 4:
-            for idx in ring:
-                mol.GetAtomWithIdx(idx).SetIntProp(_IS_STRAINED_RING_ATOM_PROP, 1)
-
-
-def _is_strained_ring_atom(atom: Chem.Atom) -> bool:
-    """Return whether an atom was annotated as a strained-ring member.
-
-    Args:
-        atom: Atom to inspect.
-
-    Returns:
-        ``True`` when the atom belongs to a 3/4-membered ring.
-    """
-    return atom.HasProp(_IS_STRAINED_RING_ATOM_PROP) and (
-        atom.GetIntProp(_IS_STRAINED_RING_ATOM_PROP) == 1
-    )
-
-
 def _hyb_from_atom_and_subtype(atom: Chem.Atom, subtype: str) -> int:
     """Map subtype + atom perception to Rosetta-style hybridization code."""
     s = subtype.lower()
