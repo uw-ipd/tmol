@@ -26,7 +26,7 @@ flowchart TD
     end
 
     subgraph preparation [Preparation -- per residue]
-        B --> S["ligand_smiles_candidates_from_atom_array\n(structure_to_smiles.py — input bonds/geometry, no CCD lookup)"]
+        B --> S["ligand_smiles_from_atom_array\n(structure_to_smiles.py — from input bond table, no geometry perception, no CCD lookup)"]
         S --> D["nonstandard_residue_info_from_smiles_via_mol2\n(detect.py — Dimorphite + OpenBabel 3D MMFF94 mol2)"]
         D --> E["ligand_atom_array_to_rdkit_mol + SanitizeMol\n(rdkit_mol.py)"]
 
@@ -62,7 +62,7 @@ flowchart TD
 
 | Step | Library | Why |
 |------|---------|-----|
-| SMILES from structure | **RDKit** + Biotite | Input bonds or geometry; no CCD lookup |
+| SMILES from structure | **RDKit** + Biotite | Input bond table only; no geometry perception, no CCD lookup |
 | Protonation at target pH | **Dimorphite-DL** | pKa-based protonation on SMILES |
 | 3D coords + MMFF94 charges | **OpenBabel** | Conformer search + force-field charges in mol2 |
 | Mol construction from AtomArray | **RDKit** + Biotite | Direct coordinate + bond transfer for typing |
@@ -207,37 +207,16 @@ and only applies the spatial-proximity fallback to polymer-linking residue
 types (modified amino acids/nucleotides, glycans). Genuine non-polymer ligands
 are no longer flagged by proximity alone.
 
-## Reuse, Caching, and Persistence
+## Reuse and Persistence
 
 When processing many poses that share the same ligand topology, you can
 avoid repeating full ligand preparation.
 
-### 1) In-process reuse (automatic cache)
+### 1) Persistent reuse (write/read `.tmol` params)
 
-`prepare_ligands()` uses a process-global in-memory cache
-(`LigandPreparationCache`) keyed by:
-
-- residue name
-- pH
-- `sample_proton_chi`
-- atom names
-- element list
-
-Within one Python process, repeated calls with the same key reuse the
-prepared residue type and charges instead of recomputing them.
-
-```python
-from tmol.ligand import prepare_ligands
-
-param_db, co = prepare_ligands(atom_array, ph=7.4)
-# subsequent calls in this process with same ligand key reuse cache
-param_db2, co2 = prepare_ligands(atom_array, ph=7.4)
-```
-
-### 2) Persistent reuse across sessions (write/read `.tmol` params)
-
-The in-memory cache is not persisted across Python runs. For permanent
-reuse, write prepared ligands to a params file once, then load it later.
+Ligand preparation (SMILES → OpenBabel 3D → typing) is expensive. For reuse,
+write prepared ligands to a params file once, then inject that file later
+instead of re-preparing.
 
 ```python
 from tmol.database import ParameterDatabase
@@ -263,26 +242,33 @@ param_db, co = prepare_ligands(
 You can also pass these files through IO helpers such as
 `pose_stack_from_biotite(..., prepare_ligands=True, ligand_params_files=[...])`.
 
-### 3) Reset behavior
+### 2) In-process reuse (build the context once)
 
-- **Reset ligand prep cache** (current process):
+To score many structures that share the same ligand(s), build the expensive,
+structure-independent `BiotitePoseBuildContext` once and reuse it — this skips
+rebuilding the parameter database, canonical ordering, and packed block types:
 
 ```python
-from tmol.ligand.registry import clear_cache
+from tmol.io.pose_stack_from_biotite import (
+    build_context_from_biotite,
+    pose_stack_from_biotite,
+)
 
-clear_cache()
+context = build_context_from_biotite(struct0, device, prepare_ligands=True)
+for struct in structures:
+    pose_stack = pose_stack_from_biotite(struct, device, context=context)
 ```
 
-- **Reset database to default**:
+### 3) Reset the database
+
+`ParameterDatabase` is immutable/frozen; injection returns a new instance.
+To "reset", just reacquire the default (or drop your extended instance):
 
 ```python
 from tmol.database import ParameterDatabase
 
 param_db = ParameterDatabase.get_default()
 ```
-
-`ParameterDatabase` is immutable/frozen; injection returns a new instance.
-To "reset", just reacquire `get_default()` (or drop your extended instance).
 
 ## Library Responsibilities
 
@@ -300,15 +286,13 @@ To "reset", just reacquire `get_default()` (or drop your extended instance).
 |------|------|
 | `preparation.py` | `prepare_ligands`, single-ligand helpers, CIF rename |
 | `detect.py` | `NonStandardResidueInfo`, detection, mol2/SMILES readers |
-| `structure_to_smiles.py` | SMILES candidates from AtomArray |
+| `structure_to_smiles.py` | SMILES from AtomArray bond table |
 | `openbabel_compat.py` | SMILES→mol2, mol2 read fallbacks |
 | `rdkit_mol.py` | AtomArray → RDKit Mol |
 | `mol3d.py` | OpenBabel MMFF94 charges by atom index |
 | `atom_typing.py` | Rosetta-style atom type assignment |
 | `chi_topology.py` | Rotatable bonds / PROTON_CHI |
 | `residue_builder.py` | `RawResidueType` from Chem.Mol |
-| `registry.py` | Cache + `ParameterDatabase` injection |
+| `registry.py` | `ParameterDatabase` injection, cartbonded params |
 | `params_file.py` | Load/inject `.tmol` YAML |
 | `params_io.py` | Write `.params`/`.tmol`; read Rosetta `.params` |
-| `graph_match.py` | VF2 CIF name mapping |
-| `equivalence.py` | Parity comparison helpers |
