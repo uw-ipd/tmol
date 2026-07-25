@@ -431,6 +431,7 @@ def _assert_no_nan_coords(pose_stack: PoseStack) -> None:
 def biotite_from_pose_stack(
     pose_stack: PoseStack,
     co: CanonicalOrdering | None = None,
+    merge_fragments: bool = True,
 ) -> biotite.structure.AtomArray | biotite.structure.AtomArrayStack:
     """Convert PoseStack back to Biotite structure.
 
@@ -438,6 +439,8 @@ def biotite_from_pose_stack(
         pose_stack: Pose stack to convert.
         co: Canonical ordering used for conversion. Provide the ordering that
             was used when ligands or custom residue types are present.
+        merge_fragments: Restore fragmented ligands to their original residue
+            identity. Set to False to keep fragment residues separate.
 
     Returns:
         Biotite AtomArray for single-pose or AtomArrayStack for multi-pose.
@@ -445,7 +448,13 @@ def biotite_from_pose_stack(
     if co is None:
         co = canonical_ordering_for_biotite()
     cf = canonical_form_from_pose_stack(co, pose_stack)
-    return biotite_from_canonical_form(cf, co=co)
+    structure = biotite_from_canonical_form(cf, co=co)
+    mapping = getattr(pose_stack, "fragmented_ligand_mapping", None)
+    if merge_fragments and mapping is not None:
+        from tmol.ligand.fragmentation import recombine_fragmented_ligands
+
+        structure = recombine_fragmented_ligands(structure, mapping)
+    return structure
 
 
 def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names):

@@ -1,12 +1,15 @@
 import attr
 import torch
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from tmol.types.torch import Tensor
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.constraint_set import ConstraintSet
+
+if TYPE_CHECKING:
+    from tmol.ligand.fragmentation import FragmentedLigandPoseMapping
 
 
 @attr.s(auto_attribs=True)
@@ -106,6 +109,7 @@ class PoseStack:
     constraint_set: Optional[ConstraintSet]
 
     device: torch.device
+    fragmented_ligand_mapping: Optional["FragmentedLigandPoseMapping"] = None
 
     #################### INIT #####################
 
@@ -236,6 +240,7 @@ class PoseStack:
             pdb_info=self.pdb_info,
             constraint_set=new_constraint_set,
             device=self.device,
+            fragmented_ligand_mapping=self.fragmented_ligand_mapping,
         )
 
     def split(self, index) -> "PoseStack":
@@ -274,6 +279,11 @@ class PoseStack:
                 else self.constraint_set.split(index)
             ),
             device=self.device,
+            fragmented_ligand_mapping=(
+                None
+                if self.fragmented_ligand_mapping is None
+                else self.fragmented_ligand_mapping.split(index)
+            ),
         )
 
     def expand_coords(self):

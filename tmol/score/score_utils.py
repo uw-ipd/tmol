@@ -54,6 +54,10 @@ def calculate_fragment_interactions(
             "partner_mask must have shape [n_poses, max_n_blocks]; got "
             f"{tuple(partner_mask.shape)}"
         )
+    if partner_mask.dtype != torch.bool:
+        raise TypeError("partner_mask must be a boolean tensor")
+    if partner_mask.device != pose_stack.device:
+        raise ValueError("partner_mask must be on the same device as pose_stack")
 
     scorer = sfxn.render_block_pair_scoring_module(pose_stack)
     block_pair_scores = scorer(pose_stack.coords, sum_terms=False)

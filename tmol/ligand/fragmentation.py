@@ -77,6 +77,38 @@ class FragmentedLigandPoseMapping:
     blocks: tuple[LigandFragmentBlockMapping, ...]
     connection_pairs: tuple[tuple[int, str, int, str], ...]
 
+    def split(self, pose_index: int) -> "FragmentedLigandPoseMapping":
+        """Return the mapping for one pose, reindexed as pose zero."""
+
+        return replace(
+            self,
+            blocks=tuple(
+                replace(block, pose_index=0)
+                for block in self.blocks
+                if block.pose_index == pose_index
+            ),
+        )
+
+
+def recombine_fragmented_ligands(
+    structure: struc.AtomArray | struc.AtomArrayStack,
+    mapping: FragmentedLigandPoseMapping,
+) -> struc.AtomArray | struc.AtomArrayStack:
+    """Restore original residue identities on exported ligand fragments."""
+
+    result = structure.copy()
+    for record in mapping.blocks:
+        if record.pose_index != 0:
+            continue
+        fragment_atoms = (result.res_id == record.pose_residue_label) & (
+            result.res_name == record.fragment_name
+        )
+        result.res_name[fragment_atoms] = record.ligand_name
+        result.res_id[fragment_atoms] = record.residue_label
+        result.chain_id[fragment_atoms] = record.chain_label
+        result.ins_code[fragment_atoms] = record.insertion_code
+    return result
+
 
 def fragment_ids_from_atom_array(atom_array: struc.AtomArray) -> np.ndarray | None:
     """Return validated fragment IDs, or ``None`` when no split is requested."""
@@ -775,6 +807,6 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
         inter_residue_connections64=inter_residue_connections64,
         inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
         inter_block_bondsep64=inter_block_bondsep64,
+        fragmented_ligand_mapping=mapping,
     )
-    result.fragmented_ligand_mapping = mapping
     return result

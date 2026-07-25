@@ -15,6 +15,7 @@ from tmol.ligand.fragmentation import (
     FRAGMENT_ID_ANNOTATION,
     FragmentedLigandPoseMapping,
     LigandFragmentBlockMapping,
+    recombine_fragmented_ligands,
 )
 from tmol.ligand.preparation import (
     LigandPreparationError,
@@ -49,5 +50,6 @@ __all__ = [
     "prepare_ligand_from_smiles",
     "prepare_ligands",
     "prepare_single_ligand",
+    "recombine_fragmented_ligands",
     "write_params_from_mol2",
 ]

@@ -69,16 +69,12 @@ def _skip_or_raise(strict_ligands: bool, message: str) -> None:
     logger.warning("Skipping %s", message)
 
 
-def _residue_chemistry_signature(restype) -> tuple:
-    return (
-        restype.base_name,
-        tuple((atom.name, atom.atom_type) for atom in restype.atoms),
-        tuple(tuple(bond) for bond in restype.bonds),
-        tuple(
-            (connection.name, connection.atom, getattr(connection, "type", None))
-            for connection in restype.connections
-        ),
-    )
+def _partial_charges_for_residue(param_db, residue_name: str) -> dict[str, float]:
+    return {
+        parameter.atom: parameter.charge
+        for parameter in param_db.scoring.elec.atom_charge_parameters
+        if parameter.res == residue_name
+    }
 
 
 def _assert_fragment_names_available(param_db, fragment_preparations) -> None:
@@ -87,8 +83,16 @@ def _assert_fragment_names_available(param_db, fragment_preparations) -> None:
         previous = existing.get(prep.residue_type.name)
         if previous is None:
             continue
-        if _residue_chemistry_signature(previous) != _residue_chemistry_signature(
-            prep.residue_type
+        previous_charges = _partial_charges_for_residue(
+            param_db, prep.residue_type.name
+        )
+        previous_cartbonded = param_db.scoring.cartbonded.residue_params.get(
+            prep.residue_type.name
+        )
+        if (
+            previous != prep.residue_type
+            or previous_charges != prep.partial_charges
+            or previous_cartbonded != prep.cartbonded_params
         ):
             raise LigandPreparationError(
                 f"{prep.residue_type.name}: generated fragment name already "
@@ -553,6 +557,28 @@ def prepare_ligands(  # noqa: C901
             strict_atom_types=strict_atom_types,
         )
 
+    fragment_source_preparations = {
+        prep.residue_type.name: prep for prep in params_preparations
+    }
+    existing_residues = {
+        residue.name: residue for residue in param_db.chemical.residues
+    }
+    for ligand_name, layout in fragment_layouts_by_name.items():
+        if layout is None or ligand_name in fragment_source_preparations:
+            continue
+        restype = existing_residues.get(ligand_name)
+        if restype is None:
+            continue
+        cartbonded_params = param_db.scoring.cartbonded.residue_params.get(ligand_name)
+        if cartbonded_params is None:
+            cartbonded_params = _build_cartbonded_params(restype)
+        fragment_source_preparations[ligand_name] = LigandPreparation(
+            residue_type=restype,
+            partial_charges=_partial_charges_for_residue(param_db, ligand_name),
+            cartbonded_params=cartbonded_params,
+            atom_type_elements=None,
+        )
+
     canonical_ordering = rebuild_canonical_ordering(param_db)
     fragment_definitions_by_name = {}
 
@@ -562,12 +588,18 @@ def prepare_ligands(  # noqa: C901
         fragment_definitions_by_name[ligand_name] = definition
         return True
 
-    if params_preparations:
-        for prep in params_preparations:
+    if fragment_source_preparations:
+        for prep in fragment_source_preparations.values():
             source = first_residue_by_name.get(prep.residue_type.name)
             if source is None:
                 continue
-            definition = build_ligand_fragment_definition(prep, source)
+            try:
+                definition = build_ligand_fragment_definition(prep, source)
+            except Exception as err:
+                raise LigandPreparationError(
+                    f"{prep.residue_type.name}: invalid "
+                    f"{FRAGMENT_ID_ANNOTATION} annotation ({err})"
+                ) from err
             add_fragment_definition(prep.residue_type.name, definition)
         if fragment_definitions_by_name:
             fragment_preparations = [

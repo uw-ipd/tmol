@@ -164,6 +164,87 @@ def test_fragment_definition_connections_icoors_and_mapping(torch_device):
         assert connection_names <= icoor_names
 
 
+def test_fragmented_ligand_export_restores_original_residue(torch_device):
+    import attr
+
+    from tmol.io.pose_stack_from_biotite import biotite_from_pose_stack
+    from tmol.io.write_pose_stack_pdb import atom_records_from_pose_stack
+    from tmol.ligand import recombine_fragmented_ligands
+
+    structure, params_path, preparation = _load_fixture()
+    annotated = _annotate_at_bridge(structure, preparation)
+    pose, context, mapping = _build(
+        annotated, params_path, torch_device, fragmented=True
+    )
+    pose = attr.evolve(pose, coords=pose.coords.clone())
+    assert pose.fragmented_ligand_mapping == mapping
+
+    split = biotite_from_pose_stack(
+        pose, context.canonical_ordering, merge_fragments=False
+    )
+    restored = recombine_fragmented_ligands(split, mapping)
+    merged = biotite_from_pose_stack(pose, context.canonical_ordering)
+
+    np.testing.assert_array_equal(merged.res_name, restored.res_name)
+    np.testing.assert_array_equal(merged.res_id, restored.res_id)
+    assert not np.any(np.char.startswith(merged.res_name, f"{LIGAND_NAME}."))
+    assert {
+        (int(res_id), str(res_name))
+        for res_id, res_name in zip(split.res_id, split.res_name)
+        if str(res_name).startswith(f"{LIGAND_NAME}.")
+    } == {
+        (record.pose_residue_label, record.fragment_name) for record in mapping.blocks
+    }
+
+    split_records = atom_records_from_pose_stack(pose, merge_fragments=False)
+    merged_records = atom_records_from_pose_stack(pose)
+    fragment_residue_labels = {record.pose_residue_label for record in mapping.blocks}
+    assert fragment_residue_labels <= set(split_records["resi"])
+    assert fragment_residue_labels.isdisjoint(set(merged_records["resi"]))
+    assert {record.residue_label for record in mapping.blocks} <= set(
+        merged_records["resi"]
+    )
+
+
+def test_fragmentation_uses_ligand_already_in_parameter_database(torch_device):
+    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+
+    structure, params_path, preparation = _load_fixture()
+    _, whole_context, _ = _build(structure, params_path, torch_device, fragmented=False)
+    annotated = _annotate_at_bridge(structure, preparation)
+
+    pose = pose_stack_from_biotite(
+        annotated,
+        torch_device,
+        param_db=whole_context.parameter_database,
+        prepare_ligands=True,
+        no_optH=True,
+        sample_proton_chi=False,
+    )
+
+    assert [
+        record.fragment_name for record in pose.fragmented_ligand_mapping.blocks
+    ] == [
+        "LG1.1",
+        "LG1.2",
+    ]
+
+
+def test_fragment_interactions_require_boolean_partner_mask(torch_device):
+    from tmol.score.score_utils import calculate_fragment_interactions
+
+    structure, params_path, preparation = _load_fixture()
+    annotated = _annotate_at_bridge(structure, preparation)
+    pose, _, _ = _build(annotated, params_path, torch_device, fragmented=True)
+
+    with pytest.raises(TypeError, match="boolean"):
+        calculate_fragment_interactions(
+            pose,
+            torch.zeros_like(pose.block_type_ind),
+            sfxn=None,
+        )
+
+
 def test_duplicate_ligand_names_require_same_fragment_layout():
     from tmol.ligand.preparation import LigandPreparationError, prepare_ligands
 
@@ -254,6 +335,11 @@ def test_fragment_mapping_is_stable_for_atom_array_stack(torch_device):
             if record.fragment_id == fragment_id
         }
         assert len(block_indices) == 1
+    assert pose.clone().fragmented_ligand_mapping == mapping
+    split_mapping = pose.split(1).fragmented_ligand_mapping
+    assert len(split_mapping.blocks) == 2
+    assert {record.pose_index for record in split_mapping.blocks} == {0}
+    assert {record.fragment_id for record in split_mapping.blocks} == {1, 2}
 
 
 @pytest.mark.parametrize(

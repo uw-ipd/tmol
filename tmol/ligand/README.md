@@ -259,6 +259,28 @@ Additional requirements:
   `pose.fragmented_ligand_mapping`; users normally should not call the
   lower-level fragmentation functions directly.
 
+### Recombining and dumping fragments
+
+Fragmentation only changes the in-memory block layout used for scoring.
+`write_pose_stack_pdb()` and `biotite_from_pose_stack()` restore each
+fragmented ligand's original residue name, number, chain, and insertion code by
+default, so dumped coordinates contain the original ligand residue:
+
+```python
+from tmol import write_pose_stack_pdb
+from tmol.io.pose_stack_from_biotite import biotite_from_pose_stack
+
+write_pose_stack_pdb(pose, "scored_complex.pdb")
+restored = biotite_from_pose_stack(pose, context.canonical_ordering)
+```
+
+Pass `merge_fragments=False` to either function to inspect the separate
+fragment residues. `tmol.ligand.recombine_fragmented_ligands()` provides the
+same residue-identity restoration for an already exported Biotite structure.
+This export operation does not rebuild a new single-block scoring pose; the
+original pose remains fragmented so per-fragment interactions can still be
+calculated.
+
 ## Troubleshooting
 
 ### `strict_ligands` (default: fail loudly)
