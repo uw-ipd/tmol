@@ -171,12 +171,6 @@ class TestStructureToSmiles:
             arr = arr[0]
         return arr
 
-    def test_system_charge_explicit_overrides_annotation(self) -> None:
-        from tmol.ligand.structure_to_smiles import _system_charge
-
-        arr = self._array()
-        assert _system_charge(arr, 3) == 3
-
     def test_mol_to_smiles_returns_none_on_failure(self, monkeypatch) -> None:
         import tmol.ligand.structure_to_smiles as mod
 
@@ -186,14 +180,11 @@ class TestStructureToSmiles:
         monkeypatch.setattr(mod.Chem, "MolToSmiles", _boom)
         assert mod._mol_to_smiles(Chem.MolFromSmiles("CCO")) is None
 
-    def test_smiles_from_atom_array_raises_when_no_candidates(
-        self, monkeypatch
-    ) -> None:
+    def test_smiles_from_atom_array_raises_when_no_smiles(self, monkeypatch) -> None:
         import tmol.ligand.structure_to_smiles as mod
 
-        monkeypatch.setattr(
-            mod, "ligand_smiles_candidates_from_atom_array", lambda *a, **k: []
-        )
+        # Bonds are present, but SMILES generation yields nothing.
+        monkeypatch.setattr(mod, "_mol_to_smiles", lambda *a, **k: None)
         with pytest.raises(ValueError, match="Could not derive a SMILES"):
             mod.ligand_smiles_from_atom_array(self._array(), res_name="LIG")
 

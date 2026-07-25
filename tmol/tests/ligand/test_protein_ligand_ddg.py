@@ -24,8 +24,6 @@ import numpy
 import pytest
 import torch
 
-from tmol.ligand.registry import clear_cache
-
 PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 LIGAND_RES_NAME = "LG1"
 
@@ -60,11 +58,6 @@ _GOLDEN_DDG: dict[str, float] = {
     "tk": -29.968708,
     "vegfr2": 48.421783,
 }
-
-
-@pytest.fixture(autouse=True)
-def _clear_ligand_cache() -> None:
-    clear_cache()
 
 
 def _load_complex_cif(target: str):

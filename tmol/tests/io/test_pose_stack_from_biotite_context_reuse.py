@@ -18,16 +18,10 @@ from tmol.io.pose_stack_from_biotite import (
     build_context_from_biotite,
     pose_stack_from_biotite,
 )
-from tmol.ligand.registry import clear_cache
 
 PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 TARGET = "ace"
 N_REPEATS = 3
-
-
-@pytest.fixture(autouse=True)
-def _clear_ligand_cache() -> None:
-    clear_cache()
 
 
 def _load_complex_cif(target: str) -> struc.AtomArray:

@@ -200,24 +200,32 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
         return Chem.RemoveHs(mol, sanitize=False)
 
 
-def ligand_atom_array_to_rdkit_mol(
-    ligand_info: NonStandardResidueInfo,
+def rdkit_mol_from_ligand_atom_array(
+    atom_array: struc.AtomArray,
     *,
+    res_name: str = "ligand",
     keep_hydrogens: bool = False,
 ) -> Chem.Mol:
-    """Build an RDKit Mol directly from a ligand AtomArray.
+    """Build an RDKit Mol from a ligand AtomArray's explicit bond table.
+
+    The single AtomArray -> RDKit builder for the ligand pipeline: it preserves
+    the source's explicit bond orders (restoring Kekulé forms biotite's
+    ``to_mol`` collapses) and aromatic/subtype annotations. Bond perception from
+    geometry is intentionally unsupported — the input must carry chemistry-level
+    bond orders.
 
     Args:
+        atom_array: The ligand sub-array (heavy + optional hydrogen atoms).
+        res_name: Residue code, used only for log/error messages.
         keep_hydrogens: When True, retain explicit hydrogens from the input
             (used for ``skip_protonation`` — preserve mol2/CIF protonation).
     """
-    atom_array = ligand_info.atom_array
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
     if len(atom_array) == 0:
-        raise ValueError(f"{ligand_info.res_name}: empty atom array")
+        raise ValueError(f"{res_name}: empty atom array")
     if not has_bonds:
         raise ValueError(
-            f"{ligand_info.res_name}: ligand bond inference is unsupported. "
+            f"{res_name}: ligand bond inference is unsupported. "
             "Input must provide explicit bond orders (CIF with "
             "_chem_comp_bond.value_order / aromatic annotations). "
             "PDB/topology-only ligand chemistry is not supported."
@@ -231,7 +239,7 @@ def ligand_atom_array_to_rdkit_mol(
         logger.warning(
             "%s: unsupported bond type codes %s in ligand input; "
             "preserving original to_mol bond typing for those edges.",
-            ligand_info.res_name,
+            res_name,
             unsupported,
         )
 
@@ -248,7 +256,7 @@ def ligand_atom_array_to_rdkit_mol(
     has_custom_aromatic_flags = hasattr(atom_array, "tmol_aromatic")
     if not has_chemistry_order_signal and not has_custom_aromatic_flags:
         raise ValueError(
-            f"{ligand_info.res_name}: ligand has topology-only SINGLE bonds with no "
+            f"{res_name}: ligand has topology-only SINGLE bonds with no "
             "chemistry-level bond-order/aromatic annotations. "
             "PDB ligand chemistry inference is unsupported; provide ligand as CIF "
             "with explicit bond orders."
@@ -258,7 +266,7 @@ def ligand_atom_array_to_rdkit_mol(
         mol = to_mol(atom_array)
     except Exception as exc:
         raise ValueError(
-            f"{ligand_info.res_name}: failed to read explicit ligand bond chemistry "
+            f"{res_name}: failed to read explicit ligand bond chemistry "
             f"from input ({exc}). Provide a CIF with explicit bond orders."
         ) from exc
     _restore_kekule_bonds(mol, atom_array)
@@ -277,5 +285,21 @@ def ligand_atom_array_to_rdkit_mol(
     _apply_atom_array_annotations(mol, atom_array, arr_indices)
     mol = _strip_metals(mol)
     if mol is None or mol.GetNumAtoms() == 0:
-        raise ValueError(f"{ligand_info.res_name}: failed to build RDKit Mol")
+        raise ValueError(f"{res_name}: failed to build RDKit Mol")
     return mol
+
+
+def ligand_atom_array_to_rdkit_mol(
+    ligand_info: NonStandardResidueInfo,
+    *,
+    keep_hydrogens: bool = False,
+) -> Chem.Mol:
+    """Build an RDKit Mol from a detected ligand's AtomArray.
+
+    Thin wrapper over :func:`rdkit_mol_from_ligand_atom_array`.
+    """
+    return rdkit_mol_from_ligand_atom_array(
+        ligand_info.atom_array,
+        res_name=ligand_info.res_name,
+        keep_hydrogens=keep_hydrogens,
+    )

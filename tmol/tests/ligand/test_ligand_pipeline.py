@@ -23,20 +23,12 @@ from tmol.ligand.detect import (
 )
 from tmol.ligand.dimorphite_dl import protonate_mol_variants
 from tmol.ligand.params_io import read_params_file, write_params_file
-from tmol.ligand.registry import clear_cache
 from tmol.ligand.registry import inject_ligand_preparations
 
 PLI_CIF_INPUT_DIR = (
     Path(__file__).parent.parent / "data" / "protein_ligand_test" / "cif_inputs"
 )
 PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
-
-
-@pytest.fixture(autouse=True)
-def _clear_ligand_cache():
-    clear_cache()
-    yield
-    clear_cache()
 
 
 class TestDetectFromCIF:

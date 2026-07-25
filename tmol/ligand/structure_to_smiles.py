@@ -6,16 +6,18 @@ SMILES -> params pipeline (:func:`nonstandard_residue_info_from_smiles_via_mol2`
 
 The SMILES always reflects the *input atoms as given* -- there is no residue-code
 / CCD-template lookup (that risks substituting an unrelated molecule when a CIF
-uses a generic residue code such as ``LG1``). Candidates are derived in priority
-order:
+uses a generic residue code such as ``LG1``).
 
-1. **Existing bonds** — when the ``AtomArray`` already carries a bond table
-   (e.g. a CIF with a ``_chem_comp_bond`` block).
-2. **Geometry** — bond perception from 3D coordinates via RDKit
-   ``rdDetermineBonds`` (with the vendored ``xyz2mol_tm`` transition-metal
-   fallback), for bonds-absent inputs.
+Bond orders must come from the input: the ``AtomArray`` is required to carry a
+bond table (e.g. a CIF with a ``_chem_comp_bond`` block, or a mol2 BOND
+section). We deliberately do *not* perceive bonds from 3D geometry -- a
+bonds-absent input (such as a plain PDB ligand) is a hard error, because guessed
+bond orders would silently corrupt the generated params database.
 
-Both route through the vendored atomworks :func:`atom_array_to_rdkit`.
+The SMILES is built with the shared ligand builder
+:func:`tmol.ligand.rdkit_mol.rdkit_mol_from_ligand_atom_array` -- the same
+AtomArray -> RDKit path the params pipeline uses -- so the derived SMILES and
+the prepared molecule always agree on chemistry.
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ import numpy as np
 from biotite.structure import AtomArray
 from rdkit import Chem
 
-from tmol.ligand.external.atomworks_rdkit import atom_array_to_rdkit
+from tmol.ligand.rdkit_mol import rdkit_mol_from_ligand_atom_array
 
 logger = logging.getLogger(__name__)
 
@@ -34,15 +36,6 @@ logger = logging.getLogger(__name__)
 def _has_bonds(atom_array: AtomArray) -> bool:
     """Return True if the AtomArray carries a non-empty bond table."""
     return atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
-
-
-def _system_charge(atom_array: AtomArray, system_charge: int | None) -> int:
-    """Resolve the net formal charge to use for geometry-based bond perception."""
-    if system_charge is not None:
-        return int(system_charge)
-    if "charge" in atom_array.get_annotation_categories():
-        return int(np.nansum(atom_array.charge))
-    return 0
 
 
 def _mol_to_smiles(mol: Chem.Mol) -> str | None:
@@ -151,96 +144,56 @@ def apply_geometry_bond_corrections(mol: Chem.Mol) -> Chem.Mol:
     return out
 
 
-def ligand_smiles_candidates_from_atom_array(
-    atom_array: AtomArray,
-    *,
-    res_name: str | None = None,
-    system_charge: int | None = None,
-) -> list[str]:
-    """Return candidate SMILES for a ligand AtomArray, best source first.
-
-    The SMILES is derived purely from the input atoms (never a residue-code /
-    CCD-template lookup). The list is de-duplicated (by canonical SMILES) and
-    ordered: existing-bonds, then geometry. Callers can try each in turn.
-
-    Args:
-        atom_array: The ligand sub-array (heavy + optional hydrogen atoms).
-        res_name: Residue code, used only for log messages.
-        system_charge: Net formal charge for geometry-based bond perception.
-            Defaults to the summed ``charge`` annotation, else 0.
-
-    Returns:
-        Ordered, de-duplicated list of candidate SMILES strings (possibly empty).
-    """
-    candidates: list[str] = []
-
-    def _add(smiles: str | None) -> None:
-        if smiles and smiles not in candidates:
-            candidates.append(smiles)
-
-    # 1. Existing bonds from the AtomArray, with geometry-based bond-order
-    #    corrections for motifs the input encodes inconsistently (carboxylates).
-    if _has_bonds(atom_array):
-        try:
-            mol = atom_array_to_rdkit(
-                atom_array, infer_bonds=False, hydrogen_policy="remove"
-            )
-            mol = apply_geometry_bond_corrections(mol)
-            _add(_mol_to_smiles(mol))
-        except Exception:
-            logger.debug(
-                "Existing-bonds SMILES derivation failed for %s",
-                res_name,
-                exc_info=True,
-            )
-
-    # 2. Geometry-based bond perception.
-    try:
-        charge = _system_charge(atom_array, system_charge)
-        mol = atom_array_to_rdkit(
-            atom_array,
-            infer_bonds=True,
-            system_charge=charge,
-            hydrogen_policy="remove",
-        )
-        _add(_mol_to_smiles(mol))
-    except Exception:
-        logger.debug(
-            "Geometry SMILES derivation failed for %s", res_name, exc_info=True
-        )
-
-    return candidates
-
-
 def ligand_smiles_from_atom_array(
     atom_array: AtomArray,
     *,
     res_name: str | None = None,
-    system_charge: int | None = None,
 ) -> str:
-    """Derive the best-available SMILES for a ligand AtomArray.
+    """Derive a canonical SMILES for a ligand AtomArray from its bond table.
 
-    Tries the existing-bonds then geometry routes (see
-    :func:`ligand_smiles_candidates_from_atom_array`) and returns the first
-    that succeeds. Never does a residue-code / CCD-template lookup.
+    The SMILES is derived purely from the input atoms and their explicit bonds
+    (never a residue-code / CCD-template lookup, never geometry-based bond
+    perception). Geometry-based bond-*order* corrections are still applied for
+    motifs the input encodes inconsistently (carboxylates).
 
     Args:
-        atom_array: The ligand sub-array.
+        atom_array: The ligand sub-array (heavy + optional hydrogen atoms).
         res_name: Residue code, used only for log/error messages.
-        system_charge: Net formal charge for geometry-based bond perception.
 
     Returns:
         A canonical SMILES string.
 
     Raises:
-        ValueError: If no route produces a SMILES.
+        ValueError: If the AtomArray carries no bond table (bond orders must be
+            supplied by the input; a bonds-absent ligand such as a plain PDB
+            cannot be prepared without guessing chemistry), or if no SMILES
+            could be derived from the bonds present.
     """
-    candidates = ligand_smiles_candidates_from_atom_array(
-        atom_array, res_name=res_name, system_charge=system_charge
-    )
-    if not candidates:
+    label = res_name or "<unknown>"
+    if not _has_bonds(atom_array):
         raise ValueError(
-            f"Could not derive a SMILES for ligand "
-            f"{res_name or '<unknown>'} (no usable bonds or geometry)."
+            f"Ligand {label} has no bond table; bond orders are required to "
+            "derive a SMILES. Supply an input with explicit bonds (CIF "
+            "_chem_comp_bond block, mol2, or SMILES) -- bond perception from 3D "
+            "geometry is intentionally disabled."
         )
-    return candidates[0]
+
+    # Build from the explicit bonds, then apply geometry bond-order corrections
+    # for motifs the input encodes inconsistently (carboxylates).
+    try:
+        mol = rdkit_mol_from_ligand_atom_array(
+            atom_array, res_name=res_name or "ligand"
+        )
+        mol = apply_geometry_bond_corrections(mol)
+        smiles = _mol_to_smiles(mol)
+    except Exception as err:
+        logger.debug("SMILES derivation failed for %s", res_name, exc_info=True)
+        raise ValueError(
+            f"Could not derive a SMILES for ligand {label} from its bond table."
+        ) from err
+
+    if not smiles:
+        raise ValueError(
+            f"Could not derive a SMILES for ligand {label} from its bond table."
+        )
+    return smiles
