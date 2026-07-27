@@ -113,6 +113,13 @@ jobs:
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
             torch-version: "2.12"
             torch-package-version: "2.12.0"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu130"
+            runs-on: ubuntu-22.04
+            label: "py3.12 pt2.12 cu130 x86_64 manylinux"
+          - python-version: "3.12"
+            container-image: nvcr.io/nvidia/pytorch:26.04-py3
+            torch-version: "2.12"
+            torch-package-version: "2.12.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu132"
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.12 x86_64 manylinux"
