@@ -18,11 +18,7 @@ from tmol.ligand.detect import NonStandardResidueInfo, _strip_metals
 logger = logging.getLogger(__name__)
 
 
-# Map biotite BondType -> the RDKit bond order we want on the round-tripped
-# Mol. biotite's ``to_mol`` collapses AROMATIC_DOUBLE → SINGLE + aromatic
-# flag, which loses the double-bond information needed by RDKit's sanitize
-# valence model — leading to all-single ring bonds for N-heterocycles. We
-# restore the Kekulé bond orders by walking the source atom_array.
+# Map biotite BondType -> the RDKit bond order we want
 _BIOTITE_TO_RDKIT_BOND_ORDER = {
     int(struc.BondType.SINGLE): Chem.BondType.SINGLE,
     int(struc.BondType.DOUBLE): Chem.BondType.DOUBLE,
@@ -116,6 +112,29 @@ def _kekulize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
 def normalize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
     """Normalize non-ring aromatic placeholders before RDKit sanitize."""
     _kekulize_non_ring_aromatic_bonds(mol)
+
+
+def normalize_cumulated_azide(mol: Chem.Mol) -> Chem.Mol:
+    """Strip a spurious H from a charge-separated azide/diazo terminus.
+
+    Convert N=N=N-H (which RDKit does not understand) to =[N+]=[N-]
+    Do nothing if this group is not found.
+    """
+    h_idx = [
+        h.GetIdx()
+        for atom in mol.GetAtoms()
+        if atom.GetAtomicNum() == 7
+        and atom.GetFormalCharge() == -1
+        and any(b.GetBondType() == Chem.BondType.DOUBLE for b in atom.GetBonds())
+        for h in atom.GetNeighbors()
+        if h.GetAtomicNum() == 1
+    ]
+    if not h_idx:
+        return mol
+    rw = Chem.RWMol(mol)
+    for i in sorted(set(h_idx), reverse=True):
+        rw.RemoveAtom(i)
+    return rw.GetMol()
 
 
 def _apply_atom_array_annotations(
@@ -270,6 +289,7 @@ def rdkit_mol_from_ligand_atom_array(
             f"from input ({exc}). Provide a CIF with explicit bond orders."
         ) from exc
     _restore_kekule_bonds(mol, atom_array)
+    mol = normalize_cumulated_azide(mol)
     normalize_non_ring_aromatic_bonds(mol)
     _apply_source_subtypes(mol, atom_array)
 
