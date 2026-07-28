@@ -112,7 +112,7 @@ All three input modes converge on a single typing/build/inject core.
 
 ```mermaid
 flowchart TD
-    M2["MOL2 file"] -->|authoritative charges (MMFF94):\nnames, coords, bonds, charges verbatim| CORE
+    M2["MOL2 file"] -->|authoritative MMFF94 charges:\nnames, coords, bonds, charges verbatim| CORE
     M2 -->|non-authoritative charges:\nSMILES from bond table| SM
     CIF["CIF file"] -->|SMILES from bond table| SM
     SMI["SMILES string"] --> SM
