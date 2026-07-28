@@ -253,13 +253,10 @@ _NEUTRAL_VALENCE = {7: 3, 8: 2}
 def _assign_formal_charges_from_valence(mol: Chem.Mol) -> None:
     """Infer formal charge from the explicit bond orders (Lewis rule).
 
-    charge = observed valence - neutral valence, for N/O the input left formally
-    neutral. With explicit H the valence is fully determined, so a 4-bonded N is
-    +1 (ammonium/guanidinium/nitro) and a 1-bonded O is -1 (carboxylate/phosphate/
-    alkoxide). Lets inputs without a charge column (PDB/mol2/geometry-stripped CIF)
-    still build. Skips aromatic atoms (fractional bond orders are unreliable) and
-    atoms already charged; runs before sanitize.
+    This is only run on structures containing explicit H.  For others, we
+    let dimorphite infer both protonation state and charge.
     """
+    has_explicit_h = any(atom.GetAtomicNum() == 1 for atom in mol.GetAtoms())
     for atom in mol.GetAtoms():
         neutral = _NEUTRAL_VALENCE.get(atom.GetAtomicNum())
         if neutral is None or atom.GetFormalCharge() != 0:
@@ -269,6 +266,8 @@ def _assign_formal_charges_from_valence(mol: Chem.Mol) -> None:
             continue
         valence = sum(b.GetBondTypeAsDouble() for b in bonds)
         charge = int(round(valence)) - neutral
+        if charge < 0 and not has_explicit_h:
+            continue  # ambiguous: omitted H, not a real anion -- leave neutral
         if charge != 0:
             atom.SetFormalCharge(charge)
 

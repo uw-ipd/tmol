@@ -114,6 +114,8 @@ def _infer_carboxylate_bonds(rw: Chem.RWMol, conf) -> int:
         b_ob.SetIsAromatic(False)
         b_oa.SetBondType(Chem.BondType.DOUBLE)
         b_ob.SetBondType(Chem.BondType.SINGLE)
+        # Reset both O charges
+        rw.GetAtomWithIdx(oa).SetFormalCharge(0)
         rw.GetAtomWithIdx(ob).SetFormalCharge(-1)
         n_fixed += 1
         logger.info("inferring COO- from geometry (carbon atom idx %d)", c)
