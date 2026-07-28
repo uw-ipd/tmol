@@ -219,6 +219,31 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
         return Chem.RemoveHs(mol, sanitize=False)
 
 
+def _normalize_nitro(mol: Chem.Mol) -> None:
+    """Rewrite pentavalent nitro N(=O)=O to [N+](=O)[O-].
+
+    Some inputs draw nitro with two N=O double bonds (valence-5 neutral N), which
+    RDKit rejects. Demote one N=O to a single bond and set the charges that make
+    it valid. Runs before formal-charge inference and sanitize.
+    """
+    for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() != 7:
+            continue
+        dbl_term_o = [
+            b
+            for b in atom.GetBonds()
+            if b.GetBondType() == Chem.BondType.DOUBLE
+            and b.GetOtherAtom(atom).GetAtomicNum() == 8
+            and b.GetOtherAtom(atom).GetDegree() == 1
+        ]
+        if len(dbl_term_o) < 2:
+            continue
+        for bond in dbl_term_o[1:]:
+            bond.SetBondType(Chem.BondType.SINGLE)
+            bond.GetOtherAtom(atom).SetFormalCharge(-1)
+        atom.SetFormalCharge(1)
+
+
 # Neutral (uncharged) valence per element; charge = observed valence - this.
 # Only N and O: C is ambiguous, and S/P have expanded octets (their charge sits
 # on the bonded O, handled by the O rule -- e.g. phosphate/sulfonate).
@@ -315,6 +340,7 @@ def rdkit_mol_from_ligand_atom_array(
     mol = normalize_cumulated_azide(mol)
     normalize_non_ring_aromatic_bonds(mol)
     _apply_source_subtypes(mol, atom_array)
+    _normalize_nitro(mol)
     _assign_formal_charges_from_valence(mol)
 
     if keep_hydrogens:
