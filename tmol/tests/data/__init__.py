@@ -2,10 +2,21 @@ import pytest
 import os
 import torch
 import biotite.structure.io
+from pathlib import Path
 
 from . import pdb
 
 _CIF_DATA_DIR = os.path.join(os.path.dirname(__file__), "cif")
+
+
+def data_path(*parts: str) -> Path:
+    """Absolute path to a file/dir under ``tmol/tests/data``.
+
+    Anchored to this package's own location, so it is robust to test modules
+    moving between directories (unlike ``Path(__file__).parent.parent / ...``
+    in a test file, which breaks if the file's depth changes).
+    """
+    return Path(__file__).parent.joinpath(*parts)
 
 
 def load_cif(pdb_code):

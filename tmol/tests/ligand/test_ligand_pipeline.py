@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 import torch
 
+from tmol.tests.data import data_path
 from tmol.io.pose_stack_from_biotite import canonical_ordering_for_biotite
 from tmol.ligand import prepare_ligands
 from tmol.ligand.preparation import _prepare_ligand_via_smiles
@@ -25,10 +26,8 @@ from tmol.ligand.dimorphite_dl import protonate_mol_variants
 from tmol.ligand.params_io import read_params_file, write_params_file
 from tmol.ligand.registry import inject_ligand_preparations
 
-PLI_CIF_INPUT_DIR = (
-    Path(__file__).parent.parent / "data" / "protein_ligand_test" / "cif_inputs"
-)
-PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
+PLI_CIF_INPUT_DIR = data_path("protein_ligand_test", "cif_inputs")
+PLI_DATA_DIR = data_path("protein_ligand_test")
 
 
 class TestDetectFromCIF:

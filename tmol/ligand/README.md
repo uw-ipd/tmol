@@ -19,8 +19,10 @@ from tmol.ligand import (
     prepare_ligand_from_smiles,
 )
 
-# 1) MOL2 — richest input. Atom names, coordinates, bond orders, and MMFF94
-#    partial charges are read verbatim; no SMILES or 3D-generation step.
+# 1) MOL2 — richest input. With an authoritative charge model (MMFF94), atom
+#    names, coordinates, bond orders, and partial charges are read verbatim; no
+#    SMILES or 3D-generation step. A mol2 with a non-authoritative charge model
+#    (e.g. GASTEIGER) instead falls back to the derived-SMILES path below.
 param_db, co = prepare_ligand_from_mol2("ligand.mol2")
 
 # 2) CIF — the bond table drives a derived SMILES, which runs through the full
@@ -110,7 +112,8 @@ All three input modes converge on a single typing/build/inject core.
 
 ```mermaid
 flowchart TD
-    M2["MOL2 file"] -->|names, coords, bonds,\nMMFF94 charges verbatim| CORE
+    M2["MOL2 file"] -->|authoritative charges (MMFF94):\nnames, coords, bonds, charges verbatim| CORE
+    M2 -->|non-authoritative charges:\nSMILES from bond table| SM
     CIF["CIF file"] -->|SMILES from bond table| SM
     SMI["SMILES string"] --> SM
 

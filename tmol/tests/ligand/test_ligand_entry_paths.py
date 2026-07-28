@@ -14,9 +14,10 @@ from pathlib import Path
 
 import pytest
 
+from tmol.tests.data import data_path
 from tmol.database import ParameterDatabase
 
-DATA = Path(__file__).parent.parent / "data"
+DATA = data_path()
 MOL2_DIR = DATA / "ligand_test" / "ligand_ground_truth" / "mol2"
 
 

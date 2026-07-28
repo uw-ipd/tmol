@@ -24,11 +24,11 @@ complex ddG case (PSE / 1A25, finiteness only) is in
 ``test_ligand_pipeline.py::test_ddg_from_cif_complex_with_onthefly_ligand_prep``.
 """
 
-from pathlib import Path
+from tmol.tests.data import data_path
 
 import pytest
 
-FIXTURE_DIR = Path(__file__).parent.parent / "data" / "ligand_cif_fixtures"
+FIXTURE_DIR = data_path("ligand_cif_fixtures")
 
 # stem -> (CCD residue code, reference canonical SMILES from the PLINDER SDF)
 #   note (fd) this contains COO- fix

@@ -9,7 +9,7 @@ params loader's validation paths. The focus is on the documented fallback and
 
 from __future__ import annotations
 
-from pathlib import Path
+from tmol.tests.data import data_path
 
 import numpy as np
 import pytest
@@ -17,7 +17,7 @@ from rdkit import Chem
 
 import biotite.structure as struc
 
-DATA = Path(__file__).parent.parent / "data"
+DATA = data_path()
 GROUND_TRUTH = DATA / "ligand_test" / "ligand_ground_truth"
 
 
@@ -281,14 +281,16 @@ class TestLigandAtomArrayToRdkitMol:
         with pytest.raises(ValueError, match="bond inference is unsupported"):
             ligand_atom_array_to_rdkit_mol(self._info(arr))
 
-    def test_topology_only_single_bonds_raises(self) -> None:
+    def test_topology_only_any_bonds_raises(self) -> None:
         from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
 
         arr = self._carbon_array(2)
+        # BondType.ANY marks bonds whose order was perceived from geometry
+        #   (e.g. PDB input) ... ensure this fails
         arr.bonds = struc.BondList(
-            2, np.array([[0, 1, int(struc.BondType.SINGLE)]], dtype=np.uint32)
+            2, np.array([[0, 1, int(struc.BondType.ANY)]], dtype=np.uint32)
         )
-        with pytest.raises(ValueError, match="topology-only SINGLE bonds"):
+        with pytest.raises(ValueError, match="topology-only bonds"):
             ligand_atom_array_to_rdkit_mol(self._info(arr))
 
 

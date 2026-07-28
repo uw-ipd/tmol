@@ -193,21 +193,39 @@ def ligand_smiles_from_atom_array(
             "geometry is intentionally disabled."
         )
 
-    # Build from the explicit bonds, then apply geometry bond-order corrections
-    # for motifs the input encodes inconsistently (carboxylates).
-    try:
+    # Build from the explicit bonds
+    #  -> then apply geometry bond-order corrections for common "mistakes"
+    def _attempt(repair_chemistry: bool) -> str | None:
         mol = rdkit_mol_from_ligand_atom_array(
-            atom_array, res_name=res_name or "ligand"
+            atom_array,
+            res_name=res_name or "ligand",
+            repair_chemistry=repair_chemistry,
         )
         mol = apply_geometry_bond_corrections(mol)
         if with_atom_map:
             _tag_source_atom_map(mol, atom_array)
-        smiles = _mol_to_smiles(mol)
-    except Exception as err:
-        logger.debug("SMILES derivation failed for %s", res_name, exc_info=True)
-        raise ValueError(
-            f"Could not derive a SMILES for ligand {label} from its bond table."
-        ) from err
+        return _mol_to_smiles(mol)
+
+    # Pass 1: try to convert exactly
+    # If Pass 1 fails, make Pass 2: apply rules to recover
+    smiles = None
+    try:
+        smiles = _attempt(repair_chemistry=False)
+    except Exception:
+        logger.debug(
+            "SMILES derivation (no repair) failed for %s", res_name, exc_info=True
+        )
+
+    if not smiles:
+        try:
+            smiles = _attempt(repair_chemistry=True)
+        except Exception as err:
+            logger.debug(
+                "SMILES derivation (repair) failed for %s", res_name, exc_info=True
+            )
+            raise ValueError(
+                f"Could not derive a SMILES for ligand {label} from its bond table."
+            ) from err
 
     if not smiles:
         raise ValueError(

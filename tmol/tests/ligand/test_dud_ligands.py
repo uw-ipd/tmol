@@ -12,10 +12,12 @@ by the guanfeng SMILES suite (``test_smiles_semantic.py``,
 
 from pathlib import Path
 
+from tmol.tests.data import data_path
+
 import pytest
 import torch  # noqa: F401  (used via torch_device fixture)
 
-DUD_DIR = Path(__file__).parent.parent / "data" / "dud_ligands"
+DUD_DIR = data_path("dud_ligands")
 DUD_CASES = [
     ("ada", name)
     for name in [

@@ -244,9 +244,26 @@ def _normalize_nitro(mol: Chem.Mol) -> None:
         atom.SetFormalCharge(1)
 
 
-# Neutral (uncharged) valence per element; charge = observed valence - this.
-# Only N and O: C is ambiguous, and S/P have expanded octets (their charge sits
-# on the bonded O, handled by the O rule -- e.g. phosphate/sulfonate).
+def _normalize_exocyclic_aromatic_imine(mol: Chem.Mol) -> None:
+    """Demote an exocyclic aromatic C=N to single (amino tautomer).
+
+    Some mol2 files annotate these as a double-bond, leading to
+    RDKit failures in converting to smiles.  Downgrade to C-N"""
+
+    def arom_c(a):
+        return a.GetAtomicNum() == 6 and a.GetIsAromatic()
+
+    for bond in mol.GetBonds():
+        if bond.GetBondType() != Chem.BondType.DOUBLE or bond.IsInRing():
+            continue
+        a, b = bond.GetBeginAtom(), bond.GetEndAtom()
+        if (arom_c(a) and b.GetAtomicNum() == 7) or (
+            arom_c(b) and a.GetAtomicNum() == 7
+        ):
+            bond.SetBondType(Chem.BondType.SINGLE)
+
+
+# Neutral (uncharged) valence per element
 _NEUTRAL_VALENCE = {7: 3, 8: 2}
 
 
@@ -296,6 +313,7 @@ def rdkit_mol_from_ligand_atom_array(
     *,
     res_name: str = "ligand",
     keep_hydrogens: bool = False,
+    repair_chemistry: bool = False,
 ) -> Chem.Mol:
     """Build an RDKit Mol from a ligand AtomArray's explicit bond table.
 
@@ -310,6 +328,9 @@ def rdkit_mol_from_ligand_atom_array(
         res_name: Residue code, used only for log/error messages.
         keep_hydrogens: When True, retain explicit hydrogens from the input
             (used for ``skip_protonation`` — preserve mol2/CIF protonation).
+        repair_chemistry: When True, apply last-resort chemistry normalizations
+            that rewrite source bond orders to make an otherwise-unrepresentable
+            input build.
     """
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
     if len(atom_array) == 0:
@@ -359,6 +380,10 @@ def rdkit_mol_from_ligand_atom_array(
     normalize_non_ring_aromatic_bonds(mol)
     _apply_source_subtypes(mol, atom_array)
     _normalize_nitro(mol)
+    if repair_chemistry:
+        # Last-resort normalizations that rewrite source bond orders; only the
+        # SMILES fallback path enables these (see docstring).
+        _normalize_exocyclic_aromatic_imine(mol)
     _assign_formal_charges_from_valence(mol)
 
     if keep_hydrogens:

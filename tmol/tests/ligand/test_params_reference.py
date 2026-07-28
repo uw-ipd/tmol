@@ -8,6 +8,7 @@ import pytest
 
 from types import SimpleNamespace
 
+from tmol.tests.data import data_path
 from tmol.tests.ligand.params_reference import (
     GeneratedFields,
     ReferenceParams,
@@ -32,7 +33,7 @@ def _matching_generated_fields(ref: ReferenceParams) -> GeneratedFields:
     )
 
 
-_GROUND_TRUTH = Path(__file__).parent.parent / "data" / "ligand_ground_truth"
+_GROUND_TRUTH = data_path("ligand_ground_truth")
 _REF1 = _GROUND_TRUTH / "ref1.params"
 _REF2 = _GROUND_TRUTH / "ref2.params"
 
