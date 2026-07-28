@@ -131,9 +131,9 @@ def prepare_single_ligand(
             be routed through :func:`prepare_ligands` / :func:`prepare_ligand_from_cif`.
         sample_proton_chi: Whether to emit proton-chi samples.
         name_source: Optional ligand whose atom names the prepared residue should
-            adopt (graph-matched to the prepared heavy atoms). On the unified CIF
-            path this is the original CIF ligand, so pose-build can place CIF
-            coordinates by ``(res_name, atom_name)``. Defaults to ``ligand_info``.
+            adopt (mapped to the prepared heavy atoms via the atom-order map). On
+            the unified CIF path this is the original CIF ligand. Defaults to
+            ``ligand_info``.
 
     Raises:
         ValueError: If ``ligand_info`` lacks explicit hydrogens / authoritative
@@ -268,8 +268,8 @@ def _prepare_ligand_via_smiles(
     Derives a SMILES from the ligand's atom array (from its explicit bond table;
     never geometry perception, never a CCD lookup) and runs it through the
     SMILES -> mol2 -> params pipeline. The prepared residue's heavy-atom names
-    should cover the original ligand's heavy atoms (so CIF coordinates can be
-    placed); if they don't, the preparation is still returned best-effort.
+    should cover the original ligand's heavy atoms; if they don't, the
+    preparation is still returned best-effort.
 
     Args:
         ligand_info: The detected (CIF/atom-array) ligand.
@@ -549,10 +549,12 @@ def prepare_ligand_from_cif(
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a CIF file and inject it into a database.
 
-    Routes through the unified path: the CIF ligand is converted to a SMILES
-    (existing-bonds / geometry; never a CCD lookup), run through the SMILES ->
-    params pipeline, and the resulting residue's atom names are graph-matched
-    back to the CIF names so pose-build can place CIF coordinates.
+    Runs the same full pipeline as :func:`prepare_ligand_from_smiles`; the only
+    CIF-specific step is the front end. A SMILES is derived from the CIF ligand's
+    explicit bond table (never geometry perception, never a CCD lookup) and run
+    through the SMILES -> mol2 -> params path (protonation, 3D conformer, MMFF94
+    charges). The prepared residue's heavy-atom names are then mapped back to the
+    CIF atom names via the atom-order map carried through the round-trip.
 
     Args:
         cif_path: Path to the ligand CIF file.
