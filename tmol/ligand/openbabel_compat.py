@@ -77,6 +77,22 @@ def normalize_azide(smiles: str) -> str:
     return smiles.replace("N=[N]=N", "N=[N+]=[N-]")
 
 
+def source_atom_order_from_mapped_smiles(smiles: str) -> Optional[tuple[int, ...]]:
+    """Map numbers (source indices) in SMILES/mol2 atom order, or None if any
+    atom is unmapped. Normalized identically to the mol2 path so order matches."""
+    smiles = normalize_azide(strip_nontetrahedral_stereo(smiles))
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    order: list[int] = []
+    for atom in mol.GetAtoms():
+        mapnum = atom.GetAtomMapNum()
+        if mapnum <= 0:
+            return None
+        order.append(mapnum - 1)
+    return tuple(order)
+
+
 def _import_openbabel() -> tuple:
     """Return ``(openbabel, pybel)`` modules, or raise a clear error.
 

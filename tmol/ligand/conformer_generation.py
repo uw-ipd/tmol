@@ -13,6 +13,7 @@ The public entry :func:`generate_conformer` returns a coordinate-carrying pybel
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import math
 from typing import Optional
@@ -26,6 +27,17 @@ from rdkit import RDLogger
 RDLogger.DisableLog("rdApp.*")
 
 logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def _flush_denormals():
+    """Flush subnormal floats to zero for the enclosed torch minimization only."""
+    torch.set_flush_denormal(True)
+    try:
+        yield
+    finally:
+        torch.set_flush_denormal(False)
+
 
 # Stress-refine weights: exact (bond/angle/ring) distances tethered hard; bracket
 # and vdW bounds are softer hinges (there are O(N^2) of them).
@@ -84,7 +96,8 @@ def generate_conformer(
     if rd is None:
         raise ValueError(f"could not parse ligand chemistry for SMILES {smiles!r}")
     targets = _geometry_targets(rd)
-    _set_coords(obmol, _embed_coordinates(targets, seed=seed))
+    with _flush_denormals():
+        _set_coords(obmol, _embed_coordinates(targets, seed=seed))
     _forcefield_minimize(obmol, steps=minimize_steps, frozen=targets["frozen_atoms"])
     return pybel.Molecule(obmol)
 

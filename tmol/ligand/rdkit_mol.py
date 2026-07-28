@@ -262,20 +262,14 @@ def rdkit_mol_from_ligand_atom_array(
             unsupported,
         )
 
-    chemistry_orders = {
-        int(struc.BondType.DOUBLE),
-        int(struc.BondType.TRIPLE),
-        int(struc.BondType.QUADRUPLE),
-        int(struc.BondType.AROMATIC),
-        int(struc.BondType.AROMATIC_SINGLE),
-        int(struc.BondType.AROMATIC_DOUBLE),
-        int(struc.BondType.AROMATIC_TRIPLE),
-    }
-    has_chemistry_order_signal = any(t in chemistry_orders for t in raw_types)
+    # BondType.ANY (0) marks bonds whose order was perceived from geometry
+    # (PDB/topology); explicit SINGLE (1) is a real, provided bond order, so a
+    # fully saturated ligand is not topology-only.
     has_custom_aromatic_flags = hasattr(atom_array, "tmol_aromatic")
-    if not has_chemistry_order_signal and not has_custom_aromatic_flags:
+    has_topology_only_bonds = any(t == int(struc.BondType.ANY) for t in raw_types)
+    if has_topology_only_bonds and not has_custom_aromatic_flags:
         raise ValueError(
-            f"{res_name}: ligand has topology-only SINGLE bonds with no "
+            f"{res_name}: ligand has topology-only bonds with no "
             "chemistry-level bond-order/aromatic annotations. "
             "PDB ligand chemistry inference is unsupported; provide ligand as CIF "
             "with explicit bond orders."

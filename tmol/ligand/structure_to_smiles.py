@@ -144,10 +144,21 @@ def apply_geometry_bond_corrections(mol: Chem.Mol) -> Chem.Mol:
     return out
 
 
+def _tag_source_atom_map(mol: Chem.Mol, atom_array: AtomArray) -> None:
+    """Tag each heavy atom with map number = source index + 1 (rides the SMILES
+    through the mol2 pipeline for atom naming). No-op if counts disagree."""
+    heavy_idx = [i for i, e in enumerate(atom_array.element) if str(e) != "H"]
+    if mol.GetNumAtoms() != len(heavy_idx):
+        return
+    for j in range(mol.GetNumAtoms()):
+        mol.GetAtomWithIdx(j).SetAtomMapNum(int(heavy_idx[j]) + 1)
+
+
 def ligand_smiles_from_atom_array(
     atom_array: AtomArray,
     *,
     res_name: str | None = None,
+    with_atom_map: bool = False,
 ) -> str:
     """Derive a canonical SMILES for a ligand AtomArray from its bond table.
 
@@ -159,6 +170,8 @@ def ligand_smiles_from_atom_array(
     Args:
         atom_array: The ligand sub-array (heavy + optional hydrogen atoms).
         res_name: Residue code, used only for log/error messages.
+        with_atom_map: Tag heavy atoms with source-index map numbers for CIF
+            atom naming downstream.
 
     Returns:
         A canonical SMILES string.
@@ -185,6 +198,8 @@ def ligand_smiles_from_atom_array(
             atom_array, res_name=res_name or "ligand"
         )
         mol = apply_geometry_bond_corrections(mol)
+        if with_atom_map:
+            _tag_source_atom_map(mol, atom_array)
         smiles = _mol_to_smiles(mol)
     except Exception as err:
         logger.debug("SMILES derivation failed for %s", res_name, exc_info=True)

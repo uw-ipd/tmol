@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import functools
 import logging
 import os
 import sys
@@ -334,7 +335,15 @@ class UtilFuncs:
             if current_rxn is None:
                 break
             else:
+                reactant = mol
                 mol = current_rxn.RunReactants((mol,))[0][0]
+                # maintain react_atom_idx (if it exists) through reactions
+                for prod_atom in mol.GetAtoms():
+                    if prod_atom.HasProp("react_atom_idx"):
+                        src = reactant.GetAtomWithIdx(
+                            prod_atom.GetIntProp("react_atom_idx")
+                        )
+                        prod_atom.SetAtomMapNum(src.GetAtomMapNum())
                 mol.UpdatePropertyCache(strict=False)
 
         sanitize_string = Chem.SanitizeMol(
@@ -613,6 +622,7 @@ class ProtSubstructFuncs:
         return lines
 
     @staticmethod
+    @functools.lru_cache(maxsize=None)
     def load_protonation_substructs_calc_state_for_ph(
         min_ph: float = 6.4, max_ph: float = 8.4, pka_std_range: float = 1
     ) -> list[dict[str, Any]]:

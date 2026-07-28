@@ -68,6 +68,8 @@ class NonStandardResidueInfo:
     partial_charges: Optional[dict[str, float]] = None
     skip_protonation: bool = False
     original_single_bonds: Optional[frozenset[frozenset[str]]] = None
+    # source atom-array index per mol2 heavy atom (SMILES-via-mol2 path only)
+    source_atom_order: Optional[tuple[int, ...]] = None
 
 
 @functools.cache
@@ -549,12 +551,17 @@ def nonstandard_residue_info_from_smiles_via_mol2(
             (this path requires it for the SMILES -> mol2 conversion).
         ValueError: If OpenBabel cannot build a charged mol2 for ``smiles``.
     """
-    from tmol.ligand.openbabel_compat import obabel_smiles_to_mol2_block
+    from tmol.ligand.openbabel_compat import (
+        obabel_smiles_to_mol2_block,
+        source_atom_order_from_mapped_smiles,
+    )
 
     smiles = _normalize_radical_oxygens(smiles)
     prep_smiles = _dimorphite_protonate_smiles(smiles, ph) if protonate else smiles
+    source_order = source_atom_order_from_mapped_smiles(prep_smiles)
     mol2_block = obabel_smiles_to_mol2_block(prep_smiles, seed=seed)
-    return nonstandard_residue_info_from_mol2_block(mol2_block, res_name=res_name)
+    info = nonstandard_residue_info_from_mol2_block(mol2_block, res_name=res_name)
+    return attr.evolve(info, source_atom_order=source_order)
 
 
 def detect_nonstandard_residues(
