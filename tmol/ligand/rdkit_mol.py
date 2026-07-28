@@ -250,11 +250,30 @@ def _normalize_nitro(mol: Chem.Mol) -> None:
 _NEUTRAL_VALENCE = {7: 3, 8: 2}
 
 
+def _is_counterion_oxygen(atom: Chem.Atom) -> bool:
+    """True for a terminal O bonded to a cationic N (nitro / N-oxide oxygen).
+
+    Such an O is the counter-anion of a hard N cation, never an omitted-H
+    hydroxyl, so it must be -1 even without explicit H. The N is cationic when
+    aromatic (pyridinium N-oxide) or over-valent (nitro/tertiary N-oxide);
+    a neutral hydroxylamine R2N-OH (valence-3 N) is excluded.
+    """
+    if atom.GetAtomicNum() != 8 or atom.GetDegree() != 1:
+        return False
+    n = atom.GetNeighbors()[0]
+    if n.GetAtomicNum() != 7:
+        return False
+    if n.GetIsAromatic():
+        return True
+    return int(round(sum(b.GetBondTypeAsDouble() for b in n.GetBonds()))) > 3
+
+
 def _assign_formal_charges_from_valence(mol: Chem.Mol) -> None:
     """Infer formal charge from the explicit bond orders (Lewis rule).
 
     This is only run on structures containing explicit H.  For others, we
-    let dimorphite infer both protonation state and charge.
+    let dimorphite infer both protonation state and charge -- except a nitro /
+    N-oxide oxygen, which stays -1 even without H (see _is_counterion_oxygen).
     """
     has_explicit_h = any(atom.GetAtomicNum() == 1 for atom in mol.GetAtoms())
     for atom in mol.GetAtoms():
@@ -266,7 +285,7 @@ def _assign_formal_charges_from_valence(mol: Chem.Mol) -> None:
             continue
         valence = sum(b.GetBondTypeAsDouble() for b in bonds)
         charge = int(round(valence)) - neutral
-        if charge < 0 and not has_explicit_h:
+        if charge < 0 and not has_explicit_h and not _is_counterion_oxygen(atom):
             continue  # ambiguous: omitted H, not a real anion -- leave neutral
         if charge != 0:
             atom.SetFormalCharge(charge)
