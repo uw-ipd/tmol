@@ -219,6 +219,35 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
         return Chem.RemoveHs(mol, sanitize=False)
 
 
+# Neutral (uncharged) valence per element; charge = observed valence - this.
+# Only N and O: C is ambiguous, and S/P have expanded octets (their charge sits
+# on the bonded O, handled by the O rule -- e.g. phosphate/sulfonate).
+_NEUTRAL_VALENCE = {7: 3, 8: 2}
+
+
+def _assign_formal_charges_from_valence(mol: Chem.Mol) -> None:
+    """Infer formal charge from the explicit bond orders (Lewis rule).
+
+    charge = observed valence - neutral valence, for N/O the input left formally
+    neutral. With explicit H the valence is fully determined, so a 4-bonded N is
+    +1 (ammonium/guanidinium/nitro) and a 1-bonded O is -1 (carboxylate/phosphate/
+    alkoxide). Lets inputs without a charge column (PDB/mol2/geometry-stripped CIF)
+    still build. Skips aromatic atoms (fractional bond orders are unreliable) and
+    atoms already charged; runs before sanitize.
+    """
+    for atom in mol.GetAtoms():
+        neutral = _NEUTRAL_VALENCE.get(atom.GetAtomicNum())
+        if neutral is None or atom.GetFormalCharge() != 0:
+            continue
+        bonds = atom.GetBonds()
+        if any(b.GetBondType() == Chem.BondType.AROMATIC for b in bonds):
+            continue
+        valence = sum(b.GetBondTypeAsDouble() for b in bonds)
+        charge = int(round(valence)) - neutral
+        if charge != 0:
+            atom.SetFormalCharge(charge)
+
+
 def rdkit_mol_from_ligand_atom_array(
     atom_array: struc.AtomArray,
     *,
@@ -286,6 +315,7 @@ def rdkit_mol_from_ligand_atom_array(
     mol = normalize_cumulated_azide(mol)
     normalize_non_ring_aromatic_bonds(mol)
     _apply_source_subtypes(mol, atom_array)
+    _assign_formal_charges_from_valence(mol)
 
     if keep_hydrogens:
         arr_indices = list(range(len(atom_array)))
