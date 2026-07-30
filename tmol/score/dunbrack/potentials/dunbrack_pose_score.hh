@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/unresolved_atom.hh>
@@ -29,6 +30,7 @@ template <
     typename Int>
 struct DunbrackPoseScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
@@ -87,7 +89,7 @@ struct DunbrackPoseScoreDispatch {
       ) -> std::tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 2, D>>;
 
   static auto backward(
-      // common params
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
       TView<Int, 1, D> pose_ind_for_atom,
@@ -149,6 +151,7 @@ template <
     typename Int>
 struct DunbrackRotamerScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
@@ -208,6 +211,7 @@ struct DunbrackRotamerScoreDispatch {
       tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D>>;
 
   static auto backward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,

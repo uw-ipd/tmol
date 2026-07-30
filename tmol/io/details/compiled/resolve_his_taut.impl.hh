@@ -30,6 +30,7 @@ template <
     typename Int>
 struct ResolveHisTaut {
   static auto f(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 3, Dev> coords,
       TView<Int, 2, Dev> res_types,
       TView<Int, 2, Dev> res_type_variants,
@@ -140,7 +141,7 @@ struct ResolveHisTaut {
       res_type_variants[ip][ir] = variant;
     });
 
-    DeviceOps<Dev>::template forall<launch_t>(n_his, f_his_resolver);
+    DeviceOps<Dev>::template forall<launch_t>(mgr, n_his, f_his_resolver);
     return his_taut_t;
   };
 };

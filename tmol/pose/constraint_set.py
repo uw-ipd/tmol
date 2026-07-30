@@ -97,7 +97,6 @@ class ConstraintSet:
                 ps_offset = torch.zeros(
                     (len(constraint_sets),), dtype=torch.int64, device=device
                 )
-
         cs_offset = exclusive_cumsum1d(
             torch.tensor(
                 [
@@ -126,12 +125,14 @@ class ConstraintSet:
                             len(constraint_functions_list) - 1
                         )
 
+        # now let's figure out the new contraint_function_inds
+        # for the combined set
         new_constraint_function_inds = torch.tensor(
             [
-                constraint_function_inds[i][j]
+                constraint_function_inds[i][cs.constraint_function_inds[j]]
                 for i, cs in enumerate(constraint_sets)
                 if cs is not None
-                for j, func in enumerate(cs.constraint_functions)
+                for j in range(cs.constraint_function_inds.size(0))
             ],
             device=device,
             dtype=torch.int32,
@@ -177,6 +178,9 @@ class ConstraintSet:
                 new_constraint_unique_blocks[
                     cs_offset[i] : cs_offset[i] + n_cs_constraints, :
                 ] = cs.constraint_unique_blocks
+                new_constraint_unique_blocks[
+                    cs_offset[i] : cs_offset[i] + n_cs_constraints, 0
+                ] += ps_offset[i]
         return ConstraintSet(
             device=device,
             n_poses=n_poses,
@@ -209,6 +213,43 @@ class ConstraintSet:
             constraint_unique_blocks=self.constraint_unique_blocks.to(device),
         )
 
+    def split(self, index) -> "ConstraintSet":
+        """Split out a single pose's worth of constraints from a batch."""
+        # find the constraints that apply to this pose
+        is_constraint_for_pose = self.constraint_atoms[:, :, 0] == index
+        constraint_inds = torch.where(is_constraint_for_pose.any(dim=1))[0]
+
+        # note: constraint_functions is shallow-copied; this might seem dangerous
+        # because we might worry about the original constraint set modifying
+        # its constraint functions, but this is actually safe because 1. Tuples
+        # are immutable, and 2. the original ConstraintSet only ever changes
+        # by creating a new ConstraintSet, so really, it also is immutable.
+        new_constraint_atoms = self.constraint_atoms[constraint_inds].clone()
+        real_pose_for_atoms = new_constraint_atoms[:, :, 0] != -1
+        nz_real_pose_for_atoms = torch.nonzero(real_pose_for_atoms, as_tuple=False)
+        new_constraint_atoms[
+            nz_real_pose_for_atoms[:, 0], nz_real_pose_for_atoms[:, 1], 0
+        ] = 0  # reset the pose index to 0 since we're splitting out a single pose
+        new_constraint_unique_blocks = self.constraint_unique_blocks[
+            constraint_inds
+        ].clone()
+        new_constraint_unique_blocks[:, 0] = (
+            0  # reset the pose index to 0 since we're splitting out a single pose
+        )
+        return attr.evolve(
+            self,
+            n_poses=1,
+            constraint_function_inds=self.constraint_function_inds[
+                constraint_inds
+            ].clone(),
+            constraint_atoms=new_constraint_atoms,
+            constraint_params=self.constraint_params[constraint_inds].clone(),
+            constraint_num_unique_blocks=self.constraint_num_unique_blocks[
+                constraint_inds
+            ].clone(),
+            constraint_unique_blocks=new_constraint_unique_blocks,
+        )
+
     #################### PROPERTIES #####################
 
     def count_unique_blocks(self, atom_indices):
@@ -229,7 +270,7 @@ class ConstraintSet:
         this convenience function will take a list of atom indices for a single Pose
         and replicate them across all the Poses in the PoseStack."""
         if atom_indices.size(2) == 3:
-            # if we just drop the "which pose is it from dimension", then
+            # if we just drop the "which-pose-is-it-from? dimension", then
             # the normal call to add_constraints will apply it to all poses
             atom_indices = atom_indices[:, :, 1:3]
         return self.add_constraints(fn, atom_indices, params)

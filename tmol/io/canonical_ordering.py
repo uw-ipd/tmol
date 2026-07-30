@@ -155,6 +155,7 @@ class CanonicalOrdering:
     restype_io_equiv_classes: Tuple[str, ...]
     restypes_ordered_atom_names: Mapping[str, Tuple[str, ...]]
     restypes_atom_index_mapping: Mapping[str, Mapping[str, int]]
+    restypes_mainchain_atoms: Mapping[str, Optional[Tuple[str, ...]]]
 
     ############# tmol internal data members below ############
 
@@ -222,6 +223,13 @@ class CanonicalOrdering:
             len(atoms) for _, atoms in restypes_ordered_atom_names.items()
         )
 
+        restypes_mainchain_atoms = {}
+        for restype in chemdb.residues:
+            equiv = restype.io_equiv_class
+            if equiv not in restypes_mainchain_atoms:
+                mc = restype.properties.polymer.mainchain_atoms
+                restypes_mainchain_atoms[equiv] = tuple(mc) if mc else None
+
         default_termini_mapping = cls._temp_termini_mapping()
         termini_patch_added_atoms = defaultdict(lambda: set([]))
 
@@ -245,6 +253,7 @@ class CanonicalOrdering:
             restype_io_equiv_classes=ordered_restypes,
             restypes_ordered_atom_names=restypes_ordered_atom_names,
             restypes_atom_index_mapping=restypes_atom_index_mapping,
+            restypes_mainchain_atoms=restypes_mainchain_atoms,
             restypes_default_termini_mapping=default_termini_mapping,
             down_termini_patches=down_termini_patches,
             up_termini_patches=up_termini_patches,

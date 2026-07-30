@@ -1,7 +1,7 @@
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.pack.rotamer.build_rotamers import RotamerSet
+from tmol.pack.rotamer.rotamer_set import RotamerSet
 from tmol.score.common.scoring_module import (
     TermWholePoseScoringModule,
     TermBlockPairScoringModule,
@@ -91,6 +91,15 @@ class EnergyTerm:
 
         Any array data should be stored in torch tensors and live on the
         pose_stack's device.
+        """
+        pass
+
+    def set_options(self, options: dict):
+        """Receive a dictionary of options from the ScoreFunction.
+
+        Subclasses may override this method to extract configuration values
+        that affect scoring behavior, such as boolean flags, numeric
+        parameters, or other settings. The base implementation is a no-op.
         """
         pass
 

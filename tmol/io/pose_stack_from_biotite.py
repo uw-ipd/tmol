@@ -14,6 +14,8 @@ from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.io.pose_stack_deconstruction import canonical_form_from_pose_stack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.utility.biotite_util import get_all_residue_positions
 
 from tmol import beta2016_score_function
 
@@ -22,9 +24,15 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class BiotitePoseBuildContext:
-    """Immutable context for canonical-form-based pose construction."""
+    """Immutable, structure-independent construction context.
 
-    canonical_form: CanonicalForm
+    Holds only the pieces that depend on the parameter database / ligand set
+    (not on any particular input structure), so it can be built once and reused
+    across many structures that share the same ligand(s). The per-structure
+    canonical form is computed separately by ``pose_stack_from_biotite`` for
+    each input structure.
+    """
+
     canonical_ordering: CanonicalOrdering
     packed_block_types: PackedBlockTypes
     parameter_database: ParameterDatabase
@@ -36,31 +44,86 @@ def build_context_from_biotite(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     torch_device: torch.device,
     param_db: ParameterDatabase | None = None,
+    prepare_ligands: bool = False,
+    ligand_ph: float = 7.4,
+    strict_atom_types: bool = False,
+    strict_ligands: bool = True,
+    ligand_params_files: list[str] | None = None,
+    sample_proton_chi: bool = True,
 ) -> BiotitePoseBuildContext:
-    """Build immutable construction context from a Biotite structure.
+    """Build the structure-independent construction context.
+
+    The returned context holds only database/ligand-derived pieces (canonical
+    ordering, residue-type set, packed block types, parameter database); it does
+    not depend on the input structure's coordinates and can be reused across
+    structures sharing the same ligand(s). ``biotite_structure`` is used only to
+    detect and prepare ligands (when ``prepare_ligands=True``).
 
     Args:
-        biotite_structure: Input AtomArray or AtomArrayStack.
+        biotite_structure: Input AtomArray or AtomArrayStack. Used only for
+            ligand detection/preparation when ``prepare_ligands=True``.
         torch_device: Target torch device.
         param_db: Optional parameter database. When provided, canonical ordering,
             residue types, and packed block types are built from this database.
+            If prepare_ligands=True, it is extended with ligand data. If None,
+            defaults are used.
+        prepare_ligands: If True, detect and prepare non-standard residues
+            (via ``tmol.ligand``, which uses RDKit for atom typing and
+            residue-type construction).
+        ligand_ph: Target pH for ligand protonation (default 7.4, only used when
+            prepare_ligands=True).
+        strict_atom_types: If True, unknown ligand atom types raise errors
+            instead of using a fallback element heuristic.
+        strict_ligands: If True (default), raise when a detected ligand cannot
+            be prepared and registered (instead of silently dropping it during
+            pose construction). Pass False to fall back to warn-and-skip. Only
+            used when prepare_ligands=True.
+        ligand_params_files: Optional list of tmol YAML params file paths.
+            Residues defined in these files skip the RDKit/OB pipeline.
+        sample_proton_chi: If True, prepared ligands emit PROTON_CHI
+            ``chi_samples`` for polar-hydrogen rotations (driving OptHSampler).
+            Enabled by default; pass False to suppress proton-chi samples. Only
+            used when prepare_ligands=True.
 
     Returns:
-        BiotitePoseBuildContext containing canonical form, ordering,
-        packed block types, parameter database, and residue type set.
+        BiotitePoseBuildContext containing canonical ordering, packed block
+        types, parameter database, and residue type set.
     """
+    if prepare_ligands:
+        from tmol.ligand import prepare_ligands as _prepare_ligands
+
+        if param_db is None:
+            param_db = ParameterDatabase.get_default()
+
+        param_db, co = _prepare_ligands(
+            biotite_structure,
+            param_db=param_db,
+            ph=ligand_ph,
+            strict_atom_types=strict_atom_types,
+            params_files=ligand_params_files,
+            sample_proton_chi=sample_proton_chi,
+            strict_ligands=strict_ligands,
+        )
+        rts = ResidueTypeSet.from_database(param_db.chemical)
+        pbt = PackedBlockTypes.from_restype_list(
+            rts.chem_db, rts, rts.residue_types, torch_device
+        )
+        return BiotitePoseBuildContext(
+            canonical_ordering=co,
+            packed_block_types=pbt,
+            parameter_database=param_db,
+            restype_set=rts,
+        )
+
     if param_db is None:
         co = canonical_ordering_for_biotite()
-        cf = canonical_form_from_biotite(biotite_structure, torch_device, co=co)
-        pbt = packed_block_types_for_biotite(cf.coords.device)
+        pbt = packed_block_types_for_biotite(torch_device)
         db = _paramdb_for_biotite()
         rts = _restype_set_for_biotite()
     else:
         db = param_db
         co, rts, pbt = _derived_types_for_param_db(db, torch_device)
-        cf = canonical_form_from_biotite(biotite_structure, torch_device, co=co)
     return BiotitePoseBuildContext(
-        canonical_form=cf,
         canonical_ordering=co,
         packed_block_types=pbt,
         parameter_database=db,
@@ -73,40 +136,118 @@ def pose_stack_from_biotite(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     torch_device: torch.device,
     param_db: ParameterDatabase | None = None,
+    missing_density_distance_threshold: float = 2.4,
+    no_optH: bool = False,
+    prepare_ligands: bool = False,
+    ligand_ph: float = 7.4,
+    strict_atom_types: bool = False,
+    strict_ligands: bool = True,
+    ligand_params_files: list[str] | None = None,
+    sample_proton_chi: bool = True,
+    return_context: bool = False,
+    context: BiotitePoseBuildContext | None = None,
     **kwargs: object,
-) -> PoseStack | tuple[PoseStack, dict]:
+) -> PoseStack | tuple[PoseStack, dict] | tuple[PoseStack, BiotitePoseBuildContext]:
     """Build a PoseStack from the output generated by Biotite.
+
+    To score many structures that share the same ligand(s) efficiently, build
+    the (expensive, structure-independent) context once and reuse it::
+
+        context = build_context_from_biotite(struct0, dev, prepare_ligands=True)
+        for struct in structures:
+            pose_stack = pose_stack_from_biotite(struct, dev, context=context)
+
+    Reusing a context skips rebuilding the parameter database, canonical
+    ordering, residue-type set, and packed block types; only the per-structure
+    canonical form is recomputed (see the ``context`` arg).
 
     Args:
         biotite_structure: A Biotite AtomArray or AtomArrayStack.
         torch_device: Target PyTorch device.
         param_db: Optional ParameterDatabase. When provided, conversion and pose
-            construction use this database.
+            construction use this database. If prepare_ligands=True, it is
+            extended with ligand data. Mutually exclusive with ``context``.
+        missing_density_distance_threshold: Distance threshold in Angstroms.
+            Adjacent residues whose closest inter-atom distance exceeds this
+            value are treated as disconnected (upper/lower connects broken).
+            Set to 0 to disable. Default is 2.4.
+        no_optH: When False (default), all residues with complete heavy atoms
+            are packed with OptHSampler to place and optimize hydrogen positions
+            and NHQ flips, while residues with missing heavy atoms are rebuilt
+            with DunbrackChiSampler.  When True, only missing heavy-atom
+            sidechains are rebuilt with Dunbrack; hydrogens are left at the
+            kinematically ideal positions produced during pose construction.
+        prepare_ligands: If True, detect and prepare non-standard residues
+            (see ``build_context_from_biotite`` for details).
+        ligand_ph: Target pH for ligand protonation (default 7.4, only used when
+            prepare_ligands=True).
+        strict_atom_types: If True, unknown ligand atom types raise errors
+            instead of using a fallback element heuristic.
+        strict_ligands: If True (default), raise when a detected ligand cannot
+            be prepared and registered, instead of silently dropping it. Pass
+            False to warn-and-skip. Only used when prepare_ligands=True.
+        ligand_params_files: Optional list of tmol YAML params file paths.
+        sample_proton_chi: If True, prepared ligands emit PROTON_CHI
+            ``chi_samples`` so OptHSampler samples ligand polar-H rotamers
+            (enabled by default; pass False to disable). Only used when
+            prepare_ligands=True.
+        return_context: If True, return ``(pose_stack, BiotitePoseBuildContext)``.
         **kwargs: Additional arguments passed to pose_stack_from_canonical_form.
 
     Returns:
-        PoseStack if no additional return values were requested from
-        pose_stack_from_canonical_form, or else those optional return values
-        are returned as dictionary in the second value of a tuple.
+        PoseStack when no optional values requested and return_context is False.
+        ``(PoseStack, BiotitePoseBuildContext)`` when return_context is True.
+        ``(PoseStack, dict)`` when optional return values were requested via kwargs.
     """
     from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-    from tmol.pack.build_missing_sidechains import (
-        build_missing_sidechains_with_missing_atoms,
-    )
+    from tmol.pack.build_missing_sidechains import build_missing_sidechains
     from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
         create_dunbrack_sampler_from_database,
     )
 
-    context = build_context_from_biotite(
+    if context is not None:
+        if param_db is not None:
+            raise ValueError(
+                "Pass either context= or param_db=, not both; the context "
+                "already carries its parameter database."
+            )
+        if prepare_ligands:
+            raise ValueError(
+                "context= already contains prepared ligands; do not also pass "
+                "prepare_ligands=True."
+            )
+        if context.packed_block_types.device.type != torch_device.type:
+            raise ValueError(
+                "context was built for device "
+                f"'{context.packed_block_types.device}' but torch_device is "
+                f"'{torch_device}'; they must match."
+            )
+    else:
+        context = build_context_from_biotite(
+            biotite_structure,
+            torch_device,
+            param_db=param_db,
+            prepare_ligands=prepare_ligands,
+            ligand_ph=ligand_ph,
+            strict_atom_types=strict_atom_types,
+            strict_ligands=strict_ligands,
+            ligand_params_files=ligand_params_files,
+            sample_proton_chi=sample_proton_chi,
+        )
+
+    # The canonical form is per-structure, so it is always computed here for the
+    # given structure (never carried in the reusable context).
+    cf = canonical_form_from_biotite(
         biotite_structure,
         torch_device,
-        param_db=param_db,
+        co=context.canonical_ordering,
+        missing_density_distance_threshold=missing_density_distance_threshold,
     )
 
     result = pose_stack_from_canonical_form(
         context.canonical_ordering,
         context.packed_block_types,
-        *context.canonical_form,
+        *cf,
         return_block_has_missing_atoms=True,
         **kwargs,
     )
@@ -115,21 +256,30 @@ def pose_stack_from_biotite(
     block_has_missing_atoms = opt_return_vals["block_has_missing_atoms"]
 
     if block_has_missing_atoms is not None and torch.any(block_has_missing_atoms):
-        db = context.parameter_database
+        _assert_no_ligand_with_missing_atoms(pose_stack, block_has_missing_atoms)
 
+    needs_packing = block_has_missing_atoms is not None and (
+        torch.any(block_has_missing_atoms) or not no_optH
+    )
+    if needs_packing:
+        db = context.parameter_database
         sfxn = beta2016_score_function(torch_device, param_db=db)
         dunbrack_sampler = create_dunbrack_sampler_from_database(db, torch_device)
 
-        logger.info(
-            "%i missing sidechains", torch.count_nonzero(block_has_missing_atoms)
-        )
-        pose_stack = build_missing_sidechains_with_missing_atoms(
+        if torch.any(block_has_missing_atoms):
+            logger.info(
+                "%i blocks with missing heavy atoms",
+                torch.count_nonzero(block_has_missing_atoms),
+            )
+        pose_stack = build_missing_sidechains(
             pose_stack,
             sfxn,
             dunbrack_sampler,
             block_has_missing_atoms,
-            context.restype_set,
+            no_optH=no_optH,
         )
+
+    _assert_no_nan_coords(pose_stack)
 
     # This code tries to faithfully return what the caller expects based on the optional
     # return values that they requested. Since we override the return_block_has_missing_atoms
@@ -139,9 +289,119 @@ def pose_stack_from_biotite(
         if ("return_block_has_missing_atoms" in kwargs)
         else False
     )
+    if return_context:
+        return pose_stack, context
     if len(opt_return_vals) > (0 if return_block_has_missing_atoms else 1):
         return pose_stack, opt_return_vals
     return pose_stack
+
+
+def _assert_no_ligand_with_missing_atoms(
+    pose_stack: PoseStack, block_has_missing_atoms: "torch.Tensor"
+) -> None:
+    """Raise RuntimeError if a non-polymer block is flagged with missing atoms.
+
+    The sidechain-rebuild pipeline (DunbrackChiSampler + FixedAAChiSampler)
+    only handles polymer residues; if a ligand reaches it with missing heavy
+    atoms the sampler silently produces no rotamer and the block's coords
+    stay NaN.  Catch that here with a clear, actionable error.
+    """
+    pbt = pose_stack.packed_block_types
+    block_type_ind = pose_stack.block_type_ind
+    block_coord_offset = pose_stack.block_coord_offset
+    coords = pose_stack.coords
+    pdb_info = getattr(pose_stack, "pdb_info", None)
+
+    flagged = torch.nonzero(block_has_missing_atoms, as_tuple=False).cpu().tolist()
+    bad: list[str] = []
+    for pi, bi in flagged:
+        bt_ind = int(block_type_ind[pi, bi].item())
+        if bt_ind < 0:
+            continue
+        bt = pbt.active_block_types[bt_ind]
+        if bt.properties.polymer.is_polymer:
+            continue  # protein/nucleic — handled by sidechain rebuild
+
+        n_ats = len(bt.atoms)
+        atom_start = int(block_coord_offset[pi, bi].item())
+        block_coords = coords[pi, atom_start : atom_start + n_ats]
+        missing_mask = torch.isnan(block_coords).any(dim=-1)
+        missing_names = [
+            bt.atoms[ai].name
+            for ai in torch.nonzero(missing_mask, as_tuple=False).flatten().tolist()
+        ]
+
+        label = ""
+        if pdb_info is not None and pdb_info.residue_labels is not None:
+            chain = pdb_info.chain_labels[pi, bi]
+            resid = pdb_info.residue_labels[pi, bi]
+            label = f" chain={chain} resid={resid}"
+        bad.append(
+            f"pose={pi} block={bi} bt={bt.name}{label} "
+            f"missing_atoms={missing_names}"
+        )
+
+    if bad:
+        raise RuntimeError(
+            "Ligand (non-polymer) block(s) have missing heavy atoms; "
+            "tmol's sidechain rebuild only supports polymer residues. "
+            "Provide a complete ligand structure (or remove the ligand) "
+            "before calling pose_stack_from_biotite:\n  " + "\n  ".join(bad)
+        )
+
+
+def _assert_no_nan_coords(pose_stack: PoseStack) -> None:
+    """Raise a descriptive error if any real atom in the PoseStack has NaN coords.
+
+    Reports the offending pose, residue label/chain, block-type name, and atom
+    name so failures in the auto-parsing pipeline (ligand prep, leaf-atom
+    rebuild, sidechain build) can be traced to a specific residue.
+    """
+    coords = pose_stack.coords
+    real = pose_stack.real_atoms
+    nan_atom_mask = torch.isnan(coords).any(dim=-1) & real
+    if not torch.any(nan_atom_mask):
+        return
+
+    pbt = pose_stack.packed_block_types
+    block_coord_offset = pose_stack.block_coord_offset
+    block_type_ind = pose_stack.block_type_ind
+    pdb_info = getattr(pose_stack, "pdb_info", None)
+
+    bad: list[str] = []
+    nan_idxs = torch.nonzero(nan_atom_mask, as_tuple=False).cpu().tolist()
+    for pi, at_idx in nan_idxs:
+        valid_block_mask = block_type_ind[pi] >= 0
+        valid_block_inds = torch.nonzero(valid_block_mask, as_tuple=False).flatten()
+        offsets = block_coord_offset[pi, valid_block_inds]
+        sel = torch.nonzero(offsets <= at_idx, as_tuple=False).flatten()
+        if sel.numel() == 0:
+            continue
+        bi = int(valid_block_inds[sel[-1]].item())
+        offset_in_block = at_idx - int(block_coord_offset[pi, bi].item())
+        bt = pbt.active_block_types[int(block_type_ind[pi, bi].item())]
+        atom_name = (
+            bt.atoms[offset_in_block].name
+            if 0 <= offset_in_block < len(bt.atoms)
+            else f"#{offset_in_block}"
+        )
+        label = ""
+        if pdb_info is not None and pdb_info.residue_labels is not None:
+            chain = pdb_info.chain_labels[pi, bi]
+            resid = pdb_info.residue_labels[pi, bi]
+            label = f" chain={chain} resid={resid}"
+        bad.append(
+            f"pose={pi} block={bi} bt={bt.name}{label} atom={atom_name} "
+            f"(global_atom_idx={at_idx})"
+        )
+
+    head = bad[:20]
+    tail = f"\n  ... and {len(bad) - 20} more" if len(bad) > 20 else ""
+    raise RuntimeError(
+        "NaN coordinates produced by pose_stack_from_biotite:\n  "
+        + "\n  ".join(head)
+        + tail
+    )
 
 
 @validate_args
@@ -165,33 +425,22 @@ def biotite_from_pose_stack(
     return biotite_from_canonical_form(cf, co=co)
 
 
-def _map_atoms_to_canonical(co, connect, atom_res_inds, res_names, atom_names):
+def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names):
     """Map Biotite atom names to canonical ordering indices.
-
-    Suppresses atoms that conflict with block type resolution:
-    - "H" on N-terminal residues (CIF amide H vs tmol's H1/H2/H3)
-    - "OXT" on non-C-terminal residues (CIF chain-break OXT)
-
-    The ``connect`` array must already incorporate chain boundaries
-    (see ``canonical_form_from_biotite``).
 
     Returns (valid_atom_mask, valid_atom_inds, valid_res_inds).
     """
-    is_nterm_atom = ~connect[atom_res_inds, 0]
-    is_cterm_atom = ~connect[atom_res_inds, 1]
 
     atom_inds = []
     valid = []
+    unmapped: dict[str, list[str]] = {}
     for i, (resname, atname) in enumerate(zip(res_names, atom_names)):
         mapping = co.restypes_atom_index_mapping.get(resname, {})
         idx = mapping.get(atname, -1)
-        if idx >= 0:
-            if atname == "H" and is_nterm_atom[i]:
-                idx = -1
-            elif atname == "OXT" and not is_cterm_atom[i]:
-                idx = -1
         atom_inds.append(idx)
         valid.append(idx >= 0)
+        if idx < 0:
+            unmapped.setdefault(resname, []).append(atname)
 
     valid_atom_mask = numpy.array(valid)
     atom_inds_arr = numpy.array(atom_inds)
@@ -225,9 +474,47 @@ def _filter_supported_atoms_and_connectivity(
             to_remove.add(i_3lc)
 
     res_names = _res_names_for_structure(biotite_structure)
-    valid_atoms = numpy.array([name not in to_remove for name in res_names])
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
-    valid_res = valid_atoms[biotite_residue_starts]
+    valid_res = numpy.array([name not in to_remove for name in res_names])[
+        biotite_residue_starts
+    ]
+
+    # Filter residues missing mainchain atoms required for rotamer building.
+    # The required atoms are taken from the residue type's polymer.mainchain_atoms
+    # definition; residues with no mainchain definition (non-polymer) are skipped.
+    atom_names = biotite_structure.atom_name
+    if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
+        coords = biotite_structure.coord  # (n_poses, n_atoms, 3)
+    else:
+        coords = biotite_structure.coord[numpy.newaxis, :]  # (1, n_atoms, 3)
+    residue_ends = numpy.append(
+        biotite_residue_starts[1:], biotite_structure.array_length()
+    )
+    for i in range(len(valid_res)):
+        if not valid_res[i]:
+            continue
+        start, end = biotite_residue_starts[i], residue_ends[i]
+        res_name3 = biotite_structure.res_name[start]
+        required = co.restypes_mainchain_atoms.get(res_name3)
+        if not required:
+            continue
+        res_atom_names = atom_names[start:end]
+        missing = set()
+        for req_atom in required:
+            matches = numpy.where(res_atom_names == req_atom)[0]
+            if len(matches) == 0 or numpy.isnan(coords[:, start + matches[0], :]).any():
+                missing.add(req_atom)
+        if missing:
+            logger.warning(
+                "Residue %s %s %d is missing mainchain atoms %s; skipping",
+                biotite_structure.chain_id[start],
+                res_name3,
+                biotite_structure.res_id[start],
+                sorted(missing),
+            )
+            valid_res[i] = False
+
+    valid_atoms = valid_res[get_all_residue_positions(biotite_structure)]
 
     lower = numpy.roll(valid_res, 1)
     lower[0] = True
@@ -235,33 +522,107 @@ def _filter_supported_atoms_and_connectivity(
     upper = numpy.roll(valid_res, -1)
     upper[-1] = True
     upper = upper[valid_res]
-    connect = numpy.invert(numpy.column_stack((lower, upper)))
+    not_connected = numpy.invert(numpy.column_stack((lower, upper)))
 
     if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
         biotite_structure = biotite_structure[:, valid_atoms]
     else:
         biotite_structure = biotite_structure[valid_atoms]
 
-    return biotite_structure, connect
+    return biotite_structure, not_connected
+
+
+def _break_connections_for_missing_density(
+    not_connected: numpy.ndarray,
+    biotite_chain_id_for_res: numpy.ndarray,
+    tmol_coords: torch.Tensor,
+    threshold: float,
+) -> None:
+    """Break inter-residue connections where upper/lower atoms are too far apart.
+
+    Modifies ``not_connected`` in-place. For each pair of adjacent residues
+    (i, i+1) that are currently marked as connected and belong to the same
+    chain, the minimum distance between any atom in residue i and any atom in
+    residue i+1 is compared across all poses. If that minimum distance exceeds
+    ``threshold`` (in Angstroms), the connection is broken by setting
+    not_connected[i, 1] = True and not_connected[i+1, 0] = True.
+
+    Args:
+        not_connected: Shape (n_res, 2) boolean array. True = no connection
+            (terminus or explicitly broken); False = connected.
+        biotite_chain_id_for_res: Shape (n_res,) integer chain IDs.
+        tmol_coords: Shape (n_poses, n_res, max_atoms, 3) coordinate tensor.
+        threshold: Distance threshold in Angstroms. Connections where the
+            closest inter-residue atom pair exceeds this distance are broken.
+    """
+    n_res = not_connected.shape[0]
+    coords_np = tmol_coords.cpu().numpy()
+
+    for i in range(n_res - 1):
+        # Skip already-disconnected pairs
+        if not_connected[i, 1] or not_connected[i + 1, 0]:
+            continue
+        # Skip cross-chain pairs (handled separately by chain-break logic)
+        if biotite_chain_id_for_res[i] != biotite_chain_id_for_res[i + 1]:
+            continue
+
+        # Compute minimum inter-residue distance across all poses.
+        # A connection is kept if *any* pose shows atoms within threshold.
+        min_dist = numpy.inf
+        for p in range(coords_np.shape[0]):
+            c_i = coords_np[p, i]  # (max_atoms, 3)
+            c_j = coords_np[p, i + 1]
+
+            valid_i = ~numpy.isnan(c_i[:, 0])
+            valid_j = ~numpy.isnan(c_j[:, 0])
+            if not valid_i.any() or not valid_j.any():
+                continue
+
+            ci_v = c_i[valid_i]
+            cj_v = c_j[valid_j]
+            diffs = ci_v[:, numpy.newaxis, :] - cj_v[numpy.newaxis, :, :]
+            pose_min = numpy.sqrt((diffs**2).sum(axis=-1)).min()
+            if pose_min < min_dist:
+                min_dist = pose_min
+            if min_dist <= threshold:
+                break  # already within range; no need to check more poses
+
+        if min_dist > threshold:
+            logger.debug(
+                "Breaking connection between residues %d and %d "
+                "(closest atom distance %.3f Å > threshold %.3f Å)",
+                i,
+                i + 1,
+                min_dist,
+                threshold,
+            )
+            not_connected[i, 1] = True
+            not_connected[i + 1, 0] = True
 
 
 def _extract_residue_metadata(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
-    connect,
+    not_connected,
     torch_device: torch.device,
 ):
     biotite_residue_starts = biotite.structure.get_residue_starts(biotite_structure)
-    biotite_chain_id_for_res = biotite.structure.chains.get_all_chain_positions(
-        biotite_structure
-    )[biotite_residue_starts]
+
+    chain_starts = biotite.structure.get_chain_starts(biotite_structure)
+    n_atoms = biotite_structure.array_length()
+    per_atom_chain_idx = numpy.zeros(n_atoms, dtype=int)
+    for i, start in enumerate(chain_starts):
+        per_atom_chain_idx[start:] = i
+    biotite_chain_id_for_res = per_atom_chain_idx[biotite_residue_starts]
 
     if len(biotite_chain_id_for_res) > 1:
-        chain_breaks = biotite_chain_id_for_res[1:] != biotite_chain_id_for_res[:-1]
-        connect[1:, 0] &= ~chain_breaks
-        connect[:-1, 1] &= ~chain_breaks
+        res_is_disconnected_from_neighbor = (
+            biotite_chain_id_for_res[1:] != biotite_chain_id_for_res[:-1]
+        )
+        not_connected[1:, 0] &= ~res_is_disconnected_from_neighbor
+        not_connected[:-1, 1] &= ~res_is_disconnected_from_neighbor
 
     res_not_connected_1 = torch.tensor(
-        connect, dtype=torch.bool, device=torch_device
+        not_connected, dtype=torch.bool, device=torch_device
     ).unsqueeze(0)
     biotite_chain_labels = biotite_structure.chain_id[biotite_residue_starts]
     biotite_insertion_codes = biotite_structure.ins_code[biotite_residue_starts]
@@ -275,7 +636,7 @@ def _extract_residue_metadata(
         biotite_residue_labels,
         biotite_residues,
         res_not_connected_1,
-        connect,
+        not_connected,
     )
 
 
@@ -328,7 +689,7 @@ def _populate_optional_atom_metadata(
         b_factor = numpy.asarray(biotite_structure.b_factor)
         biotite_b_factors = numpy.full(
             (n_poses, n_residues, max_n_canonical_atoms),
-            0,
+            DEFAULT_ATOM_B_FACTOR,
             dtype=numpy.float32,
         )
         if n_poses == 1 or b_factor.ndim == 1:
@@ -345,7 +706,7 @@ def _populate_optional_atom_metadata(
         occupancy = numpy.asarray(biotite_structure.occupancy)
         biotite_occupancy = numpy.full(
             (n_poses, n_residues, max_n_canonical_atoms),
-            0,
+            DEFAULT_ATOM_OCCUPANCY,
             dtype=numpy.float32,
         )
         if n_poses == 1 or occupancy.ndim == 1:
@@ -365,6 +726,7 @@ def canonical_form_from_biotite(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     torch_device: torch.device,
     co: CanonicalOrdering | None = None,
+    missing_density_distance_threshold: float = 2.4,
 ) -> CanonicalForm:
     """Convert a Biotite AtomArray or AtomArrayStack to a CanonicalForm.
 
@@ -400,7 +762,7 @@ def canonical_form_from_biotite(
     if co is None:
         co = canonical_ordering_for_biotite()
 
-    biotite_structure, connect = _filter_supported_atoms_and_connectivity(
+    biotite_structure, not_connected = _filter_supported_atoms_and_connectivity(
         biotite_structure, co
     )
     (
@@ -410,10 +772,10 @@ def canonical_form_from_biotite(
         biotite_residue_labels,
         biotite_residues,
         res_not_connected_1,
-        connect,
-    ) = _extract_residue_metadata(biotite_structure, connect, torch_device)
+        not_connected,
+    ) = _extract_residue_metadata(biotite_structure, not_connected, torch_device)
 
-    atom_res_inds = biotite.structure.get_all_residue_positions(biotite_structure)
+    atom_res_inds = get_all_residue_positions(biotite_structure)
     biotite_name_for_atom = biotite_structure.atom_name
     biotite_res_name_for_atom = biotite_structure.res_name
 
@@ -421,7 +783,10 @@ def canonical_form_from_biotite(
     tmol_restypes = [restype_to_index[i_3lc] for i_3lc in biotite_residues]
 
     valid_atom_mask, valid_atom_inds, valid_res_inds = _map_atoms_to_canonical(
-        co, connect, atom_res_inds, biotite_res_name_for_atom, biotite_name_for_atom
+        co,
+        atom_res_inds,
+        biotite_res_name_for_atom,
+        biotite_name_for_atom,
     )
     tmol_coords, n_poses = _populate_canonical_coords(
         biotite_structure,
@@ -460,6 +825,19 @@ def canonical_form_from_biotite(
         .unsqueeze(0)
         .repeat(n_poses, 1)
     )
+    # Geometry-based missing density detection: break connections where the
+    # upper atom of residue i and lower atom of residue i+1 are too far apart.
+    if missing_density_distance_threshold > 0 and len(biotite_residues) > 1:
+        _break_connections_for_missing_density(
+            not_connected,
+            biotite_chain_id_for_res,
+            tmol_coords,
+            missing_density_distance_threshold,
+        )
+        res_not_connected_1 = torch.tensor(
+            not_connected, dtype=torch.bool, device=torch_device
+        ).unsqueeze(0)
+
     res_not_connected = res_not_connected_1.repeat(n_poses, 1, 1)
 
     # Return CanonicalForm with all converted data

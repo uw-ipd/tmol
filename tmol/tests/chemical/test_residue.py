@@ -1,3 +1,4 @@
+import attr
 import cattr
 import numpy
 
@@ -6,6 +7,7 @@ from tmol.chemical.restypes import (
     RefinedResidueType,
     ResidueTypeSet,
 )
+from tmol.database.chemical import RawResidueType
 
 
 def test_refined_residue_construction_smoke(default_database):
@@ -93,6 +95,40 @@ def test_residue_type_set_get_default():
     restype_set1 = ResidueTypeSet.get_default()
     restype_set2 = ResidueTypeSet.get_default()
     assert restype_set1 is restype_set2
+
+
+def test_from_database_caching(default_database):
+    """Standard residues are served from a cache, but as independent instances.
+
+    Residue types are annotated in place (samplers setattr mc_fingerprints /
+    rotamer_kinforest onto them), so each ResidueTypeSet must own distinct
+    objects or those annotations would leak between sets. The expensive eagerly
+    -built fields are still shared, so standard residues are never rebuilt.
+    """
+    chem = default_database.chemical
+    s1 = ResidueTypeSet.from_database(chem)
+    s2 = ResidueTypeSet.from_database(chem)
+
+    for a, b in zip(s1.residue_types, s2.residue_types):
+        # distinct instances, so in-place annotations cannot leak ...
+        assert a is not b
+        # ... but the expensive derived fields are reused, not recomputed
+        assert a.ideal_coords is b.ideal_coords
+        assert a.path_distance is b.path_distance
+
+    s1.residue_types[0].some_test_annotation = object()
+    assert not hasattr(s2.residue_types[0], "some_test_annotation")
+    assert not hasattr(
+        ResidueTypeSet.from_database(chem).residue_types[0], "some_test_annotation"
+    )
+
+    # a residue that is not one of the default DB's objects (as an injected
+    # ligand would be) is built fresh rather than served from the cache
+    copied = cattr.structure(cattr.unstructure(chem.residues[0]), RawResidueType)
+    extended = attr.evolve(chem, residues=(*chem.residues, copied))
+    s3 = ResidueTypeSet.from_database(extended)
+    assert len(s3.residue_types) == len(chem.residues) + 1
+    assert s3.residue_types[-1].ideal_coords is not s1.residue_types[0].ideal_coords
 
 
 def test_build_ideal_coords_smoke(default_database):

@@ -7,30 +7,46 @@ namespace tmol {
 namespace score {
 namespace common {
 
-// Implements n_atoms1 and n_atoms2 to load data out of a templated class
-// "InterPairData" that should have data members "r1" and "r2" both
-// of which have a data member named "n_atoms."
+// Returns the count of items to iterate over within a single tile of block 1
+// or block 2. The selector knows the meaning of `n_atoms` / `n_heavy` in the
+// surrounding data structure and how those map to a per-tile count.
+//
+// For AllAtomPairSelector, `r{1,2}.n_atoms` is the *total* number of atoms in
+// the block, and the per-tile count is `min(TILE, n_atoms - start_atom)`.
+//
+// For HeavyAtomPairSelector, `r{1,2}.n_heavy` is *already* the count of heavy
+// atoms in the current tile (loaded from
+// block_type_n_heavy_atoms_in_tile[bt][tile_ind]), so the per-tile count is
+// simply `n_heavy` and start_atom is irrelevant. Earlier code incorrectly
+// subtracted start_atom from n_heavy here; this caused the LK loop to be
+// silently skipped for any tile past the first whenever a block spanned
+// multiple tiles (e.g. ligands with > TILE_SIZE atoms).
 template <template <typename T> typename InterPairData, typename T>
 class AllAtomPairSelector {
  public:
-  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const& inter_data) {
-    return inter_data.r1.n_atoms;
+  template <int TILE>
+  static EIGEN_DEVICE_FUNC int n_remain1(
+      InterPairData<T> const& inter_data, int start_atom1) {
+    return min(int(TILE), int(inter_data.r1.n_atoms - start_atom1));
   }
-  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const& inter_data) {
-    return inter_data.r2.n_atoms;
+  template <int TILE>
+  static EIGEN_DEVICE_FUNC int n_remain2(
+      InterPairData<T> const& inter_data, int start_atom2) {
+    return min(int(TILE), int(inter_data.r2.n_atoms - start_atom2));
   }
 };
 
-// Implements n_atoms1 and n_atoms2 to load data out of a templated class
-// "InterPairData" that should have data members "r1" and "r2" both
-// of which have a data member named "n_heavy."
 template <template <typename T> typename InterPairData, typename T>
 class HeavyAtomPairSelector {
  public:
-  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const& inter_data) {
+  template <int TILE>
+  static EIGEN_DEVICE_FUNC int n_remain1(
+      InterPairData<T> const& inter_data, int /*start_atom1*/) {
     return inter_data.r1.n_heavy;
   }
-  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const& inter_data) {
+  template <int TILE>
+  static EIGEN_DEVICE_FUNC int n_remain2(
+      InterPairData<T> const& inter_data, int /*start_atom2*/) {
     return inter_data.r2.n_heavy;
   }
 };
@@ -79,12 +95,15 @@ class InterResBlockEvaluation {
       AtomPairFunc f,
       InterEnergyData<Real> const& inter_dat) {
     std::array<Real, NTERMS> score_total = {};
-    int const n_remain1 = min(
-        TILE,
-        PairSelector<InterEnergyData, Real>::n_atoms1(inter_dat) - start_atom1);
-    int const n_remain2 = min(
-        TILE,
-        PairSelector<InterEnergyData, Real>::n_atoms2(inter_dat) - start_atom2);
+    int const n_remain1 =
+        PairSelector<InterEnergyData, Real>::template n_remain1<TILE>(
+            inter_dat, start_atom1);
+    int const n_remain2 =
+        PairSelector<InterEnergyData, Real>::template n_remain2<TILE>(
+            inter_dat, start_atom2);
+    if (n_remain1 <= 0 || n_remain2 <= 0) {
+      return score_total;
+    }
     int const n_pairs = n_remain1 * n_remain2;
     for (int i = tid; i < n_pairs; i += nt) {
       int const atom_tile_ind1 = i / n_remain2;
@@ -123,12 +142,15 @@ class IntraResBlockEvaluation {
       AtomPairFunc f,
       IntraEnergyData<Real> const& intra_dat) {
     std::array<Real, NTERMS> score_total = {};
-    int const n_remain1 = min(
-        TILE,
-        PairSelector<IntraEnergyData, Real>::n_atoms1(intra_dat) - start_atom1);
-    int const n_remain2 = min(
-        TILE,
-        PairSelector<IntraEnergyData, Real>::n_atoms2(intra_dat) - start_atom2);
+    int const n_remain1 =
+        PairSelector<IntraEnergyData, Real>::template n_remain1<TILE>(
+            intra_dat, start_atom1);
+    int const n_remain2 =
+        PairSelector<IntraEnergyData, Real>::template n_remain2<TILE>(
+            intra_dat, start_atom2);
+    if (n_remain1 <= 0 || n_remain2 <= 0) {
+      return score_total;
+    }
     int const n_pairs = n_remain1 * n_remain2;
     for (int i = tid; i < n_pairs; i += nt) {
       int const atom_tile_ind1 = i / n_remain2;

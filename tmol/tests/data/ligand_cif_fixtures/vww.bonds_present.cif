@@ -1,0 +1,98 @@
+data_structure
+#
+loop_
+_chem_comp_bond.pdbx_ordinal 
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+1  VWW N    CA   SING N ?
+2  VWW CA   C    SING N ?
+3  VWW CA   CB   SING N ?
+4  VWW C    O    DOUB N ?
+5  VWW C    OXT  SING N ?
+6  VWW CB   CG   SING N ?
+7  VWW CG   CD   SING N ?
+8  VWW CD   OE1  DOUB N ?
+9  VWW N1   CA1  SING N ?
+10 VWW CA1  CB1  SING N ?
+11 VWW CA1  C1   SING N ?
+12 VWW CB1  SG   SING N ?
+13 VWW SG   CD1  SING N ?
+14 VWW CD1  CE   SING N ?
+15 VWW CE   CZ1  DOUB Y ?
+16 VWW CE   CZ2  SING Y ?
+17 VWW CZ1  CT1  SING Y ?
+18 VWW CZ2  CT2  DOUB Y ?
+19 VWW CT1  CH   DOUB Y ?
+20 VWW CT2  CH   SING Y ?
+21 VWW C1   O1   DOUB N ?
+22 VWW N2   CA2  SING N ?
+23 VWW CA2  CB2  SING N ?
+24 VWW CA2  C2   SING N ?
+25 VWW CB2  CG1  SING Y ?
+26 VWW CB2  CG2  DOUB Y ?
+27 VWW CG1  CD11 DOUB Y ?
+28 VWW CD11 CE1  SING Y ?
+29 VWW CE1  CD2  DOUB Y ?
+30 VWW CD2  CG2  SING Y ?
+31 VWW C2   O2   DOUB N ?
+32 VWW C2   OXT1 SING N ?
+33 VWW CD   N1   SING N ?
+34 VWW C1   N2   SING N ?
+#
+loop_
+_atom_site.group_PDB 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.pdbx_PDB_model_num 
+_atom_site.id 
+HETATM N N    . VWW A 1 1 . 1 VWW A N    15.088 10.798 23.547 1 1
+HETATM C CA   . VWW A 1 1 . 1 VWW A CA   15.01  9.987  24.792 1 2
+HETATM C C    . VWW A 1 1 . 1 VWW A C    16.115 8.924  24.83  1 3
+HETATM O O    . VWW A 1 1 . 1 VWW A O    16.52  8.515  25.94  1 4
+HETATM C CB   . VWW A 1 1 . 1 VWW A CB   13.635 9.327  24.908 1 5
+HETATM C CG   . VWW A 1 1 . 1 VWW A CG   13.394 8.708  26.271 1 6
+HETATM C CD   . VWW A 1 1 . 1 VWW A CD   12.045 8.046  26.402 1 7
+HETATM O OE1  . VWW A 1 1 . 1 VWW A OE1  11.293 7.936  25.435 1 8
+HETATM O OXT  . VWW A 1 1 . 1 VWW A OXT  16.578 8.524  23.744 1 9
+HETATM N N1   . VWW A 1 1 . 1 VWW A N1   11.726 7.642  27.628 1 10
+HETATM C CA1  . VWW A 1 1 . 1 VWW A CA1  10.472 6.967  27.934 1 11
+HETATM C CB1  . VWW A 1 1 . 1 VWW A CB1  10.726 5.484  28.206 1 12
+HETATM S SG   . VWW A 1 1 . 1 VWW A SG   11.291 4.524  26.81  1 13
+HETATM C CD1  . VWW A 1 1 . 1 VWW A CD1  9.729  3.804  26.262 1 14
+HETATM C CE   . VWW A 1 1 . 1 VWW A CE   8.93   3.171  27.37  1 15
+HETATM C CZ1  . VWW A 1 1 . 1 VWW A CZ1  7.64   3.614  27.65  1 16
+HETATM C CZ2  . VWW A 1 1 . 1 VWW A CZ2  9.464  2.135  28.133 1 17
+HETATM C CT1  . VWW A 1 1 . 1 VWW A CT1  6.893  3.037  28.673 1 18
+HETATM C CT2  . VWW A 1 1 . 1 VWW A CT2  8.723  1.55   29.161 1 19
+HETATM C CH   . VWW A 1 1 . 1 VWW A CH   7.437  2.001  29.43  1 20
+HETATM C C1   . VWW A 1 1 . 1 VWW A C1   9.834  7.55   29.18  1 21
+HETATM O O1   . VWW A 1 1 . 1 VWW A O1   10.522 8.023  30.084 1 22
+HETATM N N2   . VWW A 1 1 . 1 VWW A N2   8.512  7.468  29.229 1 23
+HETATM C CA2  . VWW A 1 1 . 1 VWW A CA2  7.74   7.933  30.366 1 24
+HETATM C CB2  . VWW A 1 1 . 1 VWW A CB2  6.555  7.062  30.633 1 25
+HETATM C CG1  . VWW A 1 1 . 1 VWW A CG1  5.33   7.315  30.027 1 26
+HETATM C CD11 . VWW A 1 1 . 1 VWW A CD11 4.25   6.459  30.22  1 27
+HETATM C CE1  . VWW A 1 1 . 1 VWW A CE1  4.392  5.339  31.027 1 28
+HETATM C CD2  . VWW A 1 1 . 1 VWW A CD2  5.611  5.081  31.64  1 29
+HETATM C CG2  . VWW A 1 1 . 1 VWW A CG2  6.683  5.941  31.441 1 30
+HETATM C C2   . VWW A 1 1 . 1 VWW A C2   7.452  9.433  30.354 1 31
+HETATM O O2   . VWW A 1 1 . 1 VWW A O2   7.116  9.957  31.433 1 32
+HETATM O OXT1 . VWW A 1 1 . 1 VWW A OXT1 7.569  10.068 29.284 1 33
+#

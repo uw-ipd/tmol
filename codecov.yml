@@ -1,0 +1,21 @@
+# Codecov configuration.
+#
+# Vendored third-party ports (xyz2mol_tm, atomworks_rdkit, dimorphite_dl,
+# openbabel_compat) and the offline fixture-generation script are excluded from
+# coverage reporting. Driving vendored library code to a coverage target via
+# unit tests is not meaningful, so it should not count against the project.
+# Keep this list in sync with `[tool.coverage.run] omit` in pyproject.toml.
+ignore:
+  - "tmol/ligand/external"
+  - "tmol/ligand/dimorphite_dl.py"
+  - "tmol/ligand/openbabel_compat.py"
+  - "tmol/tests/ligand/build_pli_ligand_cifs.py"
+
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true

@@ -5,12 +5,14 @@ import pytest
 from tmol.relax.fast_relax import _default_cart_min_fn, fast_relax
 import time
 
+from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
 
 from tmol.pack.packer_task import PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
+from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
 from tmol.kinematics.move_map import CartesianMoveMap, MoveMap
 from tmol.kinematics.fold_forest import EdgeType, FoldForest
 
@@ -48,31 +50,32 @@ def get_relax_sfxn(default_database, torch_device):
 @pytest.mark.parametrize("n_poses", [1])
 def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_poses):
     # if torch_device == torch.device("cpu"):
-    #    return
+    #     return
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     sfxn = get_relax_sfxn(default_database, torch_device)
-    restype_set = pose_stack.packed_block_types.restype_set
 
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_jumps = True
     mm.move_all_named_torsions = True
 
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
 
     def task_op(task):
         task.restrict_to_repacking()
-        task.set_include_current()
+        task.or_bump_check(True)
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)
         task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
 
     start_time = time.perf_counter()
 
+    # Now let's run fast_relax
     verbose = True
     new_pose_stack = fast_relax(
         pose_stack,
@@ -88,6 +91,8 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     if torch_device == torch.device("cuda"):
         torch.cuda.synchronize()
     stop_time = time.perf_counter()
+    assert new_pose_stack
+    assert isinstance(new_pose_stack, PoseStack)
 
     elapsed_time = stop_time - start_time
 
@@ -108,20 +113,20 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     sfxn = get_relax_sfxn(default_database, torch_device)
-    restype_set = pose_stack.packed_block_types.restype_set
 
     # CartesianMoveMap with coord_mask=None moves all atoms.
     cart_mm = CartesianMoveMap()
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
     fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
 
     def task_op(task):
         task.restrict_to_repacking()
-        task.set_include_current()
+        task.or_bump_check(True)
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)
         task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
 
     start_time = time.perf_counter()
 
@@ -140,6 +145,9 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 
     torch.cuda.synchronize()
     stop_time = time.perf_counter()
+
+    assert new_pose_stack
+    assert isinstance(new_pose_stack, PoseStack)
 
     elapsed_time = stop_time - start_time
 
@@ -166,7 +174,6 @@ def test_fast_relax_pertuz(
 
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     sfxn = get_relax_sfxn(default_database, torch_device)
-    restype_set = pose_stack.packed_block_types.restype_set
 
     edges = numpy.array(
         [
@@ -194,15 +201,16 @@ def test_fast_relax_pertuz(
     )
     mm.move_all_named_torsions = True
 
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
 
     def task_op(task):
         task.restrict_to_repacking()
-        task.set_include_current()
+        task.or_bump_check(True)
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)
         task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
 
     start_time = time.perf_counter()
 
@@ -222,6 +230,9 @@ def test_fast_relax_pertuz(
         torch.cuda.synchronize()
     stop_time = time.perf_counter()
 
+    assert new_pose_stack
+    assert isinstance(new_pose_stack, PoseStack)
+
     elapsed_time = stop_time - start_time
 
     print(f"1s78 {n_poses} FastRelax Execution time: {elapsed_time:.6f} seconds")
@@ -230,8 +241,8 @@ def test_fast_relax_pertuz(
 def test_fast_relax_for_different_shapes(
     ubq_pdb, erbb2_and_pertuzumab_pdb, default_database, dun_sampler, torch_device
 ):
-    if torch_device.type != "cuda":
-        pytest.skip("CUDA only test")
+    # if torch_device == torch.device("cpu"):
+    #    pytest.skip("CUDA only test")
 
     res_not_connected = torch.zeros((1, 40, 2), dtype=torch.bool, device=torch_device)
     res_not_connected[0, 0, 0] = True
@@ -258,22 +269,22 @@ def test_fast_relax_for_different_shapes(
 
     pose_stack = PoseStackBuilder.from_poses([p1, p2, p3], torch_device)
     sfxn = get_relax_sfxn(default_database, torch_device)
-    restype_set = pose_stack.packed_block_types.restype_set
 
     fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_jumps = True
     mm.move_all_named_torsions = True
 
-    palette = PackerPalette(restype_set)
+    palette = PackerPalette()
 
     def task_op(task):
         task.restrict_to_repacking()
-        task.set_include_current()
+        task.or_bump_check(True)
 
         fixed_sampler = FixedAAChiSampler()
         task.add_conformer_sampler(dun_sampler)
         task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
 
     start_time = time.perf_counter()
 
@@ -291,6 +302,9 @@ def test_fast_relax_for_different_shapes(
 
     if torch_device == torch.device("cuda"):
         torch.cuda.synchronize()
+    assert new_pose_stack
+    assert isinstance(new_pose_stack, PoseStack)
+
     stop_time = time.perf_counter()
 
     elapsed_time = stop_time - start_time

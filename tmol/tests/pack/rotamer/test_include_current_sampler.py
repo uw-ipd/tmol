@@ -5,7 +5,7 @@ import cattr
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pack.packer_task import PackerTask, PackerPalette
+from tmol.pack.packer_task import PackerTask, PackerPalette, SetPackerTask
 from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
 
 from tmol.tests.data import no_termini_pose_stack_from_pdb
@@ -46,7 +46,7 @@ def test_annotate_packed_block_types_smoke(default_database, torch_device):
     sampler.annotate_packed_block_types(pbt)
 
 
-def test_include_current_sampler_smoke(ubq_pdb, torch_device, default_restype_set):
+def test_include_current_sampler_smoke(ubq_pdb, torch_device):
     torch_device = torch.device("cpu")
     p1 = no_termini_pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_start=5, residue_end=11
@@ -55,41 +55,51 @@ def test_include_current_sampler_smoke(ubq_pdb, torch_device, default_restype_se
         ubq_pdb, torch_device, residue_start=1, residue_end=8
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
-    pbt = poses.packed_block_types
-    palette = PackerPalette(default_restype_set)
+    palette = PackerPalette()
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
     sampler = IncludeCurrentSampler()
     task.add_conformer_sampler(sampler)
 
-    residues_to_fix = [(0, 0), (0, 2), (0, 4), (1, 1), (1, 3), (1, 5)]
-    for pose, res in residues_to_fix:
-        task.blts[pose][res].disable_packing()
+    disabled_residues = [(0, 0), (0, 2), (0, 4), (1, 1), (1, 3), (1, 5)]
+    pose_ind, block_ind = tuple(
+        [torch.tensor([x[i] for x in disabled_residues]) for i in range(2)]
+    )
+    task.per_block_is_block_type_allowed[pose_ind, block_ind, :] = False
+
+    task = SetPackerTask.from_packer_task(task)
 
     for rt in poses.packed_block_types.active_block_types:
         sampler.annotate_residue_type(rt)
     sampler.annotate_packed_block_types(poses.packed_block_types)
     results = sampler.create_samples_for_poses(poses, task)
 
+    enabled_residues = [
+        (pose, res)
+        for pose in range(2)
+        for res in range(6 if pose == 0 else 7)
+        if (pose, res) not in disabled_residues
+    ]
+
     assert results[0].shape[0] == 21 * 13
-    assert results[1].shape[0] == len(residues_to_fix)
+    assert results[1].shape[0] == len(enabled_residues)
 
     assert results[0].device == torch_device
     assert results[1].device == torch_device
     assert results[2] == {}
 
     n_rots_for_rt_gold = numpy.zeros((21 * 13,), dtype=numpy.int32)
-    rt_for_rot_gold = numpy.full((6,), -1, dtype=numpy.int32)
-    for i, (pose, res) in enumerate(residues_to_fix):
-        curr_rt = pbt.active_block_types[poses.block_type_ind[pose, res]]
-        curr_rt_in_considered = task.blts[pose][res].considered_block_types.index(
-            curr_rt
+    rt_for_rot_gold = numpy.full((len(enabled_residues),), -1, dtype=numpy.int32)
+    for i, (pose, res) in enumerate(enabled_residues):
+        curr_rt = poses.block_type_ind64[pose, res]
+        curr_rt_in_considered = next(
+            i
+            for i in range(task.per_block_considered_block_types.shape[2])
+            if task.per_block_considered_block_types[pose, res, i] == curr_rt
         )
         i_gbt = (pose * 6 + res) * 21 + curr_rt_in_considered
-        n_rots_for_rt_gold[i_gbt] = (
-            1  # 6 cause p0 has 6 res and we only have two poses to worry about
-        )
+        n_rots_for_rt_gold[i_gbt] = 1
         rt_for_rot_gold[i] = i_gbt
 
     numpy.testing.assert_equal(n_rots_for_rt_gold, results[0].cpu().numpy())

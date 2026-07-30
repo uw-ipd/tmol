@@ -28,6 +28,7 @@ struct LKTypeParams {
   Real is_hydroxyl;
   Real is_polarh;
   Real is_acceptor;
+  Real is_carbon_lk;
 };
 
 template <typename Real>
@@ -41,6 +42,7 @@ struct LJLKTypeParams {
   Real is_hydroxyl;
   Real is_polarh;
   Real is_acceptor;
+  Real is_carbon_lk;
 
   LJTypeParams<Real> EIGEN_DEVICE_FUNC lj_params() {
     return LJTypeParams<Real>(
@@ -56,12 +58,15 @@ struct LJLKTypeParams {
          is_donor,
          is_hydroxyl,
          is_polarh,
-         is_acceptor});
+         is_acceptor,
+         is_carbon_lk});
   }
 };
 
 template <typename Real>
 struct LJGlobalParams {
+  Real max_dis;
+  Real lj_dlin_sigma_factor;
   Real lj_hbond_dis;
   Real lj_hbond_OH_donor_dis;
   Real lj_hbond_hdis;
@@ -98,6 +103,7 @@ struct LKTypeParamTensors {
   TView<bool, 1, D> is_hydroxyl;
   TView<bool, 1, D> is_polarh;
   TView<bool, 1, D> is_acceptor;
+  TView<bool, 1, D> is_carbon_lk;
 
   template <typename Idx>
   auto operator[](Idx i) const {
@@ -109,12 +115,15 @@ struct LKTypeParamTensors {
         is_donor[i],
         is_hydroxyl[i],
         is_polarh[i],
-        is_acceptor[i]};
+        is_acceptor[i],
+        is_carbon_lk[i]};
   }
 };
 
 template <typename Real, tmol::Device D>
 struct LJGlobalParamTensors {
+  TView<Real, 1, D> max_dis;
+  TView<Real, 1, D> lj_dlin_sigma_factor;
   TView<Real, 1, D> lj_hbond_dis;
   TView<Real, 1, D> lj_hbond_OH_donor_dis;
   TView<Real, 1, D> lj_hbond_hdis;
@@ -122,7 +131,11 @@ struct LJGlobalParamTensors {
   template <typename Idx>
   auto operator[](Idx i) const {
     return LJGlobalParams<Real>{
-        lj_hbond_dis[i], lj_hbond_OH_donor_dis[i], lj_hbond_hdis[i]};
+        max_dis[i],
+        lj_dlin_sigma_factor[i],
+        lj_hbond_dis[i],
+        lj_hbond_OH_donor_dis[i],
+        lj_hbond_hdis[i]};
   }
 };
 

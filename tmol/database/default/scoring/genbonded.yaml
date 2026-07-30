@@ -1,0 +1,1323 @@
+# Generic bonded torsion parameters converted from Rosetta
+# Source: generic_bonded.round6p.txt
+
+atoms:
+  CS: [CS, C*, X]
+  CS1: [CS, C*, X]
+  CS2: [CS, C*, X]
+  CS3: [CS, C*, X]
+  CSQ: [CS, C*, X]
+  CD: [CD, C*, X]
+  CD1: [CD, C*, X]
+  CD2: [CD, C*, X]
+  CR: [CR, C*, X]
+  CT: [CT, C*, X]
+  CSp: [CS, C*, X]
+  CDp: [CD, C*, X]
+  CRp: [CR, C*, X]
+  CTp: [CT, C*, X]
+  HC: [HC, H*, X]
+  HR: [HR, H*, X]
+  HO: [HO, H*, X]
+  HN: [HN, H*, X]
+  HS: [HS, H*, X]
+  HG: [HG, H*, X]
+  Nam: [NG3, N*, X]
+  Nam2: [NG2, N*, X]
+  Nad: [NG2, N*, X]
+  Nad3: [NG2, N*, X]
+  Nin: [NG2, N*, X]
+  Nim: [NG2, N*, X]
+  Ngu1: [NG2, N*, X]
+  Ngu2: [NG2, N*, X]
+  NG3: [NG3, N*, X]
+  NG2: [NG2, N*, X]
+  NG21: [NG2, N*, X]
+  NG22: [NG2, N*, X]
+  NG1: [NG1, N*, X]
+  Ohx: [Ohx, O*, X]
+  Oet: [OG3, O*, X]
+  Oal: [OG2, O*, X]
+  Oad: [Oad, O*, X]
+  Oat: [Oat, O*, X]
+  Ofu: [Ofu, O*, X]
+  Ont: [OG2, O*, X]
+  OG2: [OG2, O*, X]
+  OG3: [OG3, O*, X]
+  OG31: [OG3, O*, X]
+  Sth: [Sth, S*, X]
+  Ssl: [SG3, S*, X]
+  SR: [SG2, S*, X]
+  SG2: [SG2, S*, X]
+  SG3: [SG3, S*, X]
+  SG5: [SG5, S*, X]
+  PG3: [PG3, P*, X]
+  PG5: [PG5, P*, X]
+  Br: [Br, X]
+  I: [I, X]
+  F: [F, X]
+  Cl: [Cl, X]
+  BrR: [BrR, X]
+  IR: [IR, X]
+  FR: [FR, X]
+  ClR: [ClR, X]
+
+torsions:
+  - atoms: [C*, CS, CS, OG3]
+    bond: "@"
+    K: [0.000, 0.000, 0.001, 0.000]
+    offset: 0.000
+  - atoms: [C*, CS, CS, NG2]
+    bond: "@"
+    K: [0.000, 0.000, 0.001, 0.000]
+    offset: 0.000
+  - atoms: [X, CS, CS, X]
+    bond: "@"
+    K: [0.000, 0.000, 0.001, 0.000]
+    offset: 0.000
+  - atoms: [C*, CS, CD, OG2]
+    bond: "@"
+    K: [0.000, 0.000, 0.001, 0.000]
+    offset: 0.000
+  - atoms: [C*, CS, CD, C*]
+    bond: "@"
+    K: [0.000, 0.000, 0.001, 0.000]
+    offset: 0.000
+  - atoms: [X, NG2, CS, X]
+    bond: "@"
+    K: [0.000, 0.000, 0.001, 0.000]
+    offset: 0.000
+  - atoms: [X, CR, CR, X]
+    bond: "-"
+    K: [0.000, -0.226, 0.000, 0.093]
+    offset: -0.275
+  - atoms: [X, CR, CD, X]
+    bond: "-"
+    K: [0.000, -0.226, 0.000, 0.093]
+    offset: -0.275
+  - atoms: [X, CD, CD, X]
+    bond: "-"
+    K: [0.000, -0.226, 0.000, 0.093]
+    offset: -0.275
+  - atoms: [CR, CR, Nad, X]
+    bond: "-"
+    K: [0.000, -0.226, 0.000, 0.093]
+    offset: -0.275
+  - atoms: [X, CR, NG2, X]
+    bond: "-"
+    K: [0.000, 0.187, 0.000, 0.116]
+    offset: -0.600
+  - atoms: [X, CD, NG2, X]
+    bond: "-"
+    K: [0.000, 0.187, 0.000, 0.116]
+    offset: -0.600
+  - atoms: [X, NG2, NG2, X]
+    bond: "-"
+    K: [0.000, 0.202, 0.000, 0.103]
+    offset: -0.267
+  - atoms: [HC, CSQ, CSQ, HC]
+    bond: "@"
+    K: [0.000, -0.219, -0.453, 0.000]
+    offset: -0.092
+  - atoms: [X, CSQ, CSQ, HC]
+    bond: "@"
+    K: [0.173, 0.000, -0.473, 0.000]
+    offset: -0.092
+  - atoms: [X, CSQ, CSQ, X]
+    bond: "@"
+    K: [0.122, 0.028, -0.468, 0.000]
+    offset: -0.000
+  - atoms: [HC, CSQ, CSQ, CSQ]
+    bond: "-"
+    K: [1.150, 1.244, -0.537, -0.198]
+    offset: -0.000
+  - atoms: [HC, CSQ, CSQ, HC]
+    bond: "-"
+    K: [0.000, -0.219, -0.453, 0.000]
+    offset: -0.092
+  - atoms: [X, CSQ, CSQ, HC]
+    bond: "-"
+    K: [0.173, 0.000, -0.473, 0.000]
+    offset: -0.092
+  - atoms: [X, CSQ, CSQ, CSQ]
+    bond: "~"
+    K: [0.260, 0.694, -0.553, 0.014]
+    offset: -0.092
+  - atoms: [X, CSQ, CSQ, X]
+    bond: "-"
+    K: [0.122, 0.028, -0.468, 0.000]
+    offset: -0.000
+  - atoms: [C*, CS, CS, C*]
+    bond: "~"
+    K: [0.000, 0.000, 0.077, 0.000]
+    offset: -0.000
+  - atoms: [CD, CS, CS, CD]
+    bond: "~"
+    K: [0.435, 0.039, 0.070, 0.000]
+    offset: -0.397
+  - atoms: [CD, CS, CS, CR]
+    bond: "~"
+    K: [0.435, 0.039, 0.070, 0.000]
+    offset: -0.397
+  - atoms: [CD, CS, CS, F]
+    bond: "~"
+    K: [0.000, 0.000, 0.500, 0.000]
+    offset: -0.308
+  - atoms: [CD, CS, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.091, 0.000]
+    offset: -0.000
+  - atoms: [CR, CS, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.091, 0.000]
+    offset: -0.000
+  - atoms: [CS, CS, CS, CD]
+    bond: "~"
+    K: [0.435, 0.039, 0.070, 0.000]
+    offset: -0.397
+  - atoms: [CS, CS, CS, CR]
+    bond: "~"
+    K: [0.435, 0.039, 0.070, 0.000]
+    offset: -0.397
+  - atoms: [CS, CS, CS, CS]
+    bond: "~"
+    K: [0.435, 0.039, 0.070, 0.000]
+    offset: -0.397
+  - atoms: [CS, CS, CS, F]
+    bond: "~"
+    K: [0.000, 0.000, 0.500, 0.000]
+    offset: -0.308
+  - atoms: [CS, CS, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.091, 0.000]
+    offset: -0.000
+  - atoms: [CS, CS, CS, NG2]
+    bond: "~"
+    K: [0.491, 0.000, 0.165, 0.000]
+    offset: -0.442
+  - atoms: [CS, CS, CS, NG3]
+    bond: "~"
+    K: [0.683, 0.058, 0.121, 0.000]
+    offset: -0.528
+  - atoms: [CS, CS, CS, OG3]
+    bond: "~"
+    K: [0.428, 0.125, 0.166, 0.000]
+    offset: -0.572
+  - atoms: [CS, CS, CS, Ohx]
+    bond: "~"
+    K: [0.428, 0.125, 0.166, 0.000]
+    offset: -0.572
+  - atoms: [CS, CS, CS, SG3]
+    bond: "~"
+    K: [0.655, 0.155, 0.065, 0.000]
+    offset: -0.596
+  - atoms: [F, CS, CS, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.200, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.080, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CS, Ohx]
+    bond: "~"
+    K: [0.000, 0.000, 0.117, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CS, SG3]
+    bond: "~"
+    K: [0.000, 0.000, 0.113, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CS, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.077, 0.000]
+    offset: -0.000
+  - atoms: [NG2, CS, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.116, 0.000]
+    offset: -0.000
+  - atoms: [NG2, CS, CS, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [NG3, CS, CS, HC]
+    bond: "~"
+    K: [-0.254, 0.177, 0.118, 0.000]
+    offset: -0.462
+  - atoms: [NG3, CS, CS, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [OG3, CS, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.117, 0.000]
+    offset: -0.000
+  - atoms: [OG3, CS, CS, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [X, CS, CS, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [C*, CS, CD, CD]
+    bond: "~"
+    K: [0.000, 0.000, 0.500, 0.000]
+    offset: -0.308
+  - atoms: [C*, CS, CD, CR]
+    bond: "~"
+    K: [0.000, 0.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [C*, CS, CD, C*]
+    bond: "~"
+    K: [0.000, 0.000, 0.500, 0.000]
+    offset: -0.308
+  - atoms: [CD, CS, CD, CD]
+    bond: "~"
+    K: [-0.250, 0.000, -0.650, 0.000]
+    offset: -0.537
+  - atoms: [CD, CS, CD, OG2]
+    bond: "~"
+    K: [-0.070, -0.307, -0.173, 0.000]
+    offset: -0.435
+  - atoms: [CD, CS, CD, OG3]
+    bond: "~"
+    K: [-0.089, 0.041, 0.123, 0.000]
+    offset: -0.232
+  - atoms: [CR, CS, CD, Oad]
+    bond: "~"
+    K: [-2.000, -1.000, 0.000, 0.000]
+    offset: 0.000
+  - atoms: [CS, CS, CD, CD]
+    bond: "~"
+    K: [-0.250, 0.000, -0.650, 0.000]
+    offset: -0.537
+  - atoms: [CS, CS, CD, CS]
+    bond: "~"
+    K: [-0.250, 0.000, -0.650, 0.000]
+    offset: -0.537
+  - atoms: [CS, CS, CD, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.091, 0.000]
+    offset: -0.000
+  - atoms: [CS, CS, CD, NG2]
+    bond: "~"
+    K: [0.000, 0.101, -0.034, 0.000]
+    offset: -0.126
+  - atoms: [CS, CS, CD, Oad]
+    bond: "~"
+    K: [0.000, 0.101, -0.034, 0.000]
+    offset: -0.126
+  - atoms: [CS, CS, CD, OG2]
+    bond: "~"
+    K: [-0.070, -0.307, -0.173, 0.000]
+    offset: -0.435
+  - atoms: [CS, CS, CD, OG3]
+    bond: "~"
+    K: [-0.089, 0.041, 0.123, 0.000]
+    offset: -0.232
+  - atoms: [F, CS, CD, X]
+    bond: "~"
+    K: [0.000, 0.000, -0.150, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CD, CD]
+    bond: "~"
+    K: [0.000, 0.000, -0.093, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CD, CS]
+    bond: "~"
+    K: [0.000, 0.000, 0.091, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CD, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.080, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CD, NG2]
+    bond: "~"
+    K: [0.000, 0.000, 0.116, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CD, OG2]
+    bond: "~"
+    K: [0.000, 0.000, 0.116, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CD, OG3]
+    bond: "~"
+    K: [0.000, 0.000, 0.117, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CD, O*]
+    bond: "~"
+    K: [0.000, 0.000, -0.200, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CD, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [NG2, CS, CD, NG2]
+    bond: "~"
+    K: [0.000, -0.250, 0.000, 0.000]
+    offset: -0.199
+  - atoms: [NG2, CS, CD, OG2]
+    bond: "~"
+    K: [0.000, -0.250, 0.000, 0.000]
+    offset: -0.199
+  - atoms: [X, CS, CD, CD]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [X, CS, CD, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [X, CS, CD, NG2]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [X, CS, CD, OG3]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [X, CS, CD, X]
+    bond: "~"
+    K: [0.000, -0.100, 0.000, 0.000]
+    offset: -0.092
+  - atoms: [CD, CS, CR, CR]
+    bond: "~"
+    K: [0.000, 0.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CS, CR, CR]
+    bond: "~"
+    K: [0.000, -0.100, 0.000, 0.000]
+    offset: -0.092
+  - atoms: [CS, CS, CR, CR]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [F, CS, CR, CR]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CR, CR]
+    bond: "~"
+    K: [0.000, 0.000, -0.150, 0.000]
+    offset: -0.000
+  - atoms: [HC, CS, CR, X]
+    bond: "~"
+    K: [0.000, 0.000, -0.100, 0.000]
+    offset: -0.000
+  - atoms: [NG2, CS, CR, CR]
+    bond: "~"
+    K: [0.000, 0.000, -0.100, 0.000]
+    offset: -0.000
+  - atoms: [NG3, CS, CR, CR]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [OG3, CS, CR, CR]
+    bond: "~"
+    K: [0.428, 0.125, 0.166, 0.000]
+    offset: -0.572
+  - atoms: [X, CS, CR, CR]
+    bond: "~"
+    K: [0.200, 0.050, 0.100, 0.000]
+    offset: -0.310
+  - atoms: [X, CS, CR, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [CS, NG3, CS, CS]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [CS, NG3, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [CS, NG3, CS, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.100, 0.000]
+    offset: -0.000
+  - atoms: [HN, NG3, CS, CS]
+    bond: "~"
+    K: [0.250, 0.100, 0.150, 0.000]
+    offset: -0.435
+  - atoms: [HN, NG3, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.250, 0.000]
+    offset: -0.000
+  - atoms: [X, NG3, CS, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.250, 0.000]
+    offset: -0.000
+  - atoms: [CD, NG2, CS, CD]
+    bond: "~"
+    K: [0.500, 0.000, 0.050, 0.000]
+    offset: -0.354
+  - atoms: [CD, NG2, CS, CS]
+    bond: "~"
+    K: [0.500, 0.000, 0.050, 0.000]
+    offset: -0.354
+  - atoms: [CD, NG2, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, NG2, CS, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [CR, NG2, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [CS, NG2, CS, CS]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [CS, NG2, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [HN, NG2, CS, CS]
+    bond: "~"
+    K: [0.000, 0.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HN, NG2, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, NG2, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [X, NG2, CS, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [CS, CS, SG3, CS]
+    bond: "~"
+    K: [-0.231, 0.141, 0.169, 0.000]
+    offset: -0.456
+  - atoms: [X, CS, SG3, X]
+    bond: "~"
+    K: [0.150, 0.000, 0.162, 0.000]
+    offset: -0.272
+  - atoms: [H*, CS, P*, C*]
+    bond: "~"
+    K: [0.000, 0.000, 0.250, 0.000]
+    offset: -0.000
+  - atoms: [X, CS, PG3, C*]
+    bond: "~"
+    K: [0.000, 0.000, 0.250, 0.000]
+    offset: -0.000
+  - atoms: [X, CS, PG3, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.250, 0.000]
+    offset: -0.000
+  - atoms: [C*, CD, CD, CR]
+    bond: "~"
+    K: [0.150, -8.500, 0.000, 0.000]
+    offset: -0.150
+  - atoms: [CD, CD, CD, CD]
+    bond: "~"
+    K: [0.150, -8.500, 0.000, 0.000]
+    offset: -0.150
+  - atoms: [CD, CD, CD, CR]
+    bond: "~"
+    K: [0.150, -8.500, 0.000, 0.000]
+    offset: -0.150
+  - atoms: [CD, CD, CD, HC]
+    bond: "~"
+    K: [0.150, -8.500, 0.000, 0.000]
+    offset: -0.150
+  - atoms: [CD, CD, CD, NG2]
+    bond: "~"
+    K: [0.150, -8.500, 0.000, 0.000]
+    offset: -0.150
+  - atoms: [CD, CD, CD, OG2]
+    bond: "~"
+    K: [0.150, -8.500, 0.000, 0.000]
+    offset: -0.150
+  - atoms: [CD, CD, CD, OG3]
+    bond: "~"
+    K: [0.150, -8.500, 0.000, 0.000]
+    offset: -0.150
+  - atoms: [CR, CD, CD, HC]
+    bond: "~"
+    K: [0.150, -8.500, 0.000, 0.000]
+    offset: -0.150
+  - atoms: [CR, CD, CD, NG2]
+    bond: "~"
+    K: [0.400, -9.000, 0.000, 0.000]
+    offset: -0.400
+  - atoms: [CS, CD, CD, CD]
+    bond: "~"
+    K: [0.150, -8.500, 0.000, 0.000]
+    offset: -0.150
+  - atoms: [CS, CD, CD, CS]
+    bond: "~"
+    K: [0.150, -8.500, 0.000, 0.000]
+    offset: -0.150
+  - atoms: [CS, CD, CD, HC]
+    bond: "~"
+    K: [0.000, -0.490, 0.000, 0.000]
+    offset: -0.305
+  - atoms: [CS, CD, CD, NG2]
+    bond: "~"
+    K: [0.400, -5.500, 0.000, 0.000]
+    offset: -0.400
+  - atoms: [CS, CD, CD, OG2]
+    bond: "~"
+    K: [0.150, -8.500, 0.000, 0.000]
+    offset: -0.150
+  - atoms: [HC, CD, CD, HC]
+    bond: "~"
+    K: [0.000, -0.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HC, CD, CD, NG2]
+    bond: "~"
+    K: [0.800, -5.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HC, CD, CD, OG2]
+    bond: "~"
+    K: [0.600, -5.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HC, CD, CD, X]
+    bond: "~"
+    K: [0.550, -8.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [NG2, CD, CD, NG2]
+    bond: "~"
+    K: [-0.400, -5.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CD, CD, X]
+    bond: "~"
+    K: [0.186, -6.662, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, CD, CR, CR]
+    bond: "~"
+    K: [0.000, -5.296, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CD, CR, X]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CS, CD, CR, CR]
+    bond: "~"
+    K: [0.000, -6.200, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HC, CD, CR, X]
+    bond: "~"
+    K: [0.000, -0.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [NG2, CD, CR, CR]
+    bond: "~"
+    K: [0.000, -6.200, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [Oad, CD, CR, CR]
+    bond: "~"
+    K: [0.000, -6.200, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [OG2, CD, CR, CR]
+    bond: "~"
+    K: [0.000, -6.200, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [OG3, CD, CR, CR]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [Oat, CD, CR, CR]
+    bond: "~"
+    K: [0.000, -0.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CD, CR, X]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, NG2, CD, CD]
+    bond: "~"
+    K: [0.700, -6.088, 0.000, 0.000]
+    offset: -0.435
+  - atoms: [CD, NG2, CD, CR]
+    bond: "~"
+    K: [0.700, -6.088, 0.000, 0.000]
+    offset: -0.435
+  - atoms: [CD, NG2, CD, CS]
+    bond: "~"
+    K: [0.700, -6.088, 0.000, 0.000]
+    offset: -0.435
+  - atoms: [CD, NG2, CD, NG2]
+    bond: "~"
+    K: [0.000, -3.978, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, NG2, CD, Oad]
+    bond: "~"
+    K: [0.000, -6.088, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, NG2, CD, X]
+    bond: "~"
+    K: [0.000, -3.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, NG2, CD, CD]
+    bond: "~"
+    K: [0.700, -6.088, 0.000, 0.000]
+    offset: -0.435
+  - atoms: [CR, NG2, CD, Oad]
+    bond: "~"
+    K: [0.000, -6.088, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, NG2, CD, X]
+    bond: "~"
+    K: [0.000, -3.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CS, NG2, CD, CS]
+    bond: "~"
+    K: [0.000, -6.088, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CS, NG2, CD, Oad]
+    bond: "~"
+    K: [0.000, -6.088, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CS, NG2, CD, X]
+    bond: "~"
+    K: [0.000, -3.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [NG2, NG2, CD, Oad]
+    bond: "~"
+    K: [-0.410, -2.428, 0.000, 0.000]
+    offset: -0.499
+  - atoms: [HN, NG2, CD, Oad]
+    bond: "~"
+    K: [1.000, -2.450, 0.000, 0.000]
+    offset: -0.399
+  - atoms: [HN, NG2, CD, X]
+    bond: "~"
+    K: [0.000, -3.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [NG2, NG2, CD, X]
+    bond: "~"
+    K: [0.000, -3.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, NG2, CD, Oad]
+    bond: "~"
+    K: [0.000, -2.450, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, NG2, CD, X]
+    bond: "~"
+    K: [0.000, -3.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [OG2, CD, OG3, C*]
+    bond: "~"
+    K: [-1.775, -1.629, 0.000, 0.000]
+    offset: -0.340
+  - atoms: [X, CD, OG3, C*]
+    bond: "~"
+    K: [0.000, -1.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [C*, CD, OG2, X]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CD, SG3, X]
+    bond: "~"
+    K: [0.000, -1.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CR, S*, X]
+    bond: "~"
+    K: [0.000, -0.910, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [C*, CR, CR, C*]
+    bond: "~"
+    K: [0.000, -6.200, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, CR, CR, CR]
+    bond: "~"
+    K: [-0.005, -1.474, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, CR, CR, HR]
+    bond: "~"
+    K: [0.016, -1.648, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, CR, CR, NG2]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, CR, CR, O*]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, CR, CR, X]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, CR, BrR]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, CR, ClR]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, CR, CR]
+    bond: "~"
+    K: [0.000, -3.384, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, CR, FR]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, CR, HR]
+    bond: "~"
+    K: [0.206, -3.384, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, CR, NG2]
+    bond: "~"
+    K: [0.036, -4.154, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, CR, OG3]
+    bond: "~"
+    K: [0.000, -6.200, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, CR, Ohx]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, CR, SG3]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, CR, X]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CS, CR, CR, CR]
+    bond: "~"
+    K: [0.046, -3.600, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CS, CR, CR, HR]
+    bond: "~"
+    K: [0.052, -8.036, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CS, CR, CR, NG2]
+    bond: "~"
+    K: [0.002, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CS, CR, CR, OG3]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [FR, CR, CR, FR]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HR, CR, CR, BrR]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HR, CR, CR, ClR]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HR, CR, CR, FR]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HR, CR, CR, HR]
+    bond: "~"
+    K: [0.021, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HR, CR, CR, X]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [NG2, CR, CR, HR]
+    bond: "~"
+    K: [0.182, -4.298, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [NG2, CR, CR, NG2]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [O*, CR, CR, O*]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [OG3, CR, CR, HR]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CR, CR, X]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CR, NG3, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [CD, NG2, CR, CR]
+    bond: "~"
+    K: [0.000, -0.150, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, NG2, CR, CR]
+    bond: "~"
+    K: [0.000, -2.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CS, NG2, CR, CR]
+    bond: "~"
+    K: [0.000, -2.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HN, NG2, CR, CR]
+    bond: "~"
+    K: [0.000, -2.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [OG2, NG2, CR, CR]
+    bond: "~"
+    K: [0.000, -2.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, NG2, CR, HR]
+    bond: "~"
+    K: [0.000, -4.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, NG2, CR, X]
+    bond: "~"
+    K: [0.000, -2.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, OG3, HO]
+    bond: "~"
+    K: [0.000, -1.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [C*, CR, OG2, X]
+    bond: "~"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, SG5, OG2]
+    bond: "~"
+    K: [0.000, -1.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, SG5, N*]
+    bond: "~"
+    K: [0.000, 1.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, CR, SG5, OG2]
+    bond: "~"
+    K: [0.000, -1.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, CR, SG5, N*]
+    bond: "~"
+    K: [0.000, 1.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CR, S*, X]
+    bond: "~"
+    K: [0.000, -0.910, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, PG3, CR]
+    bond: "~"
+    K: [0.000, 0.000, 0.200, 0.000]
+    offset: -0.000
+  - atoms: [CR, CR, PG3, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.200, 0.000]
+    offset: -0.000
+  - atoms: [X, C*, C*, X]
+    bond: "~"
+    K: [0.000, -0.100, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CD, CT, NG1]
+    bond: "~"
+    K: [0.000, -0.100, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CR, CT, NG1]
+    bond: "~"
+    K: [0.000, -0.100, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CS, CT, NG1]
+    bond: "~"
+    K: [0.000, 0.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, OG3, CS, CS]
+    bond: "~"
+    K: [0.207, 0.079, 0.155, 0.000]
+    offset: -0.389
+  - atoms: [CD, OG3, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.181, 0.000]
+    offset: -0.000
+  - atoms: [CR, OG3, CS, HC]
+    bond: "~"
+    K: [0.150, 0.000, 0.190, 0.000]
+    offset: -0.291
+  - atoms: [CS, OG3, CS, CS]
+    bond: "~"
+    K: [0.163, 0.062, 0.168, 0.000]
+    offset: -0.349
+  - atoms: [CS, OG3, CS, HC]
+    bond: "~"
+    K: [0.000, 0.000, 0.190, 0.000]
+    offset: -0.000
+  - atoms: [HO, OG3, CS, CS]
+    bond: "~"
+    K: [-0.089, 0.043, 0.123, 0.000]
+    offset: -0.234
+  - atoms: [HO, OG3, CD, OG2]
+    bond: "~"
+    K: [-2.000, -1.000, 0.000, 0.000]
+    offset: -0.344
+  - atoms: [HO, OG3, CD, C*]
+    bond: "~"
+    K: [0.000, -0.971, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CS, OG3, CR, CR]
+    bond: "~"
+    K: [0.000, -2.198, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [HO, Ohx, CR, C*]
+    bond: "~"
+    K: [0.000, -0.300, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CD, O*, X]
+    bond: "~"
+    K: [0.000, -1.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, C*, OG3, HO]
+    bond: "~"
+    K: [-0.089, 0.043, 0.123, 0.000]
+    offset: -0.234
+  - atoms: [X, CR, O*, X]
+    bond: "~"
+    K: [0.000, -0.500, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, CS, O*, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.235, 0.000]
+    offset: -0.000
+  - atoms: [X, OG3, CD, X]
+    bond: "~"
+    K: [0.038, -0.342, 0.015, 0.000]
+    offset: -0.299
+  - atoms: [C*, C*, S*, H*]
+    bond: "~"
+    K: [-0.190, 0.070, 0.150, 0.000]
+    offset: -0.357
+  - atoms: [X, C*, S*, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.200, 0.000]
+    offset: -0.000
+  - atoms: [X, NG3, S*, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.500, 0.000]
+    offset: -0.308
+  - atoms: [X, NG3, PG3, X]
+    bond: "~"
+    K: [-0.400, 0.000, 0.150, 0.000]
+    offset: -0.408
+  - atoms: [CD, NG2, NG2, CD]
+    bond: "~"
+    K: [0.732, -0.804, 0.000, 0.000]
+    offset: -0.512
+  - atoms: [C*, NG2, NG2, C*]
+    bond: "~"
+    K: [0.706, -0.855, 0.000, 0.000]
+    offset: -0.516
+  - atoms: [X, NG2, NG2, X]
+    bond: "~"
+    K: [0.000, -0.500, 0.000, 0.000]
+    offset: -0.308
+  - atoms: [OG2, NG2, OG3, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [C*, NG2, O*, X]
+    bond: "~"
+    K: [0.000, -0.500, 0.077, 0.000]
+    offset: -0.380
+  - atoms: [X, N*, SG5, O*]
+    bond: "~"
+    K: [0.000, -4.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, N*, SG5, X]
+    bond: "~"
+    K: [0.000, 2.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [CD, NG2, SG5, X]
+    bond: "~"
+    K: [0.000, 0.441, 0.379, 0.000]
+    offset: -0.556
+  - atoms: [CR, NG2, SG5, X]
+    bond: "~"
+    K: [0.000, 0.115, 0.248, 0.000]
+    offset: -0.302
+  - atoms: [CS, NG2, SG5, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.250, 0.000]
+    offset: -0.000
+  - atoms: [HN, NG2, SG5, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.250, 0.000]
+    offset: -0.000
+  - atoms: [X, NG2, S*, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.250, 0.000]
+    offset: -0.000
+  - atoms: [X, NG2, PG3, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.250, 0.000]
+    offset: -0.000
+  - atoms: [X, OG3, SG3, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [C*, OG3, SG5, O*]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [X, OG3, SG5, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [X, OG3, PG3, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.250, 0.000]
+    offset: -0.000
+  - atoms: [X, S*, S*, X]
+    bond: "~"
+    K: [0.000, 1.853, 0.426, 0.000]
+    offset: -0.674
+  - atoms: [X, PG3, PG3, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.500, 0.000]
+    offset: -0.308
+  - atoms: [X, CD, X, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.077, 0.000]
+    offset: -0.000
+  - atoms: [X, CT, X, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.050, 0.000]
+    offset: -0.000
+  - atoms: [X, NG3, X, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [X, X, X, X]
+    bond: "-"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+  - atoms: [X, X, X, X]
+    bond: "="
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, X, X, X]
+    bond: "#"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, X, X, X]
+    bond: "@"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, X, X, X]
+    bond: ":"
+    K: [0.000, -3.000, 0.000, 0.000]
+    offset: -0.000
+  - atoms: [X, X, X, X]
+    bond: "~"
+    K: [0.000, 0.000, 0.150, 0.000]
+    offset: -0.000
+
+impropers:
+  - center: CDp
+    bonded: [Oal, CS, CS]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS1, CS]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS2, CS]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS3, CS]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS, CS1]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS1, CS1]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS2, CS1]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS3, CS1]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS, CS2]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS1, CS2]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS2, CS2]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS3, CS2]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS, CS3]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS1, CS3]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS2, CS3]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS3, CS3]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS, HC]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS1, HC]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS2, HC]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS3, HC]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS, Ohx]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS1, Ohx]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS2, Ohx]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS3, Ohx]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS, Oet]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS1, Oet]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS2, Oet]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oal, CS3, Oet]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [CS, Oat, Oat]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [CS1, Oat, Oat]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [CS2, Oat, Oat]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [CS3, Oat, Oat]
+    k: 80.0
+    delta: 0.0
+  - center: Nad
+    bonded: [CDp, CS, HN]
+    k: 80.0
+    delta: 0.0
+  - center: Nad
+    bonded: [CDp, CS1, HN]
+    k: 80.0
+    delta: 0.0
+  - center: Nad
+    bonded: [CDp, CS2, HN]
+    k: 80.0
+    delta: 0.0
+  - center: Nad
+    bonded: [CDp, CS3, HN]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oad, Nad, CS]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oad, Nad, CS1]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oad, Nad, CS2]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oad, Nad, CS3]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oad, Nad3, CS]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oad, Nad3, CS1]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oad, Nad3, CS2]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oad, Nad3, CS3]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Oad, Nad, HC]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Ngu1, Ngu1, Ngu1]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Ngu1, Ngu1, Ngu2]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Ngu1, Ngu2, Ngu2]
+    k: 80.0
+    delta: 0.0
+  - center: CDp
+    bonded: [Ngu2, Ngu2, Ngu2]
+    k: 80.0
+    delta: 0.0
+  - center: NG21
+    bonded: [HN, CS, X]
+    k: 40.0
+    delta: 0.0

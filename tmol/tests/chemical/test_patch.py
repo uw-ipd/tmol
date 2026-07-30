@@ -8,7 +8,7 @@ from tmol.chemical.ideal_coords import normalize
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
-from tmol.database.chemical import VariantType, RawResidueType
+from tmol.database.chemical import VariantType, RawResidueType, normalize_bond_tuples
 
 
 def test_patched_residue_construction_smoke(default_database):
@@ -77,15 +77,15 @@ def test_patched_pdb(ubq_pdb, torch_device):
     assert pbt_abt[ps.block_type_ind64[0, -1]].name == "GLY:cterm"
 
 
-# parse a yaml string as a raw VariantType
 def variant_from_yaml(yml_string):
     raw = yaml.safe_load(yml_string)
+    raw = normalize_bond_tuples(raw)
     return tuple(cattr.structure(x, VariantType) for x in raw)
 
 
-# parse a yaml string as a raw ResidueType
 def residues_from_yaml(yml_string):
     raw = yaml.safe_load(yml_string)
+    raw = normalize_bond_tuples(raw)
     return tuple(cattr.structure(x, RawResidueType) for x in raw)
 
 

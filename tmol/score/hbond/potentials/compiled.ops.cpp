@@ -2,12 +2,14 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/score/common/tuple.hh>
 
+#include <tmol/score/hbond/potentials/gen_hbond_bases.hh>
 #include <tmol/score/hbond/potentials/hbond_pose_score.hh>
 
 #include <tmol/utility/nvtx.hh>
@@ -16,6 +18,8 @@ namespace tmol {
 namespace score {
 namespace hbond {
 namespace potentials {
+
+ContextManager mgr;
 
 using torch::Tensor;
 using torch::autograd::AutogradContext;
@@ -76,6 +80,11 @@ class HBondPoseScoresOp
       Tensor pair_params,
       Tensor pair_polynomials,
       Tensor global_params,
+
+      // Derived-atom outputs from gen_hbond_bases pre-pass
+      Tensor derived_coords,
+      Tensor derived_atom_inds,
+
       bool output_block_pair_energies
 
   ) {
@@ -93,6 +102,7 @@ class HBondPoseScoresOp
 
           auto result =
               HBondPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
+                  mgr,
                   // common params
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
@@ -136,6 +146,11 @@ class HBondPoseScoresOp
                   TCAST(pair_params),
                   TCAST(pair_polynomials),
                   TCAST(global_params),
+
+                  // derived atom pre-pass outputs
+                  TCAST(derived_coords),
+                  TCAST(derived_atom_inds),
+
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
@@ -195,6 +210,11 @@ class HBondPoseScoresOp
            pair_params,
            pair_polynomials,
            global_params,
+
+           // derived atom pre-pass outputs
+           derived_coords,
+           derived_atom_inds,
+
            block_neighbors
 
           });
@@ -267,6 +287,11 @@ class HBondPoseScoresOp
       auto pair_polynomials = saved[i++];
 
       auto global_params = saved[i++];
+
+      // derived atom pre-pass outputs
+      auto derived_coords = saved[i++];
+      auto derived_atom_inds = saved[i++];
+
       auto block_neighbors = saved[i++];
 
       c10::Device orig_device = rot_coords.device();
@@ -285,6 +310,7 @@ class HBondPoseScoresOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
@@ -329,6 +355,10 @@ class HBondPoseScoresOp
                     TCAST(pair_polynomials),
                     TCAST(global_params),
 
+                    // derived atom pre-pass outputs
+                    TCAST(derived_coords),
+                    TCAST(derived_atom_inds),
+
                     TCAST(block_neighbors),
                     TCAST(dTdV));
 
@@ -346,7 +376,8 @@ class HBondPoseScoresOp
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor()};
   }
 };
 
@@ -399,6 +430,11 @@ class HBondRotamerScoresOp
       Tensor pair_params,
       Tensor pair_polynomials,
       Tensor global_params,
+
+      // Derived-atom outputs from gen_hbond_bases pre-pass
+      Tensor derived_coords,
+      Tensor derived_atom_inds,
+
       bool output_block_pair_energies
 
   ) {
@@ -417,6 +453,7 @@ class HBondRotamerScoresOp
           auto result =
               HBondRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   forward(
+                      mgr,
                       // common params
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
@@ -460,6 +497,11 @@ class HBondRotamerScoresOp
                       TCAST(pair_params),
                       TCAST(pair_polynomials),
                       TCAST(global_params),
+
+                      // derived atom pre-pass outputs
+                      TCAST(derived_coords),
+                      TCAST(derived_atom_inds),
+
                       output_block_pair_energies,
                       rot_coords.requires_grad());
 
@@ -520,6 +562,11 @@ class HBondRotamerScoresOp
            pair_params,
            pair_polynomials,
            global_params,
+
+           // derived atom pre-pass outputs
+           derived_coords,
+           derived_atom_inds,
+
            block_neighbors
 
           });
@@ -595,6 +642,11 @@ class HBondRotamerScoresOp
       auto pair_polynomials = saved[i++];
 
       auto global_params = saved[i++];
+
+      // derived atom pre-pass outputs
+      auto derived_coords = saved[i++];
+      auto derived_atom_inds = saved[i++];
+
       auto block_neighbors = saved[i++];
       using Int = int32_t;
 
@@ -612,6 +664,7 @@ class HBondRotamerScoresOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
@@ -656,6 +709,10 @@ class HBondRotamerScoresOp
                     TCAST(pair_polynomials),
                     TCAST(global_params),
 
+                    // derived atom pre-pass outputs
+                    TCAST(derived_coords),
+                    TCAST(derived_atom_inds),
+
                     TCAST(block_neighbors),
                     TCAST(dTdV));
 
@@ -673,7 +730,8 @@ class HBondRotamerScoresOp
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor()};
   }
 };
 
@@ -723,6 +781,10 @@ std::vector<Tensor> hbond_pose_scores_op(
     Tensor pair_polynomials,
     Tensor global_params,
 
+    // derived atom pre-pass outputs
+    Tensor derived_coords,
+    Tensor derived_atom_inds,
+
     bool output_block_pair_energies) {
   return HBondPoseScoresOp<DispatchMethod>::apply(
       // common params
@@ -768,6 +830,10 @@ std::vector<Tensor> hbond_pose_scores_op(
       pair_params,
       pair_polynomials,
       global_params,
+
+      // derived atom pre-pass outputs
+      derived_coords,
+      derived_atom_inds,
 
       output_block_pair_energies);
 }
@@ -818,6 +884,10 @@ std::vector<Tensor> hbond_rotamer_scores_op(
     Tensor pair_polynomials,
     Tensor global_params,
 
+    // derived atom pre-pass outputs
+    Tensor derived_coords,
+    Tensor derived_atom_inds,
+
     bool output_block_pair_energies) {
   return HBondRotamerScoresOp<DispatchMethod>::apply(
       // common params
@@ -864,7 +934,83 @@ std::vector<Tensor> hbond_rotamer_scores_op(
       pair_polynomials,
       global_params,
 
+      // derived atom pre-pass outputs
+      derived_coords,
+      derived_atom_inds,
+
       output_block_pair_energies);
+}
+
+// Plain (non-autograd) op that runs the hbond derived-atom (D / B / B0)
+// pre-pass kernel.  Returns {derived_coords, derived_atom_inds}.  Gradients
+// for the derived coords flow through the pairwise scoring kernel directly
+// to the source atoms via derived_atom_inds, so this op itself is treated
+// as a non-differentiable lookup.
+std::vector<Tensor> gen_hbond_bases_op(
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor first_rot_for_block,
+    Tensor first_rot_block_type,
+    Tensor block_ind_for_rot,
+    Tensor pose_ind_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor pose_stack_inter_residue_connections,
+    Tensor block_type_n_atoms,
+    Tensor block_type_n_interblock_bonds,
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_n_all_bonds,
+    Tensor block_type_all_bonds,
+    Tensor block_type_atom_all_bond_ranges,
+    Tensor block_type_tile_n_donH,
+    Tensor block_type_tile_n_acc,
+    Tensor block_type_tile_donH_inds,
+    Tensor block_type_tile_acc_inds,
+    Tensor block_type_tile_hybridization,
+    Tensor block_type_atom_is_hydrogen) {
+  at::Tensor derived_coords;
+  at::Tensor derived_atom_inds;
+
+  c10::Device orig_device = rot_coords.device();
+  using Int = int32_t;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      rot_coords.options(), "gen_hbond_bases_op", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto result =
+            GenerateHBondBases<common::DeviceOperations, Dev, Real, Int>::
+                forward(
+                    mgr,
+                    TCAST(rot_coords),
+                    TCAST(rot_coord_offset),
+                    TCAST(first_rot_for_block),
+                    TCAST(first_rot_block_type),
+                    TCAST(block_ind_for_rot),
+                    TCAST(pose_ind_for_rot),
+                    TCAST(block_type_ind_for_rot),
+                    TCAST(pose_stack_inter_residue_connections),
+                    TCAST(block_type_n_atoms),
+                    TCAST(block_type_n_interblock_bonds),
+                    TCAST(block_type_atoms_forming_chemical_bonds),
+                    TCAST(block_type_n_all_bonds),
+                    TCAST(block_type_all_bonds),
+                    TCAST(block_type_atom_all_bond_ranges),
+                    TCAST(block_type_tile_n_donH),
+                    TCAST(block_type_tile_n_acc),
+                    TCAST(block_type_tile_donH_inds),
+                    TCAST(block_type_tile_acc_inds),
+                    TCAST(block_type_tile_hybridization),
+                    TCAST(block_type_atom_is_hydrogen));
+
+        derived_coords = std::get<0>(result).tensor;
+        derived_atom_inds = std::get<1>(result).tensor;
+      }));
+
+  derived_coords = mps_to_dev(derived_coords, orig_device);
+  derived_atom_inds = mps_to_dev(derived_atom_inds, orig_device);
+
+  return {derived_coords, derived_atom_inds};
 }
 
 // See https://stackoverflow.com/a/3221914
@@ -873,6 +1019,7 @@ TORCH_LIBRARY(tmol_hbond, m) {
   m.def(
       "hbond_rotamer_scores",
       &hbond_rotamer_scores_op<common::DeviceOperations>);
+  m.def("gen_hbond_bases", &gen_hbond_bases_op);
 }
 
 }  // namespace potentials

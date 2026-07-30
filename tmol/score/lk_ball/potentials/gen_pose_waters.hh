@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/score/lk_ball/potentials/params.hh>
 
 namespace tmol {
@@ -17,6 +18,7 @@ template <
     typename Int>
 struct GeneratePoseWaters {
   static auto forward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
@@ -70,6 +72,7 @@ struct GeneratePoseWaters {
       TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 2, Dev>;
 
   static auto backward(
+      ContextManager& mgr,
       TView<Vec<Real, 3>, 2, Dev> dE_dWxyz,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,

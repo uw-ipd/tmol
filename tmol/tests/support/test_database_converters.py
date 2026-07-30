@@ -70,10 +70,6 @@ def test_bbdep_omega_table_read(rosetta_database):
 
 @requires_rosetta_database
 def test_dunbrack_table_read(rosetta_database, default_database):
-    # clean up if previous unit test execution failed
-    if os.path.isfile("test_dunbrack.bin"):
-        os.remove("test_dunbrack.bin")
-
     r3_beta16_dunbrack_dir = os.path.join(rosetta_database, "rotamer/beta_nov2016")
     r3_beta15_dunbrack_dir = os.path.join(rosetta_database, "rotamer/ExtendedOpt1-5")
     fresh = create_dunbrack_rotamer_library(
@@ -144,4 +140,3 @@ def test_dunbrack_table_read(rosetta_database, default_database):
         compare_semirotameric_data(
             default.semi_rotameric_libraries[i], fresh.semi_rotameric_libraries[i]
         )
-    os.remove("test_dunbrack.bin")

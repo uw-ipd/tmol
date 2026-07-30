@@ -5,8 +5,6 @@ from ..bond_dependent_term import BondDependentTerm
 
 from tmol.database import ParameterDatabase
 from tmol.score.elec.params import ElecParamResolver, ElecGlobalParams
-from tmol.score.elec.potentials.compiled import elec_pose_scores, elec_rotamer_scores
-
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -69,6 +67,17 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         inter_rep_path_dist = block_type.path_distance[:, representative_mapping]
         intra_rep_path_dist = inter_rep_path_dist[representative_mapping, :]
 
+        # Ligands (non-polymer residues) use CP_CROSSOVER_3FULL: 1-4 pairs get
+        # full weight (1.0) rather than the standard 0.2. Encode these pairs as
+        # distance 5 so connectivity_weight() returns 1.0 without C++ changes.
+        if not block_type.properties.polymer.is_polymer:
+            intra_rep_path_dist = intra_rep_path_dist.copy()
+            # CP_CROSSOVER_3FULL: path_dist >= 3 bonds counts at weight 1.0.
+            # Encode path_dist 3 and 4 as 5 so connectivity_weight returns 1.0.
+            intra_rep_path_dist[
+                (intra_rep_path_dist == 3) | (intra_rep_path_dist == 4)
+            ] = 5
+
         setattr(block_type, "elec_partial_charge", partial_charge)
         setattr(block_type, "elec_inter_repr_path_distance", inter_rep_path_dist)
         setattr(block_type, "elec_intra_repr_path_distance", intra_rep_path_dist)
@@ -126,9 +135,13 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(ElecEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
+        from tmol.score.elec.potentials.compiled import elec_pose_scores
+
         return elec_pose_scores
 
     def get_rotamer_score_term_function(self):
+        from tmol.score.elec.potentials.compiled import elec_rotamer_scores
+
         return elec_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack):
@@ -157,4 +170,6 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack.packed_block_types.elec_inter_repr_path_distance,
             pose_stack.packed_block_types.elec_intra_repr_path_distance,
             global_params,
+            # elec_max_dis as host scalar for detect-neighbors call
+            float(self.global_params.elec_max_dis),
         ]

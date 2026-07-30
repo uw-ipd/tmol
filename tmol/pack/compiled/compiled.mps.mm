@@ -40,6 +40,7 @@ void set_quench_order(
 
 template <tmol::Device D>
 auto AnnealerDispatch<D>::forward(
+    ContextManager&,
     int max_n_rotamers_per_pose,
     TView<int, 1, D> pose_n_res,
     TView<int, 1, D> n_rotamers_for_pose,

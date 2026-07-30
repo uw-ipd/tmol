@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -31,6 +32,7 @@ template <
     typename Int>
 struct LJLKPoseScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
@@ -89,6 +91,9 @@ struct LJLKPoseScoreDispatch {
       TView<LJLKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
 
+      // host-side copy of LJGlobalParams::max_dis
+      Real max_dis,
+
       // should the output be per-pose (npose x nterms x 1 x 1)
       //   or per block-pair (npose x nterms x len x len)
       bool output_block_pair_energies,
@@ -98,6 +103,7 @@ struct LJLKPoseScoreDispatch {
       tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 3, D> >;
 
   static auto backward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
@@ -168,6 +174,7 @@ template <
     typename Int>
 struct LJLKRotamerScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
@@ -226,6 +233,9 @@ struct LJLKRotamerScoreDispatch {
       TView<LJLKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
 
+      // host-side copy of LJGlobalParams::max_dis
+      Real max_dis,
+
       // should the output be per-pose (npose x nterms x 1 x 1)
       //   or per block-pair (npose x nterms x len x len)
       bool output_block_pair_energies,
@@ -235,6 +245,7 @@ struct LJLKRotamerScoreDispatch {
       tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D> >;
 
   static auto backward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,

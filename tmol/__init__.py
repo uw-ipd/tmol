@@ -6,6 +6,19 @@
 import contextlib
 from importlib.metadata import PackageNotFoundError, version
 
+
+def include_paths():
+    """C++/CUDA include paths for tmol components.
+
+    Defined before other imports because JIT extension loading
+    (tmol.utility.cpp_extension) imports this during module init.
+    """
+
+    import os.path
+
+    return [os.path.abspath(os.path.dirname(__file__) + "/..")]
+
+
 from tmol._load_ext import ensure_compiled_or_jit as _ensure_compiled_or_jit
 
 # Extensions may not be built yet (e.g. during sdist creation).
@@ -52,19 +65,17 @@ from tmol.optimization.minimizers import (
 )
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+from tmol.pose.constraint_set import ConstraintSet
 from tmol.score import beta2016_score_function
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
+from tmol.score.constraint.constraint_energy_term import (
+    ConstraintEnergyTerm,
+)
+from tmol.score.constraint.utility import create_mainchain_coordinate_constraints
+from tmol.relax.fast_relax import fast_relax
 
 try:
     __version__ = version("tmol")
 except PackageNotFoundError:
     __version__ = "unknown version"
-
-
-def include_paths():
-    """C++/CUDA include paths for tmol components."""
-
-    import os.path
-
-    return [os.path.abspath(os.path.dirname(__file__) + "/..")]

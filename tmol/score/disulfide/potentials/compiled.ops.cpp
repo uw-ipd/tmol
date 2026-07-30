@@ -2,6 +2,7 @@
 #include <torch/script.h>
 
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 #include <tmol/utility/nvtx.hh>
 
@@ -15,6 +16,8 @@ namespace tmol {
 namespace score {
 namespace disulfide {
 namespace potentials {
+
+ContextManager mgr;
 
 using namespace tmol::score::common;
 
@@ -74,6 +77,7 @@ class DisulfidePoseScoreOp
           auto result =
               DisulfidePoseScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   forward(
+                      mgr,
                       // common params
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
@@ -205,6 +209,7 @@ class DisulfidePoseScoreOp
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
@@ -310,6 +315,7 @@ class DisulfideRotamerScoreOp : public torch::autograd::Function<
           auto result =
               DisulfideRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
                   forward(
+                      mgr,
                       // common params
                       TCAST(rot_coords),
                       TCAST(rot_coord_offset),
@@ -446,6 +452,7 @@ class DisulfideRotamerScoreOp : public torch::autograd::Function<
                 Real,
                 Int>::
                 backward(
+                    mgr,
                     // common params
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),

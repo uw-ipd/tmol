@@ -157,6 +157,7 @@ struct f1f2compose_t : public std::binary_function<
 template <tmol::Device D, typename Real, typename Int>
 struct ForwardKinDispatch {
   static auto f(
+      ContextManager& mgr,
       TView<KintreeDof, 1, D> dofs,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
@@ -207,8 +208,8 @@ struct ForwardKinDispatch {
       }
     });
 
-    mgpu::standard_context_t context;
-    mgpu::transform(k_dof2ht, num_atoms, context);
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
+    mgpu::transform(k_dof2ht, num_atoms, *context);
     nvtx_range_pop();
 
     auto ngens = gens.size(0) - 1;
@@ -253,7 +254,7 @@ struct ForwardKinDispatch {
           &LBS.data()[0],
           htcompose_t<D, Real, Int>(),
           init,
-          context);
+          *context);
       nvtx_range_pop();
       // gpuErrPeek;
       // gpuErrSync;
@@ -278,7 +279,7 @@ struct ForwardKinDispatch {
         HTs[nodes[nodestart + index]] = HTscan[index];
       };
 
-      mgpu::transform(k_unindex, nnodes, context);
+      mgpu::transform(k_unindex, nnodes, *context);
       nvtx_range_pop();
       nvtx_range_pop();
     }
@@ -289,7 +290,7 @@ struct ForwardKinDispatch {
       xs[i] = HTs[i].block(3, 0, 1, 3).transpose();
     });
 
-    mgpu::transform(k_getcoords, num_atoms, context);
+    mgpu::transform(k_getcoords, num_atoms, *context);
 
     return {xs_t, HTs_t};
   }
@@ -298,6 +299,7 @@ struct ForwardKinDispatch {
 template <tmol::Device D, typename Real, typename Int>
 struct InverseKinDispatch {
   static auto f(
+      ContextManager& mgr,
       TView<Coord, 1, D> coords,
       TView<Int, 1, D> parent,
       TView<Int, 1, D> frame_x,
@@ -324,8 +326,9 @@ struct InverseKinDispatch {
       }
     });
 
-    mgpu::standard_context_t context;
-    mgpu::transform(k_coords2hts, num_atoms, context);
+    // mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
+    mgpu::transform(k_coords2hts, num_atoms, *context);
 
     auto k_hts2dofs = ([=] EIGEN_DEVICE_FUNC(int i) {
       HomogeneousTransform lclHT;
@@ -342,7 +345,7 @@ struct InverseKinDispatch {
       }
     });
 
-    mgpu::transform(k_hts2dofs, num_atoms, context);
+    mgpu::transform(k_hts2dofs, num_atoms, *context);
 
     return dofs_t;
   }
@@ -351,6 +354,7 @@ struct InverseKinDispatch {
 template <tmol::Device D, typename Real, typename Int>
 struct KinDerivDispatch {
   static auto f(
+      ContextManager& mgr,
       TView<Coord, 1, D> dVdx,
       TView<HomogeneousTransform, 1, D> hts,
       TView<KintreeDof, 1, D> dofs,
@@ -398,8 +402,9 @@ struct KinDerivDispatch {
       f1f2s[i].bottomRows(3) = dVdx[i];
     });
 
-    mgpu::standard_context_t context;
-    mgpu::transform(k_f1f2s, num_atoms, context);
+    // mgpu::standard_context_t context;
+    std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
+    mgpu::transform(k_f1f2s, num_atoms, *context);
     nvtx_range_pop();
 
     auto ngens = gens.size(0) - 1;
@@ -437,7 +442,7 @@ struct KinDerivDispatch {
           &LBS.data()[0],
           f1f2compose_t<D, Real, Int>(),
           init,
-          context);
+          *context);
       nvtx_range_pop();
 
       // unindex for gen i.  ENSURE ATOMIC
@@ -453,7 +458,7 @@ struct KinDerivDispatch {
         }
       };
 
-      mgpu::transform(k_unindex, nnodes, context);
+      mgpu::transform(k_unindex, nnodes, *context);
       nvtx_range_pop();
     }
 
@@ -472,7 +477,7 @@ struct KinDerivDispatch {
       }
     });
 
-    mgpu::transform(k_f1f2s2derivs, num_atoms, context);
+    mgpu::transform(k_f1f2s2derivs, num_atoms, *context);
     nvtx_range_pop();
 
     return dsc_ddofs_t;

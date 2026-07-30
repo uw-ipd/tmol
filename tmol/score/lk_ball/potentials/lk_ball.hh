@@ -170,9 +170,12 @@ struct lk_bridge_fraction {
     Real overlapfrac;
     if (wted_d2_delta > overlap_width_A2) {
       overlapfrac = 0;
-    } else {
+    } else if (wted_d2_delta > 0) {
       // square-square -> 1 as x -> 0
       overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
+    } else {
+      // clamp the fraction to 1.
+      overlapfrac = 1;
     }
     // base angle
     Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
@@ -363,7 +366,9 @@ struct lk_ball_score {
         i.lj_radius,
         i.lk_dgfree,
         i.lk_lambda,
-        j.lk_volume);
+        j.lk_volume,
+        global.distance_threshold,
+        i.is_carbon_lk && j.is_carbon_lk);
     Real frac_IJ_desolv = lk_fraction<Real, MAX_WATER>::V(WI, J, j.lj_radius);
 
     Real frac_IJ_water_overlap;
@@ -415,7 +420,9 @@ struct lk_ball_score {
         i.lj_radius,
         i.lk_dgfree,
         i.lk_lambda,
-        j.lk_volume);
+        j.lk_volume,
+        global.distance_threshold,
+        i.is_carbon_lk && j.is_carbon_lk);
 
     Real frac_IJ_desolv = lk_fraction<Real, MAX_WATER>::V(WI, J, j.lj_radius);
     auto d_frac_IJ_desolv =
@@ -1019,6 +1026,13 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared(
     LKBallScoringData<Real>& intra_dat,
     LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
         shared_m) {
+  // A prior same-tile lk_ball_load_intrares_data_from_shared call may have
+  // aliased r2's pointers to the "1" shared-memory arrays. Reset them to
+  // the "2" arrays so the load below writes to the correct destination.
+  intra_dat.r2.pose_coords = shared_m.pose_coords2;
+  intra_dat.r2.water_coords = shared_m.water_coords2;
+  intra_dat.r2.pol_occ_tile_inds = shared_m.pol_occ_tile_inds2;
+  intra_dat.r2.lk_ball_params = shared_m.lk_ball_params2;
   auto store_n_pol_n_occ2 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[intra_dat.r2.block_type][tile_ind];

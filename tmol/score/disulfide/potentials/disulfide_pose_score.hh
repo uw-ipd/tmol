@@ -30,6 +30,7 @@ template <
     typename Int>
 struct DisulfidePoseScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
@@ -56,6 +57,7 @@ struct DisulfidePoseScoreDispatch {
       -> std::tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 2, D>>;
 
   static auto backward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
@@ -89,6 +91,7 @@ template <
     typename Int>
 struct DisulfideRotamerScoreDispatch {
   static auto forward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,
@@ -119,6 +122,7 @@ struct DisulfideRotamerScoreDispatch {
           TPack<Int, 2, D>>;
 
   static auto backward(
+      ContextManager& mgr,
       // common params
       TView<Vec<Real, 3>, 1, D> rot_coords,
       TView<Int, 1, D> rot_coord_offset,

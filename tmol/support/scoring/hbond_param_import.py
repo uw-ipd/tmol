@@ -26,8 +26,7 @@ import os
 import io
 import IPython.lib.pretty
 
-table_schema = yaml.safe_load(
-    """
+table_schema = yaml.safe_load("""
     HBondWeightType:
       - id
       - name
@@ -72,17 +71,18 @@ table_schema = yaml.safe_load(
       - root1
       - root2
       - degree
-      - c_a
-      - c_b
-      - c_c
-      - c_d
-      - c_e
-      - c_f
-      - c_g
-      - c_h
-      - c_i
-      - c_j
-      - c_k
+      # poly coeffs: sum_N (c_N * x^N)
+      - c_10
+      - c_9
+      - c_8
+      - c_7
+      - c_6
+      - c_5
+      - c_4
+      - c_3
+      - c_2
+      - c_1
+      - c_0
 
     HBEval:
       - don_chem_type
@@ -112,8 +112,7 @@ table_schema = yaml.safe_load(
       - fmax
       - max0
       - comment
-"""
-)
+""")
 
 RawParams = attr.make_class("RawParams", list(table_schema.keys()))
 

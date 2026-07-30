@@ -4,14 +4,13 @@ import torch
 
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
 from tmol.kinematics.datatypes import NodeType, KinForest
 from tmol.kinematics.scan_ordering import (
     KinForestScanOrdering,
     annotate_block_type_with_residue_kinforest_data,
 )
-from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
-from tmol.utility.ndarray.common_operations import invert_mapping
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -55,11 +54,14 @@ class PackedRotamerKintree:
     scans: NDArray[numpy.int32][:, :]
     gens: NDArray[numpy.int32][:, :]
     n_scans_per_gen: NDArray[numpy.int32][:, :]
-    dofs_ideal: NDArray[numpy.int32][:, :]
+    dofs_ideal: Tensor[torch.float32][:, :]
 
 
 @validate_args
 def construct_single_residue_kinforest(restype: RefinedResidueType):
+    from tmol.kinematics.compiled import inverse_kin
+    from tmol.utility.ndarray.common_operations import invert_mapping
+
     """Create a kinforest for a single residue and its associated
     scan ordering data.
 
@@ -82,7 +84,6 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     preds = rkd.preds.astype(numpy.int64)  # BFS predecessors in TO; -9999 for root
     dof_type_to = rkd.dof_type  # NodeType per atom in TO
 
-
     # TO -> KFO mapping (used for kinforest_idx output field)
     to_2_kfo = invert_mapping(kfo_2_to, n_atoms).astype(numpy.int64)
 
@@ -100,16 +101,48 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     frame_z = kfo_parents[kfo_parents]
 
     # --- Fix jump root (KFO index 0) and its direct children ---
-    # In BFS order, root is at KFO 0 and its first child is at KFO 1 (= c1).
-    # c2 = first child of c1 if c1 has any children, else second child of root.
-    c1 = 1  # first BFS child of root (all children are non-jump)
-    c1_children = numpy.where(kfo_parents == c1)[0]
-    if len(c1_children) > 0:
-        c2 = int(c1_children[0])
+    # c1, c2 are the two frame atoms for root:
+    #   if root has >= 2 children: c1, c2 = first two children of root
+    #   if root has only 1 child:  c1 = that child, c2 = first child of c1
+    root_children = numpy.where((kfo_parents == 0) & (numpy.arange(n_atoms) > 0))[0]
+
+    polymer_mc = (
+        restype.properties.polymer.mainchain_atoms
+        if hasattr(restype, "properties") and hasattr(restype.properties, "polymer")
+        else None
+    )
+    if polymer_mc:
+        # Polymer residues: prefer mainchain atoms as frame atoms because their
+        # positions are fixed across rotamers (otherwise CB ends up as the ref
+        # frame and is not idealized).
+        mc_atoms = set(polymer_mc)
+
+        def sort_key(i):
+            return (restype.atoms[kfo_2_to[i]].name not in mc_atoms, i)
+
+        root_children = sorted(root_children, key=sort_key)
+        c1 = int(root_children[0])
+        if len(root_children) >= 2:
+            c2 = int(root_children[1])
+        else:
+            c1_children = numpy.where(kfo_parents == c1)[0]
+            c1_children = sorted(c1_children, key=sort_key)
+            c2 = int(c1_children[0])
     else:
-        # c1 has no children; use the second child of root
-        root_children = numpy.where((kfo_parents == 0) & (numpy.arange(n_atoms) > 0))[0]
-        c2 = int(root_children[1])  # root_children[0] is c1=1
+        # Ligand / non-polymer: no mainchain to prefer. Use the root's children
+        #   (and grandchildren) in the order produced by the params-file icoor
+        #   tree
+        # need to handle case where natoms < 3
+        if len(root_children) == 0:
+            c1 = 0
+            c2 = 0
+        elif len(root_children) >= 2:
+            c1 = int(root_children[0])
+            c2 = int(root_children[1])
+        else:
+            c1 = int(root_children[0])
+            c1_children = numpy.where(kfo_parents == c1)[0]
+            c2 = int(c1_children[0]) if len(c1_children) > 0 else 0
 
     # Root (KFO 0): frame_x=c1, frame_y=self(=0), frame_z=c2
     frame_x[0] = c1
@@ -261,6 +294,6 @@ def coalesce_single_residue_kinforests(pbt: PackedBlockTypes):
         scans=rt_scans,
         gens=rt_gens,
         n_scans_per_gen=rt_n_scans_per_gen,
-        dofs_ideal=rt_dofs_ideal,
+        dofs_ideal=torch.tensor(rt_dofs_ideal, dtype=torch.float32, device=pbt.device),
     )
     setattr(pbt, "rotamer_kinforest", packed_rotamer_kinforest)

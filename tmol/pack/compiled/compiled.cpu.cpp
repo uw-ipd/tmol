@@ -1,13 +1,14 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/context_manager.hh>
 
 #include <tmol/score/common/device_operations.cpu.impl.hh>
 
-// ??? #include "annealer.hh"
 #include "simulated_annealing.hh"
 #include "compiled.impl.hh"
 
 #include <ctime>
+#include <vector>
 
 namespace tmol {
 namespace pack {
@@ -35,6 +36,7 @@ void set_quench_order(
 
 template <tmol::Device D>
 auto AnnealerDispatch<D>::forward(
+    ContextManager&,
     int max_n_rotamers_per_pose,
     TView<int, 1, D> pose_n_res,               // n-poses
     TView<int, 1, D> n_rotamers_for_pose,      // n-poses
@@ -48,17 +50,15 @@ auto AnnealerDispatch<D>::forward(
     TView<int64_t, 1, D> chunk_offsets,  // n-chunks-on-interacting-res
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
-    -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
-  clock_t start = clock();
-
-  // No Frills Simulated Annealing!
+    -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> {
   int const n_poses = pose_n_res.size(0);
   int const max_n_res = n_rotamers_for_res.size(1);
   int const n_rotamers = res_for_rot.size(0);
 
   int n_traj = 1;
   int const n_outer_iterations = 20;
-  int const n_inner_iterations_factor = 20;
+  // Rosetta uses 5x; our old value of 20x was 4x too many inner iterations
+  int const n_inner_iterations_factor = 5;
 
   auto scores_t = TPack<float, 2, D>::zeros({n_poses, n_traj});
   auto current_rotamer_assignments_t =
@@ -73,18 +73,28 @@ auto AnnealerDispatch<D>::forward(
   auto quench_order = quench_order_t.view;
 
   float const high_temp = 100;
-  float const low_temp = 0.2;
+  float const low_temp = 0.3;  // matches Rosetta SimAnnealerBase::lowtemp
 
   for (int pose = 0; pose < n_poses; ++pose) {
     int const n_res = pose_n_res[pose];
     int const pose_n_rotamers = n_rotamers_for_pose[pose];
     int const pose_rotamer_offset = rotamer_offset_for_pose[pose];
+
+    // Build per-residue neighbor list for this pose
+    std::vector<std::vector<int>> neighbors(max_n_res);
+    for (int b = 0; b < n_res; ++b) {
+      for (int b2 = 0; b2 < n_res; ++b2) {
+        if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) {
+          neighbors[b].push_back(b2);
+        }
+      }
+    }
     int const n_inner_iterations = n_inner_iterations_factor * pose_n_rotamers;
 
     for (int traj = 0; traj < n_traj; ++traj) {
       // Initial assignment: assign a rotamer to every residue.
-      // Residues with 0 rotamers (padding for shorter poses) get -1.
-      for (int i = 0; i < max_n_res; ++i) {
+      // Residues with 0 rotamers get -1 (avoids rand() % 0 undefined behavior).
+      for (int i = 0; i < n_res; ++i) {
         int const i_n_rots = n_rotamers_for_res[pose][i];
         if (i_n_rots == 0) {
           current_rotamer_assignments[pose][traj][i] = -1;
@@ -167,32 +177,29 @@ auto AnnealerDispatch<D>::forward(
           double prev_e = energy1b[global_prev_rot];
           double deltaE = new_e - prev_e;
 
-          // TO DO: iterate across all residues instead of just the
-          // neighbors of ran_rot_res
-          for (int k = 0; k < n_res; ++k) {
-            if (k == ran_res) continue;
-            int64_t const k_ran_chunk_offset_offset =
-                chunk_offset_offsets[pose][k][ran_res];
-            if (k_ran_chunk_offset_offset == -1) {
-              // then neither prev_rot nor ran_rot interact with the rotamer at
-              // k
-              continue;
-            }
+          for (int k : neighbors[ran_res]) {
             int const local_k_rot = current_rotamer_assignments[pose][traj][k];
             int const k_n_rots = n_rotamers_for_res[pose][k];
-            int const kres_n_chunks = (k_n_rots - 1) / chunk_size + 1;
             int const krot_chunk = local_k_rot / chunk_size;
             int const krot_in_chunk = local_k_rot - krot_chunk * chunk_size;
+            int const krot_chunk_size =
+                std::min(chunk_size, k_n_rots - chunk_size * krot_chunk);
+
+            double k_new_e = 0;
+            double k_prev_e = 0;
+
+            // chunk_offset_offsets stores both orderings (k,ran_res) and
+            // (ran_res,k), so always index as [k][ran_res] with k as the
+            // outer/row dimension.
+            int64_t const k_ran_chunk_offset_offset =
+                chunk_offset_offsets[pose][k][ran_res];
+            if (k_ran_chunk_offset_offset == -1) continue;
             int64_t const krot_ranrot_chunk_offset = chunk_offsets
                 [k_ran_chunk_offset_offset + krot_chunk * ran_res_n_chunks
                  + ran_rot_chunk];
             int64_t const krot_prevrot_chunk_offset = chunk_offsets
                 [k_ran_chunk_offset_offset + krot_chunk * ran_res_n_chunks
                  + prev_rot_chunk];
-
-            double k_new_e = 0;
-            double k_prev_e = 0;
-
             if (krot_ranrot_chunk_offset >= 0) {
               k_new_e = energy2b
                   [krot_ranrot_chunk_offset + krot_in_chunk * ran_rot_chunk_size
@@ -203,6 +210,7 @@ auto AnnealerDispatch<D>::forward(
                   [krot_prevrot_chunk_offset
                    + krot_in_chunk * prev_rot_chunk_size + prev_rot_in_chunk];
             }
+
             deltaE += k_new_e - k_prev_e;
             new_e += k_new_e;
             prev_e += k_prev_e;
@@ -258,11 +266,6 @@ auto AnnealerDispatch<D>::forward(
           best_rotamer_assignments[pose][traj]);
     }  // end trajectory loop
   }  // end pose loop
-
-  clock_t stop = clock();
-  std::cout << "CPU simulated annealing in "
-            << ((double)stop - start) / CLOCKS_PER_SEC << " seconds"
-            << std::endl;
 
   return {scores_t, best_rotamer_assignments_t};
 }

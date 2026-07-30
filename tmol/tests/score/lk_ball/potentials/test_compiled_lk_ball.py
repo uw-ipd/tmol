@@ -163,6 +163,43 @@ def test_lk_bridge_fraction():
     )
 
 
+def test_lk_bridge_fraction_overlapping_waters():
+    # Regression test: when the two atoms' waters strongly overlap, the
+    # water-overlap term wted_d2_delta goes negative and overlapfrac is
+    # clamped to 1. The forward V() must apply the same clamp that the
+    # analytic dV() assumes; otherwise the water-frame derivative is dropped
+    # for strongly-bridged acceptors/donors (up to ~0.16 kcal/mol/A on 1ubq).
+    from .compiled import LKBridgeFraction
+
+    tensor = torch.DoubleTensor
+
+    dist = tensor([2.65]).reshape(())
+
+    # Two acceptors ~4.33 A apart so the base-angle fraction is near its peak
+    # and sensitive to I/J motion.
+    coords_I = tensor((0.0, 0.0, 0.0))
+    coords_J = tensor((4.32664, 0.0, 0.0))
+
+    # Near-coincident waters => strong overlap => wted_d2_delta < 0.
+    WI = tensor([[0.00, 0.00, 0.00], [0.10, 0.00, 0.00]])
+    WJ = tensor([[0.05, 0.05, 0.00], [0.00, 0.10, 0.05]])
+
+    # Confirm we are actually in the clamped (strong-overlap) regime.
+    frac = LKBridgeFraction.apply(coords_I, coords_J, WI, WJ, dist)
+    assert float(frac) == pytest.approx(1.0, abs=1e-3)
+
+    gradcheck(
+        lambda I, J, WI, WJ: LKBridgeFraction.apply(I, J, WI, WJ, dist),
+        (
+            coords_I.requires_grad_(True),
+            coords_J.requires_grad_(True),
+            WI.requires_grad_(True),
+            WJ.requires_grad_(True),
+        ),
+        eps=1e-4,
+    )
+
+
 def lkball_score_and_gradcheck(
     ljlk_params,
     atype_params,

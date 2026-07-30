@@ -29,6 +29,7 @@ error_this_file_must_not_be_compiled_by_nvcc();
 #endif
 
 #include "device_operations.hh"
+#include <tmol/utility/tensor/context_manager.hh>
 
 #ifdef WITH_MPS
 #include <torch/mps.h>   // torch::mps::synchronize()
@@ -45,7 +46,7 @@ struct DeviceOperations<tmol::Device::MPS> {
   // launch_t is ignored on MPS (it is a CUDA-specific launch-box type).
   // -------------------------------------------------------------------------
   template <typename launch_t, typename Func>
-  static void forall(int N, Func f) {
+  static void forall(ContextManager&, int N, Func f) {
     // Flush any pending Metal command buffers so CPU data_ptr() reads see
     // GPU-written data (unified memory coherency for Phase 1).
     synchronize_device();
@@ -58,7 +59,7 @@ struct DeviceOperations<tmol::Device::MPS> {
   // forall_stacks — iterate over [0, Nstacks) x [0, N)
   // -------------------------------------------------------------------------
   template <typename Int, typename Func>
-  static void forall_stacks(Int Nstacks, Int N, Func f) {
+  static void forall_stacks(ContextManager&, Int Nstacks, Int N, Func f) {
     synchronize_device();
     for (Int stack = 0; stack < Nstacks; ++stack) {
       for (Int i = 0; i < N; ++i) {
@@ -71,7 +72,8 @@ struct DeviceOperations<tmol::Device::MPS> {
   // foreach_combination_triple — iterate over dim1 x dim2 x dim3
   // -------------------------------------------------------------------------
   template <typename Int, typename Func>
-  static void foreach_combination_triple(Int dim1, Int dim2, Int dim3, Func f) {
+  static void foreach_combination_triple(
+      ContextManager&, Int dim1, Int dim2, Int dim3, Func f) {
     synchronize_device();
     for (Int i = 0; i < dim1; ++i) {
       for (Int j = 0; j < dim2; ++j) {
@@ -88,7 +90,7 @@ struct DeviceOperations<tmol::Device::MPS> {
   // serialise them on the CPU for Phase 1 correctness.
   // -------------------------------------------------------------------------
   template <typename launch_t, typename Func>
-  static void foreach_workgroup(int n_workgroups, Func f) {
+  static void foreach_workgroup(ContextManager&, int n_workgroups, Func f) {
     synchronize_device();
     for (int i = 0; i < n_workgroups; ++i) {
       f(i);
@@ -99,7 +101,7 @@ struct DeviceOperations<tmol::Device::MPS> {
   // scan — prefix scan (inclusive or exclusive) with operator op.
   // -------------------------------------------------------------------------
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
-  static void scan(T* src, T* dst, int n, OP op) {
+  static void scan(ContextManager&, T* src, T* dst, int n, OP op) {
     if (n <= 0) return;
     T last_val = src[0];
     if (scan_type == mgpu::scan_type_inc) {
@@ -117,7 +119,7 @@ struct DeviceOperations<tmol::Device::MPS> {
   // scan_and_return_total
   // -------------------------------------------------------------------------
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
-  static T scan_and_return_total(T* src, T* dst, int n, OP op) {
+  static T scan_and_return_total(ContextManager&, T* src, T* dst, int n, OP op) {
     if (n == 0) return T(0);
     T last_val = src[0];
     if (scan_type == mgpu::scan_type_inc) {
@@ -137,6 +139,7 @@ struct DeviceOperations<tmol::Device::MPS> {
   // -------------------------------------------------------------------------
   template <typename launch_t, typename Int>
   static TPack<Int, 1, tmol::Device::MPS> load_balancing_search(
+      ContextManager&,
       int n_work_units_total,
       Int* exc_scan_offsets,
       int n_generators) {
@@ -163,7 +166,7 @@ struct DeviceOperations<tmol::Device::MPS> {
   // n must be > 0.
   // -------------------------------------------------------------------------
   template <typename T, typename OP>
-  static T reduce(T* src, int n, OP op) {
+  static T reduce(ContextManager&, T* src, int n, OP op) {
     assert(n > 0);
     T val = src[0];
     for (int i = 1; i < n; ++i) {
@@ -182,6 +185,7 @@ struct DeviceOperations<tmol::Device::MPS> {
       typename Int,
       typename OP>
   static auto segmented_scan(
+      ContextManager&,
       T* src, Int* seg_start_inds, int n, int n_segs, OP op, T identity)
       -> TPack<T, 1, tmol::Device::MPS> {
     auto dst_t = TPack<T, 1, tmol::Device::MPS>::empty({n});
