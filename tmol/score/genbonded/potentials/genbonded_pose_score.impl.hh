@@ -333,8 +333,11 @@ TMOL_DEVICE_FUNC int inter_block_torsion_parameter(
     local_block_types[pos] = pos < len_a ? block_type1 : block_type2;
   }
 
-  if (source_atom_index[local_block_types[0]][local_indices[0]]
-      > source_atom_index[local_block_types[3]][local_indices[3]]) {
+  bool const same_source_fragments = same_source_ligand_fragments<Int, D>(
+      block_type1, block_type2, source_block_type_index);
+  if (same_source_fragments
+      && source_atom_index[local_block_types[0]][local_indices[0]]
+             > source_atom_index[local_block_types[3]][local_indices[3]]) {
     for (int pos = 0; pos < 2; ++pos) {
       int opposite = 3 - pos;
       Int tmp = atoms[pos];
@@ -350,8 +353,7 @@ TMOL_DEVICE_FUNC int inter_block_torsion_parameter(
   }
 
   Int source_bt = source_block_type_index[block_type1];
-  if (same_source_ligand_fragments<Int, D>(
-          block_type1, block_type2, source_block_type_index)) {
+  if (same_source_fragments) {
     Vec<Int, 4> source_atoms;
     for (int pos = 0; pos < 4; ++pos) {
       source_atoms[pos] =

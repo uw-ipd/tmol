@@ -350,17 +350,50 @@ def _validate_bonded_cut_layout(
         visit((atom,))
 
 
+def _validate_scoring_cut_layout(restype: RawResidueType, cut_bonds: Sequence[tuple]):
+    """Reject cuts that break nonbonded scoring geometry assumptions."""
+
+    from tmol.ligand.chemistry_tables import get_hbond_properties
+
+    hbond_properties = get_hbond_properties()
+    atom_type_by_name = {atom.name: atom.atom_type for atom in restype.atoms}
+    bad_cuts: list[str] = []
+    for bond in cut_bonds:
+        a, b = bond[:2]
+        for atom_name, neighbor_name in ((a, b), (b, a)):
+            atom_type = atom_type_by_name[atom_name]
+            if hbond_properties.get(atom_type, {}).get("is_acceptor", False):
+                bad_cuts.append(f"{atom_name}-{neighbor_name} ({atom_type})")
+
+    if bad_cuts:
+        raise ValueError(
+            f"{restype.name}: fragment cuts through hbond/lk_ball acceptor "
+            "geometry are not supported; acceptor atoms must remain in the "
+            "same fragment as their bonded frame atoms. Unsupported cut(s): "
+            + ", ".join(bad_cuts)
+        )
+
+
 def build_ligand_fragment_definition(
     preparation: LigandPreparation,
     source_atom_array: struc.AtomArray,
 ) -> LigandFragmentDefinition | None:
     """Partition a fully prepared ligand according to its source annotation."""
 
+    restype = preparation.residue_type
     source_fragment_ids = fragment_ids_from_atom_array(source_atom_array)
     if source_fragment_ids is None:
         return None
+    if np.any(source_fragment_ids == 0):
+        zero_atom_names = list(
+            map(str, source_atom_array.atom_name[source_fragment_ids == 0][:8])
+        )
+        raise ValueError(
+            f"{restype.name}: every atom in a fragmented residue must have a "
+            f"positive {FRAGMENT_ID_ANNOTATION}; found 0 for "
+            f"{zero_atom_names}"
+        )
 
-    restype = preparation.residue_type
     source_name_to_id = {
         str(name): int(fragment_id)
         for name, fragment_id in zip(source_atom_array.atom_name, source_fragment_ids)
@@ -421,6 +454,7 @@ def build_ligand_fragment_definition(
         if atom_to_fragment[bond[0]] != atom_to_fragment[bond[1]]
     ]
     _validate_bonded_cut_layout(restype.name, adjacency, cut_bonds)
+    _validate_scoring_cut_layout(restype, cut_bonds)
     connections_by_fragment: dict[int, list[FragmentConnection]] = {
         fragment_id: [] for fragment_id in fragment_ids
     }
@@ -532,7 +566,9 @@ def build_ligand_fragment_definition(
             properties=restype.properties,
             chi_samples=chi_samples,
             default_jump_connection_atom=order[0],
-            hydrogens_regenerated=restype.hydrogens_regenerated,
+            # Fragment poses should honor provided H coordinates; absent leaf H
+            # atoms can still be rebuilt from the fragment icoors.
+            hydrogens_regenerated=False,
             is_ligand_fragment=True,
         )
         fragment_preparations.append(

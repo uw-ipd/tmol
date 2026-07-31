@@ -148,19 +148,23 @@ Fragment layouts currently have these correctness constraints:
 
 - each fragment is connected and contains at least three heavy atoms;
 - each fragment has at most four connections to other fragments;
-- no atom participates in more than one cut bond; and
-- no four-atom bonded path contains more than one cut.
+- no atom participates in more than one cut bond;
+- no four-atom bonded path contains more than one cut; and
+- cuts do not pass directly through hbond/lk_ball acceptor geometry.
 
-The final two rules prevent bonded angles, torsions, and impropers from spanning
-three or more blocks. Current bonded scoring kernels evaluate terms within one
-block or across one connection between two blocks. tmol rejects unsupported
-layouts rather than silently omitting those energy and gradient terms. In
-practice, choose chemically meaningful fragments of roughly 3–8 heavy atoms
-and keep adjacent cut bonds separated.
+The cut-sharing rules prevent bonded angles, torsions, and impropers from
+spanning three or more blocks. The acceptor rule keeps hbond/lk_ball frame
+geometry local to a fragment. Current bonded scoring kernels evaluate terms
+within one block or across one connection between two blocks. tmol rejects
+unsupported layouts rather than silently omitting those energy and gradient
+terms. In practice, choose chemically meaningful fragments of roughly 3–8 heavy
+atoms and keep adjacent cut bonds separated.
 
 Additional requirements:
 
-- Fragment IDs must be non-negative integers and at least two IDs must occur.
+- Fragment IDs must be integers. Use `0` only outside fragmented residues; every
+  atom in a fragmented residue must have a positive fragment ID, and at least two
+  positive IDs must occur.
 - All instances of a residue name in one input must use the same fragment
   layout.
 - Generated names such as `XYZ.1` must not already identify different
@@ -309,6 +313,7 @@ it into the pose. Failure modes, in order of likelihood:
 | `preparation.py` | `prepare_ligands`, single-ligand `from_{mol2,cif,smiles}` helpers, CIF rename |
 | `detect.py` | `NonStandardResidueInfo`, non-standard residue detection, mol2/SMILES readers |
 | `structure_to_smiles.py` | SMILES from an AtomArray bond table (no geometry perception, no CCD lookup) |
+| `fragmentation.py` | Fragment annotations, fragment block types/connections, pose mapping |
 | `dimorphite_dl.py` | pKa-based protonation-state enumeration on SMILES |
 | `conformer_generation.py` | 3D coordinates via RDKit distance geometry (replaces OpenBabel `make3D`) |
 | `generated_geometry.py` | Corrections to known systematic errors in generated conformers |

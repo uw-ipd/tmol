@@ -92,32 +92,6 @@ def _assert_fragment_names_available(param_db, fragment_preparations) -> None:
             )
 
 
-def _build_cif_rdkit_mol(ligand_info: NonStandardResidueInfo) -> Chem.Mol:
-    """Build a Chem.Mol from the CIF ligand for heavy-atom graph matching.
-
-    Atom order is preserved (atom ``i`` corresponds to
-    ``ligand_info.atom_names[i]``) so the matched indices can be mapped back to
-    CIF atom names. Uses the explicit CIF bond table when present and falls
-    back to geometry-based bond perception (vendored atomworks
-    :func:`atom_array_to_rdkit`) for bonds-absent CIFs.
-    """
-    atom_array = ligand_info.atom_array
-    has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
-    if has_bonds:
-        return to_mol(atom_array)
-
-    if "charge" in atom_array.get_annotation_categories():
-        system_charge = int(np.nansum(atom_array.charge))
-    else:
-        system_charge = 0
-    return atom_array_to_rdkit(
-        atom_array,
-        infer_bonds=True,
-        system_charge=system_charge,
-        hydrogen_policy="keep",
-    )
-
-
 def _rename_atoms_to_cif(
     pipeline_mol: Chem.Mol,
     atom_types: list[AtomTypeAssignment],
@@ -600,30 +574,6 @@ def prepare_ligands(  # noqa: C901
         reason = _ligand_unsupported_reason(lig, supported_elements)
         if reason:
             _skip_or_raise(strict_ligands, reason)
-            continue
-
-        cache_key = (
-            lig.res_name,
-            round(ph, 3),
-            sample_proton_chi,
-            tuple(lig.atom_names),
-            tuple(lig.elements),
-        )
-        cached_rt = get_cached_ligand_for_key(cache_key, cache=cache)
-        cached_q = get_cached_charges_for_key(cache_key, cache=cache)
-        if cached_rt is not None and cached_q is not None:
-            logger.info("Using cached preparation for %s", lig.res_name)
-            # Cache predates the unified struct, so it stores
-            # (restype, charges) only. Rebuild the cartbonded slice
-            # from the cached residue type's icoors here.
-            prep = LigandPreparation(
-                residue_type=cached_rt,
-                partial_charges=cached_q,
-                cartbonded_params=_build_cartbonded_params(cached_rt),
-                atom_type_elements=None,
-            )
-            preparations.append(prep)
-            prepared_ligands.append((lig, prep))
             continue
 
         logger.info("Preparing %s (CCD type: %s)", lig.res_name, lig.ccd_type)

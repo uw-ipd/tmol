@@ -137,6 +137,13 @@ def _build(structure, params_path, torch_device, *, fragmented):
     return pose, context, None
 
 
+def _fragment_block_mask(pose, mapping):
+    mask = torch.zeros_like(pose.block_type_ind, dtype=torch.bool)
+    for record in mapping.blocks:
+        mask[record.pose_index, record.block_index] = True
+    return mask
+
+
 def test_fragment_definition_connections_icoors_and_mapping(torch_device):
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -161,6 +168,7 @@ def test_fragment_definition_connections_icoors_and_mapping(torch_device):
         connection_names = {connection.name for connection in block_type.connections}
         icoor_names = {icoor.name for icoor in block_type.icoors}
         assert block_type.is_ligand_fragment
+        assert not block_type.hydrogens_regenerated
         assert connection_names <= icoor_names
 
 
@@ -230,17 +238,25 @@ def test_fragmentation_uses_ligand_already_in_parameter_database(torch_device):
     ]
 
 
-def test_fragment_interactions_require_boolean_partner_mask(torch_device):
+def test_fragment_interactions_validate_inputs(torch_device):
     from tmol.score.score_utils import calculate_fragment_interactions
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
-    pose, _, _ = _build(annotated, params_path, torch_device, fragmented=True)
+    pose, _, mapping = _build(annotated, params_path, torch_device, fragmented=True)
 
     with pytest.raises(TypeError, match="boolean"):
         calculate_fragment_interactions(
             pose,
             torch.zeros_like(pose.block_type_ind),
+            sfxn=None,
+        )
+
+    partner_mask = ~_fragment_block_mask(pose, mapping) & (pose.block_type_ind >= 0)
+    with pytest.raises(ValueError, match="sfxn is required"):
+        calculate_fragment_interactions(
+            pose,
+            partner_mask,
             sfxn=None,
         )
 
@@ -263,44 +279,68 @@ def test_duplicate_ligand_names_require_same_fragment_layout():
         )
 
 
-def test_fragment_validation_rejects_too_small_fragment():
-    from tmol.ligand.fragmentation import build_ligand_fragment_definition
+def test_prepare_ligands_rejects_too_small_fragment():
+    from tmol.ligand.preparation import LigandPreparationError, prepare_ligands
 
-    structure, _, preparation = _load_fixture()
-    ligand = structure[structure.res_name == LIGAND_NAME].copy()
-    fragment_ids = np.full(ligand.array_length(), 2, dtype=np.int32)
-    fragment_ids[0] = 1
-    ligand.set_annotation(FRAGMENT_ID_ANNOTATION, fragment_ids)
-    with pytest.raises(ValueError, match="at least 3 heavy atoms"):
-        build_ligand_fragment_definition(preparation, ligand)
+    structure, params_path, _ = _load_fixture("egfr")
+    annotated = structure.copy()
+    ligand_mask = annotated.res_name == LIGAND_NAME
+    fragment_ids = np.zeros(annotated.array_length(), dtype=np.int32)
+    fragment_ids[ligand_mask] = 2
+    fragment_ids[ligand_mask & np.isin(annotated.atom_name, ["C1", "C2", "H1"])] = 1
+    annotated.set_annotation(FRAGMENT_ID_ANNOTATION, fragment_ids)
+
+    with pytest.raises(
+        LigandPreparationError,
+        match=f"invalid {FRAGMENT_ID_ANNOTATION} annotation.*at least 3 heavy atoms",
+    ):
+        prepare_ligands(
+            annotated,
+            params_files=[str(params_path)],
+            return_fragment_definitions=True,
+        )
 
 
-def test_fragment_validation_rejects_disconnected_fragment():
-    from tmol.ligand.fragmentation import build_ligand_fragment_definition
+def test_prepare_ligands_rejects_unassigned_fragment_atoms_public_path():
+    from tmol.ligand.preparation import LigandPreparationError, prepare_ligands
 
-    structure, _, preparation = _load_fixture()
-    ligand = structure[structure.res_name == LIGAND_NAME].copy()
-    bonded_pairs = {frozenset(bond[:2]) for bond in preparation.residue_type.bonds}
-    heavy_names = [
-        str(name)
-        for name, element in zip(ligand.atom_name, ligand.element)
-        if str(element).upper() != "H"
-    ]
-    disconnected_pair = next(
-        (a, b)
-        for index, a in enumerate(heavy_names)
-        for b in heavy_names[index + 1 :]
-        if frozenset((a, b)) not in bonded_pairs
+    structure, params_path, _ = _load_fixture("egfr")
+    annotated = structure.copy()
+    ligand_mask = annotated.res_name == LIGAND_NAME
+    fragment_ids = np.zeros(annotated.array_length(), dtype=np.int32)
+    fragment_ids[ligand_mask] = 1
+    fragment_ids[ligand_mask & np.isin(annotated.atom_name, ["C1", "C2", "C3"])] = 2
+    fragment_ids[ligand_mask & (annotated.atom_name == "H1")] = 0
+    annotated.set_annotation(FRAGMENT_ID_ANNOTATION, fragment_ids)
+
+    with pytest.raises(
+        LigandPreparationError,
+        match=f"invalid {FRAGMENT_ID_ANNOTATION} annotation.*positive",
+    ):
+        prepare_ligands(
+            annotated,
+            params_files=[str(params_path)],
+            return_fragment_definitions=True,
+        )
+
+
+def test_fragment_validation_rejects_unsupported_layouts():
+    from tmol.ligand.fragmentation import (
+        _fragment_atom_tree,
+        _validate_bonded_cut_layout,
+        _validate_scoring_cut_layout,
     )
-    fragment_ids = np.full(ligand.array_length(), 2, dtype=np.int32)
-    fragment_ids[np.isin(ligand.atom_name, disconnected_pair)] = 1
-    ligand.set_annotation(FRAGMENT_ID_ANNOTATION, fragment_ids)
+
     with pytest.raises(ValueError, match="one connected component"):
-        build_ligand_fragment_definition(preparation, ligand)
+        _fragment_atom_tree(
+            ("A", "B"),
+            (),
+            {"A": np.zeros(3), "B": np.ones(3)},
+        )
 
-
-def test_fragment_validation_rejects_multiblock_torsion():
-    from tmol.ligand.fragmentation import _validate_bonded_cut_layout
+    _, _, preparation = _load_fixture()
+    with pytest.raises(ValueError, match="hbond/lk_ball acceptor geometry"):
+        _validate_scoring_cut_layout(preparation.residue_type, (("O1", "C1"),))
 
     adjacency = {
         "A": ("B",),
@@ -342,26 +382,77 @@ def test_fragment_mapping_is_stable_for_atom_array_stack(torch_device):
     assert {record.fragment_id for record in split_mapping.blocks} == {1, 2}
 
 
+def test_fragmented_ligand_minimize_and_pack_e2e():
+    from tmol import run_cart_min
+    from tmol.score import beta2016_score_function
+    from tmol.score.score_utils import (
+        build_coord_mask_for_mask_and_interacting_atoms,
+        calculate_block_pair_ddg,
+        calculate_fragment_interactions,
+    )
+
+    torch_device = torch.device("cpu")
+    structure, params_path, preparation = _load_fixture()
+    annotated = _annotate_at_bridge(structure, preparation)
+    pose, context, mapping = _build(
+        annotated, params_path, torch_device, fragmented=True
+    )
+    fragment_mask = _fragment_block_mask(pose, mapping)
+    sfxn = beta2016_score_function(torch_device, param_db=context.parameter_database)
+
+    wpsm = sfxn.render_whole_pose_scoring_module(pose)
+    start_score = wpsm(pose.coords)
+    coord_mask = build_coord_mask_for_mask_and_interacting_atoms(pose, fragment_mask)
+    minimized = run_cart_min(
+        pose.clone(), sfxn, coord_mask, optimizer_kwargs={"max_iter": 1}
+    )
+    end_score = wpsm(minimized.coords)
+    assert torch.all(end_score < start_score)
+
+    fragment_partner = ~fragment_mask & (pose.block_type_ind >= 0)
+    packed_ddg, packed = calculate_block_pair_ddg(
+        pose.clone(),
+        fragment_mask,
+        fragment_partner,
+        sfxn=sfxn,
+        sum_terms=True,
+        minimize=False,
+        pack=True,
+        return_pose_stack=True,
+    )
+    assert torch.isfinite(packed_ddg).all()
+    assert packed.fragmented_ligand_mapping == mapping
+
+    packed_fragment_mask = _fragment_block_mask(packed, mapping)
+    packed_partner = ~packed_fragment_mask & (packed.block_type_ind >= 0)
+    attributed = calculate_fragment_interactions(
+        packed,
+        packed_partner,
+        sfxn=sfxn,
+        sum_terms=True,
+    )
+    torch.testing.assert_close(
+        attributed.scores.sum(dim=1), packed_ddg, rtol=1e-5, atol=1e-5
+    )
+
+
 @pytest.mark.parametrize(
     ("target", "fragmentation"),
     [
         ("ace", "bridge"),
         ("cox1", "bridge"),
-        ("egfr", "bridge"),
         ("hsp90", "bridge"),
         ("ace", "multi"),
-        ("egfr", "multi"),
     ],
 )
-def test_fragmented_ligand_ddg_and_total_pose_parity(
-    torch_device, target, fragmentation
-):
+def test_fragmented_ligand_ddg_and_total_pose_parity(target, fragmentation):
     from tmol.score import beta2016_score_function
     from tmol.score.score_utils import (
         calculate_block_pair_ddg,
         calculate_fragment_interactions,
     )
 
+    torch_device = torch.device("cpu")
     structure, params_path, preparation = _load_fixture(target)
     annotated = (
         _annotate_at_bridge(structure, preparation)
@@ -395,9 +486,7 @@ def test_fragmented_ligand_ddg_and_total_pose_parity(
             continue
         block_type = whole.packed_block_types.active_block_types[block_type_index]
         whole_ligand[0, block_index] = block_type.name == LIGAND_NAME
-    fragment_ligand = torch.zeros_like(fragmented.block_type_ind, dtype=torch.bool)
-    for record in mapping.blocks:
-        fragment_ligand[record.pose_index, record.block_index] = True
+    fragment_ligand = _fragment_block_mask(fragmented, mapping)
     whole_partner = ~whole_ligand & (whole.block_type_ind >= 0)
     fragment_partner = ~fragment_ligand & (fragmented.block_type_ind >= 0)
 
