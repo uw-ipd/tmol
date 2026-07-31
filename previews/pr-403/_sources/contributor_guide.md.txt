@@ -38,3 +38,9 @@ should have useful module, class, and function docstrings because those
 docstrings become the reference documentation.
 
 Use Google or NumPy-style docstrings.
+
+```{toctree}
+:maxdepth: 2
+
+user_guide/development
+```

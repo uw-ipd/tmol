@@ -20,7 +20,7 @@ and visualizing structures with tmol.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Load a PDB file into a tmol.pose.pose_stack.PoseStack, render the beta2016 score function, and evaluate the total weighted energy.">
+    <div class="sphx-glr-thumbcontainer" tooltip="Load a PDB file into a tmol.pose.pose_stack.PoseStack, render the beta2016 score function, evaluate the total weighted energy, and render the scored protein in an interactive 3D viewer.">
 
 .. only:: html
 
