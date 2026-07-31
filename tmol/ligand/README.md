@@ -55,7 +55,147 @@ carry reliable bond orders. Deriving ligand parameters requires an input that
 describes bond geometry — a MOL2, a CIF with a bond table, or a SMILES. Load
 the ligand from one of those formats even when the rest of the complex is a PDB.
 
-## Best Practices
+- `calculate_block_pair_ddg` is a Python API in `tmol.score.score_utils` (no separate CLI wrapper).
+- The structure residue/atom naming must match the residue definition in your `.tmol`.
+- For multi-ligand systems, build an explicit mask instead of assuming the ligand is the last block.
+- Build the score function from the **ligand-extended** database
+  (`beta2016_score_function(device, param_db=context.parameter_database)`),
+  not the default database. A freshly prepared ligand block type has no
+  scoring parameters in the default database, so scoring against it silently
+  contributes nothing.
+
+## User-defined ligand fragmentation
+
+To score different parts of a ligand independently, add an integer
+`tmol_fragment_id` annotation to the input Biotite `AtomArray`. Assign every
+atom in one ligand residue to a fragment. tmol prepares the complete ligand
+first, then copies its atom types and scoring parameters into connected
+fragment block types.
+
+For a ligand named `XYZ`, fragment IDs `1`, `2`, and `3` produce block types
+named `XYZ.1`, `XYZ.2`, and `XYZ.3`.
+
+```python
+import biotite.structure as struc
+import biotite.structure.io
+import numpy as np
+import torch
+
+from tmol.database import ParameterDatabase
+from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+from tmol.score import beta2016_score_function
+from tmol.score.score_utils import calculate_fragment_interactions
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+structure = biotite.structure.io.load_structure("complex.cif")
+if isinstance(structure, struc.AtomArrayStack):
+    structure = structure[0]
+
+# Define the fragment assignment by atom name. This example assumes one XYZ
+# residue; use residue/chain IDs too when the structure contains duplicates.
+xyz_fragments = {
+    "C1": 1,
+    "C2": 1,
+    "O1": 1,
+    "C3": 2,
+    "C4": 2,
+    "N1": 2,
+}
+fragment_ids = np.zeros(structure.array_length(), dtype=np.int32)
+is_xyz = structure.res_name == "XYZ"
+for atom_name, fragment_id in xyz_fragments.items():
+    fragment_ids[is_xyz & (structure.atom_name == atom_name)] = fragment_id
+assert np.all(fragment_ids[is_xyz] > 0), "assign every XYZ atom to a fragment"
+structure.set_annotation("tmol_fragment_id", fragment_ids)
+
+pose, context = pose_stack_from_biotite(
+    structure,
+    device,
+    param_db=ParameterDatabase.get_default(),
+    prepare_ligands=True,
+    return_context=True,
+)
+
+# Select all non-fragment blocks as the interaction partner.
+mapping = pose.fragmented_ligand_mapping
+partner_mask = pose.block_type_ind >= 0
+for record in mapping.blocks:
+    partner_mask[record.pose_index, record.block_index] = False
+
+# The score function must use the ligand-extended database from the build context.
+sfxn = beta2016_score_function(
+    device,
+    param_db=context.parameter_database,
+)
+interactions = calculate_fragment_interactions(
+    pose,
+    partner_mask,
+    sfxn=sfxn,
+    sum_terms=True,
+)
+
+for index, record in enumerate(interactions.mapping):
+    print(record.fragment_name, interactions.scores[:, index])
+```
+
+`interactions.scores` has shape `[n_poses, n_fragments]` when
+`sum_terms=True`, or `[n_score_terms, n_poses, n_fragments]` otherwise.
+`interactions.mapping` gives the fragment name, original residue identity,
+and pose block index for each score column. Summing the fragment interaction
+columns gives the fragmented ligand-versus-partner block-pair ddG.
+
+Fragment layouts currently have these correctness constraints:
+
+- each fragment is connected and contains at least three heavy atoms;
+- each fragment has at most four connections to other fragments;
+- no atom participates in more than one cut bond;
+- no four-atom bonded path contains more than one cut; and
+- cuts do not pass directly through hbond/lk_ball acceptor geometry.
+
+The cut-sharing rules prevent bonded angles, torsions, and impropers from
+spanning three or more blocks. The acceptor rule keeps hbond/lk_ball frame
+geometry local to a fragment. Current bonded scoring kernels evaluate terms
+within one block or across one connection between two blocks. tmol rejects
+unsupported layouts rather than silently omitting those energy and gradient
+terms. In practice, choose chemically meaningful fragments of roughly 3–8 heavy
+atoms and keep adjacent cut bonds separated.
+
+Additional requirements:
+
+- Fragment IDs must be integers. Use `0` only outside fragmented residues; every
+  atom in a fragmented residue must have a positive fragment ID, and at least two
+  positive IDs must occur.
+- All instances of a residue name in one input must use the same fragment
+  layout.
+- Generated names such as `XYZ.1` must not already identify different
+  chemistry in the active parameter database.
+- The mapping is attached automatically as
+  `pose.fragmented_ligand_mapping`; users normally should not call the
+  lower-level fragmentation functions directly.
+
+### Recombining and dumping fragments
+
+Fragmentation only changes the in-memory block layout used for scoring.
+`write_pose_stack_pdb()` and `biotite_from_pose_stack()` restore each
+fragmented ligand's original residue name, number, chain, and insertion code by
+default, so dumped coordinates contain the original ligand residue:
+
+```python
+from tmol import write_pose_stack_pdb
+from tmol.io.pose_stack_from_biotite import biotite_from_pose_stack
+
+write_pose_stack_pdb(pose, "scored_complex.pdb")
+restored = biotite_from_pose_stack(pose, context.canonical_ordering)
+```
+
+Pass `merge_fragments=False` to either function to inspect the separate
+fragment residues. `tmol.ligand.recombine_fragmented_ligands()` provides the
+same residue-identity restoration for an already exported Biotite structure.
+This export operation does not rebuild a new single-block scoring pose; the
+original pose remains fragmented so per-fragment interactions can still be
+calculated.
+
+## Troubleshooting
 
 ### Reuse the context (preferred)
 
@@ -173,6 +313,7 @@ it into the pose. Failure modes, in order of likelihood:
 | `preparation.py` | `prepare_ligands`, single-ligand `from_{mol2,cif,smiles}` helpers, CIF rename |
 | `detect.py` | `NonStandardResidueInfo`, non-standard residue detection, mol2/SMILES readers |
 | `structure_to_smiles.py` | SMILES from an AtomArray bond table (no geometry perception, no CCD lookup) |
+| `fragmentation.py` | Fragment annotations, fragment block types/connections, pose mapping |
 | `dimorphite_dl.py` | pKa-based protonation-state enumeration on SMILES |
 | `conformer_generation.py` | 3D coordinates via RDKit distance geometry (replaces OpenBabel `make3D`) |
 | `generated_geometry.py` | Corrections to known systematic errors in generated conformers |

@@ -15,20 +15,20 @@ from typing import Optional
 def write_pose_stack_pdb(
     pose_stack: PoseStack,
     fname_out: str,
+    merge_fragments: bool = True,
     **kwargs,
 ):
     """Write a PDB-formatted file to disk given an input PoseStack.
     Optionally, additional arguments may be passed to the inner function
-    "atom_records_from_pose_stack," e.g. the chain_ind_for_block and
-    chain_labels arguments (which bypass the automatic-chain-detection
-    step when deciding which residues are part of the same chain and
-    give arbitrary labels to the chains, respectively) through this
-    function as kwargs. See documentation for
-    tmol.io.write_pose_stack.atom_records_from_pose_stack
+    "atom_records_from_pose_stack." Fragmented ligands use their original
+    residue identity by default; pass ``merge_fragments=False`` to keep
+    fragment residues separate.
     """
     from tmol.io.pdb_parsing import to_pdb
 
-    atom_records = atom_records_from_pose_stack(pose_stack, **kwargs)
+    atom_records = atom_records_from_pose_stack(
+        pose_stack, merge_fragments=merge_fragments, **kwargs
+    )
     pdbstring = to_pdb(atom_records)
     with open(fname_out, "w") as fid:
         fid.write(pdbstring)
@@ -37,12 +37,16 @@ def write_pose_stack_pdb(
 @validate_args
 def atom_records_from_pose_stack(
     pose_stack: PoseStack,
+    merge_fragments: bool = True,
 ) -> NDArray[atom_record_dtype][:]:
     """Create a numpy array holding the atom records needed to write a
     PDB file from a PoseStack.
+
+    Fragmented ligands use their original residue identity by default. Pass
+    ``merge_fragments=False`` to retain the separate fragment residue numbers.
     """
 
-    return atom_records_from_coords(
+    records = atom_records_from_coords(
         pose_stack.packed_block_types,
         pose_stack.chain_id64,
         pose_stack.block_type_ind64,
@@ -54,6 +58,17 @@ def atom_records_from_pose_stack(
         pose_stack.pdb_info.atom_occupancy,
         pose_stack.pdb_info.atom_b_factor,
     )
+    mapping = getattr(pose_stack, "fragmented_ligand_mapping", None)
+    if merge_fragments and mapping is not None:
+        for fragment in mapping.blocks:
+            fragment_atoms = (records["modeli"] == fragment.pose_index) & (
+                records["resi"] == fragment.pose_residue_label
+            )
+            records["resn"][fragment_atoms] = fragment.ligand_name
+            records["resi"][fragment_atoms] = fragment.residue_label
+            records["chain"][fragment_atoms] = fragment.chain_label
+            records["insert"][fragment_atoms] = fragment.insertion_code
+    return records
 
 
 @validate_args

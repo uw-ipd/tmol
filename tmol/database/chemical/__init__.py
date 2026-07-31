@@ -184,6 +184,8 @@ class RawResidueType:
     # them rather than trust input H by name. False for canonical / params-file
     # residues, whose H are authoritative.
     hydrogens_regenerated: bool = False
+    # True only for blocks produced by user-defined ligand fragmentation.
+    is_ligand_fragment: bool = False
 
     def atom_name(self, index):
         return self.atoms[index].name

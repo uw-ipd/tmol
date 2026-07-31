@@ -1,4 +1,5 @@
 import torch
+from dataclasses import dataclass
 
 from tmol import run_cart_min
 from tmol.pack.pack_rotamers import pack_rotamers
@@ -8,6 +9,108 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
     create_dunbrack_sampler_from_database,
 )
+
+
+@dataclass(frozen=True)
+class FragmentInteractionScores:
+    """Per-fragment interactions with an explicitly selected partner."""
+
+    scores: torch.Tensor
+    mapping: tuple
+
+
+def calculate_fragment_interactions(
+    pose_stack,
+    partner_mask,
+    *,
+    sfxn,
+    mapping=None,
+    sum_terms=False,
+):
+    """Return each ligand fragment's interaction with ``partner_mask``.
+
+    The connected multi-block pose is scored once. Fragment-fragment entries
+    remain in the block-pair matrix and are not silently assigned to either
+    fragment.
+
+    ``sfxn`` is required and must be built from the same ligand-extended
+    parameter database used to construct ``pose_stack``.
+
+    Returns:
+        :class:`FragmentInteractionScores`. ``scores`` has shape
+        ``[n_terms, n_poses, n_fragments]`` or ``[n_poses, n_fragments]`` when
+        ``sum_terms`` is true.
+    """
+
+    if mapping is None:
+        mapping = getattr(pose_stack, "fragmented_ligand_mapping", None)
+    if mapping is None or not mapping.blocks:
+        raise ValueError(
+            "No fragmented-ligand mapping was supplied or attached to the pose"
+        )
+    if partner_mask.shape != pose_stack.block_type_ind.shape:
+        raise ValueError(
+            "partner_mask must have shape [n_poses, max_n_blocks]; got "
+            f"{tuple(partner_mask.shape)}"
+        )
+    if partner_mask.dtype != torch.bool:
+        raise TypeError("partner_mask must be a boolean tensor")
+    if partner_mask.device != pose_stack.device:
+        raise ValueError("partner_mask must be on the same device as pose_stack")
+    if sfxn is None:
+        raise ValueError(
+            "sfxn is required and must use the ligand-extended parameter database"
+        )
+
+    scorer = sfxn.render_block_pair_scoring_module(pose_stack)
+    block_pair_scores = scorer(pose_stack.coords, sum_terms=False)
+    # apply_fragment_connections makes block topology canonical across poses, so
+    # the pose-0 records define one column layout that every pose must share.
+    fragment_records = tuple(
+        sorted(
+            (record for record in mapping.blocks if record.pose_index == 0),
+            key=lambda record: record.block_index,
+        )
+    )
+    expected_columns = {
+        (record.pose_residue_label, record.block_index) for record in fragment_records
+    }
+    for pose_index in range(pose_stack.n_poses):
+        pose_columns = {
+            (record.pose_residue_label, record.block_index)
+            for record in mapping.blocks
+            if record.pose_index == pose_index
+        }
+        if pose_columns != expected_columns:
+            raise ValueError(
+                "Fragment mappings must use identical block topology in every pose"
+            )
+    for record in mapping.blocks:
+        if bool(partner_mask[record.pose_index, record.block_index]):
+            raise ValueError("partner_mask must not include ligand fragment blocks")
+    n_terms, n_poses, _, _ = block_pair_scores.shape
+    result = torch.zeros(
+        (n_terms, n_poses, len(fragment_records)),
+        dtype=block_pair_scores.dtype,
+        device=block_pair_scores.device,
+    )
+    for fragment_index, record in enumerate(fragment_records):
+        block_index = record.block_index
+        # Sum both orientations, exactly as calculate_block_pair_ddg does.
+        result[:, :, fragment_index] = (
+            block_pair_scores[:, :, block_index, :] * partner_mask.unsqueeze(0)
+        ).sum(dim=2) + (
+            block_pair_scores[:, :, :, block_index] * partner_mask.unsqueeze(0)
+        ).sum(
+            dim=2
+        )
+
+    if sum_terms:
+        result = result.sum(dim=0)
+    return FragmentInteractionScores(
+        scores=result,
+        mapping=fragment_records,
+    )
 
 
 def residue_mask_from_chain(pose_stack, chain_id):
@@ -94,9 +197,10 @@ def calculate_block_pair_ddg(
         pack_mask = mask | nearby_mask  # [n_poses, n_blocks]
 
         # Build a PackerTask restricted to repacking only the selected residues.
-        restype_set = pose_stack.packed_block_types.restype_set
-        palette = PackerPalette(restype_set)
+        palette = PackerPalette()
 
+        if database is None:
+            database = getattr(sfxn, "_param_db", None)
         dun_sampler = create_dunbrack_sampler_from_database(database, pose_stack.device)
 
         task = PackerTask(pose_stack, palette)
@@ -107,18 +211,12 @@ def calculate_block_pair_ddg(
         task.restrict_to_repacking()
 
         # Disable packing for blocks that are not in the pack_mask.
-        n_poses = pose_stack.n_poses
-        for i in range(n_poses):
-            for blt in task.blts[i]:
-                if not pack_mask[i, blt.seqpos]:
-                    blt.disable_packing()
+        task.disable_packing_by_block_mask(~pack_mask)
 
         pose_stack = pack_rotamers(pose_stack, sfxn, task)
 
     if minimize:
         coord_mask = build_coord_mask_for_mask_and_interacting_atoms(pose_stack, mask)
-        print("coord_mask True:", coord_mask.count_nonzero())
-        print("coord_mask False:", (~coord_mask).count_nonzero())
         pose_stack = run_cart_min(pose_stack, sfxn, coord_mask)
 
     scorer = sfxn.render_block_pair_scoring_module(pose_stack)
@@ -407,7 +505,7 @@ def compute_block_centroids_and_furthest_dist(pose_stack):
 
 def build_coord_mask_for_mask_and_interacting_atoms(pose_stack, mask):
 
-    # Build coord_mask: True for atoms in masked blocks AND sidechain atoms within 3.0 Angstroms
+    # Build coord_mask: True for atoms in masked blocks and sidechain atoms within 5.0 Angstroms.
     n_poses, max_n_atoms, _ = pose_stack.coords.shape
     n_blocks = pose_stack.max_n_blocks
     max_n_block_atoms = pose_stack.max_n_block_atoms
@@ -548,7 +646,7 @@ def build_coord_mask_for_mask_and_interacting_atoms(pose_stack, mask):
         )  # [n_real_atoms, n_masked_atoms, 3]
         distances = torch.sqrt((diff**2).sum(dim=2))  # [n_real_atoms, n_masked_atoms]
 
-        # Find atoms within 3.0 Angstroms of any masked atom
+        # Find atoms within 5.0 Angstroms of any masked atom.
         min_distances = distances.min(dim=1)[0]  # [n_real_atoms]
         nearby_atoms = min_distances <= 5.0  # [n_real_atoms]
 
