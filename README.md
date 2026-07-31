@@ -5,7 +5,7 @@ modeling energy function. It scores protein structures, supports differentiable
 minimization, packs side chains, and prepares small-molecule ligands for
 protein-ligand scoring workflows.
 
-Documentation: <https://tmol.ipd.uw.edu/latest/>
+Documentation: <https://uw-ipd.github.io/tmol/latest/>
 
 ## Quickstart
 

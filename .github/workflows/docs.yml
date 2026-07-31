@@ -16,7 +16,7 @@ permissions:
   pull-requests: write
 
 env:
-  DOCS_BASE_URL: https://tmol.ipd.uw.edu
+  DOCS_BASE_URL: https://uw-ipd.github.io/tmol
 
 jobs:
   docs:
@@ -85,7 +85,7 @@ jobs:
           )
           VERSION_DIR="v${VERSION}"
           mkdir -p "gh-pages/${VERSION_DIR}" gh-pages/latest
-          cp docs/_html_extra/CNAME gh-pages/CNAME
+          rm -f gh-pages/CNAME
           rsync -av --delete docs/_build/html/ "gh-pages/${VERSION_DIR}/"
           rsync -av --delete docs/_build/html/ gh-pages/latest/
           python .github/scripts/update_docs_switcher.py \
@@ -103,7 +103,7 @@ jobs:
         run: |
           PREVIEW_DIR="previews/pr-${{ github.event.number }}"
           mkdir -p "gh-pages/${PREVIEW_DIR}"
-          cp docs/_html_extra/CNAME gh-pages/CNAME
+          rm -f gh-pages/CNAME
           rsync -av --delete docs/_build/html/ "gh-pages/${PREVIEW_DIR}/"
           python .github/scripts/update_docs_switcher.py \
             --pages-dir gh-pages \
@@ -120,7 +120,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: gh-pages
-          keep_files: true
+          keep_files: false
           force_orphan: false
           user_name: github-actions[bot]
           user_email: github-actions[bot]@users.noreply.github.com

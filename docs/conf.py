@@ -51,9 +51,9 @@ author = "Institute for Protein Design"
 copyright = "2018-2026, Institute for Protein Design"
 version = _project_version()
 release = version
-docs_base_url = os.environ.get("TMOL_DOCS_BASE_URL", "https://tmol.ipd.uw.edu").rstrip(
-    "/"
-)
+docs_base_url = os.environ.get(
+    "TMOL_DOCS_BASE_URL", "https://uw-ipd.github.io/tmol"
+).rstrip("/")
 switcher_version = os.environ.get("TMOL_DOCS_VERSION_MATCH", version)
 switcher_json_url = os.environ.get(
     "TMOL_DOCS_SWITCHER_JSON_URL",
@@ -172,7 +172,7 @@ intersphinx_mapping = {
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-html_extra_path = ["_html_extra"]
+html_extra_path: list[str] = []
 html_title = "tmol documentation"
 html_theme_options = {
     "show_nav_level": 2,
