@@ -21,6 +21,7 @@ import biotite.structure as struc
 import biotite.structure.io
 import torch
 
+import tmol
 from tmol.database import ParameterDatabase
 from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
 from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
@@ -39,7 +40,7 @@ LIGAND_RES_NAME = "LG1"
 
 def load_complex(target: str):
     """Load a fixture complex as a Biotite AtomArray."""
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = Path(tmol.__file__).resolve().parents[1]
     data_dir = repo_root / "tmol" / "tests" / "data" / "protein_ligand_test"
     structure = biotite.structure.io.load_structure(
         str(data_dir / f"{target}.tmol.nomin.cif"),
@@ -76,19 +77,39 @@ def total_score(pose_stack, sfxn):
     return float(score[0])
 
 
-def view_pose_stack(pose_stack, pdb_path):
-    """Return a py3Dmol viewer for use in notebooks or IPython."""
+def pose_center(pose_stack):
+    """Return the geometric center of the first pose for viewer labels."""
+    coords = pose_stack.coords[0].detach().cpu()
+    finite_coords = coords[torch.isfinite(coords).all(dim=-1)]
+    center = finite_coords.mean(dim=0)
+    return {"x": float(center[0]), "y": float(center[1]), "z": float(center[2])}
+
+
+def view_pose_stack(pose_stack, pdb_path, score_label):
+    """Return a py3Dmol viewer for use in notebooks, IPython, or docs."""
     import py3Dmol
 
     write_pose_stack_pdb(pose_stack, str(pdb_path))
     view = py3Dmol.view(width=760, height=520)
     view.addModel(Path(pdb_path).read_text(), "pdb")
+    view.setBackgroundColor("white")
     view.setStyle({"cartoon": {"color": "spectrum"}})
     view.setStyle({"resn": LIGAND_RES_NAME}, {"stick": {"colorscheme": "cyanCarbon"}})
     view.addSurface(
         py3Dmol.VDW,
         {"opacity": 0.25, "color": "white"},
         {"resn": LIGAND_RES_NAME},
+    )
+    view.addLabel(
+        score_label,
+        {
+            "position": pose_center(pose_stack),
+            "backgroundColor": "white",
+            "fontColor": "black",
+            "fontSize": 14,
+            "inFront": True,
+            "showBackground": True,
+        },
     )
     view.zoomTo({"resn": LIGAND_RES_NAME})
     return view
@@ -132,7 +153,10 @@ final_score = total_score(minimized_pose_stack, sfxn)
 print(f"score after repack + minimize: {final_score:.3f}")
 
 with TemporaryDirectory() as tmpdir:
-    viewer = view_pose_stack(minimized_pose_stack, Path(tmpdir) / "refined.pdb")
-    # In a notebook or IPython session, return ``viewer`` from the final cell to
-    # inspect the prepared and refined protein-ligand complex interactively.
-    viewer
+    viewer = view_pose_stack(
+        minimized_pose_stack,
+        Path(tmpdir) / "refined.pdb",
+        f"score before: {start_score:.3f}; after: {final_score:.3f}",
+    )
+
+viewer

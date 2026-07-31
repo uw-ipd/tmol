@@ -205,6 +205,7 @@ sphinx_gallery_conf = {
     "abort_on_example_error": True,
     "capture_repr": ("_repr_html_", "__repr__"),
     "download_all_examples": False,
+    "filename_pattern": r".*",
     "thumbnail_size": (350, 350),
     "ignore_pattern": r"GALLERY_HEADER\.rst",
 }

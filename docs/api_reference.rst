@@ -8,4 +8,6 @@ extension availability.
 .. toctree::
    :maxdepth: 2
 
+   architecture
+   datatypes
    api/tmol/index
