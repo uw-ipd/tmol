@@ -512,8 +512,9 @@ def _filter_supported_atoms_and_connectivity(
     ]
 
     # Filter residues missing mainchain atoms required for rotamer building.
-    # The required atoms are taken from the residue type's polymer.mainchain_atoms
-    # definition; residues with no mainchain definition (non-polymer) are skipped.
+    # Only atoms present in every variant count as required, so an atom a terminus
+    # patch removes (the DNA 5' phosphate) does not disqualify the residue.
+    # Residues with no mainchain definition (non-polymer) are skipped.
     atom_names = biotite_structure.atom_name
     if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
         coords = biotite_structure.coord  # (n_poses, n_atoms, 3)
@@ -527,7 +528,7 @@ def _filter_supported_atoms_and_connectivity(
             continue
         start, end = biotite_residue_starts[i], residue_ends[i]
         res_name3 = biotite_structure.res_name[start]
-        required = co.restypes_mainchain_atoms.get(res_name3)
+        required = co.restypes_required_mainchain_atoms.get(res_name3)
         if not required:
             continue
         res_atom_names = atom_names[start:end]

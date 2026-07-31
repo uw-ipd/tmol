@@ -159,6 +159,11 @@ class CanonicalOrdering:
 
     ############# tmol internal data members below ############
 
+    # mainchain atoms common to every variant of an equivalence class, i.e. the
+    # ones whose absence cannot be explained by a terminus patch. The DNA 5'
+    # variant drops P, so P is mainchain but not required.
+    restypes_required_mainchain_atoms: Mapping[str, Optional[Tuple[str, ...]]]
+
     restypes_default_termini_mapping: Mapping[str, Tuple[str, str]]
     down_termini_patches: Tuple[str, ...]
     up_termini_patches: Tuple[str, ...]
@@ -229,6 +234,7 @@ class CanonicalOrdering:
             if equiv not in restypes_mainchain_atoms:
                 mc = restype.properties.polymer.mainchain_atoms
                 restypes_mainchain_atoms[equiv] = tuple(mc) if mc else None
+        restypes_required_mainchain_atoms = cls._required_mainchain_atoms(chemdb)
 
         default_termini_mapping = cls._temp_termini_mapping()
         termini_patch_added_atoms = defaultdict(lambda: set([]))
@@ -254,6 +260,7 @@ class CanonicalOrdering:
             restypes_ordered_atom_names=restypes_ordered_atom_names,
             restypes_atom_index_mapping=restypes_atom_index_mapping,
             restypes_mainchain_atoms=restypes_mainchain_atoms,
+            restypes_required_mainchain_atoms=restypes_required_mainchain_atoms,
             restypes_default_termini_mapping=default_termini_mapping,
             down_termini_patches=down_termini_patches,
             up_termini_patches=up_termini_patches,
@@ -265,6 +272,26 @@ class CanonicalOrdering:
                 ordered_restypes, restypes_ordered_atom_names
             ),
         )
+
+    @classmethod
+    def _required_mainchain_atoms(cls, chemdb: PatchedChemicalDatabase):
+        """Mainchain atoms shared by every variant of each equivalence class.
+
+        An atom a terminus patch removes -- the DNA 5' phosphate -- is mainchain
+        but must not be treated as required of an input structure.
+        """
+        required = {}
+        for restype in chemdb.residues:
+            equiv = restype.io_equiv_class
+            mc = restype.properties.polymer.mainchain_atoms
+            mc = tuple(mc) if mc else None
+            if equiv not in required:
+                required[equiv] = mc
+            elif mc is None or required[equiv] is None:
+                required[equiv] = None
+            else:
+                required[equiv] = tuple(at for at in required[equiv] if at in mc)
+        return required
 
     @classmethod
     def _temp_termini_mapping(cls):
@@ -292,6 +319,10 @@ class CanonicalOrdering:
             "VAL": ("nterm", "cterm"),
             "TRP": ("nterm", "cterm"),
             "TYR": ("nterm", "cterm"),
+            "DA": ("dna5prime", "dna3prime"),
+            "DC": ("dna5prime", "dna3prime"),
+            "DG": ("dna5prime", "dna3prime"),
+            "DT": ("dna5prime", "dna3prime"),
         }
 
     @classmethod

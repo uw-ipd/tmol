@@ -212,8 +212,8 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
     # LJ repulsive shoulder, leaving the attractive and electrostatic terms
     # unchanged. gen_torsions is enabled in beta_soft.yaml on this branch.
     gold_score_map = {
-        ScoreType.cart_lengths: n([37.762318]),
-        ScoreType.cart_angles: n([183.56915]),
+        ScoreType.cart_lengths: n([38.056973]),
+        ScoreType.cart_angles: n([183.9738]),
         ScoreType.cart_torsions: n([46.02357]),
         ScoreType.cart_impropers: n([9.430529]),
         ScoreType.cart_hxltorsions: n([47.41971]),
@@ -263,8 +263,8 @@ def test_score_function_all_score_types(ubq_pdb):
     # edit 2026/1/7: torsions change slightly due to improper double-counting of
     # hydroxyl torsions in old version.
     gold_score_map = {
-        ScoreType.cart_lengths: n([37.762318]),
-        ScoreType.cart_angles: n([183.56915]),
+        ScoreType.cart_lengths: n([38.056973]),
+        ScoreType.cart_angles: n([183.9738]),
         ScoreType.cart_torsions: n([46.02357]),
         ScoreType.cart_impropers: n([9.430529]),
         ScoreType.cart_hxltorsions: n([47.41971]),

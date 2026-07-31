@@ -72,6 +72,37 @@ def water_box_pdb():
     return pdb.data["water_box"]
 
 
+@pytest.fixture()
+def dna_pdb():
+    # 1BNA, the Dickerson dodecamer: two DNA chains, no protein.
+    # Waters stripped and hydrogens added by Rosetta.
+    return pdb.data["1BNA"]
+
+
+@pytest.fixture()
+def protein_dna_pdb():
+    # 1YSA, the GCN4 bZIP dimer bound to DNA: two DNA chains and two protein
+    # chains. Waters stripped and hydrogens added by Rosetta.
+    return pdb.data["1YSA"]
+
+
+def _load_pdb_structure(name):
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", name)
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
+def biotite_dna():
+    return _load_pdb_structure("1bna.pdb")
+
+
+@pytest.fixture()
+def biotite_protein_dna():
+    return _load_pdb_structure("1ysa.pdb")
+
+
 @pytest.fixture(scope="session")
 def systems_bysize():
     return {

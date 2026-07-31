@@ -37,7 +37,7 @@ class RestypeGraphBuilder:
 
 
 # remove all atom references from a raw restype
-# delete atoms, bonds, torsions, and connections involving atom
+# delete atoms, bonds, torsions, connections, and mainchain entries involving atom
 def remove_atom(res, atom):
     res.atoms = tuple(x for x in res.atoms if x.name != atom)
     res.bonds = tuple(b for b in res.bonds if b[0] != atom and b[1] != atom)
@@ -50,6 +50,18 @@ def remove_atom(res, atom):
         if atom not in [x.a.connection, x.b.connection, x.c.connection, x.d.connection]
     )
     res.connections = tuple(x for x in res.connections if x.name != atom)
+
+    # atom_downstream_of_conn indexes every mainchain atom, so a patch that drops
+    # one (e.g. the DNA 5' terminus dropping P) must drop it here too
+    mainchain = res.properties.polymer.mainchain_atoms
+    if mainchain is not None and atom in mainchain:
+        res.properties = attr.evolve(
+            res.properties,
+            polymer=attr.evolve(
+                res.properties.polymer,
+                mainchain_atoms=tuple(x for x in mainchain if x != atom),
+            ),
+        )
     return res
 
 

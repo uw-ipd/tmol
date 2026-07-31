@@ -65,6 +65,19 @@ atom_types:
   - { name: Hwat, element: H, is_polarh : true }
   - { name: Vrt, element: Vr}
 
+  # DNA atom types. Rosetta shares Ntrp/Nhis/NH2O/Npro between protein and DNA;
+  # tmol splits them so the DNA-specific LK values do not perturb protein scores.
+  - { name: Pdna, element: P }
+  - { name: OOP , element: O, is_acceptor : true, acceptor_hybridization: sp2 } # phosphate OP1/OP2
+  - { name: Oet2, element: O, is_acceptor : true, acceptor_hybridization: sp2 } # phosphate ester O5'/O3'
+  - { name: Oet3, element: O, is_acceptor : true, acceptor_hybridization: sp3, is_donor : true } # ribose ring O4'; should not be a donor, but matching rosetta
+  - { name: OBdd   , element: O, is_acceptor : true, acceptor_hybridization: sp2 } # pyrimidine O2/O4
+  - { name: OBddGua, element: O, is_acceptor : true, acceptor_hybridization: sp2 } # guanine O6; hbacc_CXL where OBdd is hbacc_CXA
+  - { name: NproDNA, element: N, is_donor : true } # glycosidic N9/N1; should not be a donor, but matching rosetta
+  - { name: NhisDNA, element: N, is_acceptor : true, acceptor_hybridization: ring } # base ring acceptors
+  - { name: NH2ODNA, element: N, is_donor : true } # exocyclic amines N6/N4/N2
+  - { name: NtrpDNA, element: N, is_donor : true } # protonated ring N: GUA N1, THY N3
+
   # Generic potential atom types for ligands (from Rosetta generic_potential)
   # Carbon
   - { name: CD  , element: C }
@@ -2541,6 +2554,603 @@ residues:
       virtual: []
     chi_samples: []
     default_jump_connection_atom: CA
+  - name:  DA
+    base_name: DA
+    name3: DA
+    io_equiv_class: DA
+    atoms:
+    - { name: P ,   atom_type: Pdna     }
+    - { name: OP2 , atom_type: OOP      }
+    - { name: OP1 , atom_type: OOP      }
+    - { name: O5' , atom_type: Oet2     }
+    - { name: C5' , atom_type: CH2      }
+    - { name: C4' , atom_type: CH1      }
+    - { name: O4' , atom_type: Oet3     }
+    - { name: C3' , atom_type: CH1      }
+    - { name: O3' , atom_type: Oet2     }
+    - { name: C2' , atom_type: CH2      }
+    - { name: C1' , atom_type: CH1      }
+    - { name: N9 ,  atom_type: NproDNA  }
+    - { name: C4 ,  atom_type: Caro     }
+    - { name: N3 ,  atom_type: NhisDNA  }
+    - { name: C2 ,  atom_type: Caro     }
+    - { name: N1 ,  atom_type: NhisDNA  }
+    - { name: C6 ,  atom_type: Caro     }
+    - { name: C5 ,  atom_type: Caro     }
+    - { name: N7 ,  atom_type: NhisDNA  }
+    - { name: C8 ,  atom_type: Caro     }
+    - { name: N6 ,  atom_type: NH2ODNA  }
+    - { name: H5'' , atom_type: Hapo     }
+    - { name: H5' , atom_type: Hapo     }
+    - { name: H4' , atom_type: Hapo     }
+    - { name: H3' , atom_type: Hapo     }
+    - { name: H2'' , atom_type: Hapo     }
+    - { name: H2' , atom_type: Hapo     }
+    - { name: H1' , atom_type: Hapo     }
+    - { name: H2 ,  atom_type: Haro     }
+    - { name: H61 , atom_type: Hpol     }
+    - { name: H62 , atom_type: Hpol     }
+    - { name: H8 ,  atom_type: Haro     }
+    atom_aliases:
+    - { name: OP2 , alt_name: O1P  }
+    - { name: OP1 , alt_name: O2P  }
+    - { name: H2' , alt_name: 1H2' }
+    - { name: H5' , alt_name: 1H5' }
+    - { name: H5'' , alt_name: 2H5' }
+    - { name: H61 , alt_name: 1H6  }
+    - { name: H62 , alt_name: 2H6  }
+    bonds:
+    - [     P,   OP2, AROMATIC, false]
+    - [     P,   OP1, AROMATIC, false]
+    - [     P,   O5', SINGLE  , false]
+    - [   O5',   C5', SINGLE  , false]
+    - [   C5',   C4', SINGLE  , false]
+    - [   C5',  H5'', SINGLE  , false]
+    - [   C5',   H5', SINGLE  , false]
+    - [   C4',   O4', SINGLE  , true]
+    - [   C4',   C3', SINGLE  , true]
+    - [   C4',   H4', SINGLE  , false]
+    - [   O4',   C1', SINGLE  , true]
+    - [   C3',   O3', SINGLE  , false]
+    - [   C3',   C2', SINGLE  , true]
+    - [   C3',   H3', SINGLE  , false]
+    - [   C2',   C1', SINGLE  , true]
+    - [   C2',  H2'', SINGLE  , false]
+    - [   C2',   H2', SINGLE  , false]
+    - [   C1',    N9, SINGLE  , false]
+    - [   C1',   H1', SINGLE  , false]
+    - [    N1,    C2, AROMATIC, true]
+    - [    N1,    C6, AROMATIC, true]
+    - [    C2,    N3, AROMATIC, true]
+    - [    C2,    H2, SINGLE  , false]
+    - [    N3,    C4, AROMATIC, true]
+    - [    C4,    C5, AROMATIC, true]
+    - [    C4,    N9, AROMATIC, true]
+    - [    C5,    C6, AROMATIC, true]
+    - [    C5,    N7, AROMATIC, true]
+    - [    C6,    N6, SINGLE  , false]
+    - [    N6,   H61, SINGLE  , false]
+    - [    N6,   H62, SINGLE  , false]
+    - [    N7,    C8, AROMATIC, true]
+    - [    C8,    N9, AROMATIC, true]
+    - [    C8,    H8, SINGLE  , false]
+    connections:
+    - { name: down, atom: P, type: SINGLE }
+    - { name: up, atom: O3', type: SINGLE }
+    torsions:
+    - { name: alpha,   a: {connection: down, bond_sep_from_conn: 0}, b: {atom: P}, c: {atom: O5'}, d: {atom: C5'}}
+    - { name: beta,    a: {atom: P}, b: {atom: O5'}, c: {atom: C5'}, d: {atom: C4'}}
+    - { name: gamma,   a: {atom: O5'}, b: {atom: C5'}, c: {atom: C4'}, d: {atom: C3'}}
+    - { name: delta,   a: {atom: C5'}, b: {atom: C4'}, c: {atom: C3'}, d: {atom: O3'}}
+    - { name: epsilon, a: {atom: C4'}, b: {atom: C3'}, c: {atom: O3'}, d: {connection: up, bond_sep_from_conn: 0}}
+    - { name: zeta,    a: {atom: C3'}, b: {atom: O3'}, c: {connection: up, bond_sep_from_conn: 0}, d: {connection: up, bond_sep_from_conn: 1}}
+    - { name: chi1,    a: {atom: O4'}, b: {atom: C1'}, c: {atom: N9}, d: {atom: C4}}
+    icoors:
+    - { name:   O5', phi:    0.000000 deg, theta:   0.000000 deg, d: 0.000000, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:   C5', phi:    0.000000 deg, theta: 180.000000 deg, d: 1.440609, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:   C4', phi:    0.000000 deg, theta:  69.835243 deg, d: 1.510374, parent:   C5', grand_parent:   O5', great_grand_parent:   C4' }
+    - { name:   C3', phi:   55.143166 deg, theta:  65.301254 deg, d: 1.528790, parent:   C4', grand_parent:   C5', great_grand_parent:   O5' }
+    - { name:   O3', phi:  143.387878 deg, theta:  69.709740 deg, d: 1.432090, parent:   C3', grand_parent:   C4', great_grand_parent:   C5' }
+    - { name:    up, phi: -180.000000 deg, theta:  60.200000 deg, d: 1.608000, parent:   O3', grand_parent:   C3', great_grand_parent:   C4' }
+    - { name:   H3', phi: -119.112297 deg, theta:  66.662369 deg, d: 1.100325, parent:   C3', grand_parent:   C4', great_grand_parent:   O3' }
+    - { name:   O4', phi: -118.953102 deg, theta:  70.613945 deg, d: 1.447410, parent:   C4', grand_parent:   C5', great_grand_parent:   C3' }
+    - { name:   C1', phi:  122.433495 deg, theta:  69.749817 deg, d: 1.419319, parent:   O4', grand_parent:   C4', great_grand_parent:   C5' }
+    - { name:    N9, phi: -142.304794 deg, theta:  72.212776 deg, d: 1.462143, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
+    - { name:    C4, phi: -106.267799 deg, theta:  53.777103 deg, d: 1.373978, parent:    N9, grand_parent:   C1', great_grand_parent:   O4' }
+    - { name:    N3, phi:    0.107822 deg, theta:  52.611282 deg, d: 1.343755, parent:    C4, grand_parent:    N9, great_grand_parent:   C1' }
+    - { name:    C2, phi:  179.956177 deg, theta:  69.396111 deg, d: 1.330738, parent:    N3, grand_parent:    C4, great_grand_parent:    N9 }
+    - { name:    N1, phi:   -0.005180 deg, theta:  50.679340 deg, d: 1.338353, parent:    C2, grand_parent:    N3, great_grand_parent:    C4 }
+    - { name:    C6, phi:    0.006546 deg, theta:  61.415565 deg, d: 1.351012, parent:    N1, grand_parent:    C2, great_grand_parent:    N3 }
+    - { name:    C5, phi:   -0.028293 deg, theta:  62.330189 deg, d: 1.405206, parent:    C6, grand_parent:    N1, great_grand_parent:    C2 }
+    - { name:    N7, phi: -179.901337 deg, theta:  47.682999 deg, d: 1.388174, parent:    C5, grand_parent:    C6, great_grand_parent:    N1 }
+    - { name:    C8, phi:  179.964798 deg, theta:  76.122650 deg, d: 1.310294, parent:    N7, grand_parent:    C5, great_grand_parent:    C6 }
+    - { name:    H8, phi:  179.981186 deg, theta:  56.923759 deg, d: 1.099728, parent:    C8, grand_parent:    N7, great_grand_parent:    C5 }
+    - { name:    N6, phi:  179.989136 deg, theta:  61.399986 deg, d: 1.334857, parent:    C6, grand_parent:    N1, great_grand_parent:    C5 }
+    - { name:   H61, phi:    0.038433 deg, theta:  59.995125 deg, d: 1.000204, parent:    N6, grand_parent:    C6, great_grand_parent:    N1 }
+    - { name:   H62, phi:  179.994400 deg, theta:  59.980331 deg, d: 0.999940, parent:    N6, grand_parent:    C6, great_grand_parent:   H61 }
+    - { name:    H2, phi: -179.996933 deg, theta:  64.638275 deg, d: 1.099777, parent:    C2, grand_parent:    N3, great_grand_parent:    N1 }
+    - { name:   C2', phi:  122.467056 deg, theta:  74.072716 deg, d: 1.518638, parent:   C1', grand_parent:   O4', great_grand_parent:    N9 }
+    - { name:  H2'', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
+    - { name:   H2', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:  H2'' }
+    - { name:   H1', phi:  119.303581 deg, theta:  65.495010 deg, d: 1.099719, parent:   C1', grand_parent:   O4', great_grand_parent:   C2' }
+    - { name:   H4', phi: -122.351532 deg, theta:  75.128464 deg, d: 1.100053, parent:   C4', grand_parent:   C5', great_grand_parent:   O4' }
+    - { name:  H5'', phi:  121.260681 deg, theta:  70.103035 deg, d: 1.100023, parent:   C5', grand_parent:   O5', great_grand_parent:   C4' }
+    - { name:   H5', phi:  117.505058 deg, theta:  70.072380 deg, d: 1.099590, parent:   C5', grand_parent:   O5', great_grand_parent:  H5'' }
+    - { name:     P, phi:  178.624329 deg, theta:  59.041721 deg, d: 1.592875, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:  down, phi:  -64.000000 deg, theta:  76.300000 deg, d: 1.608000, parent:     P, grand_parent:   O5', great_grand_parent:   C5' }
+    - { name:   OP2, phi: -114.264473 deg, theta:  71.902412 deg, d: 1.485499, parent:     P, grand_parent:   O5', great_grand_parent:  down }
+    - { name:   OP1, phi: -130.879776 deg, theta:  71.671829 deg, d: 1.484918, parent:     P, grand_parent:   O5', great_grand_parent:   OP2 }
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: nucleic_acid
+        backbone_type: dna
+        mainchain_atoms:
+        - P
+        - O5'
+        - C5'
+        - C4'
+        - C3'
+        - O3'
+        sidechain_chirality: NA
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: C1'
+  - name:  DC
+    base_name: DC
+    name3: DC
+    io_equiv_class: DC
+    atoms:
+    - { name: P ,   atom_type: Pdna     }
+    - { name: OP2 , atom_type: OOP      }
+    - { name: OP1 , atom_type: OOP      }
+    - { name: O5' , atom_type: Oet2     }
+    - { name: C5' , atom_type: CH2      }
+    - { name: C4' , atom_type: CH1      }
+    - { name: O4' , atom_type: Oet3     }
+    - { name: C3' , atom_type: CH1      }
+    - { name: O3' , atom_type: Oet2     }
+    - { name: C2' , atom_type: CH2      }
+    - { name: C1' , atom_type: CH1      }
+    - { name: N1 ,  atom_type: NproDNA  }
+    - { name: C2 ,  atom_type: CObb     }
+    - { name: O2 ,  atom_type: OBdd     }
+    - { name: N3 ,  atom_type: NhisDNA  }
+    - { name: C4 ,  atom_type: Caro     }
+    - { name: N4 ,  atom_type: NH2ODNA  }
+    - { name: C5 ,  atom_type: Caro     }
+    - { name: C6 ,  atom_type: Caro     }
+    - { name: H5'' , atom_type: Hapo     }
+    - { name: H5' , atom_type: Hapo     }
+    - { name: H4' , atom_type: Hapo     }
+    - { name: H3' , atom_type: Hapo     }
+    - { name: H2'' , atom_type: Hapo     }
+    - { name: H2' , atom_type: Hapo     }
+    - { name: H1' , atom_type: Hapo     }
+    - { name: H42 , atom_type: Hpol     }
+    - { name: H41 , atom_type: Hpol     }
+    - { name: H5 ,  atom_type: Haro     }
+    - { name: H6 ,  atom_type: Haro     }
+    atom_aliases:
+    - { name: OP2 , alt_name: O1P  }
+    - { name: OP1 , alt_name: O2P  }
+    - { name: H2' , alt_name: 1H2' }
+    - { name: H5' , alt_name: 1H5' }
+    - { name: H5'' , alt_name: 2H5' }
+    - { name: H41 , alt_name: 1H4  }
+    - { name: H42 , alt_name: 2H4  }
+    bonds:
+    - [     P,   OP2, AROMATIC, false]
+    - [     P,   OP1, AROMATIC, false]
+    - [     P,   O5', SINGLE  , false]
+    - [   O5',   C5', SINGLE  , false]
+    - [   C5',   C4', SINGLE  , false]
+    - [   C5',  H5'', SINGLE  , false]
+    - [   C5',   H5', SINGLE  , false]
+    - [   C4',   O4', SINGLE  , true]
+    - [   C4',   C3', SINGLE  , true]
+    - [   C4',   H4', SINGLE  , false]
+    - [   O4',   C1', SINGLE  , true]
+    - [   C3',   O3', SINGLE  , false]
+    - [   C3',   C2', SINGLE  , true]
+    - [   C3',   H3', SINGLE  , false]
+    - [   C2',   C1', SINGLE  , true]
+    - [   C2',  H2'', SINGLE  , false]
+    - [   C2',   H2', SINGLE  , false]
+    - [   C1',    N1, SINGLE  , false]
+    - [   C1',   H1', SINGLE  , false]
+    - [    N1,    C2, AROMATIC, true]
+    - [    N1,    C6, AROMATIC, true]
+    - [    C2,    O2, 2       , false]
+    - [    C2,    N3, AROMATIC, true]
+    - [    N3,    C4, AROMATIC, true]
+    - [    C4,    N4, SINGLE  , false]
+    - [    C4,    C5, AROMATIC, true]
+    - [    N4,   H42, SINGLE  , false]
+    - [    N4,   H41, SINGLE  , false]
+    - [    C5,    C6, AROMATIC, true]
+    - [    C5,    H5, SINGLE  , false]
+    - [    C6,    H6, SINGLE  , false]
+    connections:
+    - { name: down, atom: P, type: SINGLE }
+    - { name: up, atom: O3', type: SINGLE }
+    torsions:
+    - { name: alpha,   a: {connection: down, bond_sep_from_conn: 0}, b: {atom: P}, c: {atom: O5'}, d: {atom: C5'}}
+    - { name: beta,    a: {atom: P}, b: {atom: O5'}, c: {atom: C5'}, d: {atom: C4'}}
+    - { name: gamma,   a: {atom: O5'}, b: {atom: C5'}, c: {atom: C4'}, d: {atom: C3'}}
+    - { name: delta,   a: {atom: C5'}, b: {atom: C4'}, c: {atom: C3'}, d: {atom: O3'}}
+    - { name: epsilon, a: {atom: C4'}, b: {atom: C3'}, c: {atom: O3'}, d: {connection: up, bond_sep_from_conn: 0}}
+    - { name: zeta,    a: {atom: C3'}, b: {atom: O3'}, c: {connection: up, bond_sep_from_conn: 0}, d: {connection: up, bond_sep_from_conn: 1}}
+    - { name: chi1,    a: {atom: O4'}, b: {atom: C1'}, c: {atom: N1}, d: {atom: C2}}
+    icoors:
+    - { name:   O5', phi:    0.000000 deg, theta:   0.000000 deg, d: 0.000000, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:   C5', phi:    0.000000 deg, theta: 180.000000 deg, d: 1.440745, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:   C4', phi:    0.000000 deg, theta:  69.867790 deg, d: 1.511506, parent:   C5', grand_parent:   O5', great_grand_parent:   C4' }
+    - { name:   C3', phi:   54.737663 deg, theta:  65.637856 deg, d: 1.529952, parent:   C4', grand_parent:   C5', great_grand_parent:   O5' }
+    - { name:   O3', phi:  143.070938 deg, theta:  69.569016 deg, d: 1.431523, parent:   C3', grand_parent:   C4', great_grand_parent:   C5' }
+    - { name:    up, phi: -180.000000 deg, theta:  60.200000 deg, d: 1.608000, parent:   O3', grand_parent:   C3', great_grand_parent:   C4' }
+    - { name:   H3', phi: -119.116325 deg, theta:  66.819817 deg, d: 1.099810, parent:   C3', grand_parent:   C4', great_grand_parent:   O3' }
+    - { name:   O4', phi: -118.753387 deg, theta:  70.437340 deg, d: 1.448438, parent:   C4', grand_parent:   C5', great_grand_parent:   C3' }
+    - { name:   C1', phi:  123.149117 deg, theta:  69.981277 deg, d: 1.420156, parent:   O4', grand_parent:   C4', great_grand_parent:   C5' }
+    - { name:    N1, phi: -143.981186 deg, theta:  72.071457 deg, d: 1.471482, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
+    - { name:    C2, phi: -113.084053 deg, theta:  61.114716 deg, d: 1.398933, parent:    N1, grand_parent:   C1', great_grand_parent:   O4' }
+    - { name:    O2, phi:    0.126623 deg, theta:  61.019936 deg, d: 1.240790, parent:    C2, grand_parent:    N1, great_grand_parent:   C1' }
+    - { name:    N3, phi:  179.971756 deg, theta:  60.752361 deg, d: 1.352524, parent:    C2, grand_parent:    N1, great_grand_parent:    O2 }
+    - { name:    C4, phi:    0.093811 deg, theta:  60.030956 deg, d: 1.334635, parent:    N3, grand_parent:    C2, great_grand_parent:    N1 }
+    - { name:    N4, phi:  179.813919 deg, theta:  62.059723 deg, d: 1.334564, parent:    C4, grand_parent:    N3, great_grand_parent:    C2 }
+    - { name:   H42, phi: -179.983429 deg, theta:  59.998554 deg, d: 1.000261, parent:    N4, grand_parent:    C4, great_grand_parent:    N3 }
+    - { name:   H41, phi:  179.982788 deg, theta:  59.983398 deg, d: 0.999750, parent:    N4, grand_parent:    C4, great_grand_parent:   H42 }
+    - { name:    C5, phi: -179.886444 deg, theta:  58.060032 deg, d: 1.424519, parent:    C4, grand_parent:    N3, great_grand_parent:    N4 }
+    - { name:    C6, phi:    0.008750 deg, theta:  62.484417 deg, d: 1.338750, parent:    C5, grand_parent:    C4, great_grand_parent:    N3 }
+    - { name:    H6, phi: -179.974411 deg, theta:  60.546242 deg, d: 1.099902, parent:    C6, grand_parent:    C5, great_grand_parent:    C4 }
+    - { name:    H5, phi:  179.989838 deg, theta:  58.729404 deg, d: 1.100244, parent:    C5, grand_parent:    C4, great_grand_parent:    C6 }
+    - { name:   C2', phi:  122.771790 deg, theta:  74.145515 deg, d: 1.516485, parent:   C1', grand_parent:   O4', great_grand_parent:    N1 }
+    - { name:  H2'', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
+    - { name:   H2', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:  H2'' }
+    - { name:   H1', phi:  119.173782 deg, theta:  65.419487 deg, d: 1.099511, parent:   C1', grand_parent:   O4', great_grand_parent:   C2' }
+    - { name:   H4', phi: -122.254921 deg, theta:  75.008286 deg, d: 1.099893, parent:   C4', grand_parent:   C5', great_grand_parent:   O4' }
+    - { name:  H5'', phi:  121.260765 deg, theta:  70.103020 deg, d: 1.100021, parent:   C5', grand_parent:   O5', great_grand_parent:   C4' }
+    - { name:   H5', phi:  117.505020 deg, theta:  70.072289 deg, d: 1.099590, parent:   C5', grand_parent:   O5', great_grand_parent:  H5'' }
+    - { name:     P, phi: -179.128998 deg, theta:  58.939671 deg, d: 1.593671, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:  down, phi:  -64.000000 deg, theta:  76.300000 deg, d: 1.608000, parent:     P, grand_parent:   O5', great_grand_parent:   C5' }
+    - { name:   OP2, phi: -114.213120 deg, theta:  71.988113 deg, d: 1.485790, parent:     P, grand_parent:   O5', great_grand_parent:  down }
+    - { name:   OP1, phi: -130.836380 deg, theta:  71.709000 deg, d: 1.484989, parent:     P, grand_parent:   O5', great_grand_parent:   OP2 }
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: nucleic_acid
+        backbone_type: dna
+        mainchain_atoms:
+        - P
+        - O5'
+        - C5'
+        - C4'
+        - C3'
+        - O3'
+        sidechain_chirality: NA
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: C1'
+  - name:  DG
+    base_name: DG
+    name3: DG
+    io_equiv_class: DG
+    atoms:
+    - { name: P ,   atom_type: Pdna     }
+    - { name: OP2 , atom_type: OOP      }
+    - { name: OP1 , atom_type: OOP      }
+    - { name: O5' , atom_type: Oet2     }
+    - { name: C5' , atom_type: CH2      }
+    - { name: C4' , atom_type: CH1      }
+    - { name: O4' , atom_type: Oet3     }
+    - { name: C3' , atom_type: CH1      }
+    - { name: O3' , atom_type: Oet2     }
+    - { name: C2' , atom_type: CH2      }
+    - { name: C1' , atom_type: CH1      }
+    - { name: N9 ,  atom_type: NproDNA  }
+    - { name: C4 ,  atom_type: Caro     }
+    - { name: N3 ,  atom_type: NhisDNA  }
+    - { name: C2 ,  atom_type: Caro     }
+    - { name: N1 ,  atom_type: NtrpDNA  }
+    - { name: C6 ,  atom_type: CObb     }
+    - { name: C5 ,  atom_type: Caro     }
+    - { name: N7 ,  atom_type: NhisDNA  }
+    - { name: C8 ,  atom_type: Caro     }
+    - { name: N2 ,  atom_type: NH2ODNA  }
+    - { name: O6 ,  atom_type: OBddGua  }
+    - { name: H5'' , atom_type: Hapo     }
+    - { name: H5' , atom_type: Hapo     }
+    - { name: H4' , atom_type: Hapo     }
+    - { name: H3' , atom_type: Hapo     }
+    - { name: H2'' , atom_type: Hapo     }
+    - { name: H2' , atom_type: Hapo     }
+    - { name: H1' , atom_type: Hapo     }
+    - { name: H1 ,  atom_type: Hpol     }
+    - { name: H22 , atom_type: Hpol     }
+    - { name: H21 , atom_type: Hpol     }
+    - { name: H8 ,  atom_type: Haro     }
+    atom_aliases:
+    - { name: OP2 , alt_name: O1P  }
+    - { name: OP1 , alt_name: O2P  }
+    - { name: H2' , alt_name: 1H2' }
+    - { name: H5' , alt_name: 1H5' }
+    - { name: H5'' , alt_name: 2H5' }
+    - { name: H21 , alt_name: 1H2  }
+    - { name: H22 , alt_name: 2H2  }
+    bonds:
+    - [     P,   OP2, AROMATIC, false]
+    - [     P,   OP1, AROMATIC, false]
+    - [     P,   O5', SINGLE  , false]
+    - [   O5',   C5', SINGLE  , false]
+    - [   C5',   C4', SINGLE  , false]
+    - [   C5',  H5'', SINGLE  , false]
+    - [   C5',   H5', SINGLE  , false]
+    - [   C4',   O4', SINGLE  , true]
+    - [   C4',   C3', SINGLE  , true]
+    - [   C4',   H4', SINGLE  , false]
+    - [   O4',   C1', SINGLE  , true]
+    - [   C3',   O3', SINGLE  , false]
+    - [   C3',   C2', SINGLE  , true]
+    - [   C3',   H3', SINGLE  , false]
+    - [   C2',   C1', SINGLE  , true]
+    - [   C2',  H2'', SINGLE  , false]
+    - [   C2',   H2', SINGLE  , false]
+    - [   C1',    N9, SINGLE  , false]
+    - [   C1',   H1', SINGLE  , false]
+    - [    N1,    C2, AROMATIC, true]
+    - [    N1,    C6, AROMATIC, true]
+    - [    N1,    H1, 1       , false]
+    - [    C2,    N2, 1       , false]
+    - [    C2,    N3, AROMATIC, true]
+    - [    N2,   H22, 1       , false]
+    - [    N2,   H21, 1       , false]
+    - [    N3,    C4, AROMATIC, true]
+    - [    C4,    C5, AROMATIC, true]
+    - [    C4,    N9, AROMATIC, true]
+    - [    C5,    C6, AROMATIC, true]
+    - [    C5,    N7, AROMATIC, true]
+    - [    C6,    O6, 2       , false]
+    - [    N7,    C8, AROMATIC, true]
+    - [    C8,    N9, AROMATIC, true]
+    - [    C8,    H8, 1       , false]
+    connections:
+    - { name: down, atom: P, type: SINGLE }
+    - { name: up, atom: O3', type: SINGLE }
+    torsions:
+    - { name: alpha,   a: {connection: down, bond_sep_from_conn: 0}, b: {atom: P}, c: {atom: O5'}, d: {atom: C5'}}
+    - { name: beta,    a: {atom: P}, b: {atom: O5'}, c: {atom: C5'}, d: {atom: C4'}}
+    - { name: gamma,   a: {atom: O5'}, b: {atom: C5'}, c: {atom: C4'}, d: {atom: C3'}}
+    - { name: delta,   a: {atom: C5'}, b: {atom: C4'}, c: {atom: C3'}, d: {atom: O3'}}
+    - { name: epsilon, a: {atom: C4'}, b: {atom: C3'}, c: {atom: O3'}, d: {connection: up, bond_sep_from_conn: 0}}
+    - { name: zeta,    a: {atom: C3'}, b: {atom: O3'}, c: {connection: up, bond_sep_from_conn: 0}, d: {connection: up, bond_sep_from_conn: 1}}
+    - { name: chi1,    a: {atom: O4'}, b: {atom: C1'}, c: {atom: N9}, d: {atom: C4}}
+    icoors:
+    - { name:   O5', phi:    0.000000 deg, theta:   0.000000 deg, d: 0.000000, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:   C5', phi:    0.000000 deg, theta: 180.000000 deg, d: 1.441042, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:   C4', phi:    0.000000 deg, theta:  69.643837 deg, d: 1.510938, parent:   C5', grand_parent:   O5', great_grand_parent:   C4' }
+    - { name:   C3', phi:   55.326633 deg, theta:  64.713852 deg, d: 1.528743, parent:   C4', grand_parent:   C5', great_grand_parent:   O5' }
+    - { name:   O3', phi:  142.762161 deg, theta:  70.106552 deg, d: 1.432465, parent:   C3', grand_parent:   C4', great_grand_parent:   C5' }
+    - { name:    up, phi: -180.000000 deg, theta:  60.200000 deg, d: 1.608000, parent:   O3', grand_parent:   C3', great_grand_parent:   C4' }
+    - { name:   H3', phi: -119.362885 deg, theta:  66.478569 deg, d: 1.099893, parent:   C3', grand_parent:   C4', great_grand_parent:   O3' }
+    - { name:   O4', phi: -119.242851 deg, theta:  70.625648 deg, d: 1.449180, parent:   C4', grand_parent:   C5', great_grand_parent:   C3' }
+    - { name:   C1', phi:  124.113770 deg, theta:  69.945663 deg, d: 1.420420, parent:   O4', grand_parent:   C4', great_grand_parent:   C5' }
+    - { name:    N9, phi: -143.237823 deg, theta:  72.063263 deg, d: 1.459177, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
+    - { name:    C4, phi: -111.837967 deg, theta:  53.502510 deg, d: 1.373706, parent:    N9, grand_parent:   C1', great_grand_parent:   O4' }
+    - { name:    N3, phi:    0.229649 deg, theta:  54.001144 deg, d: 1.349965, parent:    C4, grand_parent:    N9, great_grand_parent:   C1' }
+    - { name:    C2, phi: -179.859436 deg, theta:  68.081581 deg, d: 1.322938, parent:    N3, grand_parent:    C4, great_grand_parent:    N9 }
+    - { name:    N1, phi:   -0.066350 deg, theta:  56.012718 deg, d: 1.373522, parent:    C2, grand_parent:    N3, great_grand_parent:    C4 }
+    - { name:    C6, phi:    0.034883 deg, theta:  54.972878 deg, d: 1.391636, parent:    N1, grand_parent:    C2, great_grand_parent:    N3 }
+    - { name:    C5, phi:   -0.000835 deg, theta:  68.413544 deg, d: 1.418808, parent:    C6, grand_parent:    N1, great_grand_parent:    C2 }
+    - { name:    N7, phi:  179.974548 deg, theta:  49.615967 deg, d: 1.387122, parent:    C5, grand_parent:    C6, great_grand_parent:    N1 }
+    - { name:    C8, phi: -179.965347 deg, theta:  75.637863 deg, d: 1.304419, parent:    N7, grand_parent:    C5, great_grand_parent:    C6 }
+    - { name:    H8, phi: -179.899933 deg, theta:  56.553242 deg, d: 1.100078, parent:    C8, grand_parent:    N7, great_grand_parent:    C5 }
+    - { name:    O6, phi:  179.971054 deg, theta:  60.128998 deg, d: 1.236885, parent:    C6, grand_parent:    N1, great_grand_parent:    C5 }
+    - { name:    H1, phi:  179.999619 deg, theta:  62.492050 deg, d: 1.000128, parent:    N1, grand_parent:    C2, great_grand_parent:    C6 }
+    - { name:    N2, phi: -179.965042 deg, theta:  60.217892 deg, d: 1.340771, parent:    C2, grand_parent:    N3, great_grand_parent:    N1 }
+    - { name:   H22, phi:   -0.013213 deg, theta:  60.009777 deg, d: 1.000051, parent:    N2, grand_parent:    C2, great_grand_parent:    N3 }
+    - { name:   H21, phi:  179.998093 deg, theta:  59.983944 deg, d: 1.000217, parent:    N2, grand_parent:    C2, great_grand_parent:   H22 }
+    - { name:   C2', phi:  122.247673 deg, theta:  74.153900 deg, d: 1.516989, parent:   C1', grand_parent:   O4', great_grand_parent:    N9 }
+    - { name:  H2'', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
+    - { name:   H2', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:  H2'' }
+    - { name:   H1', phi:  119.425476 deg, theta:  65.599640 deg, d: 1.099900, parent:   C1', grand_parent:   O4', great_grand_parent:   C2' }
+    - { name:   H4', phi: -122.424858 deg, theta:  75.549049 deg, d: 1.100289, parent:   C4', grand_parent:   C5', great_grand_parent:   O4' }
+    - { name:  H5'', phi:  121.260612 deg, theta:  70.103058 deg, d: 1.100022, parent:   C5', grand_parent:   O5', great_grand_parent:   C4' }
+    - { name:   H5', phi:  117.504990 deg, theta:  70.072197 deg, d: 1.099588, parent:   C5', grand_parent:   O5', great_grand_parent:  H5'' }
+    - { name:     P, phi:  177.435638 deg, theta:  59.278740 deg, d: 1.592943, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:  down, phi:  -64.000000 deg, theta:  76.300000 deg, d: 1.608000, parent:     P, grand_parent:   O5', great_grand_parent:   C5' }
+    - { name:   OP2, phi: -114.182045 deg, theta:  71.891090 deg, d: 1.486551, parent:     P, grand_parent:   O5', great_grand_parent:  down }
+    - { name:   OP1, phi: -131.028931 deg, theta:  71.584297 deg, d: 1.484687, parent:     P, grand_parent:   O5', great_grand_parent:   OP2 }
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: nucleic_acid
+        backbone_type: dna
+        mainchain_atoms:
+        - P
+        - O5'
+        - C5'
+        - C4'
+        - C3'
+        - O3'
+        sidechain_chirality: NA
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: C1'
+  - name:  DT
+    base_name: DT
+    name3: DT
+    io_equiv_class: DT
+    atoms:
+    - { name: P ,   atom_type: Pdna     }
+    - { name: OP2 , atom_type: OOP      }
+    - { name: OP1 , atom_type: OOP      }
+    - { name: O5' , atom_type: Oet2     }
+    - { name: C5' , atom_type: CH2      }
+    - { name: C4' , atom_type: CH1      }
+    - { name: O4' , atom_type: Oet3     }
+    - { name: C3' , atom_type: CH1      }
+    - { name: O3' , atom_type: Oet2     }
+    - { name: C2' , atom_type: CH2      }
+    - { name: C1' , atom_type: CH1      }
+    - { name: N1 ,  atom_type: NproDNA  }
+    - { name: C2 ,  atom_type: CObb     }
+    - { name: O2 ,  atom_type: OBdd     }
+    - { name: N3 ,  atom_type: NtrpDNA  }
+    - { name: C4 ,  atom_type: CObb     }
+    - { name: O4 ,  atom_type: OBdd     }
+    - { name: C5 ,  atom_type: Caro     }
+    - { name: C7 ,  atom_type: CH3      }
+    - { name: C6 ,  atom_type: Caro     }
+    - { name: H5'' , atom_type: Hapo     }
+    - { name: H5' , atom_type: Hapo     }
+    - { name: H4' , atom_type: Hapo     }
+    - { name: H3' , atom_type: Hapo     }
+    - { name: H2'' , atom_type: Hapo     }
+    - { name: H2' , atom_type: Hapo     }
+    - { name: H1' , atom_type: Hapo     }
+    - { name: H3 ,  atom_type: Hpol     }
+    - { name: H71 , atom_type: Hapo     }
+    - { name: H72 , atom_type: Hapo     }
+    - { name: H73 , atom_type: Hapo     }
+    - { name: H6 ,  atom_type: Haro     }
+    atom_aliases:
+    - { name: OP2 , alt_name: O1P  }
+    - { name: OP1 , alt_name: O2P  }
+    - { name: H2' , alt_name: 1H2' }
+    - { name: H5' , alt_name: 1H5' }
+    - { name: H5'' , alt_name: 2H5' }
+    - { name: C7 ,  alt_name: C5M  }
+    - { name: H71 , alt_name: 1H5M }
+    - { name: H72 , alt_name: 2H5M }
+    - { name: H73 , alt_name: 3H5M }
+    bonds:
+    - [     P,   OP2, AROMATIC, false]
+    - [     P,   OP1, AROMATIC, false]
+    - [     P,   O5', SINGLE  , false]
+    - [   O5',   C5', SINGLE  , false]
+    - [   C5',   C4', SINGLE  , false]
+    - [   C5',  H5'', SINGLE  , false]
+    - [   C5',   H5', SINGLE  , false]
+    - [   C4',   O4', SINGLE  , true]
+    - [   C4',   C3', SINGLE  , true]
+    - [   C4',   H4', SINGLE  , false]
+    - [   O4',   C1', SINGLE  , true]
+    - [   C3',   O3', SINGLE  , false]
+    - [   C3',   C2', SINGLE  , true]
+    - [   C3',   H3', SINGLE  , false]
+    - [   C2',   C1', SINGLE  , true]
+    - [   C2',  H2'', SINGLE  , false]
+    - [   C2',   H2', SINGLE  , false]
+    - [   C1',    N1, SINGLE  , false]
+    - [   C1',   H1', SINGLE  , false]
+    - [    N1,    C2, AROMATIC, true]
+    - [    N1,    C6, AROMATIC, true]
+    - [    C2,    O2, 2       , false]
+    - [    C2,    N3, AROMATIC, true]
+    - [    N3,    C4, AROMATIC, true]
+    - [    N3,    H3, 1       , false]
+    - [    C4,    O4, 2       , false]
+    - [    C4,    C5, AROMATIC, true]
+    - [    C5,    C7, 1       , false]
+    - [    C5,    C6, AROMATIC, true]
+    - [    C7,   H71, SINGLE  , false]
+    - [    C7,   H72, SINGLE  , false]
+    - [    C7,   H73, SINGLE  , false]
+    - [    C6,    H6, SINGLE  , false]
+    connections:
+    - { name: down, atom: P, type: SINGLE }
+    - { name: up, atom: O3', type: SINGLE }
+    torsions:
+    - { name: alpha,   a: {connection: down, bond_sep_from_conn: 0}, b: {atom: P}, c: {atom: O5'}, d: {atom: C5'}}
+    - { name: beta,    a: {atom: P}, b: {atom: O5'}, c: {atom: C5'}, d: {atom: C4'}}
+    - { name: gamma,   a: {atom: O5'}, b: {atom: C5'}, c: {atom: C4'}, d: {atom: C3'}}
+    - { name: delta,   a: {atom: C5'}, b: {atom: C4'}, c: {atom: C3'}, d: {atom: O3'}}
+    - { name: epsilon, a: {atom: C4'}, b: {atom: C3'}, c: {atom: O3'}, d: {connection: up, bond_sep_from_conn: 0}}
+    - { name: zeta,    a: {atom: C3'}, b: {atom: O3'}, c: {connection: up, bond_sep_from_conn: 0}, d: {connection: up, bond_sep_from_conn: 1}}
+    - { name: chi1,    a: {atom: O4'}, b: {atom: C1'}, c: {atom: N1}, d: {atom: C2}}
+    icoors:
+    - { name:   O5', phi:    0.000000 deg, theta:   0.000000 deg, d: 0.000000, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:   C5', phi:    0.000000 deg, theta: 180.000000 deg, d: 1.440030, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:   C4', phi:    0.000000 deg, theta:  69.657646 deg, d: 1.511268, parent:   C5', grand_parent:   O5', great_grand_parent:   C4' }
+    - { name:   C3', phi:   55.470036 deg, theta:  64.855316 deg, d: 1.528948, parent:   C4', grand_parent:   C5', great_grand_parent:   O5' }
+    - { name:   O3', phi:  142.705536 deg, theta:  70.070900 deg, d: 1.431087, parent:   C3', grand_parent:   C4', great_grand_parent:   C5' }
+    - { name:    up, phi: -180.000000 deg, theta:  60.200000 deg, d: 1.608000, parent:   O3', grand_parent:   C3', great_grand_parent:   C4' }
+    - { name:   H3', phi: -119.443848 deg, theta:  66.500420 deg, d: 1.099826, parent:   C3', grand_parent:   C4', great_grand_parent:   O3' }
+    - { name:   O4', phi: -119.296211 deg, theta:  70.518295 deg, d: 1.448348, parent:   C4', grand_parent:   C5', great_grand_parent:   C3' }
+    - { name:   C1', phi:  124.803459 deg, theta:  70.078415 deg, d: 1.418839, parent:   O4', grand_parent:   C4', great_grand_parent:   C5' }
+    - { name:    N1, phi: -145.103592 deg, theta:  72.030876 deg, d: 1.474642, parent:   C1', grand_parent:   O4', great_grand_parent:   C4' }
+    - { name:    C2, phi: -109.398727 deg, theta:  61.854160 deg, d: 1.376794, parent:    N1, grand_parent:   C1', great_grand_parent:   O4' }
+    - { name:    O2, phi:    0.244746 deg, theta:  56.816856 deg, d: 1.221136, parent:    C2, grand_parent:    N1, great_grand_parent:   C1' }
+    - { name:    N3, phi:  179.920807 deg, theta:  65.374435 deg, d: 1.372271, parent:    C2, grand_parent:    N1, great_grand_parent:    O2 }
+    - { name:    C4, phi:    0.019581 deg, theta:  52.775890 deg, d: 1.381739, parent:    N3, grand_parent:    C2, great_grand_parent:    N1 }
+    - { name:    O4, phi:  179.933121 deg, theta:  60.123234 deg, d: 1.228198, parent:    C4, grand_parent:    N3, great_grand_parent:    C2 }
+    - { name:    C5, phi: -179.916611 deg, theta:  64.777786 deg, d: 1.445664, parent:    C4, grand_parent:    N3, great_grand_parent:    O4 }
+    - { name:    C7, phi:  179.975433 deg, theta:  60.939045 deg, d: 1.495684, parent:    C5, grand_parent:    C4, great_grand_parent:    N3 }
+    - { name:   H71, phi:  179.998688 deg, theta:  70.502991 deg, d: 1.100086, parent:    C7, grand_parent:    C5, great_grand_parent:    C4 }
+    - { name:   H72, phi:  120.016708 deg, theta:  70.485847 deg, d: 1.099731, parent:    C7, grand_parent:    C5, great_grand_parent:   H71 }
+    - { name:   H73, phi:  119.979172 deg, theta:  70.508820 deg, d: 1.100050, parent:    C7, grand_parent:    C5, great_grand_parent:   H72 }
+    - { name:    C6, phi:  179.988083 deg, theta:  61.995148 deg, d: 1.339471, parent:    C5, grand_parent:    C4, great_grand_parent:    C7 }
+    - { name:    H6, phi: -179.945175 deg, theta:  61.848751 deg, d: 1.100448, parent:    C6, grand_parent:    C5, great_grand_parent:    C4 }
+    - { name:    H3, phi:  179.994766 deg, theta:  63.632038 deg, d: 1.000129, parent:    N3, grand_parent:    C2, great_grand_parent:    C4 }
+    - { name:   C2', phi:  123.031013 deg, theta:  74.200386 deg, d: 1.516754, parent:   C1', grand_parent:   O4', great_grand_parent:    N1 }
+    - { name:  H2'', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:   C3' }
+    - { name:   H2', phi:  120.000000 deg, theta:  68.000000 deg, d: 1.100000, parent:   C2', grand_parent:   C1', great_grand_parent:  H2'' }
+    - { name:   H1', phi:  119.082504 deg, theta:  65.314438 deg, d: 1.099825, parent:   C1', grand_parent:   O4', great_grand_parent:   C2' }
+    - { name:   H4', phi: -122.348076 deg, theta:  75.495621 deg, d: 1.100165, parent:   C4', grand_parent:   C5', great_grand_parent:   O4' }
+    - { name:  H5'', phi:  121.260803 deg, theta:  70.103081 deg, d: 1.100024, parent:   C5', grand_parent:   O5', great_grand_parent:   C4' }
+    - { name:   H5', phi:  117.504814 deg, theta:  70.072350 deg, d: 1.099589, parent:   C5', grand_parent:   O5', great_grand_parent:  H5'' }
+    - { name:     P, phi:  177.888443 deg, theta:  59.255116 deg, d: 1.593215, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
+    - { name:  down, phi:  -64.000000 deg, theta:  76.300000 deg, d: 1.608000, parent:     P, grand_parent:   O5', great_grand_parent:   C5' }
+    - { name:   OP2, phi: -114.080597 deg, theta:  71.950012 deg, d: 1.485956, parent:     P, grand_parent:   O5', great_grand_parent:  down }
+    - { name:   OP1, phi: -131.024536 deg, theta:  71.585999 deg, d: 1.484193, parent:     P, grand_parent:   O5', great_grand_parent:   OP2 }
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: nucleic_acid
+        backbone_type: dna
+        mainchain_atoms:
+        - P
+        - O5'
+        - C5'
+        - C4'
+        - C3'
+        - O3'
+        sidechain_chirality: NA
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: C1'
   - name:  HOH
     base_name: HOH
     name3: HOH
@@ -2681,3 +3291,41 @@ variants:
     icoors:
     - { name:   H2, phi:  120.0 deg, theta:   70.5 deg, d: 1.0, parent: <N1>, grand_parent: <C1>, great_grand_parent: <C2>}
     - { name:   H3, phi: -120.0 deg, theta:   70.5 deg, d: 1.0, parent: <N1>, grand_parent: <C1>, great_grand_parent: <C2>}
+
+  # DNA 5' terminus: the phosphate is absent, so P/OP1/OP2 are removed rather than
+  # virtualized -- tmol cannot build a missing non-leaf atom. The DNA icoor tree is
+  # rooted at O5' so that dropping the phosphate leaves the tree intact.
+  - name:  DnaFivePrime
+    display_name: dna5prime
+    pattern: '[{down}]P(O)(O)OCC'
+    remove_atoms:
+    - <{down}>
+    - <P1>
+    - <O1>
+    - <O2>
+    add_atoms:
+    - { name: HO5' ,  atom_type: Hpol }
+    add_atom_aliases: []
+    modify_atoms: []
+    add_connections: []
+    add_bonds:
+    - [  <O3>,   HO5', SINGLE, false ]
+    icoors:
+    - { name: HO5', phi: 179.890442 deg, theta: 70.479956 deg, d: 1.000437, parent: <O3>, grand_parent: <C1>, great_grand_parent: <C2> }
+
+  # DNA 3' terminus. The pattern pins C4' as O4'-C4'-C3'-O3'; unambiguous only
+  # because deoxyribose has no 2'-OH.
+  - name:  DnaThreePrime
+    display_name: dna3prime
+    pattern: 'COCCO[{up}]'
+    remove_atoms:
+    - <{up}>
+    add_atoms:
+    - { name: HO3' ,  atom_type: Hpol }
+    add_atom_aliases: []
+    modify_atoms: []
+    add_connections: []
+    add_bonds:
+    - [  <O2>,   HO3', SINGLE, false ]
+    icoors:
+    - { name: HO3', phi: 180.0 deg, theta: 70.479956 deg, d: 1.000437, parent: <O2>, grand_parent: <C3>, great_grand_parent: <C2> }

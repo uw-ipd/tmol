@@ -28,6 +28,9 @@ donor_atom_types:
   - { d: Ngu1,     donor_type: hbdon_GENERIC_SC }
   - { d: Ngu2,     donor_type: hbdon_GENERIC_SC }
   - { d: Ohx,      donor_type: hbdon_GENERIC_SC }
+  # DNA (Rosetta assigns these by residue+atom name in hbonds_geom.cc)
+  - { d: NH2ODNA,  donor_type: hbdon_CXA } #ex: ADE N6; CYT N4; GUA N2
+  - { d: NtrpDNA,  donor_type: hbdon_IND } #ex: GUA N1; THY N3
 
 donor_type_params:
   - {name: hbdon_IND, weight: 1.15 }
@@ -64,6 +67,13 @@ acceptor_atom_types:
   - { a: OG3,       acceptor_type: hbacc_GENERIC_SP3SC }
   - { a: OG31,      acceptor_type: hbacc_GENERIC_SP3SC }
   - { a: Nim,       acceptor_type: hbacc_GENERIC_RINGSC }
+  # DNA (Rosetta assigns these by residue+atom name in hbonds_geom.cc)
+  - { a: OOP,       acceptor_type: hbacc_PCA_DNA } #ex: OP1/OP2
+  - { a: Oet2,      acceptor_type: hbacc_PES_DNA } #ex: O5'/O3'
+  - { a: Oet3,      acceptor_type: hbacc_RRI_DNA } #ex: O4'
+  - { a: OBdd,      acceptor_type: hbacc_CXA } #ex: CYT O2; THY O2/O4
+  - { a: OBddGua,   acceptor_type: hbacc_CXL } #ex: GUA O6
+  - { a: NhisDNA,   acceptor_type: hbacc_IME } #ex: ADE N1/N3/N7; GUA N3/N7; CYT N3
 
 acceptor_type_params:
   - {name: hbacc_PBA, weight: 1.19 }
@@ -77,6 +87,9 @@ acceptor_type_params:
   - {name: hbacc_GENERIC_SP2SC,  weight: 1.19 }
   - {name: hbacc_GENERIC_SP3SC,  weight: 1.19 }
   - {name: hbacc_GENERIC_RINGSC, weight: 1.19 }
+  - {name: hbacc_PCA_DNA, weight: 1.445 }
+  - {name: hbacc_PES_DNA, weight: 0.798 }
+  - {name: hbacc_RRI_DNA, weight: 1.366 }
 
 polynomial_parameters: # Parameters imported from rosetta sp2_elec_params @v2017.48-dev59886
   # Generic ligand AHdist polynomials (from Rosetta sp2_params/HBPoly1D.csv)
@@ -228,6 +241,43 @@ pair_parameters:
   - {donor_type: hbdon_AHX, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
   - {donor_type: hbdon_HXL, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
   - {donor_type: hbdon_H2O, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  # DNA acceptors (from Rosetta ref2015_params/HBEval.csv, seq_sep_other)
+  - {donor_type: hbdon_PBA,       acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_CXA,       acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IMD,       acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IME,       acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IND,       acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AMO,       acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDE,       acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDH,       acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AHX,       acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_HXL,       acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_H2O,       acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_PBA,       acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_CXA,       acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IMD,       acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IME,       acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IND,       acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AMO,       acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDE,       acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDH,       acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AHX,       acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_HXL,       acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_H2O,       acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_PBA,       acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_CXA,       acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IMD,       acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IME,       acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IND,       acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AMO,       acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDE,       acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDH,       acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AHX,       acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_HXL,       acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_H2O,       acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GENERIC_SC, acceptor_type: hbacc_PCA_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GENERIC_SC, acceptor_type: hbacc_PES_DNA,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GENERIC_SC, acceptor_type: hbacc_RRI_DNA,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
   # Generic ligand pair parameters (from Rosetta sp2_params/HBEval.csv)
   - {donor_type: hbdon_GENERIC_SC, acceptor_type: hbacc_GENERIC_SP2SC,  AHdist: poly_AHdist_k_4, cosBAH: poly_cosBAH_off, cosAHD: poly_AHD_1h}
   - {donor_type: hbdon_GENERIC_SC, acceptor_type: hbacc_GENERIC_SP3SC,  AHdist: poly_AHdist_k_5, cosBAH: poly_cosBAH_6i,  cosAHD: poly_AHD_1h}
