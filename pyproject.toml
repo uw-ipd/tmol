@@ -100,6 +100,21 @@ cuda = [
     # CCCL headers (nv/target, cub/, thrust/) needed by nvcc
     "nvidia-cuda-cccl>=13",
 ]
+docs = [
+    "sphinx>=8.0,<9",
+    "pydata-sphinx-theme>=0.16,<1",
+    "myst-parser>=4.0,<5",
+    "nbsphinx>=0.9,<1",
+    "sphinx-gallery>=0.19,<1",
+    "sphinx-autoapi>=3.0,<4",
+    "sphinx-copybutton>=0.5,<1",
+    "sphinxcontrib-aafig>=1.2,<2",
+    "pypandoc-binary>=1.15,<2",
+    "linkify-it-py>=2.0,<3",
+    "cattrs>=22.0",
+    "ipython>=8.0",
+    "py3Dmol>=2.4,<3",
+]
 
 [project.urls]
 repository = "https://github.com/uw-ipd/tmol"

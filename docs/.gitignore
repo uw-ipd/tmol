@@ -1,2 +1,5 @@
 _build
-apidoc
+api/tmol*.rst
+api/modules.rst
+auto_examples
+sg_execution_times.rst

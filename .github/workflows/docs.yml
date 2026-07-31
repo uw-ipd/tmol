@@ -1,0 +1,126 @@
+name: Docs
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  DOCS_BASE_URL: https://tmol.ipd.uw.edu
+
+jobs:
+  docs:
+    name: build docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Configure docs version
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "TMOL_DOCS_VERSION_MATCH=previews-pr-${{ github.event.number }}" >> "$GITHUB_ENV"
+          fi
+          echo "TMOL_DOCS_BASE_URL=${DOCS_BASE_URL}" >> "$GITHUB_ENV"
+
+      - name: Install docs dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.5"
+          python -m pip install scikit-build-core pybind11 ninja packaging "cmake>=3.18,<4"
+          TMOL_DISABLE_WHEEL_FETCH=1 \
+            python -m pip install --no-build-isolation -e ".[docs]" \
+            -Ccmake.define.TMOL_ENABLE_CUDA=OFF
+
+      - name: Build docs
+        run: docs/make
+
+      - name: Upload rendered docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: tmol-docs-html
+          path: docs/_build/html
+          if-no-files-found: error
+
+      - name: Summarize PR docs artifact
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Rendered docs artifact: tmol-docs-html" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Checkout gh-pages
+        if: >
+          github.event_name == 'push' ||
+          (github.event_name == 'pull_request' &&
+           github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+          fetch-depth: 0
+
+      - name: Stage production docs
+        if: github.event_name == 'push'
+        run: |
+          VERSION=$(python - <<'PY'
+          import tomllib
+          from pathlib import Path
+          print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])
+          PY
+          )
+          VERSION_DIR="v${VERSION}"
+          mkdir -p "gh-pages/${VERSION_DIR}" gh-pages/latest
+          cp docs/_html_extra/CNAME gh-pages/CNAME
+          rsync -av --delete docs/_build/html/ "gh-pages/${VERSION_DIR}/"
+          rsync -av --delete docs/_build/html/ gh-pages/latest/
+          python .github/scripts/update_docs_switcher.py \
+            --pages-dir gh-pages \
+            --base-url "${DOCS_BASE_URL}" \
+            --current-version-dir "${VERSION_DIR}" \
+            --current-display-name "${VERSION_DIR}"
+          echo "TMOL_DOCS_PUBLISH_DIR=gh-pages" >> "$GITHUB_ENV"
+          echo "Deployed docs target: ${DOCS_BASE_URL}/latest/" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Stage PR preview docs
+        if: >
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          PREVIEW_DIR="previews/pr-${{ github.event.number }}"
+          mkdir -p "gh-pages/${PREVIEW_DIR}"
+          cp docs/_html_extra/CNAME gh-pages/CNAME
+          rsync -av --delete docs/_build/html/ "gh-pages/${PREVIEW_DIR}/"
+          python .github/scripts/update_docs_switcher.py \
+            --pages-dir gh-pages \
+            --base-url "${DOCS_BASE_URL}" \
+            --current-version-dir "${PREVIEW_DIR}" \
+            --current-display-name "PR #${{ github.event.number }}"
+          echo "TMOL_DOCS_PUBLISH_DIR=gh-pages" >> "$GITHUB_ENV"
+          echo "Docs preview: ${DOCS_BASE_URL}/${PREVIEW_DIR}/" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish docs to gh-pages
+        if: env.TMOL_DOCS_PUBLISH_DIR == 'gh-pages'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: gh-pages
+          keep_files: true
+          force_orphan: false
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com

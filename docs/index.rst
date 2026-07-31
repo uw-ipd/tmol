@@ -1,79 +1,45 @@
-.. TMol documentation master file, created by
-   sphinx-quickstart on Sun Jul 15 11:02:35 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-:github_url: https://github.com/uw-ipd/tmol
-
-TMol Documentation
-================================
-
-TMol is a tensor-based molecular modeling library for use on GPUs and CPUs.
-
-Ligand preparation (detecting, parameterizing, and scoring non-standard
-residues such as small-molecule ligands) is documented in the
-`ligand preparation guide
-<https://github.com/uw-ipd/tmol/blob/main/tmol/ligand/README.md>`_, which
-covers the CIF/SMILES/mol2 pipeline, the ``strict_ligands`` failure mode, and a
-protein-ligand ddG quickstart.
-
-.. The toctree entry declares the document's location, and children, inside the
-  table-of-contents entry. We want two captioned toc constructs on the front,
-  "Notes", containing freeform documentation, and "Packages", docstring based
-  inline documentation. We declare a single root (non-:name:) toc entry that
-  contains our notes + apidoc, then create the `apidoc` toc entry inline in this
-  index, allowing both to show up on navigation sidebar. If we, instead, declared 
-  two root toc entries they would both show up in *this* document's sidebar, but
-  one would be lost when navigating to subpages.
-
-.. toctree::
-  :glob:
-  :caption: Notes
-
-  architecture
-  datatypes
-  apidoc
-
-Packages
---------
-
-.. Generate sidebar entries via a hidden toctree entry, then inline the top-level
-   packages as an autosummary table so there's a touch of inline documentation.
-   Make sure to update *both* tables when adding top-level components.
-
-.. toctree::
-  :caption: Packages
-  :name: apidoc
-  :hidden:
-
-  apidoc/tmol.system
-  apidoc/tmol.score
-  apidoc/tmol.database
-  apidoc/tmol.kinematics
-  apidoc/tmol.numeric
-  apidoc/tmol.types
-  apidoc/tmol.utility
-  apidoc/tmol.io
-  apidoc/tmol.viewer
-  apidoc/tmol.support
-  apidoc/tmol.extern
-
-.. autosummary::
-
-  tmol.system
-  tmol.score
-  tmol.database
-  tmol.kinematics
-  tmol.numeric
-  tmol.types
-  tmol.utility
-  tmol.io
-  tmol.viewer
-  tmol.support
-  tmol.extern
-
-Indicies
+tmol documentation
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
+``tmol`` is a GPU-accelerated PyTorch implementation of Rosetta's molecular
+modeling energy function. It scores protein structures, propagates derivatives
+through coordinates, packs side chains, minimizes structures, and prepares
+small-molecule ligands for protein-ligand scoring workflows.
+
+Start with :doc:`quickstart` for a first score calculation. The user guide
+then covers installation, ligand preparation, optimization, integrations, and
+development.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Get Started
+
+   quickstart
+   installation
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User Guide
+
+   user_guide/scoring
+   user_guide/ligands
+   user_guide/optimization
+   user_guide/integrations
+   user_guide/benchmarking
+   user_guide/development
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Examples
+
+   auto_examples/index
+   notebooks/tmol_how_to_guide
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference
+
+   architecture
+   datatypes
+   api_reference
+   contributor_guide
