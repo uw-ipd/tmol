@@ -1,0 +1,1224 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.optimization.lbfgs_armijo &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c8b66c78" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/optimization/lbfgs_armijo';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://tmol.ipd.uw.edu/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-403';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.46" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.optimization.lbfgs_armijo</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.optimization.lbfgs_armijo</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">reduce</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimpleNamespace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optimizer</span>
+
+
+<div class="viewcode-block" id="lbfgs_two_loop">
+<a class="viewcode-back" href="../../../api/tmol/optimization/lbfgs_armijo/index.html#tmol.optimization.lbfgs_armijo.lbfgs_two_loop">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">lbfgs_two_loop</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">stps</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;L-BFGS search direction H_k @ grad via the compact</span>
+<span class="sd">    representation of Byrd, Nocedal &amp; Schnabel, (Math. Prog. 63 (1994)):</span>
+<span class="sd">        H_0 = I</span>
+<span class="sd">        M = [[ R^-T (D + Y^T Y) R^-1, -R^-T ], [ -R^-1, 0 ]]</span>
+<span class="sd">        H_k g = g + [S Y] M [S^T g ; Y^T g]</span>
+
+<span class="sd">    Algebraically identical to the classic two-loop recursion, but all O(N*m)</span>
+<span class="sd">    ops are parallelized.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out_dtype</span> <span class="o">=</span> <span class="n">grad</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="c1"># Triangular solves are:</span>
+    <span class="c1">#  a) imprecise on CUDA at float32</span>
+    <span class="c1">#  b) small matrices (M x M) where M is history length (typically 128)</span>
+    <span class="c1"># promote to float64</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="n">stps</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
+    <span class="n">Y</span> <span class="o">=</span> <span class="n">dirs</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="o">-</span><span class="n">grad</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">mv</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>  <span class="c1"># (m,)  a_i = s_i . g</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">mv</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>  <span class="c1"># (m,)  b_i = y_i . g</span>
+    <span class="n">SY</span> <span class="o">=</span> <span class="n">S</span> <span class="o">@</span> <span class="n">Y</span><span class="o">.</span><span class="n">t</span><span class="p">()</span>  <span class="c1"># (m,m) SY_ij = s_i . y_j</span>
+    <span class="n">YY</span> <span class="o">=</span> <span class="n">Y</span> <span class="o">@</span> <span class="n">Y</span><span class="o">.</span><span class="n">t</span><span class="p">()</span>  <span class="c1"># (m,m) YY_ij = y_i . y_j</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">triu</span><span class="p">(</span><span class="n">SY</span><span class="p">)</span>  <span class="c1"># upper-triangular incl. diagonal</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="n">SY</span><span class="o">.</span><span class="n">diagonal</span><span class="p">()</span>  <span class="c1"># (m,)  D_i = s_i . y_i</span>
+
+    <span class="c1"># u = R^-1 a</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve_triangular</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">upper</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># v = (D + Y^T Y) u - b</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">YY</span><span class="o">.</span><span class="n">mv</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">+</span> <span class="n">D</span> <span class="o">*</span> <span class="n">u</span> <span class="o">-</span> <span class="n">b</span>
+    <span class="c1"># p1 = R^-T v</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve_triangular</span><span class="p">(</span><span class="n">R</span><span class="o">.</span><span class="n">t</span><span class="p">(),</span> <span class="n">v</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">upper</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">p2</span> <span class="o">=</span> <span class="o">-</span><span class="n">u</span>
+
+    <span class="c1"># result = g + S p1 + Y p2</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">g</span> <span class="o">+</span> <span class="n">p1</span> <span class="o">@</span> <span class="n">S</span> <span class="o">+</span> <span class="n">p2</span> <span class="o">@</span> <span class="n">Y</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">out_dtype</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="armijo_linesearch">
+<a class="viewcode-back" href="../../../api/tmol/optimization/lbfgs_armijo/index.html#tmol.optimization.lbfgs_armijo.armijo_linesearch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">armijo_linesearch</span><span class="p">(</span>
+    <span class="n">func</span><span class="p">,</span>
+    <span class="n">derphi0</span><span class="p">,</span>
+    <span class="n">old_fval</span><span class="p">,</span>
+    <span class="n">alpha0</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">factor</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">sigma_decrease</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">sigma_increase</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">minstep</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Minimize over alpha, the function ``f(xk+alpha pk)``.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        f (callable): Function to be minimized, f(step)</span>
+<span class="sd">        derphi0 : (float) directional derivative</span>
+<span class="sd">        fval0 : (float) func(0), the value of the function at the origin</span>
+<span class="sd">        alpha0 : (float) the initial stepsize</span>
+<span class="sd">        sigma_increase : (float) initial stepsize</span>
+<span class="sd">                         [must be in (0,1) and &gt;=sigma_decrease]</span>
+<span class="sd">        sigma_decrease : (float) initial stepsize</span>
+<span class="sd">                         [must be in (0,1) and &lt;=sigma_increase]</span>
+<span class="sd">        factor : (float) scalefactor in modifying stepsize [must be in (0,1)]</span>
+<span class="sd">        minstep : (float) minimum stepsize to take</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        stepsize - accepted stepsize</span>
+<span class="sd">        f_val - final function value</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">        See D.P. Bertsekas, Nonlinear Programming, 2nd ed, 1999, page 29.</span>
+
+<span class="sd">        (fd) A few notes about this specific implementation:</span>
+<span class="sd">        0) I believe this method was originally from Jim Havranek</span>
+<span class="sd">        1) &#39;factor&#39; corresponds roughly to &#39;beta&#39;, BUT on a successful initial step,</span>
+<span class="sd">           factor is used to increase the stepsize.  When factor is used to decrease</span>
+<span class="sd">           stepsize, factor^2 is used</span>
+<span class="sd">        2) The stopping critera used is that in the paper, the first integer m&gt;=0 s.t.:</span>
+<span class="sd">             f(x_k) - f(x_k+beta^m*s*d_k) &gt;= -sigma * beta^m * s * grad{f}(x_k) * d_k</span>
+<span class="sd">           however, the two different values of sigma are used:</span>
+<span class="sd">              * sigma_increase (0.8) is used to trigger an _increased_ stepsize</span>
+<span class="sd">              * sigma_decrease (0.1) is _required_ or the step size is decreased</span>
+<span class="sd">        3) in the code</span>
+<span class="sd">              * &#39;alpha&#39; corresponds to &#39;s&#39; in the text</span>
+<span class="sd">              * &#39;factor&#39; corresponds roughly to &#39;beta&#39; in the text (see point 1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># evaluate phi(0) if not input</span>
+    <span class="n">n_evals</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">old_fval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">phi0</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">n_evals</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">phi0</span> <span class="o">=</span> <span class="n">old_fval</span>
+
+    <span class="c1"># check armijo condition</span>
+    <span class="n">phi_a0</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">alpha0</span><span class="p">)</span>
+    <span class="n">n_evals</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># first, we check if we can increase the stepsize</span>
+    <span class="c1">#     (if the func is still behaving linearly)</span>
+
+    <span class="k">if</span> <span class="n">phi_a0</span> <span class="o">&lt;=</span> <span class="n">phi0</span> <span class="o">+</span> <span class="n">alpha0</span> <span class="o">*</span> <span class="n">sigma_increase</span> <span class="o">*</span> <span class="n">derphi0</span><span class="p">:</span>
+        <span class="c1"># attempt to increase stepsize</span>
+        <span class="n">alpha1</span> <span class="o">=</span> <span class="n">alpha0</span> <span class="o">/</span> <span class="n">factor</span>
+        <span class="n">phi_a1</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">alpha1</span><span class="p">)</span>
+        <span class="n">n_evals</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">phi_a1</span> <span class="o">&lt;</span> <span class="n">phi_a0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">alpha1</span><span class="p">,</span> <span class="n">phi_a1</span><span class="p">,</span> <span class="n">n_evals</span><span class="p">,</span> <span class="s2">&quot;increased&quot;</span>
+
+        <span class="c1"># step back</span>
+        <span class="k">return</span> <span class="n">alpha0</span><span class="p">,</span> <span class="n">phi_a0</span><span class="p">,</span> <span class="n">n_evals</span><span class="p">,</span> <span class="s2">&quot;step_back&quot;</span>
+
+    <span class="c1"># next, we check if we need to decrease the stepsize</span>
+    <span class="n">alpha1</span> <span class="o">=</span> <span class="n">alpha0</span>
+    <span class="n">phi_a1</span> <span class="o">=</span> <span class="n">phi_a0</span>
+    <span class="k">while</span> <span class="n">phi_a1</span> <span class="o">&gt;</span> <span class="n">phi0</span> <span class="o">+</span> <span class="n">alpha1</span> <span class="o">*</span> <span class="n">sigma_decrease</span> <span class="o">*</span> <span class="n">derphi0</span><span class="p">:</span>
+        <span class="c1"># (fd) check for search failure.  In R3, &quot;Inaccurate G!&quot; is reported</span>
+        <span class="c1"># (fd) I have made a few modifications to this from R3</span>
+        <span class="c1">#      (1) there is no relative stepsize check, only an absolute one</span>
+        <span class="c1">#          (R3 checks that step is &gt;=1e-5 times orig step and &gt;=1e-12)</span>
+        <span class="c1">#      (2) if the search fails to satisfy Armijo cond, but decreases</span>
+        <span class="c1">#          the function at min stepsize, accept the step</span>
+        <span class="c1"># (fd) I think change (1) is hit reasonably often in R3</span>
+        <span class="c1">#      (and while usually bad is not necessarily so, particularly on 1st step)</span>
+        <span class="c1"># (fd) Change (2) probably is infrequent (and might slow things down?)</span>
+        <span class="k">if</span> <span class="n">alpha1</span> <span class="o">&lt;</span> <span class="n">minstep</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">phi_a1</span> <span class="o">&gt;=</span> <span class="n">phi0</span><span class="p">:</span>
+                <span class="n">finite_diff</span> <span class="o">=</span> <span class="p">(</span><span class="n">phi_a1</span> <span class="o">-</span> <span class="n">phi0</span><span class="p">)</span> <span class="o">/</span> <span class="n">alpha1</span> <span class="k">if</span> <span class="n">alpha1</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;Inaccurate G! Step=&quot;</span><span class="p">,</span>
+                    <span class="n">alpha1</span><span class="p">,</span>
+                    <span class="s2">&quot; Deriv=&quot;</span><span class="p">,</span>
+                    <span class="n">derphi0</span><span class="p">,</span>
+                    <span class="s2">&quot; Finite=&quot;</span><span class="p">,</span>
+                    <span class="n">finite_diff</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">return</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">phi0</span><span class="p">,</span> <span class="n">n_evals</span><span class="p">,</span> <span class="s2">&quot;inaccurate_G&quot;</span>
+            <span class="k">return</span> <span class="n">alpha1</span><span class="p">,</span> <span class="n">phi_a1</span><span class="p">,</span> <span class="n">n_evals</span><span class="p">,</span> <span class="s2">&quot;minstep&quot;</span>
+
+        <span class="n">alpha1</span> <span class="o">*=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">factor</span>  <span class="c1"># see note above, decrease by factor^2</span>
+        <span class="n">phi_a1</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">alpha1</span><span class="p">)</span>
+        <span class="n">n_evals</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">alpha1</span><span class="p">,</span> <span class="n">phi_a1</span><span class="p">,</span> <span class="n">n_evals</span><span class="p">,</span> <span class="s2">&quot;armijo&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="LBFGS_Armijo">
+<a class="viewcode-back" href="../../../api/tmol/optimization/lbfgs_armijo/index.html#tmol.optimization.lbfgs_armijo.LBFGS_Armijo">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LBFGS_Armijo</span><span class="p">(</span><span class="n">Optimizer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements L-BFGS algorithm with Armijo line search.</span>
+<span class="sd">    All scaling and parameters taken directly from Rosetta</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        lr (float): learning rate (default: 1)</span>
+<span class="sd">        max_iter (int): maximal number of iterations (default: 200)</span>
+<span class="sd">        rtol (float): relative tolerance (default: 1e-6)</span>
+<span class="sd">        atol (float): absolute tolerance (default: 0)</span>
+<span class="sd">        gradtol (float): an absolute tolerance on max_i df/dx_i (default: 1e-4)</span>
+<span class="sd">        history_size (int): update history size (default: 128).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">params</span><span class="p">,</span>
+        <span class="n">lr</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+        <span class="n">rtol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># None =&gt; dtype-based default</span>
+        <span class="n">atol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># None =&gt; dtype-based default</span>
+        <span class="n">gradtol</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">history_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+        <span class="n">minstep</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">defaults</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">,</span>
+            <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span>
+            <span class="n">gradtol</span><span class="o">=</span><span class="n">gradtol</span><span class="p">,</span>
+            <span class="n">history_size</span><span class="o">=</span><span class="n">history_size</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LBFGS_Armijo</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">defaults</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_groups</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;LBFGS doesn&#39;t support per-parameter options &quot;</span> <span class="s2">&quot;(parameter groups)&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;params&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_numel_cache</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_minstep</span> <span class="o">=</span> <span class="n">minstep</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+
+    <span class="c1"># LBFGS (as implemented) treats parameter groups all equally</span>
+    <span class="c1"># * the following wrapper functions package parameters as a single param</span>
+    <span class="c1"># * this code is based off PyTorch default LBFGS implementation</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_numel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numel_cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_numel_cache</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">total</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="n">total</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">,</span> <span class="mi">0</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numel_cache</span>
+
+    <span class="c1"># pack gradients into a single flat tensor</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gather_flat_grad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">views</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">view</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">numel</span><span class="p">())</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">is_sparse</span><span class="p">:</span>
+                <span class="n">view</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">view</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">views</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">view</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">views</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># pack the current location into a single flat tensor</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gather_flat_x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">views</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">is_sparse</span><span class="p">:</span>
+                <span class="n">view</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">view</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">views</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">view</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">views</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># unpack a new location</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_x_from_flat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update</span><span class="p">):</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
+            <span class="n">numel</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">is_sparse</span><span class="p">:</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span>
+                    <span class="n">update</span><span class="p">[</span><span class="n">offset</span> <span class="p">:</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">numel</span><span class="p">]</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">to_sparse</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># view as to avoid deprecated pointwise semantics</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">update</span><span class="p">[</span><span class="n">offset</span> <span class="p">:</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">numel</span><span class="p">]</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+            <span class="n">offset</span> <span class="o">+=</span> <span class="n">numel</span>
+        <span class="k">assert</span> <span class="n">offset</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numel</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_step_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">closure</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepare for L-BFGS:</span>
+<span class="sd">        read config</span>
+<span class="sd">        initialize state (history buffers, x_ref, preallocate d and x_backup)</span>
+<span class="sd">        evaluate initial loss and gradient</span>
+<span class="sd">        returns a SimpleNamespace ctx&quot;&quot;&quot;</span>
+        <span class="c1"># lbfgs only works w/ single parameter group</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_groups</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;This version requires single tensor&quot;</span>
+
+        <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">lr</span> <span class="o">=</span> <span class="n">group</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span>
+        <span class="n">max_iter</span> <span class="o">=</span> <span class="n">group</span><span class="p">[</span><span class="s2">&quot;max_iter&quot;</span><span class="p">]</span>
+        <span class="n">rtol</span> <span class="o">=</span> <span class="n">group</span><span class="p">[</span><span class="s2">&quot;rtol&quot;</span><span class="p">]</span>
+        <span class="n">atol</span> <span class="o">=</span> <span class="n">group</span><span class="p">[</span><span class="s2">&quot;atol&quot;</span><span class="p">]</span>
+        <span class="n">gradtol</span> <span class="o">=</span> <span class="n">group</span><span class="p">[</span><span class="s2">&quot;gradtol&quot;</span><span class="p">]</span>
+        <span class="n">history_size</span> <span class="o">=</span> <span class="n">group</span><span class="p">[</span><span class="s2">&quot;history_size&quot;</span><span class="p">]</span>
+
+        <span class="c1"># dtype-based default</span>
+        <span class="c1">#   float32 : eps~3.45e-4</span>
+        <span class="c1">#   float64 : eps~1.49e-8</span>
+        <span class="n">dtype_based_tol</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rtol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rtol</span> <span class="o">=</span> <span class="n">dtype_based_tol</span>
+        <span class="k">if</span> <span class="n">rtol</span> <span class="o">&lt;</span> <span class="n">dtype_based_tol</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  WARNING: rtol (</span><span class="si">{</span><span class="n">rtol</span><span class="si">}</span><span class="s2">) is too low for dtype! (</span><span class="si">{</span><span class="n">dtype_based_tol</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">atol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">atol</span> <span class="o">=</span> <span class="n">dtype_based_tol</span>
+        <span class="k">if</span> <span class="n">atol</span> <span class="o">&lt;</span> <span class="n">dtype_based_tol</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  WARNING: atol (</span><span class="si">{</span><span class="n">atol</span><span class="si">}</span><span class="s2">) is too low for dtype! (</span><span class="si">{</span><span class="n">dtype_based_tol</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+        <span class="n">param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># NOTE: LBFGS has only global state, but we register it as state for</span>
+        <span class="c1"># the first param, because this helps with casting in load_state_dict</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="n">param</span><span class="p">]</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;func_evals&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;n_iter&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># evaluate initial f(x)</span>
+        <span class="n">orig_loss</span> <span class="o">=</span> <span class="n">closure</span><span class="p">()</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">orig_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">&quot;func_evals&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">flat_grad</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Preallocate on first call. `d` and `x_backup` must have stable</span>
+        <span class="c1"># tensor identity so linefn (defined once in step) can capture them.</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;d&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;d&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;x_backup&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;old_dirs_mat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">history_size</span><span class="p">,</span> <span class="n">L</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;old_stps_mat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">history_size</span><span class="p">,</span> <span class="n">L</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;history_start&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Circular buffer start index</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;history_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Number of items in history</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;x_ref&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>  <span class="c1"># reference position for s computation</span>
+
+        <span class="k">return</span> <span class="n">SimpleNamespace</span><span class="p">(</span>
+            <span class="c1"># config</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
+            <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span>
+            <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">,</span>
+            <span class="n">gradtol</span><span class="o">=</span><span class="n">gradtol</span><span class="p">,</span>
+            <span class="n">history_size</span><span class="o">=</span><span class="n">history_size</span><span class="p">,</span>
+            <span class="c1"># torch / state</span>
+            <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span>
+            <span class="n">param</span><span class="o">=</span><span class="n">param</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+            <span class="n">flat_grad</span><span class="o">=</span><span class="n">flat_grad</span><span class="p">,</span>
+            <span class="c1"># preallocated scratch (stable refs captured by linefn)</span>
+            <span class="n">d</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;d&quot;</span><span class="p">],</span>
+            <span class="n">x_backup</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;x_backup&quot;</span><span class="p">],</span>
+            <span class="c1"># cached across steps</span>
+            <span class="n">t</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;t&quot;</span><span class="p">),</span>
+            <span class="n">prev_flat_grad</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;prev_flat_grad&quot;</span><span class="p">),</span>
+            <span class="n">prev_loss</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;prev_loss&quot;</span><span class="p">),</span>
+            <span class="c1"># history</span>
+            <span class="n">old_dirs_mat</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;old_dirs_mat&quot;</span><span class="p">],</span>
+            <span class="n">old_stps_mat</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;old_stps_mat&quot;</span><span class="p">],</span>
+            <span class="n">history_start</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;history_start&quot;</span><span class="p">],</span>
+            <span class="n">history_count</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;history_count&quot;</span><span class="p">],</span>
+            <span class="n">x_ref</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;x_ref&quot;</span><span class="p">],</span>
+            <span class="c1"># current eval</span>
+            <span class="n">orig_loss</span><span class="o">=</span><span class="n">orig_loss</span><span class="p">,</span>
+            <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span>
+            <span class="c1"># line-search accounting</span>
+            <span class="n">ls_evals</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">status</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_search_direction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;L-BFGS update + two-loop recursion.&quot;&quot;&quot;</span>
+        <span class="n">flat_grad</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">d</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">x</span>
+
+        <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;n_iter&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># initialize</span>
+            <span class="n">d</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">flat_grad</span><span class="p">)</span><span class="o">.</span><span class="n">neg_</span><span class="p">()</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">history_count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">return</span>
+
+        <span class="c1"># do lbfgs update (update memory)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">flat_grad</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">prev_flat_grad</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">x_ref</span><span class="p">)</span>  <span class="c1"># cumulative displacement since last good step</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>  <span class="c1"># y*s</span>
+        <span class="k">if</span> <span class="n">ys</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mf">1e-6</span><span class="p">:</span>
+            <span class="c1"># updating memory - write directly into circular buffer</span>
+            <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_count</span> <span class="o">&lt;</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_size</span><span class="p">:</span>
+                <span class="c1"># Still filling up the buffer</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_count</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">history_count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Buffer full, overwrite oldest entry</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_start</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">history_start</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">history_start</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_size</span>
+
+            <span class="n">ctx</span><span class="o">.</span><span class="n">old_dirs_mat</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">old_stps_mat</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">x_ref</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>  <span class="c1"># advance reference only on good steps</span>
+
+        <span class="c1"># compute the approximate (L-BFGS) inverse Hessian</span>
+        <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># No history: use steepest descent direction</span>
+            <span class="n">d</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">flat_grad</span><span class="p">)</span><span class="o">.</span><span class="n">neg_</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Create views old -&gt; new</span>
+        <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_count</span> <span class="o">&lt;</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_size</span><span class="p">:</span>
+            <span class="n">old_dirs_view</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">old_dirs_mat</span><span class="p">[:</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_count</span><span class="p">]</span>
+            <span class="n">old_stps_view</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">old_stps_mat</span><span class="p">[:</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_count</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Buffer full, need to reorder: [start:end] + [0:start]</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">history_start</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_start</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">old_dirs_view</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">old_dirs_mat</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+            <span class="n">old_stps_view</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">old_stps_mat</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+
+        <span class="n">d</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">lbfgs_two_loop</span><span class="p">(</span><span class="n">flat_grad</span><span class="p">,</span> <span class="n">old_dirs_view</span><span class="p">,</span> <span class="n">old_stps_view</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_rescue_failed_linesearch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">linefn</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle t==0.0 failure: reset L-BFGS history and retry with</span>
+<span class="sd">        steepest descent at step 1/sqrt(|g|).  Returns True on fail.&quot;&quot;&quot;</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">history_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">history_start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">x_ref</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>  <span class="c1"># reset reference position with history</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span><span class="p">)</span><span class="o">.</span><span class="n">neg_</span><span class="p">()</span>
+        <span class="n">gtd_val</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">gtd_val</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mf">1e-5</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  iter </span><span class="si">{</span><span class="n">n_iter</span><span class="si">:</span><span class="s2">4d</span><span class="si">}</span><span class="s2">  ls failed and gradient ~0, stopping&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="n">t_retry</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">((</span><span class="o">-</span><span class="n">gtd_val</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">prev_loss</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">loss</span>
+        <span class="n">start_t</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">t_retry</span> <span class="o">/</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minstep</span><span class="p">)</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">ls_evals_retry</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">armijo_linesearch</span><span class="p">(</span>
+            <span class="n">linefn</span><span class="p">,</span>
+            <span class="n">gtd_val</span><span class="p">,</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">prev_loss</span><span class="p">,</span>
+            <span class="n">alpha0</span><span class="o">=</span><span class="n">start_t</span><span class="p">,</span>
+            <span class="n">factor</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+            <span class="n">sigma_decrease</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+            <span class="n">sigma_increase</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+            <span class="n">minstep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_minstep</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">ls_evals</span> <span class="o">+=</span> <span class="n">ls_evals_retry</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;  iter </span><span class="si">{</span><span class="n">n_iter</span><span class="si">:</span><span class="s2">4d</span><span class="si">}</span><span class="s2">  [reset+retry] E=</span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">loss</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;  ls_evals=</span><span class="si">{</span><span class="n">ls_evals_retry</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;  start_step=</span><span class="si">{</span><span class="n">start_t</span><span class="si">:</span><span class="s2">.6e</span><span class="si">}</span><span class="s2">  accepted_step=</span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">t</span><span class="si">:</span><span class="s2">.6e</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">t</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  iter </span><span class="si">{</span><span class="n">n_iter</span><span class="si">:</span><span class="s2">4d</span><span class="si">}</span><span class="s2">  ls failed again after reset, stopping&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="LBFGS_Armijo.step">
+<a class="viewcode-back" href="../../../api/tmol/optimization/lbfgs_armijo/index.html#tmol.optimization.lbfgs_armijo.LBFGS_Armijo.step">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">closure</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The LBFGS minimization algorithm. Despite the name, this performs the full</span>
+<span class="sd">        LBFGS minimization trajectory.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            func (callable): a function that evaluates energy</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            orig_loss: the energy (loss) following optimization</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ctx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_setup</span><span class="p">(</span><span class="n">closure</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">x</span>
+        <span class="n">x_backup</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">x_backup</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">d</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">linefn</span><span class="p">(</span><span class="n">alpha_test</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ls_func_evals</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># Direct parameter update - eliminates _set_x_from_flat overhead</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">x_backup</span><span class="p">)</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha_test</span><span class="p">)</span>
+            <span class="n">E</span> <span class="o">=</span> <span class="n">closure</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">E</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+        <span class="n">current_evals</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">n_iter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">n_iter</span> <span class="o">&lt;</span> <span class="n">ctx</span><span class="o">.</span><span class="n">max_iter</span><span class="p">:</span>
+            <span class="n">n_iter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;n_iter&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_compute_search_direction</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">prev_flat_grad</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">prev_flat_grad</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">prev_flat_grad</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span><span class="p">)</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">prev_loss</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">loss</span>
+
+            <span class="c1"># Armijo updates will track step length during optimization</span>
+            <span class="c1"># thus, &quot;learning rate&quot; is only applied for the initial step</span>
+            <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;n_iter&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">lr</span>
+
+            <span class="c1"># directional derivative</span>
+            <span class="n">gtd_val</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+            <span class="c1"># (fd) this is some hacky stuff I put in R3 that is not typically part</span>
+            <span class="c1"># (fd)   of lbfgs because the bfgs update had us frequently searching</span>
+            <span class="c1"># (fd)   in positive grad directions</span>
+            <span class="c1"># check 1: if dir. deriv. is positive, flip signs of positive components</span>
+            <span class="k">if</span> <span class="n">gtd_val</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mf">1e-5</span><span class="p">:</span>
+                <span class="n">d</span><span class="o">.</span><span class="n">mul_</span><span class="p">(</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span> <span class="o">*</span> <span class="n">d</span><span class="p">))</span>
+                <span class="n">gtd_val</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+            <span class="c1"># check 2: if derivative is still positive, reset Hessian</span>
+            <span class="k">if</span> <span class="n">gtd_val</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mf">1e-5</span><span class="p">:</span>
+                <span class="n">d</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span><span class="p">)</span><span class="o">.</span><span class="n">neg_</span><span class="p">()</span>
+                <span class="n">gtd_val</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+            <span class="c1"># define the line search function</span>
+            <span class="c1"># we do not need to compute gradients in here</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ls_func_evals</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="c1"># Optimization: save original position and work directly with param.data</span>
+            <span class="n">x_backup</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+            <span class="c1"># do the line search</span>
+            <span class="c1"># match Rosetta: start at 2x prev accepted step, capped at 1.0</span>
+            <span class="n">start_t</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">t</span> <span class="o">/</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">ls_evals</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">armijo_linesearch</span><span class="p">(</span>
+                <span class="n">linefn</span><span class="p">,</span>  <span class="c1"># callback for energy eval</span>
+                <span class="n">gtd_val</span><span class="p">,</span>  <span class="c1"># directional derivative</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">prev_loss</span><span class="p">,</span>  <span class="c1"># current function value (at x)</span>
+                <span class="n">alpha0</span><span class="o">=</span><span class="n">start_t</span><span class="p">,</span>  <span class="c1"># stepsize</span>
+                <span class="n">factor</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+                <span class="n">sigma_decrease</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                <span class="n">sigma_increase</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+                <span class="n">minstep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_minstep</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">t</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rescue_failed_linesearch</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">linefn</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">):</span>
+                    <span class="k">break</span>
+
+            <span class="c1"># update - direct modification</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">x_backup</span><span class="p">)</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
+
+            <span class="c1"># ONLY if the last step was &#39;step_back&#39; then grads are out of date</span>
+            <span class="c1">#   recompute the closure</span>
+            <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">&quot;step_back&quot;</span><span class="p">:</span>
+                <span class="n">closure</span><span class="p">()</span>
+
+            <span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Direct reference</span>
+            <span class="n">max_grad</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+            <span class="c1"># update func eval</span>
+            <span class="n">current_evals</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ls_func_evals</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;func_evals&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ls_func_evals</span>
+
+            <span class="c1"># converge check 1: gradient</span>
+            <span class="k">if</span> <span class="n">max_grad</span> <span class="o">&lt;=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">gradtol</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  converged: max_grad </span><span class="si">{</span><span class="n">max_grad</span><span class="si">:</span><span class="s2">.4e</span><span class="si">}</span><span class="s2"> &lt;= </span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">gradtol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="c1"># converge check 2: abs tol</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">loss</span> <span class="o">-</span> <span class="n">ctx</span><span class="o">.</span><span class="n">prev_loss</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">atol</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;  converged: |dE| </span><span class="si">{</span><span class="nb">abs</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">loss</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ctx</span><span class="o">.</span><span class="n">prev_loss</span><span class="p">)</span><span class="si">:</span><span class="s2">.4e</span><span class="si">}</span><span class="s2"> &lt;= atol </span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">atol</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">break</span>
+            <span class="c1"># converge check 3: rel tol</span>
+            <span class="n">rdiff</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="mi">2</span>
+                <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">loss</span> <span class="o">-</span> <span class="n">ctx</span><span class="o">.</span><span class="n">prev_loss</span><span class="p">)</span>
+                <span class="o">/</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">loss</span><span class="p">)</span> <span class="o">+</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">prev_loss</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">rdiff</span> <span class="o">&lt;=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">rtol</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  converged: rel_dE </span><span class="si">{</span><span class="n">rdiff</span><span class="si">:</span><span class="s2">.4e</span><span class="si">}</span><span class="s2"> &lt;= rtol </span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">rtol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;  LBFGS_Armijo done: </span><span class="si">{</span><span class="n">n_iter</span><span class="si">}</span><span class="s2"> iters,&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">current_evals</span><span class="si">}</span><span class="s2"> func evals,&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; E=</span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># d and x_backup persist via preallocation in state; save the rest.</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">t</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;history_start&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_start</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;history_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">history_count</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;prev_flat_grad&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">prev_flat_grad</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;prev_loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">prev_loss</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;x_ref&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">x_ref</span>
+
+        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">orig_loss</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

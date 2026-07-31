@@ -1,0 +1,11 @@
+.bd-main .bd-content .bd-article-container {
+  max-width: 980px;
+}
+
+.bd-sidebar-primary {
+  max-width: 320px;
+}
+
+table.docutils {
+  width: 100%;
+}

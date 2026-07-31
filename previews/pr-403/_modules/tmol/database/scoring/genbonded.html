@@ -1,0 +1,1028 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.database.scoring.genbonded &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=c8b66c78" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/database/scoring/genbonded';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://tmol.ipd.uw.edu/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-403';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.46" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../database.html" class="nav-link">tmol.database</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../scoring.html" class="nav-link">tmol.database.scoring</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.database.scoring.genbonded</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.database.scoring.genbonded</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">permutations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Bond-type bin constants (mirror Rosetta&#39;s bin_from_bond)</span>
+<span class="c1">#</span>
+<span class="c1">#   btidx = ((BondName - 1) &lt;&lt; 1) + BondRingness</span>
+<span class="c1">#     BondName:    SingleBond=1, DoubleBond=2, TripleBond=3, AromaticBond=4</span>
+<span class="c1">#     BondRingness: NotInRing=1, InRing=2</span>
+<span class="c1">#</span>
+<span class="c1">#   Results:  Single+NotInRing=1, Single+InRing=2,</span>
+<span class="c1">#             Double+NotInRing=3, Double+InRing=4,</span>
+<span class="c1">#             Triple+NotInRing=5, Triple+InRing=6,</span>
+<span class="c1">#             Aromatic+NotInRing=7, Aromatic+InRing=8</span>
+<span class="c1">#   Wildcard (~) bin: 0 (not a valid query bin, but used for bin_count)</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+<span class="c1"># Which Rosetta bond bins each database bond-char covers (for btidx 1-8).</span>
+<span class="c1"># An entry matches a query bond if query btidx is in the entry&#39;s covered set.</span>
+<span class="n">_BOND_CHAR_COVERED_BINS</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;~&quot;</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">}),</span>  <span class="c1"># any of 8 bond types</span>
+    <span class="s2">&quot;@&quot;</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">({</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">}),</span>  <span class="c1"># any bond, in ring</span>
+    <span class="s2">&quot;-&quot;</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">({</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">}),</span>  <span class="c1"># single,   ring or not</span>
+    <span class="s2">&quot;=&quot;</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">({</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">}),</span>  <span class="c1"># double,   ring or not</span>
+    <span class="s2">&quot;#&quot;</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">({</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">}),</span>  <span class="c1"># triple,   ring or not</span>
+    <span class="s2">&quot;:&quot;</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">({</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">}),</span>  <span class="c1"># aromatic, ring or not</span>
+<span class="p">}</span>
+
+<span class="c1"># Number of bins each bond-char covers.  Mirrors Rosetta&#39;s indicesBT.size():</span>
+<span class="c1"># more bins = less specific = higher multiplicity.</span>
+<span class="n">_BOND_CHAR_BIN_COUNT</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">c</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">bins</span> <span class="ow">in</span> <span class="n">_BOND_CHAR_COVERED_BINS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_bond_btidx</span><span class="p">(</span><span class="n">bond_type_int</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">is_ring</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute Rosetta bond-bin index from a concrete bond.</span>
+
+<span class="sd">    BondType values (1=SINGLE, 2=DOUBLE, 3=TRIPLE, 4=AROMATIC) are used</span>
+<span class="sd">    directly as the Rosetta BondName index.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">br</span> <span class="o">=</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">is_ring</span> <span class="k">else</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="p">((</span><span class="n">bond_type_int</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">br</span>
+
+
+<div class="viewcode-block" id="GenBondedTorsionEntry">
+<a class="viewcode-back" href="../../../../api/tmol/database/scoring/genbonded/index.html#tmol.database.scoring.genbonded.GenBondedTorsionEntry">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GenBondedTorsionEntry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;One torsion entry from the genbonded parameter database.</span>
+
+<span class="sd">    atoms  -- four atom-type strings (may be generic, e.g. &quot;C*&quot;, or wildcard &quot;X&quot;)</span>
+<span class="sd">    bond   -- bond character:</span>
+<span class="sd">                ~ any bond</span>
+<span class="sd">                @ ring bond</span>
+<span class="sd">                - single bond</span>
+<span class="sd">                = double bond</span>
+<span class="sd">                # triple bond</span>
+<span class="sd">                : aromatic bond</span>
+<span class="sd">    k1..k4 -- Fourier coefficients for periods 1-4</span>
+<span class="sd">    offset -- single phase offset applied to all Fourier terms</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">atoms</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+    <span class="n">bond</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">k1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">k2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">k3</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">k4</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+
+
+
+<div class="viewcode-block" id="GenBondedImproperEntry">
+<a class="viewcode-back" href="../../../../api/tmol/database/scoring/genbonded/index.html#tmol.database.scoring.genbonded.GenBondedImproperEntry">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GenBondedImproperEntry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;One improper torsion entry from the genbonded parameter database.</span>
+
+<span class="sd">    atoms  -- four atom-type strings: atoms[0] = center, atoms[1..3] = bonded</span>
+<span class="sd">           -- (may be generic, e.g. &quot;C*&quot;, or wildcard &quot;X&quot;)</span>
+<span class="sd">    k      -- harmonic spring constant  (E = k*(theta - delta)^2)</span>
+<span class="sd">    delta  -- ideal improper torsion angle (radians)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">atoms</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+    <span class="n">k</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+
+
+
+<div class="viewcode-block" id="GenBondedDatabase">
+<a class="viewcode-back" href="../../../../api/tmol/database/scoring/genbonded/index.html#tmol.database.scoring.genbonded.GenBondedDatabase">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GenBondedDatabase</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Database for the genbonded (generic-bonded torsional) scoring term.</span>
+
+<span class="sd">    atom_hierarchy -- maps each concrete atom-type name to an ordered list of</span>
+<span class="sd">                      types to try when looking up a parameter entry, from most</span>
+<span class="sd">                      specific to most generic.  e.g. {&quot;CS&quot;: [&quot;CS&quot;, &quot;C*&quot;, &quot;X&quot;]}</span>
+
+<span class="sd">    torsions       -- ordered list of torsion entries (most-specific first so</span>
+<span class="sd">                      that a linear scan finds the best match quickly).</span>
+
+<span class="sd">    impropers      -- ordered list of improper torsion entries (center + 3</span>
+<span class="sd">                      bonded atoms; order of bonded atoms is unordered).</span>
+
+<span class="sd">    coverage       -- maps each atom-type string to the count of concrete types</span>
+<span class="sd">                      whose hierarchy includes that string.  Used for Rosetta-</span>
+<span class="sd">                      style multiplicity scoring.</span>
+
+<span class="sd">    multi_max      -- half the total number of concrete atom types; scales the</span>
+<span class="sd">                      bond-type contribution to multiplicity so that bond</span>
+<span class="sd">                      specificity dominates atom-type specificity (mirrors</span>
+<span class="sd">                      Rosetta&#39;s multi_max = indicesX.size() / 2).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">atom_hierarchy</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+    <span class="n">torsions</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">GenBondedTorsionEntry</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">impropers</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">GenBondedImproperEntry</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">coverage</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="n">multi_max</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="c1"># Lookup index built lazily in __attrs_post_init__: maps an atom-string</span>
+    <span class="c1"># 4-tuple to a list of (mult, covered_bins, entry) sorted by ascending</span>
+    <span class="c1"># multiplicity.  Both forward and reversed orderings of each entry&#39;s atom</span>
+    <span class="c1"># tuple are inserted so torsion direction is handled by a single dict</span>
+    <span class="c1"># lookup rather than a second pass.</span>
+    <span class="n">_torsion_index</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span>
+        <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+        <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">,</span> <span class="n">GenBondedTorsionEntry</span><span class="p">]],</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__attrs_post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mm4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_max</span><span class="o">**</span><span class="mi">4</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_torsion_index</span>  <span class="c1"># mutate in place (frozen-safe)</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">torsions</span><span class="p">:</span>
+            <span class="n">covered</span> <span class="o">=</span> <span class="n">_BOND_CHAR_COVERED_BINS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">bond</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">covered</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">bin_count</span> <span class="o">=</span> <span class="n">_BOND_CHAR_BIN_COUNT</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">bond</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">et1</span><span class="p">,</span> <span class="n">et2</span><span class="p">,</span> <span class="n">et3</span><span class="p">,</span> <span class="n">et4</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">atoms</span>
+            <span class="n">atom_cov</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">et1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">et2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">et3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">et4</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">mult</span> <span class="o">=</span> <span class="n">bin_count</span> <span class="o">*</span> <span class="n">mm4</span> <span class="o">+</span> <span class="n">atom_cov</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="p">(</span><span class="n">mult</span><span class="p">,</span> <span class="n">covered</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span>
+            <span class="c1"># Insert under both orderings; a palindromic tuple goes in once.</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="p">{</span><span class="n">entry</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">atoms</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]}</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">index</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">bucket</span> <span class="ow">in</span> <span class="n">index</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">bucket</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Construction</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="GenBondedDatabase.from_file">
+<a class="viewcode-back" href="../../../../api/tmol/database/scoring/genbonded/index.html#tmol.database.scoring.genbonded.GenBondedDatabase.from_file">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;GenBondedDatabase&quot;</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span>
+
+        <span class="c1"># --- atom hierarchy -------------------------------------------</span>
+        <span class="n">atom_hierarchy</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">atom_type</span><span class="p">,</span> <span class="n">fallbacks</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;atoms&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># BOND / ANGLE sentinel entries have empty lists; skip them</span>
+            <span class="k">if</span> <span class="n">fallbacks</span><span class="p">:</span>
+                <span class="n">atom_hierarchy</span><span class="p">[</span><span class="n">atom_type</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">fallbacks</span><span class="p">)</span>
+
+        <span class="c1"># --- coverage map (Rosetta: indices_i.size() per atom type) ---</span>
+        <span class="c1"># For each group/wildcard type string, count how many concrete types</span>
+        <span class="c1"># have it in their hierarchy.  Mirrors name_index_map[atm].size().</span>
+        <span class="n">coverage</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">hier</span> <span class="ow">in</span> <span class="n">atom_hierarchy</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">h_type</span> <span class="ow">in</span> <span class="n">hier</span><span class="p">:</span>
+                <span class="n">coverage</span><span class="p">[</span><span class="n">h_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">coverage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">h_type</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="c1"># multi_max = indicesX.size() / 2  (X covers all concrete types).</span>
+        <span class="c1"># Use integer division to match Rosetta&#39;s int arithmetic and keep</span>
+        <span class="c1"># the resulting multiplicities integer-valued.</span>
+        <span class="n">multi_max</span> <span class="o">=</span> <span class="n">coverage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="c1"># --- torsion entries ------------------------------------------</span>
+        <span class="n">torsion_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GenBondedTorsionEntry</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;torsions&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="n">atoms_raw</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;atoms&quot;</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">atoms_raw</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected 4 atoms, got </span><span class="si">{</span><span class="n">atoms_raw</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="n">k_list</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;K&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">k_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected 4 components, got </span><span class="si">{</span><span class="n">atoms_raw</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="n">torsion_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">GenBondedTorsionEntry</span><span class="p">(</span>
+                    <span class="n">atoms</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">atoms_raw</span><span class="p">),</span>
+                    <span class="n">bond</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;bond&quot;</span><span class="p">),</span>
+                    <span class="n">k1</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                    <span class="n">k2</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k_list</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                    <span class="n">k3</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k_list</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                    <span class="n">k4</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k_list</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+                    <span class="n">offset</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;offset&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># --- improper entries -----------------------------------------</span>
+        <span class="n">impropers_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GenBondedImproperEntry</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;impropers&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="n">atoms_raw</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry</span><span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">],</span> <span class="o">*</span><span class="n">entry</span><span class="p">[</span><span class="s2">&quot;bonded&quot;</span><span class="p">]]</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">atoms_raw</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected 4 atoms, got </span><span class="si">{</span><span class="n">atoms_raw</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="n">impropers_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">GenBondedImproperEntry</span><span class="p">(</span>
+                    <span class="n">atoms</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">atoms_raw</span><span class="p">),</span>
+                    <span class="n">k</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span>
+                    <span class="n">delta</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;delta&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">atom_hierarchy</span><span class="o">=</span><span class="n">atom_hierarchy</span><span class="p">,</span>
+            <span class="n">torsions</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">torsion_list</span><span class="p">),</span>
+            <span class="n">impropers</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">impropers_list</span><span class="p">),</span>
+            <span class="n">coverage</span><span class="o">=</span><span class="n">coverage</span><span class="p">,</span>
+            <span class="n">multi_max</span><span class="o">=</span><span class="n">multi_max</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Type-index helpers</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="GenBondedDatabase.all_type_names">
+<a class="viewcode-back" href="../../../../api/tmol/database/scoring/genbonded/index.html#tmol.database.scoring.genbonded.GenBondedDatabase.all_type_names">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">all_type_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sorted list of all unique chemical type strings in the database.&quot;&quot;&quot;</span>
+        <span class="n">all_types</span><span class="p">:</span> <span class="nb">set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">ct</span><span class="p">,</span> <span class="n">hierarchy</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_hierarchy</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">all_types</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ct</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ht</span> <span class="ow">in</span> <span class="n">hierarchy</span><span class="p">:</span>
+                <span class="n">all_types</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ht</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">torsions</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">entry</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+                <span class="n">all_types</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">at</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">impropers</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">entry</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+                <span class="n">all_types</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">at</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">all_types</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GenBondedDatabase.make_type_to_idx">
+<a class="viewcode-back" href="../../../../api/tmol/database/scoring/genbonded/index.html#tmol.database.scoring.genbonded.GenBondedDatabase.make_type_to_idx">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_type_to_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a dict mapping every chemical type string to a unique int index.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">ct</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ct</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_type_names</span><span class="p">())}</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Parameter lookup helpers</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="GenBondedDatabase.hierarchy_for">
+<a class="viewcode-back" href="../../../../api/tmol/database/scoring/genbonded/index.html#tmol.database.scoring.genbonded.GenBondedDatabase.hierarchy_for">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hierarchy_for</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atom_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the fallback list for *atom_type*, defaulting to [atom_type].&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_hierarchy</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom_type</span><span class="p">,</span> <span class="p">[</span><span class="n">atom_type</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="GenBondedDatabase.find_torsion_params">
+<a class="viewcode-back" href="../../../../api/tmol/database/scoring/genbonded/index.html#tmol.database.scoring.genbonded.GenBondedDatabase.find_torsion_params">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_torsion_params</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">type1</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">type2</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">type3</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">type4</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">bond_type_int</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">is_ring</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GenBondedTorsionEntry</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the best-matching torsion entry using Rosetta&#39;s multiplicity scoring.</span>
+
+<span class="sd">        Multiplicity = bond_bin_count * multi_max^4 + coverage(a1)*...*coverage(a4)</span>
+
+<span class="sd">        Bond specificity dominates: an entry with a more-specific bond char</span>
+<span class="sd">        (fewer covered bins) beats one with a less-specific bond char regardless</span>
+<span class="sd">        of atom-type generality, as long as both match.  Within the same bond</span>
+<span class="sd">        specificity, atom-type coverage breaks ties (lower = more specific).</span>
+
+<span class="sd">        This mirrors Rosetta&#39;s GenericBondedPotential multiplicity formula exactly:</span>
+<span class="sd">          multBT   = indicesBT.size() * multi_max^4</span>
+<span class="sd">          mult_atm = indices1.size() * indices2.size() * indices3.size() * indices4.size()</span>
+<span class="sd">          multiplicity = multBT + mult_atm   (lower = more specific = preferred)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">btidx</span> <span class="o">=</span> <span class="n">_bond_btidx</span><span class="p">(</span><span class="n">bond_type_int</span><span class="p">,</span> <span class="n">is_ring</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_torsion_index</span>
+
+        <span class="n">h1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hierarchy_for</span><span class="p">(</span><span class="n">type1</span><span class="p">)</span>
+        <span class="n">h2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hierarchy_for</span><span class="p">(</span><span class="n">type2</span><span class="p">)</span>
+        <span class="n">h3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hierarchy_for</span><span class="p">(</span><span class="n">type3</span><span class="p">)</span>
+        <span class="n">h4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hierarchy_for</span><span class="p">(</span><span class="n">type4</span><span class="p">)</span>
+
+        <span class="n">best_entry</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">best_mult</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Enumerate the (small) Cartesian product of the four hierarchies and</span>
+        <span class="c1"># probe the precomputed index.  Reversed-direction matches are already</span>
+        <span class="c1"># represented in the index, so a single direction of iteration suffices.</span>
+        <span class="k">for</span> <span class="n">e1</span> <span class="ow">in</span> <span class="n">h1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">e2</span> <span class="ow">in</span> <span class="n">h2</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">e3</span> <span class="ow">in</span> <span class="n">h3</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">e4</span> <span class="ow">in</span> <span class="n">h4</span><span class="p">:</span>
+                        <span class="n">bucket</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">,</span> <span class="n">e3</span><span class="p">,</span> <span class="n">e4</span><span class="p">))</span>
+                        <span class="k">if</span> <span class="n">bucket</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="k">continue</span>
+                        <span class="k">for</span> <span class="n">mult</span><span class="p">,</span> <span class="n">covered</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">bucket</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">mult</span> <span class="o">&gt;=</span> <span class="n">best_mult</span><span class="p">:</span>
+                                <span class="k">break</span>
+                            <span class="k">if</span> <span class="n">btidx</span> <span class="ow">in</span> <span class="n">covered</span><span class="p">:</span>
+                                <span class="n">best_mult</span> <span class="o">=</span> <span class="n">mult</span>
+                                <span class="n">best_entry</span> <span class="o">=</span> <span class="n">entry</span>
+                                <span class="k">break</span>
+
+        <span class="k">return</span> <span class="n">best_entry</span></div>
+
+
+<div class="viewcode-block" id="GenBondedDatabase.find_improper_params">
+<a class="viewcode-back" href="../../../../api/tmol/database/scoring/genbonded/index.html#tmol.database.scoring.genbonded.GenBondedDatabase.find_improper_params">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_improper_params</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">center</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">n1</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">n2</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">n3</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GenBondedImproperEntry</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the best-matching improper entry for (center, n1, n2, n3).</span>
+
+<span class="sd">        The three bonded atoms (n1, n2, n3) are considered unordered: all six</span>
+<span class="sd">        permutations are tried.  &#39;Best&#39; is the lowest total hierarchy-position</span>
+<span class="sd">        score.  Returns None if no match is found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hierarchy_for</span><span class="p">(</span><span class="n">center</span><span class="p">)</span>
+        <span class="n">h1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hierarchy_for</span><span class="p">(</span><span class="n">n1</span><span class="p">)</span>
+        <span class="n">h2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hierarchy_for</span><span class="p">(</span><span class="n">n2</span><span class="p">)</span>
+        <span class="n">h3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hierarchy_for</span><span class="p">(</span><span class="n">n3</span><span class="p">)</span>
+
+        <span class="n">best_entry</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">best_score</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">impropers</span><span class="p">:</span>
+            <span class="n">ec</span><span class="p">,</span> <span class="n">eb1</span><span class="p">,</span> <span class="n">eb2</span><span class="p">,</span> <span class="n">eb3</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">atoms</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">sc</span> <span class="o">=</span> <span class="n">hc</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">ec</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">for</span> <span class="n">pe1</span><span class="p">,</span> <span class="n">pe2</span><span class="p">,</span> <span class="n">pe3</span> <span class="ow">in</span> <span class="n">permutations</span><span class="p">([</span><span class="n">eb1</span><span class="p">,</span> <span class="n">eb2</span><span class="p">,</span> <span class="n">eb3</span><span class="p">]):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">s1</span> <span class="o">=</span> <span class="n">h1</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">pe1</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">s2</span> <span class="o">=</span> <span class="n">h2</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">pe2</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">s3</span> <span class="o">=</span> <span class="n">h3</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">pe3</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="n">score</span> <span class="o">=</span> <span class="n">sc</span> <span class="o">+</span> <span class="n">s1</span> <span class="o">+</span> <span class="n">s2</span> <span class="o">+</span> <span class="n">s3</span>
+                <span class="k">if</span> <span class="n">score</span> <span class="o">&lt;</span> <span class="n">best_score</span><span class="p">:</span>
+                    <span class="n">best_score</span> <span class="o">=</span> <span class="n">score</span>
+                    <span class="n">best_entry</span> <span class="o">=</span> <span class="n">entry</span>
+
+        <span class="k">return</span> <span class="n">best_entry</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,1104 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.ligand.chi_topology &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c8b66c78" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/ligand/chi_topology';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://tmol.ipd.uw.edu/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-403';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.46" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand.chi_topology</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.ligand.chi_topology</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Rotatable-bond (CHI / PROTON_CHI) classification for ligand residue types.</span>
+
+<span class="sd">Ports RosettaVS ``generic_potential`` ``define_rotable_torsions``</span>
+<span class="sd">(``SetupTopology.py``) and the PROTON_CHI sample tables (``Molecule.py``)</span>
+<span class="sd">into tmol&#39;s ligand-preparation pipeline.  The goal is *semantic* parity with</span>
+<span class="sd">RosettaVS: the same set of rotatable bond axes plus correct proton-chi sample</span>
+<span class="sd">sets, not byte-identical CHI numbering.</span>
+
+<span class="sd">The classifier is pure: it consumes the RDKit ``Mol``, the deterministic</span>
+<span class="sd">atom-tree already built by :mod:`tmol.ligand.residue_builder`</span>
+<span class="sd">(``order``/``parent``/``grandparents``), the per-atom names, and the</span>
+<span class="sd">``RosettaTypingState`` produced by :func:`tmol.ligand.atom_typing.assign_tmol_atom_types`</span>
+<span class="sd">(``return_state=True``).  It emits named ``Torsion`` objects (``chi1``..``chiN``)</span>
+<span class="sd">and, for polar-hydrogen rotations, matching ``ChiSamples``.</span>
+
+<span class="sd">Hard-coded RosettaVS default flags (see ``BasicClasses.py``):</span>
+<span class="sd">``report_Hapol_chi=False``, ``report_amide_chi=False``,</span>
+<span class="sd">``report_nbonded_chi=False``, ``report_ringring_chi=True``,</span>
+<span class="sd">``report_puckering_chi=False``, ``max_confs=5000``.</span>
+
+<span class="sd">Validated against the RosettaVS ground truth (``ref1``/``ref2`` via the SMILES</span>
+<span class="sd">path in ``TestGroundTruthRegression``): emitted CHI axes and PROTON_CHI</span>
+<span class="sd">samples/expansions match. The ``EXTRA`` encoding (``EXTRA 1 20`` -&gt;</span>
+<span class="sd">``expansions=(20.0,)``, ``EXTRA 0`` -&gt; ``()``) is consistent with</span>
+<span class="sd">``OptHSampler``&#39;s ``len(samples) * (1 + 2 * len(expansions))`` expansion.</span>
+
+<span class="sd">Scope notes / latitude:</span>
+<span class="sd">- Conjugated-polar-H skipping is a faithful port of ``assign_bond_conjugation``&#39;s</span>
+<span class="sd">  core: a bond is conjugated only when both atom classes are in</span>
+<span class="sd">  :data:`_CONJUGATING_ACLASSES` (and neither is sp3), plus Rosetta&#39;s all-but-one-H</span>
+<span class="sd">  test. So phenol/acid C-OH and aniline/amide -NH are classified like</span>
+<span class="sd">  mol2genparams (verified). The geometry-based planarity refinement (``is_planar``)</span>
+<span class="sd">  is not ported.</span>
+<span class="sd">- ``border &gt; 1`` biaryl-pivot CHIs (ring &lt;-&gt; conjugated functional group) ARE</span>
+<span class="sd">  emitted via a port of ``search_special_biaryl_ring`` (the hard-coded</span>
+<span class="sd">  :data:`_SPECIAL_BIARYL_PAIRS` class-pair list). The remaining pivots through</span>
+<span class="sd">  ring-like conjugated groups (guanidinium ``Ngu1``, tertiary amide ``Nad3``,</span>
+<span class="sd">  ``NG2``, furan ``Ofu``) are recovered not by the ``is_planar`` geometry port</span>
+<span class="sd">  but by honoring the source mol2&#39;s literal single-bond order</span>
+<span class="sd">  (``original_single_bonds``): RDKit kekulization promotes those aryl-X bonds to</span>
+<span class="sd">  DOUBLE, which the ``border &gt; 1`` rule would skip, whereas Rosetta reads the</span>
+<span class="sd">  mol2 order ``1`` verbatim. Restoring ``border = 1`` for those bonds matches</span>
+<span class="sd">  mol2genparams and closes the DUD-80 parity set (80/80 full CHI).</span>
+<span class="sd">- NU / ring-pucker DOFs are unsupported (RosettaVS default</span>
+<span class="sd">  ``report_puckering_chi=False``); none are emitted by any preparation path.</span>
+
+<span class="sd">RosettaVS rules that are handled *implicitly* by emitting CHIs only for</span>
+<span class="sd">atom-tree edges (each non-root atom ``c`` with parent ``b``), rather than over</span>
+<span class="sd">a separately-enumerated torsion list:</span>
+<span class="sd">- ``ring_cuts``: a ring&#39;s closure bond is a non-tree (back) edge, so it is never</span>
+<span class="sd">  a parent-&gt;child edge and never a CHI candidate.</span>
+<span class="sd">- ``FT_connected``: fold-tree-disconnected torsions cannot arise — every emitted</span>
+<span class="sd">  axis is a tree edge by construction.</span>
+<span class="sd">- ``atms_puckering`` (default-off): puckering-ring internal bonds are</span>
+<span class="sd">  ring-internal and are already skipped by ``_share_ring``.</span>
+<span class="sd">num_H_confs is computed over the pre-skip polar-H set (so EXTRA matches</span>
+<span class="sd">RosettaVS even when a polar-H chi is counted but later skipped).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChiSamples</span><span class="p">,</span> <span class="n">Torsion</span><span class="p">,</span> <span class="n">UnresolvedAtom</span>
+
+<span class="c1"># RosettaVS hard-coded constant (Molecule.py): controls EXTRA expansion.</span>
+<span class="n">MAX_CONFS</span> <span class="o">=</span> <span class="mi">5000</span>
+
+<span class="c1"># Heteroatoms that can carry a rotatable polar hydrogen (O, N, S).</span>
+<span class="n">_POLAR_HEAVY</span> <span class="o">=</span> <span class="p">{</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">}</span>
+
+<span class="c1"># RosettaVS Types.py CONJUGATING_ACLASSES: a single bond is treated as</span>
+<span class="c1"># conjugated (for the proton-chi skip) only when BOTH central atom types are in</span>
+<span class="c1"># this set. Notably it excludes hydroxyl ``Ohx`` and most carbonyl/carboxyl</span>
+<span class="c1"># oxygens, so phenol C-OH and aniline C-NH stay rotatable — unlike RDKit&#39;s</span>
+<span class="c1"># blanket ``GetIsConjugated()``.</span>
+<span class="n">_CONJUGATING_ACLASSES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;CD&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;CD1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;CD2&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;CR&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;CDp&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;CRp&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Nad&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Nin&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Nim&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Ngu1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Ngu2&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;NG2&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;NG21&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;NG22&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Nad3&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Ofu&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;OG2&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Ssl&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;SG2&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+<span class="c1"># RosettaVS ``search_special_biaryl_ring`` hard-coded ``special_biaryl_to_ring``</span>
+<span class="c1"># list (SetupTopology.py). An ordered ``(a2_aclass, a3_aclass)`` pair, where a2</span>
+<span class="c1"># is a non-ring atom bonded to an aromatic ring atom a1 and a3 is a2&#39;s further</span>
+<span class="c1"># neighbour. When matched (and a3 is further-connected), the a1-a2 bond is a</span>
+<span class="c1"># biaryl pivot: a rotatable CHI that survives the ``border &gt; 1`` skip.</span>
+<span class="n">_SPECIAL_BIARYL_PAIRS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="p">(</span><span class="s2">&quot;CDp&quot;</span><span class="p">,</span> <span class="s2">&quot;OG2&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CDp&quot;</span><span class="p">,</span> <span class="s2">&quot;Oal&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CDp&quot;</span><span class="p">,</span> <span class="s2">&quot;Oad&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;NG21&quot;</span><span class="p">,</span> <span class="s2">&quot;CR&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;NG21&quot;</span><span class="p">,</span> <span class="s2">&quot;CRp&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;NG21&quot;</span><span class="p">,</span> <span class="s2">&quot;CD&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;NG21&quot;</span><span class="p">,</span> <span class="s2">&quot;CDp&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;NG21&quot;</span><span class="p">,</span> <span class="s2">&quot;CSp&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;NG21&quot;</span><span class="p">,</span> <span class="s2">&quot;CS&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;NG21&quot;</span><span class="p">,</span> <span class="s2">&quot;CS1&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;NG21&quot;</span><span class="p">,</span> <span class="s2">&quot;CS2&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;NG21&quot;</span><span class="p">,</span> <span class="s2">&quot;SG5&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;Nad&quot;</span><span class="p">,</span> <span class="s2">&quot;CDp&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CDp&quot;</span><span class="p">,</span> <span class="s2">&quot;Nad&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CDp&quot;</span><span class="p">,</span> <span class="s2">&quot;Nam2&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CDp&quot;</span><span class="p">,</span> <span class="s2">&quot;NG2&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CDp&quot;</span><span class="p">,</span> <span class="s2">&quot;Nin&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CD1&quot;</span><span class="p">,</span> <span class="s2">&quot;CD1&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CD1&quot;</span><span class="p">,</span> <span class="s2">&quot;CD&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CD&quot;</span><span class="p">,</span> <span class="s2">&quot;CD&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CD&quot;</span><span class="p">,</span> <span class="s2">&quot;CD1&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CD&quot;</span><span class="p">,</span> <span class="s2">&quot;CR&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CD1&quot;</span><span class="p">,</span> <span class="s2">&quot;CR&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CDp&quot;</span><span class="p">,</span> <span class="s2">&quot;CR&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CD&quot;</span><span class="p">,</span> <span class="s2">&quot;F&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CD&quot;</span><span class="p">,</span> <span class="s2">&quot;Cl&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CD&quot;</span><span class="p">,</span> <span class="s2">&quot;Br&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CD&quot;</span><span class="p">,</span> <span class="s2">&quot;I&quot;</span><span class="p">),</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_heavy</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;True if atom ``idx`` is not a hydrogen.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">1</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_polar_hydrogen</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;True if ``idx`` is a hydrogen bonded to O/N/S.&quot;&quot;&quot;</span>
+    <span class="n">atom</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">nbr</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">nbr</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_POLAR_HEAVY</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_bond_order</span><span class="p">(</span><span class="n">bond</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Bond</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the integer bond order (aromatic and unknown treated as 2).&quot;&quot;&quot;</span>
+    <span class="n">bt</span> <span class="o">=</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">bt</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">bt</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">2</span>
+    <span class="k">if</span> <span class="n">bt</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">TRIPLE</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">3</span>
+    <span class="c1"># AROMATIC and anything else are treated as order &gt; 1 for chi selection.</span>
+    <span class="k">return</span> <span class="mi">2</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_share_ring</span><span class="p">(</span><span class="n">ring_membership</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">a</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;True if atoms ``a`` and ``b`` belong to a common ring.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">ring_membership</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span> <span class="o">&amp;</span> <span class="n">ring_membership</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="nb">set</span><span class="p">()))</span>
+
+
+<div class="viewcode-block" id="build_chi_topology">
+<a class="viewcode-back" href="../../../api/tmol/ligand/chi_topology/index.html#tmol.ligand.chi_topology.build_chi_topology">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_chi_topology</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">,</span>
+    <span class="n">order</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">parent</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">grandparents</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span>
+    <span class="n">atom_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="n">typing_state</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">atype_by_idx</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">original_single_bonds</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Torsion</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ChiSamples</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Classify rotatable bonds and return ``(torsions, chi_samples)``.</span>
+
+<span class="sd">    ``order``/``parent``/``grandparents`` are the kept-atom tree from</span>
+<span class="sd">    ``build_residue_type`` (indices are RDKit atom indices; ``parent[root]``</span>
+<span class="sd">    is the root itself).  ``atom_names[idx]`` is the final residue atom name</span>
+<span class="sd">    (or ``None`` for dropped atoms).  ``typing_state`` is a</span>
+<span class="sd">    :class:`~tmol.ligand.atom_typing.RosettaTypingState`.</span>
+
+<span class="sd">    ``original_single_bonds`` (optional) is a set of ``frozenset({name_a,</span>
+<span class="sd">    name_b})`` pairs that the source mol2 records as literal single bonds.</span>
+<span class="sd">    For those bonds the bond order is forced to 1 — overriding RDKit&#39;s</span>
+<span class="sd">    post-kekulization promotion of some aromatic/conjugated single bonds to</span>
+<span class="sd">    DOUBLE — so the ``border &gt; 1`` skips match Rosetta&#39;s ``mol2genparams``,</span>
+<span class="sd">    which reads the literal mol2 order.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">valid</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+    <span class="n">ring_membership</span> <span class="o">=</span> <span class="n">typing_state</span><span class="o">.</span><span class="n">ring_membership_by_idx</span>
+    <span class="n">atms_aro</span> <span class="o">=</span> <span class="n">typing_state</span><span class="o">.</span><span class="n">atms_aro</span>
+    <span class="n">atms_strained</span> <span class="o">=</span> <span class="n">typing_state</span><span class="o">.</span><span class="n">atms_strained</span>
+    <span class="n">hyb_by_idx</span> <span class="o">=</span> <span class="n">typing_state</span><span class="o">.</span><span class="n">hyb_by_idx</span>
+    <span class="n">atype_by_idx</span> <span class="o">=</span> <span class="n">atype_by_idx</span> <span class="ow">or</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_rosetta_bond_conjugated</span><span class="p">(</span><span class="n">b</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Approximate RosettaVS ``assign_bond_conjugation`` for a single bond.</span>
+
+<span class="sd">        A bond is conjugated only when neither atom is sp3 and BOTH atom</span>
+<span class="sd">        classes are in :data:`_CONJUGATING_ACLASSES`. This excludes hydroxyl</span>
+<span class="sd">        ``Ohx`` and most carbonyl oxygens, so phenol C-OH / aniline C-NH are NOT</span>
+<span class="sd">        conjugated (kept as rotatable chis), matching mol2genparams — unlike the</span>
+<span class="sd">        blanket RDKit ``GetIsConjugated()`` this replaces. (Geometry-based</span>
+<span class="sd">        planarity and biaryl-pivot refinements are not yet ported.)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">hyb_by_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">or</span> <span class="n">hyb_by_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">atype_by_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_CONJUGATING_ACLASSES</span>
+            <span class="ow">and</span> <span class="n">atype_by_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_CONJUGATING_ACLASSES</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_all_but_one_h</span><span class="p">(</span><span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;True if all but one of ``idx``&#39;s bonds are to hydrogen (Rosetta nH test).&quot;&quot;&quot;</span>
+        <span class="n">atom</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="n">n_h</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">nb</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()</span> <span class="k">if</span> <span class="n">nb</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">n_h</span> <span class="o">==</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_detect_biaryl_pivots</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Port RosettaVS ``search_special_biaryl_ring``: ring&lt;-&gt;functional-group</span>
+<span class="sd">        rotatable bonds detected via the hard-coded ``_SPECIAL_BIARYL_PAIRS``.</span>
+
+<span class="sd">        For each aromatic ring atom ``a1`` and non-ring neighbour ``a2``, if some</span>
+<span class="sd">        ``(a2_aclass, a3_aclass)`` matches the list (``a3`` a further neighbour of</span>
+<span class="sd">        ``a2`` that is itself connected on), the ``a1-a2`` bond is a biaryl pivot.</span>
+<span class="sd">        These survive the ``border &gt; 1`` skip. (The ``is_planar`` geometry</span>
+<span class="sd">        refinement is not yet ported, so a few planar pivots may be over-kept.)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pivots</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">a1</span> <span class="ow">in</span> <span class="n">atms_aro</span><span class="p">:</span>
+            <span class="n">atom1</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">nb2</span> <span class="ow">in</span> <span class="n">atom1</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">():</span>
+                <span class="n">a2</span> <span class="o">=</span> <span class="n">nb2</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">a2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid</span> <span class="ow">or</span> <span class="n">_share_ring</span><span class="p">(</span><span class="n">ring_membership</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="n">a2c</span> <span class="o">=</span> <span class="n">atype_by_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">a2</span><span class="p">)</span>
+                <span class="n">special</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">further_connected</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">for</span> <span class="n">nb3</span> <span class="ow">in</span> <span class="n">nb2</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">():</span>
+                    <span class="n">a3</span> <span class="o">=</span> <span class="n">nb3</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">a3</span> <span class="o">==</span> <span class="n">a1</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">a2c</span><span class="p">,</span> <span class="n">atype_by_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">a3</span><span class="p">))</span> <span class="ow">in</span> <span class="n">_SPECIAL_BIARYL_PAIRS</span><span class="p">:</span>
+                        <span class="n">special</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">nb3</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">further_connected</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="n">special</span> <span class="ow">and</span> <span class="n">further_connected</span><span class="p">:</span>
+                    <span class="n">pivots</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">frozenset</span><span class="p">((</span><span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">pivots</span>
+
+    <span class="n">biaryl_pivots</span> <span class="o">=</span> <span class="n">_detect_biaryl_pivots</span><span class="p">()</span>
+
+    <span class="c1"># Map each atom to its tree children (atoms whose parent is this atom).</span>
+    <span class="n">children</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">order</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">order</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">parent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="o">!=</span> <span class="n">c</span> <span class="ow">and</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
+            <span class="n">children</span><span class="p">[</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">pick_a</span><span class="p">(</span><span class="n">b</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;An atom on ``b``&#39;s side of the bond, distinct from ``c``.&quot;&quot;&quot;</span>
+        <span class="n">gp</span> <span class="o">=</span> <span class="n">grandparents</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">b</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">gp</span> <span class="ow">in</span> <span class="n">valid</span> <span class="ow">and</span> <span class="n">gp</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="ow">and</span> <span class="n">atom_names</span><span class="p">[</span><span class="n">gp</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">gp</span>
+        <span class="c1"># Fall back to a deterministic neighbor of b (heavy preferred).</span>
+        <span class="n">nbrs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">n</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">b</span><span class="p">)</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">in</span> <span class="n">valid</span>
+            <span class="ow">and</span> <span class="n">n</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="o">!=</span> <span class="n">c</span>
+            <span class="ow">and</span> <span class="n">atom_names</span><span class="p">[</span><span class="n">n</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">]</span>
+        <span class="n">nbrs</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">n</span><span class="p">:</span> <span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">nbrs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">nbrs</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">logger</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nb</span> <span class="o">=</span> <span class="n">atom_names</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;?&quot;</span>
+            <span class="n">nc</span> <span class="o">=</span> <span class="n">atom_names</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;?&quot;</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;chi-edge </span><span class="si">%s</span><span class="s2">-</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">nb</span><span class="p">,</span> <span class="n">nc</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Pass 1: collect candidate chis (after the RosettaVS default-flag skips).</span>
+    <span class="c1"># Each candidate: (b, c, a, d, is_proton, is_sp2).</span>
+    <span class="c1"># polar_h_factors keys every polar-H rotatable bond to its H-conformer</span>
+    <span class="c1"># factor (6 for sp2, 9 for sp3) BEFORE the later CHI skip filters, matching</span>
+    <span class="c1"># RosettaVS num_H_confs (SetupTopology.py:862-873 counts the hpol torsion</span>
+    <span class="c1"># set before applying ring-cut/conjugation/puckering skips).</span>
+    <span class="n">candidates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">polar_h_factors</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">order</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">parent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="o">==</span> <span class="n">c</span> <span class="ow">or</span> <span class="n">b</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid</span><span class="p">:</span>
+            <span class="k">continue</span>  <span class="c1"># root has no parent bond</span>
+        <span class="n">bond</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bond</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: no rdkit bond&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">atom_names</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">atom_names</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: dropped atom name&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Determine the tip atom d (on c&#39;s side) and the chi kind.</span>
+        <span class="n">c_children</span> <span class="o">=</span> <span class="n">children</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">heavy_children</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">c_children</span> <span class="k">if</span> <span class="n">_is_heavy</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">x</span><span class="p">)]</span>
+        <span class="n">polar_h_children</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">c_children</span> <span class="k">if</span> <span class="n">_is_polar_hydrogen</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">x</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">heavy_children</span><span class="p">:</span>
+            <span class="n">is_proton</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">heavy_children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_POLAR_HEAVY</span> <span class="ow">and</span> <span class="n">polar_h_children</span><span class="p">:</span>
+            <span class="n">is_proton</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">polar_h_children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Terminal heavy atom (no rotatable tip) or apolar-H-only rotation.</span>
+            <span class="c1"># report_Hapol_chi=False -&gt; apolar-H chis are not emitted.</span>
+            <span class="n">_trace</span><span class="p">(</span>
+                <span class="n">c</span><span class="p">,</span>
+                <span class="n">b</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;skip: no tip (c_children=</span><span class="si">{</span><span class="p">[</span><span class="n">atom_names</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">c_children</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">atom_names</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: tip dropped&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">pick_a</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: no &#39;a&#39; atom on b&#39;s side&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="c1"># If the only reference atom on b&#39;s side is an apolar hydrogen, every</span>
+        <span class="c1"># torsion across this bond has an apolar-H endpoint (e.g. a methyl</span>
+        <span class="c1"># carbon&#39;s bond to a ring). RosettaVS classifies these as apolar-H</span>
+        <span class="c1"># (hapol) torsions and skips them with report_Hapol_chi=False.</span>
+        <span class="k">if</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_is_polar_hydrogen</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+            <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: apolar-H reference atom (hapol)&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># RosettaVS sp2 proton-chi requires the heteroatom (stem) be 2-coordinate</span>
+        <span class="c1"># sp2 (`stem.hyb == 2 and len(stem.bonds) &lt; 3`); otherwise it is sp3.</span>
+        <span class="n">is_sp2</span> <span class="o">=</span> <span class="n">is_proton</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">hyb_by_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">3</span>
+        <span class="p">)</span>
+        <span class="c1"># Record this polar-H stem&#39;s conformer factor for num_H_confs BEFORE the</span>
+        <span class="c1"># later skip filters, so EXTRA matches RosettaVS even when a polar-H chi</span>
+        <span class="c1"># is present but later skipped (e.g. conjugated).</span>
+        <span class="k">if</span> <span class="n">is_proton</span><span class="p">:</span>
+            <span class="n">polar_h_factors</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">((</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">))]</span> <span class="o">=</span> <span class="mi">6</span> <span class="k">if</span> <span class="n">is_sp2</span> <span class="k">else</span> <span class="mi">9</span>
+
+        <span class="c1"># --- RosettaVS define_rotable_torsions skip rules (default flags) ---</span>
+        <span class="n">border</span> <span class="o">=</span> <span class="n">_bond_order</span><span class="p">(</span><span class="n">bond</span><span class="p">)</span>
+        <span class="c1"># Honor the source mol2&#39;s literal single-bond order: RDKit kekulization</span>
+        <span class="c1"># promotes some aromatic/conjugated single bonds (e.g. aryl-Ngu1) to</span>
+        <span class="c1"># DOUBLE, which the border&gt;1 rule would wrongly skip. Rosetta reads the</span>
+        <span class="c1"># mol2 order verbatim, so restore border=1 for those bonds.</span>
+        <span class="k">if</span> <span class="n">original_single_bonds</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="nb">frozenset</span><span class="p">((</span><span class="n">atom_names</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">atom_names</span><span class="p">[</span><span class="n">c</span><span class="p">]))</span> <span class="ow">in</span> <span class="n">original_single_bonds</span>
+        <span class="p">):</span>
+            <span class="n">border</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">is_pivot</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span> <span class="ow">in</span> <span class="n">biaryl_pivots</span>
+
+        <span class="c1"># strained torsion inside a ring</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">_share_ring</span><span class="p">(</span><span class="n">ring_membership</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">atms_strained</span>
+            <span class="ow">and</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">atms_strained</span>
+        <span class="p">):</span>
+            <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: strained ring&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">atms_aro</span> <span class="ow">and</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">atms_aro</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">border</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># biaryl border&gt;1 chi: requires biaryl_pivot detection (gap).</span>
+                <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: aromatic border&gt;1 (biaryl gap)&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">_share_ring</span><span class="p">(</span><span class="n">ring_membership</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: same aromatic ring&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="c1"># ring-ring single bond: report_ringring_chi=True -&gt; keep</span>
+        <span class="k">elif</span> <span class="n">_share_ring</span><span class="p">(</span><span class="n">ring_membership</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+            <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: non-aromatic ring-internal&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">border</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_pivot</span><span class="p">:</span>
+            <span class="c1"># amide/nbonded border&gt;1: default flags skip these</span>
+            <span class="c1"># (report_amide_chi=False, report_nbonded_chi=False). Biaryl pivots</span>
+            <span class="c1"># (ring&lt;-&gt;conjugated functional group) are kept (report_ringring_chi).</span>
+            <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: border&gt;1 (amide/nbonded default off)&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># RosettaVS: skip a conjugated polar-H chi only when the bond is</span>
+        <span class="c1"># conjugated (both atom classes conjugating) AND one central atom is</span>
+        <span class="c1"># all-but-one hydrogen. Phenol C-OH / aniline C-NH are NOT conjugated</span>
+        <span class="c1"># (Ohx / amine-N outside CONJUGATING_ACLASSES), so they survive.</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">is_proton</span>
+            <span class="ow">and</span> <span class="n">_rosetta_bond_conjugated</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="n">_all_but_one_h</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_all_but_one_h</span><span class="p">(</span><span class="n">c</span><span class="p">))</span>
+        <span class="p">):</span>
+            <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: conjugated polar-H&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Enforce four distinct atoms in the bonded torsion path.</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">({</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">})</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">_trace</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;skip: non-distinct quad&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">_trace</span><span class="p">(</span>
+            <span class="n">c</span><span class="p">,</span>
+            <span class="n">b</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;EMIT </span><span class="si">{</span><span class="s1">&#39;proton&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">is_proton</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;heavy&#39;</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;a=</span><span class="si">{</span><span class="n">atom_names</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="si">}</span><span class="s2"> d=</span><span class="si">{</span><span class="n">atom_names</span><span class="p">[</span><span class="n">d</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">is_proton</span><span class="p">,</span> <span class="n">is_sp2</span><span class="p">))</span>
+
+    <span class="c1"># Pass 2: EXTRA expansion factor. num_H_confs is the product over every</span>
+    <span class="c1"># (pre-skip) polar-H rotatable bond of its conformer factor (sp2-&gt;6, sp3-&gt;9).</span>
+    <span class="n">num_h_confs</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">polar_h_factors</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">num_h_confs</span> <span class="o">*=</span> <span class="n">factor</span>
+    <span class="c1"># &quot;1 20&quot; =&gt; one extra sample expanded by +/-20 degrees; &quot;0&quot; =&gt; none.</span>
+    <span class="n">extra_expansions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">20.0</span><span class="p">,)</span> <span class="k">if</span> <span class="n">num_h_confs</span> <span class="o">&lt;=</span> <span class="n">MAX_CONFS</span> <span class="k">else</span> <span class="p">()</span>
+
+    <span class="c1"># Pass 3: build torsions + proton-chi samples.</span>
+    <span class="n">torsions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Torsion</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">chi_samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ChiSamples</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">is_proton</span><span class="p">,</span> <span class="n">is_sp2</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;chi</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">torsions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">Torsion</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">a</span><span class="o">=</span><span class="n">UnresolvedAtom</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="n">atom_names</span><span class="p">[</span><span class="n">a</span><span class="p">]),</span>
+                <span class="n">b</span><span class="o">=</span><span class="n">UnresolvedAtom</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="n">atom_names</span><span class="p">[</span><span class="n">b</span><span class="p">]),</span>
+                <span class="n">c</span><span class="o">=</span><span class="n">UnresolvedAtom</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="n">atom_names</span><span class="p">[</span><span class="n">c</span><span class="p">]),</span>
+                <span class="n">d</span><span class="o">=</span><span class="n">UnresolvedAtom</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="n">atom_names</span><span class="p">[</span><span class="n">d</span><span class="p">]),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_proton</span><span class="p">:</span>
+            <span class="c1"># sp2 (2-coordinate) heteroatom -&gt; samples 0/180; sp3 -&gt; 60/-60/180.</span>
+            <span class="n">samples</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">180.0</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_sp2</span> <span class="k">else</span> <span class="p">(</span><span class="mf">60.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">60.0</span><span class="p">,</span> <span class="mf">180.0</span><span class="p">)</span>
+            <span class="n">chi_samples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">ChiSamples</span><span class="p">(</span>
+                    <span class="n">chi_dihedral</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">samples</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
+                    <span class="n">expansions</span><span class="o">=</span><span class="n">extra_expansions</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">torsions</span><span class="p">),</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">chi_samples</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

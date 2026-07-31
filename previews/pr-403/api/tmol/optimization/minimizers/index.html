@@ -1,0 +1,1065 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>tmol.optimization.minimizers &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=c8b66c78" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/tmol/optimization/minimizers/index';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://tmol.ipd.uw.edu/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-403';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="tmol.optimization.sfxn_modules" href="../sfxn_modules/index.html" />
+    <link rel="prev" title="tmol.optimization.lbfgs_armijo" href="../lbfgs_armijo/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.46" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../index.html">tmol</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../chemical/index.html">tmol.chemical</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../chemical/all_bonds/index.html">tmol.chemical.all_bonds</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../chemical/constants/index.html">tmol.chemical.constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../chemical/ideal_coords/index.html">tmol.chemical.ideal_coords</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../chemical/patched_chemdb/index.html">tmol.chemical.patched_chemdb</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../chemical/restypes/index.html">tmol.chemical.restypes</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../database/index.html">tmol.database</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../database/chemical/index.html">tmol.database.chemical</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../database/scoring/index.html">tmol.database.scoring</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../database/scoring/cartbonded/index.html">tmol.database.scoring.cartbonded</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/scoring/disulfide/index.html">tmol.database.scoring.disulfide</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/scoring/dunbrack_libraries/index.html">tmol.database.scoring.dunbrack_libraries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/scoring/elec/index.html">tmol.database.scoring.elec</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/scoring/genbonded/index.html">tmol.database.scoring.genbonded</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/scoring/hbond/index.html">tmol.database.scoring.hbond</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/scoring/ljlk/index.html">tmol.database.scoring.ljlk</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/scoring/omega_bbdep/index.html">tmol.database.scoring.omega_bbdep</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/scoring/rama/index.html">tmol.database.scoring.rama</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/scoring/ref/index.html">tmol.database.scoring.ref</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../io/index.html">tmol.io</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../io/canonical_form/index.html">tmol.io.canonical_form</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/canonical_ordering/index.html">tmol.io.canonical_ordering</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/chain_deduction/index.html">tmol.io.chain_deduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/extern/index.html">tmol.io.extern</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/generic/index.html">tmol.io.generic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/pdb_parsing/index.html">tmol.io.pdb_parsing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/pose_stack_construction/index.html">tmol.io.pose_stack_construction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/pose_stack_deconstruction/index.html">tmol.io.pose_stack_deconstruction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/pose_stack_from_atomworks/index.html">tmol.io.pose_stack_from_atomworks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/pose_stack_from_biotite/index.html">tmol.io.pose_stack_from_biotite</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/pose_stack_from_openfold/index.html">tmol.io.pose_stack_from_openfold</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/pose_stack_from_rosettafold2/index.html">tmol.io.pose_stack_from_rosettafold2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../io/write_pose_stack_pdb/index.html">tmol.io.write_pose_stack_pdb</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../kinematics/index.html">tmol.kinematics</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../kinematics/check_fold_forest/index.html">tmol.kinematics.check_fold_forest</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../kinematics/datatypes/index.html">tmol.kinematics.datatypes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../kinematics/fold_forest/index.html">tmol.kinematics.fold_forest</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../kinematics/metadata/index.html">tmol.kinematics.metadata</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../kinematics/move_map/index.html">tmol.kinematics.move_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../kinematics/operations/index.html">tmol.kinematics.operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../kinematics/scan_ordering/index.html">tmol.kinematics.scan_ordering</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../kinematics/script_modules/index.html">tmol.kinematics.script_modules</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../ligand/index.html">tmol.ligand</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/atom_typing/index.html">tmol.ligand.atom_typing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/chemistry_tables/index.html">tmol.ligand.chemistry_tables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/chi_topology/index.html">tmol.ligand.chi_topology</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/conformer_generation/index.html">tmol.ligand.conformer_generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/detect/index.html">tmol.ligand.detect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/dimorphite_dl/index.html">tmol.ligand.dimorphite_dl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/fragmentation/index.html">tmol.ligand.fragmentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/generated_geometry/index.html">tmol.ligand.generated_geometry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/mol2_names/index.html">tmol.ligand.mol2_names</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/mol3d/index.html">tmol.ligand.mol3d</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/openbabel_compat/index.html">tmol.ligand.openbabel_compat</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/params_file/index.html">tmol.ligand.params_file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/params_io/index.html">tmol.ligand.params_io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/preparation/index.html">tmol.ligand.preparation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/rdkit_mol/index.html">tmol.ligand.rdkit_mol</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/registry/index.html">tmol.ligand.registry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/residue_builder/index.html">tmol.ligand.residue_builder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ligand/structure_to_smiles/index.html">tmol.ligand.structure_to_smiles</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../numeric/index.html">tmol.numeric</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../numeric/bspline/index.html">tmol.numeric.bspline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../numeric/bspline_compiled/index.html">tmol.numeric.bspline_compiled</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../numeric/dihedrals/index.html">tmol.numeric.dihedrals</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../numeric/interpolation/index.html">tmol.numeric.interpolation</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../numeric/interpolation/cubic_hermite_polynomial/index.html">tmol.numeric.interpolation.cubic_hermite_polynomial</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../index.html">tmol.optimization</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../lbfgs_armijo/index.html">tmol.optimization.lbfgs_armijo</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">tmol.optimization.minimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sfxn_modules/index.html">tmol.optimization.sfxn_modules</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../pack/index.html">tmol.pack</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../pack/build_missing_sidechains/index.html">tmol.pack.build_missing_sidechains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pack/datatypes/index.html">tmol.pack.datatypes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pack/impose_rotamers/index.html">tmol.pack.impose_rotamers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pack/pack_rotamers/index.html">tmol.pack.pack_rotamers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pack/packer_task/index.html">tmol.pack.packer_task</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../pack/rotamer/index.html">tmol.pack.rotamer</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../pack/rotamer/bfs_sidechain/index.html">tmol.pack.rotamer.bfs_sidechain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pack/rotamer/build_rotamers/index.html">tmol.pack.rotamer.build_rotamers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pack/rotamer/chi_sampler/index.html">tmol.pack.rotamer.chi_sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pack/rotamer/conformer_sampler/index.html">tmol.pack.rotamer.conformer_sampler</a></li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../pack/rotamer/dunbrack/index.html">tmol.pack.rotamer.dunbrack</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../pack/rotamer/dunbrack/dunbrack_chi_sampler/index.html">tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler</a></li>
+</ul>
+</details></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pack/rotamer/fallback_sampler/index.html">tmol.pack.rotamer.fallback_sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pack/rotamer/fixed_aa_chi_sampler/index.html">tmol.pack.rotamer.fixed_aa_chi_sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pack/rotamer/include_current_sampler/index.html">tmol.pack.rotamer.include_current_sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pack/rotamer/mainchain_fingerprint/index.html">tmol.pack.rotamer.mainchain_fingerprint</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pack/rotamer/opth_sampler/index.html">tmol.pack.rotamer.opth_sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pack/rotamer/rotamer_set/index.html">tmol.pack.rotamer.rotamer_set</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pack/rotamer/single_residue_kinforest/index.html">tmol.pack.rotamer.single_residue_kinforest</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pack/simulated_annealing/index.html">tmol.pack.simulated_annealing</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../pose/index.html">tmol.pose</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../pose/constraint_set/index.html">tmol.pose.constraint_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pose/packed_block_types/index.html">tmol.pose.packed_block_types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pose/pdb_info/index.html">tmol.pose.pdb_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pose/pose_stack/index.html">tmol.pose.pose_stack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pose/pose_stack_builder/index.html">tmol.pose.pose_stack_builder</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../score/index.html">tmol.score</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../score/atom_type_dependent_term/index.html">tmol.score.atom_type_dependent_term</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/backbone_torsion/index.html">tmol.score.backbone_torsion</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/backbone_torsion/bb_torsion_energy_term/index.html">tmol.score.backbone_torsion.bb_torsion_energy_term</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/backbone_torsion/params/index.html">tmol.score.backbone_torsion.params</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/backbone_torsion/potentials/index.html">tmol.score.backbone_torsion.potentials</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../score/bond_dependent_term/index.html">tmol.score.bond_dependent_term</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../score/bonded_atom/index.html">tmol.score.bonded_atom</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/cartbonded/index.html">tmol.score.cartbonded</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/cartbonded/cartbonded_energy_term/index.html">tmol.score.cartbonded.cartbonded_energy_term</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/cartbonded/potentials/index.html">tmol.score.cartbonded.potentials</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../score/chemical_database/index.html">tmol.score.chemical_database</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/common/index.html">tmol.score.common</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/common/convert_float64/index.html">tmol.score.common.convert_float64</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/common/cubic_hermite_polynomial/index.html">tmol.score.common.cubic_hermite_polynomial</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/common/hash_util/index.html">tmol.score.common.hash_util</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/common/scoring_module/index.html">tmol.score.common.scoring_module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/common/stack_condense/index.html">tmol.score.common.stack_condense</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/disulfide/index.html">tmol.score.disulfide</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/disulfide/disulfide_energy_term/index.html">tmol.score.disulfide.disulfide_energy_term</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/disulfide/params/index.html">tmol.score.disulfide.params</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/disulfide/potentials/index.html">tmol.score.disulfide.potentials</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/dunbrack/index.html">tmol.score.dunbrack</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/dunbrack/dunbrack_energy_term/index.html">tmol.score.dunbrack.dunbrack_energy_term</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/dunbrack/params/index.html">tmol.score.dunbrack.params</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/dunbrack/potentials/index.html">tmol.score.dunbrack.potentials</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/elec/index.html">tmol.score.elec</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/elec/elec_energy_term/index.html">tmol.score.elec.elec_energy_term</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/elec/params/index.html">tmol.score.elec.params</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/elec/potentials/index.html">tmol.score.elec.potentials</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../score/energy_term/index.html">tmol.score.energy_term</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/genbonded/index.html">tmol.score.genbonded</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/genbonded/genbonded_energy_term/index.html">tmol.score.genbonded.genbonded_energy_term</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/genbonded/potentials/index.html">tmol.score.genbonded.potentials</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/hbond/index.html">tmol.score.hbond</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/hbond/hbond_dependent_term/index.html">tmol.score.hbond.hbond_dependent_term</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/hbond/hbond_energy_term/index.html">tmol.score.hbond.hbond_energy_term</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/hbond/params/index.html">tmol.score.hbond.params</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/hbond/potentials/index.html">tmol.score.hbond.potentials</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/ljlk/index.html">tmol.score.ljlk</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/ljlk/ljlk_energy_term/index.html">tmol.score.ljlk.ljlk_energy_term</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/ljlk/params/index.html">tmol.score.ljlk.params</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/ljlk/potentials/index.html">tmol.score.ljlk.potentials</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/lk_ball/index.html">tmol.score.lk_ball</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/lk_ball/lk_ball_energy_term/index.html">tmol.score.lk_ball.lk_ball_energy_term</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/lk_ball/params/index.html">tmol.score.lk_ball.params</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/lk_ball/potentials/index.html">tmol.score.lk_ball.potentials</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/ref/index.html">tmol.score.ref</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/ref/ref_energy_term/index.html">tmol.score.ref.ref_energy_term</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../score/score_function/index.html">tmol.score.score_function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../score/score_types/index.html">tmol.score.score_types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../score/score_utils/index.html">tmol.score.score_utils</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../score/terms/index.html">tmol.score.terms</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/backbone_torsion_creator/index.html">tmol.score.terms.backbone_torsion_creator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/cartbonded_creator/index.html">tmol.score.terms.cartbonded_creator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/constraint_creator/index.html">tmol.score.terms.constraint_creator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/disulfide_creator/index.html">tmol.score.terms.disulfide_creator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/dunbrack_creator/index.html">tmol.score.terms.dunbrack_creator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/elec_creator/index.html">tmol.score.terms.elec_creator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/genbonded_creator/index.html">tmol.score.terms.genbonded_creator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/hbond_creator/index.html">tmol.score.terms.hbond_creator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/ljlk_creator/index.html">tmol.score.terms.ljlk_creator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/lk_ball_creator/index.html">tmol.score.terms.lk_ball_creator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/ref_creator/index.html">tmol.score.terms.ref_creator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/score_term_factory/index.html">tmol.score.terms.score_term_factory</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../score/terms/term_creator/index.html">tmol.score.terms.term_creator</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../support/index.html">tmol.support</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../support/rosetta/index.html">tmol.support.rosetta</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../support/rosetta/init/index.html">tmol.support.rosetta.init</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../support/scoring/index.html">tmol.support.scoring</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../support/scoring/hbond_param_import/index.html">tmol.support.scoring.hbond_param_import</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../support/scoring/rewrite_dunbrack_binary/index.html">tmol.support.scoring.rewrite_dunbrack_binary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../support/scoring/rewrite_omega_bbdep_binary/index.html">tmol.support.scoring.rewrite_omega_bbdep_binary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../support/scoring/rewrite_rama_binary/index.html">tmol.support.scoring.rewrite_rama_binary</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../types/index.html">tmol.types</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../types/array/index.html">tmol.types.array</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../types/attrs/index.html">tmol.types.attrs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../types/converters/index.html">tmol.types.converters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../types/functional/index.html">tmol.types.functional</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../types/shape/index.html">tmol.types.shape</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../types/subscriptable/index.html">tmol.types.subscriptable</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../types/tensor/index.html">tmol.types.tensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../types/torch/index.html">tmol.types.torch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../types/validators/index.html">tmol.types.validators</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../utility/index.html">tmol.utility</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/args/index.html">tmol.utility.args</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/attr/index.html">tmol.utility.attr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/auto_number/index.html">tmol.utility.auto_number</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/biotite_util/index.html">tmol.utility.biotite_util</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/categorical/index.html">tmol.utility.categorical</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/cpp_extension/index.html">tmol.utility.cpp_extension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/cumsum/index.html">tmol.utility.cumsum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/dicttoolz/index.html">tmol.utility.dicttoolz</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/log/index.html">tmol.utility.log</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/mixins/index.html">tmol.utility.mixins</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../utility/ndarray/index.html">tmol.utility.ndarray</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../utility/ndarray/common_operations/index.html">tmol.utility.ndarray.common_operations</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/numba/index.html">tmol.utility.numba</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/nvtx/index.html">tmol.utility.nvtx</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../utility/tensor/index.html">tmol.utility.tensor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../utility/tensor/common_operations/index.html">tmol.utility.tensor.common_operations</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utility/units/index.html">tmol.utility.units</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../../api_reference.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">tmol</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">tmol.optimization</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.optimization.minimizers</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-tmol.optimization.minimizers">
+<span id="tmol-optimization-minimizers"></span><h1>tmol.optimization.minimizers<a class="headerlink" href="#module-tmol.optimization.minimizers" title="Link to this heading">#</a></h1>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tmol.optimization.minimizers.build_kinforest_network" title="tmol.optimization.minimizers.build_kinforest_network"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_kinforest_network</span></code></a>(pose_stack, sfxn, ff, mm[, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#tmol.optimization.minimizers.run_min" title="tmol.optimization.minimizers.run_min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_min</span></code></a>(sfxn_module[, optimizer_cls, ...])</p></td>
+<td><p>Run minimization on any sfxn module (Cartesian or KinForest).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tmol.optimization.minimizers.run_kin_min" title="tmol.optimization.minimizers.run_kin_min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_kin_min</span></code></a>(pose_stack, sfxn, ff, mm[, optimizer_cls, ...])</p></td>
+<td><p>Run minimization on a PoseStack in internal DOF space.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#tmol.optimization.minimizers.run_cart_min" title="tmol.optimization.minimizers.run_cart_min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_cart_min</span></code></a>(pose_stack, sfxn[, coord_mask, ...])</p></td>
+<td><p>Run minimization on a PoseStack in Cartesian coordinate space.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.optimization.minimizers.build_kinforest_network">
+<span class="sig-prename descclassname"><span class="pre">tmol.optimization.minimizers.</span></span><span class="sig-name descname"><span class="pre">build_kinforest_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../pose/pose_stack/index.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">tmol.pose.pose_stack.PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../score/score_function/index.html#tmol.score.score_function.ScoreFunction" title="tmol.score.score_function.ScoreFunction"><span class="pre">tmol.score.score_function.ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../kinematics/fold_forest/index.html#tmol.kinematics.fold_forest.FoldForest" title="tmol.kinematics.fold_forest.FoldForest"><span class="pre">tmol.kinematics.fold_forest.FoldForest</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../kinematics/move_map/index.html#tmol.kinematics.move_map.MoveMap" title="tmol.kinematics.move_map.MoveMap"><span class="pre">tmol.kinematics.move_map.MoveMap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kin_dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">torch.float32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/tmol/optimization/minimizers.html#build_kinforest_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.minimizers.build_kinforest_network" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.optimization.minimizers.run_min">
+<span class="sig-prename descclassname"><span class="pre">tmol.optimization.minimizers.</span></span><span class="sig-name descname"><span class="pre">run_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sfxn_module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_cls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">LBFGS_Armijo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/tmol/optimization/minimizers.html#run_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.minimizers.run_min" title="Link to this definition">#</a></dt>
+<dd><p class="rubric">Docstring</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Run minimization on any sfxn module (Cartesian or KinForest).
+
+The sfxn_module must be a torch.nn.Module whose forward() returns
+per-pose energies and which provides a pose_stack_from_dofs() method
+to extract the optimized PoseStack.
+
+:param sfxn_module: A CartesianSfxnNetwork, KinForestSfxnNetwork, or
+                    any nn.Module with a compatible interface.
+:param optimizer_cls: A torch.optim.Optimizer class. Must support a
+                      closure-based step() call (e.g. LBFGS_Armijo, torch LBFGS).
+:param optimizer_kwargs: Dict of keyword arguments passed to the optimizer
+                         constructor.
+:param verbose: Print timing information.
+
+:returns: A new PoseStack with optimized coordinates.
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.optimization.minimizers.run_kin_min">
+<span class="sig-prename descclassname"><span class="pre">tmol.optimization.minimizers.</span></span><span class="sig-name descname"><span class="pre">run_kin_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../pose/pose_stack/index.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">tmol.pose.pose_stack.PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../score/score_function/index.html#tmol.score.score_function.ScoreFunction" title="tmol.score.score_function.ScoreFunction"><span class="pre">tmol.score.score_function.ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../kinematics/fold_forest/index.html#tmol.kinematics.fold_forest.FoldForest" title="tmol.kinematics.fold_forest.FoldForest"><span class="pre">tmol.kinematics.fold_forest.FoldForest</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../kinematics/move_map/index.html#tmol.kinematics.move_map.MoveMap" title="tmol.kinematics.move_map.MoveMap"><span class="pre">tmol.kinematics.move_map.MoveMap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_cls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">LBFGS_Armijo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kin_dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">torch.float32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/tmol/optimization/minimizers.html#run_kin_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.minimizers.run_kin_min" title="Link to this definition">#</a></dt>
+<dd><p class="rubric">Docstring</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Run minimization on a PoseStack in internal DOF space.
+
+Builds a KinForestSfxnNetwork and delegates to run_min().
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.optimization.minimizers.run_cart_min">
+<span class="sig-prename descclassname"><span class="pre">tmol.optimization.minimizers.</span></span><span class="sig-name descname"><span class="pre">run_cart_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../pose/pose_stack/index.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">tmol.pose.pose_stack.PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../score/score_function/index.html#tmol.score.score_function.ScoreFunction" title="tmol.score.score_function.ScoreFunction"><span class="pre">tmol.score.score_function.ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_cls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">LBFGS_Armijo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/tmol/optimization/minimizers.html#run_cart_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.minimizers.run_cart_min" title="Link to this definition">#</a></dt>
+<dd><p class="rubric">Docstring</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Run minimization on a PoseStack in Cartesian coordinate space.
+
+Builds a CartesianSfxnNetwork and delegates to run_min().
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../lbfgs_armijo/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">tmol.optimization.lbfgs_armijo</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../sfxn_modules/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">tmol.optimization.sfxn_modules</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.minimizers.build_kinforest_network"><code class="docutils literal notranslate"><span class="pre">build_kinforest_network()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.minimizers.run_min"><code class="docutils literal notranslate"><span class="pre">run_min()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.minimizers.run_kin_min"><code class="docutils literal notranslate"><span class="pre">run_kin_min()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.minimizers.run_cart_min"><code class="docutils literal notranslate"><span class="pre">run_cart_min()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../../../_sources/api/tmol/optimization/minimizers/index.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

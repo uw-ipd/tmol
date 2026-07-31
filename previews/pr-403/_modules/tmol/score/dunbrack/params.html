@@ -1,0 +1,1368 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.score.dunbrack.params &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=c8b66c78" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/dunbrack/params';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://tmol.ipd.uw.edu/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-403';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.46" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.dunbrack.params</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.score.dunbrack.params</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cattr</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">toolz.functoolz</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.array</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorGroup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.attrs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidateAttrs</span><span class="p">,</span> <span class="n">ConvertAttrs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.numeric.bspline</span><span class="w"> </span><span class="kn">import</span> <span class="n">BSplineInterpolation</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring.dunbrack_libraries</span><span class="w"> </span><span class="kn">import</span> <span class="n">DunbrackRotamerLibrary</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor.common_operations</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">exclusive_cumsum1d</span><span class="p">,</span>
+    <span class="c1"># print_row_numbered_tensor,</span>
+    <span class="n">nplus1d_tensor_from_list</span><span class="p">,</span>
+    <span class="n">cat_differently_sized_tensors</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="DunbrackParams">
+<a class="viewcode-back" href="../../../../api/tmol/score/dunbrack/params/index.html#tmol.score.dunbrack.params.DunbrackParams">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DunbrackParams</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">):</span>
+    <span class="n">ndihe_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">dihedral_offset_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>  <span class="c1"># prev dihedral_offsets</span>
+    <span class="n">dihedral_atom_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">]</span>  <span class="c1"># prev dihedral_atom_indices</span>
+    <span class="n">rottable_set_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">nchi_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">nrotameric_chi_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>  <span class="c1"># ??needed??</span>
+    <span class="n">rotres2resid</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">prob_table_offset_for_rotresidue</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">rotmean_table_offset_for_residue</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">rotind2tableind_offset_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">rotameric_chi_desc</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">semirotameric_chi_desc</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="DunbrackScratch">
+<a class="viewcode-back" href="../../../../api/tmol/score/dunbrack/params/index.html#tmol.score.dunbrack.params.DunbrackScratch">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DunbrackScratch</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">):</span>
+    <span class="n">dihedrals</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">ddihe_dxyz</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">rotameric_rottable_assignment</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">semirotameric_rottable_assignment</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span></div>
+
+
+
+<div class="viewcode-block" id="ScoringDunbrackDatabaseView">
+<a class="viewcode-back" href="../../../../api/tmol/score/dunbrack/params/index.html#tmol.score.dunbrack.params.ScoringDunbrackDatabaseView">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ScoringDunbrackDatabaseView</span><span class="p">(</span><span class="n">ConvertAttrs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The tables for the dunbrack database needed for scoring</span>
+<span class="sd">    stored on the device</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rotameric_neglnprob_tables</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">rotprob_table_sizes</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">rotprob_table_strides</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">rotameric_mean_tables</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">rotameric_sdev_tables</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">rotmean_table_sizes</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">rotmean_table_strides</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">rotameric_bb_start</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">rotameric_bb_step</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">rotameric_bb_periodicity</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+
+    <span class="n">rotameric_rotind2tableind</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">semirotameric_rotind2tableind</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+
+    <span class="n">semirotameric_tables</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">semirot_table_sizes</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">semirot_table_strides</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">semirot_start</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">semirot_step</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">semirot_periodicity</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span></div>
+
+
+
+<div class="viewcode-block" id="ScoringDunbrackDatabaseAux">
+<a class="viewcode-back" href="../../../../api/tmol/score/dunbrack/params/index.html#tmol.score.dunbrack.params.ScoringDunbrackDatabaseAux">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ScoringDunbrackDatabaseAux</span><span class="p">(</span><span class="n">ConvertAttrs</span><span class="p">):</span>
+    <span class="n">rotameric_prob_tableset_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">rotameric_meansdev_tableset_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">nchi_for_table_set</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">rotameric_chi_ri2ti_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">semirotameric_tableset_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span></div>
+
+
+
+<div class="viewcode-block" id="SamplingDunbrackDatabaseView">
+<a class="viewcode-back" href="../../../../api/tmol/score/dunbrack/params/index.html#tmol.score.dunbrack.params.SamplingDunbrackDatabaseView">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SamplingDunbrackDatabaseView</span><span class="p">(</span><span class="n">ConvertAttrs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The tables that are needed in order to sample</span>
+<span class="sd">    side-chain conformations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rotameric_prob_tables</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">rotprob_table_sizes</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">rotprob_table_strides</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">rotameric_mean_tables</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">rotameric_sdev_tables</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">rotmean_table_sizes</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">rotmean_table_strides</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">rotameric_meansdev_tableset_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+
+    <span class="n">n_rotamers_for_tableset</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:]</span>
+    <span class="n">n_rotamers_for_tableset_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">sorted_rotamer_2_rotamer</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:]</span>
+
+    <span class="n">rotameric_bb_start</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">rotameric_bb_step</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">rotameric_bb_periodicity</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+
+    <span class="n">rotameric_rotind2tableind</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">semirotameric_rotind2tableind</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">all_chi_rotind2tableind</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">all_chi_rotind2tableind_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+
+    <span class="n">semirotameric_tables</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">semirot_table_sizes</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">semirot_table_strides</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">semirot_start</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">semirot_step</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">semirot_periodicity</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">][:,</span> <span class="p">:]</span>
+
+    <span class="n">nchi_for_table_set</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">rotwells</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span></div>
+
+
+
+<div class="viewcode-block" id="DunbrackParamResolver">
+<a class="viewcode-back" href="../../../../api/tmol/score/dunbrack/params/index.html#tmol.score.dunbrack.params.DunbrackParamResolver">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DunbrackParamResolver</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
+    <span class="n">_from_dun_db_cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># These live on the device</span>
+    <span class="n">scoring_db</span><span class="p">:</span> <span class="n">ScoringDunbrackDatabaseView</span>
+    <span class="n">scoring_db_aux</span><span class="p">:</span> <span class="n">ScoringDunbrackDatabaseAux</span>
+    <span class="n">sampling_db</span><span class="p">:</span> <span class="n">SamplingDunbrackDatabaseView</span>
+
+    <span class="c1"># This will live on the CPU</span>
+    <span class="n">all_table_indices</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span>
+    <span class="n">rotameric_table_indices</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span>
+    <span class="n">semirotameric_table_indices</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span>
+
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span><span class="p">(</span>
+        <span class="n">cache</span><span class="o">=</span><span class="n">_from_dun_db_cache</span><span class="p">,</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_database</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">:</span> <span class="n">DunbrackRotamerLibrary</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+        <span class="n">all_rotlibs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">rotlib</span>
+            <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span>
+                <span class="n">dun_database</span><span class="o">.</span><span class="n">rotameric_libraries</span><span class="p">,</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">all_table_indices</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_all_table_indices</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">table_name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">all_rotlibs</span><span class="p">],</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">dun_lookup</span>
+        <span class="p">)</span>
+        <span class="n">rotameric_table_indices</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_rotameric_indices</span><span class="p">(</span><span class="n">dun_database</span><span class="p">)</span>
+        <span class="n">semirotameric_table_indices</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_semirotameric_indices</span><span class="p">(</span><span class="n">dun_database</span><span class="p">)</span>
+        <span class="n">nchi_for_table_set</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_nchi_for_table_set</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+        <span class="n">prob_table_nrots</span><span class="p">,</span> <span class="n">prob_table_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_prob_table_offsets</span><span class="p">(</span>
+            <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">p_coeffs</span><span class="p">,</span> <span class="n">pc_sizes</span><span class="p">,</span> <span class="n">pc_strides</span><span class="p">,</span> <span class="n">nlp_coeffs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_compute_rotprob_coeffs</span><span class="p">(</span>
+            <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+
+        <span class="n">rotameric_mean_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_rot_mean_offsets</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+        <span class="n">mean_coeffs</span><span class="p">,</span> <span class="n">mc_sizes</span><span class="p">,</span> <span class="n">mc_strides</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_calculate_rot_mean_coeffs</span><span class="p">(</span>
+            <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">sdev_coeffs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_calculate_rot_sdev_coeffs</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+        <span class="n">rot_bb_start</span><span class="p">,</span> <span class="n">rot_bb_step</span><span class="p">,</span> <span class="n">rot_bb_per</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_rot_periodicities</span><span class="p">(</span>
+            <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+
+        <span class="n">rot_ri2ti</span><span class="p">,</span> <span class="n">semirot_ri2ti</span><span class="p">,</span> <span class="n">allchi_ri2ti</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_rotind2tableinds</span><span class="p">(</span>
+            <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+
+        <span class="n">rotameric_chi_ri2ti_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_rotameric_rotind2tableind_offsets</span><span class="p">(</span>
+            <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">all_chi_rotind2tableind_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_all_chi_rotind2tableind_offsets</span><span class="p">(</span>
+            <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+
+        <span class="n">sr_coeffs</span><span class="p">,</span> <span class="n">sr_sizes</span><span class="p">,</span> <span class="n">sr_strides</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_calc_semirot_coeffs</span><span class="p">(</span><span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+        <span class="n">sr_start</span><span class="p">,</span> <span class="n">sr_step</span><span class="p">,</span> <span class="n">sr_periodicity</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_semirot_periodicity</span><span class="p">(</span>
+            <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">sr_tableset_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_semirot_offsets</span><span class="p">(</span><span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+        <span class="n">sorted_rotamer_2_rotamer</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_sorted_rot_2_rot</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+        <span class="n">rotwells</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_rotamer_well_table</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+        <span class="n">scoring_db</span> <span class="o">=</span> <span class="n">ScoringDunbrackDatabaseView</span><span class="p">(</span>
+            <span class="n">rotameric_neglnprob_tables</span><span class="o">=</span><span class="n">nlp_coeffs</span><span class="p">,</span>
+            <span class="n">rotprob_table_sizes</span><span class="o">=</span><span class="n">pc_sizes</span><span class="p">,</span>
+            <span class="n">rotprob_table_strides</span><span class="o">=</span><span class="n">pc_strides</span><span class="p">,</span>
+            <span class="n">rotameric_mean_tables</span><span class="o">=</span><span class="n">mean_coeffs</span><span class="p">,</span>
+            <span class="n">rotameric_sdev_tables</span><span class="o">=</span><span class="n">sdev_coeffs</span><span class="p">,</span>
+            <span class="n">rotmean_table_sizes</span><span class="o">=</span><span class="n">mc_sizes</span><span class="p">,</span>
+            <span class="n">rotmean_table_strides</span><span class="o">=</span><span class="n">mc_strides</span><span class="p">,</span>
+            <span class="n">rotameric_bb_start</span><span class="o">=</span><span class="n">rot_bb_start</span><span class="p">,</span>
+            <span class="n">rotameric_bb_step</span><span class="o">=</span><span class="n">rot_bb_step</span><span class="p">,</span>
+            <span class="n">rotameric_bb_periodicity</span><span class="o">=</span><span class="n">rot_bb_per</span><span class="p">,</span>
+            <span class="n">rotameric_rotind2tableind</span><span class="o">=</span><span class="n">rot_ri2ti</span><span class="p">,</span>
+            <span class="n">semirotameric_rotind2tableind</span><span class="o">=</span><span class="n">semirot_ri2ti</span><span class="p">,</span>
+            <span class="n">semirotameric_tables</span><span class="o">=</span><span class="n">sr_coeffs</span><span class="p">,</span>
+            <span class="n">semirot_table_sizes</span><span class="o">=</span><span class="n">sr_sizes</span><span class="p">,</span>
+            <span class="n">semirot_table_strides</span><span class="o">=</span><span class="n">sr_strides</span><span class="p">,</span>
+            <span class="n">semirot_start</span><span class="o">=</span><span class="n">sr_start</span><span class="p">,</span>
+            <span class="n">semirot_step</span><span class="o">=</span><span class="n">sr_step</span><span class="p">,</span>
+            <span class="n">semirot_periodicity</span><span class="o">=</span><span class="n">sr_periodicity</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">scoring_db_aux</span> <span class="o">=</span> <span class="n">ScoringDunbrackDatabaseAux</span><span class="p">(</span>
+            <span class="n">rotameric_prob_tableset_offsets</span><span class="o">=</span><span class="n">prob_table_offsets</span><span class="p">,</span>
+            <span class="n">rotameric_meansdev_tableset_offsets</span><span class="o">=</span><span class="n">rotameric_mean_offsets</span><span class="p">,</span>
+            <span class="n">nchi_for_table_set</span><span class="o">=</span><span class="n">nchi_for_table_set</span><span class="p">,</span>
+            <span class="n">rotameric_chi_ri2ti_offsets</span><span class="o">=</span><span class="n">rotameric_chi_ri2ti_offsets</span><span class="p">,</span>
+            <span class="n">semirotameric_tableset_offsets</span><span class="o">=</span><span class="n">sr_tableset_offsets</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">sampling_db</span> <span class="o">=</span> <span class="n">SamplingDunbrackDatabaseView</span><span class="p">(</span>
+            <span class="n">rotameric_prob_tables</span><span class="o">=</span><span class="n">p_coeffs</span><span class="p">,</span>
+            <span class="n">rotprob_table_sizes</span><span class="o">=</span><span class="n">pc_sizes</span><span class="p">,</span>
+            <span class="n">rotprob_table_strides</span><span class="o">=</span><span class="n">pc_strides</span><span class="p">,</span>
+            <span class="n">rotameric_mean_tables</span><span class="o">=</span><span class="n">mean_coeffs</span><span class="p">,</span>
+            <span class="n">rotameric_sdev_tables</span><span class="o">=</span><span class="n">sdev_coeffs</span><span class="p">,</span>
+            <span class="n">rotmean_table_sizes</span><span class="o">=</span><span class="n">mc_sizes</span><span class="p">,</span>
+            <span class="n">rotmean_table_strides</span><span class="o">=</span><span class="n">mc_strides</span><span class="p">,</span>
+            <span class="n">rotameric_meansdev_tableset_offsets</span><span class="o">=</span><span class="n">rotameric_mean_offsets</span><span class="p">,</span>
+            <span class="n">n_rotamers_for_tableset</span><span class="o">=</span><span class="n">prob_table_nrots</span><span class="p">,</span>
+            <span class="n">n_rotamers_for_tableset_offsets</span><span class="o">=</span><span class="n">prob_table_offsets</span><span class="p">,</span>
+            <span class="n">sorted_rotamer_2_rotamer</span><span class="o">=</span><span class="n">sorted_rotamer_2_rotamer</span><span class="p">,</span>
+            <span class="n">rotameric_bb_start</span><span class="o">=</span><span class="n">rot_bb_start</span><span class="p">,</span>
+            <span class="n">rotameric_bb_step</span><span class="o">=</span><span class="n">rot_bb_step</span><span class="p">,</span>
+            <span class="n">rotameric_bb_periodicity</span><span class="o">=</span><span class="n">rot_bb_per</span><span class="p">,</span>
+            <span class="n">rotameric_rotind2tableind</span><span class="o">=</span><span class="n">rot_ri2ti</span><span class="p">,</span>
+            <span class="n">semirotameric_rotind2tableind</span><span class="o">=</span><span class="n">semirot_ri2ti</span><span class="p">,</span>
+            <span class="n">all_chi_rotind2tableind</span><span class="o">=</span><span class="n">allchi_ri2ti</span><span class="p">,</span>
+            <span class="n">all_chi_rotind2tableind_offsets</span><span class="o">=</span><span class="n">all_chi_rotind2tableind_offsets</span><span class="p">,</span>
+            <span class="n">semirotameric_tables</span><span class="o">=</span><span class="n">sr_coeffs</span><span class="p">,</span>
+            <span class="n">semirot_table_sizes</span><span class="o">=</span><span class="n">sr_sizes</span><span class="p">,</span>
+            <span class="n">semirot_table_strides</span><span class="o">=</span><span class="n">sr_strides</span><span class="p">,</span>
+            <span class="n">semirot_start</span><span class="o">=</span><span class="n">sr_start</span><span class="p">,</span>
+            <span class="n">semirot_step</span><span class="o">=</span><span class="n">sr_step</span><span class="p">,</span>
+            <span class="n">semirot_periodicity</span><span class="o">=</span><span class="n">sr_periodicity</span><span class="p">,</span>
+            <span class="n">nchi_for_table_set</span><span class="o">=</span><span class="n">nchi_for_table_set</span><span class="p">,</span>
+            <span class="n">rotwells</span><span class="o">=</span><span class="n">rotwells</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">scoring_db</span><span class="o">=</span><span class="n">scoring_db</span><span class="p">,</span>
+            <span class="n">scoring_db_aux</span><span class="o">=</span><span class="n">scoring_db_aux</span><span class="p">,</span>
+            <span class="n">sampling_db</span><span class="o">=</span><span class="n">sampling_db</span><span class="p">,</span>
+            <span class="n">all_table_indices</span><span class="o">=</span><span class="n">all_table_indices</span><span class="p">,</span>
+            <span class="n">rotameric_table_indices</span><span class="o">=</span><span class="n">rotameric_table_indices</span><span class="p">,</span>
+            <span class="n">semirotameric_table_indices</span><span class="o">=</span><span class="n">semirotameric_table_indices</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_all_table_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_table_names</span><span class="p">,</span> <span class="n">dun_lookup</span><span class="p">):</span>
+        <span class="c1"># all_table_names = [x.table_name for x in all_rotlibs]</span>
+        <span class="n">all_table_lookup</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span>
+            <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">dun_lookup</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;residue_name&quot;</span><span class="p">)</span>
+        <span class="n">dun_indices</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">all_table_names</span><span class="p">)</span>
+        <span class="n">all_table_lookup</span><span class="o">.</span><span class="n">dun_table_name</span> <span class="o">=</span> <span class="n">dun_indices</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="n">all_table_lookup</span><span class="o">.</span><span class="n">dun_table_name</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">all_table_lookup</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_rotameric_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">):</span>
+        <span class="n">rotameric_table_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">table_name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">rotameric_libraries</span><span class="p">]</span>
+        <span class="n">rotameric_table_lookup</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span>
+            <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">dun_database</span><span class="o">.</span><span class="n">dun_lookup</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;residue_name&quot;</span><span class="p">)</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">rotameric_table_names</span><span class="p">)</span>
+        <span class="n">rotameric_table_lookup</span><span class="o">.</span><span class="n">dun_table_name</span> <span class="o">=</span> <span class="n">indices</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="n">rotameric_table_lookup</span><span class="o">.</span><span class="n">dun_table_name</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">rotameric_table_lookup</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_semirotameric_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">):</span>
+        <span class="n">semirotameric_table_names</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">table_name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span>
+        <span class="p">]</span>
+        <span class="n">semirotameric_table_lookup</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span>
+            <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">dun_database</span><span class="o">.</span><span class="n">dun_lookup</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;residue_name&quot;</span><span class="p">)</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">semirotameric_table_names</span><span class="p">)</span>
+        <span class="n">semirotameric_table_lookup</span><span class="o">.</span><span class="n">dun_table_name</span> <span class="o">=</span> <span class="n">indices</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="n">semirotameric_table_lookup</span><span class="o">.</span><span class="n">dun_table_name</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">semirotameric_table_lookup</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_nchi_for_table_set</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">all_rotlibs</span><span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_prob_table_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">prob_table_nrots</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">all_rotlibs</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">prob_table_nrots</span><span class="p">,</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">prob_table_nrots</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_rotprob_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">rotameric_prob_tables</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_probabilities</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">all_rotlibs</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">rotameric_prob_tables</span><span class="p">:</span>
+            <span class="n">table</span><span class="p">[</span><span class="n">table</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-6</span>
+        <span class="n">rotameric_neglnprob_tables</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">rotameric_prob_tables</span>
+        <span class="p">]</span>
+
+        <span class="n">prob_coeffs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">BSplineInterpolation</span><span class="o">.</span><span class="n">from_coordinates</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">rotameric_prob_tables</span>
+        <span class="p">]</span>
+        <span class="n">prob_coeffs</span><span class="p">,</span> <span class="n">prob_coeffs_sizes</span><span class="p">,</span> <span class="n">prob_coeffs_strides</span> <span class="o">=</span> <span class="n">nplus1d_tensor_from_list</span><span class="p">(</span>
+            <span class="n">prob_coeffs</span>
+        <span class="p">)</span>
+
+        <span class="n">neglnprob_coeffs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">BSplineInterpolation</span><span class="o">.</span><span class="n">from_coordinates</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">rotameric_neglnprob_tables</span>
+        <span class="p">]</span>
+        <span class="n">neglnprob_coeffs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_2</span> <span class="o">=</span> <span class="n">nplus1d_tensor_from_list</span><span class="p">(</span><span class="n">neglnprob_coeffs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">prob_coeffs</span><span class="p">,</span> <span class="n">prob_coeffs_sizes</span><span class="p">,</span> <span class="n">prob_coeffs_strides</span><span class="p">,</span> <span class="n">neglnprob_coeffs</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_rot_mean_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">mean_table_n_entries</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_means</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">*</span> <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_means</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">all_rotlibs</span>
+        <span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mean_table_n_entries</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span> <span class="mi">0</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_rot_mean_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">rotameric_mean_tables</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_means</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">all_rotlibs</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_means</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_means</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="p">]</span>
+
+        <span class="c1"># if the mean is near -180, wrap it towards +180</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rotameric_mean_tables</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">[</span><span class="n">x</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">120</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">x</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">120</span><span class="p">]</span> <span class="o">+</span> <span class="mi">360</span>
+            <span class="n">x</span> <span class="o">*=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+
+        <span class="n">mean_coeffs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">BSplineInterpolation</span><span class="o">.</span><span class="n">from_coordinates</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">rotameric_mean_tables</span>
+        <span class="p">]</span>
+        <span class="n">mean_coeffs</span><span class="p">,</span> <span class="n">mean_coeffs_sizes</span><span class="p">,</span> <span class="n">mean_coeffs_strides</span> <span class="o">=</span> <span class="n">nplus1d_tensor_from_list</span><span class="p">(</span>
+            <span class="n">mean_coeffs</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">mean_coeffs</span><span class="p">,</span> <span class="n">mean_coeffs_sizes</span><span class="p">,</span> <span class="n">mean_coeffs_strides</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_rot_sdev_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">rotameric_sdev_tables</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_stdvs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+            <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
+            <span class="o">/</span> <span class="mi">180</span>
+            <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">all_rotlibs</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_stdvs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_stdvs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="p">]</span>
+
+        <span class="n">sdev_coeffs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">BSplineInterpolation</span><span class="o">.</span><span class="n">from_coordinates</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">rotameric_sdev_tables</span>
+        <span class="p">]</span>
+        <span class="n">sdev_coeffs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_2</span> <span class="o">=</span> <span class="n">nplus1d_tensor_from_list</span><span class="p">(</span><span class="n">sdev_coeffs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sdev_coeffs</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_rot_periodicities</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">rotameric_bb_start</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="nb">list</span><span class="p">(</span><span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">backbone_dihedral_start</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">all_rotlibs</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">rotameric_bb_start</span> <span class="o">*=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+        <span class="n">rotameric_bb_step</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="nb">list</span><span class="p">(</span><span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">backbone_dihedral_step</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">all_rotlibs</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">rotameric_bb_step</span> <span class="o">*=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+        <span class="n">rotameric_bb_periodicity</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">rotameric_bb_step</span><span class="o">.</span><span class="n">new_ones</span><span class="p">(</span><span class="n">rotameric_bb_step</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">rotameric_bb_start</span><span class="p">,</span> <span class="n">rotameric_bb_step</span><span class="p">,</span> <span class="n">rotameric_bb_periodicity</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_rotind2tableinds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        rotameric_rotind2tableind: a mapping based on the rotameric chi for a residue</span>
+<span class="sd">           to the table index for that rotamer; the table index can then be used to</span>
+<span class="sd">           access the rotamer probability, rotamer chi mean, and rotamer sdev</span>
+<span class="sd">           tables</span>
+<span class="sd">        semirotameric_rotind2tableind: a mapping based on the rotameric chi for a</span>
+<span class="sd">           residue to the table index for that rotamer; the table index can then be</span>
+<span class="sd">           used to access the semirotameric_tables table. Only valid for</span>
+<span class="sd">           semirotameric residue types</span>
+<span class="sd">        all_chi_rotind2tableind: a mapping based on both rotameric and non-rotameric</span>
+<span class="sd">           chi for a residue to the table index for that rotamer; the table index</span>
+<span class="sd">           can then be used to access the rotamer probability, rotamer chi mean,</span>
+<span class="sd">           and rotamer sdev tables</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">rotameric_rotind2tableind</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">semirotameric_rotind2tableind</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_chi_rotind2tableind</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ntablerots</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">rotameric_libraries</span><span class="p">:</span>
+            <span class="n">rotamers</span> <span class="o">=</span> <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamers</span>
+            <span class="n">exponents</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+            <span class="n">exponents</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+            <span class="n">exponents</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">exponents</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">prods</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">exponents</span><span class="p">)</span>
+            <span class="n">rotinds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">rotamers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">prods</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">ri2ti</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="mi">3</span> <span class="o">**</span> <span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">ri2ti</span><span class="p">[</span><span class="n">rotinds</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_alias</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+                <span class="ow">and</span> <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_alias</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="p">):</span>
+                <span class="n">orig_rotids</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_alias</span><span class="p">[:,</span> <span class="mi">0</span> <span class="p">:</span> <span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+                    <span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+                <span class="p">)</span>
+                <span class="n">alt_rotids</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_alias</span><span class="p">[:,</span> <span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">:]</span>
+                    <span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+                <span class="p">)</span>
+                <span class="n">orig_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">orig_rotids</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">prods</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">alt_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">alt_rotids</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">prods</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">ri2ti</span><span class="p">[</span><span class="n">orig_inds</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)]</span> <span class="o">=</span> <span class="n">ri2ti</span><span class="p">[</span><span class="n">alt_inds</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)]</span>
+
+            <span class="n">rotameric_rotind2tableind</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">ri2ti</span><span class="p">))</span>
+            <span class="n">semirotameric_rotind2tableind</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">ri2ti</span><span class="p">))</span>
+            <span class="n">all_chi_rotind2tableind</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">ri2ti</span><span class="p">))</span>
+            <span class="n">ntablerots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rotinds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span><span class="p">:</span>
+            <span class="n">rotameric_rotamers</span> <span class="o">=</span> <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamers</span>
+            <span class="n">semirotameric_rotamers</span> <span class="o">=</span> <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_chi_rotamers</span>
+            <span class="n">exponents</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">semirotameric_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+            <span class="n">exponents</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+            <span class="n">exponents</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">exponents</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">prods</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">exponents</span><span class="p">)</span>
+            <span class="n">rotinds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">semirotameric_rotamers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">prods</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">sr_ri2ti</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+                <span class="p">[</span><span class="mi">3</span> <span class="o">**</span> <span class="n">semirotameric_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+            <span class="p">)</span>
+            <span class="n">sr_ri2ti</span><span class="p">[</span><span class="n">rotinds</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                <span class="n">semirotameric_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+            <span class="p">)</span>
+            <span class="n">semirotameric_rotind2tableind</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">sr_ri2ti</span><span class="p">))</span>
+
+            <span class="c1"># OK: this code assumes that a) for the rotameric data, all combinations</span>
+            <span class="c1"># of rotameric-chi rotamers + binned-non-rotameric-chi are defined</span>
+            <span class="c1"># (an assumption not needed for rotameric residues) so that</span>
+            <span class="c1"># 3^(n-rotameric-chi) divides n-rotameric-rotamers cleanly , and</span>
+            <span class="c1"># b) the rotamers stored in the rotameric_data are in sorted order</span>
+
+            <span class="n">r_ri2ti</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+                <span class="p">[</span><span class="mi">3</span> <span class="o">**</span> <span class="n">semirotameric_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+            <span class="p">)</span>
+            <span class="n">n_nonrotameric_chi_rotamers</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">rotameric_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3</span> <span class="o">**</span> <span class="n">semirotameric_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">r_ri2ti</span><span class="p">[</span><span class="n">rotinds</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">n_nonrotameric_chi_rotamers</span>
+                <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">semirotameric_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">rotameric_rotind2tableind</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">r_ri2ti</span><span class="p">))</span>
+
+            <span class="n">ac_ri2ti</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">rotameric_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">all_chi_rotind2tableind</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">ac_ri2ti</span><span class="p">))</span>
+
+        <span class="n">rotameric_rotind2tableind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">rotameric_rotind2tableind</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+
+        <span class="n">semirotameric_rotind2tableind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">semirotameric_rotind2tableind</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+
+        <span class="n">all_chi_rotind2tableind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">all_chi_rotind2tableind</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">rotameric_rotind2tableind</span><span class="p">,</span>
+            <span class="n">semirotameric_rotind2tableind</span><span class="p">,</span>
+            <span class="n">all_chi_rotind2tableind</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_rotameric_rotind2tableind_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">rotamer_sets</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamers</span>
+            <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">rotameric_libraries</span>
+        <span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_chi_rotamers</span>
+            <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span>
+        <span class="p">]</span>
+
+        <span class="c1"># same for both rotameric and semi-rotameric rotind2tableind tables</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">3</span> <span class="o">**</span> <span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">rotamers</span> <span class="ow">in</span> <span class="n">rotamer_sets</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_all_chi_rotind2tableind_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Offsets into the all-chi rotind2tableind table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rotamer_counts_sets</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="mi">3</span> <span class="o">**</span> <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">rotameric_libraries</span>
+        <span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">rotamer_counts_sets</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calc_semirot_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">semirotameric_prob_tables</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">rotlib</span><span class="o">.</span><span class="n">nonrotameric_chi_probabilities</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rotlib</span><span class="o">.</span><span class="n">nonrotameric_chi_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">]</span>
+        <span class="c1"># these aren&#39;t used for rotamer building, so we&#39;ll just use this for</span>
+        <span class="c1"># the neglnprobs</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">semirotameric_prob_tables</span><span class="p">:</span>
+            <span class="n">table</span><span class="p">[</span><span class="n">table</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-6</span>
+            <span class="n">table</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="n">semirot_coeffs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">BSplineInterpolation</span><span class="o">.</span><span class="n">from_coordinates</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">semirotameric_prob_tables</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">nplus1d_tensor_from_list</span><span class="p">(</span><span class="n">semirot_coeffs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_semirot_periodicity</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">semirot_start</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">semirot_start</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
+        <span class="n">semirot_start</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
+        <span class="n">semirot_start</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">non_rot_chi_start</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span><span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
+            <span class="o">/</span> <span class="mi">180</span>
+        <span class="p">)</span>
+
+        <span class="n">semirot_step</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">semirot_step</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+        <span class="n">semirot_step</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+        <span class="n">semirot_step</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">non_rot_chi_step</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span><span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
+            <span class="o">/</span> <span class="mi">180</span>
+        <span class="p">)</span>
+
+        <span class="n">semirot_periodicity</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">semirot_periodicity</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
+        <span class="n">semirot_periodicity</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
+        <span class="n">semirot_periodicity</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">non_rot_chi_period</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span><span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
+            <span class="o">/</span> <span class="mi">180</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">semirot_start</span><span class="p">,</span> <span class="n">semirot_step</span><span class="p">,</span> <span class="n">semirot_periodicity</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_semirot_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">nsemirot_rotamers</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="n">rotlib</span><span class="o">.</span><span class="n">nonrotameric_chi_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span>
+        <span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">nsemirot_rotamers</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span> <span class="mi">0</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="DunbrackParamResolver.create_sorted_rot_2_rot">
+<a class="viewcode-back" href="../../../../api/tmol/score/dunbrack/params/index.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_sorted_rot_2_rot">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_sorted_rot_2_rot</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">sorted_2_rotinds</span><span class="p">,</span> <span class="n">_1</span><span class="p">,</span> <span class="n">_2</span> <span class="o">=</span> <span class="n">cat_differently_sized_tensors</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">rot</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">prob_sorted_rot_inds</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">rot</span> <span class="ow">in</span> <span class="n">all_rotlibs</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">sorted_2_rotinds</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DunbrackParamResolver.create_rotamer_well_table">
+<a class="viewcode-back" href="../../../../api/tmol/score/dunbrack/params/index.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_rotamer_well_table">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_rotamer_well_table</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="n">rotwells</span><span class="p">,</span> <span class="n">_1</span><span class="p">,</span> <span class="n">_2</span> <span class="o">=</span> <span class="n">cat_differently_sized_tensors</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">rot</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamers</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">rot</span> <span class="ow">in</span> <span class="n">all_rotlibs</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">rotwells</span></div>
+
+
+    <span class="c1"># TO DO: DECIDE IF THIS IS PART OF THE API OF THIS CLASS</span>
+    <span class="c1"># SURE SEEMS LIKE IT IS</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_indices_from_names</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">dataframe</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="nb">object</span><span class="p">][:,</span> <span class="p">:],</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:]:</span>
+        <span class="n">names_flat</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span><span class="n">names_flat</span><span class="p">)</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]][</span><span class="s2">&quot;dun_table_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">inds</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">names</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

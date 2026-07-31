@@ -1,0 +1,1891 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Contents: &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=c8b66c78" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'notebooks/tmol_how_to_guide';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://tmol.ipd.uw.edu/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-403';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Architecture" href="../architecture.html" />
+    <link rel="prev" title="Protein-ligand refinement" href="../auto_examples/protein_ligand_refinement.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.46" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
+    Contents:
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Contents:
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Contents:</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="Contents:">
+<h1>Contents:<a class="headerlink" href="#Contents:" title="Link to this heading">#</a></h1>
+<p>Setup:</p>
+<ul class="simple">
+<li><p>Download tmol wheel (colab)</p></li>
+<li><p>Download a few input files</p></li>
+<li><p>Hello World of working with tmol: create a PoseStack and score it</p></li>
+</ul>
+<p>Fundamentals:</p>
+<ul class="simple">
+<li><p>Initialize the default ParameterDatabase</p></li>
+<li><p>Load alternate block types</p></li>
+<li><p>Initialize a PackedBlockTypes object from the default database</p></li>
+<li><p>Initialize a PackedBlockTypes object from a custom database</p></li>
+<li><p>Create a CanonicalOrdering from a ParameterDatabase</p></li>
+<li><p>Create a PackedBlockTypes object from a subset of the block types in a ParameterDatabase</p></li>
+</ul>
+<p>Input</p>
+<ul class="simple">
+<li><p>Initialize a single pose PoseStack from a PDB</p></li>
+<li><p>Initialize a pose stack from a subset of residues in a PDB</p></li>
+<li><p>Initialize a single pose PoseStack from a PDB file using biotite</p></li>
+<li><p>Initialize a single pose PoseStack from an .mmcif file (.cif)</p></li>
+<li><p>Initialize a single pose PoseStack from an OpenMM set of tensors</p></li>
+<li><p>Initialize a single pose PoseStack with missing residues</p></li>
+<li><p>Load a bunch of PoseStacks from different sources and then concatenate them to a single PoseStack</p></li>
+<li><p>Make many copies of the same single-pose PoseStack</p></li>
+<li><p>Add custom residue type</p></li>
+<li><p>Set the scoring parameters for a new residue type (elec, etc)</p></li>
+<li><p>Build an extended pose from sequence</p></li>
+<li><p>(Ligand features??)</p></li>
+<li><p>Create ligand block type from .params</p></li>
+<li><p>Create ligand block type from .mol2</p></li>
+<li><p>Create ligand block type from .cif that contains ligands</p></li>
+<li><p>Create BiotitePoseBuildContext with RefinedResidueTypes for repeat loading of ligand PDBs</p></li>
+<li><p>Load in multiple ligands and then process PDBs containing those ligands</p></li>
+</ul>
+<p>Output:</p>
+<ul class="simple">
+<li><p>Write a single pose PoseStack to a .pdb file</p></li>
+<li><p>Write a multi-pose stack out as a multi-model PDB file</p></li>
+<li><p>Write a multi-pose stack out to separate PDB files</p></li>
+<li><p>Write a single pose PoseStack to an .mmcif file</p></li>
+<li><p>Write a rotamer set out as a multi-model PDB</p></li>
+<li><p>Write ligand-containing PoseStack out to .cif file using BiotitePoseBuildContext</p></li>
+<li><p>Write out ligand .params file</p></li>
+</ul>
+<p>Kinematics:</p>
+<ul class="simple">
+<li><p>Create an N-&gt;C fold tree for a PoseStack</p></li>
+<li><p>Create a simple fold tree for a multi-chain PoseStack</p></li>
+<li><p>Create a simple fold tree for a PoseStack with missing residues</p></li>
+<li><p>Create a dandelion fold tree for a PoseStack</p></li>
+<li><p>Create a MoveMap that enables minimization for named torsions</p></li>
+<li><p>Create a MoveMap that enables backbone minimization for some residues but not all</p></li>
+<li><p>Apply a perturbation to the rigid-body DOFs between two chains</p></li>
+<li><p>Assign dihedral values to all the residues in a PoseStack and calculate the coordinates</p></li>
+</ul>
+<p>Scoring:</p>
+<ul class="simple">
+<li><p>Create the default score function</p></li>
+<li><p>Create the default score function from a custom Database</p></li>
+<li><p>Create the soft-rep version of the score function</p></li>
+<li><p>Create an empty score function</p></li>
+<li><p>Turn on a few terms in a score function</p></li>
+<li><p>Turn off a term in a score function</p></li>
+<li><p>Score a PoseStack</p></li>
+<li><p>Score a PoseStack and back-propagate through the coordinates</p></li>
+<li><p>Score a PoseStack and return per-residue weighted energies</p></li>
+<li><p>Score a PoseStack and return per-residue un-weighted energies</p></li>
+<li><p>Score a PoseStack and return per-residue weighted energies, weight them according to some principle, and then back-propagate the total energy.</p></li>
+<li><p>Add constraints to a PoseStack</p></li>
+<li><p>Add the same constraints to all the Poses in a PoseStack</p></li>
+<li><p>Add coordinate constraints to the current coordinates</p></li>
+<li><p>Alter the parameters for the cart-bonded energy function &amp; rescore</p></li>
+</ul>
+<p>Optimization</p>
+<ul class="simple">
+<li><p>Create a DunbrackSampler</p></li>
+<li><p>Add hydrogens</p></li>
+<li><p>Fill in side chains for a model that lacks them</p></li>
+<li><p>Perform fixed-sequence side-chain optimization: repack</p></li>
+<li><p>Repack with extra rotamers</p></li>
+<li><p>Add hydrogens and back-propagate</p></li>
+<li><p>Create a new PackerPalette subclass to handle logic of new block types</p></li>
+<li><p>Run minimization in double precision</p></li>
+<li><p>Perform cartesian minimization</p></li>
+<li><p>Perform kinematic minimization</p></li>
+<li><p>Relax a PoseStack w/ kinematic minimization</p></li>
+<li><p>Relax a PoseStack w/ cartesian minimization</p></li>
+<li><p>Relax structures generated one-at-a-time in batch format</p></li>
+<li><p>Idealize a structure from the PDB</p></li>
+<li><p>Idealize a structure from a dandelion</p></li>
+<li><p>Idealize just the backbone of a dandelion</p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Colab</span>
+<span class="c1"># install tmol directly from the github wheel;</span>
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span>https://github.com/uw-ipd/tmol/releases/download/v0.1.36/tmol-0.1.36+cu128torch2.10-cp312-cp312-linux_x86_64.whl
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># download some structure files so we have something to work with</span>
+<span class="o">!</span>wget<span class="w"> </span>-O<span class="w"> </span>1ubq.pdb<span class="w"> </span>https://raw.githubusercontent.com/uw-ipd/tmol/refs/heads/master/tmol/tests/data/pdb/1ubq.pdb
+<span class="o">!</span>wget<span class="w"> </span>-O<span class="w"> </span>1s78.pdb<span class="w"> </span>https://raw.githubusercontent.com/uw-ipd/tmol/refs/heads/master/tmol/tests/data/pdb/1s78.pdb
+<span class="o">!</span>wget<span class="w"> </span>-O<span class="w"> </span>1qys.pdb<span class="w"> </span>https://raw.githubusercontent.com/uw-ipd/tmol/refs/heads/master/tmol/tests/data/pdb/1qys.pdb
+<span class="o">!</span>wget<span class="w"> </span>-O<span class="w"> </span>1BL8.cif<span class="w"> </span>https://raw.githubusercontent.com/uw-ipd/tmol/refs/heads/master/tmol/tests/data/cif/1BL8.cif
+<span class="o">!</span>wget<span class="w"> </span>-O<span class="w"> </span>3plc.pdb<span class="w"> </span>https://raw.githubusercontent.com/uw-ipd/tmol/refs/heads/master/tmol/tests/data/pdb/3plc.pdb
+<span class="o">!</span>wget<span class="w"> </span>-O<span class="w"> </span>10VB.pdb<span class="w"> </span>https://raw.githubusercontent.com/uw-ipd/tmol/refs/heads/master/tmol/tests/data/pdb/10VB.pdb
+<span class="o">!</span>wget<span class="w"> </span>-O<span class="w"> </span>openfold_ubq_and_sumo.pt<span class="w"> </span>https://raw.githubusercontent.com/uw-ipd/tmol/refs/heads/master/tmol/tests/data/openfold/openfold_ubq_and_sumo.pt
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make sure the files downloaded correctly; this should print the first 10 atoms</span>
+<span class="c1"># from methionine in ubiquitin</span>
+<span class="o">!</span>head<span class="w"> </span>1ubq.pdb
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">env</span> TMOL_USE_JIT=1
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">__path__</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The hello world of working with tmol:</span>
+<span class="c1"># Load a PDB in from disk and score it</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_device</span><span class="p">())</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+<span class="c1"># Create a pose stack from a PDB.</span>
+<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pose_stack_from_pdb</span><span class="p">(</span><span class="s1">&#39;1ubq.pdb&#39;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="c1"># A PoseStack represents a batch of molecular systems (in this case, just a single structure - ubiquitin)</span>
+<span class="c1"># PoseStacks are optimized for compactness for efficient processing on the GPU.</span>
+<span class="c1"># Behind the scenes, pose_stack_from_pdb uses the default ParameterDatabase;</span>
+<span class="c1"># which currently contains the parameters necessary to treat standard</span>
+<span class="c1"># proteins, but little else. We will see more about the ParameterDatabase later.</span>
+
+<span class="c1"># Create our score function.</span>
+<span class="n">sfxn</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="c1"># This tmol score function is based on the Rosetta energy function.</span>
+<span class="c1"># The score function is composed of many terms and weights for those terms.</span>
+<span class="c1"># In this particular case, the score function terms and weights are set to</span>
+<span class="c1"># match the beta2016_cart score function from Rosetta3. Again, we</span>
+<span class="c1"># are relying on the default ParameterDatabase in the background.</span>
+
+<span class="c1"># Create our scoring module.</span>
+<span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+<span class="c1"># The scoring module is what does the actual score evaluation.</span>
+<span class="c1"># This is separate from the ScoreFunction because it also needs details</span>
+<span class="c1"># about the PoseStack being scored - mainly the Residue Types being used.</span>
+<span class="c1"># The scoring module needs those Types because each score term must assemble</span>
+<span class="c1"># compact tensors with the data necessary to score the Residue Types that are</span>
+<span class="c1"># in use.</span>
+
+<span class="c1"># Score the PoseStack and print the output.</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">))</span>
+<span class="c1"># Return a tensor with the score of each pose in the stack (in this case, just 1 value)</span>
+</pre></div>
+</div>
+</div>
+<p>Fundamentals</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Initialize the default ParameterDatabase</span>
+<span class="n">default_param_db</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Load alternate block types</span>
+<span class="c1"># TO DO: Kieran</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Initialize a PackedBlockTypes object from the default database</span>
+<span class="n">pbt</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">default_packed_block_types</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Initialize a PackedBlockTypes object from a custom database</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create a default CanonicalOrdering object</span>
+<span class="n">canonical_ordering</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">default_canonical_ordering</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create a CanonicalOrdering from a ParameterDatabase</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create a PackedBlockTypes object from a subset of the block types in a ParameterDatabase</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<p>Input</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Initialize a single pose PoseStack from a PDB</span>
+<span class="n">pose_1ubq</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pose_stack_from_pdb</span><span class="p">(</span><span class="s2">&quot;1ubq.pdb&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">pose_1ubq</span><span class="o">.</span><span class="n">max_n_blocks</span> <span class="o">==</span> <span class="mi">76</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Initialize a pose stack from a subset of residues in a PDB</span>
+
+<span class="c1"># We have to tell the PDB reader that the first residue is not an</span>
+<span class="c1"># N-terminus but merely is not connected to the residue that preceeds it</span>
+<span class="c1"># and that the last residue is not a C-terminus.</span>
+<span class="n">res_not_connected</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="n">res_not_connected</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">res_not_connected</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="n">pose_1ubq_20to50</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pose_stack_from_pdb</span><span class="p">(</span><span class="s2">&quot;1ubq.pdb&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">residue_start</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">residue_end</span><span class="o">=</span><span class="mi">51</span><span class="p">,</span> <span class="n">res_not_connected</span><span class="o">=</span><span class="n">res_not_connected</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">pose_1ubq_20to50</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+<span class="k">assert</span> <span class="n">pose_1ubq_20to50</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Initialize a single pose PoseStack from a PDB file using biotite</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure.io.pdb</span>
+
+<span class="c1"># TEMP</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.pose_stack_from_biotite</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_biotite</span>
+
+<span class="n">bt_pdb_file</span> <span class="o">=</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">pdb</span><span class="o">.</span><span class="n">PDBFile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;1ubq.pdb&quot;</span><span class="p">)</span>
+<span class="n">bt_struct</span> <span class="o">=</span> <span class="n">bt_pdb_file</span><span class="o">.</span><span class="n">get_structure</span><span class="p">()</span>
+<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bt_struct</span><span class="p">,</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>
+    <span class="n">bt_struct</span> <span class="o">=</span> <span class="n">bt_struct</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="n">pose_1ubq_bt</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span><span class="n">bt_struct</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Initialize a single pose PoseStack from an mmcif file (.cif)</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">biotite.structure.io.pdbx</span><span class="w"> </span><span class="kn">import</span> <span class="n">CIFFile</span><span class="p">,</span> <span class="n">set_structure</span>
+
+<span class="c1"># TEMP</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.pose_stack_from_biotite</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_biotite</span>
+
+<span class="n">bt_struct</span> <span class="o">=</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">load_structure</span><span class="p">(</span>
+    <span class="s2">&quot;1BL8.cif&quot;</span><span class="p">,</span> <span class="n">extra_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;occupancy&quot;</span><span class="p">,</span> <span class="s2">&quot;b_factor&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bt_struct</span><span class="p">,</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>
+    <span class="n">bt_struct</span> <span class="o">=</span> <span class="n">bt_struct</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="c1"># TEMP: add pose_stack_from_biotite to API and modify this line</span>
+<span class="n">pose_1bl8</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span><span class="n">bt_struct</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Initialize a single pose PoseStack from an OpenFold set of tensors</span>
+
+<span class="c1"># here is a dictionary with the set of tensors that OpenFold produces when</span>
+<span class="c1"># asked to predict the structures of ubiquitin and sumo; in particular, tmol</span>
+<span class="c1"># reads from the &quot;aatype&quot;, &quot;positions&quot; and &quot;chain_index&quot; tensors.</span>
+
+<span class="n">openfold_ubq_and_sumo_pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;openfold_ubq_and_sumo.pt&quot;</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+<span class="n">ps_ubq_sumo</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pose_stack_from_openfold</span><span class="p">(</span><span class="n">openfold_ubq_and_sumo_pred</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ps_ubq_sumo</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+<span class="k">assert</span> <span class="n">ps_ubq_sumo</span><span class="o">.</span><span class="n">max_n_blocks</span> <span class="o">==</span> <span class="n">openfold_ubq_and_sumo_pred</span><span class="p">[</span><span class="s2">&quot;positions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">ps_ubq_sumo</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">device</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Initialize a single pose PoseStack with missing residues</span>
+<span class="c1"># This particular structure has a few regions where the backbone is missing</span>
+<span class="n">pose_1s78</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pose_stack_from_pdb</span><span class="p">(</span><span class="s2">&quot;1s78.pdb&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="c1"># TO DO: Assert that some residues are not bound to their upper / lower conns</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Load a bunch of PoseStacks from different sources and then concatenate them to a single PoseStack</span>
+<span class="n">ps_3plc</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pose_stack_from_pdb</span><span class="p">(</span><span class="s2">&quot;3plc.pdb&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="n">ps_1qys</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pose_stack_from_pdb</span><span class="p">(</span><span class="s2">&quot;1qys.pdb&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+<span class="c1"># TEMP: Add PoseStackBuilder to API</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.pose_stack_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackBuilder</span>
+<span class="n">pose_stack_3</span> <span class="o">=</span> <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">from_poses</span><span class="p">([</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">ps_3plc</span><span class="p">,</span> <span class="n">ps_1qys</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">pose_stack_3</span><span class="o">.</span><span class="n">n_poses</span> <span class="o">==</span> <span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Make many copies of the same single-pose PoseStack</span>
+<span class="c1"># You can create a list of shallow copies of a single-pose PoseStack</span>
+<span class="c1"># and the PoseStackBuilder will expand them into complete and fully</span>
+<span class="c1"># independent poses.</span>
+<span class="n">ten_1ubqs</span> <span class="o">=</span> <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">from_poses</span><span class="p">([</span><span class="n">pose_1ubq</span><span class="p">]</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">ten_1ubqs</span><span class="o">.</span><span class="n">n_poses</span> <span class="o">==</span> <span class="mi">10</span>
+<span class="k">assert</span> <span class="n">ten_1ubqs</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">10</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Add custom residue type</span>
+<span class="c1"># TO DO</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Set the scoring parameters for a new residue type (elec, etc)</span>
+<span class="c1"># TO DO</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Build an extended pose from sequence</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<p>Output</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Write a single pose PoseStack to a .pdb file</span>
+<span class="n">tmol</span><span class="o">.</span><span class="n">write_pose_stack_pdb</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="s2">&quot;1ubq_out.pdb&quot;</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="s2">&quot;1ubq_out.pdb&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Write a multi-pose stack out as a multi-model PDB file</span>
+<span class="n">tmol</span><span class="o">.</span><span class="n">write_pose_stack_pdb</span><span class="p">(</span><span class="n">ten_1ubqs</span><span class="p">,</span> <span class="s2">&quot;ten_1ubqs.pdb&quot;</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="s2">&quot;ten_1ubqs.pdb&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">nlines_from_file</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">fid</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+  <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+<span class="n">nlines_1ubq</span> <span class="o">=</span> <span class="n">nlines_from_file</span><span class="p">(</span><span class="s2">&quot;1ubq.pdb&quot;</span><span class="p">)</span>
+<span class="n">nlines_ten_1ubqs</span> <span class="o">=</span> <span class="n">nlines_from_file</span><span class="p">(</span><span class="s2">&quot;ten_1ubqs.pdb&quot;</span><span class="p">)</span>
+<span class="k">assert</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">nlines_1ubq</span> <span class="o">&lt;=</span> <span class="n">nlines_ten_1ubqs</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Write a multi-pose stack out to separate PDB files</span>
+
+<span class="c1"># take advantage of PoseStack&#39;s split() method to create a single-pose PoseStack</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+  <span class="n">pose_i</span> <span class="o">=</span> <span class="n">ten_1ubqs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+  <span class="n">tmol</span><span class="o">.</span><span class="n">write_pose_stack_pdb</span><span class="p">(</span><span class="n">pose_i</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;1ubq_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04</span><span class="si">}</span><span class="s2">.pdb&quot;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+  <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;1ubq_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04</span><span class="si">}</span><span class="s2">.pdb&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Write a single pose PoseStack to an .mmcif file</span>
+<span class="c1"># TO DO</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Write a rotamer set out as a multi-model PDB</span>
+<span class="c1"># TO DO</span>
+<br/></pre></div>
+</div>
+</div>
+<p>Kinematics</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create an N-&gt;C fold tree (a fold *forest* in tmol) for a PoseStack</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+
+<span class="c1"># Option 1: reasonable_fold_forest() produces a simple fold tree for</span>
+<span class="c1"># each pose in the PoseStack of one N-&gt;C edge per chain.</span>
+<span class="n">ff1_1ubq</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">FoldForest</span><span class="o">.</span><span class="n">reasonable_fold_forest</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+
+<span class="c1"># Option 2: specify the fold forest explicitly.</span>
+<span class="c1"># Each edge is a 3-tuple of (edge_type, start_residue, end_residue)</span>
+<span class="c1">#</span>
+<span class="c1"># tmol includes a new kind of jump edge: a root-jump. This connects</span>
+<span class="c1"># the downstream residue to the root of the fold forest. Each</span>
+<span class="c1"># fold tree must include at least one root-jump edge, but may</span>
+<span class="c1"># include arbitrarily many. The start_residue of a root-jump edge</span>
+<span class="c1"># is always the sentinel value of -1.</span>
+<span class="c1">#</span>
+<span class="c1"># For this N-&gt;C fold tree, we define a root-jump to residue 0, and a polymer</span>
+<span class="c1"># edge from 0 to the last residue in the pose.</span>
+<span class="c1">#</span>
+<span class="c1"># The edges array should be [n_poses, max_n_edges, 3] with the sentinel value</span>
+<span class="c1"># of -1 used for unused edges.</span>
+<span class="n">edges</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tmol</span><span class="o">.</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">root_jump</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+<span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tmol</span><span class="o">.</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">polymer</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">75</span><span class="p">]</span>
+<span class="n">ff2_1ubq</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">FoldForest</span><span class="o">.</span><span class="n">from_edges</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create a set of N-&gt;C fold trees for a multi-pose PoseStack of single-chain PDBs</span>
+<span class="n">ff1_ps3</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">FoldForest</span><span class="o">.</span><span class="n">reasonable_fold_forest</span><span class="p">(</span><span class="n">pose_stack_3</span><span class="p">)</span>
+
+<span class="c1"># Option 2: build the edges array explicitly, as above.</span>
+<span class="n">edges</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="n">edges</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">tmol</span><span class="o">.</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">root_jump</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+<span class="n">n_res</span> <span class="o">=</span> <span class="n">pose_stack_3</span><span class="o">.</span><span class="n">n_res_per_pose</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+<span class="n">edges</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">polymer</span>
+<span class="n">edges</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">edges</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_res</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="n">ff2_ps3</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">FoldForest</span><span class="o">.</span><span class="n">from_edges</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create a simple fold tree for a multi-chain PoseStack</span>
+<span class="n">ps_10vb</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pose_stack_from_pdb</span><span class="p">(</span><span class="s2">&quot;10VB.pdb&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="n">ff_10vb</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">FoldForest</span><span class="o">.</span><span class="n">reasonable_fold_forest</span><span class="p">(</span><span class="n">ps_10vb</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create a simple fold tree for a PoseStack with missing residues</span>
+
+<span class="c1"># TO DO: Fix logic for reasonable_fold_forest so that it inserts jumps</span>
+<span class="c1"># between blocks that are in the same chain but that are not connected.</span>
+<span class="n">ff_1s78</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">FoldForest</span><span class="o">.</span><span class="n">reasonable_fold_forest</span><span class="p">(</span><span class="n">pose_1s78</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create a dandelion fold tree for a PoseStack</span>
+
+<span class="c1"># Many NNs, such as OpenFold, produce structures as one coordinate frame</span>
+<span class="c1"># per residue and dihedrals for the side chains. Kinematically,</span>
+<span class="c1"># we can reproduce that by describing a tree with one root-jump</span>
+<span class="c1"># for every residue -- the side chains will still be described</span>
+<span class="c1"># with internal geometries. This system is like a dandelion with</span>
+<span class="c1"># tons of tiny stalks holding tiny seeds at the end all connected</span>
+<span class="c1"># to a central hub. With such a kin_forest, e.g., it is possible to minimize</span>
+<span class="c1"># the system in the same set of DOFs that the NN has access to.</span>
+
+<span class="c1">#</span>
+<span class="n">edges</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="n">pose_stack_3</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="n">edges</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">root_jump</span>
+<span class="n">edges</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pose_stack_3</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
+<span class="c1"># sentinel out the edges that are out-of-bounds for each pose</span>
+<span class="n">is_unreal_res</span> <span class="o">=</span> <span class="p">(</span><span class="n">pose_stack_3</span><span class="o">.</span><span class="n">block_type_ind</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+<span class="n">edges</span><span class="p">[</span><span class="n">is_unreal_res</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+<span class="n">dandelion_ff</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">FoldForest</span><span class="o">.</span><span class="n">from_edges</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create a MoveMap that enables minimization for named torsions</span>
+<span class="n">mm_1ubq_all</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">MoveMap</span><span class="o">.</span><span class="n">from_pose_stack</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+<span class="n">mm_1ubq_all</span><span class="o">.</span><span class="n">move_all_named_torsions</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create a MoveMap that enables backbone minimization for some residues but not all</span>
+
+<span class="c1"># Let&#39;s turn on named-torsion minimization for residues 10-39</span>
+<span class="n">mm_1ubq_some</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">MoveMap</span><span class="o">.</span><span class="n">from_pose_stack</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+<span class="n">mm_1ubq_some</span><span class="o">.</span><span class="n">set_move_all_named_torsions_for_blocks</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Apply a perturbation to the rigid-body DOFs between two chains</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Assign dihedral values to all the residues in a PoseStack and calculate the coordinates</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<p>Scoring</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create the default score function</span>
+<span class="n">sfxn</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create the default score function from a custom Database</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create the soft-rep version of the score function</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create an empty score function</span>
+<span class="n">sfxn_empty</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">ScoreFunction</span><span class="p">(</span><span class="n">default_param_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Turn on a few terms in a score function</span>
+<span class="n">sfxn_rep_and_hbonds</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">ScoreFunction</span><span class="p">(</span><span class="n">default_param_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">sfxn_rep_and_hbonds</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">fa_ljrep</span><span class="p">,</span> <span class="mf">0.55</span><span class="p">)</span>
+<span class="n">sfxn_rep_and_hbonds</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">hbond</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Turn off a term in a score function</span>
+<span class="c1"># TO DO; fix bug</span>
+<span class="c1"># print(len(sfxn_rep_and_hbonds.all_terms()))</span>
+
+<span class="n">sfxn_rep_and_hbonds</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">hbond</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">sfxn_rep_and_hbonds</span><span class="o">.</span><span class="n">all_terms</span><span class="p">())</span> <span class="o">==</span> <span class="mi">1</span>
+
+<span class="n">sfxn_rep_and_hbonds</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">fa_ljrep</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">sfxn_rep_and_hbonds</span><span class="o">.</span><span class="n">all_terms</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Score a PoseStack</span>
+<span class="n">wpsm</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+<span class="n">score</span> <span class="o">=</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Score a PoseStack and back-propagate through the coordinates</span>
+<span class="n">score2</span> <span class="o">=</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+<span class="n">score2</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Score a PoseStack and return per-residue weighted energies</span>
+<span class="n">bpsm</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+<span class="n">block_pair_scores</span> <span class="o">=</span> <span class="n">bpsm</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">block_pair_scores</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">pose_1ubq</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">pose_1ubq</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Score a PoseStack and return per-residue un-weighted energies</span>
+<span class="n">unweighted_block_pair_scores</span> <span class="o">=</span> <span class="n">bpsm</span><span class="o">.</span><span class="n">unweighted_scores</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">unweighted_block_pair_scores</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sfxn</span><span class="o">.</span><span class="n">all_score_types</span><span class="p">()),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pose_1ubq</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">pose_1ubq</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Score a PoseStack and return per-residue weighted energies, weight them according to some principle,</span>
+<span class="c1"># and then back-propagate the total reweighted energy.</span>
+<span class="n">pose_1s78</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+<span class="n">bpsm_1s78</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_1s78</span><span class="p">)</span>
+<span class="n">bps</span> <span class="o">=</span> <span class="n">bpsm_1s78</span><span class="p">(</span><span class="n">pose_1s78</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+<span class="n">tot_reg</span> <span class="o">=</span> <span class="n">bps</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+<span class="c1"># in 1s78, there are 555 residues in the antigen; the remaining residues are in the antibody</span>
+<span class="n">upweight_interchain_intxns</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">991</span><span class="p">,</span> <span class="mi">991</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="c1"># energies are written to the upper-triangle of the n-res x n-res table</span>
+<span class="n">upweight_interchain_intxns</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">555</span><span class="p">,</span> <span class="mi">555</span><span class="p">:</span><span class="mi">991</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span>
+
+<span class="n">tot_upweight_iface</span> <span class="o">=</span> <span class="p">(</span><span class="n">bps</span> <span class="o">*</span> <span class="n">upweight_interchain_intxns</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;tot reg&quot;</span><span class="p">,</span> <span class="n">tot_reg</span><span class="p">,</span> <span class="s2">&quot;tot_upweight_iface&quot;</span><span class="p">,</span> <span class="n">tot_upweight_iface</span><span class="p">)</span>
+<span class="n">dcoords</span> <span class="o">=</span> <span class="n">tot_upweight_iface</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Add constraints to a PoseStack</span>
+
+<span class="c1"># The PoseStack carries a ConstraintSet object that may be shared between</span>
+<span class="c1"># multiple PoseStacks; thus ConstraintSet is immutable. Instead of</span>
+<span class="c1"># being able to modify a ConstraintSet, the class makes it easy to</span>
+<span class="c1"># create a new ConstraintSet with the contents you want.</span>
+<span class="c1"># PoseStack is the same way: you cannot modify the ConstraintSet in</span>
+<span class="c1"># an existing PoseStack, but using attr.evolve(...) you can readily</span>
+<span class="c1"># construct a new PoseStack that holds your newly constructed</span>
+<span class="c1"># ConstraintSet</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+
+<span class="k">assert</span> <span class="n">pose_1ubq</span><span class="o">.</span><span class="n">constraint_set</span> <span class="ow">is</span> <span class="kc">None</span>
+<span class="n">cst_set</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">ConstraintSet</span><span class="o">.</span><span class="n">create_empty</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">n_poses</span><span class="o">=</span><span class="n">pose_1ubq</span><span class="o">.</span><span class="n">n_poses</span><span class="p">)</span>
+
+<span class="c1"># let&#39;s create a constraint set with CA distances</span>
+<span class="c1"># between all pairs of residues</span>
+<span class="n">start_ca_coords</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">res_inds</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">atom_inds</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">coords</span> <span class="o">=</span> <span class="n">pose_1ubq</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">):</span>
+    <span class="n">i_bt</span> <span class="o">=</span> <span class="n">pose_1ubq</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+    <span class="c1"># In general, not all block types will have a &quot;CA&quot; atom</span>
+    <span class="c1"># but in the case of 1ubq, they do happen to.</span>
+    <span class="k">if</span> <span class="s2">&quot;CA&quot;</span> <span class="ow">in</span> <span class="n">i_bt</span><span class="o">.</span><span class="n">atom_names_set</span><span class="p">:</span>
+        <span class="n">res_inds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">at_ind</span> <span class="o">=</span> <span class="n">i_bt</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="s2">&quot;CA&quot;</span><span class="p">]</span>
+        <span class="n">atom_inds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">at_ind</span><span class="p">)</span>
+        <span class="n">start_ca_coords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">pose_1ubq</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">at_ind</span><span class="p">])</span>
+
+<span class="n">start_ca_coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">start_ca_coords</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;start_ca_coords&quot;</span><span class="p">,</span> <span class="n">start_ca_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="n">res_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">res_inds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="n">atom_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">atom_inds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+<span class="n">ca_dists</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">start_ca_coords</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">start_ca_coords</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ca_dists&quot;</span><span class="p">,</span> <span class="n">ca_dists</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="n">n_res_arange</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">start_ca_coords</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+<span class="n">is_upper_triangle</span> <span class="o">=</span> <span class="n">n_res_arange</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">n_res_arange</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+<span class="n">nz_upper_triangle_r1</span><span class="p">,</span> <span class="n">nz_upper_triangle_r2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">is_upper_triangle</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">n_csts</span> <span class="o">=</span> <span class="n">nz_upper_triangle_r1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">cst_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_csts</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="n">cst_params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_csts</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="n">cst_atoms</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># pose index</span>
+<span class="n">cst_atoms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_inds</span><span class="p">[</span><span class="n">nz_upper_triangle_r1</span><span class="p">]</span> <span class="c1"># atom1 residue index</span>
+<span class="n">cst_atoms</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_inds</span><span class="p">[</span><span class="n">nz_upper_triangle_r2</span><span class="p">]</span> <span class="c1"># atom2 residue index</span>
+<span class="n">cst_atoms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_inds</span><span class="p">[</span><span class="n">nz_upper_triangle_r1</span><span class="p">]</span> <span class="c1"># atom1 atom index within its residue</span>
+<span class="n">cst_atoms</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_inds</span><span class="p">[</span><span class="n">nz_upper_triangle_r2</span><span class="p">]</span> <span class="c1"># atom2 atom index within its residue</span>
+
+<span class="n">cst_params</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ca_dists</span><span class="p">[</span><span class="n">nz_upper_triangle_r1</span><span class="p">,</span> <span class="n">nz_upper_triangle_r2</span><span class="p">]</span>
+<span class="n">cst_params</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="c1"># 0.5A standard deviation</span>
+
+<span class="n">cst_set</span> <span class="o">=</span> <span class="n">cst_set</span><span class="o">.</span><span class="n">add_constraints</span><span class="p">(</span>
+    <span class="n">tmol</span><span class="o">.</span><span class="n">ConstraintEnergyTerm</span><span class="o">.</span><span class="n">harmonic</span><span class="p">,</span>
+    <span class="n">cst_atoms</span><span class="p">,</span>
+    <span class="n">cst_params</span>
+<span class="p">)</span>
+<span class="n">pose_1ubq_w_csts</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">constraint_set</span><span class="o">=</span><span class="n">cst_set</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wpsm_w_csts</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_1ubq_w_csts</span><span class="p">)</span>
+<span class="n">score</span> <span class="o">=</span> <span class="n">wpsm_w_csts</span><span class="p">(</span><span class="n">pose_1ubq_w_csts</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;score w/ constraints&quot;</span><span class="p">,</span> <span class="n">score</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Add the same constraints to all the Poses in a PoseStack</span>
+<span class="n">cst_set_10</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">ConstraintSet</span><span class="o">.</span><span class="n">create_empty</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">n_poses</span><span class="o">=</span><span class="n">ten_1ubqs</span><span class="o">.</span><span class="n">n_poses</span><span class="p">)</span>
+<span class="n">cst_set_10</span> <span class="o">=</span> <span class="n">cst_set_10</span><span class="o">.</span><span class="n">add_constraints_to_all_poses</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">ConstraintEnergyTerm</span><span class="o">.</span><span class="n">harmonic</span><span class="p">,</span> <span class="n">cst_atoms</span><span class="p">,</span> <span class="n">cst_params</span><span class="p">)</span>
+<span class="n">ten_1ubqs_w_csts</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">ten_1ubqs</span><span class="p">,</span> <span class="n">constraint_set</span><span class="o">=</span><span class="n">cst_set_10</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Add coordinate constraints to the current coordinates</span>
+
+<span class="c1"># Option 1: use the utility function</span>
+<span class="c1"># TEMP!</span>
+<span class="n">pose_1ubq_w_ca_coord_csts1</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">constrain_all_ca</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+
+<span class="c1"># Option 2: use the other utility function</span>
+<span class="n">pose_1ubq_w_ca_coord_csts2</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">create_mainchain_coordinate_constraints</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Alter the parameters for the cart-bonded energy function &amp; rescore</span>
+
+<span class="c1"># The same immutable + shallow-copy + &quot;evolve&quot; strategy is how scoring</span>
+<span class="c1"># parameters are controlled. In this case, the CartBondedDatabase</span>
+<span class="c1"># keeps a hash of all of its parameters in order to ensure it uses</span>
+<span class="c1"># the appropriate set of tensors, and so it provides its own</span>
+<span class="c1"># evolve-like method for construction from a dictionary of parameters:</span>
+<span class="c1"># CartBondedDatabase.from_cartres_dict.</span>
+<span class="c1">#</span>
+<span class="c1"># This is a somewhat advanced feature, so CartBondedDatabase is not imported</span>
+<span class="c1"># with tmol by default, so we have to give its full scope</span>
+
+<span class="c1"># Let&#39;s imagine that we want to adjust the strength of only the</span>
+<span class="c1"># bond distance between PRO CD and backbone N to make it stronger.</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+
+<span class="n">cart_db</span> <span class="o">=</span> <span class="n">default_param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span>
+
+<span class="c1"># replace the default spring constant on the peptide bond with a stronger one</span>
+<span class="n">pro_params</span> <span class="o">=</span> <span class="n">cart_db</span><span class="o">.</span><span class="n">residue_params</span><span class="p">[</span><span class="s2">&quot;PRO&quot;</span><span class="p">]</span>
+<span class="n">pro_length_params</span> <span class="o">=</span> <span class="n">pro_params</span><span class="o">.</span><span class="n">length_parameters</span>
+<span class="n">ind</span><span class="p">,</span> <span class="n">cd_n_bond_params</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pro_length_params</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">atm1</span> <span class="o">==</span> <span class="s2">&quot;N&quot;</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">atm2</span> <span class="o">==</span> <span class="s2">&quot;CD&quot;</span><span class="p">)</span>
+<span class="n">alt_cd_n_bond_params</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">cd_n_bond_params</span><span class="p">,</span> <span class="n">K</span><span class="o">=</span><span class="mi">244</span><span class="p">)</span>  <span class="c1"># double the default strength of ~122 kcal/mol*A</span>
+<span class="n">alt_length_params</span> <span class="o">=</span> <span class="n">pro_length_params</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">ind</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">alt_cd_n_bond_params</span><span class="p">,)</span> <span class="o">+</span> <span class="n">pro_length_params</span><span class="p">[</span><span class="n">ind</span><span class="o">+</span><span class="mi">1</span><span class="p">:]</span>
+<span class="n">alt_pro_params</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">pro_params</span><span class="p">,</span> <span class="n">length_parameters</span><span class="o">=</span><span class="n">alt_length_params</span><span class="p">)</span>
+<span class="n">alt_residue_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">cart_db</span><span class="o">.</span><span class="n">residue_params</span><span class="p">)</span>
+<span class="n">alt_residue_params</span><span class="p">[</span><span class="s2">&quot;PRO&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">alt_pro_params</span>
+
+<span class="n">alt_cart_db</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">CartBondedDatabase</span><span class="o">.</span><span class="n">from_cartres_dict</span><span class="p">(</span><span class="n">cartres_dict</span><span class="o">=</span><span class="n">alt_residue_params</span><span class="p">)</span>
+
+<span class="n">alt_score_db</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">default_param_db</span><span class="o">.</span><span class="n">scoring</span><span class="p">,</span> <span class="n">cartbonded</span><span class="o">=</span><span class="n">alt_cart_db</span><span class="p">)</span>
+<span class="n">alt_param_db</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">default_param_db</span><span class="p">,</span> <span class="n">scoring</span><span class="o">=</span><span class="n">alt_score_db</span><span class="p">)</span>
+
+<span class="n">sfxn_alt</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">alt_param_db</span><span class="p">)</span>
+
+<span class="n">wpsm_std</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+<span class="n">wpsm_alt</span> <span class="o">=</span> <span class="n">sfxn_alt</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+<span class="n">score_std</span> <span class="o">=</span> <span class="n">wpsm_std</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+<span class="n">score_alt</span> <span class="o">=</span> <span class="n">wpsm_alt</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">score_std</span> <span class="o">&lt;</span> <span class="n">score_alt</span>
+</pre></div>
+</div>
+</div>
+<p>Optimization</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create a DunbrackSampler</span>
+
+<span class="c1"># constructing this object is a relatively heavy weight operation, so if you</span>
+<span class="c1"># will be invoking the packer repeatedly, it&#39;s worthwhile to construct it</span>
+<span class="c1"># once and then hold on to it</span>
+<span class="n">dun_sampler</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span><span class="n">default_param_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Perform fixed-sequence side-chain optimization: repack</span>
+
+<span class="c1"># we will invoke &quot;the packer&quot;: the module in tmol that optimizes the</span>
+<span class="c1"># discrete side-chain conformation assignment.</span>
+<span class="c1"># Steps:</span>
+<span class="c1"># 1. Create a PackerPalette</span>
+<span class="c1"># 2. Create a PackerTask using the palette</span>
+<span class="c1"># 3. Configure the PackerTask to say &quot;optimize the sequence, but don&#39;t change it&quot;</span>
+<span class="c1"># 4. Invoke PackRotamers</span>
+
+<span class="c1"># 1.</span>
+<span class="c1"># The default PackerPalette controls the initialization of the PackerTask</span>
+<span class="c1"># to allow design from LCAAs to other LCAAs, DCAAs to other DCAAs, and</span>
+<span class="c1"># otherwise only allows the original block types. The PackerPalette class is</span>
+<span class="c1"># meant to be subclassed, so if you have more complex logic for which</span>
+<span class="c1"># block types to consider at any given position, then you should write</span>
+<span class="c1"># your own PackerPalette subclass.</span>
+<span class="n">palette</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">PackerPalette</span><span class="p">()</span>
+
+<span class="c1"># 2.</span>
+<span class="n">task</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">PackerTask</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">palette</span><span class="p">)</span>
+
+<span class="c1"># 3.</span>
+<span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>
+<span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">dun_sampler</span><span class="p">)</span>
+<span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">FixedAAChiSampler</span><span class="p">())</span>
+<span class="c1"># Beware: the native rotamer is often better than the naive rotamers</span>
+<span class="c1"># and so if you add the IncludeCurrentSampler in e.g. a sequence</span>
+<span class="c1"># recovery benchmark, you will be biasing the energies of the native</span>
+<span class="c1"># sequence. For most modeling problems, though, you really do want</span>
+<span class="c1"># to keep the input rotamer.</span>
+<span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">IncludeCurrentSampler</span><span class="p">())</span>
+
+<span class="c1"># 4.</span>
+<span class="n">pose_1ubq_repacked</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pack_rotamers</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wpsm</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_1ubq_repacked</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">pose_1ubq_repacked</span><span class="o">.</span><span class="n">coords</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Add hydrogens</span>
+
+<span class="c1"># Most NNs model only the heavy atoms; tmol&#39;s energy function requires Hs.</span>
+<span class="c1"># The basic pathway of creating a PoseStack will place alaphatic hydrogens</span>
+<span class="c1"># in their ideal geometries, however, the hydroxyl hydrogens will not be</span>
+<span class="c1"># optimized. To optimize Hs, you can use the OptHSampler when invoking</span>
+<span class="c1"># packer; only repack the hydroxyl positions</span>
+
+<span class="n">optH_task</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">PackerTask</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">palette</span><span class="p">)</span>
+<span class="n">optH_task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>
+<span class="n">optH_task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">IncludeCurrentSampler</span><span class="p">())</span>
+<span class="n">optH_task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">OptHSampler</span><span class="p">())</span>
+
+<span class="n">pose_1ubq_optH_repacked</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pack_rotamers</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Fill in side chains for a model that lacks them</span>
+<span class="c1"># TO DO</span>
+<span class="c1"># Sometimes your models will only include the backbone, or</span>
+<span class="c1"># you are reading from the PDB where the electron density</span>
+<span class="c1"># was absent for a side chain and the crystalographer did</span>
+<span class="c1"># not add its conformation.</span>
+
+<span class="c1"># When working with a structure file, the</span>
+<span class="c1"># pose_stack_from_biotite pathway will automatically</span>
+<span class="c1"># build in missing side chains.</span>
+<br/><br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Repack with extra rotamers</span>
+
+<span class="c1"># the &quot;extra chi&quot; flags in the PackerTask will trigger</span>
+<span class="c1"># sampling at +/- 1stdev</span>
+<span class="n">palette</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">PackerPalette</span><span class="p">()</span>
+<span class="n">task</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">PackerTask</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">palette</span><span class="p">)</span>
+
+<span class="c1"># 3.</span>
+<span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>
+<span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">dun_sampler</span><span class="p">)</span>
+<span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">FixedAAChiSampler</span><span class="p">())</span>
+<span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">IncludeCurrentSampler</span><span class="p">())</span>
+<span class="n">task</span><span class="o">.</span><span class="n">or_expand_chi</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">task</span><span class="o">.</span><span class="n">or_expand_chi</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="c1"># 4.</span>
+<span class="n">pose_1ubq_repacked_ex1ex2</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pack_rotamers</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wpsm</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_1ubq_repacked_ex1ex2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">pose_1ubq_repacked_ex1ex2</span><span class="o">.</span><span class="n">coords</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Add hydrogens and back-propagate</span>
+
+<span class="c1"># The addition of missing alaphatic hydrogen atoms is differentiable</span>
+<span class="c1"># and so it is possible to start from a model output from a NN</span>
+<span class="c1"># which does not have hydrogens, build those hydrogens, score the</span>
+<span class="c1"># structure, and then have the forces applied on those hydrogens</span>
+<span class="c1"># backprop to the heavy-atoms they came from. All of that comes</span>
+<span class="c1"># for free using the pose_stack_from_openfold utility.</span>
+
+<span class="n">openfold_ubq_and_sumo_pred2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;openfold_ubq_and_sumo.pt&quot;</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="c1"># pretend an NN just gave us this</span>
+<span class="n">openfold_ubq_and_sumo_pred2</span><span class="p">[</span><span class="s2">&quot;positions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+<span class="n">ps_ubq_sumo2</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">pose_stack_from_openfold</span><span class="p">(</span><span class="n">openfold_ubq_and_sumo_pred2</span><span class="p">)</span>
+<span class="n">wpsm</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">ps_ubq_sumo2</span><span class="p">)</span>
+<span class="n">score</span> <span class="o">=</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">ps_ubq_sumo2</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+<span class="n">score</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Create a new PackerPalette subclass to handle logic of new block types</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Run minimization in double precision</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Perform cartesian minimization</span>
+
+<span class="n">cart_minimized_pose_1ubq</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">run_cart_min</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Perform kinematic minimization</span>
+
+<span class="c1"># The run_kin_min function will perform minimization in</span>
+<span class="c1"># internal degrees of freedom.</span>
+
+<span class="c1"># from the kinematics section above</span>
+<span class="n">ff1_1ubq</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">FoldForest</span><span class="o">.</span><span class="n">reasonable_fold_forest</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+<span class="n">mm_1ubq_all</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">MoveMap</span><span class="o">.</span><span class="n">from_pose_stack</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+<span class="n">mm_1ubq_all</span><span class="o">.</span><span class="n">move_all_named_torsions</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="n">wpsm</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+<span class="n">score_before</span> <span class="o">=</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+
+<span class="n">minimized_pose_1ubq</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">run_kin_min</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">ff1_1ubq</span><span class="p">,</span> <span class="n">mm_1ubq_all</span><span class="p">)</span>
+
+<span class="n">score_after</span> <span class="o">=</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">minimized_pose_1ubq</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">score_after</span> <span class="o">&lt;</span> <span class="n">score_before</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Relax a PoseStack w/ kinematic minimization</span>
+
+<span class="n">packer_palette</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">PackerPalette</span><span class="p">()</span>
+
+<span class="c1"># from the kinematics section above</span>
+<span class="n">ff1_1ubq</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">FoldForest</span><span class="o">.</span><span class="n">reasonable_fold_forest</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+<span class="n">mm_1ubq_all</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">MoveMap</span><span class="o">.</span><span class="n">from_pose_stack</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">)</span>
+<span class="n">mm_1ubq_all</span><span class="o">.</span><span class="n">move_all_named_torsions</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="n">kin_relaxed_1ubq</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">kin_fast_relax</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">packer_palette</span><span class="p">,</span> <span class="n">mm_1ubq_all</span><span class="p">,</span> <span class="n">ff1_1ubq</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Relax a PoseStack w/ cartesian minimization</span>
+<span class="n">packer_palette</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">PackerPalette</span><span class="p">()</span>
+
+<span class="c1"># default CartesianMoveMap allows all atoms to move</span>
+<span class="n">cart_mm</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">CartesianMoveMap</span><span class="p">()</span>
+
+<span class="n">cart_relaxed_1ubq</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">cartesian_fast_relax</span><span class="p">(</span><span class="n">pose_1ubq</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">packer_palette</span><span class="p">,</span> <span class="n">cart_mm</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Relax structures generated one-at-a-time in batch format</span>
+
+<span class="c1"># Though the two relax cells above were a) on single-pose PoseStacks, and</span>
+<span class="c1"># b) on small structures, where the GPU really sings is with large</span>
+<span class="c1"># structures and with many-pose PoseStacks. Then,</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Idealize a structure from the PDB</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Idealize a structure from a dandelion</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># - Idealize just the backbone of a dandelion</span>
+<span class="c1"># TO DO</span>
+</pre></div>
+</div>
+</div>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../auto_examples/protein_ligand_refinement.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Protein-ligand refinement</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../architecture.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Architecture</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/notebooks/tmol_how_to_guide.ipynb.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

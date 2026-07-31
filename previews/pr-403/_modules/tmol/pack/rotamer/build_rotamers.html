@@ -1,0 +1,1642 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.pack.rotamer.build_rotamers &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=c8b66c78" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pack/rotamer/build_rotamers';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://tmol.ipd.uw.edu/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-403';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.46" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide/development.html">
+    Development
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../notebooks/tmol_how_to_guide.html">
+    Contents:
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributor Guide
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack.rotamer.build_rotamers</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.pack.rotamer.build_rotamers</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numba</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">toolz</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.array</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor.common_operations</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span><span class="p">,</span> <span class="n">stretch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChemicalDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.datatypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForest</span><span class="p">,</span> <span class="n">NodeType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical.restypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.rotamer_set</span><span class="w"> </span><span class="kn">import</span> <span class="n">RotamerSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="n">SetPackerTask</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChiSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.numeric.dihedrals</span><span class="w"> </span><span class="kn">import</span> <span class="n">coord_dihedrals</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.single_residue_kinforest</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">construct_single_residue_kinforest</span><span class="p">,</span>
+    <span class="n">coalesce_single_residue_kinforests</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.mainchain_fingerprint</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">annotate_residue_type_with_sampler_fingerprints</span><span class="p">,</span>
+    <span class="n">find_unique_fingerprints</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_chi4_atom_table</span><span class="p">(</span><span class="n">pbt</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return (n_types, max_n_chi, 4) int32 array of RTO atom indices for each chi.</span>
+
+<span class="sd">    Entries are -1 where the residue type has fewer than max_n_chi chi angles.</span>
+<span class="sd">    Built once and cached on pbt as _chi4_atom_table.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">&quot;_chi4_atom_table&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">_chi4_atom_table</span>
+
+    <span class="n">n_types</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span>
+    <span class="n">max_n_chi</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nb">max</span><span class="p">(</span>
+            <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span> <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;chi&quot;</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="p">)</span>
+        <span class="ow">or</span> <span class="mi">1</span>
+    <span class="p">)</span>
+
+    <span class="n">table</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_chi</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ti</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+        <span class="n">chi_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span> <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;chi&quot;</span><span class="p">)),</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">name</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">3</span><span class="p">:]),</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">ci</span><span class="p">,</span> <span class="n">chi_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chi_names</span><span class="p">):</span>
+            <span class="n">uaids</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">chi_name</span><span class="p">]</span>
+            <span class="n">table</span><span class="p">[</span><span class="n">ti</span><span class="p">,</span> <span class="n">ci</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">uaids</span><span class="p">]</span>
+
+    <span class="c1"># cache to avoid rebuilding on subsequent calls</span>
+    <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">&quot;_chi4_atom_table&quot;</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">table</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_chi_phi_c_corrections</span><span class="p">(</span><span class="n">pbt</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Precompute phi_c correction per (block_type, chi_index), cached on pbt.</span>
+
+<span class="sd">    For each chi angle the relationship between what is written to phi_c and</span>
+<span class="sd">    what forward-kin produces as the actual dihedral is:</span>
+
+<span class="sd">        chi_measured = phi_c + offset</span>
+
+<span class="sd">    where offset = chi_ideal - phi_c_ideal is constant for a given residue</span>
+<span class="sd">    type and chi index.  This holds for both jump-parent atoms (chi1, where</span>
+<span class="sd">    the jump frame introduces an offset) and bond-parent atoms (chi2+, where</span>
+<span class="sd">    a non-zero torsion ICOOR introduces the offset).</span>
+
+<span class="sd">    Returns (n_types, max_n_chi) float32 array; 0.0 where not applicable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">&quot;_chi_phi_c_corrections&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">_chi_phi_c_corrections</span>
+
+    <span class="n">chi4_table</span> <span class="o">=</span> <span class="n">_build_chi4_atom_table</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>  <span class="c1"># (n_types, max_n_chi, 4)</span>
+    <span class="n">kfidx</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">kinforest_idx</span>  <span class="c1"># (n_types, max_n_atoms)</span>
+    <span class="n">dofs_ideal</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">dofs_ideal</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="p">)</span>  <span class="c1"># (n_types, max_n_atoms, 9)</span>
+    <span class="n">parent_arr</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">parent</span>  <span class="c1"># (n_types, max_n_atoms) KFO order</span>
+    <span class="n">doftype_arr</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">doftype</span>  <span class="c1"># (n_types, max_n_atoms) KFO order</span>
+
+    <span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_chi</span> <span class="o">=</span> <span class="n">chi4_table</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">corrections</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_chi</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">ti</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+        <span class="c1"># ideal coords in restype atom order</span>
+        <span class="n">ideal_coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span>
+        <span class="p">)</span>
+        <span class="n">chi_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span> <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;chi&quot;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">ci</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">chi_names</span><span class="p">)):</span>
+            <span class="n">four_rto</span> <span class="o">=</span> <span class="n">chi4_table</span><span class="p">[</span><span class="n">ti</span><span class="p">,</span> <span class="n">ci</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">a</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">four_rto</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">cda_kfo</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">kfidx</span><span class="p">[</span><span class="n">ti</span><span class="p">,</span> <span class="n">four_rto</span><span class="p">[</span><span class="mi">2</span><span class="p">]])</span>
+            <span class="c1"># For root children (jump parents), the correction is pose-dependent</span>
+            <span class="c1"># and cannot be precomputed; leave it as 0 and let</span>
+            <span class="c1"># correct_phi_c_for_jump_parents handle it at build time.</span>
+            <span class="n">parent_kfo</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parent_arr</span><span class="p">[</span><span class="n">ti</span><span class="p">,</span> <span class="n">cda_kfo</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">doftype_arr</span><span class="p">[</span><span class="n">ti</span><span class="p">,</span> <span class="n">parent_kfo</span><span class="p">]</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">jump</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">xyzs</span> <span class="o">=</span> <span class="n">ideal_coords</span><span class="p">[</span><span class="n">four_rto</span><span class="p">]</span>
+            <span class="n">chi_ideal</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span>
+                <span class="n">coord_dihedrals</span><span class="p">(</span><span class="n">xyzs</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">xyzs</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">xyzs</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">xyzs</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">4</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">phi_c_ideal</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dofs_ideal</span><span class="p">[</span><span class="n">ti</span><span class="p">,</span> <span class="n">cda_kfo</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+            <span class="n">corrections</span><span class="p">[</span><span class="n">ti</span><span class="p">,</span> <span class="n">ci</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi_ideal</span> <span class="o">-</span> <span class="n">phi_c_ideal</span>
+
+    <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">&quot;_chi_phi_c_corrections&quot;</span><span class="p">,</span> <span class="n">corrections</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">corrections</span>
+
+
+<div class="viewcode-block" id="correct_phi_c_for_jump_parents">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.correct_phi_c_for_jump_parents">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">correct_phi_c_for_jump_parents</span><span class="p">(</span>
+    <span class="n">pbt</span><span class="p">,</span>
+    <span class="n">conformer_samples</span><span class="p">,</span>
+    <span class="n">new_ind_for_sampler_rotamer</span><span class="p">,</span>
+    <span class="n">block_type_ind_for_conformer_torch</span><span class="p">,</span>
+    <span class="n">n_atoms_offset_for_conformer_torch</span><span class="p">,</span>
+    <span class="n">conformer_kinforest</span><span class="p">,</span>
+    <span class="n">nodes</span><span class="p">,</span>
+    <span class="n">scans</span><span class="p">,</span>
+    <span class="n">gens</span><span class="p">,</span>
+    <span class="n">conf_dofs_kto</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For chi-defining atoms whose kinforest parent is a jump atom, the phi_c</span>
+<span class="sd">    written by assign_chi_dofs_from_samples does not directly map to the</span>
+<span class="sd">    chi dihedral angle measured from coordinates.  This function:</span>
+<span class="sd">      1. Does a trial forward pass with the current DOFs.</span>
+<span class="sd">      2. For each such atom, measures the actual dihedral from the trial coords.</span>
+<span class="sd">      3. Adds (intended - measured) to conf_dofs_kto[atom_kto, 3] so the</span>
+<span class="sd">         final forward pass produces the correct geometry.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># trial forward pass to get coords in RTO</span>
+    <span class="n">n_rots</span> <span class="o">=</span> <span class="n">block_type_ind_for_conformer_torch</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">n_at_total</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">n_atoms_offset_for_conformer_torch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="o">+</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">block_type_ind_for_conformer_torch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">trial_coords_rto</span> <span class="o">=</span> <span class="n">calculate_rotamer_coords</span><span class="p">(</span>
+        <span class="n">pbt</span><span class="p">,</span> <span class="n">n_rots</span><span class="p">,</span> <span class="n">n_at_total</span><span class="p">,</span> <span class="n">conformer_kinforest</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">scans</span><span class="p">,</span> <span class="n">gens</span><span class="p">,</span> <span class="n">conf_dofs_kto</span>
+    <span class="p">)</span>
+
+    <span class="n">doftype_cpu</span> <span class="o">=</span> <span class="n">conformer_kinforest</span><span class="o">.</span><span class="n">doftype</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">parent_cpu</span> <span class="o">=</span> <span class="n">conformer_kinforest</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">kfidx</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">kinforest_idx</span>  <span class="c1"># (n_types, max_n_atoms) numpy int32</span>
+    <span class="n">bt_ind_np</span> <span class="o">=</span> <span class="n">block_type_ind_for_conformer_torch</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">at_off_np</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_conformer_torch</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">chi4_table</span> <span class="o">=</span> <span class="n">_build_chi4_atom_table</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>  <span class="c1"># (n_types, max_n_chi, 4)</span>
+    <span class="n">coords_np</span> <span class="o">=</span> <span class="n">trial_coords_rto</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">double</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sample_data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">conformer_samples</span><span class="p">):</span>
+        <span class="n">sample_dict</span> <span class="o">=</span> <span class="n">sample_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;chi_for_rotamers&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sample_dict</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">chi_intended</span> <span class="o">=</span> <span class="n">sample_dict</span><span class="p">[</span><span class="s2">&quot;chi_for_rotamers&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>  <span class="c1"># (n_samp_rots, max_n_chi)</span>
+        <span class="n">chi_atoms_rto</span> <span class="o">=</span> <span class="n">sample_dict</span><span class="p">[</span>
+            <span class="s2">&quot;chi_defining_atom_for_rotamer&quot;</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>  <span class="c1"># (n_samp_rots, max_n_chi)</span>
+        <span class="k">if</span> <span class="n">chi_intended</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="n">max_n_chi</span> <span class="o">=</span> <span class="n">chi_atoms_rto</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">conf_inds</span> <span class="o">=</span> <span class="n">new_ind_for_sampler_rotamer</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>  <span class="c1"># (n_samp,)</span>
+
+        <span class="c1"># global rot index and per-rot metadata for every (samp_rot, chi) pair</span>
+        <span class="n">g_rot</span> <span class="o">=</span> <span class="n">conf_inds</span>  <span class="c1"># (n_samp,)</span>
+        <span class="n">bt_idx</span> <span class="o">=</span> <span class="n">bt_ind_np</span><span class="p">[</span><span class="n">g_rot</span><span class="p">]</span>  <span class="c1"># (n_samp,)</span>
+        <span class="n">at_off</span> <span class="o">=</span> <span class="n">at_off_np</span><span class="p">[</span><span class="n">g_rot</span><span class="p">]</span>  <span class="c1"># (n_samp,)</span>
+
+        <span class="c1"># chi-defining atom (RTO) for every (samp_rot, chi): (n_samp, max_n_chi)</span>
+        <span class="n">cda_rto</span> <span class="o">=</span> <span class="n">chi_atoms_rto</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="c1"># KTO index of the chi-defining atom: (n_samp, max_n_chi)</span>
+        <span class="c1"># kinforest_idx[bt, atom_rto] + at_off + 1 (virtual root offset)</span>
+        <span class="n">cda_kto</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">kfidx</span><span class="p">[</span>
+                <span class="n">bt_idx</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">cda_rto</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="p">]</span>  <span class="c1"># clip -1 before indexing</span>
+            <span class="o">+</span> <span class="n">at_off</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="o">+</span> <span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">cda_kto</span><span class="p">[</span><span class="n">cda_rto</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># will be masked out below</span>
+
+        <span class="c1"># parent doftype for each chi-defining atom: (n_samp, max_n_chi)</span>
+        <span class="n">parent_kto</span> <span class="o">=</span> <span class="n">parent_cpu</span><span class="p">[</span><span class="n">cda_kto</span><span class="p">]</span>
+        <span class="n">is_jump_parent</span> <span class="o">=</span> <span class="n">doftype_cpu</span><span class="p">[</span><span class="n">parent_kto</span><span class="p">]</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">jump</span>  <span class="c1"># (n_samp, max_n_chi)</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="p">(</span><span class="n">cda_rto</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">is_jump_parent</span>  <span class="c1"># (n_samp, max_n_chi)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># 4-atom RTO indices for every (samp_rot, chi): (n_samp, max_n_chi, 4)</span>
+        <span class="n">four_atoms_rto</span> <span class="o">=</span> <span class="n">chi4_table</span><span class="p">[</span><span class="n">bt_idx</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_chi</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]]</span>
+
+        <span class="c1"># absolute RTO indices into trial_coords_rto: (n_samp, max_n_chi, 4)</span>
+        <span class="n">four_atoms_abs</span> <span class="o">=</span> <span class="n">four_atoms_rto</span> <span class="o">+</span> <span class="n">at_off</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">four_atoms_abs</span><span class="p">[</span><span class="n">four_atoms_rto</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># clip invalid entries</span>
+
+        <span class="c1"># flatten to the valid (samp_rot, chi) pairs</span>
+        <span class="n">valid_flat</span> <span class="o">=</span> <span class="n">valid</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">four_abs_flat</span> <span class="o">=</span> <span class="n">four_atoms_abs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">)[</span><span class="n">valid_flat</span><span class="p">]</span>  <span class="c1"># (n_valid, 4)</span>
+        <span class="n">intended_flat</span> <span class="o">=</span> <span class="n">chi_intended</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">valid_flat</span><span class="p">]</span>  <span class="c1"># (n_valid,)</span>
+        <span class="n">cda_kto_flat</span> <span class="o">=</span> <span class="n">cda_kto</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">valid_flat</span><span class="p">]</span>  <span class="c1"># (n_valid,)</span>
+
+        <span class="c1"># gather coordinates: (n_valid, 4, 3)</span>
+        <span class="n">xyzs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">coords_np</span><span class="p">[</span><span class="n">four_abs_flat</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">meas_rad</span> <span class="o">=</span> <span class="n">coord_dihedrals</span><span class="p">(</span><span class="n">xyzs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">xyzs</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">xyzs</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">xyzs</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">])</span>
+
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">intended_flat</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">-</span> <span class="n">meas_rad</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="n">delta</span> <span class="o">+</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
+
+        <span class="n">conf_dofs_kto</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cda_kto_flat</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="mi">3</span><span class="p">]</span> <span class="o">+=</span> <span class="n">delta</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">conf_dofs_kto</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">conf_dofs_kto</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="exc_cumsum_from_inc_cumsum">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.exc_cumsum_from_inc_cumsum">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">exc_cumsum_from_inc_cumsum</span><span class="p">(</span><span class="n">cumsum</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">cumsum</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span></div>
+
+
+
+<span class="c1"># from tmol.system.restype import RefinedResidueType</span>
+
+
+<span class="c1"># residue type annotations:</span>
+<span class="c1">#  - icoors</span>
+<span class="c1">#  - parent index (i.e. tree)</span>
+<span class="c1">#  - list of atoms whose icoors are controlled by dunbrack</span>
+<span class="c1">#  - bonds that are part of named torsions</span>
+<span class="c1">#  - mainchain atoms</span>
+<span class="c1">#  - rottable set for this RT</span>
+<span class="c1">#</span>
+<span class="c1"># condensed residue type annotations:</span>
+<span class="c1">#  - (all data in residue-type annotations)</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="c1"># NOTE: sidechain samplers should be listed in the residue-level packer task</span>
+<span class="c1"># NOTE: all samplers should be given the same starting data and then a mask</span>
+<span class="c1">#       to indicate which residues they should operate on</span>
+
+
+<div class="viewcode-block" id="annotate_restype">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.annotate_restype">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">annotate_restype</span><span class="p">(</span>
+    <span class="n">restype</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">,</span>
+    <span class="n">samplers</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ChiSampler</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+    <span class="n">chem_db</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">construct_single_residue_kinforest</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span>
+    <span class="n">annotate_residue_type_with_sampler_fingerprints</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="n">samplers</span><span class="p">,</span> <span class="n">chem_db</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="annotate_packed_block_types">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.annotate_packed_block_types">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+    <span class="n">coalesce_single_residue_kinforests</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+    <span class="n">find_unique_fingerprints</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="annotate_everything">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.annotate_everything">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">annotate_everything</span><span class="p">(</span>
+    <span class="n">chem_db</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">,</span> <span class="n">samplers</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ChiSampler</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span>
+<span class="p">):</span>
+    <span class="c1"># annotate residue types and packed block types</span>
+    <span class="c1"># give the samplers a chance first to annotate the</span>
+    <span class="c1"># residue types, and pbt</span>
+    <span class="c1"># then we will call our own annotation functions</span>
+    <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">samplers</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
+            <span class="n">sampler</span><span class="o">.</span><span class="n">annotate_residue_type</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
+        <span class="n">sampler</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
+        <span class="n">annotate_restype</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">samplers</span><span class="p">,</span> <span class="n">chem_db</span><span class="p">)</span>
+    <span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="update_nodes">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.update_nodes">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_nodes</span><span class="p">(</span>
+    <span class="n">nodes_orig</span><span class="p">,</span> <span class="n">genStartsStack</span><span class="p">,</span> <span class="n">n_nodes_offset_for_rot</span><span class="p">,</span> <span class="n">n_atoms_offset_for_rot</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Merge the 1-residue-kinforest nodes data so that all the rotamers can be</span>
+<span class="sd">    built in a single generational-segmented-scan call. This has the structure</span>
+<span class="sd">    of load-balanced search operation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n_gens</span> <span class="o">=</span> <span class="n">genStartsStack</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">n_nodes</span> <span class="o">=</span> <span class="n">nodes_orig</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">n_rotamers</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_rot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_nodes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_gens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_rotamers</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">genStartsStack</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">genStartsStack</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]):</span>
+                <span class="n">nodes</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes_orig</span><span class="p">[</span><span class="n">n_nodes_offset_for_rot</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">k</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">nodes</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">nodes</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">+=</span> <span class="n">n_atoms_offset_for_rot</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">nodes</span></div>
+
+
+
+<div class="viewcode-block" id="update_scan_starts">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.update_scan_starts">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_scan_starts</span><span class="p">(</span>
+    <span class="n">n_scans</span><span class="p">,</span> <span class="n">atomStartsOffsets</span><span class="p">,</span> <span class="n">scanStartsStack</span><span class="p">,</span> <span class="n">genStartsStack</span><span class="p">,</span> <span class="n">ngenStack</span>
+<span class="p">):</span>
+    <span class="n">n_gens</span> <span class="o">=</span> <span class="n">genStartsStack</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">n_rotamers</span> <span class="o">=</span> <span class="n">genStartsStack</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">scanStarts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_scans</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_gens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_rotamers</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ngenStack</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]):</span>
+                <span class="n">scanStarts</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">atomStartsOffsets</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">scanStartsStack</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">genStartsStack</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">k</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">scanStarts</span></div>
+
+
+
+<div class="viewcode-block" id="construct_scans_for_conformers">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.construct_scans_for_conformers">[docs]</a>
+<span class="nd">@validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">construct_scans_for_conformers</span><span class="p">(</span>
+    <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
+    <span class="n">block_type_ind_for_conf</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+    <span class="n">n_atoms_for_conf</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+    <span class="n">n_atoms_offset_for_conf</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+<span class="p">):</span>
+    <span class="n">scanStartsStack</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">scans</span><span class="p">[</span><span class="n">block_type_ind_for_conf</span><span class="p">]</span>
+    <span class="n">genStartsStack</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">gens</span><span class="p">[</span><span class="n">block_type_ind_for_conf</span><span class="p">]</span>
+
+    <span class="n">atomStartsStack</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">genStartsStack</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">natomsPerGen</span> <span class="o">=</span> <span class="n">atomStartsStack</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">atomStartsStack</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">natomsPerGen</span><span class="p">[</span><span class="n">natomsPerGen</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">cumsumAtomStarts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">natomsPerGen</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">atomStartsOffsets</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">natomsPerGen</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">cumsumAtomStarts</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+        <span class="p">),</span>
+        <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">ngenStack</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">n_scans_per_gen</span><span class="p">[</span><span class="n">block_type_ind_for_conf</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
+    <span class="p">)</span>
+    <span class="n">ngenStack</span><span class="p">[</span><span class="n">ngenStack</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">ngenStackCumsum</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">ngenStack</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># jitted function that operates on the CPU; need to figure</span>
+    <span class="c1"># out how to replace this with a GPU-compatible version</span>
+    <span class="n">scanStarts</span> <span class="o">=</span> <span class="n">update_scan_starts</span><span class="p">(</span>
+        <span class="n">ngenStackCumsum</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">atomStartsOffsets</span><span class="p">,</span>
+        <span class="n">scanStartsStack</span><span class="p">,</span>
+        <span class="n">genStartsStack</span><span class="p">,</span>
+        <span class="n">ngenStack</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">nodes_orig</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">block_type_ind_for_conf</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">nodes_orig</span> <span class="o">=</span> <span class="n">nodes_orig</span><span class="p">[</span><span class="n">nodes_orig</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">n_nodes_for_conf</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">n_nodes</span><span class="p">[</span><span class="n">block_type_ind_for_conf</span><span class="p">]</span>
+    <span class="n">first_node_for_conf</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">n_nodes_for_conf</span><span class="p">)</span>
+    <span class="n">n_nodes_offset_for_conf</span> <span class="o">=</span> <span class="n">exc_cumsum_from_inc_cumsum</span><span class="p">(</span><span class="n">first_node_for_conf</span><span class="p">)</span>
+
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">update_nodes</span><span class="p">(</span>
+        <span class="n">nodes_orig</span><span class="p">,</span> <span class="n">genStartsStack</span><span class="p">,</span> <span class="n">n_nodes_offset_for_conf</span><span class="p">,</span> <span class="n">n_atoms_offset_for_conf</span>
+    <span class="p">)</span>
+
+    <span class="n">gen_starts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">genStartsStack</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">scanStarts</span><span class="p">,</span> <span class="n">gen_starts</span></div>
+
+
+
+<div class="viewcode-block" id="load_from_rotamers">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.load_from_rotamers">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_from_rotamers</span><span class="p">(</span>
+    <span class="n">arr</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
+    <span class="n">n_atoms_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_atoms_for_rot</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+<span class="p">):</span>
+    <span class="n">compact_arr</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_atoms_total</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_atoms_for_rot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_atoms_for_rot</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+            <span class="n">compact_arr</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">compact_arr</span></div>
+
+
+
+<div class="viewcode-block" id="load_from_rotamers_w_offsets">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.load_from_rotamers_w_offsets">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_from_rotamers_w_offsets</span><span class="p">(</span>
+    <span class="n">arr</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
+    <span class="n">n_atoms_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_atoms_for_rot</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+    <span class="n">n_atoms_offset_for_rot</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+<span class="p">):</span>
+    <span class="n">compact_arr</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_atoms_total</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_atoms_for_rot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_atoms_for_rot</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+            <span class="n">compact_arr</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">n_atoms_offset_for_rot</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">compact_arr</span></div>
+
+
+
+<div class="viewcode-block" id="load_rotamer_parents">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.load_rotamer_parents">[docs]</a>
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_rotamer_parents</span><span class="p">(</span>
+    <span class="n">parents</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
+    <span class="n">n_atoms_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_atoms_for_rot</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+    <span class="n">n_atoms_offset_for_rot</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+<span class="p">):</span>
+    <span class="n">compact_arr</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_atoms_total</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_atoms_for_rot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_atoms_for_rot</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+            <span class="c1"># offset by 1 for the root node of each rotamer</span>
+            <span class="c1"># because the parent array has -1 for root nodes&#39;</span>
+            <span class="c1"># parents and we want to make it 0</span>
+            <span class="n">compact_arr</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">=</span> <span class="n">parents</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span>
+                <span class="n">n_atoms_offset_for_rot</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span>
+            <span class="p">)</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">compact_arr</span></div>
+
+
+
+<div class="viewcode-block" id="construct_kinforest_for_conformers">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.construct_kinforest_for_conformers">[docs]</a>
+<span class="nd">@validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">construct_kinforest_for_conformers</span><span class="p">(</span>
+    <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
+    <span class="n">conf_block_type_ind</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+    <span class="n">n_atoms_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_atoms_for_conf</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+    <span class="n">block_offset_for_conf</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Construct a KinForest for a set of conformers by stringing</span>
+<span class="sd">    together the kinforest data for individual conformers.</span>
+<span class="sd">    The &quot;block_ofset_for_conf&quot; array is used to construct</span>
+<span class="sd">    the &quot;id&quot; tensor in the KinForest, which maps to the atom</span>
+<span class="sd">    indices; thus it should contain the atom-index offsets</span>
+<span class="sd">    for the first atom in each rotamer in the coords tensor</span>
+<span class="sd">    that will be used to construct the kinforest_coords tensor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n_atoms_for_conf</span> <span class="o">=</span> <span class="n">n_atoms_for_conf</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="c1"># append a 1 for the root node and then treat</span>
+    <span class="c1"># the resulting (inclusive) scan as if it</span>
+    <span class="c1"># represents offsets</span>
+    <span class="n">temp</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">n_atoms_for_conf</span><span class="p">))</span>
+    <span class="n">n_atoms_offset_for_conf</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">nab</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">arr</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">conf_block_type_ind</span><span class="p">],</span> <span class="n">n_atoms_total</span><span class="p">,</span> <span class="n">n_atoms_for_conf</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">nab2</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">conf_offset</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">func</span><span class="p">(</span>
+            <span class="n">arr</span><span class="p">[</span><span class="n">conf_block_type_ind</span><span class="p">],</span> <span class="n">n_atoms_total</span><span class="p">,</span> <span class="n">n_atoms_for_conf</span><span class="p">,</span> <span class="n">conf_offset</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span>
+        <span class="n">nab2</span><span class="p">(</span>
+            <span class="n">load_from_rotamers_w_offsets</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">block_offset_for_conf</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="nb">id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">doftype</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span><span class="n">nab</span><span class="p">(</span><span class="n">load_from_rotamers</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">doftype</span><span class="p">))</span>
+    <span class="n">parent</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span>
+        <span class="n">nab2</span><span class="p">(</span>
+            <span class="n">load_rotamer_parents</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">n_atoms_offset_for_conf</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">frame_x</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span>
+        <span class="n">nab2</span><span class="p">(</span>
+            <span class="n">load_from_rotamers_w_offsets</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>
+            <span class="n">n_atoms_offset_for_conf</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">frame_y</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span>
+        <span class="n">nab2</span><span class="p">(</span>
+            <span class="n">load_from_rotamers_w_offsets</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">frame_y</span><span class="p">,</span>
+            <span class="n">n_atoms_offset_for_conf</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">frame_z</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span>
+        <span class="n">nab2</span><span class="p">(</span>
+            <span class="n">load_from_rotamers_w_offsets</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">frame_z</span><span class="p">,</span>
+            <span class="n">n_atoms_offset_for_conf</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">KinForest</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+        <span class="n">doftype</span><span class="o">=</span><span class="n">doftype</span><span class="p">,</span>
+        <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
+        <span class="n">frame_x</span><span class="o">=</span><span class="n">frame_x</span><span class="p">,</span>
+        <span class="n">frame_y</span><span class="o">=</span><span class="n">frame_y</span><span class="p">,</span>
+        <span class="n">frame_z</span><span class="o">=</span><span class="n">frame_z</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="measure_dofs_from_orig_coords">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.measure_dofs_from_orig_coords">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">measure_dofs_from_orig_coords</span><span class="p">(</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">kinforest</span><span class="p">:</span> <span class="n">KinForest</span>
+<span class="p">):</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">inverse_kin</span>
+
+    <span class="n">kinforest_coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="n">kinforest</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span>
+    <span class="n">kinforest_coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># reset root</span>
+
+    <span class="n">dofs_orig</span> <span class="o">=</span> <span class="n">inverse_kin</span><span class="p">(</span>
+        <span class="n">kinforest_coords</span><span class="p">,</span>
+        <span class="n">kinforest</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+        <span class="n">kinforest</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>
+        <span class="n">kinforest</span><span class="o">.</span><span class="n">frame_y</span><span class="p">,</span>
+        <span class="n">kinforest</span><span class="o">.</span><span class="n">frame_z</span><span class="p">,</span>
+        <span class="n">kinforest</span><span class="o">.</span><span class="n">doftype</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">dofs_orig</span></div>
+
+
+
+<div class="viewcode-block" id="measure_pose_dofs">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.measure_pose_dofs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">measure_pose_dofs</span><span class="p">(</span><span class="n">poses</span><span class="p">):</span>
+    <span class="c1"># measure the DOFs for the original residues</span>
+    <span class="c1"># -- first build kinforests for the original residues,</span>
+    <span class="c1"># -- then call measure_dofs_from_orig_coords</span>
+
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">pbti</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">real_poses_blocks</span> <span class="o">=</span> <span class="n">pbti</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">orig_res_block_type_ind</span> <span class="o">=</span> <span class="n">pbti</span><span class="p">[</span><span class="n">real_poses_blocks</span><span class="p">]</span>
+
+    <span class="c1"># coordinate layout: n-poses x max-n-atoms-per-pose x 3</span>
+    <span class="c1"># offsets provided by the pose stack</span>
+    <span class="n">n_poses</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">max_n_atoms_per_pose</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">max_n_pose_atoms</span>
+    <span class="n">max_n_blocks_per_pose</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">max_n_blocks</span>
+    <span class="n">per_pose_offset</span> <span class="o">=</span> <span class="n">max_n_atoms_per_pose</span> <span class="o">*</span> <span class="n">stretch</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">max_n_blocks_per_pose</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">orig_atom_offset_for_poses_blocks</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">poses</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="n">real_poses_blocks</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">per_pose_offset</span><span class="p">[</span><span class="n">real_poses_blocks</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="n">n_atoms_for_orig</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">orig_res_block_type_ind</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span>
+    <span class="n">n_atoms_offset_for_orig</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">n_atoms_for_orig</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">n_atoms_offset_for_orig</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_orig</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">n_orig_atoms_total</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_orig</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">orig_kinforest</span> <span class="o">=</span> <span class="n">construct_kinforest_for_conformers</span><span class="p">(</span>
+        <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span>
+        <span class="n">orig_res_block_type_ind</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">n_orig_atoms_total</span><span class="p">),</span>
+        <span class="n">n_atoms_for_orig</span><span class="p">,</span>
+        <span class="n">orig_atom_offset_for_poses_blocks</span><span class="p">,</span>
+        <span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># orig_dofs returned in kinforest order</span>
+    <span class="k">return</span> <span class="n">orig_kinforest</span><span class="p">,</span> <span class="n">measure_dofs_from_orig_coords</span><span class="p">(</span><span class="n">poses</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">orig_kinforest</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="merge_conformer_samples">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.merge_conformer_samples">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">merge_conformer_samples</span><span class="p">(</span>
+    <span class="n">conformer_samples</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+    <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+    <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+    <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+    <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:]],</span>
+    <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]],</span>
+<span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Merge the lists of conformers as described by different conformer samplers.</span>
+
+<span class="sd">    The conformer_samples variable is a list of tuples:</span>
+<span class="sd">     - elem 0: Tensor[int][:] &lt;-- the number of rotamers for each pose for each block for each block type</span>
+<span class="sd">        where each buildable block type for each real residue is given a global index</span>
+<span class="sd">     - elem 1: Tensor[int][:] &lt;-- the global block-type index for each rotamer</span>
+<span class="sd">     - elem 2+: Extra data that the chi sampler needs to preserve, where the first dimension</span>
+<span class="sd">       is rotamer index based on elem 1&#39;s rotamer indices; the mapping from orig rotamer indices</span>
+<span class="sd">       to merged rotamer indices will be constructed by this routine</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># deprecated notes:</span>
+    <span class="c1"># chi_samples</span>
+    <span class="c1"># 0. n_rots_for_rt</span>
+    <span class="c1"># 1. rt_for_rotamer</span>
+    <span class="c1"># 2. chi_defining_atom_for_rotamer</span>
+    <span class="c1"># 3. chi_for_rotamers</span>
+
+    <span class="c1"># everything needs to be on the same device</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">samples</span> <span class="ow">in</span> <span class="n">conformer_samples</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">samples</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">device</span>
+        <span class="k">assert</span> <span class="n">conformer_samples</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span>
+
+    <span class="n">device</span> <span class="o">=</span> <span class="n">conformer_samples</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span>
+
+    <span class="c1"># pre-merge offsets for each gbt in the set of conformers from the same sampler</span>
+    <span class="n">gbt_n_rot_offsets</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># formerly rt_nrot_offsets</span>
+    <span class="k">for</span> <span class="n">samples</span> <span class="ow">in</span> <span class="n">conformer_samples</span><span class="p">:</span>
+        <span class="n">gbt_n_rot_offsets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
+
+    <span class="n">all_gbt_for_conformer_unsorted</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">samples</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">samples</span> <span class="ow">in</span> <span class="n">conformer_samples</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">max_n_conformers_per_gbt_per_sampler</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">for</span> <span class="n">samples</span> <span class="ow">in</span> <span class="n">conformer_samples</span>
+    <span class="p">)</span>
+
+    <span class="c1"># create an &quot;index&quot; for each conformer on each GBT</span>
+    <span class="c1"># so that we can sort these indices and come up with an ordering</span>
+    <span class="c1"># of all of the conformers that will group all of the conformers</span>
+    <span class="c1"># belonging to a single GBT into a contiguous segment;</span>
+    <span class="c1"># This is accomplished by &quot;spreading out&quot; all of the rotamers for a single GBT</span>
+    <span class="c1"># by the maximum possible number of rotamers that could be built for any one</span>
+    <span class="c1"># GBT (i.e. n-samplers x max-n-confs-per-gbt-per-sampler x gbt-index),</span>
+    <span class="c1"># then finding which block of conformers for the given sampler</span>
+    <span class="c1"># (i.e. max-n-confs-per-gbt-per-sampler * sampler-index),</span>
+    <span class="c1"># and finally, incrementing each individual sample by its position in the</span>
+    <span class="c1"># list of rotamers for that GBT, which is readily computed as</span>
+    <span class="c1"># arange(sampler_n_rots) - gbt_n_rot_offsets[gbt_index]</span>
+    <span class="c1"># and note that gbt_index is what&#39;s stored in samples[1]</span>
+    <span class="n">n_conformer_samplers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">conformer_samples</span><span class="p">)</span>
+    <span class="n">sort_index_for_conformer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">samples</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="o">*</span> <span class="n">n_conformer_samplers</span>
+            <span class="o">*</span> <span class="n">max_n_conformers_per_gbt_per_sampler</span>
+            <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="n">max_n_conformers_per_gbt_per_sampler</span>
+            <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="o">-</span> <span class="n">gbt_n_rot_offsets</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">samples</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">samples</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">conformer_samples</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">sampler_for_conformer_unsorted</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">samples</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">i</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">samples</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">conformer_samples</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">argsort_ind_for_conformer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">sort_index_for_conformer</span><span class="p">)</span>
+
+    <span class="c1"># testing: remove this, probably</span>
+    <span class="n">sort_ind_for_conformer_sorted</span> <span class="o">=</span> <span class="n">sort_index_for_conformer</span><span class="p">[</span><span class="n">argsort_ind_for_conformer</span><span class="p">]</span>
+    <span class="n">uniq_sort_ind_for_conformer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">sort_ind_for_conformer_sorted</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="n">uniq_sort_ind_for_conformer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">sort_ind_for_conformer_sorted</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">sampler_for_conformer</span> <span class="o">=</span> <span class="n">sampler_for_conformer_unsorted</span><span class="p">[</span><span class="n">argsort_ind_for_conformer</span><span class="p">]</span>
+
+    <span class="c1"># list of boolean tensors for each of the samplers: did you build the given rotamer</span>
+    <span class="n">conformer_built_by_sampler</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">sampler_for_conformer</span> <span class="o">==</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_conformer_samplers</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="c1"># list of index tensors reporting the final index of the conformers built by the samplers</span>
+    <span class="n">new_ind_for_sampler_rotamer</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">built_by_sampler</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">built_by_sampler</span> <span class="ow">in</span> <span class="n">conformer_built_by_sampler</span>
+    <span class="p">]</span>
+
+    <span class="n">all_gbt_for_conformer_sorted</span> <span class="o">=</span> <span class="n">all_gbt_for_conformer_unsorted</span><span class="p">[</span>
+        <span class="n">argsort_ind_for_conformer</span>
+    <span class="p">]</span>
+
+    <span class="c1"># ok, now we need to figure out how many rotamers each gbt is getting.</span>
+    <span class="n">n_rots_for_gbt</span> <span class="o">=</span> <span class="n">toolz</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="p">[</span><span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">samples</span> <span class="ow">in</span> <span class="n">conformer_samples</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">n_rots_for_gbt</span><span class="p">,</span>
+        <span class="n">sampler_for_conformer</span><span class="p">,</span>
+        <span class="n">all_gbt_for_conformer_sorted</span><span class="p">,</span>
+        <span class="n">conformer_built_by_sampler</span><span class="p">,</span>
+        <span class="n">new_ind_for_sampler_rotamer</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="calculate_rotamer_coords">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.calculate_rotamer_coords">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_rotamer_coords</span><span class="p">(</span>
+    <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
+    <span class="n">n_rots</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_atoms_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">rot_kinforest</span><span class="p">:</span> <span class="n">KinForest</span><span class="p">,</span>
+    <span class="n">nodes</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+    <span class="n">scans</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+    <span class="n">gens</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+    <span class="n">rot_dofs_kto</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">],</span>
+<span class="p">):</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled.compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">forward_only_op</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_p</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_tcpu</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+
+    <span class="n">kinforest_stack</span> <span class="o">=</span> <span class="n">_p</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">rot_kinforest</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">rot_kinforest</span><span class="o">.</span><span class="n">doftype</span><span class="p">,</span>
+                <span class="n">rot_kinforest</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+                <span class="n">rot_kinforest</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>
+                <span class="n">rot_kinforest</span><span class="o">.</span><span class="n">frame_y</span><span class="p">,</span>
+                <span class="n">rot_kinforest</span><span class="o">.</span><span class="n">frame_z</span><span class="p">,</span>
+            <span class="p">],</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">new_coords_kto</span> <span class="o">=</span> <span class="n">forward_only_op</span><span class="p">(</span>
+        <span class="n">rot_dofs_kto</span><span class="p">,</span> <span class="n">_p</span><span class="p">(</span><span class="n">_t</span><span class="p">(</span><span class="n">nodes</span><span class="p">)),</span> <span class="n">_p</span><span class="p">(</span><span class="n">_t</span><span class="p">(</span><span class="n">scans</span><span class="p">)),</span> <span class="n">_p</span><span class="p">(</span><span class="n">_tcpu</span><span class="p">(</span><span class="n">gens</span><span class="p">)),</span> <span class="n">kinforest_stack</span>
+    <span class="p">)</span>
+
+    <span class="n">new_coords_rto</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_atoms_total</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+
+    <span class="n">new_coords_rto</span><span class="p">[</span><span class="n">rot_kinforest</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span> <span class="o">=</span> <span class="n">new_coords_kto</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="n">new_coords_rto</span></div>
+
+
+
+<div class="viewcode-block" id="get_rotamer_origin_data">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.get_rotamer_origin_data">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_origin_data</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="n">SetPackerTask</span><span class="p">,</span> <span class="n">gbt_for_rot</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]):</span>
+    <span class="n">n_poses</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_orig_block_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">pose_for_gbt</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="n">block_ind_for_rt</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_orig_block_type</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">gbt_for_rot64</span> <span class="o">=</span> <span class="n">gbt_for_rot</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">pose_for_rot</span> <span class="o">=</span> <span class="n">pose_for_gbt</span><span class="p">[</span><span class="n">gbt_for_rot64</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">n_rots_for_pose</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">pose_for_rot</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="n">n_poses</span><span class="p">)</span>
+    <span class="n">rot_offset_for_pose</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">n_rots_for_pose</span><span class="p">)</span>
+    <span class="n">block_ind_for_rot</span> <span class="o">=</span> <span class="n">block_ind_for_rt</span><span class="p">[</span><span class="n">gbt_for_rot64</span><span class="p">]</span>
+    <span class="n">block_ind_for_rt_global</span> <span class="o">=</span> <span class="n">max_n_blocks</span> <span class="o">*</span> <span class="n">pose_for_gbt</span> <span class="o">+</span> <span class="n">block_ind_for_rt</span>
+    <span class="n">block_ind_for_rot_global</span> <span class="o">=</span> <span class="n">block_ind_for_rt_global</span><span class="p">[</span><span class="n">gbt_for_rot64</span><span class="p">]</span>
+    <span class="n">n_rots_for_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span>
+        <span class="n">block_ind_for_rot_global</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="n">n_poses</span> <span class="o">*</span> <span class="n">max_n_blocks</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">)</span>
+    <span class="n">rot_offset_for_block</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">n_rots_for_block</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">n_rots_for_pose</span><span class="p">,</span>
+        <span class="n">rot_offset_for_pose</span><span class="p">,</span>
+        <span class="n">n_rots_for_block</span><span class="p">,</span>
+        <span class="n">rot_offset_for_block</span><span class="p">,</span>
+        <span class="n">pose_for_rot</span><span class="p">,</span>
+        <span class="n">block_ind_for_rot</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="build_rotamers">
+<a class="viewcode-back" href="../../../../api/tmol/pack/rotamer/build_rotamers/index.html#tmol.pack.rotamer.build_rotamers.build_rotamers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_rotamers</span><span class="p">(</span><span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">SetPackerTask</span><span class="p">,</span> <span class="n">chem_db</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">):</span>
+    <span class="c1"># step 1: replace the existing PBT in the Pose w/ a new one in case</span>
+    <span class="c1">#     there will possibly be new block types in the repacked Pose;</span>
+    <span class="c1">#     but since PoseStack should not be altered after construction,</span>
+    <span class="c1">#     what this really means is build an entirely new PoseStack</span>
+    <span class="c1"># step 2: let the dunbrack library annotate the block types and the packed block types</span>
+    <span class="c1"># step 3: get the block-type index for the &quot;global block types&quot; (gbts)</span>
+    <span class="c1"># step 4: use the conformer samplers to decide how many conformers they will build for</span>
+    <span class="c1">#         each bt/block/pose</span>
+    <span class="c1"># step 5: merge the conformer samples from different samplers, so that different</span>
+    <span class="c1">#         conformers for the same bt/block/pose will be in contiguous ranges in the</span>
+    <span class="c1">#         rotamer set, and keeping track of the mapping back to the original set of</span>
+    <span class="c1">#         conformer samples</span>
+    <span class="c1"># step 6: allocate a n_atoms_total x 3 tensor for rotamer coordinates and</span>
+    <span class="c1">#         create the tensor of offsets</span>
+    <span class="c1"># step 7: build a kintree for all of the rotamers; initialize the DOFs to ideal</span>
+    <span class="c1"># step 8: build a kintree for the PoseStack residues</span>
+    <span class="c1"># step 9: measure the DOFs of the PoseStack residues</span>
+    <span class="c1"># step 9a: take starting coordinates from residue roots</span>
+    <span class="c1"># step 9b: take internal dofs from mainchain-fingerprint atoms</span>
+    <span class="c1"># step 10: ask the samplers to set the DOFs for everything else</span>
+    <span class="c1"># step 11: refold</span>
+
+    <span class="c1"># Step 1</span>
+    <span class="n">samplers</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">conformer_samplers</span><span class="p">)</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span>
+
+    <span class="c1"># Step 2</span>
+    <span class="n">annotate_everything</span><span class="p">(</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">samplers</span><span class="p">,</span> <span class="n">pbt</span><span class="p">)</span>
+
+    <span class="c1"># Step 3</span>
+    <span class="c1"># the &quot;global block type&quot; (gbt) is the list of all considered block types</span>
+    <span class="c1"># at all positions in all poses.</span>
+    <span class="n">gbt_block_type_ind</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block_type</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># Step 4</span>
+    <span class="n">conformer_samples</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">sampler</span><span class="o">.</span><span class="n">create_samples_for_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span> <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">samplers</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Step 5</span>
+    <span class="p">(</span>
+        <span class="n">n_rots_for_gbt</span><span class="p">,</span>
+        <span class="n">sampler_for_conformer</span><span class="p">,</span>
+        <span class="n">gbt_for_conformer</span><span class="p">,</span>
+        <span class="n">conformer_built_by_sampler</span><span class="p">,</span>
+        <span class="n">new_ind_for_sampler_rotamer</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">merge_conformer_samples</span><span class="p">(</span><span class="n">conformer_samples</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">gbt_for_conformer_np</span> <span class="o">=</span> <span class="n">gbt_for_conformer</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="n">gbt_for_conformer_torch</span> <span class="o">=</span> <span class="n">gbt_for_conformer</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">n_conformers</span> <span class="o">=</span> <span class="n">sampler_for_conformer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">block_type_ind_for_conformer</span> <span class="o">=</span> <span class="n">gbt_block_type_ind</span><span class="p">[</span><span class="n">gbt_for_conformer_np</span><span class="p">]</span>
+    <span class="n">block_type_ind_for_conformer_torch</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span><span class="n">block_type_ind_for_conformer</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+    <span class="n">n_atoms_for_conformer</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">block_type_ind_for_conformer_torch</span><span class="p">]</span>
+    <span class="n">n_atoms_offset_for_conformer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">n_atoms_for_conformer</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">n_atoms_offset_for_conformer</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_conformer</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">n_atoms_total</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_conformer</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    <span class="n">n_atoms_offset_for_conformer</span> <span class="o">=</span> <span class="n">exc_cumsum_from_inc_cumsum</span><span class="p">(</span>
+        <span class="n">n_atoms_offset_for_conformer</span>
+    <span class="p">)</span>
+    <span class="n">n_atoms_offset_for_conformer_torch</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span><span class="n">n_atoms_offset_for_conformer</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+    <span class="c1"># Step 7</span>
+    <span class="n">conformer_kinforest</span> <span class="o">=</span> <span class="n">construct_kinforest_for_conformers</span><span class="p">(</span>
+        <span class="n">pbt</span><span class="p">,</span>
+        <span class="n">block_type_ind_for_conformer</span><span class="p">,</span>
+        <span class="n">n_atoms_total</span><span class="p">,</span>
+        <span class="n">n_atoms_for_conformer</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+        <span class="n">n_atoms_offset_for_conformer</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">nodes</span><span class="p">,</span> <span class="n">scans</span><span class="p">,</span> <span class="n">gens</span> <span class="o">=</span> <span class="n">construct_scans_for_conformers</span><span class="p">(</span>
+        <span class="n">pbt</span><span class="p">,</span>
+        <span class="n">block_type_ind_for_conformer</span><span class="p">,</span>
+        <span class="n">n_atoms_for_conformer</span><span class="p">,</span>
+        <span class="n">n_atoms_offset_for_conformer</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Step 8 &amp; 9</span>
+    <span class="n">orig_kinforest</span><span class="p">,</span> <span class="n">orig_dofs_kto</span> <span class="o">=</span> <span class="n">measure_pose_dofs</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
+
+    <span class="c1"># Step 9a</span>
+    <span class="n">conf_dofs_kto</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_atoms_total</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">9</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+
+    <span class="n">conf_dofs_kto</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">dofs_ideal</span><span class="p">[</span><span class="n">block_type_ind_for_conformer</span><span class="p">]</span>
+        <span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">9</span><span class="p">))[</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">atom_is_real</span><span class="p">[</span><span class="n">block_type_ind_for_conformer</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="p">]</span>
+        <span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">samplers</span><span class="p">):</span>
+        <span class="n">sampler</span><span class="o">.</span><span class="n">fill_dofs_for_samples</span><span class="p">(</span>
+            <span class="n">poses</span><span class="p">,</span>
+            <span class="n">task</span><span class="p">,</span>
+            <span class="n">orig_kinforest</span><span class="p">,</span>
+            <span class="n">orig_dofs_kto</span><span class="p">,</span>
+            <span class="n">gbt_for_conformer_torch</span><span class="p">,</span>
+            <span class="n">block_type_ind_for_conformer_torch</span><span class="p">,</span>
+            <span class="n">n_atoms_offset_for_conformer_torch</span><span class="p">,</span>
+            <span class="n">conformer_built_by_sampler</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">new_ind_for_sampler_rotamer</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">conformer_samples</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">conformer_samples</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">conformer_samples</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">2</span><span class="p">],</span>
+            <span class="n">conf_dofs_kto</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">correct_phi_c_for_jump_parents</span><span class="p">(</span>
+        <span class="n">pbt</span><span class="p">,</span>
+        <span class="n">conformer_samples</span><span class="p">,</span>
+        <span class="n">new_ind_for_sampler_rotamer</span><span class="p">,</span>
+        <span class="n">block_type_ind_for_conformer_torch</span><span class="p">,</span>
+        <span class="n">n_atoms_offset_for_conformer_torch</span><span class="p">,</span>
+        <span class="n">conformer_kinforest</span><span class="p">,</span>
+        <span class="n">nodes</span><span class="p">,</span>
+        <span class="n">scans</span><span class="p">,</span>
+        <span class="n">gens</span><span class="p">,</span>
+        <span class="n">conf_dofs_kto</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">rotamer_coords</span> <span class="o">=</span> <span class="n">calculate_rotamer_coords</span><span class="p">(</span>
+        <span class="n">pbt</span><span class="p">,</span>
+        <span class="n">n_conformers</span><span class="p">,</span>
+        <span class="n">n_atoms_total</span><span class="p">,</span>
+        <span class="n">conformer_kinforest</span><span class="p">,</span>
+        <span class="n">nodes</span><span class="p">,</span>
+        <span class="n">scans</span><span class="p">,</span>
+        <span class="n">gens</span><span class="p">,</span>
+        <span class="n">conf_dofs_kto</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="p">(</span>
+        <span class="n">n_rots_for_pose</span><span class="p">,</span>
+        <span class="n">rot_offset_for_pose</span><span class="p">,</span>
+        <span class="n">n_rots_for_block</span><span class="p">,</span>
+        <span class="n">rot_offset_for_block</span><span class="p">,</span>
+        <span class="n">pose_for_rot</span><span class="p">,</span>
+        <span class="n">block_ind_for_rot</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">get_rotamer_origin_data</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">gbt_for_conformer_torch</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">poses</span><span class="p">,</span>
+        <span class="n">RotamerSet</span><span class="p">(</span>
+            <span class="n">max_n_rots_per_pose</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">n_rots_for_pose</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">n_rots_for_pose</span><span class="o">=</span><span class="n">n_rots_for_pose</span><span class="p">,</span>
+            <span class="n">rot_offset_for_pose</span><span class="o">=</span><span class="n">rot_offset_for_pose</span><span class="p">,</span>
+            <span class="n">n_rots_for_block</span><span class="o">=</span><span class="n">n_rots_for_block</span><span class="p">,</span>
+            <span class="n">rot_offset_for_block</span><span class="o">=</span><span class="n">rot_offset_for_block</span><span class="p">,</span>
+            <span class="n">pose_for_rot</span><span class="o">=</span><span class="n">pose_for_rot</span><span class="p">,</span>
+            <span class="n">block_type_ind_for_rot</span><span class="o">=</span><span class="n">block_type_ind_for_conformer_torch</span><span class="p">,</span>
+            <span class="n">block_ind_for_rot</span><span class="o">=</span><span class="n">block_ind_for_rot</span><span class="p">,</span>
+            <span class="n">coord_offset_for_rot</span><span class="o">=</span><span class="n">n_atoms_offset_for_conformer_torch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="n">coords</span><span class="o">=</span><span class="n">rotamer_coords</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,138 @@
+"""
+Protein-ligand refinement
+=========================
+
+Load a protein-ligand complex through Biotite, build a ligand-aware tmol
+``PoseStack``, visualize it, score it, repack protein side chains, run Cartesian
+minimization, and report the score again.
+
+The example uses checked-in ``protein_ligand_test`` fixtures. The ligand
+chemistry is supplied by a prepared ``.tmol`` params file, which makes the run
+deterministic and avoids regenerating ligand conformers during docs work. For a
+new ligand, pass a CIF/MOL2/SMILES input through tmol's ligand preparation APIs
+first, or call ``pose_stack_from_biotite(..., prepare_ligands=True)`` without
+``ligand_params_files`` when OpenBabel is available.
+"""
+
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import biotite.structure as struc
+import biotite.structure.io
+import torch
+
+from tmol.database import ParameterDatabase
+from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
+from tmol.optimization.minimizers import run_cart_min
+from tmol.pack.pack_rotamers import pack_rotamers
+from tmol.pack.packer_task import PackerPalette, PackerTask
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+    create_dunbrack_sampler_from_database,
+)
+from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
+from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
+from tmol.score import beta2016_score_function
+
+LIGAND_RES_NAME = "LG1"
+
+
+def load_complex(target: str):
+    """Load a fixture complex as a Biotite AtomArray."""
+    repo_root = Path(__file__).resolve().parents[2]
+    data_dir = repo_root / "tmol" / "tests" / "data" / "protein_ligand_test"
+    structure = biotite.structure.io.load_structure(
+        str(data_dir / f"{target}.tmol.nomin.cif"),
+        model=1,
+        include_bonds=True,
+    )
+    if isinstance(structure, struc.AtomArrayStack):
+        structure = structure[0]
+    return structure, data_dir / f"{target}.xtal-lig.mmff94.tmol"
+
+
+def ligand_block_mask(pose_stack, device):
+    """Select ligand blocks by residue name."""
+    pbt = pose_stack.packed_block_types
+    mask = torch.zeros(
+        (pose_stack.n_poses, pose_stack.max_n_blocks),
+        dtype=torch.bool,
+        device=device,
+    )
+    for pose_i in range(pose_stack.n_poses):
+        for block_i in range(pose_stack.max_n_blocks):
+            bt_ind = int(pose_stack.block_type_ind[pose_i, block_i])
+            if bt_ind >= 0 and pbt.active_block_types[bt_ind].name3 == LIGAND_RES_NAME:
+                mask[pose_i, block_i] = True
+    if not bool(mask.any()):
+        raise RuntimeError(f"{LIGAND_RES_NAME} ligand block not found")
+    return mask
+
+
+def total_score(pose_stack, sfxn):
+    """Score a pose stack and return the first pose's weighted total."""
+    scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
+    score = scorer(pose_stack.coords).detach().cpu()
+    return float(score[0])
+
+
+def view_pose_stack(pose_stack, pdb_path):
+    """Return a py3Dmol viewer for use in notebooks or IPython."""
+    import py3Dmol
+
+    write_pose_stack_pdb(pose_stack, str(pdb_path))
+    view = py3Dmol.view(width=760, height=520)
+    view.addModel(Path(pdb_path).read_text(), "pdb")
+    view.setStyle({"cartoon": {"color": "spectrum"}})
+    view.setStyle({"resn": LIGAND_RES_NAME}, {"stick": {"colorscheme": "cyanCarbon"}})
+    view.addSurface(
+        py3Dmol.VDW,
+        {"opacity": 0.25, "color": "white"},
+        {"resn": LIGAND_RES_NAME},
+    )
+    view.zoomTo({"resn": LIGAND_RES_NAME})
+    return view
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+structure, ligand_params = load_complex("ada")
+
+pose_stack, context = pose_stack_from_biotite(
+    structure,
+    device,
+    prepare_ligands=True,
+    ligand_params_files=[str(ligand_params)],
+    param_db=ParameterDatabase.get_default(),
+    return_context=True,
+)
+
+# ``pose_stack_from_biotite`` has rebuilt missing protein side chains when
+# possible and, by default, has optimized protein and ligand hydrogens. The
+# score function must use the ligand-extended database from the build context.
+sfxn = beta2016_score_function(device, param_db=context.parameter_database)
+start_score = total_score(pose_stack, sfxn)
+print(f"score before refinement: {start_score:.3f}")
+
+ligand_mask = ligand_block_mask(pose_stack, device)
+
+task = PackerTask(pose_stack, PackerPalette())
+task.restrict_to_repacking()
+task.add_conformer_sampler(
+    create_dunbrack_sampler_from_database(context.parameter_database, device)
+)
+task.add_conformer_sampler(FixedAAChiSampler())
+task.add_conformer_sampler(IncludeCurrentSampler())
+
+# Repack protein residues while keeping the ligand block fixed.
+task.disable_packing_by_block_mask(ligand_mask)
+packed_pose_stack = pack_rotamers(pose_stack, sfxn, task)
+
+minimized_pose_stack = run_cart_min(packed_pose_stack, sfxn)
+final_score = total_score(minimized_pose_stack, sfxn)
+print(f"score after repack + minimize: {final_score:.3f}")
+
+with TemporaryDirectory() as tmpdir:
+    viewer = view_pose_stack(minimized_pose_stack, Path(tmpdir) / "refined.pdb")
+    # In a notebook or IPython session, return ``viewer`` from the final cell to
+    # inspect the prepared and refined protein-ligand complex interactively.
+    viewer
