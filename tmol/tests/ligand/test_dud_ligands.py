@@ -7,16 +7,17 @@ parameter generation.
 
 Param-generation parity (SMILES -> Rosetta ``.params``) is covered separately
 by the guanfeng SMILES suite (``test_smiles_semantic.py``,
-``test_serialization_consistency.py``, ``test_params_reference.py``) and
-``scripts/ligand_prep/validate_dud80.py``.
+``test_serialization_consistency.py``, ``test_params_reference.py``).
 """
 
 from pathlib import Path
 
+from tmol.tests.data import data_path
+
 import pytest
 import torch  # noqa: F401  (used via torch_device fixture)
 
-DUD_DIR = Path(__file__).parent.parent / "data" / "dud_ligands"
+DUD_DIR = data_path("dud_ligands")
 DUD_CASES = [
     ("ada", name)
     for name in [

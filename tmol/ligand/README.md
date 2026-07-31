@@ -1,149 +1,59 @@
 # Ligand Preparation Pipeline
 
-Detects non-standard residues in Biotite AtomArrays, builds protonated
-3D molecules with partial charges, assigns Rosetta-compatible atom types,
-and returns a new `ParameterDatabase` with the residue data injected.
+Turns a non-standard (non-polymer) residue into a fully parameterized tmol
+residue type — protonated 3D coordinates, MMFF94 partial charges,
+Rosetta-compatible atom types, and cartbonded parameters — and injects it into
+a `ParameterDatabase` so the ligand can be scored and minimized like any other
+residue.
 
-For file-based single-ligand preparation, prefer:
+## Quick Usage
+
+There are three ways to inject a ligand, one per input format. Each returns a
+new `(ParameterDatabase, CanonicalOrdering)`; the input database is never
+mutated.
 
 ```python
-from tmol.ligand import prepare_ligand_from_cif, prepare_ligand_from_mol2
+from tmol.ligand import (
+    prepare_ligand_from_mol2,
+    prepare_ligand_from_cif,
+    prepare_ligand_from_smiles,
+)
 
-param_db, co = prepare_ligand_from_cif("ligand.cif")
+# 1) MOL2 — richest input. With an authoritative charge model (MMFF94), atom
+#    names, coordinates, bond orders, and partial charges are read verbatim; no
+#    SMILES or 3D-generation step. A mol2 with a non-authoritative charge model
+#    (e.g. GASTEIGER) instead falls back to the derived-SMILES path below.
 param_db, co = prepare_ligand_from_mol2("ligand.mol2")
+
+# 2) CIF — the bond table drives a derived SMILES, which runs through the full
+#    prep pipeline (protonation, 3D conformer, MMFF94 charges).
+param_db, co = prepare_ligand_from_cif("ligand.cif")
+
+# 3) SMILES — no input geometry. Dimorphite-DL protonates at the target pH and
+#    a 3D conformer + MMFF94 charges are generated.
+param_db, co = prepare_ligand_from_smiles("c1ccccc1C(=O)O", res_name="BEN")
 ```
 
-These helpers preserve chemistry metadata (`tmol_aromatic`,
-`tmol_source_subtype`, and per-atom partial charges) that can be lost in
-generic rdkit<->biotite round-trips.
-
-## Pipeline Overview
-
-```mermaid
-flowchart TD
-    subgraph detection [Detection]
-        A["Biotite AtomArray"] --> B["detect_nonstandard_residues\n(detect.py)"]
-    end
-
-    subgraph preparation [Preparation -- per residue]
-        B --> S["ligand_smiles_candidates_from_atom_array\n(structure_to_smiles.py — input bonds/geometry, no CCD lookup)"]
-        S --> D["nonstandard_residue_info_from_smiles_via_mol2\n(detect.py — Dimorphite + OpenBabel 3D MMFF94 mol2)"]
-        D --> E["ligand_atom_array_to_rdkit_mol + SanitizeMol\n(rdkit_mol.py)"]
-
-        E --> F["authoritative_charges_by_index\n(mol3d.py — OpenBabel MMFF94 by atom index; no RDKit/Gasteiger fallback)"]
-        E --> H["assign_tmol_atom_types\n(atom_typing.py — RDKit)"]
-        H --> I["rename atoms to CIF names\n(preparation.py — graph match)"]
-        I --> J["build_residue_type\n(residue_builder.py — RDKit)"]
-    end
-
-    subgraph injection [Injection into ParameterDatabase]
-        J --> K["inject_ligand_preparations\n(registry.py)"]
-        F --> K
-
-        K --> L["inject_residue_params\n(database/__init__.py)"]
-        L --> L1["chemical.residues += RawResidueType"]
-        L --> L2["scoring.elec += partial charges"]
-        L --> L3["scoring.cartbonded += bond/angle/improper"]
-        L --> M["New frozen ParameterDatabase"]
-    end
-
-    subgraph io [IO Integration]
-        M --> N["rebuild_canonical_ordering"]
-        N --> O["pose_stack_from_biotite\n(prepare_ligands=True)"]
-    end
-
-    subgraph direct [Direct Injection Path]
-        P["tmol YAML params file"] --> Q["inject_params_file\n(params_file.py)"]
-        Q --> M
-    end
-```
-
-## Database Design
-
-| Step | Library | Why |
-|------|---------|-----|
-| SMILES from structure | **RDKit** + Biotite | Input bonds or geometry; no CCD lookup |
-| Protonation at target pH | **Dimorphite-DL** | pKa-based protonation on SMILES |
-| 3D coords + MMFF94 charges | **OpenBabel** | Conformer search + force-field charges in mol2 |
-| Mol construction from AtomArray | **RDKit** + Biotite | Direct coordinate + bond transfer for typing |
-| Atom typing | **RDKit** | Rosetta AtomTypeClassifier port |
-| Residue type building | **RDKit** | Atom tree, internal coordinates, bond order |
-
-## Direct Params File Injection
-
-Users can bypass the RDKit/OB pipeline by providing a tmol YAML params
-file directly:
-
-```python
-from tmol.ligand.params_file import inject_params_file
-
-extended_db = inject_params_file(ParameterDatabase.get_default(), "my_ligand.yaml")
-```
-
-The YAML format has three sections matching the existing database schemas:
-
-- `residues` -- same schema as `chemical.yaml` entries
-- `residue_params` -- same schema as `cartbonded.yaml`
-- `atom_charge_parameters` -- same schema as `elec.yaml`
-
-See `params_file.py` for `load_params_file`, `write_params_file`, and
-`inject_params_files`.
-
-## Quickstart: Score Protein-Ligand ddg with Existing `.tmol`
-
-If you already have a ligand `.tmol` file, the simplest path is:
-
-1. Inject the params file into a `ParameterDatabase`
-2. Build a pose from the protein-ligand structure
-3. Score block-pair interaction energy with `calculate_block_pair_ddg`
+To detect and prepare **every** non-standard residue in a structure at once
+(the path used by IO), pass a biotite `AtomArray` to `prepare_ligands`, or let
+`pose_stack_from_biotite(..., prepare_ligands=True)` call it for you. The
+`AtomArray` is a biotite structure loaded from a CIF or PDB file:
 
 ```python
 import biotite.structure.io
-import torch
+from tmol.ligand import prepare_ligands
 
-from tmol.database import ParameterDatabase
-from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
-from tmol.ligand.params_file import inject_params_file
-from tmol.score import beta2016_score_function
-from tmol.score.score_utils import calculate_block_pair_ddg
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-tmol_path = "ligand.mmff94.tmol"
-complex_pdb = "complex.pdb"
-
-# 1) Extend default DB with your prebuilt ligand params.
-param_db = inject_params_file(ParameterDatabase.get_default(), tmol_path)
-
-# 2) Build pose using that same DB.
-atom_array = biotite.structure.io.load_structure(complex_pdb)
+atom_array = biotite.structure.io.load_structure("complex.cif")
 if hasattr(atom_array, "__len__") and len(atom_array) > 1:
-    atom_array = atom_array[0]
+    atom_array = atom_array[0]  # first model of a multi-model file
 
-pose_stack = pose_stack_from_biotite(
-    atom_array,
-    device,
-    param_db=param_db,
-    prepare_ligands=False,
-)
-
-# 3) Build scorefxn with the same DB and compute ligand-vs-rest ddg.
-sfxn = beta2016_score_function(device, param_db=param_db)
-
-mask = torch.zeros((1, pose_stack.max_n_blocks), dtype=torch.bool, device=device)
-mask[0, -1] = True  # common case: ligand is the last block
-
-ddg = calculate_block_pair_ddg(
-    pose_stack,
-    mask,
-    sfxn=sfxn,
-    sum_terms=True,
-    minimize=False,
-)
-print("ddg:", ddg)
+param_db, co = prepare_ligands(atom_array, ph=7.4)
 ```
 
-Notes:
+**On PDB inputs:** tmol accepts PDB for structures generally, but PDB does not
+carry reliable bond orders. Deriving ligand parameters requires an input that
+describes bond geometry — a MOL2, a CIF with a bond table, or a SMILES. Load
+the ligand from one of those formats even when the rest of the complex is a PDB.
 
 - `calculate_block_pair_ddg` is a Python API in `tmol.score.score_utils` (no separate CLI wrapper).
 - The structure residue/atom naming must match the residue definition in your `.tmol`.
@@ -283,103 +193,41 @@ calculated.
 
 ## Troubleshooting
 
-### `strict_ligands` (default: fail loudly)
+### Reuse the context (preferred)
 
-When `prepare_ligands=True`, ligand preparation is **strict by default**: if a
-detected non-standard residue cannot be prepared and registered, the call
-raises `LigandPreparationError` instead of silently continuing. This prevents
-the common footgun of loading a protein-ligand complex, getting a pose with the
-ligand missing, and computing a meaningless (often `0.0`) ddG.
-
-Pass `strict_ligands=False` to restore the older warn-and-skip behavior, where
-unpreparable ligands are logged and dropped:
+When scoring many poses that share the same ligand(s), build the expensive,
+structure-independent `BiotitePoseBuildContext` **once** and reuse it. This is
+the preferred reuse path: it skips rebuilding the parameter database, canonical
+ordering, and packed block types on every structure.
 
 ```python
-pose_stack, context = pose_stack_from_biotite(
-    atom_array,
-    device,
-    prepare_ligands=True,
-    strict_ligands=False,  # warn and drop instead of raising
-    return_context=True,
+from tmol.io.pose_stack_from_biotite import (
+    build_context_from_biotite,
+    pose_stack_from_biotite,
 )
+
+context = build_context_from_biotite(struct0, device, prepare_ligands=True)
+for struct in structures:
+    pose_stack = pose_stack_from_biotite(struct, device, context=context)
 ```
 
-A residue triggers the strict error when it is skipped (it contains metal atoms
-or is covalently linked to another residue) or when preparation fails outright
-(no derivable SMILES, atom typing, or residue construction error). A successful
-but imperfect "best-effort" name match is still logged as a warning rather than
-raised, since the ligand is loaded in that case.
+### Persist to `.tmol` (for manual edits or cold reuse)
 
-### `Unrecognized 3lc <NAME>` warning
-
-This warning comes from pose construction
-(`tmol/io/pose_stack_from_biotite.py`), not ligand prep. It means a residue with
-that 3-letter code is not in the active `CanonicalOrdering`, so the residue is
-**stripped from the structure**. If you see it for a ligand you expected to
-score, the ligand never made it into the pose. The usual causes are:
-
-- `prepare_ligands=False` (ligands are never registered), or
-- `prepare_ligands=True, strict_ligands=False` and the ligand was skipped or
-  failed preparation (the preceding warning explains why).
-
-With the strict default (`strict_ligands=True`), this turns into a
-`LigandPreparationError` at preparation time with an actionable message.
-
-### Ligand close to the protein is dropped as "covalently linked"
-
-Protein-ligand complexes with tight binding-pocket contacts, hydrogen bonds, or
-clashes in unminimized models used to be misclassified as covalently linked and
-skipped. Covalent detection now trusts the explicit bond table for all residues
-and only applies the spatial-proximity fallback to polymer-linking residue
-types (modified amino acids/nucleotides, glycans). Genuine non-polymer ligands
-are no longer flagged by proximity alone.
-
-## Reuse, Caching, and Persistence
-
-When processing many poses that share the same ligand topology, you can
-avoid repeating full ligand preparation.
-
-### 1) In-process reuse (automatic cache)
-
-`prepare_ligands()` uses a process-global in-memory cache
-(`LigandPreparationCache`) keyed by:
-
-- residue name
-- pH
-- `sample_proton_chi`
-- atom names
-- element list
-
-Within one Python process, repeated calls with the same key reuse the
-prepared residue type and charges instead of recomputing them.
-
-```python
-from tmol.ligand import prepare_ligands
-
-param_db, co = prepare_ligands(atom_array, ph=7.4)
-# subsequent calls in this process with same ligand key reuse cache
-param_db2, co2 = prepare_ligands(atom_array, ph=7.4)
-```
-
-### 2) Persistent reuse across sessions (write/read `.tmol` params)
-
-The in-memory cache is not persisted across Python runs. For permanent
-reuse, write prepared ligands to a params file once, then load it later.
+Preparation (SMILES → 3D → typing) is expensive and, for edge-case
+chemistries, sometimes wrong. Write prepared ligands to a `.tmol` params file,
+hand-edit if needed, then inject that file instead of re-preparing. This is the
+path to take when you want to inspect or manually correct a ligand definition.
 
 ```python
 from tmol.database import ParameterDatabase
 from tmol.ligand import prepare_ligands
 
-# One-time generation
-param_db = ParameterDatabase.get_default()
+# Write once
 param_db, co = prepare_ligands(
-    atom_array,
-    param_db=param_db,
-    ph=7.4,
-    params_output="my_ligands.tmol",
+    atom_array, ph=7.4, params_output="my_ligands.tmol"
 )
 
-# Later runs: inject from file and skip re-prep for those residues
+# Reuse later (optionally after editing the file by hand)
 param_db, co = prepare_ligands(
     atom_array,
     param_db=ParameterDatabase.get_default(),
@@ -387,56 +235,91 @@ param_db, co = prepare_ligands(
 )
 ```
 
-You can also pass these files through IO helpers such as
+The same files can be passed through IO:
 `pose_stack_from_biotite(..., prepare_ligands=True, ligand_params_files=[...])`.
+For a `.tmol` you already have, `inject_params_file(param_db, "my_ligand.tmol")`
+extends a database directly. Prefer context reuse over file round-trips when the
+ligand topology is fixed within a run; use `.tmol` when you need persistence
+across runs or manual control.
 
-### 3) Reset behavior
+## Pipeline Overview
 
-- **Reset ligand prep cache** (current process):
+All three input modes converge on a single typing/build/inject core.
 
-```python
-from tmol.ligand.registry import clear_cache
+```mermaid
+flowchart TD
+    M2["MOL2 file"] -->|authoritative MMFF94 charges:\nnames, coords, bonds, charges verbatim| CORE
+    M2 -->|non-authoritative charges:\nSMILES from bond table| SM
+    CIF["CIF file"] -->|SMILES from bond table| SM
+    SMI["SMILES string"] --> SM
 
-clear_cache()
+    SM["Dimorphite-DL protonation\n+ 3D conformer (RDKit distance geometry)\n+ MMFF94 charges (OpenBabel)"] --> CORE
+
+    subgraph CORE [Typing / build / inject]
+        T["assign Rosetta atom types (RDKit)"] --> B["build RawResidueType"]
+        B --> INJ["inject into ParameterDatabase\n(residues + elec charges + cartbonded)"]
+    end
+
+    INJ --> DB["New frozen ParameterDatabase\n(+ rebuilt CanonicalOrdering)"]
+
+    TMOL[".tmol params file"] -->|inject_params_file| DB
 ```
 
-- **Reset database to default**:
+The `.tmol` path bypasses typing/build entirely — it injects already-prepared
+residue, charge, and cartbonded records straight into the database.
 
-```python
-from tmol.database import ParameterDatabase
+## Troubleshooting
 
-param_db = ParameterDatabase.get_default()
-```
+A ligand that "scores as 0" or goes missing almost always means it never made
+it into the pose. Failure modes, in order of likelihood:
 
-`ParameterDatabase` is immutable/frozen; injection returns a new instance.
-To "reset", just reacquire `get_default()` (or drop your extended instance).
+- **Ligand dropped during preparation.** With `prepare_ligands=True`,
+  preparation is **strict by default** (`strict_ligands=True`): an unpreparable
+  residue raises `LigandPreparationError` rather than silently disappearing. A
+  residue is dropped when it is *skipped* (contains metal atoms, or is
+  covalently linked to another residue) or when preparation *fails* (no
+  derivable SMILES, atom-typing failure, or residue-build error). Pass
+  `strict_ligands=False` to restore warn-and-drop behavior. (A successful but
+  imperfect atom-name match only warns — the ligand still loads.)
 
-## Library Responsibilities
+- **`Unrecognized 3lc <NAME>`.** Emitted by pose construction, not prep: the
+  3-letter code is not in the active `CanonicalOrdering`, so the residue is
+  stripped from the structure. Causes: `prepare_ligands=False` (ligands are
+  never registered), or `prepare_ligands=True, strict_ligands=False` with a
+  ligand that was skipped/failed (see the preceding warning for why). Under the
+  strict default this surfaces earlier as a `LigandPreparationError`.
 
-| Step | Library |
-|------|---------|
-| SMILES from structure | **RDKit** + Biotite |
-| Protonation | **Dimorphite-DL** |
-| 3D + MMFF94 charges | **OpenBabel** (mol2) |
-| Atom typing | **RDKit** (Rosetta port) |
-| Residue building | **RDKit** |
+- **Scoring against the default database.** A freshly prepared ligand block type
+  has no scoring parameters in the *default* database. Always build the score
+  function from the **ligand-extended** database returned by preparation
+  (`beta2016_score_function(device, param_db=param_db)`), or scoring silently
+  contributes nothing.
+
+- **Ligand wrongly flagged "covalently linked."** Historically, tight
+  binding-pocket contacts in unminimized models could be misread as covalent
+  links. Covalent detection now trusts the explicit bond table and only applies
+  the spatial-proximity fallback to polymer-linking residue types (modified
+  amino acids/nucleotides, glycans); genuine non-polymer ligands are no longer
+  flagged by proximity alone.
 
 ## File Inventory
 
 | File | Role |
 |------|------|
-| `preparation.py` | `prepare_ligands`, single-ligand helpers, CIF rename |
-| `fragmentation.py` | User annotations, fragment block types/connections, pose mapping |
-| `detect.py` | `NonStandardResidueInfo`, detection, mol2/SMILES readers |
-| `structure_to_smiles.py` | SMILES candidates from AtomArray |
-| `openbabel_compat.py` | SMILES→mol2, mol2 read fallbacks |
-| `rdkit_mol.py` | AtomArray → RDKit Mol |
+| `preparation.py` | `prepare_ligands`, single-ligand `from_{mol2,cif,smiles}` helpers, CIF rename |
+| `detect.py` | `NonStandardResidueInfo`, non-standard residue detection, mol2/SMILES readers |
+| `structure_to_smiles.py` | SMILES from an AtomArray bond table (no geometry perception, no CCD lookup) |
+| `dimorphite_dl.py` | pKa-based protonation-state enumeration on SMILES |
+| `conformer_generation.py` | 3D coordinates via RDKit distance geometry (replaces OpenBabel `make3D`) |
+| `generated_geometry.py` | Corrections to known systematic errors in generated conformers |
+| `openbabel_compat.py` | SMILES→mol2 (conformer + MMFF94 charges), mol2 read fallbacks |
 | `mol3d.py` | OpenBabel MMFF94 charges by atom index |
-| `atom_typing.py` | Rosetta-style atom type assignment |
-| `chi_topology.py` | Rotatable bonds / PROTON_CHI |
-| `residue_builder.py` | `RawResidueType` from Chem.Mol |
-| `registry.py` | Cache + `ParameterDatabase` injection |
-| `params_file.py` | Load/inject `.tmol` YAML |
+| `rdkit_mol.py` | AtomArray → RDKit `Mol` |
+| `mol2_names.py` | Rosetta-style disambiguation of duplicate Tripos atom names |
+| `atom_typing.py` | Rosetta `generic_potential` atom-type assignment (RDKit) |
+| `chi_topology.py` | Rotatable bonds / `PROTON_CHI` |
+| `chemistry_tables.py` | DB-backed atom-class and hbond lookup tables from the chemical DB |
+| `residue_builder.py` | `RawResidueType` from a `Chem.Mol` (atom tree, ICs, bond order) |
+| `registry.py` | `ParameterDatabase` injection, cartbonded params |
+| `params_file.py` | Load/inject `.tmol` YAML params |
 | `params_io.py` | Write `.params`/`.tmol`; read Rosetta `.params` |
-| `graph_match.py` | VF2 CIF name mapping |
-| `equivalence.py` | Parity comparison helpers |

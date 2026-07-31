@@ -6,8 +6,7 @@ scoring parameters built by the ligand preparation pipeline.
 
 import logging
 import math
-import copy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
@@ -25,70 +24,6 @@ from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.ligand.chemistry_tables import get_hbond_properties
 
 logger = logging.getLogger(__name__)
-
-CacheKey = tuple[str, float, bool, tuple[str, ...], tuple[str, ...]]
-
-
-@dataclass
-class LigandPreparationCache:
-    """Mutable cache keyed by (res_name, ph, sample_proton_chi, atom_names, elements)."""
-
-    ligands_by_key: dict[CacheKey, RawResidueType] = field(default_factory=dict)
-    charges_by_key: dict[CacheKey, dict[str, float]] = field(default_factory=dict)
-
-
-_default_cache = LigandPreparationCache()
-
-
-def get_default_cache() -> LigandPreparationCache:
-    """Return the process-global ligand preparation cache."""
-    return _default_cache
-
-
-def get_cached_ligand_for_key(
-    cache_key: CacheKey, cache: Optional[LigandPreparationCache] = None
-) -> Optional[RawResidueType]:
-    """Retrieve a cached ligand by full preparation key."""
-    cache = cache or _default_cache
-    cached = cache.ligands_by_key.get(cache_key)
-    return copy.deepcopy(cached) if cached is not None else None
-
-
-def get_cached_charges_for_key(
-    cache_key: CacheKey, cache: Optional[LigandPreparationCache] = None
-) -> Optional[dict[str, float]]:
-    """Retrieve cached partial charges by full preparation key."""
-    cache = cache or _default_cache
-    cached = cache.charges_by_key.get(cache_key)
-    return dict(cached) if cached is not None else None
-
-
-def cache_ligand(
-    res_name: str,
-    restype: RawResidueType,
-    charges: Optional[dict[str, float]] = None,
-    *,
-    cache_key: Optional[CacheKey] = None,
-    cache: Optional[LigandPreparationCache] = None,
-) -> None:
-    """Store a prepared ligand and its charges under ``cache_key``.
-
-    The ``res_name`` argument is kept for call-site clarity but has no
-    effect on cache lookup — only ``cache_key`` is.
-    """
-    cache = cache or _default_cache
-    if cache_key is None:
-        return
-    cache.ligands_by_key[cache_key] = copy.deepcopy(restype)
-    if charges is not None:
-        cache.charges_by_key[cache_key] = dict(charges)
-
-
-def clear_cache(cache: Optional[LigandPreparationCache] = None) -> None:
-    """Clear ligand cache contents."""
-    cache = cache or _default_cache
-    cache.ligands_by_key.clear()
-    cache.charges_by_key.clear()
 
 
 def _build_cartbonded_params(  # noqa: C901
