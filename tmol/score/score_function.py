@@ -54,99 +54,49 @@ class ScoreFunction:
         self.term_options = {}
 
     def set_weight(self, st: ScoreType, weight: float):
-        if not self.score_type_covered_by_contained_term(st):
-            self.retrieve_term_for_score_type(st)
-        if weight == 0 and self.term_for_st_has_no_other_non_zero_weights(st):
-            self.remove_term_for_score_type(st)  # TO DO!
+        """Turn on or off a score type by setting its weight.
+
+        This method will
+        """
+
+        if self._weights[st.value] == weight:
+            return
+        if not self._score_type_covered_by_contained_term(st):
+            self._retrieve_term_for_score_type(st)
+        elif weight == 0 and self._term_for_st_has_no_other_non_zero_weights(st):
+            self._remove_term_for_score_type(st)  # TO DO!
         self._weights[st.value] = weight
         self._weights_tensor_out_of_date = True
 
     def get_weight(self, st: ScoreType):
         return self._weights[st.value]
 
-    def score_type_covered_by_contained_term(self, st: ScoreType):
-        for term in self._all_terms:
-            if st in term.score_types():
-                return True
-        return False
-
-    def retrieve_term_for_score_type(self, st: ScoreType):
-        term = ScoreTermFactory.create_term_for_score_type(
-            st, self._param_db, self._device
-        )
-        # sanity check: if the ScoreTermFactory returns the wrong term,
-        # we want to know
-        assert st in term.score_types()
-        for tst in term.score_types():
-            self._term_for_st[tst.value] = term
-        self._all_terms_unordered.append(term)
-        self._all_terms_out_of_date = True
-        if term.n_bodies() == 1:
-            self._one_body_terms_unordered.append(term)
-            self._one_body_terms_out_of_date = True
-        elif term.n_bodies() == 2:
-            self._two_body_terms_unordered.append(term)
-            self._two_body_terms_out_of_date = True
-        else:
-            self._multi_body_terms_unordered.append(term)
-            self._multi_body_terms_out_of_date = True
-
-    def term_for_st_has_no_other_non_zero_weights(self, st: ScoreType):
-        term = self._term_for_st[st.value]
-        for st2 in term.score_types():
-            if st2 == st:
-                continue
-            if self._weights[st2.value] != 0:
-                return True
-        return False
-
     def all_terms(self):
-        """Grant read access to the list of terms.
-
-        Do not modify this list directly
-        """
-        if self._all_terms_out_of_date:
-            self._all_terms, self._all_score_types = self.get_sorted_terms(
-                self._all_terms_unordered
-            )
-            self._all_terms_out_of_date = False
-
+        """Grant read access to the list of terms."""
+        self._update_all_terms()
         return self._all_terms
 
     def all_score_types(self):
-        if self._all_terms_out_of_date:
-            self._all_terms, self._all_score_types = self.get_sorted_terms(
-                self._all_terms_unordered
-            )
-            self._all_terms_out_of_date = False
+        """Return the list of the currently-active score types
 
+        These are sorted by their order in the ScoreType enum, which
+        is also the order in which terms are ordered in the output
+        unweighted score tensor of the WholePoseScoringModule and
+        BlockPairScoringModule.
+        """
+        self._update_all_terms()
         return self._all_score_types
 
     def one_body_terms(self):
-        if self._one_body_terms_out_of_date:
-            self._one_body_terms, _ = self.get_sorted_terms(
-                self._one_body_terms_unordered
-            )
-            self._one_body_terms_out_of_date = False
-
+        self._update_one_body_terms()
         return self._one_body_terms
 
     def two_body_terms(self):
-        if self._two_body_terms_out_of_date:
-            self._two_body_terms, _ = self.get_sorted_terms(
-                self._two_body_terms_unordered
-            )
-            self._two_body_terms_out_of_date = False
-
+        self._update_two_body_terms()
         return self._two_body_terms
 
     def multi_body_terms(self):
-        if self._multi_body_terms_out_of_date:
-            self._multi_body_terms, _ = self.get_sorted_terms(
-                self._multi_body_terms_unordered
-            )
-            self._multi_body_terms_out_of_date = False
-
+        self._update_multi_body_terms()
         return self._multi_body_terms
 
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
@@ -158,7 +108,7 @@ class ScoreFunction:
         object's __call__ will return a tensor of weighted energies of
         shape (n_poses,).
         """
-        self.pre_work_initialization(pose_stack)
+        self._pre_work_initialization(pose_stack)
         term_modules = [
             t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()
         ]
@@ -173,7 +123,7 @@ class ScoreFunction:
         object's __call__ will return a tensor of weighted energies of
         shape (n_poses, max_n_blocks, max_n_blocks).
         """
-        self.pre_work_initialization(pose_stack)
+        self._pre_work_initialization(pose_stack)
         term_modules = [
             t.render_block_pair_scoring_module(pose_stack) for t in self.all_terms()
         ]
@@ -190,32 +140,18 @@ class ScoreFunction:
         object's __call__ will return a tensor of weighted energies of
         shape (n_poses, max_n_blocks, max_n_blocks).
         """
-        self.pre_work_initialization(pose_stack)
+        self._pre_work_initialization(pose_stack)
         term_modules = [
             t.render_rotamer_scoring_module(pose_stack, rotamer_set)
             for t in self.all_terms()
         ]
         return RotamerScoringModule(self.weights_tensor(), term_modules)
 
-    def pre_work_initialization(self, pose_stack: PoseStack):
-        # set_options must be first, since some of the logic that follows it
-        # may depend on the options
-        for energy_term in self.all_terms():
-            energy_term.set_options(self.term_options)
-
-        for block_type in pose_stack.packed_block_types.active_block_types:
-            for energy_term in self.all_terms():
-                energy_term.setup_block_type(block_type)
-        for energy_term in self.all_terms():
-            energy_term.setup_packed_block_types(pose_stack.packed_block_types)
-        for energy_term in self.all_terms():
-            energy_term.setup_poses(pose_stack)
-
     def set_option(self, key: str, value):
         """Set an option for all energy terms.
 
         Options are passed to each energy term's set_options method
-        as a dictionary during pre_work_initialization.
+        as a dictionary during _pre_work_initialization.
         """
         self.term_options[key] = value
 
@@ -292,8 +228,102 @@ class ScoreFunction:
             sfxn.set_options(data["options"])
         return sfxn
 
+    def _score_type_covered_by_contained_term(self, st: ScoreType):
+        return self._term_for_st[st.value] is not None
+
+    def _retrieve_term_for_score_type(self, st: ScoreType):
+        term = ScoreTermFactory.create_term_for_score_type(
+            st, self._param_db, self._device
+        )
+        # sanity check: if the ScoreTermFactory returns the wrong term,
+        # we want to know
+        assert st in term.score_types()
+        for tst in term.score_types():
+            self._term_for_st[tst.value] = term
+        self._all_terms_unordered.append(term)
+        self._all_terms_out_of_date = True
+        if term.n_bodies() == 1:
+            self._one_body_terms_unordered.append(term)
+            self._one_body_terms_out_of_date = True
+        elif term.n_bodies() == 2:
+            self._two_body_terms_unordered.append(term)
+            self._two_body_terms_out_of_date = True
+        else:
+            self._multi_body_terms_unordered.append(term)
+            self._multi_body_terms_out_of_date = True
+
+    def _term_for_st_has_no_other_non_zero_weights(self, st: ScoreType):
+        term = self._term_for_st[st.value]
+        for st2 in term.score_types():
+            if st2 == st:
+                continue
+            if self._weights[st2.value] != 0:
+                return False
+        return True
+
+    def _remove_term_for_score_type(self, st: ScoreType):
+        term = self._term_for_st[st.value]
+        self._all_terms_unordered.remove(term)
+        self._all_terms_out_of_date = True
+
+        if term.n_bodies() == 1:
+            self._one_body_terms_unordered.remove(term)
+            self._one_body_terms_out_of_date = True
+        elif term.n_bodies() == 2:
+            self._two_body_terms_unordered.remove(term)
+            self._two_body_terms_out_of_date = True
+        else:
+            self._multi_body_terms_unordered.remove(term)
+            self._multi_body_terms_out_of_date = True
+
+        self._weights_tensor_out_of_date = True
+        for tst in term.score_types():
+            self._term_for_st[tst.value] = None
+
+    def _pre_work_initialization(self, pose_stack: PoseStack):
+        # set_options must be first, since some of the logic that follows it
+        # may depend on the options
+        for energy_term in self.all_terms():
+            energy_term.set_options(self.term_options)
+
+        for block_type in pose_stack.packed_block_types.active_block_types:
+            for energy_term in self.all_terms():
+                energy_term.setup_block_type(block_type)
+        for energy_term in self.all_terms():
+            energy_term.setup_packed_block_types(pose_stack.packed_block_types)
+        for energy_term in self.all_terms():
+            energy_term.setup_poses(pose_stack)
+
+    def _update_all_terms(self):
+        if self._all_terms_out_of_date:
+            self._all_terms, self._all_score_types = self._get_sorted_terms(
+                self._all_terms_unordered
+            )
+            self._all_terms_out_of_date = False
+
+    def _update_one_body_terms(self):
+        if self._one_body_terms_out_of_date:
+            self._one_body_terms, _ = self._get_sorted_terms(
+                self._one_body_terms_unordered
+            )
+            self._one_body_terms_out_of_date = False
+
+    def _update_two_body_terms(self):
+        if self._two_body_terms_out_of_date:
+            self._two_body_terms, _ = self._get_sorted_terms(
+                self._two_body_terms_unordered
+            )
+            self._two_body_terms_out_of_date = False
+
+    def _update_multi_body_terms(self):
+        if self._multi_body_terms_out_of_date:
+            self._multi_body_terms, _ = self._get_sorted_terms(
+                self._multi_body_terms_unordered
+            )
+            self._multi_body_terms_out_of_date = False
+
     @staticmethod
-    def get_sorted_terms(term_list):
+    def _get_sorted_terms(term_list):
         sorted_term_list = []
         sorted_score_type_list = []
         term_covered = [False] * ScoreType.n_score_types.value

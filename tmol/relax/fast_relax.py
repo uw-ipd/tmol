@@ -149,7 +149,7 @@ def fast_relax(
     sfxn: ScoreFunction,
     packer_pallete: PackerPalette,
     move_map: Union[MoveMap, CartesianMoveMap],
-    fold_forest: FoldForest,
+    fold_forest: Optional[FoldForest],
     *,
     task_operations=None,
     num_repeats=2,
@@ -166,7 +166,9 @@ def fast_relax(
     followed by an accept-to-best check.
 
     Args:
-        pose_stack: The input poses to relax.
+        pose_stack: The input poses to relax. Relax will use the precision of
+            the input coords tensor during minimization, but will only use
+            torch.float32 precision for packing.
         sfxn: Score function used for packing and minimization. If you wish
             to use constraints during relax, then the weight on the "constraint"
             score type must already have a non-zero value.
@@ -342,6 +344,11 @@ def relax_pack_min_step(
     min_fn,
     verbose,
 ):
+    """Perform a single pack-min step of the FastRelax protocol.
+
+    Convert the PoseStack to float32 for packing, then restore
+    it to the input dtype afterwards."""
+    input_pose_dtype = pose_stack.coords.dtype
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -359,7 +366,12 @@ def relax_pack_min_step(
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time1 = time.perf_counter()
+
+    # convert pose_stack to float32 for packing, and restore it
+    # to the input dtype afterwards
+    pose_stack = pose_stack.to(torch.float32)
     packed_pose_stack = pack_rotamers(pose_stack, sfxn, task, verbose)
+    packed_pose_stack = packed_pose_stack.to(dtype=input_pose_dtype)
 
     sfxn.set_weight(ScoreType.fa_ljrep, fa_rep_min_weight)
     if verbose:
@@ -432,3 +444,68 @@ def accept_best(
         return new_best_pose_stack, new_best_pose_score
     else:  # no change
         return best_pose_stack, best_pose_score
+
+
+def kin_fast_relax(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    packer_pallete: PackerPalette,
+    move_map: MoveMap,
+    fold_forest: FoldForest,
+    *,
+    task_operations=None,
+    num_repeats=2,
+    ramp_constraints: Optional[bool] = None,  # default True
+    schedule=None,
+    min_fn=_default_kin_min_fn,
+    verbose: bool = False,
+):
+    """Run the FastRelax protocol using kinematic (torsion-space) minimization.
+
+    See documentation for fast_relax.
+    """
+    return fast_relax(
+        pose_stack,
+        sfxn,
+        packer_pallete,
+        move_map,
+        fold_forest,
+        task_operations=task_operations,
+        num_repeats=num_repeats,
+        ramp_constraints=ramp_constraints,
+        schedule=schedule,
+        min_fn=min_fn or _default_kin_min_fn,
+        verbose=verbose,
+    )
+
+
+def cartesian_fast_relax(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    packer_pallete: PackerPalette,
+    move_map: CartesianMoveMap,
+    *,
+    task_operations=None,
+    num_repeats=2,
+    ramp_constraints: Optional[bool] = None,  # default True
+    schedule=None,
+    min_fn=_default_cart_min_fn,
+    verbose: bool = False,
+):
+    """Run the FastRelax protocol using Cartesian (coordinate-space) minimization.
+
+    See documentation for fast_relax.
+    """
+    return fast_relax(
+        pose_stack,
+        sfxn,
+        packer_pallete,
+        move_map,
+        None,
+        task_operations=task_operations,
+        num_repeats=num_repeats,
+        ramp_constraints=ramp_constraints,
+        schedule=schedule,
+        min_fn=min_fn or _default_kin_min_fn,
+        verbose=verbose,
+    )
