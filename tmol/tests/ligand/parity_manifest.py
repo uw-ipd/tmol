@@ -16,17 +16,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-_DEFAULT_ROOT = Path(__file__).parent.parent / "tests" / "data" / "ligand_ground_truth"
-# The dataset-driven parity set (DUD-80) lives under tests/data/ligand_test:
-# ``ligand_ground_truth`` holds the Rosetta ground truth, ``ligand_tmol_generated``
-# the tmol outputs saved for manual comparison. Kept local (git-ignored).
-_DATASET_ROOT = (
-    Path(__file__).parent.parent
-    / "tests"
-    / "data"
-    / "ligand_test"
-    / "ligand_ground_truth"
-)
+from tmol.tests.data import data_path
+
+_DEFAULT_ROOT = data_path("ligand_ground_truth")
+_DATASET_ROOT = data_path("ligand_test", "ligand_ground_truth")
 
 
 @dataclass(frozen=True)

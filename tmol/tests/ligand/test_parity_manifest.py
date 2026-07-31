@@ -7,13 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from tmol.ligand.parity_manifest import (
+from tmol.tests.data import data_path
+from tmol.tests.ligand.parity_manifest import (
     LigandParityEntry,
     default_dataset_manifest,
     load_parity_manifest,
 )
 
-_GROUND_TRUTH = Path(__file__).parent.parent / "data" / "ligand_ground_truth"
+_GROUND_TRUTH = data_path("ligand_ground_truth")
 
 
 def _write_manifest(tmp_path, records: list, *, wrap: bool = True) -> Path:

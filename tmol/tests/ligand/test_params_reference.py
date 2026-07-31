@@ -8,7 +8,8 @@ import pytest
 
 from types import SimpleNamespace
 
-from tmol.ligand.params_reference import (
+from tmol.tests.data import data_path
+from tmol.tests.ligand.params_reference import (
     GeneratedFields,
     ReferenceParams,
     as_legacy_dict,
@@ -32,7 +33,7 @@ def _matching_generated_fields(ref: ReferenceParams) -> GeneratedFields:
     )
 
 
-_GROUND_TRUTH = Path(__file__).parent.parent / "data" / "ligand_ground_truth"
+_GROUND_TRUTH = data_path("ligand_ground_truth")
 _REF1 = _GROUND_TRUTH / "ref1.params"
 _REF2 = _GROUND_TRUTH / "ref2.params"
 
@@ -300,7 +301,7 @@ def test_semantic_comparator_handles_pdb_carbon_name_collision() -> None:
 
 def test_element_from_atom_type_prefixes() -> None:
     """Element inference from atom-type prefixes covers expected cases."""
-    from tmol.ligand.equivalence import _element_from_atom_type
+    from tmol.tests.ligand.equivalence import _element_from_atom_type
 
     cases = {
         "CS1": "C",

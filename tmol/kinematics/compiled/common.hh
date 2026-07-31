@@ -332,7 +332,17 @@ struct common {
     HomogeneousTransform ht;
 
     Coord xaxis = (a - b).normalized();
-    Coord zaxis = xaxis.cross(c - a).normalized();
+    Coord ca = c - a;
+    Coord zaxis = xaxis.cross(ca);
+    // (Near-)collinear frame fix
+    // This needs to match the collinear guard in score/common/gen_coord.hh!
+    Real ca_norm = ca.norm();
+    if (ca_norm < Real(1e-6) || zaxis.norm() < Real(1e-2) * ca_norm) {
+      Coord alt =
+          (std::fabs(xaxis[0]) < Real(0.99)) ? Coord(1, 0, 0) : Coord(0, 1, 0);
+      zaxis = xaxis.cross(alt);
+    }
+    zaxis = zaxis.normalized();
     Coord yaxis = zaxis.cross(xaxis).normalized();
 
     ht.block(0, 0, 1, 3) = xaxis.transpose();

@@ -18,11 +18,7 @@ from tmol.ligand.detect import NonStandardResidueInfo, _strip_metals
 logger = logging.getLogger(__name__)
 
 
-# Map biotite BondType -> the RDKit bond order we want on the round-tripped
-# Mol. biotite's ``to_mol`` collapses AROMATIC_DOUBLE → SINGLE + aromatic
-# flag, which loses the double-bond information needed by RDKit's sanitize
-# valence model — leading to all-single ring bonds for N-heterocycles. We
-# restore the Kekulé bond orders by walking the source atom_array.
+# Map biotite BondType -> the RDKit bond order we want
 _BIOTITE_TO_RDKIT_BOND_ORDER = {
     int(struc.BondType.SINGLE): Chem.BondType.SINGLE,
     int(struc.BondType.DOUBLE): Chem.BondType.DOUBLE,
@@ -118,6 +114,29 @@ def normalize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
     _kekulize_non_ring_aromatic_bonds(mol)
 
 
+def normalize_cumulated_azide(mol: Chem.Mol) -> Chem.Mol:
+    """Strip a spurious H from a charge-separated azide/diazo terminus.
+
+    Convert N=N=N-H (which RDKit does not understand) to =[N+]=[N-]
+    Do nothing if this group is not found.
+    """
+    h_idx = [
+        h.GetIdx()
+        for atom in mol.GetAtoms()
+        if atom.GetAtomicNum() == 7
+        and atom.GetFormalCharge() == -1
+        and any(b.GetBondType() == Chem.BondType.DOUBLE for b in atom.GetBonds())
+        for h in atom.GetNeighbors()
+        if h.GetAtomicNum() == 1
+    ]
+    if not h_idx:
+        return mol
+    rw = Chem.RWMol(mol)
+    for i in sorted(set(h_idx), reverse=True):
+        rw.RemoveAtom(i)
+    return rw.GetMol()
+
+
 def _apply_atom_array_annotations(
     mol: Chem.Mol, atom_array: struc.AtomArray, arr_indices: list[int]
 ) -> None:
@@ -200,24 +219,125 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
         return Chem.RemoveHs(mol, sanitize=False)
 
 
-def ligand_atom_array_to_rdkit_mol(
-    ligand_info: NonStandardResidueInfo,
+def _normalize_nitro(mol: Chem.Mol) -> None:
+    """Rewrite pentavalent nitro N(=O)=O to [N+](=O)[O-].
+
+    Some inputs draw nitro with two N=O double bonds (valence-5 neutral N), which
+    RDKit rejects. Demote one N=O to a single bond and set the charges that make
+    it valid. Runs before formal-charge inference and sanitize.
+    """
+    for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() != 7:
+            continue
+        dbl_term_o = [
+            b
+            for b in atom.GetBonds()
+            if b.GetBondType() == Chem.BondType.DOUBLE
+            and b.GetOtherAtom(atom).GetAtomicNum() == 8
+            and b.GetOtherAtom(atom).GetDegree() == 1
+        ]
+        if len(dbl_term_o) < 2:
+            continue
+        for bond in dbl_term_o[1:]:
+            bond.SetBondType(Chem.BondType.SINGLE)
+            bond.GetOtherAtom(atom).SetFormalCharge(-1)
+        atom.SetFormalCharge(1)
+
+
+def _normalize_exocyclic_aromatic_imine(mol: Chem.Mol) -> None:
+    """Demote an exocyclic aromatic C=N to single (amino tautomer).
+
+    Some mol2 files annotate these as a double-bond, leading to
+    RDKit failures in converting to smiles.  Downgrade to C-N"""
+
+    def arom_c(a):
+        return a.GetAtomicNum() == 6 and a.GetIsAromatic()
+
+    for bond in mol.GetBonds():
+        if bond.GetBondType() != Chem.BondType.DOUBLE or bond.IsInRing():
+            continue
+        a, b = bond.GetBeginAtom(), bond.GetEndAtom()
+        if (arom_c(a) and b.GetAtomicNum() == 7) or (
+            arom_c(b) and a.GetAtomicNum() == 7
+        ):
+            bond.SetBondType(Chem.BondType.SINGLE)
+
+
+# Neutral (uncharged) valence per element
+_NEUTRAL_VALENCE = {7: 3, 8: 2}
+
+
+def _is_counterion_oxygen(atom: Chem.Atom) -> bool:
+    """True for a terminal O bonded to a cationic N (nitro / N-oxide oxygen).
+
+    Such an O is the counter-anion of a hard N cation, never an omitted-H
+    hydroxyl, so it must be -1 even without explicit H. The N is cationic when
+    aromatic (pyridinium N-oxide) or over-valent (nitro/tertiary N-oxide);
+    a neutral hydroxylamine R2N-OH (valence-3 N) is excluded.
+    """
+    if atom.GetAtomicNum() != 8 or atom.GetDegree() != 1:
+        return False
+    n = atom.GetNeighbors()[0]
+    if n.GetAtomicNum() != 7:
+        return False
+    if n.GetIsAromatic():
+        return True
+    return int(round(sum(b.GetBondTypeAsDouble() for b in n.GetBonds()))) > 3
+
+
+def _assign_formal_charges_from_valence(mol: Chem.Mol) -> None:
+    """Infer formal charge from the explicit bond orders (Lewis rule).
+
+    This is only run on structures containing explicit H.  For others, we
+    let dimorphite infer both protonation state and charge -- except a nitro /
+    N-oxide oxygen, which stays -1 even without H (see _is_counterion_oxygen).
+    """
+    has_explicit_h = any(atom.GetAtomicNum() == 1 for atom in mol.GetAtoms())
+    for atom in mol.GetAtoms():
+        neutral = _NEUTRAL_VALENCE.get(atom.GetAtomicNum())
+        if neutral is None or atom.GetFormalCharge() != 0:
+            continue
+        bonds = atom.GetBonds()
+        if any(b.GetBondType() == Chem.BondType.AROMATIC for b in bonds):
+            continue
+        valence = sum(b.GetBondTypeAsDouble() for b in bonds)
+        charge = int(round(valence)) - neutral
+        if charge < 0 and not has_explicit_h and not _is_counterion_oxygen(atom):
+            continue  # ambiguous: omitted H, not a real anion -- leave neutral
+        if charge != 0:
+            atom.SetFormalCharge(charge)
+
+
+def rdkit_mol_from_ligand_atom_array(
+    atom_array: struc.AtomArray,
     *,
+    res_name: str = "ligand",
     keep_hydrogens: bool = False,
+    repair_chemistry: bool = False,
 ) -> Chem.Mol:
-    """Build an RDKit Mol directly from a ligand AtomArray.
+    """Build an RDKit Mol from a ligand AtomArray's explicit bond table.
+
+    The single AtomArray -> RDKit builder for the ligand pipeline: it preserves
+    the source's explicit bond orders (restoring Kekulé forms biotite's
+    ``to_mol`` collapses) and aromatic/subtype annotations. Bond perception from
+    geometry is intentionally unsupported — the input must carry chemistry-level
+    bond orders.
 
     Args:
+        atom_array: The ligand sub-array (heavy + optional hydrogen atoms).
+        res_name: Residue code, used only for log/error messages.
         keep_hydrogens: When True, retain explicit hydrogens from the input
             (used for ``skip_protonation`` — preserve mol2/CIF protonation).
+        repair_chemistry: When True, apply last-resort chemistry normalizations
+            that rewrite source bond orders to make an otherwise-unrepresentable
+            input build.
     """
-    atom_array = ligand_info.atom_array
     has_bonds = atom_array.bonds is not None and atom_array.bonds.get_bond_count() > 0
     if len(atom_array) == 0:
-        raise ValueError(f"{ligand_info.res_name}: empty atom array")
+        raise ValueError(f"{res_name}: empty atom array")
     if not has_bonds:
         raise ValueError(
-            f"{ligand_info.res_name}: ligand bond inference is unsupported. "
+            f"{res_name}: ligand bond inference is unsupported. "
             "Input must provide explicit bond orders (CIF with "
             "_chem_comp_bond.value_order / aromatic annotations). "
             "PDB/topology-only ligand chemistry is not supported."
@@ -231,24 +351,18 @@ def ligand_atom_array_to_rdkit_mol(
         logger.warning(
             "%s: unsupported bond type codes %s in ligand input; "
             "preserving original to_mol bond typing for those edges.",
-            ligand_info.res_name,
+            res_name,
             unsupported,
         )
 
-    chemistry_orders = {
-        int(struc.BondType.DOUBLE),
-        int(struc.BondType.TRIPLE),
-        int(struc.BondType.QUADRUPLE),
-        int(struc.BondType.AROMATIC),
-        int(struc.BondType.AROMATIC_SINGLE),
-        int(struc.BondType.AROMATIC_DOUBLE),
-        int(struc.BondType.AROMATIC_TRIPLE),
-    }
-    has_chemistry_order_signal = any(t in chemistry_orders for t in raw_types)
+    # BondType.ANY (0) marks bonds whose order was perceived from geometry
+    # (PDB/topology); explicit SINGLE (1) is a real, provided bond order, so a
+    # fully saturated ligand is not topology-only.
     has_custom_aromatic_flags = hasattr(atom_array, "tmol_aromatic")
-    if not has_chemistry_order_signal and not has_custom_aromatic_flags:
+    has_topology_only_bonds = any(t == int(struc.BondType.ANY) for t in raw_types)
+    if has_topology_only_bonds and not has_custom_aromatic_flags:
         raise ValueError(
-            f"{ligand_info.res_name}: ligand has topology-only SINGLE bonds with no "
+            f"{res_name}: ligand has topology-only bonds with no "
             "chemistry-level bond-order/aromatic annotations. "
             "PDB ligand chemistry inference is unsupported; provide ligand as CIF "
             "with explicit bond orders."
@@ -258,12 +372,19 @@ def ligand_atom_array_to_rdkit_mol(
         mol = to_mol(atom_array)
     except Exception as exc:
         raise ValueError(
-            f"{ligand_info.res_name}: failed to read explicit ligand bond chemistry "
+            f"{res_name}: failed to read explicit ligand bond chemistry "
             f"from input ({exc}). Provide a CIF with explicit bond orders."
         ) from exc
     _restore_kekule_bonds(mol, atom_array)
+    mol = normalize_cumulated_azide(mol)
     normalize_non_ring_aromatic_bonds(mol)
     _apply_source_subtypes(mol, atom_array)
+    _normalize_nitro(mol)
+    if repair_chemistry:
+        # Last-resort normalizations that rewrite source bond orders; only the
+        # SMILES fallback path enables these (see docstring).
+        _normalize_exocyclic_aromatic_imine(mol)
+    _assign_formal_charges_from_valence(mol)
 
     if keep_hydrogens:
         arr_indices = list(range(len(atom_array)))
@@ -277,5 +398,21 @@ def ligand_atom_array_to_rdkit_mol(
     _apply_atom_array_annotations(mol, atom_array, arr_indices)
     mol = _strip_metals(mol)
     if mol is None or mol.GetNumAtoms() == 0:
-        raise ValueError(f"{ligand_info.res_name}: failed to build RDKit Mol")
+        raise ValueError(f"{res_name}: failed to build RDKit Mol")
     return mol
+
+
+def ligand_atom_array_to_rdkit_mol(
+    ligand_info: NonStandardResidueInfo,
+    *,
+    keep_hydrogens: bool = False,
+) -> Chem.Mol:
+    """Build an RDKit Mol from a detected ligand's AtomArray.
+
+    Thin wrapper over :func:`rdkit_mol_from_ligand_atom_array`.
+    """
+    return rdkit_mol_from_ligand_atom_array(
+        ligand_info.atom_array,
+        res_name=ligand_info.res_name,
+        keep_hydrogens=keep_hydrogens,
+    )

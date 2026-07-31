@@ -24,17 +24,6 @@ from rdkit import Chem
 logger = logging.getLogger(__name__)
 
 
-# Conformer-search defaults for the SMILES -> mol2 builder. The reference
-# ligand-prep pipeline runs OpenBabel's ``--conformer -nconf 500 --score energy``
-# (a genetic-algorithm search) followed by a steepest-descent minimize. That
-# search (``OBConformerSearch``) crashes (double free) in the openbabel-wheel
-# Python binding, so we use the stable ``OBForceField.WeightedRotorSearch``
-# instead: it rotor-samples ``_CONFORMER_NCONF`` candidates, minimizing each for
-# ``_CONFORMER_GEOM_STEPS`` steps, and keeps the lowest-energy geometry.
-_CONFORMER_NCONF = 50
-_CONFORMER_GEOM_STEPS = 25
-
-
 class OpenBabelUnavailableError(RuntimeError):
     """Raised when an OB-fallback helper is called but ``openbabel`` is missing."""
 
@@ -80,6 +69,28 @@ def strip_nontetrahedral_stereo(smiles: str) -> str:
         out,
     )
     return out
+
+
+def normalize_azide(smiles: str) -> str:
+    """Rewrite the neutral cumulated azide ``N=[N]=N`` (CACTVS notation) to the
+    charged form ``N=[N+]=[N-]`` that RDKit can sanitize."""
+    return smiles.replace("N=[N]=N", "N=[N+]=[N-]")
+
+
+def source_atom_order_from_mapped_smiles(smiles: str) -> Optional[tuple[int, ...]]:
+    """Map numbers (source indices) in SMILES/mol2 atom order, or None if any
+    atom is unmapped. Normalized identically to the mol2 path so order matches."""
+    smiles = normalize_azide(strip_nontetrahedral_stereo(smiles))
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    order: list[int] = []
+    for atom in mol.GetAtoms():
+        mapnum = atom.GetAtomMapNum()
+        if mapnum <= 0:
+            return None
+        order.append(mapnum - 1)
+    return tuple(order)
 
 
 def _import_openbabel() -> tuple:
@@ -163,27 +174,6 @@ def obabel_read_mol2_block(mol2_block: str) -> Optional[Chem.Mol]:
     return _obmol_to_rdkit_mol(pymol.OBMol)
 
 
-def _conformer_search(
-    openbabel, obmol, *, forcefield: str, minimize_steps: int
-) -> bool:
-    """Run a force-field rotor conformer search in place on ``obmol``.
-
-    Replaces the reference pipeline's ``--conformer --score energy`` step with
-    :meth:`OBForceField.WeightedRotorSearch` (the genetic-algorithm
-    ``OBConformerSearch`` crashes in this build). Returns ``True`` if the search
-    ran and the lowest-energy geometry was written back to ``obmol``; ``False``
-    if the force field could not be set up (caller falls back to a plain
-    minimize).
-    """
-    ff = openbabel.OBForceField.FindForceField(forcefield)
-    if ff is None or not ff.Setup(obmol):
-        return False
-    ff.WeightedRotorSearch(_CONFORMER_NCONF, _CONFORMER_GEOM_STEPS)
-    ff.ConjugateGradients(minimize_steps or _CONFORMER_GEOM_STEPS)
-    ff.GetCoordinates(obmol)
-    return True
-
-
 # mmff94 fails on pentavalent phosphorous.
 # fallback to eem in these cases
 _CHARGE_MODEL_FALLBACKS = ("eem",)
@@ -227,59 +217,40 @@ def _build_charged_3d_mol2_mol(
     smiles: str,
     *,
     forcefield: str = "mmff94",
-    make3d_steps: int = 50,
-    minimize_steps: int = 500,
-    conformer_search: bool = True,
+    minimize_steps: int = 50,
+    seed: Optional[int] = None,
 ):
     """Parse a SMILES, 3D-embed, charge, and rename atoms; return the pybel mol.
 
     Shared core of :func:`obabel_smiles_to_mol2` (file) and
-    :func:`obabel_smiles_to_mol2_block` (string). Mirrors the reference
-    ligand-prep protocol: add explicit hydrogens, embed 3D coordinates with the
-    named force field, optionally run a rotor conformer search to find a
-    low-energy geometry (``conformer_search``, default on), minimize, compute
-    its partial charges (so the mol2 ``charge_type`` is normally
-    ``MMFF94_CHARGES``), and assign generic atom names. MMFF94 charges are
-    topological (graph-determined), so the exact conformer does not affect
-    them — only the atom coordinates.
+    :func:`obabel_smiles_to_mol2_block` (string). Coordinates come from the
+    distance-geometry builder (:func:`tmol.ligand.conformer_generation.
+    generate_conformer`); this then computes MMFF94 partial charges (so the mol2
+    ``charge_type`` is normally ``MMFF94_CHARGES``) and assigns generic atom
+    names. MMFF94 charges are topological, so the conformer does not affect them.
 
-    If the named model cannot parameterize the molecule at all (e.g. MMFF94 has
-    no types for a lambda-5 phosphorane), charges come from a fallback model
-    instead — see :func:`_compute_charges_with_fallback`, which warns loudly.
+    If the named model cannot parameterize the molecule (e.g. MMFF94 has no types
+    for a lambda-5 phosphorane), charges come from a fallback model instead — see
+    :func:`_compute_charges_with_fallback`, which warns loudly.
 
     Args:
-        conformer_search: When ``True`` (default), run a rotor conformer search
-            (:func:`_conformer_search`) after the initial embed, matching the
-            reference pipeline. Set ``False`` for faster single-conformer
-            generation (embed + minimize only).
+        minimize_steps: OpenBabel conjugate-gradient cleanup steps.
+        seed: Fixed RNG seed for reproducible coordinates; ``None`` is random.
 
     Raises:
         OpenBabelUnavailableError: If the ``openbabel`` package is not installed.
-        ValueError: If OB rejects the SMILES, fails 3D generation, or cannot
-            compute partial charges.
+        ValueError: If RDKit rejects the chemistry, 3D generation fails, or no
+            partial charges can be computed.
     """
-    openbabel, pybel = _import_openbabel()
-    smiles = strip_nontetrahedral_stereo(smiles)
+    from tmol.ligand.conformer_generation import generate_conformer
+
+    openbabel, _ = _import_openbabel()
+    smiles = normalize_azide(strip_nontetrahedral_stereo(smiles))
     try:
-        pymol = pybel.readstring("smi", smiles)
-    except Exception as exc:
-        raise ValueError(f"OpenBabel could not parse SMILES {smiles!r}") from exc
-    try:
-        pymol.addh()
-        pymol.make3D(forcefield=forcefield, steps=make3d_steps)
-        searched = False
-        if conformer_search:
-            searched = _conformer_search(
-                openbabel,
-                pymol.OBMol,
-                forcefield=forcefield,
-                minimize_steps=minimize_steps,
-            )
-        if not searched and minimize_steps:
-            pymol.localopt(forcefield=forcefield, steps=minimize_steps)
+        pymol = generate_conformer(smiles, minimize_steps=minimize_steps, seed=seed)
     except Exception as exc:
         raise ValueError(
-            f"OpenBabel failed to generate 3D coordinates for SMILES {smiles!r}"
+            f"failed to generate 3D coordinates for SMILES {smiles!r}"
         ) from exc
     _compute_charges_with_fallback(openbabel, pymol, forcefield, smiles)
     _assign_generic_atom_names(openbabel, pymol.OBMol)
@@ -290,24 +261,18 @@ def obabel_smiles_to_mol2_block(
     smiles: str,
     *,
     forcefield: str = "mmff94",
-    make3d_steps: int = 50,
-    minimize_steps: int = 500,
-    conformer_search: bool = True,
+    minimize_steps: int = 50,
+    seed: Optional[int] = None,
 ) -> str:
     """Return a 3D MMFF94 mol2 as an in-memory TRIPOS string (no disk I/O).
 
     Preferred over :func:`obabel_smiles_to_mol2` for high-throughput batches
     (e.g. millions of SMILES): the mol2 is handed downstream as a string rather
-    than written to and re-read from a temp file. ``conformer_search`` (default
-    on) runs a rotor conformer search; set ``False`` for faster generation. See
+    than written to and re-read from a temp file. See
     :func:`_build_charged_3d_mol2_mol` for the protocol and raised errors.
     """
     pymol = _build_charged_3d_mol2_mol(
-        smiles,
-        forcefield=forcefield,
-        make3d_steps=make3d_steps,
-        minimize_steps=minimize_steps,
-        conformer_search=conformer_search,
+        smiles, forcefield=forcefield, minimize_steps=minimize_steps, seed=seed
     )
     return pymol.write("mol2")
 
@@ -317,26 +282,20 @@ def obabel_smiles_to_mol2(
     out_path: str | Path,
     *,
     forcefield: str = "mmff94",
-    make3d_steps: int = 50,
-    minimize_steps: int = 500,
-    conformer_search: bool = True,
+    minimize_steps: int = 50,
+    seed: Optional[int] = None,
 ) -> Path:
     """Generate a 3D MMFF94 mol2 from a SMILES and write it to ``out_path``.
 
     File-writing wrapper around :func:`obabel_smiles_to_mol2_block`; prefer the
-    block form when no on-disk mol2 is required. ``conformer_search`` (default
-    on) runs a rotor conformer search; set ``False`` for faster generation. See
+    block form when no on-disk mol2 is required. See
     :func:`_build_charged_3d_mol2_mol` for the protocol and raised errors.
 
     Returns:
         The ``out_path`` written.
     """
     pymol = _build_charged_3d_mol2_mol(
-        smiles,
-        forcefield=forcefield,
-        make3d_steps=make3d_steps,
-        minimize_steps=minimize_steps,
-        conformer_search=conformer_search,
+        smiles, forcefield=forcefield, minimize_steps=minimize_steps, seed=seed
     )
     out_path = Path(out_path)
     pymol.write("mol2", str(out_path), overwrite=True)

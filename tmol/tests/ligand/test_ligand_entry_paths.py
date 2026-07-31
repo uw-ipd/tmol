@@ -14,9 +14,10 @@ from pathlib import Path
 
 import pytest
 
+from tmol.tests.data import data_path
 from tmol.database import ParameterDatabase
 
-DATA = Path(__file__).parent.parent / "data"
+DATA = data_path()
 MOL2_DIR = DATA / "ligand_test" / "ligand_ground_truth" / "mol2"
 
 
@@ -215,7 +216,6 @@ def test_prepare_ligand_from_smiles_registers(name: str) -> None:
         smiles,
         param_db=ParameterDatabase.get_default(),
         res_name="LG1",
-        conformer_search=False,
     )
     residue = next((r for r in param_db.chemical.residues if r.name == "LG1"), None)
     assert residue is not None, f"{name} ({smiles}) did not register"

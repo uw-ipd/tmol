@@ -14,10 +14,11 @@ from pathlib import Path
 import biotite.structure as struc
 import biotite.structure.io as struc_io
 
+from tmol.tests.data import data_path
 from tmol.ligand.mol2_names import disambiguate_mol2_atom_name
 from tmol.ligand.params_file import load_params_file
 
-PLI_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
+PLI_DIR = data_path("protein_ligand_test")
 CIF_OUT_DIR = PLI_DIR / "cif_inputs"
 
 _BOND_ORDER_TO_CIF = {
