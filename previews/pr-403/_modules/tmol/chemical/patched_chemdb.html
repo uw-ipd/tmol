@@ -30,8 +30,6 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,8 +45,6 @@
     <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/chemical/patched_chemdb';</script>
@@ -181,6 +177,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -188,25 +191,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples_index.html">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -315,6 +363,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -322,8 +377,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -331,6 +414,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -423,9 +513,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.chemical.patched_chemdb</span></li>
   </ul>
 </nav>
@@ -467,13 +554,13 @@
 
 <span class="c1"># build a graph from a restype</span>
 <div class="viewcode-block" id="RestypeGraphBuilder">
-<a class="viewcode-back" href="../../../api/tmol/chemical/patched_chemdb/index.html#tmol.chemical.patched_chemdb.RestypeGraphBuilder">[docs]</a>
+<a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.RestypeGraphBuilder">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RestypeGraphBuilder</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atomtypedict</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">atomtypedict</span> <span class="o">=</span> <span class="n">atomtypedict</span>
 
 <div class="viewcode-block" id="RestypeGraphBuilder.from_raw_res">
-<a class="viewcode-back" href="../../../api/tmol/chemical/patched_chemdb/index.html#tmol.chemical.patched_chemdb.RestypeGraphBuilder.from_raw_res">[docs]</a>
+<a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.RestypeGraphBuilder.from_raw_res">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_raw_res</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
         <span class="n">mol</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
@@ -491,7 +578,7 @@
 <span class="c1"># remove all atom references from a raw restype</span>
 <span class="c1"># delete atoms, bonds, torsions, and connections involving atom</span>
 <div class="viewcode-block" id="remove_atom">
-<a class="viewcode-back" href="../../../api/tmol/chemical/patched_chemdb/index.html#tmol.chemical.patched_chemdb.remove_atom">[docs]</a>
+<a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.remove_atom">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">remove_atom</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">atom</span><span class="p">):</span>
     <span class="n">res</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">atoms</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">atom</span><span class="p">)</span>
     <span class="n">res</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">bonds</span> <span class="k">if</span> <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">atom</span> <span class="ow">and</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">atom</span><span class="p">)</span>
@@ -509,7 +596,7 @@
 
 
 <div class="viewcode-block" id="modify_atom">
-<a class="viewcode-back" href="../../../api/tmol/chemical/patched_chemdb/index.html#tmol.chemical.patched_chemdb.modify_atom">[docs]</a>
+<a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.modify_atom">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">modify_atom</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">atom</span><span class="p">):</span>
     <span class="n">res</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">atom</span><span class="o">.</span><span class="n">name</span> <span class="k">else</span> <span class="n">atom</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">res</span></div>
@@ -518,7 +605,7 @@
 
 <span class="c1"># update icoors corresponding to a patch definition</span>
 <div class="viewcode-block" id="update_icoor">
-<a class="viewcode-back" href="../../../api/tmol/chemical/patched_chemdb/index.html#tmol.chemical.patched_chemdb.update_icoor">[docs]</a>
+<a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.update_icoor">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">update_icoor</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">patch</span><span class="p">,</span> <span class="n">atoms_remove</span><span class="p">,</span> <span class="n">namemap</span><span class="p">):</span>
     <span class="n">new_icoor</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">target_i</span> <span class="ow">in</span> <span class="n">patch</span><span class="p">:</span>
@@ -578,7 +665,7 @@
 
 <span class="c1"># get a list of atoms modified by a patch</span>
 <div class="viewcode-block" id="get_modified_atoms">
-<a class="viewcode-back" href="../../../api/tmol/chemical/patched_chemdb/index.html#tmol.chemical.patched_chemdb.get_modified_atoms">[docs]</a>
+<a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.get_modified_atoms">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_modified_atoms</span><span class="p">(</span><span class="n">patch</span><span class="p">):</span>
     <span class="n">added</span><span class="p">,</span> <span class="n">modded</span><span class="p">,</span> <span class="n">deleted</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
 
@@ -610,7 +697,7 @@
 
 <span class="c1"># validate raw residues</span>
 <div class="viewcode-block" id="validate_raw_residue">
-<a class="viewcode-back" href="../../../api/tmol/chemical/patched_chemdb/index.html#tmol.chemical.patched_chemdb.validate_raw_residue">[docs]</a>
+<a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.validate_raw_residue">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">validate_raw_residue</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
     <span class="n">allatoms</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">atoms</span><span class="p">])</span>
     <span class="n">allconns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">connections</span><span class="p">])</span>
@@ -756,7 +843,7 @@
 
 
 <div class="viewcode-block" id="validate_patch">
-<a class="viewcode-back" href="../../../api/tmol/chemical/patched_chemdb/index.html#tmol.chemical.patched_chemdb.validate_patch">[docs]</a>
+<a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.validate_patch">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">validate_patch</span><span class="p">(</span><span class="n">patch</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate a given patch object or raise a RuntimeException&quot;&quot;&quot;</span>
     <span class="n">addedatoms</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">])</span>
@@ -917,7 +1004,7 @@
 <span class="c1">#    newreses - list of new residues produced by the patch (currently only support for 1)</span>
 <span class="c1">#    newmarked - updated list of modified atoms in new residue</span>
 <div class="viewcode-block" id="do_patch">
-<a class="viewcode-back" href="../../../api/tmol/chemical/patched_chemdb/index.html#tmol.chemical.patched_chemdb.do_patch">[docs]</a>
+<a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.do_patch">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">do_patch</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">marked</span><span class="p">):</span>
     <span class="n">atoms_match</span> <span class="o">=</span> <span class="p">(</span>
         <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;element&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">y</span><span class="p">)</span>
@@ -1046,7 +1133,7 @@
 <span class="c1"># applies all patches to all residues types</span>
 <span class="c1"># returns PatchedChemicalDatabase containing only Tuple[RawResidueType]</span>
 <div class="viewcode-block" id="PatchedChemicalDatabase">
-<a class="viewcode-back" href="../../../api/tmol/chemical/patched_chemdb/index.html#tmol.chemical.patched_chemdb.PatchedChemicalDatabase">[docs]</a>
+<a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.PatchedChemicalDatabase">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PatchedChemicalDatabase</span><span class="p">:</span>
     <span class="n">element_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Element</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
@@ -1055,7 +1142,7 @@
     <span class="n">variants</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">VariantType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
 <div class="viewcode-block" id="PatchedChemicalDatabase.from_chem_db">
-<a class="viewcode-back" href="../../../api/tmol/chemical/patched_chemdb/index.html#tmol.chemical.patched_chemdb.PatchedChemicalDatabase.from_chem_db">[docs]</a>
+<a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.PatchedChemicalDatabase.from_chem_db">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_chem_db</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">):</span>
         <span class="n">G</span> <span class="o">=</span> <span class="n">RestypeGraphBuilder</span><span class="p">({</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">atom_types</span><span class="p">})</span>

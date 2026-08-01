@@ -30,8 +30,6 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,8 +45,6 @@
     <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/score_utils';</script>
@@ -181,6 +177,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -188,25 +191,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples_index.html">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -315,6 +363,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -322,8 +377,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -331,6 +414,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -424,9 +514,6 @@
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
     <li class="breadcrumb-item"><a href="../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.score_utils</span></li>
@@ -461,7 +548,7 @@
 
 
 <div class="viewcode-block" id="FragmentInteractionScores">
-<a class="viewcode-back" href="../../../api/tmol/score/score_utils/index.html#tmol.score.score_utils.FragmentInteractionScores">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.FragmentInteractionScores">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FragmentInteractionScores</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Per-fragment interactions with an explicitly selected partner.&quot;&quot;&quot;</span>
@@ -472,7 +559,7 @@
 
 
 <div class="viewcode-block" id="calculate_fragment_interactions">
-<a class="viewcode-back" href="../../../api/tmol/score/score_utils/index.html#tmol.score.score_utils.calculate_fragment_interactions">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.calculate_fragment_interactions">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">calculate_fragment_interactions</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">,</span>
     <span class="n">partner_mask</span><span class="p">,</span>
@@ -569,7 +656,7 @@
 
 
 <div class="viewcode-block" id="residue_mask_from_chain">
-<a class="viewcode-back" href="../../../api/tmol/score/score_utils/index.html#tmol.score.score_utils.residue_mask_from_chain">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.residue_mask_from_chain">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">residue_mask_from_chain</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a boolean block-level mask selecting residues belonging to a given</span>
 <span class="sd">    chain, identified by its PDB chain label string.</span>
@@ -593,7 +680,7 @@
 
 
 <div class="viewcode-block" id="calculate_block_pair_ddg">
-<a class="viewcode-back" href="../../../api/tmol/score/score_utils/index.html#tmol.score.score_utils.calculate_block_pair_ddg">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.calculate_block_pair_ddg">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">calculate_block_pair_ddg</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">,</span>
     <span class="n">mask</span><span class="p">,</span>
@@ -720,7 +807,7 @@
 
 
 <div class="viewcode-block" id="res_mask_to_coord_mask">
-<a class="viewcode-back" href="../../../api/tmol/score/score_utils/index.html#tmol.score.score_utils.res_mask_to_coord_mask">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.res_mask_to_coord_mask">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">res_mask_to_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert a block-level (residue) boolean mask to an atom-level coordinate mask.</span>
 
@@ -803,7 +890,7 @@
 
 
 <div class="viewcode-block" id="build_sidechain_coord_mask">
-<a class="viewcode-back" href="../../../api/tmol/score/score_utils/index.html#tmol.score.score_utils.build_sidechain_coord_mask">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.build_sidechain_coord_mask">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_sidechain_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a coord_mask that selects only atoms belonging to sidechains.</span>
 
@@ -909,7 +996,7 @@
 
 
 <div class="viewcode-block" id="compute_block_centroids_and_furthest_dist">
-<a class="viewcode-back" href="../../../api/tmol/score/score_utils/index.html#tmol.score.score_utils.compute_block_centroids_and_furthest_dist">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.compute_block_centroids_and_furthest_dist">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute_block_centroids_and_furthest_dist</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;For each block in a pose stack, compute the average coordinate (centroid)</span>
 <span class="sd">    of all of its atoms, as well as the distance of the furthest atom from this</span>
@@ -974,7 +1061,7 @@
 
 
 <div class="viewcode-block" id="build_coord_mask_for_mask_and_interacting_atoms">
-<a class="viewcode-back" href="../../../api/tmol/score/score_utils/index.html#tmol.score.score_utils.build_coord_mask_for_mask_and_interacting_atoms">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.build_coord_mask_for_mask_and_interacting_atoms">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_coord_mask_for_mask_and_interacting_atoms</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
 
     <span class="c1"># Build coord_mask: True for atoms in masked blocks and sidechain atoms within 5.0 Angstroms.</span>
@@ -1158,7 +1245,7 @@
 
 
 <div class="viewcode-block" id="build_coord_mask_for_mask_and_nearby_blocks">
-<a class="viewcode-back" href="../../../api/tmol/score/score_utils/index.html#tmol.score.score_utils.build_coord_mask_for_mask_and_nearby_blocks">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.build_coord_mask_for_mask_and_nearby_blocks">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_coord_mask_for_mask_and_nearby_blocks</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a coord mask starting from a per-block mask, extending to</span>
 <span class="sd">    sidechain atoms of blocks whose centroid is within dynamic range of</span>
@@ -1237,7 +1324,7 @@
 
 
 <div class="viewcode-block" id="compute_block_adjacency">
-<a class="viewcode-back" href="../../../api/tmol/score/score_utils/index.html#tmol.score.score_utils.compute_block_adjacency">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.compute_block_adjacency">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute_block_adjacency</span><span class="p">(</span><span class="n">block_centroids</span><span class="p">,</span> <span class="n">block_furthest_dist</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="mf">5.0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute a boolean block-level adjacency matrix.</span>
 

@@ -30,8 +30,6 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,8 +45,6 @@
     <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pose/packed_block_types';</script>
@@ -181,6 +177,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -188,25 +191,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples_index.html">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -315,6 +363,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -322,8 +377,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -331,6 +414,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -423,9 +513,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pose.packed_block_types</span></li>
   </ul>
 </nav>
@@ -461,7 +548,7 @@
 
 
 <div class="viewcode-block" id="residue_types_from_residues">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.residue_types_from_residues">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.residue_types_from_residues">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">residue_types_from_residues</span><span class="p">(</span><span class="n">residues</span><span class="p">):</span>
     <span class="n">rt_dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">residues</span><span class="p">:</span>
@@ -472,7 +559,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PackedBlockTypes</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A class to aggregate the properties for a collection of residue types.</span>
@@ -568,7 +655,7 @@
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PackedBlockTypes.from_restype_list">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.from_restype_list">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.from_restype_list">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_restype_list</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -654,14 +741,14 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.count_max_n_atoms">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.count_max_n_atoms">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.count_max_n_atoms">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">count_max_n_atoms</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">]):</span>
         <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span> <span class="k">for</span> <span class="n">restype</span> <span class="ow">in</span> <span class="n">active_block_types</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="PackedBlockTypes.count_n_atoms">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.count_n_atoms">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.count_n_atoms">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">count_n_atoms</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
@@ -674,7 +761,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.determine_real_atoms">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.determine_real_atoms">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.determine_real_atoms">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">determine_real_atoms</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">max_n_atoms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
@@ -686,7 +773,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.determine_h_atoms">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.determine_h_atoms">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.determine_h_atoms">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">determine_h_atoms</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -709,7 +796,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.join_atom_downstream_of_conn">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.join_atom_downstream_of_conn">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.join_atom_downstream_of_conn">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_atom_downstream_of_conn</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
@@ -729,7 +816,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.join_atom_paths_from_conn">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.join_atom_paths_from_conn">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.join_atom_paths_from_conn">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_atom_paths_from_conn</span><span class="p">(</span>
         <span class="n">clas</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
@@ -777,7 +864,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="PackedBlockTypes.join_torsion_uaids">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.join_torsion_uaids">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.join_torsion_uaids">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_torsion_uaids</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="c1"># unresolved atom ids are three integers:</span>
@@ -793,7 +880,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.join_is_torsion_mcs">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.join_is_torsion_mcs">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.join_is_torsion_mcs">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_is_torsion_mcs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">is_torsion_mc</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
@@ -805,7 +892,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.join_mc_torsion_inds">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.join_mc_torsion_inds">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.join_mc_torsion_inds">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_mc_torsion_inds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">mc_torsions</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
@@ -815,7 +902,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.join_sc_torsion_inds">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.join_sc_torsion_inds">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.join_sc_torsion_inds">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_sc_torsion_inds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">sc_torsions</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
@@ -825,7 +912,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.join_mcsc_torsion_inds">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.join_mcsc_torsion_inds">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.join_mcsc_torsion_inds">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_mcsc_torsion_inds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="c1"># only return the joined tensor of mcsc indices, index 2 of the tuple</span>
@@ -837,7 +924,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.join_bond_indices">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.join_bond_indices">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.join_bond_indices">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_bond_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">bond_indices</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
@@ -847,7 +934,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.join_conn_indices">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.join_conn_indices">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.join_conn_indices">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_conn_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">conn_atoms</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_list_of_tensors_of_bt_attribute</span><span class="p">(</span>
@@ -857,7 +944,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.join_polymeric_connections">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.join_polymeric_connections">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.join_polymeric_connections">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_polymeric_connections</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">down_conn_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
@@ -874,7 +961,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.join_default_jump_connection_atom_inds">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.join_default_jump_connection_atom_inds">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.join_default_jump_connection_atom_inds">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">join_default_jump_connection_atom_inds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
@@ -885,7 +972,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.inds_for_restypes">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.inds_for_restypes">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.inds_for_restypes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">inds_for_restypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">res_types</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RefinedResidueType</span><span class="p">]):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">restype_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
             <span class="p">[</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">residue_type</span> <span class="ow">in</span> <span class="n">res_types</span><span class="p">]</span>
@@ -893,7 +980,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes.cpu">
-<a class="viewcode-back" href="../../../api/tmol/pose/packed_block_types/index.html#tmol.pose.packed_block_types.PackedBlockTypes.cpu">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.cpu">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">cpu_equiv</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span>

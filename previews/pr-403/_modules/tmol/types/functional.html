@@ -30,8 +30,6 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,8 +45,6 @@
     <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/types/functional';</script>
@@ -181,6 +177,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -188,25 +191,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples_index.html">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -315,6 +363,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -322,8 +377,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -331,6 +414,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -423,9 +513,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.types.functional</span></li>
   </ul>
 </nav>
@@ -455,7 +542,7 @@
 
 
 <div class="viewcode-block" id="validate_args">
-<a class="viewcode-back" href="../../../api/tmol/types/functional/index.html#tmol.types.functional.validate_args">[docs]</a>
+<a class="viewcode-back" href="../../../api/types.html#tmol.types.functional.validate_args">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">validate_args</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
     <span class="n">f</span><span class="o">.</span><span class="n">_signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">_validators</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">get_validator</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">typing</span><span class="o">.</span><span class="n">get_type_hints</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
@@ -488,7 +575,7 @@
 
 
 <div class="viewcode-block" id="convert_args">
-<a class="viewcode-back" href="../../../api/tmol/types/functional/index.html#tmol.types.functional.convert_args">[docs]</a>
+<a class="viewcode-back" href="../../../api/types.html#tmol.types.functional.convert_args">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">convert_args</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
     <span class="n">f</span><span class="o">.</span><span class="n">_signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">_converters</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">get_converter</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">typing</span><span class="o">.</span><span class="n">get_type_hints</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>

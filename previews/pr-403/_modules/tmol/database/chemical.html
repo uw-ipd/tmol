@@ -30,8 +30,6 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,8 +45,6 @@
     <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/database/chemical';</script>
@@ -181,6 +177,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -188,25 +191,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples_index.html">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -315,6 +363,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -322,8 +377,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -331,6 +414,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -424,9 +514,6 @@
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
     <li class="breadcrumb-item"><a href="../database.html" class="nav-link">tmol.database</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.database.chemical</span></li>
@@ -471,7 +558,7 @@
 
 
 <div class="viewcode-block" id="normalize_bond_tuples">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.normalize_bond_tuples">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.normalize_bond_tuples">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">normalize_bond_tuples</span><span class="p">(</span><span class="n">raw</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize legacy 2-field bond entries to include bond order.</span>
 
@@ -514,7 +601,7 @@
 
 
 <div class="viewcode-block" id="Element">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.Element">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.Element">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Element</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -523,7 +610,7 @@
 
 
 <div class="viewcode-block" id="AtomType">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.AtomType">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.AtomType">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AtomType</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -537,7 +624,7 @@
 
 
 <div class="viewcode-block" id="Atom">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.Atom">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.Atom">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Atom</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
@@ -546,7 +633,7 @@
 
 
 <div class="viewcode-block" id="AtomAlias">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.AtomAlias">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.AtomAlias">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AtomAlias</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
@@ -555,7 +642,7 @@
 
 
 <div class="viewcode-block" id="Icoor">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.Icoor">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.Icoor">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Icoor</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -569,7 +656,7 @@
 
 
 <div class="viewcode-block" id="Connection">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.Connection">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.Connection">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Connection</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -579,7 +666,7 @@
 
 
 <div class="viewcode-block" id="UnresolvedAtom">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.UnresolvedAtom">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.UnresolvedAtom">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">UnresolvedAtom</span><span class="p">:</span>
     <span class="n">atom</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -589,7 +676,7 @@
 
 
 <div class="viewcode-block" id="Torsion">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.Torsion">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.Torsion">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Torsion</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -601,7 +688,7 @@
 
 
 <div class="viewcode-block" id="ChiSamples">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.ChiSamples">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.ChiSamples">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChiSamples</span><span class="p">:</span>
     <span class="n">chi_dihedral</span><span class="p">:</span> <span class="nb">str</span>
@@ -611,7 +698,7 @@
 
 
 <div class="viewcode-block" id="SidechainBuilding">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.SidechainBuilding">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.SidechainBuilding">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SidechainBuilding</span><span class="p">:</span>
     <span class="n">chi_samples</span><span class="p">:</span> <span class="n">ChiSamples</span></div>
@@ -619,7 +706,7 @@
 
 
 <div class="viewcode-block" id="PolymerProperties">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.PolymerProperties">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.PolymerProperties">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PolymerProperties</span><span class="p">:</span>
     <span class="n">is_polymer</span><span class="p">:</span> <span class="nb">bool</span>
@@ -632,7 +719,7 @@
 
 
 <div class="viewcode-block" id="ProtonationProperties">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.ProtonationProperties">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.ProtonationProperties">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ProtonationProperties</span><span class="p">:</span>
     <span class="n">protonated_atoms</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
@@ -642,7 +729,7 @@
 
 
 <div class="viewcode-block" id="ChemicalProperties">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.ChemicalProperties">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.ChemicalProperties">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChemicalProperties</span><span class="p">:</span>
     <span class="n">is_canonical</span><span class="p">:</span> <span class="nb">bool</span>
@@ -655,7 +742,7 @@
 
 
 <div class="viewcode-block" id="RawResidueType">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.RawResidueType">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.database.chemical.RawResidueType">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RawResidueType</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -681,7 +768,7 @@
     <span class="n">is_ligand_fragment</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
 <div class="viewcode-block" id="RawResidueType.atom_name">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.RawResidueType.atom_name">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.database.chemical.RawResidueType.atom_name">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">atom_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">name</span></div>
 </div>
@@ -689,7 +776,7 @@
 
 
 <div class="viewcode-block" id="IcoorVariant">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.IcoorVariant">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.IcoorVariant">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">IcoorVariant</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -704,7 +791,7 @@
 
 
 <div class="viewcode-block" id="PolymerPropertiesVariant">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.PolymerPropertiesVariant">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.PolymerPropertiesVariant">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PolymerPropertiesVariant</span><span class="p">:</span>
     <span class="n">polymer_type</span><span class="p">:</span> <span class="nb">str</span></div>
@@ -712,7 +799,7 @@
 
 
 <div class="viewcode-block" id="ChemicalPropertiesVariant">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.ChemicalPropertiesVariant">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.ChemicalPropertiesVariant">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChemicalPropertiesVariant</span><span class="p">:</span>
     <span class="n">polymer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PolymerPropertiesVariant</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
@@ -720,7 +807,7 @@
 
 
 <div class="viewcode-block" id="VariantType">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.VariantType">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.VariantType">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VariantType</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -737,7 +824,7 @@
 
 
 <div class="viewcode-block" id="ChemicalDatabase">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.ChemicalDatabase">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.ChemicalDatabase">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChemicalDatabase</span><span class="p">:</span>
     <span class="n">__default</span> <span class="o">=</span> <span class="kc">None</span>
@@ -748,7 +835,7 @@
     <span class="n">variants</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">VariantType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
 <div class="viewcode-block" id="ChemicalDatabase.get_default">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.ChemicalDatabase.get_default">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.ChemicalDatabase.get_default">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ChemicalDatabase&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Load and return default parameter database.&quot;&quot;&quot;</span>
@@ -760,7 +847,7 @@
 
 
 <div class="viewcode-block" id="ChemicalDatabase.from_file">
-<a class="viewcode-back" href="../../../api/tmol/database/chemical/index.html#tmol.database.chemical.ChemicalDatabase.from_file">[docs]</a>
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.ChemicalDatabase.from_file">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;chemical.yaml&quot;</span><span class="p">)</span>

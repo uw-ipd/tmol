@@ -30,8 +30,6 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,8 +45,6 @@
     <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pose/pose_stack';</script>
@@ -181,6 +177,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -188,25 +191,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples_index.html">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -315,6 +363,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -322,8 +377,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -331,6 +414,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -423,9 +513,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pose.pose_stack</span></li>
   </ul>
 </nav>
@@ -459,7 +546,7 @@
 
 
 <div class="viewcode-block" id="PoseStack">
-<a class="viewcode-back" href="../../../api/tmol/pose/pose_stack/index.html#tmol.pose.pose_stack.PoseStack">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.pose_stack.PoseStack">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The PoseStack class defines a batch (a stack) of molecular systems</span>
@@ -668,7 +755,7 @@
         <span class="k">return</span> <span class="n">n_ats_per_pose_arange_expanded</span> <span class="o">&lt;</span> <span class="n">n_ats_per_pose</span>
 
 <div class="viewcode-block" id="PoseStack.clone">
-<a class="viewcode-back" href="../../../api/tmol/pose/pose_stack/index.html#tmol.pose.pose_stack.PoseStack.clone">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.pose_stack.PoseStack.clone">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PoseStack&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Deep-copy clone of this PoseStack&quot;&quot;&quot;</span>
         <span class="n">new_constraint_set</span> <span class="o">=</span> <span class="p">(</span>
@@ -695,7 +782,7 @@
 
 
 <div class="viewcode-block" id="PoseStack.split">
-<a class="viewcode-back" href="../../../api/tmol/pose/pose_stack/index.html#tmol.pose.pose_stack.PoseStack.split">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.pose_stack.PoseStack.split">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PoseStack&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a single PoseStack from one containing many&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">PoseStack</span><span class="p">(</span>
@@ -741,7 +828,7 @@
 
 
 <div class="viewcode-block" id="PoseStack.expand_coords">
-<a class="viewcode-back" href="../../../api/tmol/pose/pose_stack/index.html#tmol.pose.pose_stack.PoseStack.expand_coords">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.pose_stack.PoseStack.expand_coords">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">expand_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Load the coordinates into a 4D tensor:</span>
 <span class="sd">        n_poses x max_n_blocks x max_n_atoms_per_block x 3</span>
@@ -774,7 +861,7 @@
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_type_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PoseStack.is_real_block">
-<a class="viewcode-back" href="../../../api/tmol/pose/pose_stack/index.html#tmol.pose.pose_stack.PoseStack.is_real_block">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.pose_stack.PoseStack.is_real_block">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_real_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">block_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Report whether a particular block on a particular pose is</span>
 <span class="sd">        real or just filler</span>
@@ -783,7 +870,7 @@
 
 
 <div class="viewcode-block" id="PoseStack.block_type">
-<a class="viewcode-back" href="../../../api/tmol/pose/pose_stack/index.html#tmol.pose.pose_stack.PoseStack.block_type">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.pose_stack.PoseStack.block_type">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">block_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RefinedResidueType</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Look up the block type for a particular pose and block and retrieve it</span>
 <span class="sd">        from the PackedBlockTypes object. is_real_block must return True&quot;&quot;&quot;</span>
@@ -793,13 +880,13 @@
 
 
 <div class="viewcode-block" id="PoseStack.get_constraint_set">
-<a class="viewcode-back" href="../../../api/tmol/pose/pose_stack/index.html#tmol.pose.pose_stack.PoseStack.get_constraint_set">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.pose_stack.PoseStack.get_constraint_set">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_constraint_set</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_set</span></div>
 
 
 <div class="viewcode-block" id="PoseStack.block_identity_map">
-<a class="viewcode-back" href="../../../api/tmol/pose/pose_stack/index.html#tmol.pose.pose_stack.PoseStack.block_identity_map">[docs]</a>
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.pose_stack.PoseStack.block_identity_map">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">block_identity_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">identity_map</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">)</span>
         <span class="n">identity_map</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>

@@ -31,8 +31,6 @@
 <link href="_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -48,8 +46,6 @@
     <script src="_static/documentation_options.js?v=f98a5df1"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="_static/copybutton.js?v=f281be69"></script>
     <script src="_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'contributor_guide';</script>
@@ -64,7 +60,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Development" href="user_guide/development.html" />
-    <link rel="prev" title="Contents:" href="notebooks/tmol_how_to_guide.html" />
+    <link rel="prev" title="Utilities" href="api/utility.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.46" />
@@ -184,6 +180,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
     Workflows
   </a>
@@ -191,25 +194,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="examples_index.html">
+  <a class="nav-link nav-internal" href="user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="#">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -320,6 +368,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
     Workflows
   </a>
@@ -327,8 +382,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -336,6 +419,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -468,15 +558,16 @@
 abstractions unless the new abstraction removes real complexity.</p>
 <section id="documentation">
 <h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading">#</a></h2>
-<p>The external docs are built with Sphinx, MyST Markdown, nbsphinx, and
+<p>The external docs are built with Sphinx, MyST Markdown, nbsphinx, autodoc, and
 sphinx-gallery.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>docs/docs_requirements.txt
 docs/make
 </pre></div>
 </div>
 <p>Rendered HTML is written to <code class="docutils literal notranslate"><span class="pre">docs/_build/html</span></code>.</p>
-<p>Examples live in <code class="docutils literal notranslate"><span class="pre">docs/examples/</span></code> and are rendered by sphinx-gallery. Notebooks
-live in <code class="docutils literal notranslate"><span class="pre">docs/notebooks/</span></code> and are rendered without execution during docs builds.</p>
+<p>Examples live in <code class="docutils literal notranslate"><span class="pre">docs/examples/</span></code> and are rendered by sphinx-gallery with
+committed thumbnails. Notebooks are rendered without execution during docs
+builds, so interactive notebooks must commit their saved outputs.</p>
 </section>
 <section id="pull-requests">
 <h2>Pull Requests<a class="headerlink" href="#pull-requests" title="Link to this heading">#</a></h2>
@@ -491,9 +582,10 @@ include the relevant GPU tests or explain why they were not run locally.</p>
 </section>
 <section id="api-documentation">
 <h2>API Documentation<a class="headerlink" href="#api-documentation" title="Link to this heading">#</a></h2>
-<p>API pages are generated during <code class="docutils literal notranslate"><span class="pre">docs/make</span></code> with <code class="docutils literal notranslate"><span class="pre">sphinx-autoapi</span></code>. Public modules
-should have useful module, class, and function docstrings because those
-docstrings become the reference documentation.</p>
+<p>API pages under <code class="docutils literal notranslate"><span class="pre">docs/api/</span></code> are authored and use <code class="docutils literal notranslate"><span class="pre">sphinx.ext.autodoc</span></code>, matching
+the AtomWorks and RFD4 docs setup. Public modules should have useful module,
+class, and function docstrings because those docstrings become the reference
+documentation.</p>
 <p>Use Google or NumPy-style docstrings.</p>
 <div class="toctree-wrapper compound">
 <ul>
@@ -524,12 +616,12 @@ docstrings become the reference documentation.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="notebooks/tmol_how_to_guide.html"
+       href="api/utility.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Contents:</p>
+        <p class="prev-next-title">Utilities</p>
       </div>
     </a>
     <a class="right-next"

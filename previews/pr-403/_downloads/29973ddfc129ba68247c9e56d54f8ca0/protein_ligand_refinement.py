@@ -15,7 +15,6 @@ first, or call ``pose_stack_from_biotite(..., prepare_ligands=True)`` without
 """
 
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 import biotite.structure as struc
 import biotite.structure.io
@@ -24,7 +23,6 @@ import torch
 import tmol
 from tmol.database import ParameterDatabase
 from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
-from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
 from tmol.optimization.minimizers import run_cart_min
 from tmol.pack.pack_rotamers import pack_rotamers
 from tmol.pack.packer_task import PackerPalette, PackerTask
@@ -34,6 +32,8 @@ from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
 from tmol.score import beta2016_score_function
+
+# sphinx_gallery_thumbnail_path = "_static/examples/protein_ligand_refinement_01.png"
 
 LIGAND_RES_NAME = "LG1"
 
@@ -85,22 +85,26 @@ def pose_center(pose_stack):
     return {"x": float(center[0]), "y": float(center[1]), "z": float(center[2])}
 
 
-def view_pose_stack(pose_stack, pdb_path, score_label):
+def view_pose_stack(pose_stack, score_label):
     """Return a py3Dmol viewer for use in notebooks, IPython, or docs."""
     import py3Dmol
 
-    write_pose_stack_pdb(pose_stack, str(pdb_path))
-    view = py3Dmol.view(width=760, height=520)
-    view.addModel(Path(pdb_path).read_text(), "pdb")
-    view.setBackgroundColor("white")
-    view.setStyle({"cartoon": {"color": "spectrum"}})
-    view.setStyle({"resn": LIGAND_RES_NAME}, {"stick": {"colorscheme": "cyanCarbon"}})
-    view.addSurface(
+    viewer = tmol.view(
+        pose_stack,
+        width=760,
+        height=520,
+        zoom_to={"resn": LIGAND_RES_NAME},
+    )
+    viewer.setStyle(
+        {"resn": LIGAND_RES_NAME},
+        {"stick": {"colorscheme": "cyanCarbon", "radius": 0.22}},
+    )
+    viewer.addSurface(
         py3Dmol.VDW,
         {"opacity": 0.25, "color": "white"},
         {"resn": LIGAND_RES_NAME},
     )
-    view.addLabel(
+    viewer.addLabel(
         score_label,
         {
             "position": pose_center(pose_stack),
@@ -111,8 +115,8 @@ def view_pose_stack(pose_stack, pdb_path, score_label):
             "showBackground": True,
         },
     )
-    view.zoomTo({"resn": LIGAND_RES_NAME})
-    return view
+    viewer.zoomTo({"resn": LIGAND_RES_NAME})
+    return viewer
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -152,11 +156,9 @@ minimized_pose_stack = run_cart_min(packed_pose_stack, sfxn)
 final_score = total_score(minimized_pose_stack, sfxn)
 print(f"score after repack + minimize: {final_score:.3f}")
 
-with TemporaryDirectory() as tmpdir:
-    viewer = view_pose_stack(
-        minimized_pose_stack,
-        Path(tmpdir) / "refined.pdb",
-        f"score before: {start_score:.3f}; after: {final_score:.3f}",
-    )
+viewer = view_pose_stack(
+    minimized_pose_stack,
+    f"score before: {start_score:.3f}; after: {final_score:.3f}",
+)
 
 viewer

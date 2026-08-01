@@ -8,4 +8,5 @@ interactive structure viewers where the example produces coordinates.
    :maxdepth: 2
 
    auto_examples/index
+   tutorial/visualisation
    notebooks/tmol_how_to_guide

@@ -30,8 +30,6 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,8 +45,6 @@
     <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/energy_term';</script>
@@ -181,6 +177,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -188,25 +191,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples_index.html">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -315,6 +363,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -322,8 +377,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -331,6 +414,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -424,9 +514,6 @@
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
     <li class="breadcrumb-item"><a href="../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.energy_term</span></li>
@@ -459,20 +546,20 @@
 
 
 <div class="viewcode-block" id="EnergyTerm">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EnergyTerm</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">pass</span>
 
 <div class="viewcode-block" id="EnergyTerm.class_name">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.class_name">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.class_name">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">class_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="EnergyTerm.score_types">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.score_types">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.score_types">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">score_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the list of score types that this EnergyTerm computes</span>
 
@@ -483,7 +570,7 @@
 
 
 <div class="viewcode-block" id="EnergyTerm.n_bodies">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.n_bodies">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.n_bodies">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">n_bodies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the number of residues that this term operates on</span>
 
@@ -493,7 +580,7 @@
 
 
 <div class="viewcode-block" id="EnergyTerm.setup_block_type">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.setup_block_type">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.setup_block_type">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Make a one-time annotation on the block type. These annotations will</span>
@@ -521,7 +608,7 @@
 
 
 <div class="viewcode-block" id="EnergyTerm.setup_packed_block_types">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.setup_packed_block_types">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.setup_packed_block_types">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Make a one-time annotation of the packed-block types. This annotation</span>
@@ -550,7 +637,7 @@
 
 
 <div class="viewcode-block" id="EnergyTerm.setup_poses">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.setup_poses">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.setup_poses">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Make a one-time annotation of a PoseStack. These annotations should</span>
 <span class="sd">        not depend on anything about the conformation or block-type identity of</span>
@@ -564,7 +651,7 @@
 
 
 <div class="viewcode-block" id="EnergyTerm.set_options">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.set_options">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.set_options">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Receive a dictionary of options from the ScoreFunction.</span>
 
@@ -576,25 +663,25 @@
 
 
 <div class="viewcode-block" id="EnergyTerm.get_score_term_attributes">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.get_score_term_attributes">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.get_score_term_attributes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="EnergyTerm.get_pose_score_term_function">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.get_pose_score_term_function">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.get_pose_score_term_function">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="EnergyTerm.get_rotamer_score_term_function">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.get_rotamer_score_term_function">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.get_rotamer_score_term_function">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="EnergyTerm.render_whole_pose_scoring_module">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.render_whole_pose_scoring_module">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.render_whole_pose_scoring_module">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">render_whole_pose_scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_pose_score_term_function</span><span class="p">()</span>
 
@@ -607,7 +694,7 @@
 
 
 <div class="viewcode-block" id="EnergyTerm.render_block_pair_scoring_module">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.render_block_pair_scoring_module">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.render_block_pair_scoring_module">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">render_block_pair_scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_pose_score_term_function</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">TermBlockPairScoringModule</span><span class="p">(</span>
@@ -619,7 +706,7 @@
 
 
 <div class="viewcode-block" id="EnergyTerm.render_rotamer_scoring_module">
-<a class="viewcode-back" href="../../../api/tmol/score/energy_term/index.html#tmol.score.energy_term.EnergyTerm.render_rotamer_scoring_module">[docs]</a>
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.energy_term.EnergyTerm.render_rotamer_scoring_module">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">render_rotamer_scoring_module</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">:</span> <span class="n">RotamerSet</span>
     <span class="p">):</span>

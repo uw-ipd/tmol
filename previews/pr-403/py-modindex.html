@@ -30,8 +30,6 @@
 <link href="_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,8 +45,6 @@
     <script src="_static/documentation_options.js?v=f98a5df1"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="_static/copybutton.js?v=f281be69"></script>
     <script src="_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'py-modindex';</script>
@@ -184,6 +180,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
     Workflows
   </a>
@@ -191,25 +194,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="examples_index.html">
+  <a class="nav-link nav-internal" href="user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -318,6 +366,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
     Workflows
   </a>
@@ -325,8 +380,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -334,6 +417,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -431,1007 +521,287 @@
        <td><img src="_static/minus.png" class="toggler"
               id="toggle-1" style="display: none" alt="-" /></td>
        <td>
-       <a href="api/tmol/index.html#module-tmol"><code class="xref">tmol</code></a></td><td>
+       <code class="xref">tmol</code></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/chemical/index.html#module-tmol.chemical"><code class="xref">tmol.chemical</code></a></td><td>
+       <a href="api/chemical.html#module-tmol.chemical"><code class="xref">tmol.chemical</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/chemical/all_bonds/index.html#module-tmol.chemical.all_bonds"><code class="xref">tmol.chemical.all_bonds</code></a></td><td>
+       <a href="api/chemical.html#module-tmol.chemical.patched_chemdb"><code class="xref">tmol.chemical.patched_chemdb</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/chemical/constants/index.html#module-tmol.chemical.constants"><code class="xref">tmol.chemical.constants</code></a></td><td>
+       <a href="api/chemical.html#module-tmol.chemical.restypes"><code class="xref">tmol.chemical.restypes</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/chemical/ideal_coords/index.html#module-tmol.chemical.ideal_coords"><code class="xref">tmol.chemical.ideal_coords</code></a></td><td>
+       <a href="api/database.html#module-tmol.database"><code class="xref">tmol.database</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/chemical/patched_chemdb/index.html#module-tmol.chemical.patched_chemdb"><code class="xref">tmol.chemical.patched_chemdb</code></a></td><td>
+       <a href="api/database.html#module-tmol.database.chemical"><code class="xref">tmol.database.chemical</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/chemical/restypes/index.html#module-tmol.chemical.restypes"><code class="xref">tmol.chemical.restypes</code></a></td><td>
+       <a href="api/database.html#module-tmol.database.scoring"><code class="xref">tmol.database.scoring</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/index.html#module-tmol.database"><code class="xref">tmol.database</code></a></td><td>
+       <a href="api/io.html#module-tmol.io"><code class="xref">tmol.io</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/chemical/index.html#module-tmol.database.chemical"><code class="xref">tmol.database.chemical</code></a></td><td>
+       <a href="api/io.html#module-tmol.io.pose_stack_construction"><code class="xref">tmol.io.pose_stack_construction</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/scoring/index.html#module-tmol.database.scoring"><code class="xref">tmol.database.scoring</code></a></td><td>
+       <a href="api/io.html#module-tmol.io.pose_stack_from_biotite"><code class="xref">tmol.io.pose_stack_from_biotite</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/scoring/cartbonded/index.html#module-tmol.database.scoring.cartbonded"><code class="xref">tmol.database.scoring.cartbonded</code></a></td><td>
+       <a href="api/io.html#module-tmol.io.pose_stack_from_openfold"><code class="xref">tmol.io.pose_stack_from_openfold</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/scoring/disulfide/index.html#module-tmol.database.scoring.disulfide"><code class="xref">tmol.database.scoring.disulfide</code></a></td><td>
+       <a href="api/io.html#module-tmol.io.pose_stack_from_rosettafold2"><code class="xref">tmol.io.pose_stack_from_rosettafold2</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/scoring/dunbrack_libraries/index.html#module-tmol.database.scoring.dunbrack_libraries"><code class="xref">tmol.database.scoring.dunbrack_libraries</code></a></td><td>
+       <a href="api/io.html#module-tmol.io.visualize"><code class="xref">tmol.io.visualize</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/scoring/elec/index.html#module-tmol.database.scoring.elec"><code class="xref">tmol.database.scoring.elec</code></a></td><td>
+       <a href="api/io.html#module-tmol.io.write_pose_stack_pdb"><code class="xref">tmol.io.write_pose_stack_pdb</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/scoring/genbonded/index.html#module-tmol.database.scoring.genbonded"><code class="xref">tmol.database.scoring.genbonded</code></a></td><td>
+       <a href="api/kinematics.html#module-tmol.kinematics.datatypes"><code class="xref">tmol.kinematics.datatypes</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/scoring/hbond/index.html#module-tmol.database.scoring.hbond"><code class="xref">tmol.database.scoring.hbond</code></a></td><td>
+       <a href="api/kinematics.html#module-tmol.kinematics.fold_forest"><code class="xref">tmol.kinematics.fold_forest</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/scoring/ljlk/index.html#module-tmol.database.scoring.ljlk"><code class="xref">tmol.database.scoring.ljlk</code></a></td><td>
+       <a href="api/kinematics.html#module-tmol.kinematics.move_map"><code class="xref">tmol.kinematics.move_map</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/scoring/omega_bbdep/index.html#module-tmol.database.scoring.omega_bbdep"><code class="xref">tmol.database.scoring.omega_bbdep</code></a></td><td>
+       <a href="api/kinematics.html#module-tmol.kinematics.operations"><code class="xref">tmol.kinematics.operations</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/scoring/rama/index.html#module-tmol.database.scoring.rama"><code class="xref">tmol.database.scoring.rama</code></a></td><td>
+       <a href="api/ligand.html#module-tmol.ligand"><code class="xref">tmol.ligand</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/database/scoring/ref/index.html#module-tmol.database.scoring.ref"><code class="xref">tmol.database.scoring.ref</code></a></td><td>
+       <a href="api/ligand.html#module-tmol.ligand.fragmentation"><code class="xref">tmol.ligand.fragmentation</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/index.html#module-tmol.io"><code class="xref">tmol.io</code></a></td><td>
+       <a href="api/ligand.html#module-tmol.ligand.params_file"><code class="xref">tmol.ligand.params_file</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/canonical_form/index.html#module-tmol.io.canonical_form"><code class="xref">tmol.io.canonical_form</code></a></td><td>
+       <a href="api/ligand.html#module-tmol.ligand.params_io"><code class="xref">tmol.ligand.params_io</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/canonical_ordering/index.html#module-tmol.io.canonical_ordering"><code class="xref">tmol.io.canonical_ordering</code></a></td><td>
+       <a href="api/ligand.html#module-tmol.ligand.preparation"><code class="xref">tmol.ligand.preparation</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/chain_deduction/index.html#module-tmol.io.chain_deduction"><code class="xref">tmol.io.chain_deduction</code></a></td><td>
+       <a href="api/ligand.html#module-tmol.ligand.registry"><code class="xref">tmol.ligand.registry</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/extern/index.html#module-tmol.io.extern"><code class="xref">tmol.io.extern</code></a></td><td>
+       <a href="api/numeric.html#module-tmol.numeric"><code class="xref">tmol.numeric</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/generic/index.html#module-tmol.io.generic"><code class="xref">tmol.io.generic</code></a></td><td>
+       <a href="api/numeric.html#module-tmol.numeric.bspline"><code class="xref">tmol.numeric.bspline</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/pdb_parsing/index.html#module-tmol.io.pdb_parsing"><code class="xref">tmol.io.pdb_parsing</code></a></td><td>
+       <a href="api/numeric.html#module-tmol.numeric.dihedrals"><code class="xref">tmol.numeric.dihedrals</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/pose_stack_construction/index.html#module-tmol.io.pose_stack_construction"><code class="xref">tmol.io.pose_stack_construction</code></a></td><td>
+       <a href="api/optimization.html#module-tmol.optimization.lbfgs_armijo"><code class="xref">tmol.optimization.lbfgs_armijo</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/pose_stack_deconstruction/index.html#module-tmol.io.pose_stack_deconstruction"><code class="xref">tmol.io.pose_stack_deconstruction</code></a></td><td>
+       <a href="api/optimization.html#module-tmol.optimization.minimizers"><code class="xref">tmol.optimization.minimizers</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/pose_stack_from_atomworks/index.html#module-tmol.io.pose_stack_from_atomworks"><code class="xref">tmol.io.pose_stack_from_atomworks</code></a></td><td>
+       <a href="api/optimization.html#module-tmol.optimization.sfxn_modules"><code class="xref">tmol.optimization.sfxn_modules</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/pose_stack_from_biotite/index.html#module-tmol.io.pose_stack_from_biotite"><code class="xref">tmol.io.pose_stack_from_biotite</code></a></td><td>
+       <a href="api/pack.html#module-tmol.pack.build_missing_sidechains"><code class="xref">tmol.pack.build_missing_sidechains</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/pose_stack_from_openfold/index.html#module-tmol.io.pose_stack_from_openfold"><code class="xref">tmol.io.pose_stack_from_openfold</code></a></td><td>
+       <a href="api/pack.html#module-tmol.pack.datatypes"><code class="xref">tmol.pack.datatypes</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/pose_stack_from_rosettafold2/index.html#module-tmol.io.pose_stack_from_rosettafold2"><code class="xref">tmol.io.pose_stack_from_rosettafold2</code></a></td><td>
+       <a href="api/pack.html#module-tmol.pack.pack_rotamers"><code class="xref">tmol.pack.pack_rotamers</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/io/write_pose_stack_pdb/index.html#module-tmol.io.write_pose_stack_pdb"><code class="xref">tmol.io.write_pose_stack_pdb</code></a></td><td>
+       <a href="api/pack.html#module-tmol.pack.packer_task"><code class="xref">tmol.pack.packer_task</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/kinematics/index.html#module-tmol.kinematics"><code class="xref">tmol.kinematics</code></a></td><td>
+       <a href="api/pose.html#module-tmol.pose.constraint_set"><code class="xref">tmol.pose.constraint_set</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/kinematics/check_fold_forest/index.html#module-tmol.kinematics.check_fold_forest"><code class="xref">tmol.kinematics.check_fold_forest</code></a></td><td>
+       <a href="api/pose.html#module-tmol.pose.packed_block_types"><code class="xref">tmol.pose.packed_block_types</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/kinematics/datatypes/index.html#module-tmol.kinematics.datatypes"><code class="xref">tmol.kinematics.datatypes</code></a></td><td>
+       <a href="api/pose.html#module-tmol.pose.pdb_info"><code class="xref">tmol.pose.pdb_info</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/kinematics/fold_forest/index.html#module-tmol.kinematics.fold_forest"><code class="xref">tmol.kinematics.fold_forest</code></a></td><td>
+       <a href="api/pose.html#module-tmol.pose.pose_stack"><code class="xref">tmol.pose.pose_stack</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/kinematics/metadata/index.html#module-tmol.kinematics.metadata"><code class="xref">tmol.kinematics.metadata</code></a></td><td>
+       <a href="api/pose.html#module-tmol.pose.pose_stack_builder"><code class="xref">tmol.pose.pose_stack_builder</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/kinematics/move_map/index.html#module-tmol.kinematics.move_map"><code class="xref">tmol.kinematics.move_map</code></a></td><td>
+       <a href="api/relax.html#module-tmol.relax.fast_relax"><code class="xref">tmol.relax.fast_relax</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/kinematics/operations/index.html#module-tmol.kinematics.operations"><code class="xref">tmol.kinematics.operations</code></a></td><td>
+       <a href="api/score.html#module-tmol.score"><code class="xref">tmol.score</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/kinematics/scan_ordering/index.html#module-tmol.kinematics.scan_ordering"><code class="xref">tmol.kinematics.scan_ordering</code></a></td><td>
+       <a href="api/score.html#module-tmol.score.chemical_database"><code class="xref">tmol.score.chemical_database</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/kinematics/script_modules/index.html#module-tmol.kinematics.script_modules"><code class="xref">tmol.kinematics.script_modules</code></a></td><td>
+       <a href="api/score.html#module-tmol.score.energy_term"><code class="xref">tmol.score.energy_term</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/index.html#module-tmol.ligand"><code class="xref">tmol.ligand</code></a></td><td>
+       <a href="api/score.html#module-tmol.score.score_function"><code class="xref">tmol.score.score_function</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/atom_typing/index.html#module-tmol.ligand.atom_typing"><code class="xref">tmol.ligand.atom_typing</code></a></td><td>
+       <a href="api/score.html#module-tmol.score.score_types"><code class="xref">tmol.score.score_types</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/chemistry_tables/index.html#module-tmol.ligand.chemistry_tables"><code class="xref">tmol.ligand.chemistry_tables</code></a></td><td>
+       <a href="api/score.html#module-tmol.score.score_utils"><code class="xref">tmol.score.score_utils</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/chi_topology/index.html#module-tmol.ligand.chi_topology"><code class="xref">tmol.ligand.chi_topology</code></a></td><td>
+       <a href="api/types.html#module-tmol.types.array"><code class="xref">tmol.types.array</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/conformer_generation/index.html#module-tmol.ligand.conformer_generation"><code class="xref">tmol.ligand.conformer_generation</code></a></td><td>
+       <a href="api/types.html#module-tmol.types.attrs"><code class="xref">tmol.types.attrs</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/detect/index.html#module-tmol.ligand.detect"><code class="xref">tmol.ligand.detect</code></a></td><td>
+       <a href="api/types.html#module-tmol.types.functional"><code class="xref">tmol.types.functional</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/dimorphite_dl/index.html#module-tmol.ligand.dimorphite_dl"><code class="xref">tmol.ligand.dimorphite_dl</code></a></td><td>
+       <a href="api/types.html#module-tmol.types.shape"><code class="xref">tmol.types.shape</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/fragmentation/index.html#module-tmol.ligand.fragmentation"><code class="xref">tmol.ligand.fragmentation</code></a></td><td>
+       <a href="api/types.html#module-tmol.types.tensor"><code class="xref">tmol.types.tensor</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/generated_geometry/index.html#module-tmol.ligand.generated_geometry"><code class="xref">tmol.ligand.generated_geometry</code></a></td><td>
+       <a href="api/types.html#module-tmol.types.torch"><code class="xref">tmol.types.torch</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/mol2_names/index.html#module-tmol.ligand.mol2_names"><code class="xref">tmol.ligand.mol2_names</code></a></td><td>
+       <a href="api/utility.html#module-tmol.utility.args"><code class="xref">tmol.utility.args</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/mol3d/index.html#module-tmol.ligand.mol3d"><code class="xref">tmol.ligand.mol3d</code></a></td><td>
+       <a href="api/utility.html#module-tmol.utility.attr"><code class="xref">tmol.utility.attr</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/openbabel_compat/index.html#module-tmol.ligand.openbabel_compat"><code class="xref">tmol.ligand.openbabel_compat</code></a></td><td>
+       <a href="api/utility.html#module-tmol.utility.biotite_util"><code class="xref">tmol.utility.biotite_util</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/params_file/index.html#module-tmol.ligand.params_file"><code class="xref">tmol.ligand.params_file</code></a></td><td>
+       <a href="api/utility.html#module-tmol.utility.categorical"><code class="xref">tmol.utility.categorical</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/params_io/index.html#module-tmol.ligand.params_io"><code class="xref">tmol.ligand.params_io</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/preparation/index.html#module-tmol.ligand.preparation"><code class="xref">tmol.ligand.preparation</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/rdkit_mol/index.html#module-tmol.ligand.rdkit_mol"><code class="xref">tmol.ligand.rdkit_mol</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/registry/index.html#module-tmol.ligand.registry"><code class="xref">tmol.ligand.registry</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/residue_builder/index.html#module-tmol.ligand.residue_builder"><code class="xref">tmol.ligand.residue_builder</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/ligand/structure_to_smiles/index.html#module-tmol.ligand.structure_to_smiles"><code class="xref">tmol.ligand.structure_to_smiles</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/numeric/index.html#module-tmol.numeric"><code class="xref">tmol.numeric</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/numeric/bspline/index.html#module-tmol.numeric.bspline"><code class="xref">tmol.numeric.bspline</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/numeric/bspline_compiled/index.html#module-tmol.numeric.bspline_compiled"><code class="xref">tmol.numeric.bspline_compiled</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/numeric/dihedrals/index.html#module-tmol.numeric.dihedrals"><code class="xref">tmol.numeric.dihedrals</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/numeric/interpolation/index.html#module-tmol.numeric.interpolation"><code class="xref">tmol.numeric.interpolation</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/numeric/interpolation/cubic_hermite_polynomial/index.html#module-tmol.numeric.interpolation.cubic_hermite_polynomial"><code class="xref">tmol.numeric.interpolation.cubic_hermite_polynomial</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/optimization/index.html#module-tmol.optimization"><code class="xref">tmol.optimization</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/optimization/lbfgs_armijo/index.html#module-tmol.optimization.lbfgs_armijo"><code class="xref">tmol.optimization.lbfgs_armijo</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/optimization/minimizers/index.html#module-tmol.optimization.minimizers"><code class="xref">tmol.optimization.minimizers</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/optimization/sfxn_modules/index.html#module-tmol.optimization.sfxn_modules"><code class="xref">tmol.optimization.sfxn_modules</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/index.html#module-tmol.pack"><code class="xref">tmol.pack</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/build_missing_sidechains/index.html#module-tmol.pack.build_missing_sidechains"><code class="xref">tmol.pack.build_missing_sidechains</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/datatypes/index.html#module-tmol.pack.datatypes"><code class="xref">tmol.pack.datatypes</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/impose_rotamers/index.html#module-tmol.pack.impose_rotamers"><code class="xref">tmol.pack.impose_rotamers</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/pack_rotamers/index.html#module-tmol.pack.pack_rotamers"><code class="xref">tmol.pack.pack_rotamers</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/packer_task/index.html#module-tmol.pack.packer_task"><code class="xref">tmol.pack.packer_task</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/index.html#module-tmol.pack.rotamer"><code class="xref">tmol.pack.rotamer</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/bfs_sidechain/index.html#module-tmol.pack.rotamer.bfs_sidechain"><code class="xref">tmol.pack.rotamer.bfs_sidechain</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/build_rotamers/index.html#module-tmol.pack.rotamer.build_rotamers"><code class="xref">tmol.pack.rotamer.build_rotamers</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/chi_sampler/index.html#module-tmol.pack.rotamer.chi_sampler"><code class="xref">tmol.pack.rotamer.chi_sampler</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/conformer_sampler/index.html#module-tmol.pack.rotamer.conformer_sampler"><code class="xref">tmol.pack.rotamer.conformer_sampler</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/dunbrack/index.html#module-tmol.pack.rotamer.dunbrack"><code class="xref">tmol.pack.rotamer.dunbrack</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/dunbrack/dunbrack_chi_sampler/index.html#module-tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler"><code class="xref">tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/fallback_sampler/index.html#module-tmol.pack.rotamer.fallback_sampler"><code class="xref">tmol.pack.rotamer.fallback_sampler</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/fixed_aa_chi_sampler/index.html#module-tmol.pack.rotamer.fixed_aa_chi_sampler"><code class="xref">tmol.pack.rotamer.fixed_aa_chi_sampler</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/include_current_sampler/index.html#module-tmol.pack.rotamer.include_current_sampler"><code class="xref">tmol.pack.rotamer.include_current_sampler</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/mainchain_fingerprint/index.html#module-tmol.pack.rotamer.mainchain_fingerprint"><code class="xref">tmol.pack.rotamer.mainchain_fingerprint</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/opth_sampler/index.html#module-tmol.pack.rotamer.opth_sampler"><code class="xref">tmol.pack.rotamer.opth_sampler</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/rotamer_set/index.html#module-tmol.pack.rotamer.rotamer_set"><code class="xref">tmol.pack.rotamer.rotamer_set</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/rotamer/single_residue_kinforest/index.html#module-tmol.pack.rotamer.single_residue_kinforest"><code class="xref">tmol.pack.rotamer.single_residue_kinforest</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pack/simulated_annealing/index.html#module-tmol.pack.simulated_annealing"><code class="xref">tmol.pack.simulated_annealing</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pose/index.html#module-tmol.pose"><code class="xref">tmol.pose</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pose/constraint_set/index.html#module-tmol.pose.constraint_set"><code class="xref">tmol.pose.constraint_set</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pose/packed_block_types/index.html#module-tmol.pose.packed_block_types"><code class="xref">tmol.pose.packed_block_types</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pose/pdb_info/index.html#module-tmol.pose.pdb_info"><code class="xref">tmol.pose.pdb_info</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pose/pose_stack/index.html#module-tmol.pose.pose_stack"><code class="xref">tmol.pose.pose_stack</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/pose/pose_stack_builder/index.html#module-tmol.pose.pose_stack_builder"><code class="xref">tmol.pose.pose_stack_builder</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/index.html#module-tmol.score"><code class="xref">tmol.score</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/atom_type_dependent_term/index.html#module-tmol.score.atom_type_dependent_term"><code class="xref">tmol.score.atom_type_dependent_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/backbone_torsion/index.html#module-tmol.score.backbone_torsion"><code class="xref">tmol.score.backbone_torsion</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/backbone_torsion/bb_torsion_energy_term/index.html#module-tmol.score.backbone_torsion.bb_torsion_energy_term"><code class="xref">tmol.score.backbone_torsion.bb_torsion_energy_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/backbone_torsion/params/index.html#module-tmol.score.backbone_torsion.params"><code class="xref">tmol.score.backbone_torsion.params</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/backbone_torsion/potentials/index.html#module-tmol.score.backbone_torsion.potentials"><code class="xref">tmol.score.backbone_torsion.potentials</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/bond_dependent_term/index.html#module-tmol.score.bond_dependent_term"><code class="xref">tmol.score.bond_dependent_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/bonded_atom/index.html#module-tmol.score.bonded_atom"><code class="xref">tmol.score.bonded_atom</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/cartbonded/index.html#module-tmol.score.cartbonded"><code class="xref">tmol.score.cartbonded</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/cartbonded/cartbonded_energy_term/index.html#module-tmol.score.cartbonded.cartbonded_energy_term"><code class="xref">tmol.score.cartbonded.cartbonded_energy_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/cartbonded/potentials/index.html#module-tmol.score.cartbonded.potentials"><code class="xref">tmol.score.cartbonded.potentials</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/chemical_database/index.html#module-tmol.score.chemical_database"><code class="xref">tmol.score.chemical_database</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/common/index.html#module-tmol.score.common"><code class="xref">tmol.score.common</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/common/convert_float64/index.html#module-tmol.score.common.convert_float64"><code class="xref">tmol.score.common.convert_float64</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/common/cubic_hermite_polynomial/index.html#module-tmol.score.common.cubic_hermite_polynomial"><code class="xref">tmol.score.common.cubic_hermite_polynomial</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/common/hash_util/index.html#module-tmol.score.common.hash_util"><code class="xref">tmol.score.common.hash_util</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/common/scoring_module/index.html#module-tmol.score.common.scoring_module"><code class="xref">tmol.score.common.scoring_module</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/common/stack_condense/index.html#module-tmol.score.common.stack_condense"><code class="xref">tmol.score.common.stack_condense</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/disulfide/index.html#module-tmol.score.disulfide"><code class="xref">tmol.score.disulfide</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/disulfide/disulfide_energy_term/index.html#module-tmol.score.disulfide.disulfide_energy_term"><code class="xref">tmol.score.disulfide.disulfide_energy_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/disulfide/params/index.html#module-tmol.score.disulfide.params"><code class="xref">tmol.score.disulfide.params</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/disulfide/potentials/index.html#module-tmol.score.disulfide.potentials"><code class="xref">tmol.score.disulfide.potentials</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/dunbrack/index.html#module-tmol.score.dunbrack"><code class="xref">tmol.score.dunbrack</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/dunbrack/dunbrack_energy_term/index.html#module-tmol.score.dunbrack.dunbrack_energy_term"><code class="xref">tmol.score.dunbrack.dunbrack_energy_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/dunbrack/params/index.html#module-tmol.score.dunbrack.params"><code class="xref">tmol.score.dunbrack.params</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/dunbrack/potentials/index.html#module-tmol.score.dunbrack.potentials"><code class="xref">tmol.score.dunbrack.potentials</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/elec/index.html#module-tmol.score.elec"><code class="xref">tmol.score.elec</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/elec/elec_energy_term/index.html#module-tmol.score.elec.elec_energy_term"><code class="xref">tmol.score.elec.elec_energy_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/elec/params/index.html#module-tmol.score.elec.params"><code class="xref">tmol.score.elec.params</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/elec/potentials/index.html#module-tmol.score.elec.potentials"><code class="xref">tmol.score.elec.potentials</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/energy_term/index.html#module-tmol.score.energy_term"><code class="xref">tmol.score.energy_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/genbonded/index.html#module-tmol.score.genbonded"><code class="xref">tmol.score.genbonded</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/genbonded/genbonded_energy_term/index.html#module-tmol.score.genbonded.genbonded_energy_term"><code class="xref">tmol.score.genbonded.genbonded_energy_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/genbonded/potentials/index.html#module-tmol.score.genbonded.potentials"><code class="xref">tmol.score.genbonded.potentials</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/hbond/index.html#module-tmol.score.hbond"><code class="xref">tmol.score.hbond</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/hbond/hbond_dependent_term/index.html#module-tmol.score.hbond.hbond_dependent_term"><code class="xref">tmol.score.hbond.hbond_dependent_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/hbond/hbond_energy_term/index.html#module-tmol.score.hbond.hbond_energy_term"><code class="xref">tmol.score.hbond.hbond_energy_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/hbond/params/index.html#module-tmol.score.hbond.params"><code class="xref">tmol.score.hbond.params</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/hbond/potentials/index.html#module-tmol.score.hbond.potentials"><code class="xref">tmol.score.hbond.potentials</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/ljlk/index.html#module-tmol.score.ljlk"><code class="xref">tmol.score.ljlk</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/ljlk/ljlk_energy_term/index.html#module-tmol.score.ljlk.ljlk_energy_term"><code class="xref">tmol.score.ljlk.ljlk_energy_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/ljlk/params/index.html#module-tmol.score.ljlk.params"><code class="xref">tmol.score.ljlk.params</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/ljlk/potentials/index.html#module-tmol.score.ljlk.potentials"><code class="xref">tmol.score.ljlk.potentials</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/lk_ball/index.html#module-tmol.score.lk_ball"><code class="xref">tmol.score.lk_ball</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/lk_ball/lk_ball_energy_term/index.html#module-tmol.score.lk_ball.lk_ball_energy_term"><code class="xref">tmol.score.lk_ball.lk_ball_energy_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/lk_ball/params/index.html#module-tmol.score.lk_ball.params"><code class="xref">tmol.score.lk_ball.params</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/lk_ball/potentials/index.html#module-tmol.score.lk_ball.potentials"><code class="xref">tmol.score.lk_ball.potentials</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/ref/index.html#module-tmol.score.ref"><code class="xref">tmol.score.ref</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/ref/ref_energy_term/index.html#module-tmol.score.ref.ref_energy_term"><code class="xref">tmol.score.ref.ref_energy_term</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/score_function/index.html#module-tmol.score.score_function"><code class="xref">tmol.score.score_function</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/score_types/index.html#module-tmol.score.score_types"><code class="xref">tmol.score.score_types</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/score_utils/index.html#module-tmol.score.score_utils"><code class="xref">tmol.score.score_utils</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/index.html#module-tmol.score.terms"><code class="xref">tmol.score.terms</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/backbone_torsion_creator/index.html#module-tmol.score.terms.backbone_torsion_creator"><code class="xref">tmol.score.terms.backbone_torsion_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/cartbonded_creator/index.html#module-tmol.score.terms.cartbonded_creator"><code class="xref">tmol.score.terms.cartbonded_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/constraint_creator/index.html#module-tmol.score.terms.constraint_creator"><code class="xref">tmol.score.terms.constraint_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/disulfide_creator/index.html#module-tmol.score.terms.disulfide_creator"><code class="xref">tmol.score.terms.disulfide_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/dunbrack_creator/index.html#module-tmol.score.terms.dunbrack_creator"><code class="xref">tmol.score.terms.dunbrack_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/elec_creator/index.html#module-tmol.score.terms.elec_creator"><code class="xref">tmol.score.terms.elec_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/genbonded_creator/index.html#module-tmol.score.terms.genbonded_creator"><code class="xref">tmol.score.terms.genbonded_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/hbond_creator/index.html#module-tmol.score.terms.hbond_creator"><code class="xref">tmol.score.terms.hbond_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/ljlk_creator/index.html#module-tmol.score.terms.ljlk_creator"><code class="xref">tmol.score.terms.ljlk_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/lk_ball_creator/index.html#module-tmol.score.terms.lk_ball_creator"><code class="xref">tmol.score.terms.lk_ball_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/ref_creator/index.html#module-tmol.score.terms.ref_creator"><code class="xref">tmol.score.terms.ref_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/score_term_factory/index.html#module-tmol.score.terms.score_term_factory"><code class="xref">tmol.score.terms.score_term_factory</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/score/terms/term_creator/index.html#module-tmol.score.terms.term_creator"><code class="xref">tmol.score.terms.term_creator</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/support/index.html#module-tmol.support"><code class="xref">tmol.support</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/support/rosetta/index.html#module-tmol.support.rosetta"><code class="xref">tmol.support.rosetta</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/support/rosetta/init/index.html#module-tmol.support.rosetta.init"><code class="xref">tmol.support.rosetta.init</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/support/scoring/index.html#module-tmol.support.scoring"><code class="xref">tmol.support.scoring</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/support/scoring/hbond_param_import/index.html#module-tmol.support.scoring.hbond_param_import"><code class="xref">tmol.support.scoring.hbond_param_import</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/support/scoring/rewrite_dunbrack_binary/index.html#module-tmol.support.scoring.rewrite_dunbrack_binary"><code class="xref">tmol.support.scoring.rewrite_dunbrack_binary</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/support/scoring/rewrite_omega_bbdep_binary/index.html#module-tmol.support.scoring.rewrite_omega_bbdep_binary"><code class="xref">tmol.support.scoring.rewrite_omega_bbdep_binary</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/support/scoring/rewrite_rama_binary/index.html#module-tmol.support.scoring.rewrite_rama_binary"><code class="xref">tmol.support.scoring.rewrite_rama_binary</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/types/index.html#module-tmol.types"><code class="xref">tmol.types</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/types/array/index.html#module-tmol.types.array"><code class="xref">tmol.types.array</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/types/attrs/index.html#module-tmol.types.attrs"><code class="xref">tmol.types.attrs</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/types/converters/index.html#module-tmol.types.converters"><code class="xref">tmol.types.converters</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/types/functional/index.html#module-tmol.types.functional"><code class="xref">tmol.types.functional</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/types/shape/index.html#module-tmol.types.shape"><code class="xref">tmol.types.shape</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/types/subscriptable/index.html#module-tmol.types.subscriptable"><code class="xref">tmol.types.subscriptable</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/types/tensor/index.html#module-tmol.types.tensor"><code class="xref">tmol.types.tensor</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/types/torch/index.html#module-tmol.types.torch"><code class="xref">tmol.types.torch</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/types/validators/index.html#module-tmol.types.validators"><code class="xref">tmol.types.validators</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/index.html#module-tmol.utility"><code class="xref">tmol.utility</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/args/index.html#module-tmol.utility.args"><code class="xref">tmol.utility.args</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/attr/index.html#module-tmol.utility.attr"><code class="xref">tmol.utility.attr</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/auto_number/index.html#module-tmol.utility.auto_number"><code class="xref">tmol.utility.auto_number</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/biotite_util/index.html#module-tmol.utility.biotite_util"><code class="xref">tmol.utility.biotite_util</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/categorical/index.html#module-tmol.utility.categorical"><code class="xref">tmol.utility.categorical</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/cpp_extension/index.html#module-tmol.utility.cpp_extension"><code class="xref">tmol.utility.cpp_extension</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/cumsum/index.html#module-tmol.utility.cumsum"><code class="xref">tmol.utility.cumsum</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/dicttoolz/index.html#module-tmol.utility.dicttoolz"><code class="xref">tmol.utility.dicttoolz</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/log/index.html#module-tmol.utility.log"><code class="xref">tmol.utility.log</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/mixins/index.html#module-tmol.utility.mixins"><code class="xref">tmol.utility.mixins</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/ndarray/index.html#module-tmol.utility.ndarray"><code class="xref">tmol.utility.ndarray</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/ndarray/common_operations/index.html#module-tmol.utility.ndarray.common_operations"><code class="xref">tmol.utility.ndarray.common_operations</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/numba/index.html#module-tmol.utility.numba"><code class="xref">tmol.utility.numba</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/nvtx/index.html#module-tmol.utility.nvtx"><code class="xref">tmol.utility.nvtx</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/tensor/index.html#module-tmol.utility.tensor"><code class="xref">tmol.utility.tensor</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/tensor/common_operations/index.html#module-tmol.utility.tensor.common_operations"><code class="xref">tmol.utility.tensor.common_operations</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="api/tmol/utility/units/index.html#module-tmol.utility.units"><code class="xref">tmol.utility.units</code></a></td><td>
+       <a href="api/utility.html#module-tmol.utility.units"><code class="xref">tmol.utility.units</code></a></td><td>
        <em></em></td></tr>
    </table>
 

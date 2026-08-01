@@ -30,8 +30,6 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -47,8 +45,6 @@
     <script src="../../../_static/documentation_options.js?v=f98a5df1"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/optimization/sfxn_modules';</script>
@@ -181,6 +177,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -188,25 +191,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples_index.html">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -315,6 +363,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../workflows/index.html">
     Workflows
   </a>
@@ -322,8 +377,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -331,6 +414,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -423,9 +513,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.optimization.sfxn_modules</span></li>
   </ul>
 </nav>
@@ -456,7 +543,7 @@
 
 
 <div class="viewcode-block" id="CartesianSfxnNetwork">
-<a class="viewcode-back" href="../../../api/tmol/optimization/sfxn_modules/index.html#tmol.optimization.sfxn_modules.CartesianSfxnNetwork">[docs]</a>
+<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.sfxn_modules.CartesianSfxnNetwork">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CartesianSfxnNetwork</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">score_function</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">coord_mask</span><span class="o">=</span><span class="kc">None</span>
@@ -488,7 +575,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="CartesianSfxnNetwork.forward">
-<a class="viewcode-back" href="../../../api/tmol/optimization/sfxn_modules/index.html#tmol.optimization.sfxn_modules.CartesianSfxnNetwork.forward">[docs]</a>
+<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.sfxn_modules.CartesianSfxnNetwork.forward">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
@@ -500,7 +587,7 @@
 
 
 <div class="viewcode-block" id="CartesianSfxnNetwork.pose_stack_from_dofs">
-<a class="viewcode-back" href="../../../api/tmol/optimization/sfxn_modules/index.html#tmol.optimization.sfxn_modules.CartesianSfxnNetwork.pose_stack_from_dofs">[docs]</a>
+<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.sfxn_modules.CartesianSfxnNetwork.pose_stack_from_dofs">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">full_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
         <span class="n">full_coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">full_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])[</span>
@@ -512,7 +599,7 @@
 
 
 <div class="viewcode-block" id="KinForestSfxnNetwork">
-<a class="viewcode-back" href="../../../api/tmol/optimization/sfxn_modules/index.html#tmol.optimization.sfxn_modules.KinForestSfxnNetwork">[docs]</a>
+<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.sfxn_modules.KinForestSfxnNetwork">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">KinForestSfxnNetwork</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -578,7 +665,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="KinForestSfxnNetwork.forward">
-<a class="viewcode-back" href="../../../api/tmol/optimization/sfxn_modules/index.html#tmol.optimization.sfxn_modules.KinForestSfxnNetwork.forward">[docs]</a>
+<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.sfxn_modules.KinForestSfxnNetwork.forward">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
 
@@ -599,7 +686,7 @@
 
 
 <div class="viewcode-block" id="KinForestSfxnNetwork.pose_stack_from_dofs">
-<a class="viewcode-back" href="../../../api/tmol/optimization/sfxn_modules/index.html#tmol.optimization.sfxn_modules.KinForestSfxnNetwork.pose_stack_from_dofs">[docs]</a>
+<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.sfxn_modules.KinForestSfxnNetwork.pose_stack_from_dofs">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="n">full_dofs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>

@@ -32,33 +32,12 @@ new ligand, pass a CIF/MOL2/SMILES input through tmol's ligand preparation APIs
 first, or call ``pose_stack_from_biotite(..., prepare_ligands=True)`` without
 ``ligand_params_files`` when OpenBabel is available.
 
-.. GENERATED FROM PYTHON SOURCE LINES 16-163
-
-
-
-
-.. rst-class:: sphx-glr-script-out
-
- .. code-block:: none
-
-    /home/runner/work/tmol/tmol/tmol/score/score_function.py:411: UserWarning: Sparse invariant checks are implicitly disabled. Memory errors (e.g. SEGFAULT) will occur when operating on a sparse tensor which violates the invariants, but checks incur performance overhead. To silence this warning, explicitly opt in or out. See `torch.sparse.check_sparse_tensor_invariants.__doc__` for guidance.  (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/Context.cpp:816.)
-      return torch.sparse_coo_tensor(
-    score before refinement: 695.402
-    score after repack + minimize: -1268.774
-
-    <py3Dmol.view object at 0x7f7f40447fb0>
-
-
-
-
-
-|
+.. GENERATED FROM PYTHON SOURCE LINES 16-165
 
 .. code-block:: Python
 
 
     from pathlib import Path
-    from tempfile import TemporaryDirectory
 
     import biotite.structure as struc
     import biotite.structure.io
@@ -67,7 +46,6 @@ first, or call ``pose_stack_from_biotite(..., prepare_ligands=True)`` without
     import tmol
     from tmol.database import ParameterDatabase
     from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
-    from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
     from tmol.optimization.minimizers import run_cart_min
     from tmol.pack.pack_rotamers import pack_rotamers
     from tmol.pack.packer_task import PackerPalette, PackerTask
@@ -77,6 +55,8 @@ first, or call ``pose_stack_from_biotite(..., prepare_ligands=True)`` without
     from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
     from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
     from tmol.score import beta2016_score_function
+
+    # sphinx_gallery_thumbnail_path = "_static/examples/protein_ligand_refinement_01.png"
 
     LIGAND_RES_NAME = "LG1"
 
@@ -128,22 +108,26 @@ first, or call ``pose_stack_from_biotite(..., prepare_ligands=True)`` without
         return {"x": float(center[0]), "y": float(center[1]), "z": float(center[2])}
 
 
-    def view_pose_stack(pose_stack, pdb_path, score_label):
+    def view_pose_stack(pose_stack, score_label):
         """Return a py3Dmol viewer for use in notebooks, IPython, or docs."""
         import py3Dmol
 
-        write_pose_stack_pdb(pose_stack, str(pdb_path))
-        view = py3Dmol.view(width=760, height=520)
-        view.addModel(Path(pdb_path).read_text(), "pdb")
-        view.setBackgroundColor("white")
-        view.setStyle({"cartoon": {"color": "spectrum"}})
-        view.setStyle({"resn": LIGAND_RES_NAME}, {"stick": {"colorscheme": "cyanCarbon"}})
-        view.addSurface(
+        viewer = tmol.view(
+            pose_stack,
+            width=760,
+            height=520,
+            zoom_to={"resn": LIGAND_RES_NAME},
+        )
+        viewer.setStyle(
+            {"resn": LIGAND_RES_NAME},
+            {"stick": {"colorscheme": "cyanCarbon", "radius": 0.22}},
+        )
+        viewer.addSurface(
             py3Dmol.VDW,
             {"opacity": 0.25, "color": "white"},
             {"resn": LIGAND_RES_NAME},
         )
-        view.addLabel(
+        viewer.addLabel(
             score_label,
             {
                 "position": pose_center(pose_stack),
@@ -154,8 +138,8 @@ first, or call ``pose_stack_from_biotite(..., prepare_ligands=True)`` without
                 "showBackground": True,
             },
         )
-        view.zoomTo({"resn": LIGAND_RES_NAME})
-        return view
+        viewer.zoomTo({"resn": LIGAND_RES_NAME})
+        return viewer
 
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -195,19 +179,12 @@ first, or call ``pose_stack_from_biotite(..., prepare_ligands=True)`` without
     final_score = total_score(minimized_pose_stack, sfxn)
     print(f"score after repack + minimize: {final_score:.3f}")
 
-    with TemporaryDirectory() as tmpdir:
-        viewer = view_pose_stack(
-            minimized_pose_stack,
-            Path(tmpdir) / "refined.pdb",
-            f"score before: {start_score:.3f}; after: {final_score:.3f}",
-        )
+    viewer = view_pose_stack(
+        minimized_pose_stack,
+        f"score before: {start_score:.3f}; after: {final_score:.3f}",
+    )
 
     viewer
-
-
-.. rst-class:: sphx-glr-timing
-
-   **Total running time of the script:** (2 minutes 22.587 seconds)
 
 
 .. _sphx_glr_download_auto_examples_protein_ligand_refinement.py:

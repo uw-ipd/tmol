@@ -31,8 +31,6 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -48,8 +46,6 @@
     <script src="../_static/documentation_options.js?v=f98a5df1"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
     <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/protein_ligand_refinement';</script>
@@ -184,6 +180,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../workflows/index.html">
     Workflows
   </a>
@@ -191,25 +194,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../api_reference.html">
-    API Reference
-  </a>
-</li>
-
-
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
+  <a class="nav-link nav-internal" href="../user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contributor_guide.html">
+  <a class="nav-link nav-internal" href="../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -320,6 +368,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../workflows/index.html">
     Workflows
   </a>
@@ -327,8 +382,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="../user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -336,6 +419,13 @@
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -409,6 +499,7 @@
 <li class="toctree-l2 current active"><a class="current reference internal" href="#">Protein-ligand refinement</a></li>
 </ul>
 </details></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/visualisation.html">Score and visualize a PoseStack</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../notebooks/tmol_how_to_guide.html">Contents:</a></li>
 </ul>
 </div>
@@ -489,19 +580,7 @@ deterministic and avoids regenerating ligand conformers during docs work. For a
 new ligand, pass a CIF/MOL2/SMILES input through tmol’s ligand preparation APIs
 first, or call <code class="docutils literal notranslate"><span class="pre">pose_stack_from_biotite(...,</span> <span class="pre">prepare_ligands=True)</span></code> without
 <code class="docutils literal notranslate"><span class="pre">ligand_params_files</span></code> when OpenBabel is available.</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/runner/work/tmol/tmol/tmol/score/score_function.py:411: UserWarning: Sparse invariant checks are implicitly disabled. Memory errors (e.g. SEGFAULT) will occur when operating on a sparse tensor which violates the invariants, but checks incur performance overhead. To silence this warning, explicitly opt in or out. See `torch.sparse.check_sparse_tensor_invariants.__doc__` for guidance.  (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/Context.cpp:816.)
-  return torch.sparse_coo_tensor(
-score before refinement: 695.402
-score after repack + minimize: -1268.774
-
-&lt;py3Dmol.view object at 0x7f7f40447fb0&gt;
-</pre></div>
-</div>
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
-<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <a href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class"><span class="n">Path</span></a>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <a href="https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryDirectory" title="tempfile.TemporaryDirectory" class="sphx-glr-backref-module-tempfile sphx-glr-backref-type-py-class"><span class="n">TemporaryDirectory</span></a>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <a href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">Path</span></a>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure.io</span>
@@ -510,7 +589,6 @@ score after repack + minimize: -1268.774
 <span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.pose_stack_from_biotite</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_biotite</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.write_pose_stack_pdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_pose_stack_pdb</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization.minimizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.pack_rotamers</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">PackerTask</span>
@@ -521,72 +599,78 @@ score after repack + minimize: -1268.774
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.include_current_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">IncludeCurrentSampler</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
-<a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">LIGAND_RES_NAME</span></a> <span class="o">=</span> <span class="s2">&quot;LG1&quot;</span>
+<span class="c1"># sphinx_gallery_thumbnail_path = &quot;_static/examples/protein_ligand_refinement_01.png&quot;</span>
+
+<span class="n">LIGAND_RES_NAME</span> <span class="o">=</span> <span class="s2">&quot;LG1&quot;</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">load_complex</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a fixture complex as a Biotite AtomArray.&quot;&quot;&quot;</span>
-    <span class="n">repo_root</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class"><span class="n">Path</span></a><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">repo_root</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">Path</span></a><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">data_dir</span> <span class="o">=</span> <span class="n">repo_root</span> <span class="o">/</span> <span class="s2">&quot;tmol&quot;</span> <span class="o">/</span> <span class="s2">&quot;tests&quot;</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span> <span class="o">/</span> <span class="s2">&quot;protein_ligand_test&quot;</span>
     <span class="n">structure</span> <span class="o">=</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">load_structure</span><span class="p">(</span>
         <span class="nb">str</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2">.tmol.nomin.cif&quot;</span><span class="p">),</span>
         <span class="n">model</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">include_bonds</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <a href="https://docs.python.org/3/library/typing.html#typing.Generic" title="typing.Generic" class="sphx-glr-backref-module-typing sphx-glr-backref-type-py-class"><span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span></a><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>
         <span class="n">structure</span> <span class="o">=</span> <span class="n">structure</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">structure</span><span class="p">,</span> <span class="n">data_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2">.xtal-lig.mmff94.tmol&quot;</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">ligand_block_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ligand_block_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Select ligand blocks by residue name.&quot;&quot;&quot;</span>
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
     <span class="n">mask</span> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.zeros.html#torch.zeros" title="torch.zeros" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span></a><span class="p">(</span>
         <span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">torch</span><span class="o">.</span><span class="n">bool</span></a><span class="p">,</span>
-        <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">for</span> <span class="n">pose_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">block_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">):</span>
-            <span class="n">bt_ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span></a><span class="p">[</span><span class="n">pose_i</span><span class="p">,</span> <span class="n">block_i</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">bt_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span><span class="o">.</span><span class="n">name3</span> <span class="o">==</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">LIGAND_RES_NAME</span></a><span class="p">:</span>
+            <span class="n">bt_ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">[</span><span class="n">pose_i</span><span class="p">,</span> <span class="n">block_i</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">bt_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span><span class="o">.</span><span class="n">name3</span> <span class="o">==</span> <span class="n">LIGAND_RES_NAME</span><span class="p">:</span>
                 <span class="n">mask</span><span class="p">[</span><span class="n">pose_i</span><span class="p">,</span> <span class="n">block_i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
-        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">LIGAND_RES_NAME</span></a><span class="si">}</span><span class="s2"> ligand block not found&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">LIGAND_RES_NAME</span><span class="si">}</span><span class="s2"> ligand block not found&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">mask</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">total_score</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Score a pose stack and return the first pose&#39;s weighted total.&quot;&quot;&quot;</span>
     <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
-    <span class="n">score</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span></a><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
     <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">score</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">pose_center</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the geometric center of the first pose for viewer labels.&quot;&quot;&quot;</span>
-    <span class="n">coords</span> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
     <span class="n">finite_coords</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><a href="https://docs.pytorch.org/docs/stable/generated/torch.isfinite.html#torch.isfinite" title="torch.isfinite" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span></a><span class="p">(</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)]</span>
     <span class="n">center</span> <span class="o">=</span> <span class="n">finite_coords</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">center</span><span class="p">[</span><span class="mi">2</span><span class="p">])}</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">view_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">pdb_path</span><span class="p">,</span> <span class="n">score_label</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">view_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">score_label</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a py3Dmol viewer for use in notebooks, IPython, or docs.&quot;&quot;&quot;</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">py3Dmol</span>
 
-    <span class="n">write_pose_stack_pdb</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">pdb_path</span><span class="p">))</span>
-    <span class="n">view</span> <span class="o">=</span> <span class="n">py3Dmol</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">760</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">520</span><span class="p">)</span>
-    <span class="n">view</span><span class="o">.</span><span class="n">addModel</span><span class="p">(</span><a href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class"><span class="n">Path</span></a><span class="p">(</span><span class="n">pdb_path</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(),</span> <span class="s2">&quot;pdb&quot;</span><span class="p">)</span>
-    <span class="n">view</span><span class="o">.</span><span class="n">setBackgroundColor</span><span class="p">(</span><span class="s2">&quot;white&quot;</span><span class="p">)</span>
-    <span class="n">view</span><span class="o">.</span><span class="n">setStyle</span><span class="p">({</span><span class="s2">&quot;cartoon&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;spectrum&quot;</span><span class="p">}})</span>
-    <span class="n">view</span><span class="o">.</span><span class="n">setStyle</span><span class="p">({</span><span class="s2">&quot;resn&quot;</span><span class="p">:</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">LIGAND_RES_NAME</span></a><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;stick&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;colorscheme&quot;</span><span class="p">:</span> <span class="s2">&quot;cyanCarbon&quot;</span><span class="p">}})</span>
-    <span class="n">view</span><span class="o">.</span><span class="n">addSurface</span><span class="p">(</span>
+    <span class="n">viewer</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">760</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">520</span><span class="p">,</span>
+        <span class="n">zoom_to</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;resn&quot;</span><span class="p">:</span> <span class="n">LIGAND_RES_NAME</span><span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">viewer</span><span class="o">.</span><span class="n">setStyle</span><span class="p">(</span>
+        <span class="p">{</span><span class="s2">&quot;resn&quot;</span><span class="p">:</span> <span class="n">LIGAND_RES_NAME</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">&quot;stick&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;colorscheme&quot;</span><span class="p">:</span> <span class="s2">&quot;cyanCarbon&quot;</span><span class="p">,</span> <span class="s2">&quot;radius&quot;</span><span class="p">:</span> <span class="mf">0.22</span><span class="p">}},</span>
+    <span class="p">)</span>
+    <span class="n">viewer</span><span class="o">.</span><span class="n">addSurface</span><span class="p">(</span>
         <span class="n">py3Dmol</span><span class="o">.</span><span class="n">VDW</span><span class="p">,</span>
         <span class="p">{</span><span class="s2">&quot;opacity&quot;</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;white&quot;</span><span class="p">},</span>
-        <span class="p">{</span><span class="s2">&quot;resn&quot;</span><span class="p">:</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">LIGAND_RES_NAME</span></a><span class="p">},</span>
+        <span class="p">{</span><span class="s2">&quot;resn&quot;</span><span class="p">:</span> <span class="n">LIGAND_RES_NAME</span><span class="p">},</span>
     <span class="p">)</span>
-    <span class="n">view</span><span class="o">.</span><span class="n">addLabel</span><span class="p">(</span>
+    <span class="n">viewer</span><span class="o">.</span><span class="n">addLabel</span><span class="p">(</span>
         <span class="n">score_label</span><span class="p">,</span>
         <span class="p">{</span>
             <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="n">pose_center</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">),</span>
@@ -597,18 +681,18 @@ score after repack + minimize: -1268.774
             <span class="s2">&quot;showBackground&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
         <span class="p">},</span>
     <span class="p">)</span>
-    <span class="n">view</span><span class="o">.</span><span class="n">zoomTo</span><span class="p">({</span><span class="s2">&quot;resn&quot;</span><span class="p">:</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">LIGAND_RES_NAME</span></a><span class="p">})</span>
-    <span class="k">return</span> <span class="n">view</span>
+    <span class="n">viewer</span><span class="o">.</span><span class="n">zoomTo</span><span class="p">({</span><span class="s2">&quot;resn&quot;</span><span class="p">:</span> <span class="n">LIGAND_RES_NAME</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">viewer</span>
 
 
-<a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">device</span></a><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
-<span class="n">structure</span><span class="p">,</span> <a href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ligand_params</span></a> <span class="o">=</span> <span class="n">load_complex</span><span class="p">(</span><span class="s2">&quot;ada&quot;</span><span class="p">)</span>
+<span class="n">device</span> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">torch</span><span class="o">.</span><span class="n">device</span></a><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+<span class="n">structure</span><span class="p">,</span> <span class="n">ligand_params</span> <span class="o">=</span> <span class="n">load_complex</span><span class="p">(</span><span class="s2">&quot;ada&quot;</span><span class="p">)</span>
 
 <span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
     <span class="n">structure</span><span class="p">,</span>
-    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <span class="n">device</span><span class="p">,</span>
     <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">ligand_params_files</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><a href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ligand_params</span></a><span class="p">)],</span>
+    <span class="n">ligand_params_files</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">ligand_params</span><span class="p">)],</span>
     <span class="n">param_db</span><span class="o">=</span><span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">(),</span>
     <span class="n">return_context</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
@@ -616,39 +700,36 @@ score after repack + minimize: -1268.774
 <span class="c1"># ``pose_stack_from_biotite`` has rebuilt missing protein side chains when</span>
 <span class="c1"># possible and, by default, has optimized protein and ligand hydrogens. The</span>
 <span class="c1"># score function must use the ligand-extended database from the build context.</span>
-<span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">)</span>
-<a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">start_score</span></a> <span class="o">=</span> <span class="n">total_score</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;score before refinement: </span><span class="si">{</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">start_score</span></a><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">)</span>
+<span class="n">start_score</span> <span class="o">=</span> <span class="n">total_score</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;score before refinement: </span><span class="si">{</span><span class="n">start_score</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ligand_mask</span></a> <span class="o">=</span> <span class="n">ligand_block_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<span class="n">ligand_mask</span> <span class="o">=</span> <span class="n">ligand_block_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 
 <span class="n">task</span> <span class="o">=</span> <span class="n">PackerTask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">())</span>
 <span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>
 <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span>
-    <span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+    <span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 <span class="p">)</span>
 <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">FixedAAChiSampler</span><span class="p">())</span>
 <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">IncludeCurrentSampler</span><span class="p">())</span>
 
 <span class="c1"># Repack protein residues while keeping the ligand block fixed.</span>
-<span class="n">task</span><span class="o">.</span><span class="n">disable_packing_by_block_mask</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ligand_mask</span></a><span class="p">)</span>
+<span class="n">task</span><span class="o">.</span><span class="n">disable_packing_by_block_mask</span><span class="p">(</span><span class="n">ligand_mask</span><span class="p">)</span>
 <span class="n">packed_pose_stack</span> <span class="o">=</span> <span class="n">pack_rotamers</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span>
 
 <span class="n">minimized_pose_stack</span> <span class="o">=</span> <span class="n">run_cart_min</span><span class="p">(</span><span class="n">packed_pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
-<a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">final_score</span></a> <span class="o">=</span> <span class="n">total_score</span><span class="p">(</span><span class="n">minimized_pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;score after repack + minimize: </span><span class="si">{</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">final_score</span></a><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">final_score</span> <span class="o">=</span> <span class="n">total_score</span><span class="p">(</span><span class="n">minimized_pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;score after repack + minimize: </span><span class="si">{</span><span class="n">final_score</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-<span class="k">with</span> <a href="https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryDirectory" title="tempfile.TemporaryDirectory" class="sphx-glr-backref-module-tempfile sphx-glr-backref-type-py-class"><span class="n">TemporaryDirectory</span></a><span class="p">()</span> <span class="k">as</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">tmpdir</span></a><span class="p">:</span>
-    <span class="n">viewer</span> <span class="o">=</span> <span class="n">view_pose_stack</span><span class="p">(</span>
-        <span class="n">minimized_pose_stack</span><span class="p">,</span>
-        <a href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class"><span class="n">Path</span></a><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">tmpdir</span></a><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;refined.pdb&quot;</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s2">&quot;score before: </span><span class="si">{</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">start_score</span></a><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">; after: </span><span class="si">{</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">final_score</span></a><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
+<span class="n">viewer</span> <span class="o">=</span> <span class="n">view_pose_stack</span><span class="p">(</span>
+    <span class="n">minimized_pose_stack</span><span class="p">,</span>
+    <span class="sa">f</span><span class="s2">&quot;score before: </span><span class="si">{</span><span class="n">start_score</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">; after: </span><span class="si">{</span><span class="n">final_score</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">viewer</span>
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (2 minutes 22.587 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-protein-ligand-refinement-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../_downloads/8bc54f0656adfd9de9c0ee4101b12478/protein_ligand_refinement.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">protein_ligand_refinement.ipynb</span></code></a></p>

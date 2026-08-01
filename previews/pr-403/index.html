@@ -31,8 +31,6 @@
 <link href="_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
-    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
@@ -48,8 +46,6 @@
     <script src="_static/documentation_options.js?v=f98a5df1"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="_static/copybutton.js?v=f281be69"></script>
     <script src="_static/sg-tags.js?v=d80f6fa4"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'index';</script>
@@ -183,6 +179,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
     Workflows
   </a>
@@ -190,25 +193,70 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="user_guide/scoring.html">
+    Scoring
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="examples_index.html">
+  <a class="nav-link nav-internal" href="user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="user_guide/benchmarking.html">
+    Benchmarking
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -321,6 +369,13 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
     Workflows
   </a>
@@ -328,8 +383,36 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="user_guide/scoring.html">
+    Scoring
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/ligands.html">
+    Ligand Preparation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/optimization.html">
+    Optimization
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/integrations.html">
+    Integrations
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/benchmarking.html">
+    Benchmarking
   </a>
 </li>
 
@@ -337,6 +420,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API Reference
   </a>
 </li>
 
@@ -429,6 +519,7 @@ small-molecule ligands for protein-ligand scoring workflows.</p>
 then covers installation, workflows, runnable examples, API details, and
 contributor workflows.</p>
 <div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Get started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
@@ -437,6 +528,10 @@ contributor workflows.</p>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#from-source">From Source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#linux-runtime-notes">Linux Runtime Notes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#google-colab">Google Colab</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial/visualisation.html">Score and visualize a PoseStack</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="workflows/index.html">Workflows</a><ul>
@@ -448,15 +543,73 @@ contributor workflows.</p>
 <li class="toctree-l2"><a class="reference internal" href="user_guide/benchmarking.html">Benchmarking</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="architecture.html">Architecture</a></li>
-<li class="toctree-l2"><a class="reference internal" href="datatypes.html">Datatypes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/tmol/index.html">tmol</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learn</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/scoring.html">Scoring</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/scoring.html#ligand-aware-scoring">Ligand-aware Scoring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/scoring.html#block-pair-scores">Block-pair Scores</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/ligands.html">Ligand Preparation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#entry-points">Entry Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#loading-complexes">Loading Complexes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#reuse-prepared-context">Reuse Prepared Context</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#persist-prepared-ligands">Persist Prepared Ligands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#smiles-to-params-cli">SMILES to Params CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#module-inventory">Module Inventory</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/optimization.html">Optimization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/optimization.html#cartesian-minimization">Cartesian Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/optimization.html#repacking">Repacking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/optimization.html#missing-side-chains-and-hydrogens">Missing Side Chains and Hydrogens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/optimization.html#kinematic-minimization">Kinematic Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/optimization.html#relax">Relax</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/integrations.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/integrations.html#rosettafold2">RosettaFold2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/integrations.html#openfold">OpenFold</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/integrations.html#biotite-and-atomarray">Biotite and AtomArray</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/benchmarking.html">Benchmarking</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/benchmarking.html#running-benchmarks">Running Benchmarks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/benchmarking.html#comparing-revisions">Comparing Revisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/benchmarking.html#profiling">Profiling</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="examples_index.html">Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="auto_examples/index.html">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial/visualisation.html">Score and visualize a PoseStack</a></li>
 <li class="toctree-l2"><a class="reference internal" href="notebooks/tmol_how_to_guide.html">Contents:</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datatypes.html">Datatypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/chemical.html">Chemical Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/database.html">Databases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html">Input and Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html">Kinematics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html">Ligand API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/numeric.html">Numerics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/optimization.html">Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pack.html">Packing API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html">Pose</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/relax.html">Relax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html">Scoring API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html">Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html">Utilities</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="contributor_guide.html">Contributor Guide</a><ul>
