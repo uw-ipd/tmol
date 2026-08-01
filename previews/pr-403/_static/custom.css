@@ -10,14 +10,14 @@ table.docutils {
   width: 100%;
 }
 
-.tutorial-card-grid {
+.example-card-grid {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   margin: 1.25rem 0 2rem;
 }
 
-.tutorial-card {
+.example-card {
   border: 1px solid var(--pst-color-border);
   border-radius: 8px;
   color: var(--pst-color-text-base);
@@ -26,34 +26,28 @@ table.docutils {
   text-decoration: none;
 }
 
-.tutorial-card:hover {
+.example-card:hover {
   border-color: var(--pst-color-primary);
   text-decoration: none;
 }
 
-.tutorial-card img {
+.example-card img {
   aspect-ratio: 16 / 9;
   display: block;
   object-fit: cover;
   width: 100%;
 }
 
-.tutorial-card-title,
-.tutorial-card-summary {
+.example-card-title {
   display: block;
   padding: 0 1rem;
 }
 
-.tutorial-card-title {
+.example-card-title {
   font-size: 1rem;
   font-weight: 600;
-  padding-top: 0.9rem;
-}
-
-.tutorial-card-summary {
-  color: var(--pst-color-text-muted);
-  font-size: 0.9rem;
-  line-height: 1.4;
+  line-height: 1.35;
+  min-height: 4.3rem;
   padding-bottom: 1rem;
-  padding-top: 0.35rem;
+  padding-top: 0.9rem;
 }
