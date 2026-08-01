@@ -15,9 +15,9 @@ docs/make
 
 Rendered HTML is written to `docs/_build/html`.
 
-Examples live in `docs/examples/` and are rendered by sphinx-gallery. Notebooks
-are rendered without execution during docs builds, so interactive notebooks
-must commit their saved outputs.
+Examples live in `docs/examples/` and are rendered by sphinx-gallery with
+committed thumbnails. Notebooks are rendered without execution during docs
+builds, so interactive notebooks must commit their saved outputs.
 
 ## Pull Requests
 

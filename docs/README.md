@@ -16,11 +16,11 @@ docs/make
 
 The rendered site is written to `docs/_build/html`.
 
-`docs/make` runs `sphinx-build -W --keep-going`. API pages are authored under
-`docs/api/` and use `sphinx.ext.autodoc`, matching AtomWorks and RFD4. Gallery
-examples are sourced from `docs/examples/`, are executed, and fail the docs
-build on error. Notebooks are rendered without execution, so notebooks that
-should publish active py3Dmol viewers must commit their saved HTML output.
+API pages are authored under `docs/api/` and use `sphinx.ext.autodoc`, matching
+AtomWorks and RFD4. Gallery examples are sourced from `docs/examples/` and
+rendered with committed thumbnails, matching the RFD4 gallery setup. Notebooks
+are rendered without execution, so notebooks that should publish active py3Dmol
+viewers must commit their saved HTML output.
 
 GitHub Actions builds docs on pull requests and pushes to `master`. Pull
 requests upload the rendered HTML as an artifact, and same-repository pull

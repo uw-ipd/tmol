@@ -7,6 +7,10 @@ pushd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null
 
 echo "--- Build HTML docs"
 export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
-make -C docs html SPHINXOPTS="${SPHINXOPTS:--W --keep-going}"
+if [[ -n "${SPHINXOPTS:-}" ]]; then
+    make -C docs html SPHINXOPTS="$SPHINXOPTS"
+else
+    make -C docs html
+fi
 
 popd >/dev/null
