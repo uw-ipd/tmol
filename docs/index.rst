@@ -7,24 +7,15 @@ through coordinates, packs side chains, minimizes structures, and prepares
 small-molecule ligands for protein-ligand scoring workflows.
 
 Start with :doc:`quickstart` for a first score calculation. The guide pages
-then cover installation, guided tutorials, workflows, runnable examples, API
-details, and contributor workflows.
+then cover installation, workflows, examples, API details, and contribution
+workflows.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Guide
+   :maxdepth: 1
 
    quickstart
    installation
-   tutorial/index
    workflows/index
    examples_index
-   architecture
-   datatypes
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Reference
-
    api_reference
-   contributor_guide
+   Contributing <contributor_guide>

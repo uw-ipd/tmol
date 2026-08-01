@@ -9,6 +9,8 @@ development branch, while rendered HTML is built by CI and published to
 .. toctree::
    :maxdepth: 2
 
+   architecture
+   datatypes
    api/chemical
    api/database
    api/io
