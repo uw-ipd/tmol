@@ -6,8 +6,7 @@ IFS=$'\n\t'
 pushd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null
 
 echo "--- Build HTML docs"
-mkdir -p docs/_build
 export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
-sphinx-build -M html docs docs/_build -W --keep-going
+make -C docs html SPHINXOPTS="${SPHINXOPTS:--W --keep-going}"
 
 popd >/dev/null

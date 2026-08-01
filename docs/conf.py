@@ -63,17 +63,14 @@ switcher_json_url = os.environ.get(
 extensions = [
     "myst_parser",
     "nbsphinx",
-    "autoapi.extension",
-    "sphinx_copybutton",
+    "sphinx.ext.autodoc",
     "sphinx.ext.githubpages",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
-    "sphinxcontrib.aafig",
     "sphinx_gallery.gen_gallery",
 ]
 
-templates_path = ["_templates"]
 source_suffix = {
     ".rst": "restructuredtext",
     ".md": "markdown",
@@ -86,12 +83,15 @@ exclude_patterns = [
     ".DS_Store",
     "README.md",
     "examples/GALLERY_HEADER.rst",
-    "api/modules.rst",
     "sg_execution_times.rst",
     "auto_examples/*.codeobj.json",
     "auto_examples/*.ipynb",
     "auto_examples/*.py",
     "auto_examples/*.zip",
+    "auto_examples/**/*.codeobj.json",
+    "auto_examples/**/*.ipynb",
+    "auto_examples/**/*.py",
+    "auto_examples/**/*.zip",
 ]
 
 myst_enable_extensions = [
@@ -103,65 +103,14 @@ myst_enable_extensions = [
 myst_heading_anchors = 4
 
 nbsphinx_execute = "never"
-nbsphinx_allow_errors = True
 
-autoapi_type = "python"
-autoapi_dirs = [str(REPO_ROOT / "tmol")]
-autoapi_root = "api"
-autoapi_template_dir = "_templates/autoapi"
-autoapi_add_toctree_entry = False
-autoapi_keep_files = False
-autoapi_ignore = [
-    "*/tmol/tests/*",
-    "*/tmol/extern/*",
-    "*/compiled/*",
-    "*/compiled.py",
-    "*/tmol/io/details/*",
-    "*/tmol/pack/compiled/*",
-    "*/tmol/relax/*",
-    "*/tmol/score/constraint/*",
-    "*/_C*",
-]
-suppress_warnings = [
-    "autoapi.python_import_resolution",
-    "ref.doc",
-]
-autoapi_options = [
-    "members",
-    "undoc-members",
-    "show-inheritance",
-    "show-module-summary",
-]
-autoapi_member_order = "bysource"
+autodoc_member_order = "bysource"
+autodoc_typehints = "signature"
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
+suppress_warnings = ["ref.doc"]
 
-autodoc_mock_imports = [
-    "astor",
-    "attrs",
-    "attrs_strict",
-    "biotite",
-    "cattrs",
-    "frozendict",
-    "hypothesis",
-    "llvmlite",
-    "networkx",
-    "numba",
-    "numpy",
-    "openbabel",
-    "pandas",
-    "pint",
-    "psutil",
-    "py3Dmol",
-    "pyarrow",
-    "rdkit",
-    "scipy",
-    "sparse",
-    "toolz",
-    "torch",
-    "typing_inspect",
-    "yaml",
-] + _compiled_module_mocks()
+autodoc_mock_imports = ["openbabel"] + _compiled_module_mocks()
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
@@ -201,11 +150,13 @@ html_theme_options = {
 sphinx_gallery_conf = {
     "examples_dirs": "examples",
     "gallery_dirs": "auto_examples",
+    "image_scrapers": ("matplotlib",),
     "plot_gallery": True,
     "abort_on_example_error": True,
     "capture_repr": ("_repr_html_", "__repr__"),
     "download_all_examples": False,
     "filename_pattern": r".*",
     "thumbnail_size": (350, 350),
+    "default_thumb_file": "_static/default_thumbnail.png",
     "ignore_pattern": r"GALLERY_HEADER\.rst",
 }

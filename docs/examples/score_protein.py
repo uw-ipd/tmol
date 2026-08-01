@@ -8,14 +8,14 @@ scored protein in an interactive 3D viewer.
 """
 
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 import torch
 
 import tmol
 from tmol.io import pose_stack_from_pdb
-from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
 from tmol.score import beta2016_score_function
+
+# sphinx_gallery_thumbnail_path = "_static/examples/score_protein_01.png"
 
 
 def pose_center(pose_stack):
@@ -26,18 +26,10 @@ def pose_center(pose_stack):
     return {"x": float(center[0]), "y": float(center[1]), "z": float(center[2])}
 
 
-def view_scored_pose(pose_stack, pdb_output_path, total_score):
+def view_scored_pose(pose_stack, total_score):
     """Return a py3Dmol viewer with the weighted score shown as a label."""
-    import py3Dmol
-
-    write_pose_stack_pdb(pose_stack, str(pdb_output_path))
-
-    view = py3Dmol.view(width=760, height=520)
-    view.addModel(Path(pdb_output_path).read_text(), "pdb")
-    view.setBackgroundColor("white")
-    view.setStyle({"cartoon": {"color": "spectrum"}})
-    view.addStyle({"stick": {"radius": 0.12}})
-    view.addLabel(
+    viewer = tmol.view(pose_stack, width=760, height=520)
+    viewer.addLabel(
         f"beta2016 total score: {total_score:.3f}",
         {
             "position": pose_center(pose_stack),
@@ -48,8 +40,8 @@ def view_scored_pose(pose_stack, pdb_output_path, total_score):
             "showBackground": True,
         },
     )
-    view.zoomTo()
-    return view
+    viewer.zoomTo()
+    return viewer
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -64,11 +56,6 @@ score = scorer(pose_stack.coords)
 protein_score = float(score[0])
 print(f"1ubq beta2016 score: {protein_score:.3f}")
 
-with TemporaryDirectory() as tmpdir:
-    viewer = view_scored_pose(
-        pose_stack,
-        Path(tmpdir) / "1ubq_scored.pdb",
-        protein_score,
-    )
+viewer = view_scored_pose(pose_stack, protein_score)
 
 viewer

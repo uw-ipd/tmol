@@ -12,10 +12,27 @@ contributor workflows.
 
 .. toctree::
    :maxdepth: 2
+   :caption: Get started
 
    quickstart
    installation
+   tutorial/index
    workflows/index
-   api_reference
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Learn
+
+   user_guide/scoring
+   user_guide/ligands
+   user_guide/optimization
+   user_guide/integrations
+   user_guide/benchmarking
    examples_index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference
+
+   api_reference
    contributor_guide

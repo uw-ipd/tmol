@@ -4,6 +4,7 @@ from typing import Optional, Union
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 from tmol.pose.pose_stack import PoseStack
+from tmol.io.visualize import pose_stack_to_pdb_string, view
 
 
 @validate_args

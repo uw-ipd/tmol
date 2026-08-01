@@ -5,7 +5,7 @@ abstractions unless the new abstraction removes real complexity.
 
 ## Documentation
 
-The external docs are built with Sphinx, MyST Markdown, nbsphinx, and
+The external docs are built with Sphinx, MyST Markdown, nbsphinx, autodoc, and
 sphinx-gallery.
 
 ```bash
@@ -16,7 +16,8 @@ docs/make
 Rendered HTML is written to `docs/_build/html`.
 
 Examples live in `docs/examples/` and are rendered by sphinx-gallery. Notebooks
-live in `docs/notebooks/` and are rendered without execution during docs builds.
+are rendered without execution during docs builds, so interactive notebooks
+must commit their saved outputs.
 
 ## Pull Requests
 
@@ -33,9 +34,10 @@ include the relevant GPU tests or explain why they were not run locally.
 
 ## API Documentation
 
-API pages are generated during `docs/make` with `sphinx-autoapi`. Public modules
-should have useful module, class, and function docstrings because those
-docstrings become the reference documentation.
+API pages under `docs/api/` are authored and use `sphinx.ext.autodoc`, matching
+the AtomWorks and RFD4 docs setup. Public modules should have useful module,
+class, and function docstrings because those docstrings become the reference
+documentation.
 
 Use Google or NumPy-style docstrings.
 

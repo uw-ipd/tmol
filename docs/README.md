@@ -1,7 +1,9 @@
 # tmol Docs
 
-The documentation is built with Sphinx, MyST Markdown, nbsphinx, and
-sphinx-gallery.
+The documentation is built with Sphinx, MyST Markdown, nbsphinx, autodoc, and
+sphinx-gallery. The source branch keeps authored documentation pages, notebooks,
+examples, and static assets. CI builds rendered HTML and publishes that output
+to `gh-pages`.
 
 ```bash
 pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.5"
@@ -14,11 +16,11 @@ docs/make
 
 The rendered site is written to `docs/_build/html`.
 
-`docs/make` runs `sphinx-build -W --keep-going`. API pages are generated from
-source with `sphinx-autoapi`, so API reference generation does not import tmol
-modules. Gallery examples are sourced from `docs/examples/`, are executed, and
-fail the docs build on error. Notebooks are sourced from `docs/notebooks/` and
-are rendered without execution.
+`docs/make` runs `sphinx-build -W --keep-going`. API pages are authored under
+`docs/api/` and use `sphinx.ext.autodoc`, matching AtomWorks and RFD4. Gallery
+examples are sourced from `docs/examples/`, are executed, and fail the docs
+build on error. Notebooks are rendered without execution, so notebooks that
+should publish active py3Dmol viewers must commit their saved HTML output.
 
 GitHub Actions builds docs on pull requests and pushes to `master`. Pull
 requests upload the rendered HTML as an artifact, and same-repository pull
