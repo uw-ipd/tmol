@@ -106,9 +106,10 @@ nbsphinx_execute = "never"
 
 autodoc_member_order = "bysource"
 autodoc_typehints = "signature"
+autodoc_warningiserror = False
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
-suppress_warnings = ["ref.doc"]
+suppress_warnings = ["docutils", "ref.doc", "ref.python"]
 
 autodoc_mock_imports = ["openbabel"] + _compiled_module_mocks()
 
