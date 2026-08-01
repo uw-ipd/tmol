@@ -34,7 +34,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c8b66c78" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=756c6893" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -191,70 +191,39 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
-    Scoring
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
-    Ligand Preparation
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
-    Optimization
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
-    Integrations
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../../../user_guide/benchmarking.html">
-    Benchmarking
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../../../examples_index.html">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
     API Reference
   </a>
 </li>
 
 
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -377,43 +346,22 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
-    Scoring
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
-    Ligand Preparation
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
-    Optimization
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
-    Integrations
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
-    Benchmarking
-  </a>
-</li>
-
-
-<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../datatypes.html">
+    Datatypes
   </a>
 </li>
 
@@ -662,7 +610,7 @@
 
 
 <div class="viewcode-block" id="read_params_file">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.read_params_file">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.params_io.read_params_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">read_params_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RawResidueType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a Rosetta .params file into a RawResidueType.</span>
 
@@ -978,7 +926,7 @@
 
 
 <div class="viewcode-block" id="write_params_file">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.write_params_file">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.params_io.write_params_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">write_params_file</span><span class="p">(</span>
     <span class="n">preparation</span><span class="p">:</span> <span class="s2">&quot;LigandPreparation | list[LigandPreparation]&quot;</span><span class="p">,</span>
     <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
@@ -1030,7 +978,7 @@
 
 
 <div class="viewcode-block" id="write_params_from_mol2">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.write_params_from_mol2">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.params_io.write_params_from_mol2">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">write_params_from_mol2</span><span class="p">(</span>
     <span class="n">mol2_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">out_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>

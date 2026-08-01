@@ -34,7 +34,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c8b66c78" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=756c6893" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -191,70 +191,39 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
-    Scoring
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
-    Ligand Preparation
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
-    Optimization
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
-    Integrations
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../../../user_guide/benchmarking.html">
-    Benchmarking
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../../../examples_index.html">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
     API Reference
   </a>
 </li>
 
 
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -377,43 +346,22 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/scoring.html">
-    Scoring
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/ligands.html">
-    Ligand Preparation
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/optimization.html">
-    Optimization
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/integrations.html">
-    Integrations
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../user_guide/benchmarking.html">
-    Benchmarking
-  </a>
-</li>
-
-
-<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../datatypes.html">
+    Datatypes
   </a>
 </li>
 
@@ -558,7 +506,7 @@
 
 
 <div class="viewcode-block" id="FragmentConnection">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.FragmentConnection">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragmentation.FragmentConnection">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FragmentConnection</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;One directed side of a cut bond.&quot;&quot;&quot;</span>
@@ -574,7 +522,7 @@
 
 
 <div class="viewcode-block" id="LigandFragmentDefinition">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.LigandFragmentDefinition">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragmentation.LigandFragmentDefinition">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LigandFragmentDefinition</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Structure-independent definition of one fragmented ligand type.&quot;&quot;&quot;</span>
@@ -586,7 +534,7 @@
     <span class="n">connections</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">FragmentConnection</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
 <div class="viewcode-block" id="LigandFragmentDefinition.fragment_name">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.LigandFragmentDefinition.fragment_name">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragmentation.LigandFragmentDefinition.fragment_name">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fragment_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fragment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ligand_name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">fragment_id</span><span class="si">}</span><span class="s2">&quot;</span></div>
 </div>
@@ -594,7 +542,7 @@
 
 
 <div class="viewcode-block" id="LigandFragmentBlockMapping">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.LigandFragmentBlockMapping">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragmentation.LigandFragmentBlockMapping">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LigandFragmentBlockMapping</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Map a user fragment ID onto its block in a built pose.&quot;&quot;&quot;</span>
@@ -616,7 +564,7 @@
 
 
 <div class="viewcode-block" id="FragmentedLigandPoseMapping">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.FragmentedLigandPoseMapping">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragmentation.FragmentedLigandPoseMapping">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FragmentedLigandPoseMapping</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Runtime mapping and connection list for a fragmented pose.&quot;&quot;&quot;</span>
@@ -625,7 +573,7 @@
     <span class="n">connection_pairs</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
 
 <div class="viewcode-block" id="FragmentedLigandPoseMapping.split">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.FragmentedLigandPoseMapping.split">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragmentation.FragmentedLigandPoseMapping.split">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;FragmentedLigandPoseMapping&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the mapping for one pose, reindexed as pose zero.&quot;&quot;&quot;</span>
 
@@ -642,7 +590,7 @@
 
 
 <div class="viewcode-block" id="recombine_fragmented_ligands">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.recombine_fragmented_ligands">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragmentation.recombine_fragmented_ligands">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">recombine_fragmented_ligands</span><span class="p">(</span>
     <span class="n">structure</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">mapping</span><span class="p">:</span> <span class="n">FragmentedLigandPoseMapping</span><span class="p">,</span>
@@ -665,7 +613,7 @@
 
 
 <div class="viewcode-block" id="fragment_ids_from_atom_array">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragment_ids_from_atom_array">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragmentation.fragment_ids_from_atom_array">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">fragment_ids_from_atom_array</span><span class="p">(</span><span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return validated fragment IDs, or ``None`` when no split is requested.&quot;&quot;&quot;</span>
 
@@ -932,7 +880,7 @@
 
 
 <div class="viewcode-block" id="build_ligand_fragment_definition">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.build_ligand_fragment_definition">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragmentation.build_ligand_fragment_definition">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_ligand_fragment_definition</span><span class="p">(</span>
     <span class="n">preparation</span><span class="p">:</span> <span class="n">LigandPreparation</span><span class="p">,</span>
     <span class="n">source_atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">,</span>
@@ -1154,7 +1102,7 @@
 
 
 <div class="viewcode-block" id="expand_fragmented_ligands">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.expand_fragmented_ligands">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragmentation.expand_fragmented_ligands">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">expand_fragmented_ligands</span><span class="p">(</span>
     <span class="n">structure</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">definitions</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">LigandFragmentDefinition</span><span class="p">],</span>
@@ -1297,7 +1245,7 @@
 
 
 <div class="viewcode-block" id="apply_fragment_connections">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.apply_fragment_connections">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragmentation.apply_fragment_connections">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">apply_fragment_connections</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mapping</span><span class="p">:</span> <span class="n">FragmentedLigandPoseMapping</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Install fragment cut bonds and rebuild all inter-block bond separations.&quot;&quot;&quot;</span>
 

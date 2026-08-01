@@ -9,3 +9,51 @@
 table.docutils {
   width: 100%;
 }
+
+.tutorial-card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin: 1.25rem 0 2rem;
+}
+
+.tutorial-card {
+  border: 1px solid var(--pst-color-border);
+  border-radius: 8px;
+  color: var(--pst-color-text-base);
+  display: block;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.tutorial-card:hover {
+  border-color: var(--pst-color-primary);
+  text-decoration: none;
+}
+
+.tutorial-card img {
+  aspect-ratio: 16 / 9;
+  display: block;
+  object-fit: cover;
+  width: 100%;
+}
+
+.tutorial-card-title,
+.tutorial-card-summary {
+  display: block;
+  padding: 0 1rem;
+}
+
+.tutorial-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  padding-top: 0.9rem;
+}
+
+.tutorial-card-summary {
+  color: var(--pst-color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  padding-bottom: 1rem;
+  padding-top: 0.35rem;
+}

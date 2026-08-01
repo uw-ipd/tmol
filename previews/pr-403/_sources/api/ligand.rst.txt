@@ -2,9 +2,6 @@ Ligand API
 ==========
 
 .. automodule:: tmol.ligand
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 .. automodule:: tmol.ligand.preparation
    :members:

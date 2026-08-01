@@ -35,7 +35,7 @@
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=c8b66c78" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=756c6893" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -193,70 +193,39 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="user_guide/scoring.html">
-    Scoring
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="user_guide/ligands.html">
-    Ligand Preparation
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="user_guide/optimization.html">
-    Optimization
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="user_guide/integrations.html">
-    Integrations
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="user_guide/benchmarking.html">
-    Benchmarking
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="examples_index.html">
+  <a class="nav-link nav-internal" href="examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api_reference.html">
     API Reference
   </a>
 </li>
 
 
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="contributor_guide.html">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -383,43 +352,22 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="user_guide/scoring.html">
-    Scoring
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="user_guide/ligands.html">
-    Ligand Preparation
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="user_guide/optimization.html">
-    Optimization
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="user_guide/integrations.html">
-    Integrations
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="user_guide/benchmarking.html">
-    Benchmarking
-  </a>
-</li>
-
-
-<li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="datatypes.html">
+    Datatypes
   </a>
 </li>
 
@@ -515,11 +463,11 @@
 modeling energy function. It scores protein structures, propagates derivatives
 through coordinates, packs side chains, minimizes structures, and prepares
 small-molecule ligands for protein-ligand scoring workflows.</p>
-<p>Start with <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> for a first score calculation. The user guide
-then covers installation, workflows, runnable examples, API details, and
-contributor workflows.</p>
+<p>Start with <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> for a first score calculation. The guide pages
+then cover installation, guided tutorials, workflows, runnable examples, API
+details, and contributor workflows.</p>
 <div class="toctree-wrapper compound">
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Get started</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Guide</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
@@ -531,7 +479,7 @@ contributor workflows.</p>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial/index.html">Tutorials</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial/visualisation.html">Score and visualize a PoseStack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial/index.html#contents">Contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="workflows/index.html">Workflows</a><ul>
@@ -543,60 +491,22 @@ contributor workflows.</p>
 <li class="toctree-l2"><a class="reference internal" href="user_guide/benchmarking.html">Benchmarking</a></li>
 </ul>
 </li>
-</ul>
-</div>
-<div class="toctree-wrapper compound">
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learn</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/scoring.html">Scoring</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/scoring.html#ligand-aware-scoring">Ligand-aware Scoring</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/scoring.html#block-pair-scores">Block-pair Scores</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/ligands.html">Ligand Preparation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#entry-points">Entry Points</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#loading-complexes">Loading Complexes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#reuse-prepared-context">Reuse Prepared Context</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#persist-prepared-ligands">Persist Prepared Ligands</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#smiles-to-params-cli">SMILES to Params CLI</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#troubleshooting">Troubleshooting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html#module-inventory">Module Inventory</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/optimization.html">Optimization</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/optimization.html#cartesian-minimization">Cartesian Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/optimization.html#repacking">Repacking</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/optimization.html#missing-side-chains-and-hydrogens">Missing Side Chains and Hydrogens</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/optimization.html#kinematic-minimization">Kinematic Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/optimization.html#relax">Relax</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/integrations.html">Integrations</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/integrations.html#rosettafold2">RosettaFold2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/integrations.html#openfold">OpenFold</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/integrations.html#biotite-and-atomarray">Biotite and AtomArray</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/benchmarking.html">Benchmarking</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/benchmarking.html#running-benchmarks">Running Benchmarks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/benchmarking.html#comparing-revisions">Comparing Revisions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/benchmarking.html#profiling">Profiling</a></li>
-</ul>
-</li>
 <li class="toctree-l1"><a class="reference internal" href="examples_index.html">Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="auto_examples/index.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial/visualisation.html">Score and visualize a PoseStack</a></li>
 <li class="toctree-l2"><a class="reference internal" href="notebooks/tmol_how_to_guide.html">Contents:</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#scoring-overview">Scoring Overview</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="datatypes.html">Datatypes</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="architecture.html">Architecture</a></li>
-<li class="toctree-l2"><a class="reference internal" href="datatypes.html">Datatypes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/chemical.html">Chemical Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/database.html">Databases</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/io.html">Input and Output</a></li>

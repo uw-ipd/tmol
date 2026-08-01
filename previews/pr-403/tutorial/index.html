@@ -35,7 +35,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=c8b66c78" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=756c6893" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -194,70 +194,39 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../user_guide/scoring.html">
-    Scoring
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../user_guide/ligands.html">
-    Ligand Preparation
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../user_guide/optimization.html">
-    Optimization
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../user_guide/integrations.html">
-    Integrations
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../user_guide/benchmarking.html">
-    Benchmarking
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../examples_index.html">
+  <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
   </a>
 </li>
 
 
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../datatypes.html">
+    Datatypes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api_reference.html">
     API Reference
   </a>
 </li>
 
 
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
     Contributor Guide
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -382,43 +351,22 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../user_guide/scoring.html">
-    Scoring
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../user_guide/ligands.html">
-    Ligand Preparation
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../user_guide/optimization.html">
-    Optimization
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../user_guide/integrations.html">
-    Integrations
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../user_guide/benchmarking.html">
-    Benchmarking
-  </a>
-</li>
-
-
-<li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../architecture.html">
+    Architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../datatypes.html">
+    Datatypes
   </a>
 </li>
 
@@ -495,6 +443,7 @@
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="visualisation.html">Score and visualize a PoseStack</a></li>
+<li class="toctree-l1"><a class="reference internal" href="score_pack_minimize.html">Score, Repack, and Minimize a Pose</a></li>
 </ul>
 </div>
 </nav></div>
@@ -554,11 +503,25 @@
                   
   <section id="tutorials">
 <h1>Tutorials<a class="headerlink" href="#tutorials" title="Link to this heading">#</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="visualisation.html">Score and visualize a PoseStack</a></li>
-</ul>
+<p>Use these tutorials when you want a guided, end-to-end walkthrough with saved
+outputs. The notebooks are rendered without execution during docs builds, so
+interactive viewers and energy tables are committed with the tutorial.</p>
+<section id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Link to this heading">#</a></h2>
+<div class="tutorial-card-grid">
+  <a class="tutorial-card" href="visualisation.html">
+    <img src="../_static/tutorials/visualisation.png" alt="">
+    <span class="tutorial-card-title">Interactive visualisation</span>
+    <span class="tutorial-card-summary">Load a TMol pose and publish a draggable py3Dmol viewer.</span>
+  </a>
+  <a class="tutorial-card" href="score_pack_minimize.html">
+    <img src="../_static/tutorials/score_pack_minimize.png" alt="">
+    <span class="tutorial-card-title">Score, repack, and minimize</span>
+    <span class="tutorial-card-summary">Score a pose, repack side chains, minimize coordinates, and compare energies.</span>
+  </a>
+</div><div class="toctree-wrapper compound">
 </div>
+</section>
 </section>
 
 
@@ -599,6 +562,18 @@
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#contents">Contents</a></li>
+</ul>
+  </nav></div>
 
   <div class="sidebar-secondary-item">
 
