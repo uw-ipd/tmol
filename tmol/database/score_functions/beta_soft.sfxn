@@ -24,6 +24,7 @@ weights:
   ref: 1.0
   gen_torsions: 1.0
   dna_torsion: 1.0
+  dna_torsion_well: 1.0
 options:
   soft_rep: True
   ref_weights:

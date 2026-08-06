@@ -6,7 +6,7 @@ import torch
 
 @score_term_creator
 class DnaDihedralTermCreator(TermCreator):
-    _score_types = [ScoreType.dna_torsion]
+    _score_types = [ScoreType.dna_torsion, ScoreType.dna_torsion_well]
 
     @classmethod
     def create_term(cls, param_db: ParameterDatabase, device: torch.device):

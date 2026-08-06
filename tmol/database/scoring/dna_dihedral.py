@@ -18,6 +18,17 @@ class DnaDihedralGlobalParams:
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
+class DnaDihedralWells:
+    """Bin-population energies, -ln P shifted so the deepest well is 0."""
+
+    pucker: Tuple[float, ...]
+    alpha_gamma: Tuple[Tuple[float, ...], ...]
+    bibii_given_pucker: Tuple[Tuple[float, ...], ...]
+    alphanext_given_bibii: Tuple[Tuple[float, ...], ...]
+    chi_syn_given_pucker: dict[str, dict[str, Tuple[float, ...]]]
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
 class DnaDihedralDatabase:
     """Mean DNA torsion angles by bin.
 
@@ -29,6 +40,7 @@ class DnaDihedralDatabase:
     global_parameters: DnaDihedralGlobalParams
     backbone_means: dict[str, Tuple[float, ...]]
     sugar_means: dict[str, dict[str, Tuple[float, ...]]]
+    well_energies: DnaDihedralWells
 
     @classmethod
     def from_file(cls, path):

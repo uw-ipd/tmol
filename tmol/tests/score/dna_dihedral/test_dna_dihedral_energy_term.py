@@ -48,12 +48,13 @@ def test_all_dna_block_types_are_scoreable(dna_pdb, torch_device):
 def test_scores_dna_and_ignores_protein(dna_pdb, ubq_pdb, torch_device):
     term, ps = _term_and_pose(dna_pdb, torch_device)
     dna = term.render_whole_pose_scoring_module(ps)(ps.coords)
+    assert dna.shape == (2, 1)  # harmonic and well score types
     assert torch.isfinite(dna).all()
-    assert float(dna) > 0
+    assert bool((dna > 0).all())
 
     term, ps = _term_and_pose(ubq_pdb, torch_device)
     protein = term.render_whole_pose_scoring_module(ps)(ps.coords)
-    assert float(protein) == 0.0
+    assert float(protein.sum()) == 0.0
 
 
 @pytest.mark.parametrize("n_poses", [1, 3, 7])
@@ -66,42 +67,85 @@ def test_stacked_poses_scale_linearly(n_poses, dna_pdb, torch_device):
     from tmol.pose.pose_stack_builder import PoseStackBuilder
 
     term, ps1 = _term_and_pose(dna_pdb, torch_device)
-    one = float(term.render_whole_pose_scoring_module(ps1)(ps1.coords))
+    one = term.render_whole_pose_scoring_module(ps1)(ps1.coords)
 
     psn = PoseStackBuilder.from_poses([ps1] * n_poses, torch_device)
     term.setup_packed_block_types(psn.packed_block_types)
     term.setup_poses(psn)
     scores = term.render_whole_pose_scoring_module(psn)(psn.coords)
 
-    assert scores.shape[-1] == n_poses
+    assert scores.shape == (2, n_poses)
     numpy.testing.assert_allclose(
-        scores.detach().cpu().numpy().reshape(-1),
-        numpy.full(n_poses, one),
+        scores.detach().cpu().numpy(),
+        one.detach().cpu().numpy().repeat(n_poses, axis=1),
         rtol=1e-5,
     )
 
 
-def test_subterms_sum_to_the_total(dna_pdb, torch_device):
+def _subterms(term, ps):
+    return dna_dihedral_subterms(
+        ps.coords.flatten(0, -2), ps.block_type_ind, *term.subterm_attributes(ps)
+    )
+
+
+def test_subterms_sum_to_the_totals(dna_pdb, torch_device):
     term, ps = _term_and_pose(dna_pdb, torch_device)
-    _has_dna, *a = term.get_score_term_attributes(ps)
-    bb, chi, sugar, mask = dna_dihedral_subterms(
-        ps.coords.flatten(0, -2),
-        ps.block_type_ind,
-        *a[:11],
-        a[11],
-        a[12],
-        a[16],
-        a[17],
-    )
+    bb, chi, sugar, well, mask = _subterms(term, ps)
     p = term.params
-    combined = p.weight_bb * bb + p.weight_chi * chi + p.weight_sugar * sugar
+    harmonic = p.weight_bb * bb + p.weight_chi * chi + p.weight_sugar * sugar
     total = term.render_whole_pose_scoring_module(ps)(ps.coords)
-    numpy.testing.assert_allclose(
-        float(torch.where(mask, combined, torch.zeros_like(combined)).sum()),
-        float(total),
-        rtol=1e-5,
+
+    for row, combined in enumerate((harmonic, well)):
+        numpy.testing.assert_allclose(
+            float(torch.where(mask, combined, torch.zeros_like(combined)).sum()),
+            float(total[row]),
+            rtol=1e-5,
+        )
+    for sub in (bb, chi, sugar, well):
+        assert bool((sub > 0).any())
+
+
+def test_rotamer_energies_match_the_pose_energies(protein_dna_pdb, torch_device):
+    """The include-current rotamer of each DNA block must reproduce that
+    block's pose energy, including the backbone torsions that reach into the
+    neighboring nucleotide's background coordinates."""
+    from tmol.pack.packer_task import PackerPalette, PackerTask, SetPackerTask
+    from tmol.pack.rotamer.build_rotamers import build_rotamers
+    from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
+    from tmol.score.score_function import ScoreFunction
+    from tmol.score.score_types import ScoreType
+
+    ps = pose_stack_from_pdb(protein_dna_pdb, torch_device)
+    sfxn = ScoreFunction(ParameterDatabase.get_default(), torch_device)
+    sfxn.set_weight(ScoreType.dna_torsion, 1.0)
+    sfxn.set_weight(ScoreType.dna_torsion_well, 1.0)
+
+    task = PackerTask(ps, PackerPalette())
+    task.restrict_to_repacking()
+    task.add_conformer_sampler(IncludeCurrentSampler())
+    ps, rotamer_set = build_rotamers(
+        ps, SetPackerTask.from_packer_task(task), ps.packed_block_types.chem_db
     )
-    assert bool((bb > 0).any()) and bool((chi > 0).any()) and bool((sugar > 0).any())
+
+    per_rot = (
+        sfxn.render_rotamer_scoring_module(ps, rotamer_set)(rotamer_set.coords)
+        .coalesce()
+        .to_dense()
+    )
+    per_block = sfxn.render_block_pair_scoring_module(ps)(ps.coords)
+
+    pose = rotamer_set.pose_for_rot.to(torch.int64)
+    block = rotamer_set.block_ind_for_rot.to(torch.int64)
+    rot = torch.arange(pose.shape[0], device=torch_device)
+    dna = per_block[pose, block, block] > 0
+    assert int(dna.sum()) > 0
+
+    numpy.testing.assert_allclose(
+        per_rot[pose, rot, rot][dna].detach().cpu().numpy(),
+        per_block[pose, block, block][dna].detach().cpu().numpy(),
+        rtol=1e-3,
+        atol=1e-3,
+    )
 
 
 def test_gradients_are_finite_in_float32(protein_dna_pdb, torch_device):
@@ -127,7 +171,8 @@ def test_gradcheck(dna_pdb, torch_device):
         full = torch.cat([x, coords[:, n:]], dim=1)
         return module(full).sum()
 
-    torch.autograd.gradcheck(f, (head,), eps=1e-4, atol=1e-4, rtol=1e-3)
+    # eps must be small for this input structure (very large curvature)
+    torch.autograd.gradcheck(f, (head,), eps=1e-6, atol=1e-4, rtol=1e-3)
 
 
 def test_pucker_weights_are_normalized_and_sharp(torch_device):

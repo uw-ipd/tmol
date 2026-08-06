@@ -54,7 +54,12 @@ SUGAR_TORSIONS = [
 N_SUGAR = len(SUGAR_TORSIONS)
 N_PUCKER = 10
 
-MIN_TORSIONS = 8  # per bin before Rosetta borrows from neighbouring puckers
+MIN_TORSIONS = 15  # per bin before borrowing from neighbouring puckers
+
+# well-depth tables: -ln of the bin populations, so a rare rotamer costs more
+# than a common one. The pseudocount bounds an empty cell at ln(n_max/a) ~ 14.
+PSEUDOCOUNT = 0.01
+NORTH_PUCKERS = (0, 1, 2, 3, 4)  # C3'-endo side; the rest are south
 MIN_CHI_TORSION = 120.0  # chi below this is syn and excluded from the mean
 
 # Rosetta option defaults (dna::specificity)
@@ -378,9 +383,8 @@ def sugar_means(obs):
         while len(vals) < MIN_TORSIONS and window < N_PUCKER:
             window += 1
             for offset in (-window, window):
-                p = pucker + offset
-                if not 0 <= p < N_PUCKER:
-                    continue
+                # the pucker states are a cycle: 9 neighbours 0
+                p = (pucker + offset) % N_PUCKER
                 other = list(by_pucker[p][slot])
                 if base is not None:
                     other = [v for v, b in zip(other, inames[p]) if b == base]
@@ -445,6 +449,62 @@ def backbone_means(obs):
     return table, counts
 
 
+def _offsets(counts, axis=None):
+    """-ln P from counts, shifted so the deepest well in the table is 0.
+
+    Normalizing along `axis` gives a conditional distribution; the shift is a
+    single constant per table so relative depths are preserved.
+    """
+    p = counts + PSEUDOCOUNT
+    p = p / (p.sum(axis=axis, keepdims=True) if axis is not None else p.sum())
+    e = -numpy.log(p)
+    return e - e.min()
+
+
+def well_tables(obs):
+    """Bin-population energies, factorized along the selected couplings.
+
+    Each bin assignment is charged once: the sugar torsions all read the pucker
+    bin, and beta reads the previous residue's BI/BII, so neither gets a table
+    of its own.
+    """
+    north = set(NORTH_PUCKERS)
+
+    pucker = numpy.zeros(N_PUCKER)
+    alpha_gamma = numpy.zeros((3, 3))
+    bibii_pucker = numpy.zeros((2, 2))  # BI/BII by north/south
+    alphanext_bibii = numpy.zeros((3, 2))  # alpha(i+1) bin by BI/BII
+    chi_syn = numpy.zeros((2, N_PUCKER, 4))  # anti/syn by pucker and base
+
+    for o in obs:
+        if o["lower"] or o["upper"]:
+            continue
+        pucker[o["pucker"]] += 1
+        t = o["tor"]
+        alpha_gamma[triple_bin(t["alpha"]) - 1, triple_bin(t["gamma"]) - 1] += 1
+        b = b1b2_bin(t["epsilon"], t["zeta"]) - 1
+        bibii_pucker[b, 0 if o["pucker"] in north else 1] += 1
+        syn = 0 if t["chi"] % 360.0 >= MIN_CHI_TORSION else 1
+        chi_syn[syn, o["pucker"], BASE_ORDER.index(o["base"])] += 1
+
+    for i, o in enumerate(obs):
+        if o["lower"] or o["upper"] or i + 1 >= len(obs) or obs[i + 1]["lower"]:
+            continue
+        nxt = obs[i + 1]["tor"]["alpha"]
+        if nxt is None:
+            continue
+        b = b1b2_bin(o["tor"]["epsilon"], o["tor"]["zeta"]) - 1
+        alphanext_bibii[triple_bin(nxt) - 1, b] += 1
+
+    return dict(
+        pucker=(_offsets(pucker), pucker),
+        alpha_gamma=(_offsets(alpha_gamma), alpha_gamma),
+        bibii_given_pucker=(_offsets(bibii_pucker, axis=0), bibii_pucker),
+        alphanext_given_bibii=(_offsets(alphanext_bibii, axis=0), alphanext_bibii),
+        chi_syn_given_pucker=(_offsets(chi_syn, axis=0), chi_syn),
+    )
+
+
 # -------------------------------------------------------------------- output
 
 
@@ -462,7 +522,7 @@ def observed_sdev(obs, sugar):
     return {k: float(numpy.std(v)) for k, v in dev.items() if v}
 
 
-def emit_yaml(path, sugar, backbone, provenance, sdev_obs=None):
+def emit_yaml(path, sugar, backbone, provenance, sdev_obs=None, wells=None):
     bb_names = {1: "alpha", 2: "beta", 3: "gamma", 5: "epsilon", 6: "zeta"}
     with open(path, "w") as out:
         for line in provenance:
@@ -512,6 +572,35 @@ def emit_yaml(path, sugar, backbone, provenance, sdev_obs=None):
             else:
                 vals = ", ".join(f"{sugar[0, p, slot]:9.4f}" for p in range(N_PUCKER))
                 out.write(f"    all: [{vals}]\n")
+
+        if wells is None:
+            return
+        out.write(
+            "\n# bin-population energies, -ln P shifted so the deepest well is 0.\n"
+            "# Each bin assignment is charged once: the sugar torsions all read\n"
+            "# pucker, and beta reads the previous residue's BI/BII.\n"
+        )
+        out.write("well_energies:\n")
+        fmt = lambda row: ", ".join(f"{v:7.4f}" for v in row)  # noqa: E731
+        out.write(f"  pucker: [{fmt(wells['pucker'][0])}]\n")
+        out.write("  alpha_gamma:  # rows alpha g+/t/g-, columns gamma g+/t/g-\n")
+        for row in wells["alpha_gamma"][0]:
+            out.write(f"    - [{fmt(row)}]\n")
+        out.write("  bibii_given_pucker:  # rows BI/BII, columns north/south\n")
+        for row in wells["bibii_given_pucker"][0]:
+            out.write(f"    - [{fmt(row)}]\n")
+        out.write(
+            "  alphanext_given_bibii:  # rows alpha(i+1) g+/t/g-, columns BI/BII\n"
+        )
+        for row in wells["alphanext_given_bibii"][0]:
+            out.write(f"    - [{fmt(row)}]\n")
+        out.write("  chi_syn_given_pucker:  # anti/syn, by pucker, per base\n")
+        for si, state in enumerate(("anti", "syn")):
+            out.write(f"    {state}:\n")
+            for bi, base in enumerate(BASE_ORDER):
+                out.write(
+                    f"      {base}: [{fmt(wells['chi_syn_given_pucker'][0][si, :, bi])}]\n"
+                )
 
 
 # ------------------------------------------------------------------ validate
@@ -639,7 +728,14 @@ def main():
             f"one representative per {args.seqid}% sequence-identity cluster.",
             f"Nucleotides: {len(interior)} interior of {len(obs)}.",
         ]
-        emit_yaml(args.out, sugar, backbone, provenance, observed_sdev(obs, sugar))
+        emit_yaml(
+            args.out,
+            sugar,
+            backbone,
+            provenance,
+            observed_sdev(obs, sugar),
+            well_tables(obs),
+        )
         print(f"wrote {args.out}")
 
 

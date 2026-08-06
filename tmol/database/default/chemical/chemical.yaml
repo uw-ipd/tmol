@@ -71,12 +71,12 @@ atom_types:
   - { name: OOP , element: O, is_acceptor : true, acceptor_hybridization: sp2 } # phosphate OP1/OP2
   - { name: Oet2, element: O, is_acceptor : true, acceptor_hybridization: sp2 } # phosphate ester O5'/O3'
   - { name: Oet3, element: O, is_acceptor : true, acceptor_hybridization: sp3, is_donor : true } # ribose ring O4'; should not be a donor, but matching rosetta
-  - { name: OBdd   , element: O, is_acceptor : true, acceptor_hybridization: sp2 } # pyrimidine O2/O4
-  - { name: OBddGua, element: O, is_acceptor : true, acceptor_hybridization: sp2 } # guanine O6; hbacc_CXL where OBdd is hbacc_CXA
-  - { name: NproDNA, element: N, is_donor : true } # glycosidic N9/N1; should not be a donor, but matching rosetta
-  - { name: NhisDNA, element: N, is_acceptor : true, acceptor_hybridization: ring } # base ring acceptors
-  - { name: NH2ODNA, element: N, is_donor : true } # exocyclic amines N6/N4/N2
-  - { name: NtrpDNA, element: N, is_donor : true } # protonated ring N: GUA N1, THY N3
+  - { name: Obacc   , element: O, is_acceptor : true, acceptor_hybridization: sp2 } # pyrimidine O2/O4
+  - { name: ObaccG, element: O, is_acceptor : true, acceptor_hybridization: sp2 } # guanine O6; hbacc_CXL where Obacc is hbacc_CXA
+  - { name: Nglyc, element: N, is_donor : true } # glycosidic N9/N1; should not be a donor, but matching rosetta
+  - { name: Nbacc, element: N, is_acceptor : true, acceptor_hybridization: ring } # base ring acceptors
+  - { name: Nbamn, element: N, is_donor : true } # exocyclic amines N6/N4/N2
+  - { name: Nbdon, element: N, is_donor : true } # protonated ring N: GUA N1, THY N3
 
   # Generic potential atom types for ligands (from Rosetta generic_potential)
   # Carbon
@@ -2570,16 +2570,16 @@ residues:
     - { name: O3' , atom_type: Oet2     }
     - { name: C2' , atom_type: CH2      }
     - { name: C1' , atom_type: CH1      }
-    - { name: N9 ,  atom_type: NproDNA  }
+    - { name: N9 ,  atom_type: Nglyc  }
     - { name: C4 ,  atom_type: Caro     }
-    - { name: N3 ,  atom_type: NhisDNA  }
+    - { name: N3 ,  atom_type: Nbacc  }
     - { name: C2 ,  atom_type: Caro     }
-    - { name: N1 ,  atom_type: NhisDNA  }
+    - { name: N1 ,  atom_type: Nbacc  }
     - { name: C6 ,  atom_type: Caro     }
     - { name: C5 ,  atom_type: Caro     }
-    - { name: N7 ,  atom_type: NhisDNA  }
+    - { name: N7 ,  atom_type: Nbacc  }
     - { name: C8 ,  atom_type: Caro     }
-    - { name: N6 ,  atom_type: NH2ODNA  }
+    - { name: N6 ,  atom_type: Nbamn  }
     - { name: H5'' , atom_type: Hapo     }
     - { name: H5' , atom_type: Hapo     }
     - { name: H4' , atom_type: Hapo     }
@@ -2723,12 +2723,12 @@ residues:
     - { name: O3' , atom_type: Oet2     }
     - { name: C2' , atom_type: CH2      }
     - { name: C1' , atom_type: CH1      }
-    - { name: N1 ,  atom_type: NproDNA  }
+    - { name: N1 ,  atom_type: Nglyc  }
     - { name: C2 ,  atom_type: CObb     }
-    - { name: O2 ,  atom_type: OBdd     }
-    - { name: N3 ,  atom_type: NhisDNA  }
+    - { name: O2 ,  atom_type: Obacc     }
+    - { name: N3 ,  atom_type: Nbacc  }
     - { name: C4 ,  atom_type: Caro     }
-    - { name: N4 ,  atom_type: NH2ODNA  }
+    - { name: N4 ,  atom_type: Nbamn  }
     - { name: C5 ,  atom_type: Caro     }
     - { name: C6 ,  atom_type: Caro     }
     - { name: H5'' , atom_type: Hapo     }
@@ -2869,17 +2869,17 @@ residues:
     - { name: O3' , atom_type: Oet2     }
     - { name: C2' , atom_type: CH2      }
     - { name: C1' , atom_type: CH1      }
-    - { name: N9 ,  atom_type: NproDNA  }
+    - { name: N9 ,  atom_type: Nglyc  }
     - { name: C4 ,  atom_type: Caro     }
-    - { name: N3 ,  atom_type: NhisDNA  }
+    - { name: N3 ,  atom_type: Nbacc  }
     - { name: C2 ,  atom_type: Caro     }
-    - { name: N1 ,  atom_type: NtrpDNA  }
+    - { name: N1 ,  atom_type: Nbdon  }
     - { name: C6 ,  atom_type: CObb     }
     - { name: C5 ,  atom_type: Caro     }
-    - { name: N7 ,  atom_type: NhisDNA  }
+    - { name: N7 ,  atom_type: Nbacc  }
     - { name: C8 ,  atom_type: Caro     }
-    - { name: N2 ,  atom_type: NH2ODNA  }
-    - { name: O6 ,  atom_type: OBddGua  }
+    - { name: N2 ,  atom_type: Nbamn  }
+    - { name: O6 ,  atom_type: ObaccG  }
     - { name: H5'' , atom_type: Hapo     }
     - { name: H5' , atom_type: Hapo     }
     - { name: H4' , atom_type: Hapo     }
@@ -3025,12 +3025,12 @@ residues:
     - { name: O3' , atom_type: Oet2     }
     - { name: C2' , atom_type: CH2      }
     - { name: C1' , atom_type: CH1      }
-    - { name: N1 ,  atom_type: NproDNA  }
+    - { name: N1 ,  atom_type: Nglyc  }
     - { name: C2 ,  atom_type: CObb     }
-    - { name: O2 ,  atom_type: OBdd     }
-    - { name: N3 ,  atom_type: NtrpDNA  }
+    - { name: O2 ,  atom_type: Obacc     }
+    - { name: N3 ,  atom_type: Nbdon  }
     - { name: C4 ,  atom_type: CObb     }
-    - { name: O4 ,  atom_type: OBdd     }
+    - { name: O4 ,  atom_type: Obacc     }
     - { name: C5 ,  atom_type: Caro     }
     - { name: C7 ,  atom_type: CH3      }
     - { name: C6 ,  atom_type: Caro     }

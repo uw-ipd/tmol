@@ -235,6 +235,7 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
         ScoreType.dunbrack_semirot: n([99.660904]),
         ScoreType.gen_torsions: n([0.0]),
         ScoreType.dna_torsion: n([0.0]),
+        ScoreType.dna_torsion_well: n([0.0]),
     }
     # This test runs on both cpu and cuda; summed full-pose energies drift at the
     # ~1e-3 level in float32 across devices (e.g. omega), so the tolerance is
@@ -287,6 +288,7 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.dunbrack_semirot: n([99.660904]),
         ScoreType.gen_torsions: n([0.0]),
         ScoreType.dna_torsion: n([0.0]),
+        ScoreType.dna_torsion_well: n([0.0]),
     }
     for st in score_types:
         numpy.testing.assert_allclose(

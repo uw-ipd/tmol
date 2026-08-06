@@ -29,8 +29,8 @@ donor_atom_types:
   - { d: Ngu2,     donor_type: hbdon_GENERIC_SC }
   - { d: Ohx,      donor_type: hbdon_GENERIC_SC }
   # DNA (Rosetta assigns these by residue+atom name in hbonds_geom.cc)
-  - { d: NH2ODNA,  donor_type: hbdon_CXA } #ex: ADE N6; CYT N4; GUA N2
-  - { d: NtrpDNA,  donor_type: hbdon_IND } #ex: GUA N1; THY N3
+  - { d: Nbamn,  donor_type: hbdon_CXA } #ex: ADE N6; CYT N4; GUA N2
+  - { d: Nbdon,  donor_type: hbdon_IND } #ex: GUA N1; THY N3
 
 donor_type_params:
   - {name: hbdon_IND, weight: 1.15 }
@@ -71,9 +71,9 @@ acceptor_atom_types:
   - { a: OOP,       acceptor_type: hbacc_PCA_DNA } #ex: OP1/OP2
   - { a: Oet2,      acceptor_type: hbacc_PES_DNA } #ex: O5'/O3'
   - { a: Oet3,      acceptor_type: hbacc_RRI_DNA } #ex: O4'
-  - { a: OBdd,      acceptor_type: hbacc_CXA } #ex: CYT O2; THY O2/O4
-  - { a: OBddGua,   acceptor_type: hbacc_CXL } #ex: GUA O6
-  - { a: NhisDNA,   acceptor_type: hbacc_IME } #ex: ADE N1/N3/N7; GUA N3/N7; CYT N3
+  - { a: Obacc,      acceptor_type: hbacc_CXA } #ex: CYT O2; THY O2/O4
+  - { a: ObaccG,   acceptor_type: hbacc_CXL } #ex: GUA O6
+  - { a: Nbacc,   acceptor_type: hbacc_IME } #ex: ADE N1/N3/N7; GUA N3/N7; CYT N3
 
 acceptor_type_params:
   - {name: hbacc_PBA, weight: 1.19 }

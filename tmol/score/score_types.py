@@ -26,5 +26,6 @@ class ScoreType(AutoNumber):
     ref = ()
     gen_torsions = ()
     dna_torsion = ()
+    dna_torsion_well = ()
     # keep this one last
     n_score_types = ()
