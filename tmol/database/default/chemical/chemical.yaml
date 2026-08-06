@@ -2645,6 +2645,9 @@ residues:
     - { name: epsilon, a: {atom: C4'}, b: {atom: C3'}, c: {atom: O3'}, d: {connection: up, bond_sep_from_conn: 0}}
     - { name: zeta,    a: {atom: C3'}, b: {atom: O3'}, c: {connection: up, bond_sep_from_conn: 0}, d: {connection: up, bond_sep_from_conn: 1}}
     - { name: chi1,    a: {atom: O4'}, b: {atom: C1'}, c: {atom: N9}, d: {atom: C4}}
+    - { name: nu0,     a: {atom: C4'}, b: {atom: O4'}, c: {atom: C1'}, d: {atom: C2'}}
+    - { name: nu1,     a: {atom: O4'}, b: {atom: C1'}, c: {atom: C2'}, d: {atom: C3'}}
+    - { name: nu4,     a: {atom: C3'}, b: {atom: C4'}, c: {atom: O4'}, d: {atom: C1'}}
     icoors:
     - { name:   O5', phi:    0.000000 deg, theta:   0.000000 deg, d: 0.000000, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
     - { name:   C5', phi:    0.000000 deg, theta: 180.000000 deg, d: 1.440609, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
@@ -2790,6 +2793,9 @@ residues:
     - { name: epsilon, a: {atom: C4'}, b: {atom: C3'}, c: {atom: O3'}, d: {connection: up, bond_sep_from_conn: 0}}
     - { name: zeta,    a: {atom: C3'}, b: {atom: O3'}, c: {connection: up, bond_sep_from_conn: 0}, d: {connection: up, bond_sep_from_conn: 1}}
     - { name: chi1,    a: {atom: O4'}, b: {atom: C1'}, c: {atom: N1}, d: {atom: C2}}
+    - { name: nu0,     a: {atom: C4'}, b: {atom: O4'}, c: {atom: C1'}, d: {atom: C2'}}
+    - { name: nu1,     a: {atom: O4'}, b: {atom: C1'}, c: {atom: C2'}, d: {atom: C3'}}
+    - { name: nu4,     a: {atom: C3'}, b: {atom: C4'}, c: {atom: O4'}, d: {atom: C1'}}
     icoors:
     - { name:   O5', phi:    0.000000 deg, theta:   0.000000 deg, d: 0.000000, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
     - { name:   C5', phi:    0.000000 deg, theta: 180.000000 deg, d: 1.440745, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
@@ -2940,6 +2946,9 @@ residues:
     - { name: epsilon, a: {atom: C4'}, b: {atom: C3'}, c: {atom: O3'}, d: {connection: up, bond_sep_from_conn: 0}}
     - { name: zeta,    a: {atom: C3'}, b: {atom: O3'}, c: {connection: up, bond_sep_from_conn: 0}, d: {connection: up, bond_sep_from_conn: 1}}
     - { name: chi1,    a: {atom: O4'}, b: {atom: C1'}, c: {atom: N9}, d: {atom: C4}}
+    - { name: nu0,     a: {atom: C4'}, b: {atom: O4'}, c: {atom: C1'}, d: {atom: C2'}}
+    - { name: nu1,     a: {atom: O4'}, b: {atom: C1'}, c: {atom: C2'}, d: {atom: C3'}}
+    - { name: nu4,     a: {atom: C3'}, b: {atom: C4'}, c: {atom: O4'}, d: {atom: C1'}}
     icoors:
     - { name:   O5', phi:    0.000000 deg, theta:   0.000000 deg, d: 0.000000, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
     - { name:   C5', phi:    0.000000 deg, theta: 180.000000 deg, d: 1.441042, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
@@ -3092,6 +3101,9 @@ residues:
     - { name: epsilon, a: {atom: C4'}, b: {atom: C3'}, c: {atom: O3'}, d: {connection: up, bond_sep_from_conn: 0}}
     - { name: zeta,    a: {atom: C3'}, b: {atom: O3'}, c: {connection: up, bond_sep_from_conn: 0}, d: {connection: up, bond_sep_from_conn: 1}}
     - { name: chi1,    a: {atom: O4'}, b: {atom: C1'}, c: {atom: N1}, d: {atom: C2}}
+    - { name: nu0,     a: {atom: C4'}, b: {atom: O4'}, c: {atom: C1'}, d: {atom: C2'}}
+    - { name: nu1,     a: {atom: O4'}, b: {atom: C1'}, c: {atom: C2'}, d: {atom: C3'}}
+    - { name: nu4,     a: {atom: C3'}, b: {atom: C4'}, c: {atom: O4'}, d: {atom: C1'}}
     icoors:
     - { name:   O5', phi:    0.000000 deg, theta:   0.000000 deg, d: 0.000000, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }
     - { name:   C5', phi:    0.000000 deg, theta: 180.000000 deg, d: 1.440030, parent:   O5', grand_parent:   C5', great_grand_parent:   C4' }

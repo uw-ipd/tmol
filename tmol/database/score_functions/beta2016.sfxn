@@ -25,3 +25,4 @@ weights:
   dunbrack_semirot: 0.78
   ref: 1.0
   gen_torsions: 1.0
+  dna_torsion: 1.0

@@ -1,0 +1,647 @@
+"""Regenerate the DNA dihedral mean-angle tables from crystal structures.
+
+Rosetta derives these means at load time by parsing raw observations
+(database/scoring/dna/bound_dna_dihedrals.txt); tmol ships the derived means.
+This script rebuilds them from a structure list, using Rosetta's binning and
+averaging but computing proper nu ring torsions from heavy atoms rather than
+Rosetta's substituent-referenced "chi2"/"chi4".
+
+The structure list is dna_dihedral_structures.txt: protein-DNA X-ray entries
+at <= 2.3 A, one representative per 30% sequence-identity cluster.
+
+    python -m tmol.support.scoring.dna_dihedral_param_import \
+        --pdb-dir /tmp/dnaset --out dna_dihedral.yaml
+
+    # check the pipeline against Rosetta's own observations
+    python -m tmol.support.scoring.dna_dihedral_param_import \
+        --pdb-dir /tmp/dnapdb --validate ~/rosetta/database/scoring/dna/\
+bound_dna_dihedrals.txt
+"""
+
+import argparse
+import datetime
+import gzip
+import json
+import os
+import urllib.request
+from collections import defaultdict
+
+import numpy
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+STRUCTURE_LIST = os.path.join(HERE, "dna_dihedral_structures.txt")
+
+PURINE = {"DA", "DG", "A", "G", "ADE", "GUA"}
+PYRIMIDINE = {"DC", "DT", "C", "T", "CYT", "THY"}
+DNA_RESNAMES = PURINE | PYRIMIDINE
+BASE1 = {
+    "DA": "a", "A": "a", "ADE": "a", "DC": "c", "C": "c", "CYT": "c",
+    "DG": "g", "G": "g", "GUA": "g", "DT": "t", "T": "t", "THY": "t",
+}  # fmt: skip
+BASE_ORDER = "acgt"
+
+RING = ["C1'", "C2'", "C3'", "C4'", "O4'"]
+
+# sugar torsion slots, mirroring Rosetta's (delta, chi2, chi3, chi4, chi) but
+# with proper literature nu in place of its substituent-referenced torsions
+SUGAR_TORSIONS = [
+    ("delta", None),  # from the backbone
+    ("nu4", ["C3'", "C4'", "O4'", "C1'"]),
+    ("nu0", ["C4'", "O4'", "C1'", "C2'"]),
+    ("nu1", ["O4'", "C1'", "C2'", "C3'"]),
+    ("chi", None),  # glycosidic, from the base
+]
+N_SUGAR = len(SUGAR_TORSIONS)
+N_PUCKER = 10
+
+MIN_TORSIONS = 8  # per bin before Rosetta borrows from neighbouring puckers
+MIN_CHI_TORSION = 120.0  # chi below this is syn and excluded from the mean
+
+# Rosetta option defaults (dna::specificity)
+SDEV_BACKBONE = [17.0, 30.0, 15.0, 0.0, 20.0, 30.0]
+SDEV_SUGAR = 4.0
+SDEV_CHI = 15.0
+
+# subterm weights from beta16_opt46A.523; dna_torsion sums them at weight 1
+WEIGHT_BB = 0.46
+WEIGHT_CHI = 1.07
+WEIGHT_SUGAR = 0.16
+
+# softmax temperature for the pucker states, and the gaussian width blending
+# the three alpha/gamma bins; both replace hard bin assignments
+PUCKER_TEMPERATURE = 0.05
+BIN_BLEND_SDEV = 30.0
+
+RCSB_SEARCH = "https://search.rcsb.org/rcsbsearch/v2/query"
+RCSB_FILES = "https://files.rcsb.org/download/"
+
+
+# ---------------------------------------------------------------- structures
+
+
+def query_rcsb(resolution=2.3, seqid_cutoff=30):
+    """Representative protein entities of protein-DNA X-ray structures."""
+
+    def text(attribute, operator, value):
+        return {
+            "type": "terminal",
+            "service": "text",
+            "parameters": {
+                "attribute": attribute,
+                "operator": operator,
+                "value": value,
+            },
+        }
+
+    query = {
+        "query": {
+            "type": "group",
+            "logical_operator": "and",
+            "nodes": [
+                text(
+                    "rcsb_entry_info.resolution_combined",
+                    "less_or_equal",
+                    resolution,
+                ),
+                text("exptl.method", "exact_match", "X-RAY DIFFRACTION"),
+                text(
+                    "rcsb_entry_info.polymer_entity_count_DNA",
+                    "greater_or_equal",
+                    1,
+                ),
+                text("entity_poly.rcsb_entity_polymer_type", "exact_match", "Protein"),
+            ],
+        },
+        "return_type": "polymer_entity",
+        "request_options": {
+            "group_by": {
+                "aggregation_method": "sequence_identity",
+                "similarity_cutoff": seqid_cutoff,
+            },
+            "group_by_return_type": "representatives",
+            "paginate": {"start": 0, "rows": 10000},
+            "results_verbosity": "compact",
+        },
+    }
+    req = urllib.request.Request(
+        RCSB_SEARCH,
+        data=json.dumps(query).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    result = json.loads(urllib.request.urlopen(req, timeout=300).read())
+    ids = [r if isinstance(r, str) else r["identifier"] for r in result["result_set"]]
+    return sorted({i.split("_")[0].lower() for i in ids})
+
+
+def fetch(code, pdb_dir):
+    """Local path to a structure, downloading it if absent."""
+    for ext in (".pdb.gz", ".cif.gz"):
+        path = os.path.join(pdb_dir, code + ext)
+        if os.path.exists(path) and os.path.getsize(path):
+            return path
+    os.makedirs(pdb_dir, exist_ok=True)
+    for ext in (".pdb.gz", ".cif.gz"):
+        path = os.path.join(pdb_dir, code + ext)
+        try:
+            urllib.request.urlretrieve(RCSB_FILES + code.upper() + ext, path)
+            if os.path.getsize(path):
+                return path
+        except Exception:
+            if os.path.exists(path):
+                os.remove(path)
+    return None
+
+
+# ---------------------------------------------------------------------- i/o
+
+
+def _norm(name):
+    """Pre-remediation PDB files spell primes as stars."""
+    return name.strip().replace("*", "'")
+
+
+def read_pdb(path, max_b=None):
+    """-> [(chain, resid, resname, {atom: xyz})] for DNA residues, in order."""
+    opener = gzip.open if path.endswith(".gz") else open
+    out, cur, key = [], None, None
+    with opener(path, "rt", errors="replace") as f:
+        for line in f:
+            if line.startswith("ENDMDL"):
+                break
+            if not line.startswith("ATOM"):
+                continue
+            if line[17:20].strip() not in DNA_RESNAMES:
+                continue
+            name = _norm(line[12:16])
+            k = (line[21], line[22:27])
+            if k != key:
+                cur = {}
+                out.append((k[0], k[1], line[17:20].strip(), cur))
+                key = k
+            if name in cur:  # keep the first altloc
+                continue
+            try:
+                b = float(line[60:66])
+            except ValueError:
+                b = 0.0
+            if max_b is not None and b > max_b:
+                continue
+            cur[name] = numpy.array(
+                [float(line[30:38]), float(line[38:46]), float(line[46:54])]
+            )
+    return out
+
+
+def read_cif(path, max_b=None):
+    """Same as read_pdb, via biotite (used for entries with no PDB format)."""
+    import biotite.structure.io.pdbx as pdbx
+
+    with gzip.open(path, "rt", errors="replace") as f:
+        block = pdbx.CIFFile.read(f)
+    arr = pdbx.get_structure(
+        block, model=1, extra_fields=["b_factor", "occupancy"], altloc="first"
+    )
+    arr = arr[numpy.isin(arr.res_name, list(DNA_RESNAMES))]
+    out, cur, key = [], None, None
+    for i in range(arr.array_length()):
+        k = (str(arr.chain_id[i]), str(arr.res_id[i]) + str(arr.ins_code[i]))
+        if k != key:
+            cur = {}
+            out.append((k[0], k[1], str(arr.res_name[i]), cur))
+            key = k
+        if max_b is not None and arr.b_factor[i] > max_b:
+            continue
+        cur.setdefault(_norm(str(arr.atom_name[i])), arr.coord[i].astype(float))
+    return out
+
+
+def read_structure(path, max_b=None):
+    return (read_cif if path.endswith(".cif.gz") else read_pdb)(path, max_b)
+
+
+# ----------------------------------------------------------------- geometry
+
+
+def dihedral(p0, p1, p2, p3):
+    """Dihedral in [0, 360)."""
+    b0, b1, b2 = p0 - p1, p2 - p1, p3 - p2
+    b1 = b1 / numpy.linalg.norm(b1)
+    v = b0 - (b0 @ b1) * b1
+    w = b2 - (b2 @ b1) * b1
+    return numpy.degrees(numpy.arctan2(numpy.cross(b1, v) @ w, v @ w)) % 360.0
+
+
+def subtract_degree_angles(a, b):
+    """a - b wrapped to [-180, 180)."""
+    return (a - b + 180.0) % 360.0 - 180.0
+
+
+def triple_bin(angle):
+    """g+/t/g- bin, 1-3, on [0,360)."""
+    angle %= 360.0
+    return 1 if angle < 120.0 else (2 if angle < 240.0 else 3)
+
+
+def b1b2_bin(epsilon, zeta):
+    """BI (1) or BII (2) from the epsilon-zeta difference."""
+    return 1 if subtract_degree_angles(epsilon, zeta) < 0 else 2
+
+
+def sugar_pucker(atoms):
+    """Rosetta's discrete pucker index, 0-9.
+
+    Walks the 5 cyclic rotations of the ring; the apex is the atom left out of
+    the most planar four. Endo/exo doubles that to 10 states.
+    """
+    xyz = [atoms[n] for n in RING]
+    names = list(RING)
+    mindot, apex, exxo = 1e9, None, False
+    for _ in range(5):
+        n12 = numpy.cross(xyz[1] - xyz[0], xyz[2] - xyz[1])
+        n12 = n12 / numpy.linalg.norm(n12)
+        d = abs(n12 @ ((xyz[3] - xyz[2]) / numpy.linalg.norm(xyz[3] - xyz[2])))
+        if d < mindot:
+            mindot = d
+            apex = names[4]
+            v = xyz[4] - 0.5 * (xyz[3] + xyz[0])
+            exxo = (n12 @ (v / numpy.linalg.norm(v))) > 0.0
+        xyz.append(xyz.pop(0))
+        names.append(names.pop(0))
+
+    i = RING.index(apex)
+    return (i + 1 if i % 2 == (0 if exxo else 1) else i - 4) + 4
+
+
+def residue_torsions(prev, cur, nxt):
+    """alpha..zeta, chi and nu0/nu1/nu4 in [0,360); None where undefined."""
+    p_, c_, n_ = (r[3] if r else None for r in (prev, cur, nxt))
+
+    def dih(*names_and_dicts):
+        pts = [d.get(n) if d else None for d, n in names_and_dicts]
+        return None if any(p is None for p in pts) else dihedral(*pts)
+
+    t = {
+        "alpha": dih((p_, "O3'"), (c_, "P"), (c_, "O5'"), (c_, "C5'")),
+        "beta": dih((c_, "P"), (c_, "O5'"), (c_, "C5'"), (c_, "C4'")),
+        "gamma": dih((c_, "O5'"), (c_, "C5'"), (c_, "C4'"), (c_, "C3'")),
+        "delta": dih((c_, "C5'"), (c_, "C4'"), (c_, "C3'"), (c_, "O3'")),
+        "epsilon": dih((c_, "C4'"), (c_, "C3'"), (c_, "O3'"), (n_, "P")),
+        "zeta": dih((c_, "C3'"), (c_, "O3'"), (n_, "P"), (n_, "O5'")),
+    }
+    n1, c1 = ("N9", "C4") if cur[2] in PURINE else ("N1", "C2")
+    t["chi"] = dih((c_, "O4'"), (c_, "C1'"), (c_, n1), (c_, c1))
+    for name, atoms in SUGAR_TORSIONS:
+        if atoms is not None:
+            t[name] = dih(*[(c_, a) for a in atoms])
+    return t
+
+
+# -------------------------------------------------------------- observations
+
+
+def observations(codes, pdb_dir, max_b=None, verbose=False):
+    """Collect per-nucleotide torsions from every structure in the list."""
+    obs, n_struct, n_skipped = [], 0, 0
+    for code in codes:
+        path = fetch(code, pdb_dir)
+        if path is None:
+            n_skipped += 1
+            continue
+        try:
+            residues = read_structure(path, max_b)
+        except Exception as err:
+            if verbose:
+                print(f"  {code}: unreadable ({err})")
+            n_skipped += 1
+            continue
+        n_struct += 1
+        for i, res in enumerate(residues):
+            prev = residues[i - 1] if i > 0 and residues[i - 1][0] == res[0] else None
+            nxt = (
+                residues[i + 1]
+                if i + 1 < len(residues) and residues[i + 1][0] == res[0]
+                else None
+            )
+            if not all(a in res[3] for a in RING):
+                continue
+            t = residue_torsions(prev, res, nxt)
+            if t["delta"] is None or t["chi"] is None:
+                continue
+            if any(t[n] is None for n, a in SUGAR_TORSIONS if a is not None):
+                continue
+            obs.append(
+                dict(
+                    code=code,
+                    base=BASE1[res[2]],
+                    pucker=sugar_pucker(res[3]),
+                    lower=t["alpha"] is None,
+                    upper=t["epsilon"] is None or t["zeta"] is None,
+                    tor=t,
+                )
+            )
+    return obs, n_struct, n_skipped
+
+
+# ------------------------------------------------------------------- means
+
+
+def circular_mean(values):
+    """Rosetta's median-centred mean: robust to the 0/360 seam."""
+    values = sorted(values)
+    median = values[(len(values) + 1) // 2 - 1]
+    offset = numpy.mean([subtract_degree_angles(v, median) for v in values])
+    return (median + offset) % 360.0
+
+
+def sugar_means(obs):
+    """mean_sugar_torsion[base][pucker][slot]; only chi is base-dependent."""
+    # bucket non-terminal observations by pucker
+    by_pucker = defaultdict(lambda: [[] for _ in range(N_SUGAR)])
+    inames = defaultdict(list)
+    for o in obs:
+        if o["lower"] or o["upper"]:
+            continue
+        for s, (name, _) in enumerate(SUGAR_TORSIONS):
+            by_pucker[o["pucker"]][s].append(o["tor"][name])
+        inames[o["pucker"]].append(o["base"])
+
+    def pool(pucker, slot, base):
+        vals = list(by_pucker[pucker][slot])
+        if base is not None:
+            keep = inames[pucker]
+            vals = [v for v, b in zip(vals, keep) if b == base]
+        if len(vals) >= MIN_TORSIONS:
+            return vals, len(vals)
+        # borrow from neighbouring puckers in widening windows
+        have = len(vals)
+        window = 0
+        while len(vals) < MIN_TORSIONS and window < N_PUCKER:
+            window += 1
+            for offset in (-window, window):
+                p = pucker + offset
+                if not 0 <= p < N_PUCKER:
+                    continue
+                other = list(by_pucker[p][slot])
+                if base is not None:
+                    other = [v for v, b in zip(other, inames[p]) if b == base]
+                vals += other[: MIN_TORSIONS - len(vals)]
+        return vals, have
+
+    table = numpy.zeros((4, N_PUCKER, N_SUGAR))
+    counts = numpy.zeros((4, N_PUCKER, N_SUGAR), dtype=int)
+    for bi, base in enumerate(BASE_ORDER):
+        for pucker in range(N_PUCKER):
+            for slot, (name, _) in enumerate(SUGAR_TORSIONS):
+                seq_dep = name == "chi"
+                vals, have = pool(pucker, slot, base if seq_dep else None)
+                if not vals:
+                    continue
+                if seq_dep:  # drop syn conformations
+                    vals = sorted(vals)
+                    while len(vals) > MIN_TORSIONS - 2 and vals[0] < MIN_CHI_TORSION:
+                        vals.pop(0)
+                table[bi, pucker, slot] = circular_mean(vals)
+                counts[bi, pucker, slot] = have
+    return table, counts
+
+
+def backbone_means(obs):
+    """mean_backbone_torsion[tor][bin]; tor 1-6, delta (4) unused."""
+    table = numpy.zeros((7, 4))
+    counts = numpy.zeros((7, 4), dtype=int)
+
+    def plain_mean(vals):
+        return float(numpy.mean(vals)) if vals else 0.0
+
+    interior = [o for o in obs if not o["lower"] and not o["upper"]]
+
+    for tor, name in ((1, "alpha"), (3, "gamma")):
+        for b in (1, 2, 3):
+            vals = [o["tor"][name] for o in interior if triple_bin(o["tor"][name]) == b]
+            table[tor][b], counts[tor][b] = plain_mean(vals), len(vals)
+
+    # beta is binned on the *previous* residue's BI/BII state
+    for b in (1, 2):
+        vals = []
+        for i, o in enumerate(obs):
+            if i == 0 or o["lower"] or o["upper"] or obs[i - 1]["lower"]:
+                continue
+            p = obs[i - 1]["tor"]
+            if p["epsilon"] is None or p["zeta"] is None:
+                continue
+            if b1b2_bin(p["epsilon"], p["zeta"]) == b:
+                vals.append(o["tor"]["beta"])
+        table[2][b], counts[2][b] = plain_mean(vals), len(vals)
+
+    for tor, name in ((5, "epsilon"), (6, "zeta")):
+        for b in (1, 2):
+            vals = [
+                o["tor"][name]
+                for o in interior
+                if b1b2_bin(o["tor"]["epsilon"], o["tor"]["zeta"]) == b
+            ]
+            table[tor][b], counts[tor][b] = plain_mean(vals), len(vals)
+
+    return table, counts
+
+
+# -------------------------------------------------------------------- output
+
+
+def observed_sdev(obs, sugar):
+    """Spread of the observations about their own bin mean, per sugar torsion."""
+    dev = {name: [] for name, _ in SUGAR_TORSIONS}
+    for o in obs:
+        if o["lower"] or o["upper"]:
+            continue
+        b = BASE_ORDER.index(o["base"])
+        for s, (name, _) in enumerate(SUGAR_TORSIONS):
+            dev[name].append(
+                subtract_degree_angles(o["tor"][name], sugar[b, o["pucker"], s])
+            )
+    return {k: float(numpy.std(v)) for k, v in dev.items() if v}
+
+
+def emit_yaml(path, sugar, backbone, provenance, sdev_obs=None):
+    bb_names = {1: "alpha", 2: "beta", 3: "gamma", 5: "epsilon", 6: "zeta"}
+    with open(path, "w") as out:
+        for line in provenance:
+            out.write(f"# {line}\n")
+        out.write("\nglobal_parameters:\n")
+        # Rosetta's own option table annotates sdev_sugar "## too small"; both
+        # are tighter than the data, which the subterm weights absorb
+        pooled = None
+        if sdev_obs:
+            vals = [v for k, v in sdev_obs.items() if k != "chi"]
+            pooled = sum(vals) / len(vals)
+        note = f"  # observed spread {pooled:.1f}" if pooled else ""
+        out.write(f"  sdev_sugar: {SDEV_SUGAR}{note}\n")
+        note = f"  # observed spread {sdev_obs['chi']:.1f}" if sdev_obs else ""
+        out.write(f"  sdev_chi: {SDEV_CHI}{note}\n")
+        out.write(
+            "  sdev_backbone: ["
+            + ", ".join(f"{s}" for s in SDEV_BACKBONE)
+            + "]  # alpha beta gamma delta epsilon zeta\n"
+        )
+        out.write(f"  weight_bb: {WEIGHT_BB}\n")
+        out.write(f"  weight_chi: {WEIGHT_CHI}\n")
+        out.write(f"  weight_sugar: {WEIGHT_SUGAR}\n")
+        out.write(f"  pucker_temperature: {PUCKER_TEMPERATURE}\n")
+        out.write(f"  bin_blend_sdev: {BIN_BLEND_SDEV}\n")
+
+        out.write(
+            "\n# mean backbone torsion by bin; alpha/gamma g+/t/g-, others BI/BII\n"
+        )
+        out.write("backbone_means:\n")
+        for tor in sorted(bb_names):
+            n_bins = 3 if tor in (1, 3) else 2
+            vals = ", ".join(f"{backbone[tor][b]:9.4f}" for b in range(1, n_bins + 1))
+            label = bb_names[tor] + ":"
+            out.write(f"  {label:10s} [{vals}]\n")
+
+        out.write("\n# mean sugar torsion by pucker; only chi is base-dependent\n")
+        out.write("sugar_means:\n")
+        for slot, (name, _) in enumerate(SUGAR_TORSIONS):
+            out.write(f"  {name}:\n")
+            if name == "chi":
+                for bi, base in enumerate(BASE_ORDER):
+                    vals = ", ".join(
+                        f"{sugar[bi, p, slot]:9.4f}" for p in range(N_PUCKER)
+                    )
+                    out.write(f"    {base}: [{vals}]\n")
+            else:
+                vals = ", ".join(f"{sugar[0, p, slot]:9.4f}" for p in range(N_PUCKER))
+                out.write(f"    all: [{vals}]\n")
+
+
+# ------------------------------------------------------------------ validate
+
+
+def read_rosetta_stats(path):
+    """Rosetta's own observations, for cross-checking the pipeline."""
+    rows = []
+    for line in open(path):
+        f = line.split()
+        if not f or f[0] != "DNA_DIHEDRALS":
+            continue
+        v = [float(x) for x in f[10:20]]
+        rows.append(
+            dict(
+                base=f[2],
+                pucker=int(f[5]),
+                lower=f[6] == "--",
+                upper=f[8] == "--",
+                tor=dict(
+                    alpha=v[0], beta=v[1], gamma=v[2], delta=v[3],
+                    epsilon=v[4], zeta=v[5], chi=v[6],
+                ),  # fmt: skip
+            )
+        )
+    return rows
+
+
+def validate(obs, stats_path):
+    """Compare recomputed pucker and torsions against Rosetta's observations.
+
+    Matches rows to nucleotides by torsion fingerprint, since Rosetta's residue
+    index cannot be reconstructed.
+    """
+    rows = read_rosetta_stats(stats_path)
+    names = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "chi"]
+    by_fp = defaultdict(list)
+    for o in obs:
+        by_fp[round(o["tor"]["delta"], 1)].append(o)
+
+    matched = pucker_agree = 0
+    interior = [r for r in rows if not r["lower"] and not r["upper"]]
+    for row in interior:
+        for o in by_fp.get(round(row["tor"]["delta"], 1), ()):
+            if all(
+                o["tor"][n] is not None
+                and abs(subtract_degree_angles(o["tor"][n], row["tor"][n])) < 0.25
+                for n in names
+            ):
+                matched += 1
+                pucker_agree += o["pucker"] == row["pucker"]
+                break
+    print(f"  Rosetta interior rows      {len(interior)}")
+    print(f"  matched in our set         {matched}")
+    if matched:
+        print(f"  pucker index agreement     {pucker_agree}/{matched}")
+
+
+# ----------------------------------------------------------------------- cli
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--structures", default=STRUCTURE_LIST)
+    p.add_argument("--pdb-dir", default="dna_structures")
+    p.add_argument("--out")
+    p.add_argument("--requery", action="store_true", help="rebuild the structure list")
+    p.add_argument("--resolution", type=float, default=2.3)
+    p.add_argument("--seqid", type=int, default=30)
+    p.add_argument("--max-b", type=float, default=None, help="per-atom B cutoff")
+    p.add_argument("--validate", metavar="BOUND_DNA_DIHEDRALS_TXT")
+    p.add_argument("--verbose", action="store_true")
+    args = p.parse_args()
+
+    if args.requery:
+        codes = query_rcsb(args.resolution, args.seqid)
+        today = datetime.date.today().isoformat()
+        with open(args.structures, "w") as f:
+            f.write(
+                f"# Protein-DNA X-ray structures <= {args.resolution} A, one"
+                f" representative per {args.seqid}% seq-id cluster (protein entity).\n"
+                f"# RCSB query {today}; regenerate with"
+                f" dna_dihedral_param_import.py --requery\n"
+            )
+            f.write("\n".join(codes) + "\n")
+        print(f"wrote {len(codes)} codes to {args.structures}")
+    else:
+        codes = [
+            x.strip()
+            for x in open(args.structures)
+            if x.strip() and not x.startswith("#")
+        ]
+
+    obs, n_struct, n_skipped = observations(
+        codes, args.pdb_dir, args.max_b, args.verbose
+    )
+    interior = [o for o in obs if not o["lower"] and not o["upper"]]
+    print(f"structures {n_struct} used, {n_skipped} skipped")
+    print(f"nucleotides {len(obs)} ({len(interior)} interior)")
+
+    if args.validate:
+        validate(obs, args.validate)
+
+    sugar, sugar_n = sugar_means(obs)
+    backbone, backbone_n = backbone_means(obs)
+
+    sparse = [
+        (BASE_ORDER[b], pk, SUGAR_TORSIONS[s][0])
+        for b in range(4)
+        for pk in range(N_PUCKER)
+        for s in range(N_SUGAR)
+        if sugar_n[b, pk, s] < MIN_TORSIONS
+    ]
+    print(f"sugar bins below {MIN_TORSIONS} observations: {len(sparse)}")
+    if sparse and args.verbose:
+        for entry in sparse:
+            print("   ", entry)
+
+    if args.out:
+        provenance = [
+            "DNA dihedral mean angles. Generated by",
+            "tmol/support/scoring/dna_dihedral_param_import.py -- do not hand-edit.",
+            f"Structures: {os.path.basename(args.structures)}"
+            f" ({n_struct} used); protein-DNA X-ray <= {args.resolution} A,",
+            f"one representative per {args.seqid}% sequence-identity cluster.",
+            f"Nucleotides: {len(interior)} interior of {len(obs)}.",
+        ]
+        emit_yaml(args.out, sugar, backbone, provenance, observed_sdev(obs, sugar))
+        print(f"wrote {args.out}")
+
+
+if __name__ == "__main__":
+    main()

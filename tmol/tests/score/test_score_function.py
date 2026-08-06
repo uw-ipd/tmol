@@ -234,6 +234,7 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
         ScoreType.dunbrack_rotdev: n([240.31009]),
         ScoreType.dunbrack_semirot: n([99.660904]),
         ScoreType.gen_torsions: n([0.0]),
+        ScoreType.dna_torsion: n([0.0]),
     }
     # This test runs on both cpu and cuda; summed full-pose energies drift at the
     # ~1e-3 level in float32 across devices (e.g. omega), so the tolerance is
@@ -285,6 +286,7 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.dunbrack_rotdev: n([240.31009]),
         ScoreType.dunbrack_semirot: n([99.660904]),
         ScoreType.gen_torsions: n([0.0]),
+        ScoreType.dna_torsion: n([0.0]),
     }
     for st in score_types:
         numpy.testing.assert_allclose(
@@ -319,6 +321,9 @@ def test_score_function_two_body_terms_getter():
     )
     from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
     from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
+    from tmol.score.dna_dihedral.dna_dihedral_energy_term import (
+        DnaDihedralEnergyTerm,
+    )
     from tmol.score.elec.elec_energy_term import ElecEnergyTerm
     from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
     from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
@@ -336,6 +341,7 @@ def test_score_function_two_body_terms_getter():
         BackboneTorsionEnergyTerm,
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
+        DnaDihedralEnergyTerm,
         ElecEnergyTerm,
         GenBondedEnergyTerm,
         HBondEnergyTerm,
@@ -357,6 +363,9 @@ def test_score_function_all_terms_getter():
     )
     from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
     from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
+    from tmol.score.dna_dihedral.dna_dihedral_energy_term import (
+        DnaDihedralEnergyTerm,
+    )
     from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
     from tmol.score.elec.elec_energy_term import ElecEnergyTerm
     from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
@@ -378,6 +387,7 @@ def test_score_function_all_terms_getter():
         BackboneTorsionEnergyTerm,
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
+        DnaDihedralEnergyTerm,
         ElecEnergyTerm,
         GenBondedEnergyTerm,
         HBondEnergyTerm,
