@@ -69,13 +69,6 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
 
-    # vrt_ratmap = co.restypes_atom_index_mapping["VRT"]
-    # print("vrt_ratmap", vrt_ratmap)
-
-    # ATOM     37  N   ILE A   3      26.849  29.656   6.217  1.00  5.87           N
-    # ATOM     38  CA  ILE A   3      26.235  30.058   7.497  1.00  5.07           C
-    # ATOM     39  C   ILE A   3      26.882  31.428   7.862  1.00  4.01           C
-
     def pose_stack_of_nres(nres, add_vrt):
         def xyz(x, y, z):
             return torch.tensor((x, y, z), dtype=torch.float32, device=torch_device)
@@ -185,6 +178,24 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
     torch.testing.assert_close(unweighted_scores_wo_vrt, unweighted_scores_w_vrt)
 
 
+def _assert_matches_gold(score_map, gold_map, score_types, rtol, atol):
+    """Compare every score type, reporting all mismatches as pastable source."""
+    bad = [
+        st
+        for st in score_types
+        if not numpy.allclose(score_map[st], gold_map[st], rtol=rtol, atol=atol)
+    ]
+    if bad:
+        lines = "\n".join(
+            f"        ScoreType.{st.name}: n([{float(score_map[st][0]):.6f}]),"
+            for st in score_types
+        )
+        raise AssertionError(
+            f"{len(bad)} score type(s) differ: {[st.name for st in bad]}\n"
+            f"observed map:\n{lines}"
+        )
+
+
 def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_device):
     ps = pose_stack_from_pdb(ubq_pdb, torch_device)
 
@@ -240,10 +251,9 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
     # This test runs on both cpu and cuda; summed full-pose energies drift at the
     # ~1e-3 level in float32 across devices (e.g. omega), so the tolerance is
     # looser than the cpu-only beta2016 golden test below.
-    for st in score_types:
-        numpy.testing.assert_allclose(
-            unweighted_score_map[st], gold_score_map[st], rtol=1e-3, atol=1e-3
-        )
+    _assert_matches_gold(
+        unweighted_score_map, gold_score_map, score_types, rtol=1e-3, atol=1e-3
+    )
 
 
 def test_score_function_all_score_types(ubq_pdb):
@@ -262,8 +272,6 @@ def test_score_function_all_score_types(ubq_pdb):
     def n(x):
         return numpy.array(x)
 
-    # edit 2026/1/7: torsions change slightly due to improper double-counting of
-    # hydroxyl torsions in old version.
     gold_score_map = {
         ScoreType.cart_lengths: n([38.056973]),
         ScoreType.cart_angles: n([183.9738]),
@@ -290,10 +298,57 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.dna_torsion: n([0.0]),
         ScoreType.dna_torsion_well: n([0.0]),
     }
-    for st in score_types:
-        numpy.testing.assert_allclose(
-            unweighted_score_map[st], gold_score_map[st], rtol=1e-4, atol=1e-4
-        )
+    _assert_matches_gold(
+        unweighted_score_map, gold_score_map, score_types, rtol=1e-4, atol=1e-4
+    )
+
+
+def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
+    """Golden values for a protein-DNA complex."""
+    device = torch.device("cpu")
+    ps = pose_stack_from_pdb(protein_dna_pdb, device)
+    sfxn = beta2016_score_function(device)
+
+    wpsm = sfxn.render_whole_pose_scoring_module(ps)
+    unweighted_scores = wpsm.unweighted_scores(ps.coords)
+    score_types = sfxn.all_score_types()
+    unweighted_score_map = {
+        st: unweighted_scores[i, :].detach().cpu().numpy()
+        for i, st in enumerate(score_types)
+    }
+
+    def n(x):
+        return numpy.array(x)
+
+    gold_score_map = {
+        ScoreType.fa_ljatr: n([-1210.854248]),
+        ScoreType.fa_ljrep: n([805.994080]),
+        ScoreType.fa_lk: n([808.497986]),
+        ScoreType.fa_elec: n([-337.262360]),
+        ScoreType.hbond: n([-173.997391]),
+        ScoreType.cart_lengths: n([157.134415]),
+        ScoreType.cart_angles: n([963.831909]),
+        ScoreType.cart_torsions: n([134.518875]),
+        ScoreType.cart_impropers: n([11.086108]),
+        ScoreType.cart_hxltorsions: n([26.123291]),
+        ScoreType.disulfide: n([0.0]),
+        ScoreType.rama: n([91.406868]),
+        ScoreType.omega: n([133.222443]),
+        ScoreType.dunbrack_rot: n([198.613831]),
+        ScoreType.dunbrack_rotdev: n([553.206238]),
+        ScoreType.dunbrack_semirot: n([175.140625]),
+        ScoreType.lk_ball_iso: n([1092.919800]),
+        ScoreType.lk_ball: n([401.814789]),
+        ScoreType.lk_bridge: n([2.487589]),
+        ScoreType.lk_bridge_uncpl: n([23.090977]),
+        ScoreType.ref: n([-55.255344]),
+        ScoreType.gen_torsions: n([0.0]),
+        ScoreType.dna_torsion: n([367.507263]),
+        ScoreType.dna_torsion_well: n([57.474083]),
+    }
+    _assert_matches_gold(
+        unweighted_score_map, gold_score_map, score_types, rtol=1e-4, atol=1e-4
+    )
 
 
 def test_score_function_one_body_terms_getter():

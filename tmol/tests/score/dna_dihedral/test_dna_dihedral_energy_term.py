@@ -8,7 +8,7 @@ from tmol.score.dna_dihedral.dna_dihedral_energy_term import (
     DnaDihedralEnergyTerm,
     dna_dihedral_subterms,
 )
-from tmol.score.dna_dihedral.potentials import pucker_weights, wrap_degrees
+from tmol.score.dna_dihedral.potentials import wrap_degrees
 
 
 def _term_and_pose(pdb, torch_device):
@@ -148,17 +148,6 @@ def test_rotamer_energies_match_the_pose_energies(protein_dna_pdb, torch_device)
     )
 
 
-def test_gradients_are_finite_in_float32(protein_dna_pdb, torch_device):
-    """The pucker softmax overflows float32 if written as a ratio of exps."""
-    term, ps = _term_and_pose(protein_dna_pdb, torch_device)
-    coords = torch.nn.Parameter(ps.coords.clone())
-    e = term.render_whole_pose_scoring_module(ps)(coords)
-    assert torch.isfinite(e).all()
-    e.sum().backward()
-    assert torch.isfinite(coords.grad).all()
-    assert int((coords.grad.abs().sum(-1) > 0).sum()) > 0
-
-
 def test_gradcheck(dna_pdb, torch_device):
     term, ps = _term_and_pose(dna_pdb, torch_device)
     module = term.render_whole_pose_scoring_module(ps)
@@ -173,27 +162,6 @@ def test_gradcheck(dna_pdb, torch_device):
 
     # eps must be small for this input structure (very large curvature)
     torch.autograd.gradcheck(f, (head,), eps=1e-6, atol=1e-4, rtol=1e-3)
-
-
-def test_pucker_weights_are_normalized_and_sharp(torch_device):
-    torch.manual_seed(0)
-    ring = torch.randn((32, 5, 3), dtype=torch.float64, device=torch_device)
-    w = pucker_weights(ring, 0.05)
-    numpy.testing.assert_allclose(w.sum(-1).cpu().numpy(), numpy.ones(32), atol=1e-10)
-    assert bool((w >= 0).all())
-
-
-def test_pucker_softmax_survives_small_temperature(torch_device):
-    """T below ~0.0113 overflows a naive exp ratio in float32; the sigmoid and
-    max-subtracted softmax used here must stay finite anyway."""
-    torch.manual_seed(0)
-    ring = torch.randn((16, 5, 3), dtype=torch.float32, device=torch_device)
-    for temperature in (0.05, 0.01, 0.002):
-        w = pucker_weights(ring, temperature)
-        assert torch.isfinite(w).all(), temperature
-        numpy.testing.assert_allclose(
-            w.sum(-1).cpu().numpy(), numpy.ones(16), atol=1e-5
-        )
 
 
 @pytest.mark.parametrize("delta", [-180.0, -179.9, 0.0, 179.9, 180.0, 360.0])

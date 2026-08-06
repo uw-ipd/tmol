@@ -5,25 +5,30 @@ from tmol.tests.torch import zero_padded_counts
 
 from tmol.io import pose_stack_from_pdb
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.score import beta2016_score_function
 from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
 from tmol.score.dna_dihedral.dna_dihedral_energy_term import DnaDihedralEnergyTerm
 
 
 def _sfxn(variant, default_database, device):
-    from tmol.score import _non_memoized_beta2016
-
     if variant == "dna_torsion":
         sfxn = ScoreFunction(default_database, device)
         for st in DnaDihedralEnergyTerm.score_types():
             sfxn.set_weight(st, 1.0)
         return sfxn
 
-    sfxn = _non_memoized_beta2016(device, default_database)
-    if variant == "beta2016_no_dna":
-        # a zero weight drops the term entirely, so this measures beta2016
-        # as it was before dna_torsion existed
-        sfxn.set_weight(ScoreType.dna_torsion, 0.0)
+    beta2016 = beta2016_score_function(device, default_database)
+    if variant == "beta2016":
+        return beta2016
+
+    # rebuild beta2016 without the DNA score types, so the term is never
+    # created; zeroing its weight would leave it running and timed
+    sfxn = ScoreFunction(default_database, device)
+    dna = set(DnaDihedralEnergyTerm.score_types())
+    for st in beta2016.all_score_types():
+        weight = float(beta2016.get_weight(st))
+        if st not in dna and weight != 0:
+            sfxn.set_weight(st, weight)
     return sfxn
 
 

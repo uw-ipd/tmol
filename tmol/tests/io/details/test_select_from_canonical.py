@@ -897,10 +897,15 @@ def test_select_best_block_type_candidate_choosing_default_term(
 
 
 def pser_and_mser_patches():
+    """Two throwaway hydroxyl patches for the block-type candidate tests.
+
+    The pattern must not match a residue twice; anchoring it on the backbone
+    nitrogen keeps it off the 5' and 3' hydroxyls of the DNA terminus variants.
+    """
     return """
   - name:  PhosphatePatch
     display_name: phospho
-    pattern: '[*][*]C[OH]'
+    pattern: '[N][*]C[OH]'
     remove_atoms:
     - <H1>
     add_atoms:
@@ -924,7 +929,7 @@ def pser_and_mser_patches():
 
   - name:  MosphatePatch
     display_name: mospho
-    pattern: '[*][*]C[OH]'
+    pattern: '[N][*]C[OH]'
     remove_atoms:
     - <H1>
     add_atoms:
