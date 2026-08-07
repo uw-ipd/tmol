@@ -10,6 +10,7 @@ from tmol.database import ParameterDatabase
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import ResidueTypeSet
+from tmol.utility.device import resolve_device
 from typing import List, Mapping, Optional, Tuple, Union
 from .canonical_form import CanonicalForm
 from .pdb_parsing import parse_pdb
@@ -319,10 +320,14 @@ class CanonicalOrdering:
             "VAL": ("nterm", "cterm"),
             "TRP": ("nterm", "cterm"),
             "TYR": ("nterm", "cterm"),
-            "DA": ("dna5prime", "dna3prime"),
-            "DC": ("dna5prime", "dna3prime"),
-            "DG": ("dna5prime", "dna3prime"),
-            "DT": ("dna5prime", "dna3prime"),
+            "DA": ("na5prime", "na3prime"),
+            "DC": ("na5prime", "na3prime"),
+            "DG": ("na5prime", "na3prime"),
+            "DT": ("na5prime", "na3prime"),
+            "A": ("na5prime", "na3prime"),
+            "C": ("na5prime", "na3prime"),
+            "G": ("na5prime", "na3prime"),
+            "U": ("na5prime", "na3prime"),
         }
 
     @classmethod
@@ -437,9 +442,14 @@ def default_canonical_ordering() -> CanonicalOrdering:
 
 
 @validate_args
-@toolz.functoolz.memoize
 def default_packed_block_types(device: torch.device) -> PackedBlockTypes:
     """Create a PackedBlockTypes object from the default set of residue types"""
+    # resolved before the memo lookup so 'cuda' and 'cuda:0' share one entry
+    return _memoized_packed_block_types(resolve_device(device))
+
+
+@toolz.functoolz.memoize
+def _memoized_packed_block_types(device: torch.device) -> PackedBlockTypes:
     restype_set = ResidueTypeSet.get_default()
 
     return PackedBlockTypes.from_restype_list(
@@ -515,6 +525,7 @@ def canonical_form_from_atom_records(
     device: torch.device,
     res_not_connected: Optional[Tensor] = None,
 ) -> CanonicalForm:
+    device = resolve_device(device)
     max_n_canonical_atoms = canonical_ordering.max_n_canonical_atoms
 
     uniq_res_ind = {}

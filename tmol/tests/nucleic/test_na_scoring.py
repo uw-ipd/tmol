@@ -20,8 +20,8 @@ from tmol.io.canonical_ordering import (
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
-# terms that must be non-zero on a DNA-only pose
-DNA_ACTIVE_TERMS = (
+# terms that must be non-zero on a nucleic-acid-only pose
+NA_ACTIVE_TERMS = (
     ScoreType.fa_ljatr,
     ScoreType.fa_ljrep,
     ScoreType.fa_lk,
@@ -35,10 +35,10 @@ DNA_ACTIVE_TERMS = (
 
 # base-planarity restraints; the kernel splits torsions and impropers so assert
 # only their combined contribution
-DNA_PLANARITY_TERMS = (ScoreType.cart_torsions, ScoreType.cart_impropers)
+NA_PLANARITY_TERMS = (ScoreType.cart_torsions, ScoreType.cart_impropers)
 
-# terms with no DNA parameterization
-DNA_INACTIVE_TERMS = (
+# terms with no nucleic acid parameterization
+NA_INACTIVE_TERMS = (
     ScoreType.gen_torsions,
     ScoreType.rama,
     ScoreType.omega,
@@ -62,8 +62,8 @@ def _unweighted(sfxn, pose_stack):
     return {st: term_scores[i, :] for i, st in enumerate(sfxn.all_score_types())}
 
 
-@pytest.mark.parametrize("fixture", ["dna_pdb", "protein_dna_pdb"])
-def test_beta2016_scores_dna_are_finite(fixture, request, torch_device):
+@pytest.mark.parametrize("fixture", ["dna_pdb", "rna_pdb", "protein_dna_pdb"])
+def test_beta2016_scores_na_are_finite(fixture, request, torch_device):
     pdb_lines = request.getfixturevalue(fixture)
     pose_stack = _pose_stack(pdb_lines, torch_device)
     sfxn = beta2016_score_function(torch_device)
@@ -83,10 +83,10 @@ def test_beta2016_parameterized_terms_see_dna(dna_pdb, torch_device):
     sfxn = beta2016_score_function(torch_device)
     scores = _unweighted(sfxn, pose_stack)
 
-    for st in DNA_ACTIVE_TERMS:
+    for st in NA_ACTIVE_TERMS:
         assert scores[st].abs().sum() > 0, f"{st} is zero on a DNA-only pose"
 
-    planarity = sum(scores[st].abs().sum() for st in DNA_PLANARITY_TERMS)
+    planarity = sum(scores[st].abs().sum() for st in NA_PLANARITY_TERMS)
     assert planarity > 0, "no base-planarity restraint applied to DNA"
 
 
@@ -96,7 +96,7 @@ def test_beta2016_unparameterized_terms_are_zero_for_dna(dna_pdb, torch_device):
     sfxn = beta2016_score_function(torch_device)
     scores = _unweighted(sfxn, pose_stack)
 
-    for st in DNA_INACTIVE_TERMS:
+    for st in NA_INACTIVE_TERMS:
         assert scores[st].abs().sum() == 0, f"{st} unexpectedly non-zero for DNA"
 
 

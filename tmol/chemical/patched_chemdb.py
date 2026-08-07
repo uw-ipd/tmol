@@ -567,6 +567,22 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
             newres.icoors, variant.icoors, variant.remove_atoms, namemap
         )
 
+        # 5b. add torsions and the chi samples that name them
+        newtorsions = []
+        for torsion in variant.add_torsions:
+            ats = {
+                x: attr.evolve(a, atom=namemap.get(a.atom, a.atom))
+                for x, a in (
+                    ("a", torsion.a),
+                    ("b", torsion.b),
+                    ("c", torsion.c),
+                    ("d", torsion.d),
+                )
+            }
+            newtorsions.append(attr.evolve(torsion, **ats))
+        newres.torsions = (*newres.torsions, *newtorsions)
+        newres.chi_samples = (*newres.chi_samples, *variant.add_chi_samples)
+
         # 6. update modified atoms
         # a) directly modified/added
         newmark.extend(modded)

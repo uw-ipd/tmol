@@ -33,8 +33,10 @@ def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
     assert scores is not None
 
 
-def test_block_pair_scoring_matches_whole_pose(ubq_pdb, torch_device):
-    sfxn = beta2016_score_function(torch_device)
+def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_device):
+    # passing the database bypasses the memoized score function, which the
+    # set_weight below would otherwise mutate for the rest of the session
+    sfxn = beta2016_score_function(torch_device, default_database)
 
     # set a weight to ensure weights are being handled properly
     sfxn.set_weight(ScoreType.fa_ljrep, 3)
@@ -245,8 +247,8 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
         ScoreType.dunbrack_rotdev: n([240.31009]),
         ScoreType.dunbrack_semirot: n([99.660904]),
         ScoreType.gen_torsions: n([0.0]),
-        ScoreType.dna_torsion: n([0.0]),
-        ScoreType.dna_torsion_well: n([0.0]),
+        ScoreType.na_torsion: n([0.0]),
+        ScoreType.na_torsion_well: n([0.0]),
     }
     # This test runs on both cpu and cuda; summed full-pose energies drift at the
     # ~1e-3 level in float32 across devices (e.g. omega), so the tolerance is
@@ -295,8 +297,8 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.dunbrack_rotdev: n([240.31009]),
         ScoreType.dunbrack_semirot: n([99.660904]),
         ScoreType.gen_torsions: n([0.0]),
-        ScoreType.dna_torsion: n([0.0]),
-        ScoreType.dna_torsion_well: n([0.0]),
+        ScoreType.na_torsion: n([0.0]),
+        ScoreType.na_torsion_well: n([0.0]),
     }
     _assert_matches_gold(
         unweighted_score_map, gold_score_map, score_types, rtol=1e-4, atol=1e-4
@@ -343,8 +345,8 @@ def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
         ScoreType.lk_bridge_uncpl: n([23.090977]),
         ScoreType.ref: n([-55.255344]),
         ScoreType.gen_torsions: n([0.0]),
-        ScoreType.dna_torsion: n([367.507263]),
-        ScoreType.dna_torsion_well: n([57.474083]),
+        ScoreType.na_torsion: n([367.353271]),
+        ScoreType.na_torsion_well: n([57.982567]),
     }
     _assert_matches_gold(
         unweighted_score_map, gold_score_map, score_types, rtol=1e-4, atol=1e-4
@@ -378,8 +380,8 @@ def test_score_function_two_body_terms_getter():
     )
     from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
     from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
-    from tmol.score.dna_dihedral.dna_dihedral_energy_term import (
-        DnaDihedralEnergyTerm,
+    from tmol.score.na_torsion.na_torsion_energy_term import (
+        NaTorsionEnergyTerm,
     )
     from tmol.score.elec.elec_energy_term import ElecEnergyTerm
     from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
@@ -398,7 +400,7 @@ def test_score_function_two_body_terms_getter():
         BackboneTorsionEnergyTerm,
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
-        DnaDihedralEnergyTerm,
+        NaTorsionEnergyTerm,
         ElecEnergyTerm,
         GenBondedEnergyTerm,
         HBondEnergyTerm,
@@ -420,8 +422,8 @@ def test_score_function_all_terms_getter():
     )
     from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
     from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
-    from tmol.score.dna_dihedral.dna_dihedral_energy_term import (
-        DnaDihedralEnergyTerm,
+    from tmol.score.na_torsion.na_torsion_energy_term import (
+        NaTorsionEnergyTerm,
     )
     from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
     from tmol.score.elec.elec_energy_term import ElecEnergyTerm
@@ -444,7 +446,7 @@ def test_score_function_all_terms_getter():
         BackboneTorsionEnergyTerm,
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
-        DnaDihedralEnergyTerm,
+        NaTorsionEnergyTerm,
         ElecEnergyTerm,
         GenBondedEnergyTerm,
         HBondEnergyTerm,

@@ -1,4 +1,4 @@
-"""Smoke tests: read a DNA-containing PDB into a PoseStack and write it back out."""
+"""Smoke tests: read a nucleic-acid PDB into a PoseStack and write it back out."""
 
 import pytest
 
@@ -12,6 +12,10 @@ from tmol.io.pdb_parsing import parse_pdb, to_pdb
 from tmol.io.write_pose_stack_pdb import atom_records_from_pose_stack
 
 DNA_NAME3S = ("DA", "DC", "DG", "DT")
+# RNA is the one case where the name3 and the block type name differ
+RNA_NAME3S = ("A", "C", "G", "U")
+RNA_BASE_NAMES = ("RA", "RC", "RG", "RU")
+NA_MAINCHAIN = ("P", "O5'", "C5'", "C4'", "C3'", "O3'")
 
 
 def _pose_stack(pdb_lines, torch_device):
@@ -38,23 +42,17 @@ def _atom_set(co, pdb_lines):
     return out
 
 
-def test_dna_restypes_in_canonical_ordering():
+@pytest.mark.parametrize("name3s", [DNA_NAME3S, RNA_NAME3S])
+def test_na_restypes_in_canonical_ordering(name3s):
     co = default_canonical_ordering()
-    for name3 in DNA_NAME3S:
+    for name3 in name3s:
         assert name3 in co.restype_io_equiv_classes
-        assert co.restypes_mainchain_atoms[name3] == (
-            "P",
-            "O5'",
-            "C5'",
-            "C4'",
-            "C3'",
-            "O3'",
-        )
+        assert co.restypes_mainchain_atoms[name3] == NA_MAINCHAIN
         assert name3 in co.restypes_default_termini_mapping
 
 
-@pytest.mark.parametrize("fixture", ["dna_pdb", "protein_dna_pdb"])
-def test_dna_pose_stack_round_trip(fixture, request, torch_device):
+@pytest.mark.parametrize("fixture", ["dna_pdb", "rna_pdb", "protein_dna_pdb"])
+def test_na_pose_stack_round_trip(fixture, request, torch_device):
     pdb_lines = request.getfixturevalue(fixture)
     co = default_canonical_ordering()
     pose_stack = _pose_stack(pdb_lines, torch_device)
@@ -74,8 +72,8 @@ def test_dna_pose_stack_round_trip(fixture, request, torch_device):
     ), f"dropped: {_named(before - after)}\ngained: {_named(after - before)}"
 
 
-@pytest.mark.parametrize("fixture", ["dna_pdb", "protein_dna_pdb"])
-def test_dna_pose_stack_coords_are_all_resolved(fixture, request, torch_device):
+@pytest.mark.parametrize("fixture", ["dna_pdb", "rna_pdb", "protein_dna_pdb"])
+def test_na_pose_stack_coords_are_all_resolved(fixture, request, torch_device):
     """Every atom of every block gets a coordinate; nothing is left as nan."""
     pdb_lines = request.getfixturevalue(fixture)
     pose_stack = _pose_stack(pdb_lines, torch_device)
@@ -100,9 +98,36 @@ def test_dna_termini_block_types(dna_pdb, torch_device):
         for i in pose_stack.block_type_ind[0].tolist()
         if i >= 0
     ]
-    assert names[0].endswith(":dna5prime")
-    assert names[-1].endswith(":dna3prime")
+    assert names[0].endswith(":na5prime")
+    assert names[-1].endswith(":na3prime")
     assert all(n.split(":")[0] in DNA_NAME3S for n in names)
+
+
+def test_rna_termini_block_types(rna_pdb, torch_device):
+    """3ZP8 chain A: a single 42-nt strand with both termini free."""
+    pose_stack = _pose_stack(rna_pdb, torch_device)
+    pbt = pose_stack.packed_block_types
+    names = [
+        pbt.active_block_types[i].name
+        for i in pose_stack.block_type_ind[0].tolist()
+        if i >= 0
+    ]
+    assert len(names) == 42
+    assert names[0].endswith(":na5prime")
+    assert names[-1].endswith(":na3prime")
+    assert all(n.split(":")[0] in RNA_BASE_NAMES for n in names)
+    assert set(n.split(":")[0] for n in names) == set(RNA_BASE_NAMES)
+
+
+def test_rna_ribose_is_not_deoxy(rna_pdb, torch_device):
+    """Every RNA block carries a 2'-OH and no H2''; the sugar is the one place
+    the RNA types differ from the DNA ones they were built from."""
+    pose_stack = _pose_stack(rna_pdb, torch_device)
+    pbt = pose_stack.packed_block_types
+    for i in set(pose_stack.block_type_ind[0].tolist()) - {-1}:
+        names = {at.name for at in pbt.active_block_types[i].atoms}
+        assert {"O2'", "HO2'", "H2'"} <= names
+        assert "H2''" not in names
 
 
 def test_protein_dna_chain_composition(protein_dna_pdb, torch_device):

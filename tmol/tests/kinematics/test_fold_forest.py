@@ -1,8 +1,10 @@
+import numpy
 import torch
 
 from tmol.io import pose_stack_from_pdb
 from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.kinematics.fold_forest import FoldForest, EdgeType
+from tmol.kinematics.check_fold_forest import validate_fold_forest
+from tmol.kinematics.fold_forest import FoldForest, EdgeType, _build_pose_fold_forest
 
 
 def _real_edges(fold_forest, pose_idx):
@@ -15,14 +17,25 @@ def _real_edges(fold_forest, pose_idx):
 
 
 def _check_jump_indices(fold_forest, pose_idx):
-    """Assert that jump indices form a valid 0..n_jumps-1 assignment."""
+    """Assert that jump indices form a valid 0..n_jumps-1 assignment.
+
+    Only true jumps are numbered; a root jump is identified by its downstream
+    block and carries -1, so numbering one would leave a gap in the jump
+    indices that validate_fold_forest rejects.
+    """
     n_e = fold_forest.n_edges[pose_idx]
-    jump_indices = [
-        int(fold_forest.edges[pose_idx, j, 3])
-        for j in range(n_e)
-        if fold_forest.edges[pose_idx, j, 0] in (EdgeType.root_jump, EdgeType.jump)
-    ]
-    assert sorted(jump_indices) == list(range(len(jump_indices)))
+
+    def indices_of(edge_type):
+        return [
+            int(fold_forest.edges[pose_idx, j, 3])
+            for j in range(n_e)
+            if fold_forest.edges[pose_idx, j, 0] == edge_type
+        ]
+
+    assert sorted(indices_of(EdgeType.jump)) == list(
+        range(len(indices_of(EdgeType.jump)))
+    )
+    assert all(i == -1 for i in indices_of(EdgeType.root_jump))
 
 
 def test_reasonable_fold_forest_smoke(default_database, erbb2_and_pertuzumab_pdb):
@@ -70,3 +83,48 @@ def test_jagged_reasonable_fold_forest(
         (EdgeType.root_jump, -1, 769),
     }
     _check_jump_indices(fold_forest, 1)
+
+
+def _linear_polymer_pose(segments, chain_ids):
+    """Connectivity for one pose built from disjoint polymer segments.
+
+    segments is a list of (first, last) inclusive residue ranges bonded
+    up-to-down along the backbone; chain_ids gives each residue's biological
+    chain. Block type 0 carries its down connection in slot 0 and its up
+    connection in slot 1.
+    """
+    n_res = max(last for _, last in segments) + 1
+    bti = numpy.zeros(n_res, dtype=numpy.int64)
+    irc = numpy.full((n_res, 2, 2), -1, dtype=numpy.int64)
+    for first, last in segments:
+        for r in range(first, last):
+            irc[r, 1] = (r + 1, 0)
+            irc[r + 1, 0] = (r, 1)
+    up_c = numpy.array([1], dtype=numpy.int64)
+    down_c = numpy.array([0], dtype=numpy.int64)
+    return bti, irc, up_c, down_c, numpy.array(chain_ids, dtype=numpy.int64)
+
+
+def test_fold_forest_numbers_only_true_jumps():
+    """A chain-internal break alongside separate chains must number contiguously.
+
+    Residues 0-5 are one biological chain broken between 2 and 3, so the second
+    segment is reached by a true jump; residues 6-8 are a second chain and are
+    root-jumped. The true jump is emitted after a root jump, which is what used
+    to push its index past the number of jumps.
+    """
+    edges = _build_pose_fold_forest(
+        *_linear_polymer_pose([(0, 2), (3, 5), (6, 8)], [0] * 6 + [1] * 3)
+    )
+    by_type = {}
+    for edge_type, start, end, jump_ind in edges:
+        by_type.setdefault(EdgeType(edge_type), []).append((start, end, jump_ind))
+
+    assert by_type[EdgeType.root_jump] == [(-1, 0, -1), (-1, 6, -1)]
+    assert by_type[EdgeType.jump] == [(2, 3, 0)]
+    assert by_type[EdgeType.polymer] == [(0, 2, -1), (3, 5, -1), (6, 8, -1)]
+
+    validate_fold_forest(
+        numpy.array([9], dtype=numpy.int64),
+        numpy.array([edges], dtype=numpy.int64),
+    )

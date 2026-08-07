@@ -12,6 +12,7 @@ from .data import (  # noqa: F401
     big_pdb,
     water_box_pdb,
     dna_pdb,
+    rna_pdb,
     protein_dna_pdb,
     biotite_dna,
     biotite_protein_dna,

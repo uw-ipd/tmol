@@ -3,6 +3,7 @@ import numpy
 import toolz
 
 from typing import List
+from tmol.utility.device import resolve_device
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 from tmol.chemical.restypes import ResidueTypeSet
@@ -193,7 +194,6 @@ def canonical_ordering_for_rosettafold2() -> CanonicalOrdering:
 
 
 @validate_args
-@toolz.functoolz.memoize
 def packed_block_types_for_rosettafold2(device: torch.device) -> PackedBlockTypes:
     """Construct the PackedBlockTypes (PBT) object that will be used for
     the subset of residue types that are used by RoseTTAFold2. For efficiency
@@ -202,7 +202,14 @@ def packed_block_types_for_rosettafold2(device: torch.device) -> PackedBlockType
     function if they are constructing PoseStacks from deserialized
     canonical form objects. See canonical_form_from_rosettafold2 for details.
     """
+    # resolved before the memo lookup so 'cuda' and 'cuda:0' share one entry
+    return _memoized_packed_block_types_for_rosettafold2(resolve_device(device))
 
+
+@toolz.functoolz.memoize
+def _memoized_packed_block_types_for_rosettafold2(
+    device: torch.device,
+) -> PackedBlockTypes:
     restype_set = _restype_set_for_rosettafold2()
 
     return PackedBlockTypes.from_restype_list(

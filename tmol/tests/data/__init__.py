@@ -80,6 +80,15 @@ def dna_pdb():
 
 
 @pytest.fixture()
+def rna_pdb():
+    # 3ZP8, the full-length hammerhead ribozyme: chain A residues 2-43, a
+    # single 42-nt RNA strand. The 5' GDP cap, the sodium ions, waters, and
+    # chain B (which carries a 2'-O-methyl C and a deoxy C) are stripped.
+    # Hydrogens added by Rosetta.
+    return pdb.data["3ZP8"]
+
+
+@pytest.fixture()
 def protein_dna_pdb():
     # 1YSA, the GCN4 bZIP dimer bound to DNA: two DNA chains and two protein
     # chains. Waters stripped and hydrogens added by Rosetta.

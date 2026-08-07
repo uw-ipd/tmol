@@ -9,8 +9,9 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
 from .params import (
-    DnaDihedralParams,
-    BASE_FOR_NAME3,
+    NaTorsionParams,
+    block_type_params,
+    polymer_index,
     TORSION_NAMES,
     TORSION_IND,
     SYN_MEAN,
@@ -31,96 +32,48 @@ CHI = TORSION_IND["chi1"]
 SUGAR_SLOTS = (DELTA, TORSION_IND["nu4"], TORSION_IND["nu0"], TORSION_IND["nu1"])
 
 
-class DnaDihedralEnergyTerm(EnergyTerm):
+class NaTorsionEnergyTerm(EnergyTerm):
     device: torch.device
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
-        super(DnaDihedralEnergyTerm, self).__init__(param_db=param_db, device=device)
-        self.params = DnaDihedralParams.from_database(
-            param_db.scoring.dna_dihedral, device
-        )
+        super(NaTorsionEnergyTerm, self).__init__(param_db=param_db, device=device)
+        self.params = NaTorsionParams.from_database(param_db.scoring.na_torsion, device)
         self.element_for_atom_type = {
             at.name: at.element for at in param_db.chemical.atom_types
         }
         self.device = device
 
-    def _ring_atoms(self, block_type):
-        """Ordered sugar ring, derived from the nu torsions rather than named.
-
-        nu0 and nu1 each span four consecutive ring atoms offset by one, so
-        together they give the whole cycle in order. The pucker slot arithmetic
-        is defined relative to a cycle ending on the ring heteroatom, so rotate
-        to put it last.
-        """
-        nu0 = block_type.torsion_to_uaids.get("nu0")
-        nu1 = block_type.torsion_to_uaids.get("nu1")
-        if nu0 is None or nu1 is None:
-            return None
-        cycle = [uaid[0] for uaid in nu0] + [nu1[-1][0]]
-        if len(set(cycle)) != 5 or any(a < 0 for a in cycle):
-            return None
-
-        def element(atom_index):
-            return self.element_for_atom_type[block_type.atoms[atom_index].atom_type]
-
-        hetero = [i for i, a in enumerate(cycle) if element(a) != "C"]
-        if len(hetero) != 1:
-            return None
-        k = hetero[0]
-        return cycle[k + 1 :] + cycle[: k + 1]
-
     @classmethod
     def class_name(cls):
-        return "DnaDihedral"
+        return "NaTorsion"
 
     @classmethod
     def score_types(cls):
-        import tmol.score.terms.dna_dihedral_creator
+        import tmol.score.terms.na_torsion_creator
 
-        return (
-            tmol.score.terms.dna_dihedral_creator.DnaDihedralTermCreator.score_types()
-        )
+        return tmol.score.terms.na_torsion_creator.NaTorsionTermCreator.score_types()
 
     def n_bodies(self):
         return 2
 
     def setup_block_type(self, block_type: RefinedResidueType):
-        super(DnaDihedralEnergyTerm, self).setup_block_type(block_type)
-        if hasattr(block_type, "dna_dihedral_params"):
+        super(NaTorsionEnergyTerm, self).setup_block_type(block_type)
+        if hasattr(block_type, "na_torsion_params"):
             return
-
-        base = BASE_FOR_NAME3.get(block_type.name3, -1)
-        uaids = numpy.full((N_TORSION, 4, 3), -1, dtype=numpy.int32)
-        ring = numpy.full((5,), -1, dtype=numpy.int32)
-        if base >= 0:
-            for i, name in enumerate(TORSION_NAMES):
-                tor = block_type.torsion_to_uaids.get(name)
-                if tor is not None:
-                    uaids[i] = numpy.array(tor, dtype=numpy.int32)
-            ring_atoms = self._ring_atoms(block_type)
-            if ring_atoms is not None:
-                ring[:] = ring_atoms
-            # backbone torsions may be absent at a terminus and are masked at
-            # scoring time; the sugar and glycosidic ones must all be present
-            required = [DELTA, CHI] + [TORSION_IND[n] for n in ("nu0", "nu1", "nu4")]
-            if (ring < 0).any() or (uaids[required, :, 0] < 0).any():
-                base = -1
-
-        down = block_type.connection_to_cidx.get("down", -1)
         setattr(
             block_type,
-            "dna_dihedral_params",
-            dict(base=base, uaids=uaids, ring=ring, down=down),
+            "na_torsion_params",
+            block_type_params(block_type, self.element_for_atom_type),
         )
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
-        super(DnaDihedralEnergyTerm, self).setup_packed_block_types(packed_block_types)
-        if hasattr(packed_block_types, "dna_dihedral_base"):
+        super(NaTorsionEnergyTerm, self).setup_packed_block_types(packed_block_types)
+        if hasattr(packed_block_types, "na_torsion_base"):
             return
 
         bts = packed_block_types.active_block_types
         stack = lambda key: numpy.stack(  # noqa: E731
-            [bt.dna_dihedral_params[key] for bt in bts]
+            [bt.na_torsion_params[key] for bt in bts]
         )
 
         def to_t(arr):
@@ -128,32 +81,32 @@ class DnaDihedralEnergyTerm(EnergyTerm):
 
         setattr(
             packed_block_types,
-            "dna_dihedral_base",
-            to_t(numpy.array([bt.dna_dihedral_params["base"] for bt in bts])),
+            "na_torsion_base",
+            to_t(numpy.array([bt.na_torsion_params["base"] for bt in bts])),
         )
-        setattr(packed_block_types, "dna_dihedral_uaids", to_t(stack("uaids")))
-        setattr(packed_block_types, "dna_dihedral_ring", to_t(stack("ring")))
+        setattr(packed_block_types, "na_torsion_uaids", to_t(stack("uaids")))
+        setattr(packed_block_types, "na_torsion_ring", to_t(stack("ring")))
         setattr(
             packed_block_types,
-            "dna_dihedral_down",
-            to_t(numpy.array([bt.dna_dihedral_params["down"] for bt in bts])),
+            "na_torsion_down",
+            to_t(numpy.array([bt.na_torsion_params["down"] for bt in bts])),
         )
 
     def setup_poses(self, poses: PoseStack):
-        super(DnaDihedralEnergyTerm, self).setup_poses(poses)
+        super(NaTorsionEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        return eval_dna_dihedral_for_pose
+        return eval_na_torsion_for_pose
 
     def get_rotamer_score_term_function(self):
-        return eval_dna_dihedral_for_rotamers
+        return eval_na_torsion_for_rotamers
 
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types
         p = self.params
         bt = pose_stack.block_type_ind64
         has_dna = bool(
-            (pbt.dna_dihedral_base.to(torch.int64)[bt.clamp_min(0)] >= 0)[bt >= 0].any()
+            (pbt.na_torsion_base.to(torch.int64)[bt.clamp_min(0)] >= 0)[bt >= 0].any()
         )
         return [
             has_dna,
@@ -164,15 +117,15 @@ class DnaDihedralEnergyTerm(EnergyTerm):
         ]
 
     def subterm_attributes(self, pose_stack):
-        """Arguments of dna_dihedral_subterms, which the eval functions take
+        """Arguments of na_torsion_subterms, which the eval functions take
         first and then follow with the harmonic subterm weights."""
         pbt = pose_stack.packed_block_types
         p = self.params
         return [
-            pbt.dna_dihedral_base,
-            pbt.dna_dihedral_uaids,
-            pbt.dna_dihedral_ring,
-            pbt.dna_dihedral_down,
+            pbt.na_torsion_base,
+            pbt.na_torsion_uaids,
+            pbt.na_torsion_ring,
+            pbt.na_torsion_down,
             pbt.atom_downstream_of_conn,
             pose_stack.block_coord_offset,
             pose_stack.inter_residue_connections,
@@ -251,7 +204,7 @@ def _resolve_uaids(
     return pose, offset + local, ok
 
 
-def eval_dna_dihedral_for_pose(
+def eval_na_torsion_for_pose(
     # common args
     rot_coords,
     _rot_coord_offset,
@@ -301,7 +254,7 @@ def eval_dna_dihedral_for_pose(
         )
         return _finish((zero, zero), output_block_pair_energies)
 
-    e_bb, e_chi, e_sugar, e_well, is_dna = dna_dihedral_subterms(
+    e_bb, e_chi, e_sugar, e_well, is_dna, base = na_torsion_subterms(
         rot_coords,
         block_type_ind_for_rot,
         bt_base,
@@ -326,7 +279,10 @@ def eval_dna_dihedral_for_pose(
         pucker_temperature,
         bin_blend_sdev,
     )
-    harmonic = weight_bb * e_bb + weight_chi * e_chi + weight_sugar * e_sugar
+    poly = polymer_index(base)
+    harmonic = (
+        weight_bb[poly] * e_bb + weight_chi[poly] * e_chi + weight_sugar[poly] * e_sugar
+    )
     well = e_well
     zero = torch.zeros_like(harmonic)
     return _finish(
@@ -335,7 +291,7 @@ def eval_dna_dihedral_for_pose(
     )
 
 
-def dna_dihedral_subterms(
+def na_torsion_subterms(
     rot_coords,
     block_type_ind_for_rot,
     bt_base,
@@ -360,7 +316,11 @@ def dna_dihedral_subterms(
     pucker_temperature,
     bin_blend_sdev,
 ):
-    """Per-block (bb, chi, sugar, well) energies and the DNA mask, unweighted."""
+    """Per-block (bb, chi, sugar, well) energies, the mask, and the base index.
+
+    The base index carries the polymer, which the caller needs in order to pick
+    the per-polymer subterm weights.
+    """
     n_poses, max_n_blocks = block_coord_offset.shape
     max_n_atoms = rot_coords.shape[0] // n_poses
 
@@ -437,6 +397,7 @@ def dna_dihedral_subterms(
         e_sugar.reshape(shape),
         e_well.reshape(shape),
         is_dna,
+        base,
     )
 
 
@@ -469,6 +430,9 @@ def _subterm_energies(
     """
     dtype = xyz.dtype
     is_dna = base >= 0
+    # DNA and RNA share the functional form and nothing else; every table below
+    # that is not per-base is gathered on this index
+    poly = polymer_index(base)
     tors = dihedral(xyz[..., 0, :], xyz[..., 1, :], xyz[..., 2, :], xyz[..., 3, :])
     tors = torch.where(tor_ok, tors, torch.zeros_like(tors)) % 360.0
     zero = torch.zeros(tors.shape[:-1], dtype=dtype, device=tors.device)
@@ -477,17 +441,18 @@ def _subterm_energies(
     pucker = torch.where(is_dna.unsqueeze(-1), pucker, torch.zeros_like(pucker))
 
     # --- backbone -----------------------------------------------------------
-    means = backbone_means.to(dtype)
+    means = backbone_means.to(dtype)[poly]
+    sdev_bb = backbone_sdev.to(dtype)[poly]
     e_bb = zero
 
     bin_w = {}
     for tor in (ALPHA, GAMMA):
         ang = tors[..., tor]
-        w = triple_bin_weights(ang, means[tor, :3], bin_blend_sdev)
+        w = triple_bin_weights(ang, means[:, tor, :3], bin_blend_sdev)
         bin_w[tor] = w
         e_bb = e_bb + torch.where(
             tor_ok[..., tor],
-            blended_devsq(ang, means[tor, :3], w) / backbone_sdev[tor] ** 2,
+            blended_devsq(ang, means[:, tor, :3], w) / sdev_bb[:, tor] ** 2,
             zero,
         )
 
@@ -498,7 +463,7 @@ def _subterm_energies(
         w = torch.stack([w_bi, 1.0 - w_bi], dim=-1)
         e_bb = e_bb + torch.where(
             both,
-            blended_devsq(ang, means[tor, :2], w) / backbone_sdev[tor] ** 2,
+            blended_devsq(ang, means[:, tor, :2], w) / sdev_bb[:, tor] ** 2,
             zero,
         )
 
@@ -510,8 +475,10 @@ def _subterm_energies(
     ang = tors[..., BETA]
     e_bb = e_bb + torch.where(
         tor_ok[..., BETA],
-        blended_devsq(ang, means[BETA, :2], torch.stack([w_beta, 1.0 - w_beta], dim=-1))
-        / backbone_sdev[BETA] ** 2,
+        blended_devsq(
+            ang, means[:, BETA, :2], torch.stack([w_beta, 1.0 - w_beta], dim=-1)
+        )
+        / sdev_bb[:, BETA] ** 2,
         zero,
     )
 
@@ -525,28 +492,28 @@ def _subterm_energies(
     w_syn1 = w_syn.unsqueeze(-1)
     e_chi = (pucker * ((1.0 - w_syn1) * dev_pucker**2 + w_syn1 * dev_syn**2)).sum(
         -1
-    ) / sdev_chi**2
+    ) / sdev_chi.to(dtype)[poly] ** 2
     e_chi = torch.where(tor_ok[..., CHI], e_chi, zero)
 
     # --- sugar --------------------------------------------------------------
     e_sugar = zero
     for slot, tor in enumerate(SUGAR_SLOTS):
         dev = wrap_degrees(
-            tors[..., tor].unsqueeze(-1) - sugar_means.to(dtype)[:, slot]
+            tors[..., tor].unsqueeze(-1) - sugar_means.to(dtype)[poly][:, :, slot]
         )
         e_sugar = e_sugar + torch.where(
             tor_ok[..., tor], (pucker * dev**2).sum(-1), zero
         )
-    e_sugar = e_sugar / sdev_sugar**2
+    e_sugar = e_sugar / sdev_sugar.to(dtype)[poly] ** 2
 
     # --- wells --------------------------------------------------------------
     # -ln P of each bin assignment
-    e_well = torch.where(is_dna, (pucker * well_pucker.to(dtype)).sum(-1), zero)
+    e_well = torch.where(is_dna, (pucker * well_pucker.to(dtype)[poly]).sum(-1), zero)
 
     w_a, w_g = bin_w[ALPHA], bin_w[GAMMA]
     e_well = e_well + torch.where(
         tor_ok[..., ALPHA] & tor_ok[..., GAMMA],
-        torch.einsum("ni,ij,nj->n", w_a, well_alpha_gamma.to(dtype), w_g),
+        torch.einsum("ni,nij,nj->n", w_a, well_alpha_gamma.to(dtype)[poly], w_g),
         zero,
     )
 
@@ -555,14 +522,16 @@ def _subterm_energies(
     w_ns = torch.stack([w_north, 1.0 - w_north], dim=-1)
     e_well = e_well + torch.where(
         both,
-        torch.einsum("nb,bs,ns->n", w_bibii, well_bibii_pucker.to(dtype), w_ns),
+        torch.einsum("nb,nbs,ns->n", w_bibii, well_bibii_pucker.to(dtype)[poly], w_ns),
         zero,
     )
 
     w_bprev = torch.stack([w_beta, 1.0 - w_beta], dim=-1)
     e_well = e_well + torch.where(
         prev_ok & tor_ok[..., ALPHA],
-        torch.einsum("ni,ib,nb->n", w_a, well_alphanext_bibii.to(dtype), w_bprev),
+        torch.einsum(
+            "ni,nib,nb->n", w_a, well_alphanext_bibii.to(dtype)[poly], w_bprev
+        ),
         zero,
     )
 
@@ -629,7 +598,7 @@ def _resolve_rotamer_uaids(
     return rot_coord_offset.to(torch.int64)[rot] + local, ok
 
 
-def eval_dna_dihedral_for_rotamers(
+def eval_na_torsion_for_rotamers(
     # common args
     rot_coords,
     rot_coord_offset,
@@ -745,7 +714,12 @@ def eval_dna_dihedral_for_rotamers(
             pucker_temperature,
             bin_blend_sdev,
         )
-        harmonic = weight_bb * e_bb + weight_chi * e_chi + weight_sugar * e_sugar
+        poly = polymer_index(base)
+        harmonic = (
+            weight_bb[poly] * e_bb
+            + weight_chi[poly] * e_chi
+            + weight_sugar[poly] * e_sugar
+        )
         score = torch.stack([harmonic, e_well])
         score = torch.where(is_dna.unsqueeze(0), score, torch.zeros_like(score))
 

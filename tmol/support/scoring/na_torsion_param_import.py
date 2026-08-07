@@ -1,20 +1,27 @@
-"""Regenerate the DNA dihedral mean-angle tables from crystal structures.
+"""Regenerate database/default/scoring/na_torsion.yaml from crystal structures.
 
-Rosetta derives these means at load time by parsing raw observations
+Rosetta derives its DNA means at load time by parsing raw observations
 (database/scoring/dna/bound_dna_dihedrals.txt); tmol ships the derived means.
 This script rebuilds them from a structure list, using Rosetta's binning and
 averaging but computing proper nu ring torsions from heavy atoms rather than
 Rosetta's substituent-referenced "chi2"/"chi4".
 
-The structure list is dna_dihedral_structures.txt: protein-DNA X-ray entries
-at <= 2.3 A, one representative per 30% sequence-identity cluster.
+DNA and RNA share the functional form but not the parameters, so both are
+swept in one run and written to one file under a dna: and an rna: key. The
+structure lists are na_torsion_dna_structures.txt (protein-DNA X-ray entries
+at <= 2.3 A, one representative per 30% sequence-identity cluster) and
+na_torsion_rna_structures.txt.
 
-    python -m tmol.support.scoring.dna_dihedral_param_import \
-        --pdb-dir /tmp/dnaset --out dna_dihedral.yaml
+    python -m tmol.support.scoring.na_torsion_param_import \
+        --pdb-dir ~/na_structures \
+        --out tmol/database/default/scoring/na_torsion.yaml
 
-    # check the pipeline against Rosetta's own observations
-    python -m tmol.support.scoring.dna_dihedral_param_import \
-        --pdb-dir /tmp/dnapdb --validate ~/rosetta/database/scoring/dna/\
+    # rebuild the structure lists from RCSB rather than reusing them
+    python -m tmol.support.scoring.na_torsion_param_import --requery
+
+    # check the pipeline against Rosetta's own DNA observations
+    python -m tmol.support.scoring.na_torsion_param_import \
+        --pdb-dir ~/na_structures --validate ~/rosetta/database/scoring/dna/\
 bound_dna_dihedrals.txt
 """
 
@@ -29,16 +36,24 @@ from collections import defaultdict
 import numpy
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-STRUCTURE_LIST = os.path.join(HERE, "dna_dihedral_structures.txt")
+DNA_STRUCTURE_LIST = os.path.join(HERE, "na_torsion_dna_structures.txt")
+RNA_STRUCTURE_LIST = os.path.join(HERE, "na_torsion_rna_structures.txt")
 
 PURINE = {"DA", "DG", "A", "G", "ADE", "GUA"}
-PYRIMIDINE = {"DC", "DT", "C", "T", "CYT", "THY"}
-DNA_RESNAMES = PURINE | PYRIMIDINE
+PYRIMIDINE = {"DC", "DT", "C", "T", "CYT", "THY", "U", "URA"}
+NA_RESNAMES = PURINE | PYRIMIDINE
 BASE1 = {
     "DA": "a", "A": "a", "ADE": "a", "DC": "c", "C": "c", "CYT": "c",
     "DG": "g", "G": "g", "GUA": "g", "DT": "t", "T": "t", "THY": "t",
+    "U": "u", "URA": "u",
 }  # fmt: skip
-BASE_ORDER = "acgt"
+
+# bare A/C/G are the pre-remediation DNA spellings as well as the RNA ones, so
+# the sugar decides: only ribose carries O2'. Thymine and uracil are decisive.
+POLYMERS = ("dna", "rna")
+BASE_ORDER = {"dna": "acgt", "rna": "acgu"}
+DEOXY_ONLY = {"DA", "DC", "DG", "DT", "T", "THY"}
+RIBO_ONLY = {"U", "URA"}
 
 RING = ["C1'", "C2'", "C3'", "C4'", "O4'"]
 
@@ -67,7 +82,7 @@ SDEV_BACKBONE = [17.0, 30.0, 15.0, 0.0, 20.0, 30.0]
 SDEV_SUGAR = 4.0
 SDEV_CHI = 15.0
 
-# subterm weights from beta16_opt46A.523; dna_torsion sums them at weight 1
+# subterm weights from beta16_opt46A.523; na_torsion sums them at weight 1
 WEIGHT_BB = 0.46
 WEIGHT_CHI = 1.07
 WEIGHT_SUGAR = 0.16
@@ -175,7 +190,7 @@ def read_pdb(path, max_b=None):
                 break
             if not line.startswith("ATOM"):
                 continue
-            if line[17:20].strip() not in DNA_RESNAMES:
+            if line[17:20].strip() not in NA_RESNAMES:
                 continue
             name = _norm(line[12:16])
             k = (line[21], line[22:27])
@@ -206,7 +221,7 @@ def read_cif(path, max_b=None):
     arr = pdbx.get_structure(
         block, model=1, extra_fields=["b_factor", "occupancy"], altloc="first"
     )
-    arr = arr[numpy.isin(arr.res_name, list(DNA_RESNAMES))]
+    arr = arr[numpy.isin(arr.res_name, list(NA_RESNAMES))]
     out, cur, key = [], None, None
     for i in range(arr.array_length()):
         k = (str(arr.chain_id[i]), str(arr.res_id[i]) + str(arr.ins_code[i]))
@@ -304,6 +319,16 @@ def residue_torsions(prev, cur, nxt):
 # -------------------------------------------------------------- observations
 
 
+def polymer_of(resname, atoms):
+    """ "dna", "rna", or None if the name and the sugar disagree."""
+    ribose = "O2'" in atoms
+    if ribose and resname in DEOXY_ONLY:
+        return None
+    if not ribose and resname in RIBO_ONLY:
+        return None
+    return "rna" if ribose else "dna"
+
+
 def observations(codes, pdb_dir, max_b=None, verbose=False):
     """Collect per-nucleotide torsions from every structure in the list."""
     obs, n_struct, n_skipped = [], 0, 0
@@ -329,6 +354,9 @@ def observations(codes, pdb_dir, max_b=None, verbose=False):
             )
             if not all(a in res[3] for a in RING):
                 continue
+            poly = polymer_of(res[2], res[3])
+            if poly is None:
+                continue
             t = residue_torsions(prev, res, nxt)
             if t["delta"] is None or t["chi"] is None:
                 continue
@@ -337,6 +365,7 @@ def observations(codes, pdb_dir, max_b=None, verbose=False):
             obs.append(
                 dict(
                     code=code,
+                    poly=poly,
                     base=BASE1[res[2]],
                     pucker=sugar_pucker(res[3]),
                     lower=t["alpha"] is None,
@@ -358,7 +387,7 @@ def circular_mean(values):
     return (median + offset) % 360.0
 
 
-def sugar_means(obs):
+def sugar_means(obs, bases):
     """mean_sugar_torsion[base][pucker][slot]; only chi is base-dependent."""
     # bucket non-terminal observations by pucker
     by_pucker = defaultdict(lambda: [[] for _ in range(N_SUGAR)])
@@ -393,7 +422,7 @@ def sugar_means(obs):
 
     table = numpy.zeros((4, N_PUCKER, N_SUGAR))
     counts = numpy.zeros((4, N_PUCKER, N_SUGAR), dtype=int)
-    for bi, base in enumerate(BASE_ORDER):
+    for bi, base in enumerate(bases):
         for pucker in range(N_PUCKER):
             for slot, (name, _) in enumerate(SUGAR_TORSIONS):
                 seq_dep = name == "chi"
@@ -461,7 +490,7 @@ def _offsets(counts, axis=None):
     return e - e.min()
 
 
-def well_tables(obs):
+def well_tables(obs, bases):
     """Bin-population energies, factorized along the selected couplings.
 
     Each bin assignment is charged once: the sugar torsions all read the pucker
@@ -485,7 +514,7 @@ def well_tables(obs):
         b = b1b2_bin(t["epsilon"], t["zeta"]) - 1
         bibii_pucker[b, 0 if o["pucker"] in north else 1] += 1
         syn = 0 if t["chi"] % 360.0 >= MIN_CHI_TORSION else 1
-        chi_syn[syn, o["pucker"], BASE_ORDER.index(o["base"])] += 1
+        chi_syn[syn, o["pucker"], bases.index(o["base"])] += 1
 
     for i, o in enumerate(obs):
         if o["lower"] or o["upper"] or i + 1 >= len(obs) or obs[i + 1]["lower"]:
@@ -508,13 +537,13 @@ def well_tables(obs):
 # -------------------------------------------------------------------- output
 
 
-def observed_sdev(obs, sugar):
+def observed_sdev(obs, sugar, bases):
     """Spread of the observations about their own bin mean, per sugar torsion."""
     dev = {name: [] for name, _ in SUGAR_TORSIONS}
     for o in obs:
         if o["lower"] or o["upper"]:
             continue
-        b = BASE_ORDER.index(o["base"])
+        b = bases.index(o["base"])
         for s, (name, _) in enumerate(SUGAR_TORSIONS):
             dev[name].append(
                 subtract_degree_angles(o["tor"][name], sugar[b, o["pucker"], s])
@@ -522,85 +551,99 @@ def observed_sdev(obs, sugar):
     return {k: float(numpy.std(v)) for k, v in dev.items() if v}
 
 
-def emit_yaml(path, sugar, backbone, provenance, sdev_obs=None, wells=None):
+def _emit_globals(out, sdev_obs):
+    """Rosetta's own option table annotates sdev_sugar "## too small"; both are
+    tighter than the data, which the subterm weights absorb."""
+    vals = [v for k, v in sdev_obs.items() if k != "chi"]
+    pooled = sum(vals) / len(vals)
+    out.write(f"    sdev_sugar: {SDEV_SUGAR}  # observed spread {pooled:.1f}\n")
+    out.write(f"    sdev_chi: {SDEV_CHI}  # observed spread {sdev_obs['chi']:.1f}\n")
+    out.write(
+        "    sdev_backbone: ["
+        + ", ".join(f"{s}" for s in SDEV_BACKBONE)
+        + "]  # alpha beta gamma delta epsilon zeta\n"
+    )
+    out.write(f"    weight_bb: {WEIGHT_BB}\n")
+    out.write(f"    weight_chi: {WEIGHT_CHI}\n")
+    out.write(f"    weight_sugar: {WEIGHT_SUGAR}\n")
+    out.write(f"    pucker_temperature: {PUCKER_TEMPERATURE}\n")
+    out.write(f"    bin_blend_sdev: {BIN_BLEND_SDEV}\n")
+
+
+def _emit_backbone(out, backbone):
     bb_names = {1: "alpha", 2: "beta", 3: "gamma", 5: "epsilon", 6: "zeta"}
+    for tor in sorted(bb_names):
+        n_bins = 3 if tor in (1, 3) else 2
+        vals = ", ".join(f"{backbone[tor][b]:9.4f}" for b in range(1, n_bins + 1))
+        label = bb_names[tor] + ":"
+        out.write(f"    {label:10s} [{vals}]\n")
+
+
+def _emit_sugar(out, sugar, bases):
+    for slot, (name, _) in enumerate(SUGAR_TORSIONS):
+        out.write(f"    {name}:\n")
+        if name == "chi":
+            for bi, base in enumerate(bases):
+                vals = ", ".join(f"{sugar[bi, p, slot]:9.4f}" for p in range(N_PUCKER))
+                out.write(f"      {base}: [{vals}]\n")
+        else:
+            vals = ", ".join(f"{sugar[0, p, slot]:9.4f}" for p in range(N_PUCKER))
+            out.write(f"      all: [{vals}]\n")
+
+
+def _emit_wells(out, wells, bases):
+    fmt = lambda row: ", ".join(f"{v:7.4f}" for v in row)  # noqa: E731
+    out.write(f"    pucker: [{fmt(wells['pucker'][0])}]\n")
+    out.write("    alpha_gamma:  # rows alpha g+/t/g-, columns gamma g+/t/g-\n")
+    for row in wells["alpha_gamma"][0]:
+        out.write(f"      - [{fmt(row)}]\n")
+    out.write("    bibii_given_pucker:  # rows BI/BII, columns north/south\n")
+    for row in wells["bibii_given_pucker"][0]:
+        out.write(f"      - [{fmt(row)}]\n")
+    out.write("    alphanext_given_bibii:  # rows alpha(i+1) g+/t/g-, columns BI/BII\n")
+    for row in wells["alphanext_given_bibii"][0]:
+        out.write(f"      - [{fmt(row)}]\n")
+    out.write("    chi_syn_given_pucker:  # anti/syn, by pucker, per base\n")
+    for si, state in enumerate(("anti", "syn")):
+        out.write(f"      {state}:\n")
+        for bi, base in enumerate(bases):
+            row = wells["chi_syn_given_pucker"][0][si, :, bi]
+            out.write(f"        {base}: [{fmt(row)}]\n")
+
+
+def emit_yaml(path, tables, provenance):
+    """One file, each table split into its dna and rna parameter sets."""
+    sections = (
+        ("global_parameters", None),
+        (
+            "backbone_means",
+            "mean backbone torsion by bin; alpha/gamma g+/t/g-, others BI/BII",
+        ),
+        ("sugar_means", "mean sugar torsion by pucker; only chi is base-dependent"),
+        (
+            "well_energies",
+            "bin-population energies, -ln P shifted so the deepest well is 0.\n"
+            "# Each bin assignment is charged once: the sugar torsions all read\n"
+            "# pucker, and beta reads the previous residue's BI/BII.",
+        ),
+    )
     with open(path, "w") as out:
         for line in provenance:
             out.write(f"# {line}\n")
-        out.write("\nglobal_parameters:\n")
-        # Rosetta's own option table annotates sdev_sugar "## too small"; both
-        # are tighter than the data, which the subterm weights absorb
-        pooled = None
-        if sdev_obs:
-            vals = [v for k, v in sdev_obs.items() if k != "chi"]
-            pooled = sum(vals) / len(vals)
-        note = f"  # observed spread {pooled:.1f}" if pooled else ""
-        out.write(f"  sdev_sugar: {SDEV_SUGAR}{note}\n")
-        note = f"  # observed spread {sdev_obs['chi']:.1f}" if sdev_obs else ""
-        out.write(f"  sdev_chi: {SDEV_CHI}{note}\n")
-        out.write(
-            "  sdev_backbone: ["
-            + ", ".join(f"{s}" for s in SDEV_BACKBONE)
-            + "]  # alpha beta gamma delta epsilon zeta\n"
-        )
-        out.write(f"  weight_bb: {WEIGHT_BB}\n")
-        out.write(f"  weight_chi: {WEIGHT_CHI}\n")
-        out.write(f"  weight_sugar: {WEIGHT_SUGAR}\n")
-        out.write(f"  pucker_temperature: {PUCKER_TEMPERATURE}\n")
-        out.write(f"  bin_blend_sdev: {BIN_BLEND_SDEV}\n")
-
-        out.write(
-            "\n# mean backbone torsion by bin; alpha/gamma g+/t/g-, others BI/BII\n"
-        )
-        out.write("backbone_means:\n")
-        for tor in sorted(bb_names):
-            n_bins = 3 if tor in (1, 3) else 2
-            vals = ", ".join(f"{backbone[tor][b]:9.4f}" for b in range(1, n_bins + 1))
-            label = bb_names[tor] + ":"
-            out.write(f"  {label:10s} [{vals}]\n")
-
-        out.write("\n# mean sugar torsion by pucker; only chi is base-dependent\n")
-        out.write("sugar_means:\n")
-        for slot, (name, _) in enumerate(SUGAR_TORSIONS):
-            out.write(f"  {name}:\n")
-            if name == "chi":
-                for bi, base in enumerate(BASE_ORDER):
-                    vals = ", ".join(
-                        f"{sugar[bi, p, slot]:9.4f}" for p in range(N_PUCKER)
-                    )
-                    out.write(f"    {base}: [{vals}]\n")
-            else:
-                vals = ", ".join(f"{sugar[0, p, slot]:9.4f}" for p in range(N_PUCKER))
-                out.write(f"    all: [{vals}]\n")
-
-        if wells is None:
-            return
-        out.write(
-            "\n# bin-population energies, -ln P shifted so the deepest well is 0.\n"
-            "# Each bin assignment is charged once: the sugar torsions all read\n"
-            "# pucker, and beta reads the previous residue's BI/BII.\n"
-        )
-        out.write("well_energies:\n")
-        fmt = lambda row: ", ".join(f"{v:7.4f}" for v in row)  # noqa: E731
-        out.write(f"  pucker: [{fmt(wells['pucker'][0])}]\n")
-        out.write("  alpha_gamma:  # rows alpha g+/t/g-, columns gamma g+/t/g-\n")
-        for row in wells["alpha_gamma"][0]:
-            out.write(f"    - [{fmt(row)}]\n")
-        out.write("  bibii_given_pucker:  # rows BI/BII, columns north/south\n")
-        for row in wells["bibii_given_pucker"][0]:
-            out.write(f"    - [{fmt(row)}]\n")
-        out.write(
-            "  alphanext_given_bibii:  # rows alpha(i+1) g+/t/g-, columns BI/BII\n"
-        )
-        for row in wells["alphanext_given_bibii"][0]:
-            out.write(f"    - [{fmt(row)}]\n")
-        out.write("  chi_syn_given_pucker:  # anti/syn, by pucker, per base\n")
-        for si, state in enumerate(("anti", "syn")):
-            out.write(f"    {state}:\n")
-            for bi, base in enumerate(BASE_ORDER):
-                out.write(
-                    f"      {base}: [{fmt(wells['chi_syn_given_pucker'][0][si, :, bi])}]\n"
-                )
+        for name, comment in sections:
+            out.write(f"\n{'# ' + comment if comment else ''}\n" if comment else "\n")
+            out.write(f"{name}:\n")
+            for poly in POLYMERS:
+                t = tables[poly]
+                out.write(f"  {poly}:\n")
+                if name == "global_parameters":
+                    _emit_globals(out, t["sdev_obs"])
+                elif name == "backbone_means":
+                    _emit_backbone(out, t["backbone"])
+                elif name == "sugar_means":
+                    _emit_sugar(out, t["sugar"], BASE_ORDER[poly])
+                else:
+                    _emit_wells(out, t["wells"], BASE_ORDER[poly])
 
 
 # ------------------------------------------------------------------ validate
@@ -662,10 +705,35 @@ def validate(obs, stats_path):
 # ----------------------------------------------------------------------- cli
 
 
+def build_tables(obs, poly, verbose=False):
+    """Every table for one polymer, from that polymer's observations."""
+    bases = BASE_ORDER[poly]
+    sugar, sugar_n = sugar_means(obs, bases)
+    backbone, _ = backbone_means(obs)
+    sparse = [
+        (bases[b], pk, SUGAR_TORSIONS[s][0])
+        for b in range(4)
+        for pk in range(N_PUCKER)
+        for s in range(N_SUGAR)
+        if sugar_n[b, pk, s] < MIN_TORSIONS
+    ]
+    print(f"  {poly}: sugar bins below {MIN_TORSIONS} observations: {len(sparse)}")
+    if sparse and verbose:
+        for entry in sparse:
+            print("     ", entry)
+    return dict(
+        sugar=sugar,
+        backbone=backbone,
+        wells=well_tables(obs, bases),
+        sdev_obs=observed_sdev(obs, sugar, bases),
+    )
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--structures", default=STRUCTURE_LIST)
-    p.add_argument("--pdb-dir", default="dna_structures")
+    p.add_argument("--structures", default=DNA_STRUCTURE_LIST)
+    p.add_argument("--rna-structures", default=RNA_STRUCTURE_LIST)
+    p.add_argument("--pdb-dir", default="na_structures")
     p.add_argument("--out")
     p.add_argument("--requery", action="store_true", help="rebuild the structure list")
     p.add_argument("--resolution", type=float, default=2.3)
@@ -683,59 +751,50 @@ def main():
                 f"# Protein-DNA X-ray structures <= {args.resolution} A, one"
                 f" representative per {args.seqid}% seq-id cluster (protein entity).\n"
                 f"# RCSB query {today}; regenerate with"
-                f" dna_dihedral_param_import.py --requery\n"
+                f" na_torsion_param_import.py --requery\n"
             )
             f.write("\n".join(codes) + "\n")
         print(f"wrote {len(codes)} codes to {args.structures}")
-    else:
-        codes = [
-            x.strip()
-            for x in open(args.structures)
-            if x.strip() and not x.startswith("#")
-        ]
+        return
 
-    obs, n_struct, n_skipped = observations(
-        codes, args.pdb_dir, args.max_b, args.verbose
-    )
-    interior = [o for o in obs if not o["lower"] and not o["upper"]]
+    def read_list(path):
+        return [x.strip() for x in open(path) if x.strip() and not x.startswith("#")]
+
+    # each list is swept for both polymers; a protein-DNA entry may carry an RNA
+    # chain and vice versa, and the sugar decides which set a nucleotide joins
+    obs, n_struct, n_skipped = [], 0, 0
+    for path in (args.structures, args.rna_structures):
+        o, ns, nk = observations(
+            read_list(path), args.pdb_dir, args.max_b, args.verbose
+        )
+        obs += o
+        n_struct += ns
+        n_skipped += nk
     print(f"structures {n_struct} used, {n_skipped} skipped")
-    print(f"nucleotides {len(obs)} ({len(interior)} interior)")
 
     if args.validate:
-        validate(obs, args.validate)
+        validate([o for o in obs if o["poly"] == "dna"], args.validate)
 
-    sugar, sugar_n = sugar_means(obs)
-    backbone, backbone_n = backbone_means(obs)
-
-    sparse = [
-        (BASE_ORDER[b], pk, SUGAR_TORSIONS[s][0])
-        for b in range(4)
-        for pk in range(N_PUCKER)
-        for s in range(N_SUGAR)
-        if sugar_n[b, pk, s] < MIN_TORSIONS
-    ]
-    print(f"sugar bins below {MIN_TORSIONS} observations: {len(sparse)}")
-    if sparse and args.verbose:
-        for entry in sparse:
-            print("   ", entry)
+    tables = {}
+    counts = {}
+    for poly in POLYMERS:
+        sub = [o for o in obs if o["poly"] == poly]
+        interior = [o for o in sub if not o["lower"] and not o["upper"]]
+        counts[poly] = (len(sub), len(interior))
+        print(f"  {poly}: nucleotides {len(sub)} ({len(interior)} interior)")
+        tables[poly] = build_tables(sub, poly, args.verbose)
 
     if args.out:
         provenance = [
-            "DNA dihedral mean angles. Generated by",
-            "tmol/support/scoring/dna_dihedral_param_import.py -- do not hand-edit.",
-            f"Structures: {os.path.basename(args.structures)}"
-            f" ({n_struct} used); protein-DNA X-ray <= {args.resolution} A,",
-            f"one representative per {args.seqid}% sequence-identity cluster.",
-            f"Nucleotides: {len(interior)} interior of {len(obs)}.",
+            "Nucleic acid torsion mean angles and well depths. Generated by",
+            "tmol/support/scoring/na_torsion_param_import.py -- do not hand-edit.",
+            f"DNA: {os.path.basename(args.structures)}, protein-DNA X-ray"
+            f" <= {args.resolution} A, one per {args.seqid}% seq-id cluster;",
+            f"     {counts['dna'][1]} interior nucleotides of {counts['dna'][0]}.",
+            f"RNA: {os.path.basename(args.rna_structures)};",
+            f"     {counts['rna'][1]} interior nucleotides of {counts['rna'][0]}.",
         ]
-        emit_yaml(
-            args.out,
-            sugar,
-            backbone,
-            provenance,
-            observed_sdev(obs, sugar),
-            well_tables(obs),
-        )
+        emit_yaml(args.out, tables, provenance)
         print(f"wrote {args.out}")
 
 

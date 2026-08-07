@@ -16,6 +16,7 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.utility.biotite_util import get_all_residue_positions
+from tmol.utility.device import resolve_device
 
 from tmol import beta2016_score_function
 
@@ -93,6 +94,7 @@ def build_context_from_biotite(
         BiotitePoseBuildContext containing canonical ordering, packed block
         types, parameter database, and residue type set.
     """
+    torch_device = resolve_device(torch_device)
     if prepare_ligands:
         from tmol.ligand import prepare_ligands as _prepare_ligands
 
@@ -207,8 +209,11 @@ def pose_stack_from_biotite(
         Fragmented poses expose their block mapping as
         ``pose_stack.fragmented_ligand_mapping``.
     """
+    torch_device = resolve_device(torch_device)
+
     from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
     from tmol.pack.build_missing_sidechains import build_missing_sidechains
+    from tmol.pack.rotamer.na_chi_sampler import NaChiRotamerSampler
     from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
         create_dunbrack_sampler_from_database,
     )
@@ -286,6 +291,7 @@ def pose_stack_from_biotite(
         db = context.parameter_database
         sfxn = beta2016_score_function(torch_device, param_db=db)
         dunbrack_sampler = create_dunbrack_sampler_from_database(db, torch_device)
+        na_sampler = NaChiRotamerSampler.from_database(db, torch_device)
 
         if torch.any(block_has_missing_atoms):
             logger.info(
@@ -298,6 +304,7 @@ def pose_stack_from_biotite(
             dunbrack_sampler,
             block_has_missing_atoms,
             no_optH=no_optH,
+            na_sampler=na_sampler,
         )
 
     if fragment_mapping is not None:
@@ -549,12 +556,14 @@ def _filter_supported_atoms_and_connectivity(
 
     valid_atoms = valid_res[get_all_residue_positions(biotite_structure)]
 
-    lower = numpy.roll(valid_res, 1)
-    lower[0] = True
-    lower = lower[valid_res]
-    upper = numpy.roll(valid_res, -1)
-    upper[-1] = True
-    upper = upper[valid_res]
+    # A kept residue whose neighbor was dropped has an unknown connection on
+    # that side; the ends of the kept set are termini, so they are marked after
+    # filtering
+    lower = numpy.roll(valid_res, 1)[valid_res]
+    upper = numpy.roll(valid_res, -1)[valid_res]
+    if lower.size:
+        lower[0] = True
+        upper[-1] = True
     not_connected = numpy.invert(numpy.column_stack((lower, upper)))
 
     if isinstance(biotite_structure, biotite.structure.AtomArrayStack):

@@ -1,5 +1,5 @@
 # Protein-DNA X-ray structures <= 2.3 A, one representative per 30% seq-id cluster (protein entity).
-# RCSB query 2026-08-05; regenerate with dna_dihedral_param_import.py --requery
+# RCSB query 2026-08-05; regenerate with na_torsion_param_import.py --requery
 10mn
 11fc
 11qf

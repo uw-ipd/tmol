@@ -29,7 +29,9 @@ def pose_stack_from_pdb(
         canonical_form_from_pdb,
     )
     from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
+    from tmol.utility.device import resolve_device
 
+    device = resolve_device(device)
     co = default_canonical_ordering()
     pbt = default_packed_block_types(device)
     cf = canonical_form_from_pdb(

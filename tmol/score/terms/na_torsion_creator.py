@@ -5,14 +5,14 @@ import torch
 
 
 @score_term_creator
-class DnaDihedralTermCreator(TermCreator):
-    _score_types = [ScoreType.dna_torsion, ScoreType.dna_torsion_well]
+class NaTorsionTermCreator(TermCreator):
+    _score_types = [ScoreType.na_torsion, ScoreType.na_torsion_well]
 
     @classmethod
     def create_term(cls, param_db: ParameterDatabase, device: torch.device):
-        import tmol.score.dna_dihedral.dna_dihedral_energy_term
+        import tmol.score.na_torsion.na_torsion_energy_term
 
-        return tmol.score.dna_dihedral.dna_dihedral_energy_term.DnaDihedralEnergyTerm(
+        return tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm(
             param_db, device
         )
 

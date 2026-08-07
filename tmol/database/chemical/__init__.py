@@ -245,6 +245,8 @@ class VariantType:
     add_connections: Tuple[Connection, ...]
     add_bonds: Tuple[tuple, ...]
     icoors: Tuple[IcoorVariant, ...]
+    add_torsions: Tuple[Torsion, ...] = ()
+    add_chi_samples: Tuple[ChiSamples, ...] = ()
     applies_to: VariantScope = VariantScope()
 
 
