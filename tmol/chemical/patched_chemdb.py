@@ -487,7 +487,9 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
     #    -if the patch adds atoms, we need to figure out how to ensure unique names
     #    -need a patch naming scheme if a patch applied twice
     assert len(mod_unique) <= 1, (
-        "Patch " + variant.name + " applies to residue " + res.name + " multiple times!"
+        f"Patch {variant.name} applies to residue {res.name} multiple times, "
+        f"matching the atom sets {mod_unique}. Narrow the pattern, or scope the "
+        f"patch with applies_to."
     )
 
     # apply patches
@@ -605,6 +607,11 @@ class PatchedChemicalDatabase:
         for res in chemdb.residues:
             done = False
 
+            # resolve against the unpatched residue
+            #   BY DESIGN ... a patch can never be made conditional on another
+            #   patch having been applied
+            variants = [v for v in chemdb.variants if v.applies_to.matches(res)]
+
             resvariants, resvariantnames, marked_atoms = [res], [""], [[]]
             while not done:
                 done = True
@@ -615,7 +622,7 @@ class PatchedChemicalDatabase:
                     resvariants, resvariantnames, marked_atoms
                 ):
                     resgraph = G.from_raw_res(res_i)
-                    for variant in chemdb.variants:
+                    for variant in variants:
                         newtag = [*name_i, variant.name]
                         newtag.sort()
                         if newtag in resvariantnames or newtag in rvn_new:
