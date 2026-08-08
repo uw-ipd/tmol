@@ -24,6 +24,20 @@ PLANNED_NOTEBOOKS = (
 )
 
 
+def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
+    """Require every published tutorial to expose Colab and local setup."""
+    markdown = "\n".join(
+        cell.source for cell in notebook.cells if cell.cell_type == "markdown"
+    )
+    code = "\n".join(
+        cell.source for cell in notebook.cells if cell.cell_type == "code"
+    )
+    if "Open In Colab" not in markdown:
+        raise ValueError(f"{path} is missing its Open In Colab badge")
+    if "setup_colab(" not in code:
+        raise ValueError(f"{path} is missing its guarded Colab bootstrap")
+
+
 def _without_gpu_cells(notebook):
     """Copy a notebook and replace ``gpu-only`` cells with a CPU skip."""
     notebook = copy.deepcopy(notebook)
@@ -48,6 +62,7 @@ def execute_notebook(path: Path, timeout: int, *, write: bool = False) -> None:
     """Execute one notebook, optionally retaining outputs for Sphinx."""
     with path.open(encoding="utf-8") as handle:
         notebook = nbformat.read(handle, as_version=4)
+    _validate_tutorial_entrypoints(notebook, path)
     executed = _without_gpu_cells(notebook)
     client = NotebookClient(
         executed,
