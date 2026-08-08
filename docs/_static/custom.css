@@ -87,14 +87,24 @@ table.docutils {
 
 .example-card-title {
   display: block;
-  padding: 0 1rem;
+  padding: 0.9rem 1rem 0;
 }
 
 .example-card-title {
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.35;
-  min-height: 4.3rem;
-  padding-bottom: 1rem;
-  padding-top: 0.9rem;
+}
+
+.example-card-description {
+  color: var(--pst-color-text-muted);
+  display: block;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  min-height: 5.1rem;
+  padding: 0.45rem 1rem 1rem;
+}
+
+.example-card-pending {
+  opacity: 0.72;
 }

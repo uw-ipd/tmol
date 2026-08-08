@@ -1,6 +1,6 @@
 # Rosetta-to-TMol crosswalk
 
-This page maps familiar Rosetta and PyRosetta concepts onto the planned TMol
+This page maps familiar Rosetta and PyRosetta concepts onto the TMol
 tutorial suite. It is a capability crosswalk, not a promise of API or protocol
 parity: Rosetta is a broad modeling suite, while TMol is a PyTorch library built
 around batched, differentiable molecular operations.

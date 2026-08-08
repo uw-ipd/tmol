@@ -25,7 +25,7 @@ PLANNED_NOTEBOOKS = (
 
 
 def _without_gpu_cells(notebook):
-    """Copy a notebook and replace ``gpu-only`` cells with no-op code."""
+    """Copy a notebook and replace ``gpu-only`` cells with a CPU skip."""
     notebook = copy.deepcopy(notebook)
     for cell in notebook.cells:
         if cell.cell_type != "code":
@@ -36,24 +36,36 @@ def _without_gpu_cells(notebook):
             for line in cell.source.splitlines()[:3]
         )
         if "gpu-only" in tags or has_source_tag:
-            cell.source = "# Skipped by CPU notebook smoke check: gpu-only"
+            cell.source = (
+                "print('Skipped by CPU documentation build: this cell requires CUDA.')"
+            )
             cell.outputs = []
             cell.execution_count = None
     return notebook
 
 
-def execute_notebook(path: Path, timeout: int) -> None:
-    """Execute one notebook in memory and raise on cell errors."""
+def execute_notebook(path: Path, timeout: int, *, write: bool = False) -> None:
+    """Execute one notebook, optionally retaining outputs for Sphinx."""
     with path.open(encoding="utf-8") as handle:
         notebook = nbformat.read(handle, as_version=4)
-    notebook = _without_gpu_cells(notebook)
+    executed = _without_gpu_cells(notebook)
     client = NotebookClient(
-        notebook,
+        executed,
         timeout=timeout,
         allow_errors=False,
         resources={"metadata": {"path": str(path.parent.resolve())}},
     )
     client.execute()
+    if write:
+        # Preserve the authored source (including GPU examples), but copy the
+        # CPU execution results used by nbsphinx into the CI workspace.
+        for source_cell, executed_cell in zip(notebook.cells, executed.cells):
+            if source_cell.cell_type != "code":
+                continue
+            source_cell.outputs = executed_cell.outputs
+            source_cell.execution_count = executed_cell.execution_count
+        with path.open("w", encoding="utf-8") as handle:
+            nbformat.write(notebook, handle)
 
 
 def main() -> int:
@@ -69,6 +81,11 @@ def main() -> int:
         type=int,
         default=600,
         help="Per-cell timeout in seconds (default: 600)",
+    )
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Retain executed outputs in the source notebooks for a docs build",
     )
     args = parser.parse_args()
 
@@ -95,7 +112,7 @@ def main() -> int:
 
     for path in paths:
         print(f"Executing {path}")
-        execute_notebook(path, args.timeout)
+        execute_notebook(path, args.timeout, write=args.write)
     print(f"Successfully executed {len(paths)} tutorial notebook(s).")
     return 0
 

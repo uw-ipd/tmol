@@ -15,3 +15,4 @@ atomworks>=2.2
 itables>=2.0
 nbclient>=0.10,<1
 nbformat>=5.10,<6
+ipykernel>=6.29,<7

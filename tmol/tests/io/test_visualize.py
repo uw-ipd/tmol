@@ -139,6 +139,9 @@ def test_switchable_view_escapes_payload_and_uses_unique_ids():
     first_id = first_match.group(1)
     second_id = second_match.group(1)
     assert first_id != second_id
+    assert "setHoverable" in first.data
+    assert "ResizeObserver" in first.data
+    assert "opacity: 0.65" in first.data
 
 
 def test_selection_gallery_bakes_exact_atom_serials_and_escapes_labels():
@@ -152,6 +155,7 @@ def test_selection_gallery_bakes_exact_atom_serials_and_escapes_labels():
     assert unsafe_label not in gallery.data
     assert r"\u003cselected\u003e" in gallery.data
     assert '"serials": [2]' in gallery.data
+    assert "ResizeObserver" in gallery.data
 
 
 def test_query_selection_uses_mask_method_when_available():

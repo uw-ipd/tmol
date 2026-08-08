@@ -170,7 +170,8 @@ if (window.$3Dmol) {{
     script.addEventListener('load', start, {{once: true}});
     script.addEventListener('error', () => {{
       document.getElementById(rootId).textContent =
-        'Interactive viewer unavailable; download the notebook to view locally.';
+        'Interactive viewer unavailable because 3Dmol.js could not be loaded. ' +
+        'Check network or CDN access.';
     }}, {{once: true}});
     document.head.appendChild(script);
   }}
@@ -318,8 +319,9 @@ const data = JSON.parse(
 );
 const select = document.getElementById({json.dumps(select_id)});
 const note = document.getElementById({json.dumps(note_id)});
+const viewerElement = document.getElementById({json.dumps(viewer_id)});
 const viewer = window.$3Dmol.createViewer(
-  document.getElementById({json.dumps(viewer_id)}),
+  viewerElement,
   {{backgroundColor: 'white'}}
 );
 data.forEach((item, index) => {{
@@ -333,19 +335,44 @@ const render = (index) => {{
   viewer.clear();
   viewer.addModel(item.pdb, 'pdb');
   viewer.setStyle({{}}, {{cartoon: {{color: 'spectrum'}}}});
+  viewer.addStyle(
+    {{not: {{hetflag: true}}}},
+    {{stick: {{radius: 0.10, opacity: 0.65}}}}
+  );
   viewer.addStyle({{hetflag: true}}, {{stick: {{colorscheme: 'orangeCarbon'}}}});
+  viewer.setHoverable(
+    {{}},
+    true,
+    function(atom, activeViewer) {{
+      if (!atom.label) {{
+        atom.label = activeViewer.addLabel(
+          atom.chain + ':' + atom.resn + '(' + atom.resi + '):' + atom.atom,
+          {{position: atom, backgroundColor: 'white', fontColor: 'black'}}
+        );
+      }}
+    }},
+    function(atom, activeViewer) {{
+      if (atom.label) {{
+        activeViewer.removeLabel(atom.label);
+        delete atom.label;
+      }}
+    }}
+  );
   viewer.zoomTo();
   viewer.render();
   note.textContent = item.note;
 }};
 select.addEventListener('change', () => render(Number(select.value)));
 render(0);
+if (window.ResizeObserver) {{
+  new ResizeObserver(() => viewer.resize()).observe(viewerElement);
+}}
 """
     html = f"""
 <div class="tmol-switchable-view" id="{root_id}" style="max-width:{width}px">
   <label>Structure: <select id="{select_id}"></select></label>
   <div class="tmol-viewer-note" id="{note_id}"></div>
-  <div id="{viewer_id}" style="width:{width}px;height:{height}px"></div>
+  <div id="{viewer_id}" style="width:100%;max-width:{width}px;height:{height}px"></div>
 </div>
 <script type="application/json" id="{data_id}">{encoded}</script>
 <script>
@@ -422,7 +449,8 @@ data.selections.forEach((selection) => {{
   const title = document.createElement('strong');
   title.textContent = selection.label;
   const viewport = document.createElement('div');
-  viewport.style.width = {json.dumps(f"{width}px")};
+  viewport.style.width = '100%';
+  viewport.style.maxWidth = {json.dumps(f"{width}px")};
   viewport.style.height = {json.dumps(f"{height}px")};
   card.append(title, viewport);
   root.appendChild(card);
@@ -442,6 +470,9 @@ data.selections.forEach((selection) => {{
   }}
   viewer.zoomTo(selection.serials.length ? exactAtoms : {{}});
   viewer.render();
+  if (window.ResizeObserver) {{
+    new ResizeObserver(() => viewer.resize()).observe(viewport);
+  }}
 }});
 """
     html = f"""
