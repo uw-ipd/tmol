@@ -48,6 +48,11 @@ jobs:
             python -m pip install --no-build-isolation -e ".[docs]" \
             -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 
+      - name: Verify tutorial thumbnails match tutorial structures
+        run: |
+          python .github/scripts/render_tutorial_thumbnails.py
+          git diff --exit-code -- docs/_static/tutorials
+
       - name: Execute CPU tutorial notebooks
         run: python .github/scripts/smoke_tutorial_notebooks.py --write
 
