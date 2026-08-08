@@ -76,7 +76,8 @@ def setup_colab(
         build_env = os.environ.copy()
         build_env.update(
             {
-                "CMAKE_CUDA_ARCHITECTURES": "75",
+                # Colab commonly assigns T4 (75), A100 (80), or L4 (89).
+                "CMAKE_CUDA_ARCHITECTURES": "75;80;89",
                 "TMOL_DISABLE_WHEEL_FETCH": "1",
             }
         )
@@ -110,25 +111,35 @@ def setup_colab(
     for relative_path in fixtures:
         destination = Path(relative_path)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        if not destination.exists():
-            urlretrieve(f"{RAW_BASE}/{relative_path}", destination)
+        if not destination.exists() or destination.stat().st_size == 0:
+            fixture_url = f"{RAW_BASE}/{relative_path}"
+            partial = destination.with_name(f"{destination.name}.part")
+            try:
+                urlretrieve(fixture_url, partial)
+                if partial.stat().st_size == 0:
+                    raise RuntimeError(
+                        f"Downloaded an empty fixture from {fixture_url}"
+                    )
+                partial.replace(destination)
+            finally:
+                partial.unlink(missing_ok=True)
 
-    # The released wheel supplies matching compiled CUDA extensions. Load this
-    # tutorial branch's pure-Python viewer helpers, then expose the same
-    # convenience functions used in the notebooks.
     import tmol
 
-    viewer_path = Path("_tmol_tutorial_visualize.py")
-    urlretrieve(f"{RAW_BASE}/tmol/io/visualize.py", viewer_path)
-    spec = importlib.util.spec_from_file_location(
-        "_tmol_tutorial_visualize", viewer_path
-    )
-    if spec is None or spec.loader is None:
-        raise RuntimeError("Could not load TMol tutorial visualization helpers")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    for name in ("view", "switchable_view", "selection_gallery"):
-        setattr(tmol, name, getattr(module, name))
+    if not install_tutorial_source:
+        # The release wheel predates these pure-Python viewer helpers. Overlay
+        # only that module while retaining the wheel's matching CUDA extensions.
+        viewer_path = Path("_tmol_tutorial_visualize.py")
+        urlretrieve(f"{RAW_BASE}/tmol/io/visualize.py", viewer_path)
+        spec = importlib.util.spec_from_file_location(
+            "_tmol_tutorial_visualize", viewer_path
+        )
+        if spec is None or spec.loader is None:
+            raise RuntimeError("Could not load TMol tutorial visualization helpers")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for name in ("view", "switchable_view", "selection_gallery"):
+            setattr(tmol, name, getattr(module, name))
 
     print(
         f"Colab GPU environment ready: {torch.cuda.get_device_name(0)}; "

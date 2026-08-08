@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute tutorial notebooks in memory without modifying checked-in files."""
+"""Validate and execute the published tutorial notebooks."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from pathlib import Path
 import nbformat
 from nbclient import NotebookClient
 
-PLANNED_NOTEBOOKS = (
+TUTORIAL_NOTEBOOKS = (
     "01_working_with_tmol.ipynb",
     "02_gpu_batching.ipynb",
     "03_scoring_and_analysis.ipynb",
@@ -93,7 +93,7 @@ def main() -> int:
         "notebooks",
         nargs="*",
         type=Path,
-        help="Notebook paths (defaults to the eight planned tutorials when present)",
+        help="Notebook paths (defaults to the eight published tutorials when present)",
     )
     parser.add_argument(
         "--timeout",
@@ -117,12 +117,12 @@ def main() -> int:
         tutorial_dir = Path("docs/tutorial")
         paths = [
             tutorial_dir / name
-            for name in PLANNED_NOTEBOOKS
+            for name in TUTORIAL_NOTEBOOKS
             if (tutorial_dir / name).is_file()
         ]
 
     if not paths:
-        print("No planned tutorial notebooks are present; nothing to execute.")
+        print("No tutorial notebooks are present; nothing to execute.")
         return 0
 
     missing = [path for path in paths if not path.is_file()]

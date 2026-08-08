@@ -83,7 +83,6 @@ exclude_patterns = [
     "Thumbs.db",
     ".DS_Store",
     "README.md",
-    "notebooks/tmol_how_to_guide.ipynb",
     "examples/GALLERY_HEADER.rst",
     "sg_execution_times.rst",
     "auto_examples",
@@ -181,6 +180,5 @@ sphinx_gallery_conf = {
     "download_all_examples": False,
     "filename_pattern": r".*",
     "thumbnail_size": (350, 350),
-    "default_thumb_file": "_static/default_thumbnail.png",
     "ignore_pattern": r"GALLERY_HEADER\.rst",
 }

@@ -10,14 +10,16 @@ sphinx-gallery.
 
 ```bash
 pip install -r docs/docs_requirements.txt
+python .github/scripts/smoke_tutorial_notebooks.py --write
 docs/make
 ```
 
 Rendered HTML is written to `docs/_build/html`.
 
 Examples live in `docs/examples/` and are rendered by sphinx-gallery with
-committed thumbnails. Notebooks are rendered without execution during docs
-builds, so interactive notebooks must commit their saved outputs.
+committed thumbnails. nbsphinx does not execute notebooks during the Sphinx
+phase; the smoke command above executes them first and writes the plots, tables,
+and viewer HTML that Sphinx consumes. CI performs the same two-step build.
 
 ## Pull Requests
 
@@ -26,6 +28,7 @@ Before opening a PR:
 ```bash
 pre-commit run --all-files
 pytest tmol/tests/ -v -k "not cuda"
+python .github/scripts/smoke_tutorial_notebooks.py --write
 docs/make
 ```
 

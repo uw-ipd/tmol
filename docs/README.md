@@ -11,6 +11,7 @@ pip install scikit-build-core pybind11 ninja packaging "cmake>=3.18,<4"
 TMOL_DISABLE_WHEEL_FETCH=1 \
   pip install --no-build-isolation -e ".[docs]" \
   -Ccmake.define.TMOL_ENABLE_CUDA=OFF
+python .github/scripts/smoke_tutorial_notebooks.py --write
 docs/make
 ```
 
@@ -19,8 +20,9 @@ The rendered site is written to `docs/_build/html`.
 API pages are authored under `docs/api/` and use `sphinx.ext.autodoc`, matching
 AtomWorks and RFD4. Gallery examples are sourced from `docs/examples/` and
 rendered with committed thumbnails, matching the RFD4 gallery setup. Notebooks
-are rendered without execution, so notebooks that should publish active py3Dmol
-viewers must commit their saved HTML output.
+are executed by the smoke command before nbsphinx renders their saved outputs.
+CI follows the same sequence, so published plots, tables, and py3Dmol viewers do
+not depend on committed notebook outputs.
 
 GitHub Actions builds docs on pull requests and pushes to `master`. Pull
 requests upload the rendered HTML as an artifact, and same-repository pull
