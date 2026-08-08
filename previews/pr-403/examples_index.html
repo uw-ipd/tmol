@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Examples &#8212; tmol documentation</title>
+    <title>Interactive tutorials &#8212; tmol documentation</title>
   
   
   
@@ -31,11 +31,12 @@
 <link href="_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=605ff753" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=f529eb24" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -47,6 +48,11 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'examples_index';</script>
     <script>
@@ -59,7 +65,7 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Score and visualize a PoseStack" href="tutorial/visualisation.html" />
+    <link rel="next" title="Working with TMol" href="tutorial/01_working_with_tmol.html" />
     <link rel="prev" title="Benchmarking" href="user_guide/benchmarking.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -188,7 +194,7 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="#">
-    Examples
+    Interactive tutorials
   </a>
 </li>
 
@@ -324,7 +330,7 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="#">
-    Examples
+    Interactive tutorials
   </a>
 </li>
 
@@ -400,6 +406,16 @@
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="tutorial/01_working_with_tmol.html">Working with TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/02_gpu_batching.html">GPU Batching with TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/03_scoring_and_analysis.html">Scoring and Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/04_packing_and_mutation_scan.html">Packing and a Small Mutation Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/05_minimization_constraints_kinematics.html">Minimization, constraints, and kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/06_fast_relax.html">FastRelax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/07_ligand_and_params.html">Ligands and parameter files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/rosetta_crosswalk.html">Rosetta-to-TMol crosswalk</a></li>
+</ul>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="tutorial/visualisation.html">Score and visualize a PoseStack</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial/score_pack_minimize.html">Score, Repack, and Minimize a Pose</a></li>
 </ul>
@@ -442,7 +458,7 @@
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Examples</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Interactive tutorials</span></li>
   </ul>
 </nav>
 </div>
@@ -459,21 +475,69 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="examples">
-<h1>Examples<a class="headerlink" href="#examples" title="Link to this heading">#</a></h1>
-<p>These guided examples show complete tmol workflows with saved notebook outputs,
-including interactive structure viewers where the page produces coordinates.</p>
+  <section id="interactive-tutorials">
+<h1>Interactive tutorials<a class="headerlink" href="#interactive-tutorials" title="Link to this heading">#</a></h1>
+<p>These CIF-first notebooks form one guided path through tmol. They use live
+molecular viewers, selectable structures and atom subsets, sortable result
+tables, plots, and executable exercises. Start with the first two notebooks;
+later notebooks assume their <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> and GPU-batching vocabulary.</p>
+<p>Readers coming from Rosetta or PyRosetta can consult the
+<a class="reference internal" href="tutorial/rosetta_crosswalk.html"><span class="doc">Rosetta-to-TMol crosswalk</span></a> alongside the
+tutorials. The crosswalk distinguishes genuine API parallels from capabilities
+that tmol does not currently implement.</p>
 <div class="example-card-grid">
-  <a class="example-card" href="tutorial/visualisation.html">
-    <img src="_static/tutorials/visualisation.png" alt="Rendered protein structure thumbnail">
-    <span class="example-card-title">Score and visualize a PoseStack</span>
+  <a class="example-card" href="tutorial/01_working_with_tmol.html">
+    <img src="_static/tutorial_thumbnail.svg" alt="TMol molecular structure tutorial">
+    <span class="example-card-title">1. Working with TMol</span>
+    <span class="example-card-description">CIF input, PoseStack concepts, AtomWorks selections, and interactive visualization.</span>
   </a>
-  <a class="example-card" href="tutorial/score_pack_minimize.html">
-    <img src="_static/tutorials/score_pack_minimize.png" alt="Rendered refined protein structure thumbnail">
-    <span class="example-card-title">Score, Repack, and Minimize a Pose</span>
+  <a class="example-card" href="tutorial/02_gpu_batching.html">
+    <img src="_static/tutorial_thumbnail.svg" alt="TMol GPU batching tutorial">
+    <span class="example-card-title">2. GPU batching</span>
+    <span class="example-card-description">Reliable CUDA timing, throughput, memory, chunking, and PyRosetta parallelism.</span>
   </a>
+  <a class="example-card" href="tutorial/03_scoring_and_analysis.html">
+    <img src="_static/tutorial_thumbnail.svg" alt="TMol scoring tutorial">
+    <span class="example-card-title">3. Scoring and analysis</span>
+    <span class="example-card-description">Score terms, block-pair matrices, differentiable coordinates, and output analysis.</span>
+  </a>
+  <a class="example-card" href="tutorial/04_packing_and_mutation_scan.html">
+    <img src="_static/tutorial_thumbnail.svg" alt="TMol packing tutorial">
+    <span class="example-card-title">4. Packing and mutation scans</span>
+    <span class="example-card-description">Regional repacking, conformer samplers, and a carefully scoped mutation-score proxy.</span>
+  </a>
+  <a class="example-card" href="tutorial/05_minimization_constraints_kinematics.html">
+    <img src="_static/tutorial_thumbnail.svg" alt="TMol minimization tutorial">
+    <span class="example-card-title">5. Minimization and kinematics</span>
+    <span class="example-card-description">Cartesian and torsional minimization, constraints, MoveMaps, and FoldForests.</span>
+  </a>
+  <a class="example-card" href="tutorial/06_fast_relax.html">
+    <img src="_static/tutorial_thumbnail.svg" alt="TMol FastRelax tutorial">
+    <span class="example-card-title">6. FastRelax</span>
+    <span class="example-card-description">Repack/minimize schedules, score-weight ramps, and structure comparison.</span>
+  </a>
+  <a class="example-card" href="tutorial/07_ligand_and_params.html">
+    <img src="_static/tutorial_thumbnail.svg" alt="TMol ligand parameter tutorial">
+    <span class="example-card-title">7. Ligands and parameter files</span>
+    <span class="example-card-description">CIF ligand chemistry, Rosetta .params, TMol YAML, selections, and interaction scores.</span>
+  </a>
+  <div class="example-card example-card-pending">
+    <img src="_static/tutorial_thumbnail.svg" alt="TMol nucleic-acid tutorial coming after PR 404">
+    <span class="example-card-title">8. DNA and RNA — after PR #404</span>
+    <span class="example-card-description">Added after the nucleic-acid APIs are present so every published cell remains executable.</span>
+  </div>
 </div><div class="toctree-wrapper compound">
 </div>
+<section id="additional-examples">
+<h2>Additional examples<a class="headerlink" href="#additional-examples" title="Link to this heading">#</a></h2>
+<p>The shorter examples below remain useful as compact API references.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/visualisation.html">Score and visualize a PoseStack</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/score_pack_minimize.html">Score, Repack, and Minimize a Pose</a></li>
+</ul>
+</div>
+</section>
 </section>
 
 
@@ -496,11 +560,11 @@ including interactive structure viewers where the page produces coordinates.</p>
       </div>
     </a>
     <a class="right-next"
-       href="tutorial/visualisation.html"
+       href="tutorial/01_working_with_tmol.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Score and visualize a PoseStack</p>
+        <p class="prev-next-title">Working with TMol</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -514,6 +578,18 @@ including interactive structure viewers where the page produces coordinates.</p>
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#additional-examples">Additional examples</a></li>
+</ul>
+  </nav></div>
 
   <div class="sidebar-secondary-item">
 

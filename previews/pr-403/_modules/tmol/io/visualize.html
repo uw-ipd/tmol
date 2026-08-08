@@ -30,11 +30,12 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=605ff753" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=f529eb24" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -46,6 +47,11 @@
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/io/visualize';</script>
     <script>
@@ -185,7 +191,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
-    Examples
+    Interactive tutorials
   </a>
 </li>
 
@@ -319,7 +325,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
-    Examples
+    Interactive tutorials
   </a>
 </li>
 
@@ -440,13 +446,31 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.io.visualize</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Visualization helpers for TMol structures.&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;Small, notebook-friendly visualization helpers for molecular structures.</span>
 
+<span class="sd">Optional display dependencies are imported only when a helper is called, so</span>
+<span class="sd">importing :mod:`tmol.io.visualize` does not require IPython or py3Dmol.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">StringIO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">os</span><span class="w"> </span><span class="kn">import</span> <span class="n">PathLike</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomArray</span><span class="p">,</span> <span class="n">AtomArrayStack</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+
+    <span class="n">StructureInput</span> <span class="o">=</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="n">AtomArray</span> <span class="o">|</span> <span class="n">AtomArrayStack</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">AtomArray</span> <span class="o">=</span> <span class="n">Any</span>
+    <span class="n">AtomArrayStack</span> <span class="o">=</span> <span class="n">Any</span>
+    <span class="n">PoseStack</span> <span class="o">=</span> <span class="n">Any</span>
+    <span class="n">StructureInput</span> <span class="o">=</span> <span class="n">Any</span>
 
 
 <div class="viewcode-block" id="pose_stack_to_pdb_string">
@@ -460,10 +484,37 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_pdb_text</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">PoseStack</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">pose_stack_to_pdb_string</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_biotite_structure</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomArray</span><span class="p">,</span> <span class="n">AtomArrayStack</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">AtomArray</span><span class="p">,</span> <span class="n">AtomArrayStack</span><span class="p">))</span>
 
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_atom_array</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomArray</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">AtomArray</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_biotite_to_pdb_string</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">AtomArray</span> <span class="o">|</span> <span class="n">AtomArrayStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Serialize a Biotite structure with Biotite&#39;s PDB writer.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">biotite.structure.io.pdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">PDBFile</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;Viewing a Biotite structure requires biotite.&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+    <span class="n">pdb_file</span> <span class="o">=</span> <span class="n">PDBFile</span><span class="p">()</span>
+    <span class="n">pdb_file</span><span class="o">.</span><span class="n">set_structure</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+    <span class="n">pdb_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">output</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_pdb_text</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">StructureInput</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">PathLike</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
 
@@ -473,10 +524,109 @@
             <span class="k">return</span> <span class="n">candidate</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">model</span>
 
+    <span class="k">if</span> <span class="n">_is_biotite_structure</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_biotite_to_pdb_string</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+    <span class="c1"># Keep the PoseStack import lazy: importing this module should not load</span>
+    <span class="c1"># compiled TMol code merely to render PDB text or a Biotite AtomArray.</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">PoseStack</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pose_stack_to_pdb_string</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-        <span class="s2">&quot;view() expects a PoseStack, PDB text, or a path to a PDB file; &quot;</span>
+        <span class="s2">&quot;Expected a PoseStack, Biotite AtomArray/AtomArrayStack, PDB text, &quot;</span>
+        <span class="s2">&quot;or a path to a PDB file; &quot;</span>
         <span class="sa">f</span><span class="s2">&quot;received </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span>
     <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_first_model_atom_serials</span><span class="p">(</span><span class="n">pdb_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return atom serials from the first PDB model.&quot;&quot;&quot;</span>
+    <span class="n">serials</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">in_model</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">pdb_text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;MODEL&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">in_model</span> <span class="ow">and</span> <span class="n">serials</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">in_model</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;ENDMDL&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">serials</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;ATOM  &quot;</span><span class="p">,</span> <span class="s2">&quot;HETATM&quot;</span><span class="p">)):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">serials</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">11</span><span class="p">]))</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="c1"># Biotite emits valid serials; this fallback keeps hand-written</span>
+                <span class="c1"># PDB snippets usable with py3Dmol.</span>
+                <span class="n">serials</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">serials</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">serials</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_boolean_mask</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">expected_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize a one-dimensional boolean atom mask.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="s2">&quot;detach&quot;</span><span class="p">):</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+
+    <span class="n">values</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be one-dimensional&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s2">&quot;b&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must contain boolean values&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">!=</span> <span class="n">expected_length</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> has length </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span><span class="si">}</span><span class="s2">; expected </span><span class="si">{</span><span class="n">expected_length</span><span class="si">}</span><span class="s2"> atoms&quot;</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_safe_json</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encode JSON without allowing data to terminate an HTML script element.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\u0026&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&lt;&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\u003c&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\u003e&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\u2028</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\u2028&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\u2029</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\u2029&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_display_html</span><span class="p">(</span><span class="n">html</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTML</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;switchable_view() and selection_gallery() require IPython.&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+    <span class="k">return</span> <span class="n">HTML</span><span class="p">(</span><span class="n">html</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_loader_javascript</span><span class="p">(</span><span class="n">on_ready</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a tiny 3Dmol.js loader followed by ``on_ready``.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">const start = () =&gt; </span><span class="se">{{</span><span class="s2"> </span><span class="si">{</span><span class="n">on_ready</span><span class="si">}</span><span class="s2"> </span><span class="se">}}</span><span class="s2">;</span>
+<span class="s2">if (window.$3Dmol) </span><span class="se">{{</span>
+<span class="s2">  start();</span>
+<span class="se">}}</span><span class="s2"> else </span><span class="se">{{</span>
+<span class="s2">  const prior = document.querySelector(&#39;script[data-tmol-3dmol]&#39;);</span>
+<span class="s2">  if (prior) </span><span class="se">{{</span>
+<span class="s2">    prior.addEventListener(&#39;load&#39;, start, </span><span class="se">{{</span><span class="s2">once: true</span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2"> else </span><span class="se">{{</span>
+<span class="s2">    const script = document.createElement(&#39;script&#39;);</span>
+<span class="s2">    script.src = &#39;https://cdn.jsdelivr.net/npm/3dmol@2.5.4/build/3Dmol-min.js&#39;;</span>
+<span class="s2">    script.setAttribute(&#39;data-tmol-3dmol&#39;, &#39;true&#39;);</span>
+<span class="s2">    script.addEventListener(&#39;load&#39;, start, </span><span class="se">{{</span><span class="s2">once: true</span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    script.addEventListener(&#39;error&#39;, () =&gt; </span><span class="se">{{</span>
+<span class="s2">      document.getElementById(rootId).textContent =</span>
+<span class="s2">        &#39;Interactive viewer unavailable because 3Dmol.js could not be loaded. &#39; +</span>
+<span class="s2">        &#39;Check network or CDN access.&#39;;</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">, </span><span class="se">{{</span><span class="s2">once: true</span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    document.head.appendChild(script);</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="se">}}</span><span class="s2">&quot;&quot;&quot;</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_add_hover_labels</span><span class="p">(</span><span class="n">viewer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -501,7 +651,7 @@
 <div class="viewcode-block" id="view">
 <a class="viewcode-back" href="../../../api/io.html#tmol.io.view">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">view</span><span class="p">(</span>
-    <span class="n">model</span><span class="p">:</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">StructureInput</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">720</span><span class="p">,</span>
     <span class="n">height</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">420</span><span class="p">,</span>
@@ -512,12 +662,16 @@
     <span class="n">show_heteroatoms</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">show_hover</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">zoom_to</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">highlighted</span><span class="p">:</span> <span class="nb">object</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">highlight_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#e83e8c&quot;</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a draggable py3Dmol viewer for a TMol structure.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a draggable py3Dmol viewer for a molecular structure.</span>
 
-<span class="sd">    The return value is a real ``py3Dmol.view`` object, matching the display</span>
-<span class="sd">    contract used by AtomWorks and RFD4 notebooks. Sphinx/nbsphinx can preserve</span>
-<span class="sd">    its HTML and ``application/3dmoljs_load.v0`` MIME output in built docs.</span>
+<span class="sd">    ``model`` may be a :class:`PoseStack`, a Biotite ``AtomArray`` or</span>
+<span class="sd">    ``AtomArrayStack``, PDB text, or a PDB path. ``highlighted`` is an optional</span>
+<span class="sd">    boolean mask over the atoms in the first model; highlighted atoms are shown</span>
+<span class="sd">    as thicker sticks and spheres. The return value remains a real</span>
+<span class="sd">    ``py3Dmol.view`` object for compatibility with existing notebooks.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">py3Dmol</span>
@@ -527,8 +681,17 @@
             <span class="s2">&quot;`python -m pip install py3Dmol` or `python -m pip install -e &#39;.[docs]&#39;`.&quot;</span>
         <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
 
+    <span class="n">pdb_text</span> <span class="o">=</span> <span class="n">_pdb_text</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+    <span class="n">serials</span> <span class="o">=</span> <span class="n">_first_model_atom_serials</span><span class="p">(</span><span class="n">pdb_text</span><span class="p">)</span>
+    <span class="n">highlighted_serials</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">highlighted</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">_boolean_mask</span><span class="p">(</span><span class="n">highlighted</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">serials</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;highlighted&quot;</span><span class="p">)</span>
+        <span class="n">highlighted_serials</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">serial</span> <span class="k">for</span> <span class="n">serial</span><span class="p">,</span> <span class="n">selected</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">serials</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span> <span class="k">if</span> <span class="n">selected</span>
+        <span class="p">]</span>
+
     <span class="n">viewer</span> <span class="o">=</span> <span class="n">py3Dmol</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">)</span>
-    <span class="n">viewer</span><span class="o">.</span><span class="n">addModel</span><span class="p">(</span><span class="n">_pdb_text</span><span class="p">(</span><span class="n">model</span><span class="p">),</span> <span class="s2">&quot;pdb&quot;</span><span class="p">)</span>
+    <span class="n">viewer</span><span class="o">.</span><span class="n">addModel</span><span class="p">(</span><span class="n">pdb_text</span><span class="p">,</span> <span class="s2">&quot;pdb&quot;</span><span class="p">)</span>
     <span class="n">viewer</span><span class="o">.</span><span class="n">setBackgroundColor</span><span class="p">(</span><span class="n">background_color</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">style</span> <span class="o">==</span> <span class="s2">&quot;stick&quot;</span><span class="p">:</span>
@@ -549,6 +712,15 @@
             <span class="p">{</span><span class="s2">&quot;stick&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;colorscheme&quot;</span><span class="p">:</span> <span class="s2">&quot;orangeCarbon&quot;</span><span class="p">,</span> <span class="s2">&quot;radius&quot;</span><span class="p">:</span> <span class="mf">0.22</span><span class="p">}},</span>
         <span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">highlighted_serials</span><span class="p">:</span>
+        <span class="n">viewer</span><span class="o">.</span><span class="n">addStyle</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">&quot;serial&quot;</span><span class="p">:</span> <span class="n">highlighted_serials</span><span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;stick&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="n">highlight_color</span><span class="p">,</span> <span class="s2">&quot;radius&quot;</span><span class="p">:</span> <span class="mf">0.28</span><span class="p">},</span>
+                <span class="s2">&quot;sphere&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="n">highlight_color</span><span class="p">,</span> <span class="s2">&quot;radius&quot;</span><span class="p">:</span> <span class="mf">0.45</span><span class="p">},</span>
+            <span class="p">},</span>
+        <span class="p">)</span>
+
     <span class="k">if</span> <span class="n">show_hover</span><span class="p">:</span>
         <span class="n">_add_hover_labels</span><span class="p">(</span><span class="n">viewer</span><span class="p">)</span>
 
@@ -558,6 +730,221 @@
         <span class="n">viewer</span><span class="o">.</span><span class="n">zoomTo</span><span class="p">(</span><span class="n">zoom_to</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">viewer</span></div>
+
+
+
+<div class="viewcode-block" id="switchable_view">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.switchable_view">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">switchable_view</span><span class="p">(</span>
+    <span class="n">structures</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">StructureInput</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">notes</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">720</span><span class="p">,</span>
+    <span class="n">height</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">420</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return HTML that switches one 3Dmol viewer among labeled structures.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        structures: Ordered mapping of display labels to structures accepted by</span>
+<span class="sd">            :func:`view`.</span>
+<span class="sd">        notes: Optional mapping of structure labels to short explanatory text.</span>
+<span class="sd">        width: Viewer width in pixels.</span>
+<span class="sd">        height: Viewer height in pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">structures</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;structures must contain at least one labeled structure&quot;</span><span class="p">)</span>
+
+    <span class="n">notes</span> <span class="o">=</span> <span class="n">notes</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">),</span>
+            <span class="s2">&quot;pdb&quot;</span><span class="p">:</span> <span class="n">_pdb_text</span><span class="p">(</span><span class="n">model</span><span class="p">),</span>
+            <span class="s2">&quot;note&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">notes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)),</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">structures</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">]</span>
+    <span class="n">root_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;tmol-switch-</span><span class="si">{</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">data_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">-data&quot;</span>
+    <span class="n">viewer_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">-viewer&quot;</span>
+    <span class="n">select_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">-select&quot;</span>
+    <span class="n">note_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">-note&quot;</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="n">_safe_json</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+    <span class="n">on_ready</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">const data = JSON.parse(</span>
+<span class="s2">  document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data_id</span><span class="p">)</span><span class="si">}</span><span class="s2">).textContent</span>
+<span class="s2">);</span>
+<span class="s2">const select = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">select_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
+<span class="s2">const note = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">note_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
+<span class="s2">const viewerElement = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">viewer_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
+<span class="s2">const viewer = window.$3Dmol.createViewer(</span>
+<span class="s2">  viewerElement,</span>
+<span class="s2">  </span><span class="se">{{</span><span class="s2">backgroundColor: &#39;white&#39;</span><span class="se">}}</span>
+<span class="s2">);</span>
+<span class="s2">data.forEach((item, index) =&gt; </span><span class="se">{{</span>
+<span class="s2">  const option = document.createElement(&#39;option&#39;);</span>
+<span class="s2">  option.value = String(index);</span>
+<span class="s2">  option.textContent = item.label;</span>
+<span class="s2">  select.appendChild(option);</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="s2">const render = (index) =&gt; </span><span class="se">{{</span>
+<span class="s2">  const item = data[index];</span>
+<span class="s2">  viewer.clear();</span>
+<span class="s2">  viewer.addModel(item.pdb, &#39;pdb&#39;);</span>
+<span class="s2">  viewer.setStyle(</span><span class="se">{{}}</span><span class="s2">, </span><span class="se">{{</span><span class="s2">cartoon: </span><span class="se">{{</span><span class="s2">color: &#39;spectrum&#39;</span><span class="se">}}}}</span><span class="s2">);</span>
+<span class="s2">  viewer.addStyle(</span>
+<span class="s2">    </span><span class="se">{{</span><span class="s2">not: </span><span class="se">{{</span><span class="s2">hetflag: true</span><span class="se">}}}}</span><span class="s2">,</span>
+<span class="s2">    </span><span class="se">{{</span><span class="s2">stick: </span><span class="se">{{</span><span class="s2">radius: 0.10, opacity: 0.65</span><span class="se">}}}}</span>
+<span class="s2">  );</span>
+<span class="s2">  viewer.addStyle(</span><span class="se">{{</span><span class="s2">hetflag: true</span><span class="se">}}</span><span class="s2">, </span><span class="se">{{</span><span class="s2">stick: </span><span class="se">{{</span><span class="s2">colorscheme: &#39;orangeCarbon&#39;</span><span class="se">}}}}</span><span class="s2">);</span>
+<span class="s2">  viewer.setHoverable(</span>
+<span class="s2">    </span><span class="se">{{}}</span><span class="s2">,</span>
+<span class="s2">    true,</span>
+<span class="s2">    function(atom, activeViewer) </span><span class="se">{{</span>
+<span class="s2">      if (!atom.label) </span><span class="se">{{</span>
+<span class="s2">        atom.label = activeViewer.addLabel(</span>
+<span class="s2">          atom.chain + &#39;:&#39; + atom.resn + &#39;(&#39; + atom.resi + &#39;):&#39; + atom.atom,</span>
+<span class="s2">          </span><span class="se">{{</span><span class="s2">position: atom, backgroundColor: &#39;white&#39;, fontColor: &#39;black&#39;</span><span class="se">}}</span>
+<span class="s2">        );</span>
+<span class="s2">      </span><span class="se">}}</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">,</span>
+<span class="s2">    function(atom, activeViewer) </span><span class="se">{{</span>
+<span class="s2">      if (atom.label) </span><span class="se">{{</span>
+<span class="s2">        activeViewer.removeLabel(atom.label);</span>
+<span class="s2">        delete atom.label;</span>
+<span class="s2">      </span><span class="se">}}</span>
+<span class="s2">    </span><span class="se">}}</span>
+<span class="s2">  );</span>
+<span class="s2">  viewer.zoomTo();</span>
+<span class="s2">  viewer.render();</span>
+<span class="s2">  note.textContent = item.note;</span>
+<span class="se">}}</span><span class="s2">;</span>
+<span class="s2">select.addEventListener(&#39;change&#39;, () =&gt; render(Number(select.value)));</span>
+<span class="s2">render(0);</span>
+<span class="s2">if (window.ResizeObserver) </span><span class="se">{{</span>
+<span class="s2">  new ResizeObserver(() =&gt; viewer.resize()).observe(viewerElement);</span>
+<span class="se">}}</span>
+<span class="s2">&quot;&quot;&quot;</span>
+    <span class="n">html</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">&lt;div class=&quot;tmol-switchable-view&quot; id=&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">&quot; style=&quot;max-width:</span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2">px&quot;&gt;</span>
+<span class="s2">  &lt;label&gt;Structure: &lt;select id=&quot;</span><span class="si">{</span><span class="n">select_id</span><span class="si">}</span><span class="s2">&quot;&gt;&lt;/select&gt;&lt;/label&gt;</span>
+<span class="s2">  &lt;div class=&quot;tmol-viewer-note&quot; id=&quot;</span><span class="si">{</span><span class="n">note_id</span><span class="si">}</span><span class="s2">&quot;&gt;&lt;/div&gt;</span>
+<span class="s2">  &lt;div id=&quot;</span><span class="si">{</span><span class="n">viewer_id</span><span class="si">}</span><span class="s2">&quot; style=&quot;width:100%;max-width:</span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2">px;height:</span><span class="si">{</span><span class="n">height</span><span class="si">}</span><span class="s2">px&quot;&gt;&lt;/div&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;script type=&quot;application/json&quot; id=&quot;</span><span class="si">{</span><span class="n">data_id</span><span class="si">}</span><span class="s2">&quot;&gt;</span><span class="si">{</span><span class="n">encoded</span><span class="si">}</span><span class="s2">&lt;/script&gt;</span>
+<span class="s2">&lt;script&gt;</span>
+<span class="s2">(() =&gt; </span><span class="se">{{</span>
+<span class="s2">  const rootId = </span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">root_id</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">_loader_javascript</span><span class="p">(</span><span class="n">on_ready</span><span class="p">)</span><span class="si">}</span>
+<span class="se">}}</span><span class="s2">)();</span>
+<span class="s2">&lt;/script&gt;</span>
+<span class="s2">&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_display_html</span><span class="p">(</span><span class="n">html</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_selection_mask</span><span class="p">(</span><span class="n">atom_array</span><span class="p">:</span> <span class="n">AtomArray</span><span class="p">,</span> <span class="n">selection</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="s2">&quot;mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Selection </span><span class="si">{</span><span class="n">label</span><span class="si">!r}</span><span class="s2"> is a query string, but this AtomArray &quot;</span>
+                <span class="s2">&quot;does not provide a callable mask() method&quot;</span>
+            <span class="p">)</span>
+        <span class="n">selection</span> <span class="o">=</span> <span class="n">query</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_boolean_mask</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_array</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;selection </span><span class="si">{</span><span class="n">label</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="selection_gallery">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.selection_gallery">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">selection_gallery</span><span class="p">(</span>
+    <span class="n">atom_array</span><span class="p">:</span> <span class="n">AtomArray</span><span class="p">,</span>
+    <span class="n">selections</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">340</span><span class="p">,</span>
+    <span class="n">height</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
+    <span class="n">highlight_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#e83e8c&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return an HTML gallery highlighting labeled AtomArray selections.</span>
+
+<span class="sd">    Selection values may be boolean atom masks. Query strings are also accepted</span>
+<span class="sd">    when the supplied AtomArray provides a callable ``aa.mask(query)`` method.</span>
+<span class="sd">    Selection results are resolved in Python and exact PDB atom serials are</span>
+<span class="sd">    baked into the HTML. This avoids viewer-side query-language differences</span>
+<span class="sd">    and remains exact when atom names or residue identifiers are duplicated.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_atom_array</span><span class="p">(</span><span class="n">atom_array</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;selection_gallery() expects a Biotite AtomArray&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">selections</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;selections must contain at least one labeled selection&quot;</span><span class="p">)</span>
+
+    <span class="n">pdb_text</span> <span class="o">=</span> <span class="n">_biotite_to_pdb_string</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
+    <span class="n">serials</span> <span class="o">=</span> <span class="n">_first_model_atom_serials</span><span class="p">(</span><span class="n">pdb_text</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">serials</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_array</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;The serialized AtomArray atom count does not match the input array&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">gallery</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">selection</span> <span class="ow">in</span> <span class="n">selections</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">_selection_mask</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">selection</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">))</span>
+        <span class="n">selected_serials</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">serial</span> <span class="k">for</span> <span class="n">serial</span><span class="p">,</span> <span class="n">selected</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">serials</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span> <span class="k">if</span> <span class="n">selected</span>
+        <span class="p">]</span>
+        <span class="n">gallery</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">),</span> <span class="s2">&quot;serials&quot;</span><span class="p">:</span> <span class="n">selected_serials</span><span class="p">})</span>
+
+    <span class="n">root_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;tmol-gallery-</span><span class="si">{</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">data_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">-data&quot;</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;pdb&quot;</span><span class="p">:</span> <span class="n">pdb_text</span><span class="p">,</span> <span class="s2">&quot;selections&quot;</span><span class="p">:</span> <span class="n">gallery</span><span class="p">}</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="n">_safe_json</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+    <span class="n">encoded_highlight_color</span> <span class="o">=</span> <span class="n">_safe_json</span><span class="p">(</span><span class="n">highlight_color</span><span class="p">)</span>
+    <span class="n">on_ready</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">const data = JSON.parse(</span>
+<span class="s2">  document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data_id</span><span class="p">)</span><span class="si">}</span><span class="s2">).textContent</span>
+<span class="s2">);</span>
+<span class="s2">const root = document.getElementById(rootId);</span>
+<span class="s2">data.selections.forEach((selection) =&gt; </span><span class="se">{{</span>
+<span class="s2">  const card = document.createElement(&#39;section&#39;);</span>
+<span class="s2">  card.className = &#39;tmol-selection-card&#39;;</span>
+<span class="s2">  const title = document.createElement(&#39;strong&#39;);</span>
+<span class="s2">  title.textContent = selection.label;</span>
+<span class="s2">  const viewport = document.createElement(&#39;div&#39;);</span>
+<span class="s2">  viewport.style.width = &#39;100%&#39;;</span>
+<span class="s2">  viewport.style.maxWidth = </span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2">px&quot;</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">  viewport.style.height = </span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">height</span><span class="si">}</span><span class="s2">px&quot;</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">  card.append(title, viewport);</span>
+<span class="s2">  root.appendChild(card);</span>
+
+<span class="s2">  const viewer = window.$3Dmol.createViewer(viewport, </span><span class="se">{{</span><span class="s2">backgroundColor: &#39;white&#39;</span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">  viewer.addModel(data.pdb, &#39;pdb&#39;);</span>
+<span class="s2">  viewer.setStyle(</span><span class="se">{{}}</span><span class="s2">, </span><span class="se">{{</span><span class="s2">cartoon: </span><span class="se">{{</span><span class="s2">color: &#39;spectrum&#39;</span><span class="se">}}}}</span><span class="s2">);</span>
+<span class="s2">  const exactAtoms = </span><span class="se">{{</span><span class="s2">serial: selection.serials</span><span class="se">}}</span><span class="s2">;</span>
+<span class="s2">  if (selection.serials.length) </span><span class="se">{{</span>
+<span class="s2">    viewer.addStyle(</span>
+<span class="s2">      exactAtoms,</span>
+<span class="s2">      </span><span class="se">{{</span>
+<span class="s2">        stick: </span><span class="se">{{</span><span class="s2">color: </span><span class="si">{</span><span class="n">encoded_highlight_color</span><span class="si">}</span><span class="s2">, radius: 0.28</span><span class="se">}}</span><span class="s2">,</span>
+<span class="s2">        sphere: </span><span class="se">{{</span><span class="s2">color: </span><span class="si">{</span><span class="n">encoded_highlight_color</span><span class="si">}</span><span class="s2">, radius: 0.45</span><span class="se">}}</span>
+<span class="s2">      </span><span class="se">}}</span>
+<span class="s2">    );</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="s2">  viewer.zoomTo(selection.serials.length ? exactAtoms : </span><span class="se">{{}}</span><span class="s2">);</span>
+<span class="s2">  viewer.render();</span>
+<span class="s2">  if (window.ResizeObserver) </span><span class="se">{{</span>
+<span class="s2">    new ResizeObserver(() =&gt; viewer.resize()).observe(viewport);</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="se">}}</span><span class="s2">);</span>
+<span class="s2">&quot;&quot;&quot;</span>
+    <span class="n">html</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">&lt;div class=&quot;tmol-selection-gallery&quot; id=&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">&quot;&gt;&lt;/div&gt;</span>
+<span class="s2">&lt;script type=&quot;application/json&quot; id=&quot;</span><span class="si">{</span><span class="n">data_id</span><span class="si">}</span><span class="s2">&quot;&gt;</span><span class="si">{</span><span class="n">encoded</span><span class="si">}</span><span class="s2">&lt;/script&gt;</span>
+<span class="s2">&lt;script&gt;</span>
+<span class="s2">(() =&gt; </span><span class="se">{{</span>
+<span class="s2">  const rootId = </span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">root_id</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">_loader_javascript</span><span class="p">(</span><span class="n">on_ready</span><span class="p">)</span><span class="si">}</span>
+<span class="se">}}</span><span class="s2">)();</span>
+<span class="s2">&lt;/script&gt;</span>
+<span class="s2">&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_display_html</span><span class="p">(</span><span class="n">html</span><span class="p">)</span></div>
 
 </pre></div>
 

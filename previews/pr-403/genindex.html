@@ -30,11 +30,12 @@
 <link href="_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=605ff753" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=f529eb24" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -46,6 +47,11 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
     <script>
@@ -185,7 +191,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Interactive tutorials
   </a>
 </li>
 
@@ -319,7 +325,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Interactive tutorials
   </a>
 </li>
 
@@ -2202,6 +2208,12 @@
 </li>
       <li><a href="api/database.html#tmol.database.scoring.ScoringDatabase">ScoringDatabase (class in tmol.database.scoring)</a>
 </li>
+      <li><a href="api/io.html#tmol.io.selection_gallery">selection_gallery() (in module tmol.io)</a>
+
+      <ul>
+        <li><a href="api/io.html#tmol.io.visualize.selection_gallery">(in module tmol.io.visualize)</a>
+</li>
+      </ul></li>
       <li><a href="api/pack.html#tmol.pack.packer_task.set_compare">set_compare() (in module tmol.pack.packer_task)</a>
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.move_map.MoveMap.set_move_all_jump_dofs_for_jump">set_move_all_jump_dofs_for_jump() (tmol.kinematics.move_map.MoveMap method)</a>
@@ -2280,6 +2292,12 @@
       </ul></li>
       <li><a href="api/optimization.html#tmol.optimization.lbfgs_armijo.LBFGS_Armijo.step">step() (tmol.optimization.lbfgs_armijo.LBFGS_Armijo method)</a>
 </li>
+      <li><a href="api/io.html#tmol.io.switchable_view">switchable_view() (in module tmol.io)</a>
+
+      <ul>
+        <li><a href="api/io.html#tmol.io.visualize.switchable_view">(in module tmol.io.visualize)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
