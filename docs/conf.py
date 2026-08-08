@@ -122,12 +122,11 @@ nbsphinx_epilog = r"""
 :download:`Download this notebook <{{ env.doc2path(env.docname, base=None) }}>`
 """
 
-# nbsphinx emits ``nbinput`` containers and preserves heading IDs. Keep the
-# selector aligned with the proven RFD4 notebook pattern; ordinary teaching
-# cells outside these sections remain expanded.
-togglebutton_selector = "#Setup .nbinput, #Helper-code .nbinput"
-togglebutton_hint = "Show setup or helper code"
-togglebutton_hint_hide = "Hide setup or helper code"
+# Keep every executable input available without forcing readers to scroll
+# through implementation details. Outputs remain visible and interactive.
+togglebutton_selector = ".nbinput"
+togglebutton_hint = "Show code"
+togglebutton_hint_hide = "Hide code"
 
 autodoc_member_order = "bysource"
 autodoc_typehints = "signature"
