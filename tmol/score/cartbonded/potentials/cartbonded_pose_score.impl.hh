@@ -476,9 +476,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             const auto& resA_atom_id_table =
                 (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
                                    : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table =
-                (lookup_mode == 0) ? atom_unique_ids[block_typeB]
-                                   : atom_cross_ids[block_typeB];
+            const auto& resB_atom_id_table = (lookup_mode == 0)
+                                                 ? atom_unique_ids[block_typeB]
+                                                 : atom_cross_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =
@@ -913,9 +913,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
             const auto& resA_atom_id_table =
                 (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
                                    : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table =
-                (lookup_mode == 0) ? atom_unique_ids[block_typeB]
-                                   : atom_cross_ids[block_typeB];
+            const auto& resB_atom_id_table = (lookup_mode == 0)
+                                                 ? atom_unique_ids[block_typeB]
+                                                 : atom_cross_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =
@@ -1412,9 +1412,9 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             const auto& resA_atom_id_table =
                 (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
                                    : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table =
-                (lookup_mode == 0) ? atom_unique_ids[block_typeB]
-                                   : atom_cross_ids[block_typeB];
+            const auto& resB_atom_id_table = (lookup_mode == 0)
+                                                 ? atom_unique_ids[block_typeB]
+                                                 : atom_cross_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =
@@ -1819,9 +1819,9 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
             const auto& resA_atom_id_table =
                 (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
                                    : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table =
-                (lookup_mode == 0) ? atom_unique_ids[block_typeB]
-                                   : atom_cross_ids[block_typeB];
+            const auto& resB_atom_id_table = (lookup_mode == 0)
+                                                 ? atom_unique_ids[block_typeB]
+                                                 : atom_cross_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =
