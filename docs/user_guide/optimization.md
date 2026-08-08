@@ -78,12 +78,21 @@ from tmol.kinematics.fold_forest import FoldForest
 from tmol.kinematics.move_map import MoveMap
 from tmol.optimization.minimizers import run_kin_min
 
-fold_forest = FoldForest.polymeric_pose(pose_stack)
+fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
 move_map = MoveMap.from_pose_stack(pose_stack)
+move_map.move_all_named_torsions = True
 kin_minimized = run_kin_min(pose_stack, sfxn, fold_forest, move_map)
 ```
 
-Use Cartesian minimization when a simple coordinate mask is the natural control
+`CartesianMoveMap` and `MoveMap` control different spaces. A
+`CartesianMoveMap` is a lightweight wrapper around a boolean atom-coordinate
+mask; it is used by Cartesian FastRelax and does not describe torsions or
+jumps. A `MoveMap` controls internal main-chain, side-chain, named-torsion, and
+rigid-body jump DOFs for kinematic minimization. Constructing a `MoveMap` does
+not enable those DOFs: set the relevant flags or per-residue masks explicitly,
+as above.
+
+Use Cartesian minimization when an atom coordinate mask is the natural control
 surface. Use kinematic minimization when torsion and rigid-body DOFs should be
 the optimization variables.
 
@@ -94,7 +103,26 @@ schedule of score-function weights. It is the highest-level refinement
 primitive in the package:
 
 ```python
+from tmol.kinematics.fold_forest import FoldForest
+from tmol.kinematics.move_map import CartesianMoveMap
+from tmol.pack.packer_task import PackerPalette
 from tmol.relax.fast_relax import fast_relax
 
-relaxed_pose_stack = fast_relax(pose_stack, sfxn)
+palette = PackerPalette()
+move_map = CartesianMoveMap()  # coord_mask=None allows all atom coordinates
+fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
+
+relaxed_pose_stack = fast_relax(
+    pose_stack,
+    sfxn,
+    palette,
+    move_map,
+    fold_forest,
+)
 ```
+
+The default FastRelax minimizer is Cartesian, so it reads
+`CartesianMoveMap.coord_mask` and ignores the fold forest. The fold forest is
+still a required argument because the same protocol can run a custom
+kinematic `min_fn`; in that case pass a full `MoveMap` and have `min_fn` call
+`run_kin_min()` with the supplied fold forest and move map.

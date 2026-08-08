@@ -10,6 +10,53 @@ table.docutils {
   width: 100%;
 }
 
+.cell {
+  margin-bottom: 0.85rem;
+}
+
+.cell_output {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.dataframe,
+.itables table {
+  font-size: 0.86rem;
+}
+
+.tmol-switchable-view {
+  margin: 1rem 0;
+}
+
+.tmol-switchable-view select {
+  margin-left: 0.35rem;
+}
+
+.tmol-viewer-note {
+  color: var(--pst-color-text-muted);
+  min-height: 1.6rem;
+  padding: 0.35rem 0;
+}
+
+.tmol-selection-gallery {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  margin: 1rem 0;
+}
+
+.tmol-selection-card {
+  border: 1px solid var(--pst-color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 0.65rem;
+}
+
+.tmol-selection-card > strong {
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
 .example-card-grid {
   display: grid;
   gap: 1rem;

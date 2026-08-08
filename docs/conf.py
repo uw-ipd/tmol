@@ -63,6 +63,7 @@ switcher_json_url = os.environ.get(
 extensions = [
     "myst_parser",
     "nbsphinx",
+    "sphinx_togglebutton",
     "sphinx.ext.autodoc",
     "sphinx.ext.githubpages",
     "sphinx.ext.intersphinx",
@@ -105,6 +106,28 @@ myst_enable_extensions = [
 myst_heading_anchors = 4
 
 nbsphinx_execute = "never"
+nbsphinx_thumbnails = {
+    "tutorial/01_working_with_tmol": "_static/tutorial_thumbnail.svg",
+    "tutorial/02_gpu_batching": "_static/tutorial_thumbnail.svg",
+    "tutorial/03_scoring_and_analysis": "_static/tutorial_thumbnail.svg",
+    "tutorial/04_packing_and_mutation_scan": "_static/tutorial_thumbnail.svg",
+    "tutorial/05_minimization_constraints_kinematics": "_static/tutorial_thumbnail.svg",
+    "tutorial/06_fast_relax": "_static/tutorial_thumbnail.svg",
+    "tutorial/07_ligand_and_params": "_static/tutorial_thumbnail.svg",
+    "tutorial/08_nucleic_acids": "_static/tutorial_thumbnail.svg",
+}
+nbsphinx_epilog = r"""
+----
+
+:download:`Download this notebook <{{ env.doc2path(env.docname, base=None) }}>`
+"""
+
+# nbsphinx emits ``nbinput`` containers and preserves heading IDs. Keep the
+# selector aligned with the proven RFD4 notebook pattern; ordinary teaching
+# cells outside these sections remain expanded.
+togglebutton_selector = "#Setup .nbinput, #Helper-code .nbinput"
+togglebutton_hint = "Show setup or helper code"
+togglebutton_hint_hide = "Hide setup or helper code"
 
 autodoc_member_order = "bysource"
 autodoc_typehints = "signature"

@@ -48,6 +48,9 @@ jobs:
             python -m pip install --no-build-isolation -e ".[docs]" \
             -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 
+      - name: Smoke-test CPU tutorial notebooks
+        run: python .github/scripts/smoke_tutorial_notebooks.py
+
       - name: Build docs
         run: make -C docs html
 

@@ -29,7 +29,12 @@ with contextlib.suppress(Exception):
 from tmol.chemical.restypes import one2three, three2one
 from tmol.database import ParameterDatabase
 from tmol.io import pose_stack_from_pdb
-from tmol.io.visualize import pose_stack_to_pdb_string, view
+from tmol.io.visualize import (
+    pose_stack_to_pdb_string,
+    selection_gallery,
+    switchable_view,
+    view,
+)
 from tmol.io.canonical_ordering import (
     CanonicalOrdering,
     canonical_form_from_pdb,

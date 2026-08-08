@@ -23,3 +23,4 @@ including interactive structure viewers where the page produces coordinates.
 
    tutorial/visualisation
    tutorial/score_pack_minimize
+   tutorial/rosetta_crosswalk
