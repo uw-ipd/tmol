@@ -18,9 +18,7 @@ from tmol.io import visualize
 
 def _atom_array() -> struc.AtomArray:
     atoms = struc.AtomArray(3)
-    atoms.coord = numpy.array(
-        [[0.0, 0.0, 0.0], [1.4, 0.0, 0.0], [2.1, 1.2, 0.0]]
-    )
+    atoms.coord = numpy.array([[0.0, 0.0, 0.0], [1.4, 0.0, 0.0], [2.1, 1.2, 0.0]])
     atoms.chain_id = numpy.array(["A", "A", "A"])
     atoms.res_id = numpy.array([1, 1, 1])
     atoms.res_name = numpy.array(["GLY", "GLY", "GLY"])

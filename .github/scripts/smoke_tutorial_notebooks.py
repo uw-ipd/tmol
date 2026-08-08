@@ -11,7 +11,6 @@ from pathlib import Path
 import nbformat
 from nbclient import NotebookClient
 
-
 PLANNED_NOTEBOOKS = (
     "01_working_with_tmol.ipynb",
     "02_gpu_batching.ipynb",
@@ -29,9 +28,7 @@ def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
     markdown = "\n".join(
         cell.source for cell in notebook.cells if cell.cell_type == "markdown"
     )
-    code = "\n".join(
-        cell.source for cell in notebook.cells if cell.cell_type == "code"
-    )
+    code = "\n".join(cell.source for cell in notebook.cells if cell.cell_type == "code")
     if "Open In Colab" not in markdown:
         raise ValueError(f"{path} is missing its Open In Colab badge")
     if "setup_colab(" not in code:

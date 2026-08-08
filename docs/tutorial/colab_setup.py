@@ -8,7 +8,6 @@ import sys
 from pathlib import Path
 from urllib.request import urlretrieve
 
-
 TUTORIAL_REF = "kdidi/sphinx-docs"
 RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
 TMOL_WHEEL = (
