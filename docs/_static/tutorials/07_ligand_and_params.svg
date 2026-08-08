@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" role="img" aria-labelledby="t d">
+  <title id="t">Ligands and parameter files</title><desc id="d">A small molecule in a protein pocket beside YAML and params documents.</desc>
+  <rect width="560" height="320" rx="24" fill="#172033"/>
+  <path d="M54 224c40-148 173-156 262-52 43 50 90 52 172-20" fill="none" stroke="#69d2e7" stroke-width="20" stroke-linecap="round"/>
+  <g transform="translate(224 160)" stroke="#f6c85f" stroke-width="8">
+    <path d="m0-34 30 17v34L0 34-30 17v-34z" fill="#263754"/><path d="m30-17 38-22M30 17l38 22"/>
+    <circle cx="68" cy="-39" r="13" fill="#ff7f7f" stroke="none"/><circle cx="68" cy="39" r="13" fill="#7de2a8" stroke="none"/>
+  </g>
+  <rect x="376" y="40" width="130" height="88" rx="12" fill="#f4f1e8"/><text x="397" y="74" font-family="monospace" font-size="20" font-weight="700" fill="#172033">.tmol</text><text x="397" y="102" font-family="monospace" font-size="16" fill="#70809a">chemical:</text>
+  <rect x="376" y="210" width="130" height="70" rx="12" fill="#f4f1e8"/><text x="397" y="252" font-family="monospace" font-size="20" font-weight="700" fill="#172033">.params</text>
+  <path d="M441 132v68" stroke="#7de2a8" stroke-width="7" stroke-dasharray="8 7"/>
+</svg>

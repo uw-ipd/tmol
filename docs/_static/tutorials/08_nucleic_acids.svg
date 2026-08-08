@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" role="img" aria-labelledby="t d">
+  <title id="t">Working with DNA and RNA</title><desc id="d">A DNA duplex contacted by a protein helix and an RNA pocket around a ligand.</desc>
+  <rect width="560" height="320" rx="24" fill="#151f33"/>
+  <g fill="none" stroke-width="8">
+    <path d="M68 42c96 54 10 124 96 180s10 56 10 56" stroke="#69d2e7"/>
+    <path d="M158 42c-96 54-10 124-96 180s-10 56-10 56" stroke="#7de2a8"/>
+    <g stroke="#dce6f7" stroke-width="4"><path d="M91 68h44M71 105h84M66 145h94M72 187h82M93 226h43"/></g>
+  </g>
+  <path d="M184 138c55-68 119-72 176-8" fill="none" stroke="#f6c85f" stroke-width="22" stroke-linecap="round"/>
+  <path d="m276 104 34 27-35 26" fill="none" stroke="#ff7f7f" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M391 68c104 4 115 111 32 128-79 16-79 93 35 82" fill="none" stroke="#b39ddb" stroke-width="12" stroke-linecap="round"/>
+  <g transform="translate(436 169)" stroke="#f6c85f" stroke-width="7"><path d="m0-28 25 14v28L0 28-25 14v-28z" fill="#263754"/><circle cx="0" cy="-28" r="8" fill="#ff7f7f" stroke="none"/></g>
+  <text x="206" y="279" font-family="sans-serif" font-size="18" fill="#dce6f7">base substitutions · NA rotamers · aptamer</text>
+</svg>

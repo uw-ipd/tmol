@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -16,7 +17,11 @@ TMOL_WHEEL = (
 )
 
 
-def setup_colab(fixtures: list[str]) -> None:
+def setup_colab(
+    fixtures: list[str],
+    *,
+    install_tutorial_source: bool = False,
+) -> None:
     """Install the GPU wheel and download checked-in tutorial fixtures."""
     gpu_probe = subprocess.run(
         ["nvidia-smi"],
@@ -30,21 +35,6 @@ def setup_colab(fixtures: list[str]) -> None:
             "'Runtime > Change runtime type > T4 GPU', reconnect, and run again."
         )
 
-    subprocess.check_call(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--quiet",
-            TMOL_WHEEL,
-            "atomworks>=2.2",
-            "itables>=2.0",
-            "openbabel-wheel==3.1.1.22",
-            "py3Dmol>=2.4,<3",
-        ]
-    )
-
     import torch
 
     if not torch.cuda.is_available():
@@ -54,7 +44,67 @@ def setup_colab(fixtures: list[str]) -> None:
         )
     if not torch.__version__.startswith("2.10."):
         raise RuntimeError(
-            f"The TMol Colab wheel requires PyTorch 2.10, found {torch.__version__}."
+            f"The TMol Colab environment requires PyTorch 2.10, "
+            f"found {torch.__version__}."
+        )
+
+    runtime_packages = [
+        "atomworks>=2.2",
+        "itables>=2.0",
+        "openbabel-wheel==3.1.1.22",
+        "py3Dmol>=2.4,<3",
+    ]
+    if install_tutorial_source:
+        # v0.1.46 predates the merged DNA/RNA implementation. Build the exact
+        # tutorial branch against Colab's installed PyTorch until a newer
+        # release wheel is available.
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--quiet",
+                *runtime_packages,
+                "scikit-build-core>=0.10",
+                "pybind11>=2.12",
+                "ninja",
+                "packaging>=24.2",
+                "cmake>=3.18,<4",
+            ]
+        )
+        build_env = os.environ.copy()
+        build_env.update(
+            {
+                "CMAKE_CUDA_ARCHITECTURES": "75",
+                "TMOL_DISABLE_WHEEL_FETCH": "1",
+            }
+        )
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--quiet",
+                "--no-build-isolation",
+                "--force-reinstall",
+                "--no-deps",
+                f"git+https://github.com/uw-ipd/tmol.git@{TUTORIAL_REF}",
+            ],
+            env=build_env,
+        )
+    else:
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--quiet",
+                TMOL_WHEEL,
+                *runtime_packages,
+            ]
         )
 
     for relative_path in fixtures:

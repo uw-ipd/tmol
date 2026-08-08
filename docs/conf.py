@@ -107,14 +107,14 @@ myst_heading_anchors = 4
 
 nbsphinx_execute = "never"
 nbsphinx_thumbnails = {
-    "tutorial/01_working_with_tmol": "_static/tutorial_thumbnail.svg",
-    "tutorial/02_gpu_batching": "_static/tutorial_thumbnail.svg",
-    "tutorial/03_scoring_and_analysis": "_static/tutorial_thumbnail.svg",
-    "tutorial/04_packing_and_mutation_scan": "_static/tutorial_thumbnail.svg",
-    "tutorial/05_minimization_constraints_kinematics": "_static/tutorial_thumbnail.svg",
-    "tutorial/06_fast_relax": "_static/tutorial_thumbnail.svg",
-    "tutorial/07_ligand_and_params": "_static/tutorial_thumbnail.svg",
-    "tutorial/08_nucleic_acids": "_static/tutorial_thumbnail.svg",
+    "tutorial/01_working_with_tmol": "_static/tutorials/01_working_with_tmol.svg",
+    "tutorial/02_gpu_batching": "_static/tutorials/02_gpu_batching.svg",
+    "tutorial/03_scoring_and_analysis": "_static/tutorials/03_scoring_and_analysis.svg",
+    "tutorial/04_packing_and_mutation_scan": "_static/tutorials/04_packing_and_mutation_scan.svg",
+    "tutorial/05_minimization_constraints_kinematics": "_static/tutorials/05_minimization_constraints_kinematics.svg",
+    "tutorial/06_fast_relax": "_static/tutorials/06_fast_relax.svg",
+    "tutorial/07_ligand_and_params": "_static/tutorials/07_ligand_and_params.svg",
+    "tutorial/08_nucleic_acids": "_static/tutorials/08_nucleic_acids.svg",
 }
 nbsphinx_epilog = r"""
 ----

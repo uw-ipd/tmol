@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" role="img" aria-labelledby="t d">
+  <title id="t">GPU batching</title><desc id="d">Several molecular structures flowing through a GPU into a throughput chart.</desc>
+  <rect width="560" height="320" rx="24" fill="#141b2d"/>
+  <g fill="none" stroke="#69d2e7" stroke-width="6">
+    <path d="m54 72 32 20 36-22 30 26-38 26-34-20-26 18z"/><path d="m54 144 32 20 36-22 30 26-38 26-34-20-26 18z"/><path d="m54 216 32 20 36-22 30 26-38 26-34-20-26 18z"/>
+  </g>
+  <path d="M174 160h68" stroke="#f6c85f" stroke-width="9"/><path d="m230 143 24 17-24 17" fill="none" stroke="#f6c85f" stroke-width="9"/>
+  <rect x="258" y="70" width="136" height="180" rx="20" fill="#273754" stroke="#7de2a8" stroke-width="6"/>
+  <rect x="282" y="98" width="88" height="124" rx="10" fill="none" stroke="#7de2a8" stroke-width="5"/>
+  <path d="M282 128h88M282 158h88M282 188h88M312 98v124M341 98v124" stroke="#7de2a8" stroke-width="3"/>
+  <text x="304" y="277" font-family="sans-serif" font-size="20" font-weight="700" fill="#dce6f7">GPU</text>
+  <path d="M416 244V96M416 244h108" stroke="#dce6f7" stroke-width="5"/>
+  <path d="m426 225 25-24 22-8 23-45 22-20" fill="none" stroke="#ff7f7f" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

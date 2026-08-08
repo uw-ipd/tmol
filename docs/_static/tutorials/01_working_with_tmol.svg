@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" role="img" aria-labelledby="t d">
+  <title id="t">Working with TMol</title><desc id="d">A molecular structure entering a tensor grid from a CIF document.</desc>
+  <rect width="560" height="320" rx="24" fill="#172033"/>
+  <rect x="42" y="54" width="150" height="204" rx="14" fill="#f4f1e8"/>
+  <path d="M154 54v42h38" fill="#c9d4e8"/><text x="68" y="103" font-family="sans-serif" font-size="25" font-weight="700" fill="#172033">CIF</text>
+  <path d="M68 130h98M68 153h82M68 176h98M68 199h65" stroke="#70809a" stroke-width="8" stroke-linecap="round"/>
+  <path d="M211 156h72" stroke="#55c2ff" stroke-width="8"/><path d="m272 140 22 16-22 16" fill="none" stroke="#55c2ff" stroke-width="8"/>
+  <g stroke="#7de2a8" stroke-width="8"><path d="m330 94 58 42 70-26M388 136l22 72M410 208l76 24M330 94l-18 88M312 182l98 26"/></g>
+  <g fill="#f6c85f" stroke="#172033" stroke-width="5"><circle cx="330" cy="94" r="18"/><circle cx="388" cy="136" r="21"/><circle cx="458" cy="110" r="16"/><circle cx="312" cy="182" r="19"/><circle cx="410" cy="208" r="22"/><circle cx="486" cy="232" r="17"/></g>
+  <path d="M302 274h204" stroke="#70809a" stroke-width="2"/><text x="302" y="297" font-family="sans-serif" font-size="18" fill="#dce6f7">PoseStack · blocks · coordinates</text>
+</svg>
