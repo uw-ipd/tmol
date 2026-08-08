@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
-
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_DIR = ROOT / "docs/_static/tutorials"
 WIDTH = 560
@@ -109,7 +108,9 @@ def read_cif_atoms(path: Path) -> list[Atom]:
                     row, "_atom_site.auth_comp_id", "_atom_site.label_comp_id"
                 ),
                 chain=value(row, "_atom_site.auth_asym_id", "_atom_site.label_asym_id"),
-                residue_id=value(row, "_atom_site.auth_seq_id", "_atom_site.label_seq_id"),
+                residue_id=value(
+                    row, "_atom_site.auth_seq_id", "_atom_site.label_seq_id"
+                ),
                 xyz=(
                     float(value(row, "_atom_site.Cartn_x")),
                     float(value(row, "_atom_site.Cartn_y")),
@@ -162,10 +163,14 @@ def trace_atoms(atoms: Sequence[Atom]) -> dict[tuple[str, str], list[Atom]]:
             kind = "protein"
         elif atom.residue_name in NA_NAMES and atom.atom_name in {"P", "C4'"}:
             kind = "na"
-            if atom.atom_name == "C4'" and (
-                atom.chain,
-                atom.residue_id,
-            ) in phosphate_residues:
+            if (
+                atom.atom_name == "C4'"
+                and (
+                    atom.chain,
+                    atom.residue_id,
+                )
+                in phosphate_residues
+            ):
                 continue
         else:
             continue
@@ -185,7 +190,7 @@ def svg_header(title: str, sources: Iterable[Path]) -> list[str]:
         f'<title id="title">{html.escape(title)}</title>',
         (
             f'<desc id="description">Static molecular render generated from '
-            f'{html.escape(source_names)} used by this tutorial.</desc>'
+            f"{html.escape(source_names)} used by this tutorial.</desc>"
         ),
         f"<metadata>Generated from tutorial fixtures: {html.escape(source_names)}</metadata>",
         '<rect width="560" height="320" rx="24" fill="#111a2d"/>',
@@ -332,9 +337,7 @@ def distance_heatmap(points: Sequence[tuple[float, float, float]]) -> list[str]:
 
 def main() -> None:
     cif = ROOT / "tmol/tests/data/cif"
-    ligand_cif = (
-        ROOT / "tmol/tests/data/protein_ligand_test/ada.tmol.nomin.cif"
-    )
+    ligand_cif = ROOT / "tmol/tests/data/protein_ligand_test/ada.tmol.nomin.cif"
     paths = {
         "ubq": cif / "1UBQ.cif",
         "r21": cif / "1R21.cif",
@@ -396,9 +399,7 @@ def main() -> None:
     )
 
     first, _, _ = render_structure(structures["ubq"], (38, 30, 484, 260), opacity=0.82)
-    second, _, _ = render_structure(
-        structures["ubq"], (45, 24, 484, 260), opacity=0.32
-    )
+    second, _, _ = render_structure(structures["ubq"], (45, 24, 484, 260), opacity=0.32)
     body = second + first
     body.extend(
         [
