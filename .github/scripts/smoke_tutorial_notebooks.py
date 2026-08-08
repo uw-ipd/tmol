@@ -33,6 +33,12 @@ def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
         raise ValueError(f"{path} is missing its Open In Colab badge")
     if "setup_colab(" not in code:
         raise ValueError(f"{path} is missing its guarded Colab bootstrap")
+    if notebook.metadata.get("accelerator") != "GPU":
+        raise ValueError(f"{path} does not request a Colab GPU runtime")
+    if "blob/master/docs/tutorial/" not in markdown:
+        raise ValueError(f"{path} does not use a stable default-branch Colab URL")
+    if "master/docs/tutorial/colab_setup.py" not in code:
+        raise ValueError(f"{path} does not use the default-branch Colab bootstrap")
 
 
 def _without_gpu_cells(notebook):

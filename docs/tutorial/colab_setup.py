@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from urllib.request import urlretrieve
 
-TUTORIAL_REF = "kdidi/sphinx-docs"
+TUTORIAL_REF = "master"
 RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
 TMOL_WHEEL = (
     "https://github.com/uw-ipd/tmol/releases/download/v0.1.46/"
@@ -18,6 +18,18 @@ TMOL_WHEEL = (
 
 def setup_colab(fixtures: list[str]) -> None:
     """Install the GPU wheel and download checked-in tutorial fixtures."""
+    gpu_probe = subprocess.run(
+        ["nvidia-smi"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if gpu_probe.returncode != 0:
+        raise RuntimeError(
+            "This tutorial requires a Colab GPU runtime. Choose "
+            "'Runtime > Change runtime type > T4 GPU', reconnect, and run again."
+        )
+
     subprocess.check_call(
         [
             sys.executable,
@@ -28,9 +40,22 @@ def setup_colab(fixtures: list[str]) -> None:
             TMOL_WHEEL,
             "atomworks>=2.2",
             "itables>=2.0",
+            "openbabel-wheel==3.1.1.22",
             "py3Dmol>=2.4,<3",
         ]
     )
+
+    import torch
+
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            "A GPU is visible to Colab, but PyTorch cannot use CUDA. "
+            "Reconnect to the GPU runtime and rerun the setup cell."
+        )
+    if not torch.__version__.startswith("2.10."):
+        raise RuntimeError(
+            f"The TMol Colab wheel requires PyTorch 2.10, found {torch.__version__}."
+        )
 
     for relative_path in fixtures:
         destination = Path(relative_path)
@@ -39,8 +64,8 @@ def setup_colab(fixtures: list[str]) -> None:
             urlretrieve(f"{RAW_BASE}/{relative_path}", destination)
 
     # The released wheel supplies matching compiled CUDA extensions. Load the
-    # tutorial branch's pure-Python viewer helpers until this docs PR ships in a
-    # release, then expose the same convenience functions used in the notebooks.
+    # default branch's pure-Python viewer helpers, then expose the same
+    # convenience functions used in the notebooks.
     import tmol
 
     viewer_path = Path("_tmol_tutorial_visualize.py")
@@ -56,6 +81,6 @@ def setup_colab(fixtures: list[str]) -> None:
         setattr(tmol, name, getattr(module, name))
 
     print(
-        "Colab environment ready. Select a GPU runtime; "
-        "the tutorial will use CUDA when available."
+        f"Colab GPU environment ready: {torch.cuda.get_device_name(0)}; "
+        f"PyTorch {torch.__version__}."
     )
