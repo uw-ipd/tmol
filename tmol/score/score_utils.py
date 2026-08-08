@@ -145,8 +145,13 @@ def calculate_block_pair_ddg(
     database=None,
     return_pose_stack=False,
 ):
-    """Calculate DDG score between two subsets of blocks within each pose, defined by 2 masks.
-    If only one mask is provided, it will use the inverse of the first mask for the second.
+    """Calculate the cross-mask block-pair interaction score within each pose.
+
+    The historical ``ddg`` name follows Rosetta interface-scoring terminology,
+    but this function does not compute a thermodynamic free-energy difference:
+    it sums weighted block-pair terms from one complex and does not score a
+    separated state. If only one mask is provided, the second subset is the
+    inverse of the first.
 
     Args:
         pose_stack: The pose stack to score
@@ -156,17 +161,17 @@ def calculate_block_pair_ddg(
         sfxn: Optional score function to use. If not provided, will default to beta2016
         sum_terms: If True, sum all score terms into a single score per pose. If False,
             return per-term scores.
-        minimize: If True (default), run cartesian minimization on the masked atoms before
-            computing the DDG score.
+        minimize: If True (default), run cartesian minimization on the masked
+            atoms before computing the interaction score.
         pack: If True, pack (repack) rotamers of residues in the mask and residues adjacent
             to the mask (computed via ``compute_block_adjacency``) before the minimization step.
         return_pose_stack: If True, also return the (possibly packed/minimized) pose stack
             that was actually scored, as ``(ddg_scores, pose_stack)``.
 
     Returns:
-        Tensor of shape [n_poses] or [n_terms, n_poses] containing the ddg score for each pose,
-        separated by terms if requested. If ``return_pose_stack`` is True, returns a tuple
-        ``(ddg_scores, pose_stack)``.
+        Tensor of shape [n_poses] or [n_terms, n_poses] containing the
+        interaction score for each pose, separated by terms if requested. If
+        ``return_pose_stack`` is True, returns ``(scores, pose_stack)``.
     """
     torch_device = pose_stack.device
 

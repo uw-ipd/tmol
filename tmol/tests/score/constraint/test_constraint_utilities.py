@@ -12,12 +12,14 @@ from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
 def test_create_mainchain_coordinate_constraints(
-    ubq_pdb, default_database, torch_device
+    ubq_pdb, default_database, torch_device, capsys
 ):
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pose_stack10 = PoseStackBuilder.from_poses([pose_stack1] * 10, torch_device)
 
+    capsys.readouterr()
     pose_stack10 = create_mainchain_coordinate_constraints(pose_stack10)
+    assert capsys.readouterr() == ("", "")
     assert pose_stack10.constraint_set is not None
 
     torch.testing.assert_close(

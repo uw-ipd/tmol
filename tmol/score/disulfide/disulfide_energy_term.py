@@ -11,6 +11,8 @@ from tmol.pose.pose_stack import PoseStack
 
 
 class DisulfideEnergyTerm(EnergyTerm):
+    """Score bond geometry for disulfide-connected cysteine pairs."""
+
     device: torch.device  # = attr.ib()
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):

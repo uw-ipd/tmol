@@ -12,6 +12,8 @@ from tmol.pose.pose_stack import PoseStack
 
 
 class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
+    """Orientation-dependent hydrogen-bond interaction term."""
+
     tile_size: int = 32
     hb_param_db: CompactedHBondDatabase
 

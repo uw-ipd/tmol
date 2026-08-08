@@ -14,6 +14,8 @@ from tmol.pose.pose_stack import PoseStack
 
 
 class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
+    """Lennard-Jones attraction/repulsion and isotropic LK solvation term."""
+
     type_params: LJLKTypeParams
     global_params: LJLKGlobalParams
     tile_size: int = 32

@@ -28,11 +28,16 @@ def ensure_compiled_or_jit() -> bool:
     """Return True if JIT should be used; False if precompiled is loaded.
 
     Behavior:
+    - If TMOL_DOCS_BUILD=1 -> returns False without loading extensions
     - If TMOL_USE_JIT=1 -> returns True (no precompiled load attempt)
     - Else tries to load precompiled _C and returns False if successful
     - If load fails and TMOL_JIT_FALLBACK=1 -> returns True
     - Otherwise re-raises the load error
     """
+    if _env_flag("TMOL_DOCS_BUILD"):
+        logger.info("tmol: TMOL_DOCS_BUILD=1; skipping compiled extension load.")
+        return False
+
     if _env_flag("TMOL_USE_JIT"):
         logger.info("tmol: TMOL_USE_JIT=1; using JIT extensions.")
         return True
@@ -63,6 +68,11 @@ def load_ops(module_name: str, file: str, sources, ops_name: str):
         sources: Source filenames relative to ``file``'s directory.
         ops_name: The ``torch.ops`` namespace (e.g. ``"tmol_ljlk"``).
     """
+    if _env_flag("TMOL_DOCS_BUILD"):
+        from unittest.mock import MagicMock
+
+        return MagicMock(name=f"torch.ops.{ops_name}")
+
     if ensure_compiled_or_jit():
         from tmol.utility.cpp_extension import (
             load,
@@ -97,6 +107,11 @@ def load_module(module_name: str, file: str, sources, precompiled_path: str):
         precompiled_path: Dotted import path to the precompiled ``_ext`` module
             (e.g. ``"tmol.tests.score.common.geom._ext"``).
     """
+    if _env_flag("TMOL_DOCS_BUILD"):
+        from unittest.mock import MagicMock
+
+        return MagicMock(name=precompiled_path)
+
     if ensure_compiled_or_jit():
         from tmol.utility.cpp_extension import (
             load,

@@ -1,0 +1,103 @@
+.bd-main .bd-content .bd-article-container {
+  max-width: 980px;
+}
+
+.bd-sidebar-primary {
+  max-width: 320px;
+}
+
+table.docutils {
+  width: 100%;
+}
+
+.cell {
+  margin-bottom: 0.85rem;
+}
+
+.cell_output {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.dataframe,
+.itables table {
+  font-size: 0.86rem;
+}
+
+.tmol-switchable-view {
+  margin: 1rem 0;
+}
+
+.tmol-switchable-view select {
+  margin-left: 0.35rem;
+}
+
+.tmol-viewer-note {
+  color: var(--pst-color-text-muted);
+  min-height: 1.6rem;
+  padding: 0.35rem 0;
+}
+
+.tmol-selection-gallery {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  margin: 1rem 0;
+}
+
+.tmol-selection-card {
+  border: 1px solid var(--pst-color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 0.65rem;
+}
+
+.tmol-selection-card > strong {
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.example-card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin: 1.25rem 0 2rem;
+}
+
+.example-card {
+  border: 1px solid var(--pst-color-border);
+  border-radius: 8px;
+  color: var(--pst-color-text-base);
+  display: block;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.example-card:hover {
+  border-color: var(--pst-color-primary);
+  text-decoration: none;
+}
+
+.example-card img {
+  aspect-ratio: 16 / 9;
+  display: block;
+  object-fit: cover;
+  width: 100%;
+}
+
+.example-card-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  padding: 0.9rem 1rem 0;
+}
+
+.example-card-description {
+  color: var(--pst-color-text-muted);
+  display: block;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  min-height: 5.1rem;
+  padding: 0.45rem 1rem 1rem;
+}

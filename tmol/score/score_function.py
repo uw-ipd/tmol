@@ -24,6 +24,14 @@ SFXN_FORMAT_VERSION: str = "1.0"
 
 
 class ScoreFunction:
+    """Weighted collection of energy terms rendered for a target pose layout.
+
+    A score function owns score-type weights, term options, a parameter
+    database, and a device. Setting a non-zero weight activates the
+    corresponding energy-term implementation. Rendering prepares those terms
+    for one ``PoseStack`` and returns a callable scoring wrapper.
+    """
+
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         self._weights = torch.zeros((ScoreType.n_score_types.value,), device=device)
 
@@ -54,6 +62,7 @@ class ScoreFunction:
         self.term_options = {}
 
     def set_weight(self, st: ScoreType, weight: float):
+        """Set the weight for a score type, activating its energy term."""
         if not self.score_type_covered_by_contained_term(st):
             self.retrieve_term_for_score_type(st)
         if weight == 0 and self.term_for_st_has_no_other_non_zero_weights(st):
@@ -62,6 +71,7 @@ class ScoreFunction:
         self._weights_tensor_out_of_date = True
 
     def get_weight(self, st: ScoreType):
+        """Return the configured weight for a score type."""
         return self._weights[st.value]
 
     def score_type_covered_by_contained_term(self, st: ScoreType):
@@ -150,13 +160,12 @@ class ScoreFunction:
         return self._multi_body_terms
 
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-        """Create an object designed to evaluate the score of a set of Poses
-        repeatedly as the Poses change their conformation, e.g., as in
-        minimization. This object will derive from torch.nn.Module and
-        it will contain a set of objects rendered by the ScoreFunction's
-        terms that themselves are derived from torch.nn.Module. This
-        object's __call__ will return a tensor of weighted energies of
-        shape (n_poses,).
+        """Render a callable whole-pose scorer for a fixed pose layout.
+
+        The wrapper contains the ``torch.nn.Module`` objects rendered by the
+        active energy terms. Its ``__call__`` returns weighted totals with
+        shape ``[n_poses]``, or ``[n_terms, n_poses]`` when
+        ``sum_terms=False``.
         """
         self.pre_work_initialization(pose_stack)
         term_modules = [
@@ -165,13 +174,12 @@ class ScoreFunction:
         return WholePoseScoringModule(self.weights_tensor(), term_modules)
 
     def render_block_pair_scoring_module(self, pose_stack: PoseStack):
-        """Create an object designed to evaluate the score of a set of Poses
-        repeatedly as the Poses change their conformation, e.g., as in
-        minimization. This object will derive from torch.nn.Module and
-        it will contain a set of objects rendered by the ScoreFunction's
-        terms that themselves are derived from torch.nn.Module. This
-        object's __call__ will return a tensor of weighted energies of
-        shape (n_poses, max_n_blocks, max_n_blocks).
+        """Render a callable block-pair scorer for a fixed pose layout.
+
+        The wrapper contains the ``torch.nn.Module`` objects rendered by the
+        active energy terms. Its ``__call__`` returns weighted values with
+        shape ``[n_poses, max_n_blocks, max_n_blocks]``, or a leading
+        score-term axis when ``sum_terms=False``.
         """
         self.pre_work_initialization(pose_stack)
         term_modules = [
@@ -182,13 +190,11 @@ class ScoreFunction:
     def render_rotamer_scoring_module(
         self, pose_stack: PoseStack, rotamer_set: "RotamerSet"  # noqa: F405
     ):
-        """Create an object designed to evaluate the score a RotamerSet
-        repeatedly as the Poses change their conformation, e.g., as in
-        minimization. This object will derive from torch.nn.Module and
-        it will contain a set of objects rendered by the ScoreFunction's
-        terms that themselves are derived from torch.nn.Module. This
-        object's __call__ will return a tensor of weighted energies of
-        shape (n_poses, max_n_blocks, max_n_blocks).
+        """Render a callable sparse rotamer scorer for a pose and rotamer set.
+
+        The wrapper contains the ``torch.nn.Module`` objects rendered by the
+        active terms and returns the weighted one- and two-rotamer energies
+        consumed by the packer.
         """
         self.pre_work_initialization(pose_stack)
         term_modules = [
@@ -319,6 +325,12 @@ class ScoreFunction:
 
 
 class WholePoseScoringModule:
+    """Combine rendered term modules into whole-pose scores.
+
+    This is a callable wrapper around term-specific ``torch.nn.Module``
+    instances; it is not itself a ``torch.nn.Module``.
+    """
+
     def __init__(
         self,
         weights: Tensor[torch.float32][:],
@@ -339,6 +351,8 @@ class WholePoseScoringModule:
 
 
 class BlockPairScoringModule:
+    """Combine rendered term modules into block-pair score matrices."""
+
     def __init__(
         self,
         weights: Tensor[torch.float32][:],
@@ -361,6 +375,8 @@ class BlockPairScoringModule:
 
 
 class RotamerScoringModule:
+    """Combine sparse rotamer energies from all rendered score terms."""
+
     def __init__(
         self,
         weights: Tensor[torch.float32][:],

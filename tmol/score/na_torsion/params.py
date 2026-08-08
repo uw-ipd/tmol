@@ -1,3 +1,10 @@
+"""Runtime tensor parameters and indexing constants for NA torsion scoring.
+
+DNA base indices occupy 0–3 and RNA base indices 4–7. ``TORSION_IND`` maps
+chemical-layer torsion names to the tensor layout consumed by the score term
+and nucleic-acid chi sampler.
+"""
+
 import attr
 import numpy
 import torch

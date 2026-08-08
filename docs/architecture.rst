@@ -4,113 +4,64 @@
 Architecture
 ============
 
-TMol is roughly divided into two core modules: a high-level description of
-polymeric molecules in `tmol.system` and a low-level, term-specific description
-used `tmol.score`.
-
+TMol is centered on two core representations: batched molecular state in
+``tmol.pose`` and term-specific scoring machinery in ``tmol.score``. Structure
+I/O in ``tmol.io`` builds :class:`~tmol.pose.pose_stack.PoseStack` objects from
+PDB/mmCIF files and model outputs.
 
 These components operate over a shared chemical vocabulary defined in
-`tmol.database.chemical`, with additional term-specific data given in
-`tmol.database.scoring`.
+``tmol.database.chemical``, with additional term-specific data given in
+``tmol.database.scoring``.
 
-.. aafig::
+.. code-block:: text
 
-  +--------+          +---------+
-  |        |          |         |
-  | system +----------o scoring |
-  |        |          |         |
-  +--+-----+          +--+----+-+
-     |                   |    |
-     | +-----------------v-+  |
-     | |                   |  |
-     | | database.scoring  |  |
-     | |                   |  |
-     | +---------+---------+  |
-     |           |            |
-     | +---------v---------+  |
-     | |                   |  |
-     +-> database.chemical <--+
-       |                   |
-       +-------------------+
+  +------+       +------+          +---------+
+  |      |       |      |          |         |
+  |  io  +------>+ pose +----------o scoring |
+  |      |       |      |          |         |
+  +------+       +--+---+          +--+----+-+
+                    |                 |    |
+                    | +---------------v-+  |
+                    | |                 |  |
+                    | | database.scoring|  |
+                    | |                 |  |
+                    | +--------+--------+  |
+                    |          |           |
+                    | +--------v--------+  |
+                    | |                 |  |
+                    +->database.chemical<-+
+                      |                 |
+                      +-----------------+
 
+``tmol.pose`` and ``tmol.score`` meet when a
+:class:`~tmol.score.score_function.ScoreFunction` renders a scoring module for a
+:class:`~tmol.pose.pose_stack.PoseStack`, for example with
+:meth:`~tmol.score.score_function.ScoreFunction.render_whole_pose_scoring_module`.
+Score terms annotate :class:`~tmol.pose.packed_block_types.PackedBlockTypes`
+and then render ``torch.nn.Module`` objects for repeated evaluation.
 
-`tmol.system` and `tmol.score` are coupled via
-:py:func:`~functools.singledispatch` hooks registered in
-`tmol.system.score_support`.
+Scoring Overview
+================
 
-Scoring
-=======
+Scoring is managed by rendered PyTorch modules that evaluate configured energy
+terms over a ``PoseStack``. Coordinates have shape
+``[n_poses, max_n_atoms, 3]``; ``real_atoms`` distinguishes molecular atoms
+from padding, while block-type and connection tensors describe residue and
+polymer topology.
 
-Scoring is managed via a "score graph" object, managing the initialization
-of a torch compute graph calculating a setup of score terms for
-a collection model states.
+.. code-block:: text
 
-A model is defined over of a set ``n`` of bonded atoms. Each atom is located at
-an atom index, and is defined by a type and coordinate. Atoms may be "null",
-defining no type and a nan coordinate at a given index.  Bonds are defined via
-a set of ``b``` sparse, undirected bonded inter-atom index pairs.
+  PoseStack + ScoreFunction
+             |
+             +--> whole-pose module --> [n_poses]
+             |
+             +--> block-pair module --> [n_poses, n_blocks, n_blocks]
+             |
+             +--> rotamer module -----> packer candidate energies
 
-A score graph operates over a "depth" of ``l`` layers, each containing a single
-model. Models must contain the same number of atoms ``n``, but may have
-differing atom types and null atoms. Bonds are strictly intra-layer, and form
-a disjoint set per-layer inter-atom graphs.
-
-
-.. aafig::
-
-  +---------------------------------------+
-  |                                  --   |
-  | "[n] atom_types"                /  \  |
-  | "[n] coordinates"            +-+    + |
-  | "[b] (a,b) bond indices"    /   \  /  |
-  |                                  --   |
-  +----------------------------------+----+
-                                     |
-                                     |
-  +----------------------------------|----+
-  |                              +---o--+ |
-  |                              +------+ |
-  | "[l] layers"                 +------+ |
-  |                              +------+ |
-  |                              +------+ |
-  +---------------------------------------+
-
-Score calculation is performed on an intra-layer and inter-layer basis.
-Intra-layer scoring is defined over across all interactions (bonded and
-non-bonded) within a layer, yielding ``l`` scores for a single score graph of
-depth ``l``. Inter-layer scoring is defined over all inter-layer non-bonded
-interactions, yielding a ``[i, j]`` pairwise score array for two score graphs
-of depth ``i`` and ``j``.
-
-.. note:: `tmol.score` currently only supports intra-layer scoring, and is
-   limited to models of depth 1.
-
-The score graph implementation is partitioned into score component classes,
-each covering a logically distinct component of the score function. These
-components include score terms, derived model representations, or support data
-required for score evaluation. Component classes are combined as mixins into
-a `reactive` score graph. At minimum, a valid score graph will include an
-atomic representation, some number of score terms, and a total score property.
-
-.. aafig::
-
-  +------------------------------+
-  |                              |
-  |          +-------+           |
-  |          | Atoms |           |
-  |          ++-----++           |
-  |           |     |            |
-  |        +--+    ++------+     |
-  |        |       |Derived|     |
-  |        v       ++-----++     |
-  |    +----+       |     |      |
-  |    |Term|       v     v      |
-  |    +---++   +----+ +----+    |
-  |        |    |Term| |Term|    |
-  |        v    +--+-+ +--+-+    |
-  |      +-----+   |      |      |
-  |      |Total|<--+------+      |
-  |      +-----+                 |
-  |                              |
-  +------------------------------+
-
+The score function implementation is partitioned into score term classes, each
+covering a logically distinct component of the energy function. These
+term annotates residue/block data before rendering its coordinate-dependent
+module. Calls may return either the weighted total or a leading score-term axis
+when ``sum_terms=False``. The complete score-type-to-term map is documented in
+:doc:`api/score_terms`.
