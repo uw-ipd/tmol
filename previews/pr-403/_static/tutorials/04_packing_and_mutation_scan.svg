@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" role="img" aria-labelledby="t d">
+  <title id="t">Packing and mutation scans</title><desc id="d">Rotamer spokes and amino-acid substitutions around a protein backbone.</desc>
+  <rect width="560" height="320" rx="24" fill="#182335"/>
+  <path d="M52 198c82-116 159 91 246-23s148-76 210 13" fill="none" stroke="#69d2e7" stroke-width="15" stroke-linecap="round"/>
+  <g transform="translate(274 166)" stroke-width="8" stroke-linecap="round">
+    <path d="M0 0 0-92" stroke="#7de2a8"/><path d="M0 0 75-54" stroke="#f6c85f"/><path d="M0 0 89 24" stroke="#ff7f7f"/><path d="M0 0 47 80" stroke="#b39ddb"/>
+    <circle r="19" fill="#f4f1e8" stroke="#182335" stroke-width="5"/>
+    <circle cy="-92" r="14" fill="#7de2a8"/><circle cx="75" cy="-54" r="14" fill="#f6c85f"/><circle cx="89" cy="24" r="14" fill="#ff7f7f"/><circle cx="47" cy="80" r="14" fill="#b39ddb"/>
+  </g>
+  <g font-family="sans-serif" font-size="22" font-weight="700">
+    <rect x="65" y="242" width="70" height="42" rx="10" fill="#263754"/><text x="82" y="271" fill="#dce6f7">ALA</text>
+    <rect x="148" y="242" width="70" height="42" rx="10" fill="#263754"/><text x="165" y="271" fill="#dce6f7">LEU</text>
+    <rect x="398" y="242" width="70" height="42" rx="10" fill="#263754"/><text x="415" y="271" fill="#dce6f7">PHE</text>
+  </g>
+</svg>
