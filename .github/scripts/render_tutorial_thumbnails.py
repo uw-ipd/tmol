@@ -13,7 +13,7 @@ from typing import Iterable, Sequence
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_DIR = ROOT / "docs/_static/tutorials"
 WIDTH = 560
-HEIGHT = 320
+HEIGHT = 315
 
 PROTEIN_NAMES = {
     "ALA",
@@ -185,7 +185,7 @@ def trace_atoms(atoms: Sequence[Atom]) -> dict[tuple[str, str], list[Atom]]:
 def svg_header(title: str, sources: Iterable[Path]) -> list[str]:
     source_names = ", ".join(path.name for path in sources)
     return [
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" '
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 315" '
         'role="img" aria-labelledby="title description">',
         f'<title id="title">{html.escape(title)}</title>',
         (
@@ -193,8 +193,8 @@ def svg_header(title: str, sources: Iterable[Path]) -> list[str]:
             f"{html.escape(source_names)} used by this tutorial.</desc>"
         ),
         f"<metadata>Generated from tutorial fixtures: {html.escape(source_names)}</metadata>",
-        '<rect width="560" height="320" rx="24" fill="#111a2d"/>',
-        '<rect x="10" y="10" width="540" height="300" rx="18" '
+        '<rect width="560" height="315" rx="24" fill="#111a2d"/>',
+        '<rect x="10" y="10" width="540" height="295" rx="18" '
         'fill="none" stroke="#263a5e" stroke-width="2"/>',
     ]
 
@@ -311,28 +311,58 @@ def render_structure(
     return elements, fitted, fitted_by_id
 
 
+def author_residue_subset(
+    atoms: Sequence[Atom],
+    *,
+    chain: str,
+    first: int,
+    last: int,
+) -> list[Atom]:
+    """Select an author-numbered residue interval from one chain."""
+    selected = []
+    for atom in atoms:
+        try:
+            residue_number = int(atom.residue_id)
+        except ValueError:
+            continue
+        if atom.chain == chain and first <= residue_number <= last:
+            selected.append(atom)
+    return selected
+
+
+def ligand_pocket_subset(
+    atoms: Sequence[Atom],
+    *,
+    ligand_name: str,
+    cutoff: float,
+) -> list[Atom]:
+    """Select a ligand and complete protein residues within an atom cutoff."""
+    ligand_heavy = [
+        atom
+        for atom in atoms
+        if atom.residue_name == ligand_name and atom.element != "H"
+    ]
+    if not ligand_heavy:
+        raise ValueError(f"No {ligand_name} ligand atoms found")
+    nearby_residues = {
+        (atom.chain, atom.residue_id)
+        for atom in atoms
+        if atom.residue_name in PROTEIN_NAMES
+        and any(math.dist(atom.xyz, ligand.xyz) <= cutoff for ligand in ligand_heavy)
+    }
+    return [
+        atom
+        for atom in atoms
+        if atom.residue_name == ligand_name
+        or (atom.chain, atom.residue_id) in nearby_residues
+    ]
+
+
 def write_svg(filename: str, title: str, sources: Sequence[Path], body: Sequence[str]):
     content = svg_header(title, sources)
     content.extend(body)
     content.append("</svg>")
     (OUTPUT_DIR / filename).write_text("\n".join(content) + "\n", encoding="utf-8")
-
-
-def distance_heatmap(points: Sequence[tuple[float, float, float]]) -> list[str]:
-    sampled = list(points)[:: max(len(points) // 13, 1)][:13]
-    cells = []
-    origin_x, origin_y, size = 360, 84, 12
-    max_distance = max(math.dist(a, b) for a in sampled for b in sampled)
-    for row, first in enumerate(sampled):
-        for column, second in enumerate(sampled):
-            normalized = math.dist(first, second) / max_distance
-            red = round(235 - 150 * normalized)
-            blue = round(115 + 120 * normalized)
-            cells.append(
-                f'<rect x="{origin_x + column * size}" y="{origin_y + row * size}" '
-                f'width="{size - 1}" height="{size - 1}" fill="rgb({red},90,{blue})"/>'
-            )
-    return cells
 
 
 def main() -> None:
@@ -350,11 +380,13 @@ def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     body, _, _ = render_structure(
-        structures["ubq"], (42, 26, 476, 268), highlight_residues={"3", "4", "5"}
+        structures["ubq"],
+        (42, 24, 476, 267),
+        highlight_residues={str(index) for index in range(1, 11)},
     )
     write_svg(
         "01_working_with_tmol.svg",
-        "Working with TMol — 1UBQ structure and selected residues",
+        "Working with TMol — 1UBQ residues 1–10 highlighted",
         [paths["ubq"]],
         body,
     )
@@ -362,7 +394,7 @@ def main() -> None:
     body = []
     for index, key in enumerate(("ubq", "r21", "bl8")):
         rendered, _, _ = render_structure(
-            structures[key], (22 + index * 180, 48, 156, 224)
+            structures[key], (18 + index * 181, 44, 162, 227)
         )
         body.extend(rendered)
     write_svg(
@@ -372,71 +404,115 @@ def main() -> None:
         body,
     )
 
-    body, _, _ = render_structure(structures["ubq"], (30, 38, 300, 244))
-    ca_points = [
-        atom.xyz
-        for atom in structures["ubq"]
-        if atom.residue_name in PROTEIN_NAMES and atom.atom_name == "CA"
+    scoring_slice = author_residue_subset(
+        structures["ubq"], chain="A", first=1, last=30
+    )
+    body, _, scoring_points = render_structure(
+        scoring_slice,
+        (36, 26, 488, 263),
+        highlight_residues={"5", "13"},
+    )
+    analyzed_pair = [
+        next(
+            atom
+            for atom in scoring_slice
+            if atom.residue_id == residue_id and atom.atom_name == "CA"
+        )
+        for residue_id in ("5", "13")
     ]
-    body.extend(distance_heatmap(ca_points))
+    pair_coordinates = [scoring_points[id(atom)] for atom in analyzed_pair]
+    body.append(
+        path(pair_coordinates, "#ffd166", 3, opacity=0.9).replace(
+            'stroke-linecap="round"', 'stroke-dasharray="8 6" stroke-linecap="round"'
+        )
+    )
     write_svg(
         "03_scoring_and_analysis.svg",
-        "Scoring — 1UBQ and a coordinate-derived residue map",
+        "Scoring — 1UBQ residues 1–30 with the analyzed pair highlighted",
         [paths["ubq"]],
         body,
     )
 
+    packing_slice = author_residue_subset(
+        structures["ubq"], chain="A", first=1, last=10
+    )
     body, _, _ = render_structure(
-        structures["ubq"],
-        (36, 28, 488, 264),
+        packing_slice,
+        (36, 25, 488, 265),
         highlight_residues={str(index) for index in range(3, 9)},
+    )
+    target_ca = next(
+        atom
+        for atom in packing_slice
+        if atom.residue_id == "5" and atom.atom_name == "CA"
+    )
+    _, _, target_points = render_structure(packing_slice, (36, 25, 488, 265))
+    target_x, target_y = target_points[id(target_ca)]
+    body.append(
+        f'<circle cx="{target_x:.1f}" cy="{target_y:.1f}" r="12" fill="none" '
+        'stroke="#ffd166" stroke-width="4"/>'
     )
     write_svg(
         "04_packing_and_mutation_scan.svg",
-        "Packing — 1UBQ with the repacked region highlighted",
+        "Packing — ten-residue 1UBQ slice with local shell and target",
         [paths["ubq"]],
         body,
     )
 
-    first, _, _ = render_structure(structures["ubq"], (38, 30, 484, 260), opacity=0.82)
-    second, _, _ = render_structure(structures["ubq"], (45, 24, 484, 260), opacity=0.32)
-    body = second + first
-    body.extend(
-        [
-            '<circle cx="94" cy="76" r="8" fill="#b99bea" stroke="#f5efff" stroke-width="2"/>',
-            '<circle cx="468" cy="244" r="8" fill="#b99bea" stroke="#f5efff" stroke-width="2"/>',
-        ]
+    minimization_slice = author_residue_subset(
+        structures["ubq"], chain="A", first=1, last=8
+    )
+    body, _, _ = render_structure(
+        minimization_slice,
+        (40, 24, 480, 267),
+        highlight_residues={str(index) for index in range(1, 9)},
     )
     write_svg(
         "05_minimization_constraints_kinematics.svg",
-        "Minimization — overlaid 1UBQ conformations and restraint anchors",
+        "Minimization — restrained eight-residue 1UBQ tutorial system",
         [paths["ubq"]],
         body,
     )
 
-    body = []
-    for offset, opacity in ((-9, 0.18), (-3, 0.30), (3, 0.50), (9, 0.92)):
-        rendered, _, _ = render_structure(
-            structures["ubq"], (38 + offset, 28 - offset / 2, 484, 264), opacity=opacity
-        )
-        body.extend(rendered)
+    relax_slice = author_residue_subset(structures["ubq"], chain="A", first=1, last=6)
+    body, _, _ = render_structure(relax_slice, (28, 38, 302, 235))
+    body.extend(
+        [
+            '<text x="365" y="87" fill="#d9e2f2" font-family="sans-serif" '
+            'font-size="18" font-weight="600">stage 1</text>',
+            '<rect x="365" y="104" width="45" height="12" rx="6" fill="#ff6577"/>',
+            '<rect x="410" y="104" width="92" height="12" rx="6" fill="#263a5e"/>',
+            '<text x="365" y="151" fill="#d9e2f2" font-family="sans-serif" '
+            'font-size="18" font-weight="600">stage 2</text>',
+            '<rect x="365" y="168" width="137" height="12" rx="6" fill="#ff6577"/>',
+            '<path d="M 378 225 L 488 225" stroke="#77d6a5" stroke-width="5" '
+            'stroke-linecap="round"/>',
+            '<path d="M 488 225 L 474 215 M 488 225 L 474 235" '
+            'stroke="#77d6a5" stroke-width="5" stroke-linecap="round"/>',
+            '<text x="377" y="258" fill="#77d6a5" font-family="sans-serif" '
+            'font-size="15">pack → minimize</text>',
+        ]
+    )
     write_svg(
         "06_fast_relax.svg",
-        "FastRelax — stage overlay from the 1UBQ tutorial system",
+        "FastRelax — six-residue 1UBQ system and two-stage schedule",
         [paths["ubq"]],
         body,
     )
 
-    body, _, _ = render_structure(structures["ligand"], (34, 26, 492, 268))
+    ligand_pocket = ligand_pocket_subset(
+        structures["ligand"], ligand_name="LG1", cutoff=4.5
+    )
+    body, _, _ = render_structure(ligand_pocket, (34, 24, 492, 267))
     write_svg(
         "07_ligand_and_params.svg",
-        "Ligands — the tutorial protein–ligand complex",
+        "Ligands — ADA ligand and its 4.5 Å protein pocket",
         [paths["ligand"]],
         body,
     )
 
-    body, _, _ = render_structure(structures["hdd"], (22, 30, 328, 260))
-    aptamer, _, _ = render_structure(structures["eht"], (356, 52, 180, 216))
+    body, _, _ = render_structure(structures["hdd"], (20, 27, 268, 261))
+    aptamer, _, _ = render_structure(structures["eht"], (296, 27, 244, 261))
     body.extend(aptamer)
     write_svg(
         "08_nucleic_acids.svg",

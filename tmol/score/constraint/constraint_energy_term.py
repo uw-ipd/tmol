@@ -134,7 +134,7 @@ class ConstraintEnergyTerm(EnergyTerm):
 
         def nearest_angle_radians(angle, x0):
             return angle - (
-                round_away_from_zero((angle - x0) / (math.pi * 2)) * (math.pi / 2)
+                round_away_from_zero((angle - x0) / (math.pi * 2)) * (math.pi * 2)
             )
 
         z = (nearest_angle_radians(angles, x0) - x0) / sd

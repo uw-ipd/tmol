@@ -22,7 +22,7 @@ def setup_colab(
     *,
     install_tutorial_source: bool = False,
 ) -> None:
-    """Install the GPU wheel and download checked-in tutorial fixtures."""
+    """Install TMol for the active Colab PyTorch and download tutorial fixtures."""
     gpu_probe = subprocess.run(
         ["nvidia-smi"],
         check=False,
@@ -42,10 +42,15 @@ def setup_colab(
             "A GPU is visible to Colab, but PyTorch cannot use CUDA. "
             "Reconnect to the GPU runtime and rerun the setup cell."
         )
-    if not torch.__version__.startswith("2.10."):
-        raise RuntimeError(
-            f"The TMol Colab environment requires PyTorch 2.10, "
-            f"found {torch.__version__}."
+    use_source_install = install_tutorial_source or not torch.__version__.startswith(
+        "2.10."
+    )
+    if use_source_install and not install_tutorial_source:
+        print(
+            f"The released TMol wheel targets PyTorch 2.10, while this Colab "
+            f"runtime provides {torch.__version__}. Building the tutorial branch "
+            "against the installed PyTorch instead; this takes longer than the "
+            "prebuilt-wheel path."
         )
 
     runtime_packages = [
@@ -54,10 +59,9 @@ def setup_colab(
         "openbabel-wheel==3.1.1.22",
         "py3Dmol>=2.4,<3",
     ]
-    if install_tutorial_source:
-        # v0.1.46 predates the merged DNA/RNA implementation. Build the exact
-        # tutorial branch against Colab's installed PyTorch until a newer
-        # release wheel is available.
+    if use_source_install:
+        # Build the exact tutorial branch when its APIs are required or when
+        # Colab's PyTorch does not match the ABI-specific release wheel.
         subprocess.check_call(
             [
                 sys.executable,
