@@ -62,7 +62,17 @@ class _TensorType(metaclass=_TensorTypeMeta):
     def validate(cls, value):
         if not isinstance(value, cls._tensortype):
             raise TypeError(f"expected {cls._tensortype!r}, received {type(value)!r}")
-        if not value.dtype == cls.dtype:
+        import torch
+        effective_dtype = value.dtype
+        # MPS does not support float64; accept float32 in its place
+        if (
+            isinstance(value, torch.Tensor)
+            and value.device.type == "mps"
+            and cls.dtype == torch.float64
+            and value.dtype == torch.float32
+        ):
+            effective_dtype = cls.dtype
+        if not effective_dtype == cls.dtype:
             raise TypeError(f"expected {cls.dtype!r}, received {value.dtype!r}")
         try:
             cls.shape.validate(value.shape)

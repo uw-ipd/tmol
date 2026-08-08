@@ -27,9 +27,17 @@ class TermScoringModule(torch.nn.Module):
         tail = list(self.common_parameters) + list(self.term_parameters)
         self._static_tail_f32 = tuple(tail) + (block_pair_scoring,)
 
-        tail_f64 = list(tail)
-        convert_float64(tail_f64)
-        self._static_tail_f64 = tuple(tail_f64) + (block_pair_scoring,)
+        # MPS does not support float64 tensors, so a float64 coords input
+        # (and hence self._static_tail_f64) can never occur on MPS; skip the
+        # conversion rather than crash on MPS-resident float32 parameters.
+        if any(
+            isinstance(t, torch.Tensor) and t.device.type == "mps" for t in tail
+        ):
+            self._static_tail_f64 = self._static_tail_f32
+        else:
+            tail_f64 = list(tail)
+            convert_float64(tail_f64)
+            self._static_tail_f64 = tuple(tail_f64) + (block_pair_scoring,)
 
     def add_parameters(self, table, params):
         def _p(t):

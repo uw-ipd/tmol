@@ -29,6 +29,11 @@ using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 using torch::autograd::tensor_list;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 template <template <tmol::Device> class DispatchMethod>
 class BackboneTorsionPoseScoreOp
     : public torch::autograd::Function<
@@ -70,6 +75,7 @@ class BackboneTorsionPoseScoreOp
     at::Tensor score;
     at::Tensor dscore_dcoords;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -114,6 +120,9 @@ class BackboneTorsionPoseScoreOp
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
 
     if (output_block_pair_energies) {
       auto max_n_rots_per_pose_tp =
@@ -219,6 +228,7 @@ class BackboneTorsionPoseScoreOp
 
       using Int = int32_t;
 
+      c10::Device orig_device = rot_coords.device();
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
@@ -265,6 +275,8 @@ class BackboneTorsionPoseScoreOp
 
             dV_d_rot_coords = result.tensor;
           }));
+
+      dV_d_rot_coords = mps_to_dev(dV_d_rot_coords, orig_device);
     }
 
     return {
@@ -348,6 +360,7 @@ class BackboneTorsionRotamerScoreOp
     at::Tensor dscore_dcoords;
     at::Tensor dispatch_indices;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -396,6 +409,10 @@ class BackboneTorsionRotamerScoreOp
           dscore_dcoords = std::get<1>(result).tensor;
           dispatch_indices = std::get<2>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+    dispatch_indices = mps_to_dev(dispatch_indices, orig_device);
 
     if (output_block_pair_energies) {
       auto max_n_rots_per_pose_tp =
@@ -500,6 +517,7 @@ class BackboneTorsionRotamerScoreOp
 
       using Int = int32_t;
 
+      c10::Device orig_device = rot_coords.device();
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
@@ -549,6 +567,8 @@ class BackboneTorsionRotamerScoreOp
 
             dV_d_rot_coords = result.tensor;
           }));
+
+      dV_d_rot_coords = mps_to_dev(dV_d_rot_coords, orig_device);
     }
 
     return {

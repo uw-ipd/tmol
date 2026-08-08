@@ -42,6 +42,9 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
       Tensor block_type_atom_icoors_backup) {
     at::Tensor new_coords;
 
+    // MPS round-trip: TPack allocates on CPU for MPS; move output back after.
+    c10::Device orig_device = orig_coords.device();
+
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -71,6 +74,11 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
 
           new_coords = result.tensor;
         }));
+
+    // Move result back to original device (MPS→CPU via TPack, then back to MPS)
+    if (orig_device.is_mps()) {
+      new_coords = new_coords.to(orig_device);
+    }
 
     ctx->save_for_backward(
         {orig_coords,
@@ -111,6 +119,7 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
 
     at::Tensor dE_d_orig_coords;
 
+    c10::Device orig_device = orig_coords.device();
     using Int = int32_t;
 
     auto dE_d_new_coords = grad_outputs[0];
@@ -143,6 +152,10 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
                   TCAST(block_type_atom_icoors_backup));
           dE_d_orig_coords = result.tensor;
         }));
+
+    if (orig_device.is_mps()) {
+      dE_d_orig_coords = dE_d_orig_coords.to(orig_device);
+    }
 
     return {
         dE_d_orig_coords,
@@ -200,6 +213,7 @@ Tensor resolve_his_tautomerization(
     Tensor his_atom_inds,
     Tensor his_remapping_dst_index) {
   at::Tensor his_taut;
+  c10::Device orig_device = coords.device();
   TMOL_DISPATCH_FLOATING_DEVICE(coords.options(), "resolve_his_taut", ([&] {
                                   using Real = scalar_t;
                                   constexpr tmol::Device Dev = device_t;
@@ -221,6 +235,9 @@ Tensor resolve_his_tautomerization(
                                   his_taut = result.tensor;
                                 }));
 
+  if (orig_device.is_mps()) {
+    his_taut = his_taut.to(orig_device);
+  }
   return his_taut;
 }
 

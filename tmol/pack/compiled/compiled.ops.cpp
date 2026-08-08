@@ -23,6 +23,11 @@ namespace compiled {
 ContextManager mgr;
 using torch::Tensor;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 std::vector<Tensor> build_interaction_graph(
     int64_t const bump_check,
     int64_t const chunk_size,
@@ -55,6 +60,7 @@ std::vector<Tensor> build_interaction_graph(
   at::Tensor chunk_pair_offset;
   at::Tensor energy2b;
 
+  c10::Device orig_device = sparse_energies.device();
   using Int = int64_t;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
@@ -98,6 +104,28 @@ std::vector<Tensor> build_interaction_graph(
         chunk_pair_offset = std::get<12>(result).tensor;
         energy2b = std::get<13>(result).tensor;
       }));
+
+  // max_n_bump_checked_rotamers_per_pose is always CPU-resident; the rest
+  // may have been computed via a CPU round-trip for MPS inputs.
+  n_molten_blocks_per_pose = mps_to_dev(n_molten_blocks_per_pose, orig_device);
+  n_bc_rots_per_pose = mps_to_dev(n_bc_rots_per_pose, orig_device);
+  bc_rot_offset_for_pose = mps_to_dev(bc_rot_offset_for_pose, orig_device);
+  n_bc_rots_for_molten_block =
+      mps_to_dev(n_bc_rots_for_molten_block, orig_device);
+  bc_rot_offset_for_molten_block =
+      mps_to_dev(bc_rot_offset_for_molten_block, orig_device);
+  molten_block_ind_for_bc_rot =
+      mps_to_dev(molten_block_ind_for_bc_rot, orig_device);
+  rotamer_for_nonmolten_block =
+      mps_to_dev(rotamer_for_nonmolten_block, orig_device);
+  bc_rot_to_orig_rot = mps_to_dev(bc_rot_to_orig_rot, orig_device);
+  bg_bg_energies = mps_to_dev(bg_bg_energies, orig_device);
+  energy1b = mps_to_dev(energy1b, orig_device);
+  chunk_pair_offset_for_block_pair =
+      mps_to_dev(chunk_pair_offset_for_block_pair, orig_device);
+  chunk_pair_offset = mps_to_dev(chunk_pair_offset, orig_device);
+  energy2b = mps_to_dev(energy2b, orig_device);
+
   std::vector<torch::Tensor> result(
       {max_n_bump_checked_rotamers_per_pose,
        n_molten_blocks_per_pose,
@@ -133,6 +161,7 @@ std::vector<Tensor> anneal(
   at::Tensor scores;
   at::Tensor rotamer_assignments;
 
+  c10::Device orig_device = energy1b.device();
   TMOL_DISPATCH_FLOATING_DEVICE(energy1b.options(), "pack_anneal", ([&] {
                                   constexpr tmol::Device Dev = device_t;
 
@@ -154,6 +183,9 @@ std::vector<Tensor> anneal(
                                   rotamer_assignments =
                                       std::get<1>(result).tensor;
                                 }));
+
+  scores = mps_to_dev(scores, orig_device);
+  rotamer_assignments = mps_to_dev(rotamer_assignments, orig_device);
 
   std::vector<torch::Tensor> result({scores, rotamer_assignments});
   return result;

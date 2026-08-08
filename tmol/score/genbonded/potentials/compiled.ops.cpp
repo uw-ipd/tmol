@@ -21,6 +21,11 @@ namespace potentials {
 
 ContextManager mgr;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 using torch::Tensor;
 using torch::autograd::AutogradContext;
 using torch::autograd::Function;
@@ -71,6 +76,7 @@ class GenBondedPoseScoreOp
     at::Tensor score;
     at::Tensor dscore_dcoords;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -116,6 +122,9 @@ class GenBondedPoseScoreOp
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
 
     if (output_block_pair_energies) {
       auto max_n_rots_per_pose_tp =
@@ -201,6 +210,8 @@ class GenBondedPoseScoreOp
       auto gen_inter_improper_hash_keys = saved[i++];
       auto gen_inter_improper_hash_values = saved[i++];
 
+      c10::Device orig_device = rot_coords.device();
+
       TMOL_DISPATCH_FLOATING_DEVICE(
           rot_coords.options(), "genbonded_pose_score_backward_op", ([&] {
             using Real = scalar_t;
@@ -241,6 +252,7 @@ class GenBondedPoseScoreOp
                         TCAST(grad_outputs[0]));
             dV_d_pose_coords = result.tensor;
           }));
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     // Return one gradient per forward() parameter (None for non-tensor args).
@@ -330,6 +342,7 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
     at::Tensor n_output_intxns;
     at::Tensor rotconn_for_output;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -378,6 +391,12 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
           n_output_intxns = std::get<3>(result).tensor;
           rotconn_for_output = std::get<4>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+    dispatch_indices = mps_to_dev(dispatch_indices, orig_device);
+    n_output_intxns = mps_to_dev(n_output_intxns, orig_device);
+    rotconn_for_output = mps_to_dev(rotconn_for_output, orig_device);
 
     auto max_n_rots_per_pose_tp =
         TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
@@ -455,6 +474,8 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
     auto n_output_intxns = saved[i++];
     auto rotconn_for_output = saved[i++];
 
+    c10::Device orig_device = rot_coords.device();
+
     TMOL_DISPATCH_FLOATING_DEVICE(
         rot_coords.options(), "genbonded_rotamer_score_backward_op", ([&] {
           using Real = scalar_t;
@@ -498,6 +519,7 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(grad_outputs[0]));
           dV_d_pose_coords = result.tensor;
         }));
+    dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
 
     // One None per forward() parameter.
     return {
