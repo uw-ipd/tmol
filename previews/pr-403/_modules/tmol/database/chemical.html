@@ -622,8 +622,9 @@
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PolymerProperties</span><span class="p">:</span>
     <span class="n">is_polymer</span><span class="p">:</span> <span class="nb">bool</span>
-    <span class="n">polymer_type</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">backbone_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="c1"># None for a non-polymer</span>
+    <span class="n">polymer_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">backbone_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="n">mainchain_atoms</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
     <span class="n">sidechain_chirality</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">termini_variants</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span></div>
@@ -718,9 +719,34 @@
 
 
 
+<div class="viewcode-block" id="VariantScope">
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.VariantScope">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VariantScope</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Which base residue types a patch is allowed to match.</span>
+
+<span class="sd">    An unset field places no restriction. Only properties that patching cannot</span>
+<span class="sd">    alter may be named here, so that a patch can never see another patch&#39;s</span>
+<span class="sd">    effects; mainchain_atoms, for one, does not qualify.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">backbone_types</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">base_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="VariantScope.matches">
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.VariantScope.matches">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">matches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">res</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">res</span><span class="o">.</span><span class="n">base_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_names</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">backbone</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone_types</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">backbone</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone_types</span></div>
+</div>
+
+
+
 <div class="viewcode-block" id="VariantType">
 <a class="viewcode-back" href="../../../api/database.html#tmol.database.chemical.VariantType">[docs]</a>
-<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VariantType</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">display_name</span><span class="p">:</span> <span class="nb">str</span>
@@ -731,7 +757,10 @@
     <span class="n">modify_atoms</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Atom</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">add_connections</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Connection</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">add_bonds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-    <span class="n">icoors</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">IcoorVariant</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span></div>
+    <span class="n">icoors</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">IcoorVariant</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">add_torsions</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Torsion</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">add_chi_samples</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ChiSamples</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">applies_to</span><span class="p">:</span> <span class="n">VariantScope</span> <span class="o">=</span> <span class="n">VariantScope</span><span class="p">()</span></div>
 
 
 

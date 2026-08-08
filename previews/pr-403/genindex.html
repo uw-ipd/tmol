@@ -467,6 +467,8 @@
 </li>
       <li><a href="api/database.html#tmol.database.chemical.VariantType.add_bonds">add_bonds (tmol.database.chemical.VariantType attribute)</a>
 </li>
+      <li><a href="api/database.html#tmol.database.chemical.VariantType.add_chi_samples">add_chi_samples (tmol.database.chemical.VariantType attribute)</a>
+</li>
       <li><a href="api/pack.html#tmol.pack.packer_task.PackerTask.add_conformer_sampler">add_conformer_sampler() (tmol.pack.packer_task.PackerTask method)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.packer_task.PackerTask.add_conformer_sampler_by_block_mask">add_conformer_sampler_by_block_mask() (tmol.pack.packer_task.PackerTask method)</a>
@@ -476,6 +478,8 @@
       <li><a href="api/pose.html#tmol.pose.constraint_set.ConstraintSet.add_constraints">add_constraints() (tmol.pose.constraint_set.ConstraintSet method)</a>
 </li>
       <li><a href="api/pose.html#tmol.pose.constraint_set.ConstraintSet.add_constraints_to_all_poses">add_constraints_to_all_poses() (tmol.pose.constraint_set.ConstraintSet method)</a>
+</li>
+      <li><a href="api/database.html#tmol.database.chemical.VariantType.add_torsions">add_torsions (tmol.database.chemical.VariantType attribute)</a>
 </li>
       <li><a href="api/chemical.html#tmol.chemical.restypes.RefinedResidueType.aliases_map">aliases_map (tmol.chemical.restypes.RefinedResidueType attribute)</a>
 </li>
@@ -490,6 +494,8 @@
       <li><a href="api/pack.html#tmol.pack.packer_task.PackerPalleteAnnotation.allowed_block_types_for_block_type">allowed_block_types_for_block_type (tmol.pack.packer_task.PackerPalleteAnnotation attribute)</a>
 </li>
       <li><a href="api/database.html#tmol.database.chemical.AtomAlias.alt_name">alt_name (tmol.database.chemical.AtomAlias attribute)</a>
+</li>
+      <li><a href="api/database.html#tmol.database.chemical.VariantType.applies_to">applies_to (tmol.database.chemical.VariantType attribute)</a>
 </li>
       <li><a href="api/ligand.html#tmol.ligand.fragmentation.apply_fragment_connections">apply_fragment_connections() (in module tmol.ligand.fragmentation)</a>
 </li>
@@ -583,7 +589,11 @@
 </li>
       <li><a href="api/database.html#tmol.database.chemical.PolymerProperties.backbone_type">backbone_type (tmol.database.chemical.PolymerProperties attribute)</a>
 </li>
+      <li><a href="api/database.html#tmol.database.chemical.VariantScope.backbone_types">backbone_types (tmol.database.chemical.VariantScope attribute)</a>
+</li>
       <li><a href="api/database.html#tmol.database.chemical.RawResidueType.base_name">base_name (tmol.database.chemical.RawResidueType attribute)</a>
+</li>
+      <li><a href="api/database.html#tmol.database.chemical.VariantScope.base_names">base_names (tmol.database.chemical.VariantScope attribute)</a>
 </li>
       <li><a href="api/score.html#tmol.score.beta2016_score_function">beta2016_score_function() (in module tmol.score)</a>
 </li>
@@ -1377,6 +1387,8 @@
 </li>
       <li><a href="api/score.html#tmol.score.score_utils.FragmentInteractionScores.mapping">mapping (tmol.score.score_utils.FragmentInteractionScores attribute)</a>
 </li>
+      <li><a href="api/database.html#tmol.database.chemical.VariantScope.matches">matches() (tmol.database.chemical.VariantScope method)</a>
+</li>
       <li><a href="api/pack.html#tmol.pack.packer_task.PackerPalleteAnnotation.max_n_allowed">max_n_allowed (tmol.pack.packer_task.PackerPalleteAnnotation attribute)</a>
 </li>
       <li><a href="api/pose.html#tmol.pose.constraint_set.ConstraintSet.MAX_N_ATOMS">MAX_N_ATOMS (tmol.pose.constraint_set.ConstraintSet attribute)</a>
@@ -1678,15 +1690,23 @@
       </ul></li>
       <li><a href="api/score.html#tmol.score.score_types.ScoreType.n_score_types">n_score_types (tmol.score.score_types.ScoreType attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/chemical.html#tmol.chemical.restypes.RefinedResidueType.n_torsions">n_torsions (tmol.chemical.restypes.RefinedResidueType property)</a>
 
       <ul>
         <li><a href="api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.n_torsions">(tmol.pose.packed_block_types.PackedBlockTypes attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.n_types">n_types (tmol.pose.packed_block_types.PackedBlockTypes property)</a>
+</li>
+      <li><a href="api/database.html#tmol.database.scoring.ScoringDatabase.na_torsion">na_torsion (tmol.database.scoring.ScoringDatabase attribute)</a>
+
+      <ul>
+        <li><a href="api/score.html#tmol.score.score_types.ScoreType.na_torsion">(tmol.score.score_types.ScoreType attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/score.html#tmol.score.score_types.ScoreType.na_torsion_well">na_torsion_well (tmol.score.score_types.ScoreType attribute)</a>
 </li>
       <li><a href="api/database.html#tmol.database.chemical.Atom.name">name (tmol.database.chemical.Atom attribute)</a>
 
@@ -1784,6 +1804,10 @@
         <li><a href="api/pose.html#tmol.pose.pose_stack.PoseStack.packed_block_types">(tmol.pose.pose_stack.PoseStack attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/io.html#tmol.io.pose_stack_from_openfold.packed_block_types_for_openfold">packed_block_types_for_openfold() (in module tmol.io.pose_stack_from_openfold)</a>
+</li>
+      <li><a href="api/io.html#tmol.io.pose_stack_from_rosettafold2.packed_block_types_for_rosettafold2">packed_block_types_for_rosettafold2() (in module tmol.io.pose_stack_from_rosettafold2)</a>
+</li>
       <li><a href="api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes">PackedBlockTypes (class in tmol.pose.packed_block_types)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.datatypes.PackerEnergyTables">PackerEnergyTables (class in tmol.pack.datatypes)</a>
@@ -2798,16 +2822,18 @@
 </li>
       <li><a href="api/utility.html#tmol.utility.categorical.vals_to_name_cat">vals_to_name_cat() (in module tmol.utility.categorical)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/utility.html#tmol.utility.categorical.vals_to_val_cat">vals_to_val_cat() (in module tmol.utility.categorical)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/chemical.html#tmol.chemical.patched_chemdb.PatchedChemicalDatabase.variants">variants (tmol.chemical.patched_chemdb.PatchedChemicalDatabase attribute)</a>
 
       <ul>
         <li><a href="api/database.html#tmol.database.chemical.ChemicalDatabase.variants">(tmol.database.chemical.ChemicalDatabase attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/database.html#tmol.database.chemical.VariantScope">VariantScope (class in tmol.database.chemical)</a>
+</li>
       <li><a href="api/database.html#tmol.database.chemical.VariantType">VariantType (class in tmol.database.chemical)</a>
 </li>
       <li><a href="api/io.html#tmol.io.view">view() (in module tmol.io)</a>

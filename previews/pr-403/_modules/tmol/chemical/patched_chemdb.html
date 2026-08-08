@@ -488,7 +488,7 @@
 
 
 <span class="c1"># remove all atom references from a raw restype</span>
-<span class="c1"># delete atoms, bonds, torsions, and connections involving atom</span>
+<span class="c1"># delete atoms, bonds, torsions, connections, and mainchain entries involving atom</span>
 <div class="viewcode-block" id="remove_atom">
 <a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.patched_chemdb.remove_atom">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">remove_atom</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">atom</span><span class="p">):</span>
@@ -503,6 +503,18 @@
         <span class="k">if</span> <span class="n">atom</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">connection</span><span class="p">]</span>
     <span class="p">)</span>
     <span class="n">res</span><span class="o">.</span><span class="n">connections</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">connections</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">atom</span><span class="p">)</span>
+
+    <span class="c1"># atom_downstream_of_conn indexes every mainchain atom, so a patch that drops</span>
+    <span class="c1"># one (e.g. the DNA 5&#39; terminus dropping P) must drop it here too</span>
+    <span class="n">mainchain</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">mainchain_atoms</span>
+    <span class="k">if</span> <span class="n">mainchain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mainchain</span><span class="p">:</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">properties</span><span class="p">,</span>
+            <span class="n">polymer</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="p">,</span>
+                <span class="n">mainchain_atoms</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">mainchain</span> <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="n">atom</span><span class="p">),</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
 
@@ -946,7 +958,9 @@
     <span class="c1">#    -if the patch adds atoms, we need to figure out how to ensure unique names</span>
     <span class="c1">#    -need a patch naming scheme if a patch applied twice</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">mod_unique</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
-        <span class="s2">&quot;Patch &quot;</span> <span class="o">+</span> <span class="n">variant</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; applies to residue &quot;</span> <span class="o">+</span> <span class="n">res</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; multiple times!&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;Patch </span><span class="si">{</span><span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> applies to residue </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> multiple times, &quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;matching the atom sets </span><span class="si">{</span><span class="n">mod_unique</span><span class="si">}</span><span class="s2">. Narrow the pattern, or scope the &quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;patch with applies_to.&quot;</span>
     <span class="p">)</span>
 
     <span class="c1"># apply patches</span>
@@ -1024,6 +1038,22 @@
             <span class="n">newres</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">,</span> <span class="n">namemap</span>
         <span class="p">)</span>
 
+        <span class="c1"># 5b. add torsions and the chi samples that name them</span>
+        <span class="n">newtorsions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">torsion</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">add_torsions</span><span class="p">:</span>
+            <span class="n">ats</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">x</span><span class="p">:</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="n">namemap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">atom</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">atom</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">a</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">b</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">c</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">d</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">}</span>
+            <span class="n">newtorsions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">torsion</span><span class="p">,</span> <span class="o">**</span><span class="n">ats</span><span class="p">))</span>
+        <span class="n">newres</span><span class="o">.</span><span class="n">torsions</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">torsions</span><span class="p">,</span> <span class="o">*</span><span class="n">newtorsions</span><span class="p">)</span>
+        <span class="n">newres</span><span class="o">.</span><span class="n">chi_samples</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">,</span> <span class="o">*</span><span class="n">variant</span><span class="o">.</span><span class="n">add_chi_samples</span><span class="p">)</span>
+
         <span class="c1"># 6. update modified atoms</span>
         <span class="c1"># a) directly modified/added</span>
         <span class="n">newmark</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">modded</span><span class="p">)</span>
@@ -1069,6 +1099,11 @@
         <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
             <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
 
+            <span class="c1"># resolve against the unpatched residue</span>
+            <span class="c1">#   BY DESIGN ... a patch can never be made conditional on another</span>
+            <span class="c1">#   patch having been applied</span>
+            <span class="n">variants</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">variants</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">applies_to</span><span class="o">.</span><span class="n">matches</span><span class="p">(</span><span class="n">res</span><span class="p">)]</span>
+
             <span class="n">resvariants</span><span class="p">,</span> <span class="n">resvariantnames</span><span class="p">,</span> <span class="n">marked_atoms</span> <span class="o">=</span> <span class="p">[</span><span class="n">res</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">],</span> <span class="p">[[]]</span>
             <span class="k">while</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
                 <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
@@ -1079,7 +1114,7 @@
                     <span class="n">resvariants</span><span class="p">,</span> <span class="n">resvariantnames</span><span class="p">,</span> <span class="n">marked_atoms</span>
                 <span class="p">):</span>
                     <span class="n">resgraph</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">from_raw_res</span><span class="p">(</span><span class="n">res_i</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">variants</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">variants</span><span class="p">:</span>
                         <span class="n">newtag</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">name_i</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
                         <span class="n">newtag</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
                         <span class="k">if</span> <span class="n">newtag</span> <span class="ow">in</span> <span class="n">resvariantnames</span> <span class="ow">or</span> <span class="n">newtag</span> <span class="ow">in</span> <span class="n">rvn_new</span><span class="p">:</span>

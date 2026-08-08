@@ -464,6 +464,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.pdb_info</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_ATOM_B_FACTOR</span><span class="p">,</span> <span class="n">DEFAULT_ATOM_OCCUPANCY</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.biotite_util</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_all_residue_positions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
@@ -546,6 +547,7 @@
 <span class="sd">        BiotitePoseBuildContext containing canonical ordering, packed block</span>
 <span class="sd">        types, parameter database, and residue type set.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">torch_device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">prepare_ligands</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_ligands</span> <span class="k">as</span> <span class="n">_prepare_ligands</span>
 
@@ -663,8 +665,11 @@
 <span class="sd">        Fragmented poses expose their block mapping as</span>
 <span class="sd">        ``pose_stack.fragmented_ligand_mapping``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">torch_device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
+
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.pose_stack_construction</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_canonical_form</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.build_missing_sidechains</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_missing_sidechains</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.na_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">NaChiRotamerSampler</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">create_dunbrack_sampler_from_database</span><span class="p">,</span>
     <span class="p">)</span>
@@ -742,6 +747,7 @@
         <span class="n">db</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span>
         <span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">torch_device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
         <span class="n">dunbrack_sampler</span> <span class="o">=</span> <span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
+        <span class="n">na_sampler</span> <span class="o">=</span> <span class="n">NaChiRotamerSampler</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -754,6 +760,7 @@
             <span class="n">dunbrack_sampler</span><span class="p">,</span>
             <span class="n">block_has_missing_atoms</span><span class="p">,</span>
             <span class="n">no_optH</span><span class="o">=</span><span class="n">no_optH</span><span class="p">,</span>
+            <span class="n">na_sampler</span><span class="o">=</span><span class="n">na_sampler</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">fragment_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -972,8 +979,9 @@
     <span class="p">]</span>
 
     <span class="c1"># Filter residues missing mainchain atoms required for rotamer building.</span>
-    <span class="c1"># The required atoms are taken from the residue type&#39;s polymer.mainchain_atoms</span>
-    <span class="c1"># definition; residues with no mainchain definition (non-polymer) are skipped.</span>
+    <span class="c1"># Only atoms present in every variant count as required, so an atom a terminus</span>
+    <span class="c1"># patch removes (the DNA 5&#39; phosphate) does not disqualify the residue.</span>
+    <span class="c1"># Residues with no mainchain definition (non-polymer) are skipped.</span>
     <span class="n">atom_names</span> <span class="o">=</span> <span class="n">biotite_structure</span><span class="o">.</span><span class="n">atom_name</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>
         <span class="n">coords</span> <span class="o">=</span> <span class="n">biotite_structure</span><span class="o">.</span><span class="n">coord</span>  <span class="c1"># (n_poses, n_atoms, 3)</span>
@@ -987,7 +995,7 @@
             <span class="k">continue</span>
         <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">biotite_residue_starts</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">residue_ends</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
         <span class="n">res_name3</span> <span class="o">=</span> <span class="n">biotite_structure</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">start</span><span class="p">]</span>
-        <span class="n">required</span> <span class="o">=</span> <span class="n">co</span><span class="o">.</span><span class="n">restypes_mainchain_atoms</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name3</span><span class="p">)</span>
+        <span class="n">required</span> <span class="o">=</span> <span class="n">co</span><span class="o">.</span><span class="n">restypes_required_mainchain_atoms</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name3</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">required</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="n">res_atom_names</span> <span class="o">=</span> <span class="n">atom_names</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
@@ -1008,12 +1016,14 @@
 
     <span class="n">valid_atoms</span> <span class="o">=</span> <span class="n">valid_res</span><span class="p">[</span><span class="n">get_all_residue_positions</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)]</span>
 
-    <span class="n">lower</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">valid_res</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">lower</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">lower</span> <span class="o">=</span> <span class="n">lower</span><span class="p">[</span><span class="n">valid_res</span><span class="p">]</span>
-    <span class="n">upper</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">valid_res</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">upper</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">upper</span> <span class="o">=</span> <span class="n">upper</span><span class="p">[</span><span class="n">valid_res</span><span class="p">]</span>
+    <span class="c1"># A kept residue whose neighbor was dropped has an unknown connection on</span>
+    <span class="c1"># that side; the ends of the kept set are termini, so they are marked after</span>
+    <span class="c1"># filtering</span>
+    <span class="n">lower</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">valid_res</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="n">valid_res</span><span class="p">]</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">valid_res</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">valid_res</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">lower</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+        <span class="n">lower</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">upper</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">not_connected</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">lower</span><span class="p">,</span> <span class="n">upper</span><span class="p">)))</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>

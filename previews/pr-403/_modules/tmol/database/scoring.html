@@ -452,6 +452,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">.cartbonded</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartBondedDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.genbonded</span><span class="w"> </span><span class="kn">import</span> <span class="n">GenBondedDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.disulfide</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisulfideDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.na_torsion</span><span class="w"> </span><span class="kn">import</span> <span class="n">NaTorsionDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.dunbrack_libraries</span><span class="w"> </span><span class="kn">import</span> <span class="n">DunbrackRotamerLibrary</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.elec</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElecDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.hbond</span><span class="w"> </span><span class="kn">import</span> <span class="n">HBondDatabase</span>
@@ -468,6 +469,7 @@
     <span class="n">cartbonded</span><span class="p">:</span> <span class="n">CartBondedDatabase</span>
     <span class="n">genbonded</span><span class="p">:</span> <span class="n">GenBondedDatabase</span>
     <span class="n">disulfide</span><span class="p">:</span> <span class="n">DisulfideDatabase</span>
+    <span class="n">na_torsion</span><span class="p">:</span> <span class="n">NaTorsionDatabase</span>
     <span class="n">dun</span><span class="p">:</span> <span class="n">DunbrackRotamerLibrary</span>
     <span class="n">elec</span><span class="p">:</span> <span class="n">ElecDatabase</span>
     <span class="n">hbond</span><span class="p">:</span> <span class="n">HBondDatabase</span>
@@ -487,6 +489,9 @@
             <span class="p">),</span>
             <span class="n">genbonded</span><span class="o">=</span><span class="n">GenBondedDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;genbonded.yaml&quot;</span><span class="p">)),</span>
             <span class="n">disulfide</span><span class="o">=</span><span class="n">DisulfideDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;disulfide.yaml&quot;</span><span class="p">)),</span>
+            <span class="n">na_torsion</span><span class="o">=</span><span class="n">NaTorsionDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;na_torsion.yaml&quot;</span><span class="p">)</span>
+            <span class="p">),</span>
             <span class="n">dun</span><span class="o">=</span><span class="n">DunbrackRotamerLibrary</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;dunbrack.bin&quot;</span><span class="p">)),</span>
             <span class="n">elec</span><span class="o">=</span><span class="n">ElecDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;elec.yaml&quot;</span><span class="p">)),</span>
             <span class="n">hbond</span><span class="o">=</span><span class="n">HBondDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;hbond.yaml&quot;</span><span class="p">)),</span>

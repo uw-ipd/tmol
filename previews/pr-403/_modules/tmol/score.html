@@ -450,6 +450,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
 
@@ -506,6 +507,8 @@
 <span class="sd">    https://pubs.acs.org/doi/10.1021/acs.jctc.6b0081 and</span>
 <span class="sd">    https://pubs.acs.org/doi/full/10.1021/acs.jctc.7b00125</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># resolved before the memo lookup so that &#39;cuda&#39; and &#39;cuda:0&#39; share one entry</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_non_memoized_beta2016</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_memoized_beta2016</span><span class="p">(</span><span class="n">device</span><span class="p">)</span></div>

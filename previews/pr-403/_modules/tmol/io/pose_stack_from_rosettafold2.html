@@ -451,6 +451,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">toolz</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical.restypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
@@ -646,8 +647,9 @@
     <span class="k">return</span> <span class="n">CanonicalOrdering</span><span class="o">.</span><span class="n">from_chemdb</span><span class="p">(</span><span class="n">paramdb</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
 
 
+<div class="viewcode-block" id="packed_block_types_for_rosettafold2">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_rosettafold2.packed_block_types_for_rosettafold2">[docs]</a>
 <span class="nd">@validate_args</span>
-<span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">packed_block_types_for_rosettafold2</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackedBlockTypes</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Construct the PackedBlockTypes (PBT) object that will be used for</span>
 <span class="sd">    the subset of residue types that are used by RoseTTAFold2. For efficiency</span>
@@ -656,7 +658,15 @@
 <span class="sd">    function if they are constructing PoseStacks from deserialized</span>
 <span class="sd">    canonical form objects. See canonical_form_from_rosettafold2 for details.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># resolved before the memo lookup so &#39;cuda&#39; and &#39;cuda:0&#39; share one entry</span>
+    <span class="k">return</span> <span class="n">_memoized_packed_block_types_for_rosettafold2</span><span class="p">(</span><span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">))</span></div>
 
+
+
+<span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_memoized_packed_block_types_for_rosettafold2</span><span class="p">(</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackedBlockTypes</span><span class="p">:</span>
     <span class="n">restype_set</span> <span class="o">=</span> <span class="n">_restype_set_for_rosettafold2</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>

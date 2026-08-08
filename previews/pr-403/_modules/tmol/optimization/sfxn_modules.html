@@ -466,7 +466,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">whole_pose_scoring_module</span> <span class="o">=</span> <span class="n">wpsm</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span>
+        <span class="c1"># clone: forward() writes into full_coords in place, which would</span>
+        <span class="c1"># otherwise overwrite the caller&#39;s coordinates</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">coord_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">coord_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>

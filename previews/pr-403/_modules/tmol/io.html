@@ -490,7 +490,9 @@
         <span class="n">canonical_form_from_pdb</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.pose_stack_construction</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_canonical_form</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
+    <span class="n">device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="n">co</span> <span class="o">=</span> <span class="n">default_canonical_ordering</span><span class="p">()</span>
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">default_packed_block_types</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="n">cf</span> <span class="o">=</span> <span class="n">canonical_form_from_pdb</span><span class="p">(</span>

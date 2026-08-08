@@ -451,6 +451,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">PackerPalette</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">DunbrackChiSampler</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.fixed_aa_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedAAChiSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.na_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">NaChiRotamerSampler</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.pack_rotamers</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span>
 
 
@@ -462,16 +463,21 @@
     <span class="n">dunbrack_sampler</span><span class="p">:</span> <span class="n">DunbrackChiSampler</span><span class="p">,</span>
     <span class="n">block_has_missing_atoms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>
     <span class="n">no_optH</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">na_sampler</span><span class="p">:</span> <span class="n">NaChiRotamerSampler</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build missing sidechains and place hydrogens using per-block sampler assignment.</span>
 
 <span class="sd">    Assigns samplers on a per-block basis in a single packing run:</span>
 
 <span class="sd">    - Blocks with missing non-leaf (heavy) atoms: DunbrackChiSampler +</span>
-<span class="sd">      FixedAAChiSampler.  The input conformation is not included as a rotamer</span>
-<span class="sd">      because the sidechain is incomplete.</span>
+<span class="sd">      FixedAAChiSampler for amino acids, NaChiRotamerSampler for nucleotides.</span>
+<span class="sd">      The input conformation is not included as a rotamer because the sidechain</span>
+<span class="sd">      is incomplete.</span>
 <span class="sd">    - All other real blocks (leaf-only or no missing atoms): OptHSampler, which</span>
 <span class="sd">      keeps heavy atoms fixed and samples proton chi angles and NHQ flips.</span>
+<span class="sd">      The two sets are disjoint: NaChiRotamerSampler expands the RNA 2&#39;-OH</span>
+<span class="sd">      itself, exactly as DunbrackChiSampler expands protein proton chis, so a</span>
+<span class="sd">      block must never be given both.</span>
 <span class="sd">      FallbackSampler (always present by default) covers residue types that</span>
 <span class="sd">      OptH does not handle (ALA, GLY, etc.).</span>
 
@@ -487,6 +493,8 @@
 <span class="sd">        pose_stack: The pose stack to process.</span>
 <span class="sd">        sfxn: Score function used for packing.</span>
 <span class="sd">        dunbrack_sampler: DunbrackChiSampler configured from the parameter DB.</span>
+<span class="sd">        na_sampler: NaChiRotamerSampler configured from the parameter DB; when</span>
+<span class="sd">            omitted, nucleotides with missing atoms get no rotamers.</span>
 <span class="sd">        block_has_missing_atoms: Boolean tensor [n_poses, max_n_blocks]; True</span>
 <span class="sd">            for blocks that have missing non-leaf (heavy) atoms.</span>
 <span class="sd">        no_optH: When True, skip OptH and preserve old Dunbrack-only behavior.</span>
@@ -508,6 +516,8 @@
 
     <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">dunbrack_sampler</span><span class="p">,</span> <span class="n">block_has_missing_atoms</span><span class="p">)</span>
     <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">fixed_sampler</span><span class="p">,</span> <span class="n">block_has_missing_atoms</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">na_sampler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span><span class="n">na_sampler</span><span class="p">,</span> <span class="n">block_has_missing_atoms</span><span class="p">)</span>
     <span class="n">block_does_not_have_missing_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">no_optH</span><span class="p">:</span>
         <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler_by_block_mask</span><span class="p">(</span>
