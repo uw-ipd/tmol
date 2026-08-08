@@ -35,7 +35,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=f529eb24" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -426,6 +426,9 @@
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
     
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    
     <li class="breadcrumb-item"><a href="../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.score_utils</span></li>
@@ -460,7 +463,7 @@
 
 
 <div class="viewcode-block" id="FragmentInteractionScores">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.FragmentInteractionScores">[docs]</a>
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.score.score_utils.FragmentInteractionScores">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FragmentInteractionScores</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Per-fragment interactions with an explicitly selected partner.&quot;&quot;&quot;</span>
@@ -471,7 +474,7 @@
 
 
 <div class="viewcode-block" id="calculate_fragment_interactions">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.calculate_fragment_interactions">[docs]</a>
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.score.score_utils.calculate_fragment_interactions">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">calculate_fragment_interactions</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">,</span>
     <span class="n">partner_mask</span><span class="p">,</span>
@@ -568,7 +571,7 @@
 
 
 <div class="viewcode-block" id="residue_mask_from_chain">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.residue_mask_from_chain">[docs]</a>
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.score.score_utils.residue_mask_from_chain">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">residue_mask_from_chain</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a boolean block-level mask selecting residues belonging to a given</span>
 <span class="sd">    chain, identified by its PDB chain label string.</span>
@@ -592,7 +595,7 @@
 
 
 <div class="viewcode-block" id="calculate_block_pair_ddg">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.calculate_block_pair_ddg">[docs]</a>
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.score.score_utils.calculate_block_pair_ddg">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">calculate_block_pair_ddg</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">,</span>
     <span class="n">mask</span><span class="p">,</span>
@@ -604,8 +607,13 @@
     <span class="n">database</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">return_pose_stack</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate DDG score between two subsets of blocks within each pose, defined by 2 masks.</span>
-<span class="sd">    If only one mask is provided, it will use the inverse of the first mask for the second.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the cross-mask block-pair interaction score within each pose.</span>
+
+<span class="sd">    The historical ``ddg`` name follows Rosetta interface-scoring terminology,</span>
+<span class="sd">    but this function does not compute a thermodynamic free-energy difference:</span>
+<span class="sd">    it sums weighted block-pair terms from one complex and does not score a</span>
+<span class="sd">    separated state. If only one mask is provided, the second subset is the</span>
+<span class="sd">    inverse of the first.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        pose_stack: The pose stack to score</span>
@@ -615,17 +623,17 @@
 <span class="sd">        sfxn: Optional score function to use. If not provided, will default to beta2016</span>
 <span class="sd">        sum_terms: If True, sum all score terms into a single score per pose. If False,</span>
 <span class="sd">            return per-term scores.</span>
-<span class="sd">        minimize: If True (default), run cartesian minimization on the masked atoms before</span>
-<span class="sd">            computing the DDG score.</span>
+<span class="sd">        minimize: If True (default), run cartesian minimization on the masked</span>
+<span class="sd">            atoms before computing the interaction score.</span>
 <span class="sd">        pack: If True, pack (repack) rotamers of residues in the mask and residues adjacent</span>
 <span class="sd">            to the mask (computed via ``compute_block_adjacency``) before the minimization step.</span>
 <span class="sd">        return_pose_stack: If True, also return the (possibly packed/minimized) pose stack</span>
 <span class="sd">            that was actually scored, as ``(ddg_scores, pose_stack)``.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Tensor of shape [n_poses] or [n_terms, n_poses] containing the ddg score for each pose,</span>
-<span class="sd">        separated by terms if requested. If ``return_pose_stack`` is True, returns a tuple</span>
-<span class="sd">        ``(ddg_scores, pose_stack)``.</span>
+<span class="sd">        Tensor of shape [n_poses] or [n_terms, n_poses] containing the</span>
+<span class="sd">        interaction score for each pose, separated by terms if requested. If</span>
+<span class="sd">        ``return_pose_stack`` is True, returns ``(scores, pose_stack)``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">torch_device</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
 
@@ -719,7 +727,7 @@
 
 
 <div class="viewcode-block" id="res_mask_to_coord_mask">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.res_mask_to_coord_mask">[docs]</a>
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.score.score_utils.res_mask_to_coord_mask">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">res_mask_to_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert a block-level (residue) boolean mask to an atom-level coordinate mask.</span>
 
@@ -802,7 +810,7 @@
 
 
 <div class="viewcode-block" id="build_sidechain_coord_mask">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.build_sidechain_coord_mask">[docs]</a>
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.score.score_utils.build_sidechain_coord_mask">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_sidechain_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a coord_mask that selects only atoms belonging to sidechains.</span>
 
@@ -908,7 +916,7 @@
 
 
 <div class="viewcode-block" id="compute_block_centroids_and_furthest_dist">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.compute_block_centroids_and_furthest_dist">[docs]</a>
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.score.score_utils.compute_block_centroids_and_furthest_dist">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute_block_centroids_and_furthest_dist</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;For each block in a pose stack, compute the average coordinate (centroid)</span>
 <span class="sd">    of all of its atoms, as well as the distance of the furthest atom from this</span>
@@ -972,8 +980,6 @@
 
 
 
-<div class="viewcode-block" id="build_coord_mask_for_mask_and_interacting_atoms">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.build_coord_mask_for_mask_and_interacting_atoms">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_coord_mask_for_mask_and_interacting_atoms</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
 
     <span class="c1"># Build coord_mask: True for atoms in masked blocks and sidechain atoms within 5.0 Angstroms.</span>
@@ -1152,12 +1158,11 @@
         <span class="c1"># Update coord_mask for this pose</span>
         <span class="n">coord_mask</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">real_atom_indices</span><span class="p">[</span><span class="n">atoms_to_add</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
 
-    <span class="k">return</span> <span class="n">coord_mask</span></div>
-
+    <span class="k">return</span> <span class="n">coord_mask</span>
 
 
 <div class="viewcode-block" id="build_coord_mask_for_mask_and_nearby_blocks">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.build_coord_mask_for_mask_and_nearby_blocks">[docs]</a>
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.score.score_utils.build_coord_mask_for_mask_and_nearby_blocks">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_coord_mask_for_mask_and_nearby_blocks</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a coord mask starting from a per-block mask, extending to</span>
 <span class="sd">    sidechain atoms of blocks whose centroid is within dynamic range of</span>
@@ -1236,7 +1241,7 @@
 
 
 <div class="viewcode-block" id="compute_block_adjacency">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_utils.compute_block_adjacency">[docs]</a>
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.score.score_utils.compute_block_adjacency">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute_block_adjacency</span><span class="p">(</span><span class="n">block_centroids</span><span class="p">,</span> <span class="n">block_furthest_dist</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="mf">5.0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute a boolean block-level adjacency matrix.</span>
 

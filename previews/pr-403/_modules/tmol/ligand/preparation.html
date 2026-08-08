@@ -35,7 +35,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=f529eb24" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -425,6 +425,9 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand.preparation</span></li>
   </ul>
 </nav>
@@ -482,7 +485,7 @@
 
 
 <div class="viewcode-block" id="LigandPreparationError">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.preparation.LigandPreparationError">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.LigandPreparationError">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LigandPreparationError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A detected ligand could not be prepared, registered, or retained.</span>
 
@@ -582,7 +585,7 @@
 
 
 <div class="viewcode-block" id="prepare_single_ligand">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.preparation.prepare_single_ligand">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.prepare_single_ligand">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">prepare_single_ligand</span><span class="p">(</span>
     <span class="n">ligand_info</span><span class="p">:</span> <span class="n">NonStandardResidueInfo</span><span class="p">,</span>
     <span class="n">sample_proton_chi</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -840,7 +843,7 @@
 
 
 <div class="viewcode-block" id="prepare_ligands">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.preparation.prepare_ligands">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.prepare_ligands">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">prepare_ligands</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
     <span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">,</span>
     <span class="n">param_db</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1159,7 +1162,7 @@
 
 
 <div class="viewcode-block" id="prepare_ligand_from_cif">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.preparation.prepare_ligand_from_cif">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.prepare_ligand_from_cif">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">prepare_ligand_from_cif</span><span class="p">(</span>
     <span class="n">cif_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1196,7 +1199,7 @@
 
 
 <div class="viewcode-block" id="prepare_ligand_from_smiles">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.preparation.prepare_ligand_from_smiles">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.prepare_ligand_from_smiles">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">prepare_ligand_from_smiles</span><span class="p">(</span>
     <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1235,7 +1238,7 @@
 
 
 <div class="viewcode-block" id="prepare_ligand_from_mol2">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.preparation.prepare_ligand_from_mol2">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.prepare_ligand_from_mol2">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">prepare_ligand_from_mol2</span><span class="p">(</span>
     <span class="n">mol2_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>

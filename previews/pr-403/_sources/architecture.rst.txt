@@ -44,63 +44,24 @@ Scoring Overview
 ================
 
 Scoring is managed by rendered PyTorch modules that evaluate configured energy
-terms over one or more poses. A model is defined over a set ``n`` of bonded
-atoms. Each atom is located at an atom index and is defined by a type and
-coordinate. Atoms may be null, defining no type and a NaN coordinate at a given
-index. Bonds are represented as sparse, undirected bonded inter-atom index
-pairs.
+terms over a ``PoseStack``. Coordinates have shape
+``[n_poses, max_n_atoms, 3]``; ``real_atoms`` distinguishes molecular atoms
+from padding, while block-type and connection tensors describe residue and
+polymer topology.
 
 .. code-block:: text
 
-  +---------------------------------------+
-  |                                  --   |
-  | "[n] atom_types"                /  \  |
-  | "[n] coordinates"            +-+    + |
-  | "[b] (a,b) bond indices"    /   \  /  |
-  |                                  --   |
-  +----------------------------------+----+
-                                     |
-                                     |
-  +----------------------------------|----+
-  |                              +---o--+ |
-  |                              +------+ |
-  | "[l] layers"                 +------+ |
-  |                              +------+ |
-  |                              +------+ |
-  +---------------------------------------+
-
-Score calculation is performed on an intra-layer and inter-layer basis.
-Intra-layer scoring is defined across all interactions, bonded and non-bonded,
-within a layer. Inter-layer scoring is defined over inter-layer non-bonded
-interactions.
-
-.. note:: ``tmol.score`` currently only supports intra-layer scoring and is
-   limited to models of depth 1.
+  PoseStack + ScoreFunction
+             |
+             +--> whole-pose module --> [n_poses]
+             |
+             +--> block-pair module --> [n_poses, n_blocks, n_blocks]
+             |
+             +--> rotamer module -----> packer candidate energies
 
 The score function implementation is partitioned into score term classes, each
 covering a logically distinct component of the energy function. These
-components include score terms, derived pose representations, and support data
-required for score evaluation. A rendered scoring module includes an atomic
-representation, some number of score terms, and a weighted total score.
-
-.. code-block:: text
-
-  +------------------------------+
-  |                              |
-  |          +-------+           |
-  |          | Atoms |           |
-  |          ++-----++           |
-  |           |     |            |
-  |        +--+    ++------+     |
-  |        |       |Derived|     |
-  |        v       ++-----++     |
-  |    +----+       |     |      |
-  |    |Term|       v     v      |
-  |    +---++   +----+ +----+    |
-  |        |    |Term| |Term|    |
-  |        v    +--+-+ +--+-+    |
-  |      +-----+   |      |      |
-  |      |Total|<--+------+      |
-  |      +-----+                 |
-  |                              |
-  +------------------------------+
+term annotates residue/block data before rendering its coordinate-dependent
+module. Calls may return either the weighted total or a leading score-term axis
+when ``sum_terms=False``. The complete score-type-to-term map is documented in
+:doc:`api/score_terms`.

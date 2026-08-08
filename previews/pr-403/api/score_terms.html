@@ -1,0 +1,1981 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Score Terms &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=fba6396e" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/score_terms';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-403';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Types" href="types.html" />
+    <link rel="prev" title="Scoring Analyses" href="analysis.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.46" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Interactive tutorials
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Interactive tutorials
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="top_level.html">Top-level API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chemical.html">Chemical Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="database.html">Databases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io.html">Input and Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kinematics.html">Kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ligand.html">Ligand API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="numeric.html">Numerics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pack.html">Packing API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pose.html">Pose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="relax.html">Relax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="score.html">Scoring API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">Scoring Analyses</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Score Terms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types.html">Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utility.html">Utilities</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../api_reference.html" class="nav-link">API Reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Score Terms</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="score-terms">
+<h1>Score Terms<a class="headerlink" href="#score-terms" title="Link to this heading">#</a></h1>
+<p>TMol score functions combine weighted <a class="reference internal" href="score.html#tmol.score.score_types.ScoreType" title="tmol.score.score_types.ScoreType"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.score_types.ScoreType</span></code></a>
+values. A <a class="reference internal" href="score.html#tmol.score.score_function.ScoreFunction" title="tmol.score.score_function.ScoreFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.score_function.ScoreFunction</span></code></a> activates the energy
+term implementation associated with each non-zero weight, then renders a
+whole-pose, block-pair, or rotamer scoring module for a particular
+<a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.pose_stack.PoseStack</span></code></a>.</p>
+<section id="score-type-map">
+<h2>Score-type map<a class="headerlink" href="#score-type-map" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 28.0%" />
+<col style="width: 48.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Score types</p></th>
+<th class="head"><p>Energy-term class</p></th>
+<th class="head"><p>Quantity represented</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fa_ljatr</span></code>, <code class="docutils literal notranslate"><span class="pre">fa_ljrep</span></code>, <code class="docutils literal notranslate"><span class="pre">fa_lk</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm" title="tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">LJLKEnergyTerm</span></code></a></p></td>
+<td><p>Attractive and repulsive Lennard-Jones interactions and isotropic
+Lazaridis-Karplus solvation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fa_elec</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm" title="tmol.score.elec.elec_energy_term.ElecEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">ElecEnergyTerm</span></code></a></p></td>
+<td><p>Distance-dependent full-atom electrostatics.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hbond</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm" title="tmol.score.hbond.hbond_energy_term.HBondEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">HBondEnergyTerm</span></code></a></p></td>
+<td><p>Orientation-dependent hydrogen-bond interactions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cart_lengths</span></code>, <code class="docutils literal notranslate"><span class="pre">cart_angles</span></code>, <code class="docutils literal notranslate"><span class="pre">cart_torsions</span></code>,
+<code class="docutils literal notranslate"><span class="pre">cart_impropers</span></code>, <code class="docutils literal notranslate"><span class="pre">cart_hxltorsions</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm" title="tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">CartBondedEnergyTerm</span></code></a></p></td>
+<td><p>Bonded geometry used by Cartesian scoring and minimization.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">constraint</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm" title="tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConstraintEnergyTerm</span></code></a></p></td>
+<td><p>Harmonic distance, bounded distance, harmonic coordinate, and
+circular-harmonic torsion constraints attached through
+<a class="reference internal" href="pose.html#tmol.pose.constraint_set.ConstraintSet" title="tmol.pose.constraint_set.ConstraintSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.constraint_set.ConstraintSet</span></code></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">disulfide</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm" title="tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">DisulfideEnergyTerm</span></code></a></p></td>
+<td><p>Geometry of disulfide-linked cysteine pairs.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">omega</span></code>, <code class="docutils literal notranslate"><span class="pre">rama</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm" title="tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">BackboneTorsionEnergyTerm</span></code></a></p></td>
+<td><p>Backbone-dependent peptide omega and Ramachandran torsion preferences.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dunbrack_rot</span></code>, <code class="docutils literal notranslate"><span class="pre">dunbrack_rotdev</span></code>, <code class="docutils literal notranslate"><span class="pre">dunbrack_semirot</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm" title="tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">DunbrackEnergyTerm</span></code></a></p></td>
+<td><p>Backbone-dependent amino-acid rotamer probabilities and deviations.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lk_ball_iso</span></code>, <code class="docutils literal notranslate"><span class="pre">lk_ball</span></code>, <code class="docutils literal notranslate"><span class="pre">lk_bridge</span></code>, <code class="docutils literal notranslate"><span class="pre">lk_bridge_uncpl</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm" title="tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">LKBallEnergyTerm</span></code></a></p></td>
+<td><p>Directional water-mediated solvation and bridging terms.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ref</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm" title="tmol.score.ref.ref_energy_term.RefEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">RefEnergyTerm</span></code></a></p></td>
+<td><p>Per-residue-type reference energies.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gen_torsions</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm" title="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">GenBondedEnergyTerm</span></code></a></p></td>
+<td><p>Generic bonded torsions, including ligand torsional parameters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">na_torsion</span></code>, <code class="docutils literal notranslate"><span class="pre">na_torsion_well</span></code></p></td>
+<td><p><a class="reference internal" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm" title="tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">NaTorsionEnergyTerm</span></code></a></p></td>
+<td><p>DNA/RNA backbone, glycosidic-chi, sugar, coupling, and rotamer-well
+preferences with polymer-specific parameters.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">ScoreType.n_score_types</span></code> is a terminal size sentinel used for weight-vector
+allocation; it is not a score component.</p>
+</section>
+<section id="non-bonded-and-solvation-terms">
+<h2>Non-bonded and solvation terms<a class="headerlink" href="#non-bonded-and-solvation-terms" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.ljlk.ljlk_energy_term.</span></span><span class="sig-name descname"><span class="pre">LJLKEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/ljlk_energy_term.html#LJLKEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AtomTypeDependentTerm</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">BondDependentTerm</span></code></p>
+<p>Lennard-Jones attraction/repulsion and isotropic LK solvation term.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/ljlk_energy_term.html#LJLKEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/ljlk_energy_term.html#LJLKEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.set_options">
+<span class="sig-name descname"><span class="pre">set_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/ljlk_energy_term.html#LJLKEnergyTerm.set_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.set_options" title="Link to this definition">#</a></dt>
+<dd><p>Receive a dictionary of options from the ScoreFunction.</p>
+<p>Subclasses may override this method to extract configuration values
+that affect scoring behavior, such as boolean flags, numeric
+parameters, or other settings. The base implementation is a no-op.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/ljlk_energy_term.html#LJLKEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/ljlk_energy_term.html#LJLKEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/ljlk_energy_term.html#LJLKEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.elec.elec_energy_term.ElecEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.elec.elec_energy_term.</span></span><span class="sig-name descname"><span class="pre">ElecEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/elec_energy_term.html#ElecEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AtomTypeDependentTerm</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">BondDependentTerm</span></code></p>
+<p>Full-atom distance-dependent electrostatic interaction term.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.elec.elec_energy_term.ElecEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/elec_energy_term.html#ElecEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.elec.elec_energy_term.ElecEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/elec_energy_term.html#ElecEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.elec.elec_energy_term.ElecEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/elec_energy_term.html#ElecEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.elec.elec_energy_term.ElecEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/elec_energy_term.html#ElecEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.elec.elec_energy_term.ElecEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/elec_energy_term.html#ElecEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.hbond.hbond_energy_term.HBondEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.hbond.hbond_energy_term.</span></span><span class="sig-name descname"><span class="pre">HBondEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/hbond_energy_term.html#HBondEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AtomTypeDependentTerm</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">HBondDependentTerm</span></code></p>
+<p>Orientation-dependent hydrogen-bond interaction term.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/hbond_energy_term.html#HBondEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/hbond_energy_term.html#HBondEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/hbond_energy_term.html#HBondEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/hbond_energy_term.html#HBondEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/hbond_energy_term.html#HBondEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.lk_ball.lk_ball_energy_term.</span></span><span class="sig-name descname"><span class="pre">LKBallEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/lk_ball_energy_term.html#LKBallEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AtomTypeDependentTerm</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">HBondDependentTerm</span></code></p>
+<p>Directional LK-ball solvation and water-bridge interaction term.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/lk_ball_energy_term.html#LKBallEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/lk_ball_energy_term.html#LKBallEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/lk_ball_energy_term.html#LKBallEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/lk_ball_energy_term.html#LKBallEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/lk_ball_energy_term.html#LKBallEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="bonded-torsional-and-reference-terms">
+<h2>Bonded, torsional, and reference terms<a class="headerlink" href="#bonded-torsional-and-reference-terms" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.cartbonded.cartbonded_energy_term.</span></span><span class="sig-name descname"><span class="pre">CartBondedEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/cartbonded_energy_term.html#CartBondedEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AtomTypeDependentTerm</span></code></p>
+<p>Bond-length, angle, proper/improper, and hydroxyl torsion geometry term.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/cartbonded_energy_term.html#CartBondedEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/cartbonded_energy_term.html#CartBondedEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/cartbonded_energy_term.html#CartBondedEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/cartbonded_energy_term.html#CartBondedEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/cartbonded_energy_term.html#CartBondedEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.genbonded.genbonded_energy_term.</span></span><span class="sig-name descname"><span class="pre">GenBondedEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AtomTypeDependentTerm</span></code></p>
+<p>Generic atom-type-dependent bonded torsion term.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.find_torsion_subgraphs">
+<span class="sig-name descname"><span class="pre">find_torsion_subgraphs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bonds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm.find_torsion_subgraphs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.find_torsion_subgraphs" title="Link to this definition">#</a></dt>
+<dd><p>Return list of (i, j, k, l) tuples for all proper torsions in <em>bonds</em>.</p>
+<p>Atoms are represented as local indices within the block.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.find_improper_subgraphs">
+<span class="sig-name descname"><span class="pre">find_improper_subgraphs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bonds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm.find_improper_subgraphs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.find_improper_subgraphs" title="Link to this definition">#</a></dt>
+<dd><p>Return list of (center, n1, n2, n3) tuples for all improper torsions.</p>
+<p>An atom is an improper center if it has exactly 3 bonded neighbors.
+The three neighbor indices are returned in sorted (canonical) order.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.get_atom_chem_type">
+<span class="sig-name descname"><span class="pre">get_atom_chem_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm.get_atom_chem_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.get_atom_chem_type" title="Link to this definition">#</a></dt>
+<dd><p>Return the chemical atom type string for <em>atom_idx</em> in <em>block_type</em>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.resolve_torsion_params">
+<span class="sig-name descname"><span class="pre">resolve_torsion_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">torsions</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm.resolve_torsion_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.resolve_torsion_params" title="Link to this definition">#</a></dt>
+<dd><p>For each torsion tuple (i,j,k,l), look up its genbonded parameters.</p>
+<dl>
+<dt>Returns (kept_torsions, params) where:</dt><dd><p>kept_torsions : filtered list of (i,j,k,l) tuples that had a DB match
+params        : numpy float32 array of shape (N_kept, 5):</p>
+<blockquote>
+<div><p>columns [k1, k2, k3, k4, offset]</p>
+</div></blockquote>
+</dd>
+</dl>
+<p>Torsions with no matching database entry are dropped from the output.
+The central bond (j,k) bond type is looked up from block_type.bond_to_type
+and passed to find_torsion_params for bond-aware matching.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.resolve_improper_params">
+<span class="sig-name descname"><span class="pre">resolve_improper_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">impropers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm.resolve_improper_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.resolve_improper_params" title="Link to this definition">#</a></dt>
+<dd><p>For each improper tuple (center, n1, n2, n3), look up parameters.</p>
+<dl class="simple">
+<dt>Returns (kept_impropers, params) where:</dt><dd><p>kept_impropers : filtered list of tuples that had a DB match
+params         : numpy float32 array of shape (N_kept, 2): [k, delta]</p>
+</dd>
+</dl>
+<p>Impropers with no matching database entry are dropped.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.atom_hierarchy_indices">
+<span class="sig-name descname"><span class="pre">atom_hierarchy_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm.atom_hierarchy_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.atom_hierarchy_indices" title="Link to this definition">#</a></dt>
+<dd><p>Return a list of up to MAX_HIER_DEPTH type indices for <em>atom_type</em>.</p>
+<p>The list goes from most specific to most generic.  Padded with -1 to
+reach MAX_HIER_DEPTH elements.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/genbonded/genbonded_energy_term.html#GenBondedEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.disulfide.disulfide_energy_term.</span></span><span class="sig-name descname"><span class="pre">DisulfideEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/disulfide/disulfide_energy_term.html#DisulfideEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="score.html#tmol.score.energy_term.EnergyTerm" title="tmol.score.energy_term.EnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyTerm</span></code></a></p>
+<p>Score bond geometry for disulfide-connected cysteine pairs.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/disulfide/disulfide_energy_term.html#DisulfideEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/disulfide/disulfide_energy_term.html#DisulfideEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/disulfide/disulfide_energy_term.html#DisulfideEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/disulfide/disulfide_energy_term.html#DisulfideEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/disulfide/disulfide_energy_term.html#DisulfideEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.backbone_torsion.bb_torsion_energy_term.</span></span><span class="sig-name descname"><span class="pre">BackboneTorsionEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/backbone_torsion/bb_torsion_energy_term.html#BackboneTorsionEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="score.html#tmol.score.energy_term.EnergyTerm" title="tmol.score.energy_term.EnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyTerm</span></code></a></p>
+<p>Backbone-dependent Ramachandran and peptide-omega torsion term.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/backbone_torsion/bb_torsion_energy_term.html#BackboneTorsionEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/backbone_torsion/bb_torsion_energy_term.html#BackboneTorsionEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/backbone_torsion/bb_torsion_energy_term.html#BackboneTorsionEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/backbone_torsion/bb_torsion_energy_term.html#BackboneTorsionEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/backbone_torsion/bb_torsion_energy_term.html#BackboneTorsionEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.dunbrack.dunbrack_energy_term.</span></span><span class="sig-name descname"><span class="pre">DunbrackEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/dunbrack_energy_term.html#DunbrackEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="score.html#tmol.score.energy_term.EnergyTerm" title="tmol.score.energy_term.EnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyTerm</span></code></a></p>
+<p>Backbone-dependent amino-acid rotamer probability and deviation term.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/dunbrack_energy_term.html#DunbrackEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/dunbrack_energy_term.html#DunbrackEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/dunbrack_energy_term.html#DunbrackEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/dunbrack_energy_term.html#DunbrackEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/dunbrack_energy_term.html#DunbrackEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.ref.ref_energy_term.RefEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.ref.ref_energy_term.</span></span><span class="sig-name descname"><span class="pre">RefEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ref/ref_energy_term.html#RefEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="score.html#tmol.score.energy_term.EnergyTerm" title="tmol.score.energy_term.EnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyTerm</span></code></a></p>
+<p>Per-residue-type reference-energy term.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ref.ref_energy_term.RefEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ref/ref_energy_term.html#RefEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ref.ref_energy_term.RefEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ref/ref_energy_term.html#RefEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ref.ref_energy_term.RefEnergyTerm.set_options">
+<span class="sig-name descname"><span class="pre">set_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ref/ref_energy_term.html#RefEnergyTerm.set_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.set_options" title="Link to this definition">#</a></dt>
+<dd><p>Receive a dictionary of options from the ScoreFunction.</p>
+<p>Subclasses may override this method to extract configuration values
+that affect scoring behavior, such as boolean flags, numeric
+parameters, or other settings. The base implementation is a no-op.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ref.ref_energy_term.RefEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ref/ref_energy_term.html#RefEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ref.ref_energy_term.RefEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ref/ref_energy_term.html#RefEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.ref.ref_energy_term.RefEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ref/ref_energy_term.html#RefEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="nucleic-acid-term">
+<h2>Nucleic-acid term<a class="headerlink" href="#nucleic-acid-term" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.na_torsion.na_torsion_energy_term.</span></span><span class="sig-name descname"><span class="pre">NaTorsionEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/na_torsion_energy_term.html#NaTorsionEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="score.html#tmol.score.energy_term.EnergyTerm" title="tmol.score.energy_term.EnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyTerm</span></code></a></p>
+<p>DNA/RNA torsion, coupling, sugar, and rotamer-well preference term.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/na_torsion_energy_term.html#NaTorsionEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/na_torsion_energy_term.html#NaTorsionEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/na_torsion_energy_term.html#NaTorsionEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/na_torsion_energy_term.html#NaTorsionEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/na_torsion_energy_term.html#NaTorsionEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.subterm_attributes">
+<span class="sig-name descname"><span class="pre">subterm_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/na_torsion_energy_term.html#NaTorsionEnergyTerm.subterm_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.subterm_attributes" title="Link to this definition">#</a></dt>
+<dd><p>Arguments of na_torsion_subterms, which the eval functions take
+first and then follow with the harmonic subterm weights.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p id="module-tmol.score.na_torsion.params">Runtime tensor parameters and indexing constants for NA torsion scoring.</p>
+<p>DNA base indices occupy 0–3 and RNA base indices 4–7. <code class="docutils literal notranslate"><span class="pre">TORSION_IND</span></code> maps
+chemical-layer torsion names to the tensor layout consumed by the score term
+and nucleic-acid chi sampler.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.params.sugar_ring_atoms">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.na_torsion.params.</span></span><span class="sig-name descname"><span class="pre">sugar_ring_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_for_atom_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/params.html#sugar_ring_atoms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.params.sugar_ring_atoms" title="Link to this definition">#</a></dt>
+<dd><p>Ordered sugar ring, derived from the nu torsions rather than named.</p>
+<p>nu0 and nu1 each span four consecutive ring atoms offset by one, so
+together they give the whole cycle in order. The pucker slot arithmetic
+is defined relative to a cycle ending on the ring heteroatom, so rotate
+to put it last.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.params.block_type_params">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.na_torsion.params.</span></span><span class="sig-name descname"><span class="pre">block_type_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_for_atom_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/params.html#block_type_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.params.block_type_params" title="Link to this definition">#</a></dt>
+<dd><p>Per-block-type indices this term needs, shared by scoring and packing.</p>
+<p>base is -1 for anything this term does not handle, including a nucleotide
+whose sugar or glycosidic torsions cannot be resolved.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.params.polymer_index">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.na_torsion.params.</span></span><span class="sig-name descname"><span class="pre">polymer_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/params.html#polymer_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.params.polymer_index" title="Link to this definition">#</a></dt>
+<dd><p>0 for DNA, 1 for RNA. Non-nucleotides (base &lt; 0) fall to 0 and are masked.</p>
+</dd></dl>
+
+</section>
+<section id="constraints">
+<h2>Constraints<a class="headerlink" href="#constraints" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.constraint.constraint_energy_term.</span></span><span class="sig-name descname"><span class="pre">ConstraintEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/constraint/constraint_energy_term.html#ConstraintEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="score.html#tmol.score.energy_term.EnergyTerm" title="tmol.score.energy_term.EnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyTerm</span></code></a></p>
+<p>Evaluate geometric constraints stored on a pose’s <code class="docutils literal notranslate"><span class="pre">ConstraintSet</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/constraint/constraint_energy_term.html#ConstraintEnergyTerm.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.score_types" title="Link to this definition">#</a></dt>
+<dd><p>Return the list of score types that this EnergyTerm computes</p>
+<p>The order that the term reports score types in this function should be
+the same order that it reports the scores themselves in the output
+tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.n_bodies">
+<span class="sig-name descname"><span class="pre">n_bodies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/constraint/constraint_energy_term.html#ConstraintEnergyTerm.n_bodies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.n_bodies" title="Link to this definition">#</a></dt>
+<dd><p>Return the number of residues that this term operates on</p>
+<p>1, 2, or -1 to represent the whole structure</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.harmonic">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">harmonic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/constraint/constraint_energy_term.html#ConstraintEnergyTerm.harmonic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.harmonic" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate a harmonic distance constraint.</p>
+<p><code class="docutils literal notranslate"><span class="pre">params[:,</span> <span class="pre">0]</span></code> is the target distance and <code class="docutils literal notranslate"><span class="pre">params[:,</span> <span class="pre">1]</span></code> is the
+standard deviation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.harmonic_coordinate">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">harmonic_coordinate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/constraint/constraint_energy_term.html#ConstraintEnergyTerm.harmonic_coordinate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.harmonic_coordinate" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate a harmonic restraint to a fixed Cartesian coordinate.</p>
+<p><code class="docutils literal notranslate"><span class="pre">params[:,</span> <span class="pre">0]</span></code> is an offset distance, <code class="docutils literal notranslate"><span class="pre">params[:,</span> <span class="pre">1:4]</span></code> is the
+target coordinate, and <code class="docutils literal notranslate"><span class="pre">params[:,</span> <span class="pre">4]</span></code> is the standard deviation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.bounded">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">bounded</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/constraint/constraint_energy_term.html#ConstraintEnergyTerm.bounded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.bounded" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate a flat-bottom bounded distance constraint.</p>
+<p>Parameters are the lower bound, upper bound, standard deviation, and
+linear-tail switch value.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.circularharmonic">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">circularharmonic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/constraint/constraint_energy_term.html#ConstraintEnergyTerm.circularharmonic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.circularharmonic" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate a periodic harmonic torsion constraint.</p>
+<p>Parameters are the target angle, standard deviation, and additive
+offset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.setup_block_type">
+<span class="sig-name descname"><span class="pre">setup_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="chemical.html#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/constraint/constraint_energy_term.html#ConstraintEnergyTerm.setup_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.setup_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation on the block type. These annotations will
+probably require string comparison and may be slow; they should be
+performed only once, so the EnergyTerm must check that its annotation
+is not already present in the block type. Annotations should be in
+numpy data structures (and stored on the CPU).</p>
+<p>If the annotation requires more than one array, then the EnergyTerm
+should use a python class to store those arrays. E.g.,
+class FooSet:</p>
+<blockquote>
+<div><p>foo_array1: NDArray[numpy.int32][:]
+foo_array2: NDArray[numpy.int32][:, :]</p>
+</div></blockquote>
+<p>If the kind of annotation made depends on data that may change
+between different instances of the same term, then the annotation
+should be a map whose key is a function of the perhaps-changing
+data. The term should calculate that key at its construction to
+make retrieval efficient. (Any such data that sways how the
+calculation is made should never change over the lifetime of the
+instance; if new values for that data are needed a separate
+instance should be created.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.setup_packed_block_types">
+<span class="sig-name descname"><span class="pre">setup_packed_block_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed_block_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.packed_block_types.PackedBlockTypes" title="tmol.pose.packed_block_types.PackedBlockTypes"><span class="pre">PackedBlockTypes</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/constraint/constraint_energy_term.html#ConstraintEnergyTerm.setup_packed_block_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.setup_packed_block_types" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of the packed-block types. This annotation
+should mostly involve concatenating the previously-made numpy annotations
+on the block types that the packed-block types contains. E.g. if the
+EnergyTerm annotates the block types with an i-dimensional array “foo,”
+then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
+tensor “foo” where the first dimension will index across the different
+block types in foo in the order that those block types appear in the
+PackedBlockTypes’ list of active block types. Sometimes the size of the
+i-dimensional arrays will differ between block types; the (i+1)-dimensional
+tensor should be dimensioned to the maximal size for each of the i dimensions
+among the set of dimensions of the various block types. The extra padding
+in such cases is recommended to be filled with a sentinel value of -1.</p>
+<p>As with the block type annotation, if more than one tensor is required,
+then the annotation should be a class. If the annotation is based on
+data that might differ between instances, then the annotation should be
+a map whose keys are determined by the data.</p>
+<p>The EnergyMethod should begin by checking that it has not already made
+this annotation. Any array data in the annotation should be torch
+tensors and should live on the PackedBlockTypes’ device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.setup_poses">
+<span class="sig-name descname"><span class="pre">setup_poses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/constraint/constraint_energy_term.html#ConstraintEnergyTerm.setup_poses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.setup_poses" title="Link to this definition">#</a></dt>
+<dd><p>Make a one-time annotation of a PoseStack. These annotations should
+not depend on anything about the conformation or block-type identity of
+the PoseStack, but can depend on the chemical connectivity, the number
+of poses in the stack, and the maximum number of atoms in the stack.</p>
+<p>Any array data should be stored in torch tensors and live on the
+pose_stack’s device.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function" id="module-tmol.score.constraint.utility">
+<dt class="sig sig-object py" id="tmol.score.constraint.utility.constrain_all_ca">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.constraint.utility.</span></span><span class="sig-name descname"><span class="pre">constrain_all_ca</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/constraint/utility.html#constrain_all_ca"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.utility.constrain_all_ca" title="Link to this definition">#</a></dt>
+<dd><p>Return a pose with 0.5 Å coordinate restraints on every protein CA.</p>
+<p>Existing constraints are retained. Use
+<a class="reference internal" href="#tmol.score.constraint.utility.create_mainchain_coordinate_constraints" title="tmol.score.constraint.utility.create_mainchain_coordinate_constraints"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_mainchain_coordinate_constraints()</span></code></a> for mixed polymers or to
+restrain every residue type’s declared main-chain atoms.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.constraint.utility.create_mainchain_coordinate_constraints">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.constraint.utility.</span></span><span class="sig-name descname"><span class="pre">create_mainchain_coordinate_constraints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="pose.html#tmol.pose.pose_stack.PoseStack" title="tmol.pose.pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></span><a class="reference internal" href="../_modules/tmol/score/constraint/utility.html#create_mainchain_coordinate_constraints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.utility.create_mainchain_coordinate_constraints" title="Link to this definition">#</a></dt>
+<dd><p>Return a pose with 0.5 Å restraints on all declared main-chain atoms.</p>
+<p>Target coordinates are copied from <code class="docutils literal notranslate"><span class="pre">pose_stack</span></code>. Existing constraints
+are retained, and the input pose is not modified.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="analysis.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Scoring Analyses</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="types.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Types</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#score-type-map">Score-type map</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#non-bonded-and-solvation-terms">Non-bonded and solvation terms</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm"><code class="docutils literal notranslate"><span class="pre">LJLKEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">LJLKEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">LJLKEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.set_options"><code class="docutils literal notranslate"><span class="pre">LJLKEnergyTerm.set_options()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">LJLKEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">LJLKEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">LJLKEnergyTerm.setup_poses()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm"><code class="docutils literal notranslate"><span class="pre">ElecEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">ElecEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">ElecEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">ElecEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">ElecEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.elec.elec_energy_term.ElecEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">ElecEnergyTerm.setup_poses()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm"><code class="docutils literal notranslate"><span class="pre">HBondEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">HBondEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">HBondEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">HBondEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">HBondEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.hbond.hbond_energy_term.HBondEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">HBondEnergyTerm.setup_poses()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm"><code class="docutils literal notranslate"><span class="pre">LKBallEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">LKBallEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">LKBallEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">LKBallEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">LKBallEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.lk_ball.lk_ball_energy_term.LKBallEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">LKBallEnergyTerm.setup_poses()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#bonded-torsional-and-reference-terms">Bonded, torsional, and reference terms</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm"><code class="docutils literal notranslate"><span class="pre">CartBondedEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">CartBondedEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">CartBondedEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">CartBondedEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">CartBondedEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">CartBondedEnergyTerm.setup_poses()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.find_torsion_subgraphs"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm.find_torsion_subgraphs()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.find_improper_subgraphs"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm.find_improper_subgraphs()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.get_atom_chem_type"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm.get_atom_chem_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.resolve_torsion_params"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm.resolve_torsion_params()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.resolve_improper_params"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm.resolve_improper_params()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.atom_hierarchy_indices"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm.atom_hierarchy_indices()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.genbonded.genbonded_energy_term.GenBondedEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">GenBondedEnergyTerm.setup_poses()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm"><code class="docutils literal notranslate"><span class="pre">DisulfideEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">DisulfideEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">DisulfideEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">DisulfideEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">DisulfideEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.disulfide.disulfide_energy_term.DisulfideEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">DisulfideEnergyTerm.setup_poses()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm"><code class="docutils literal notranslate"><span class="pre">BackboneTorsionEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">BackboneTorsionEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">BackboneTorsionEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">BackboneTorsionEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">BackboneTorsionEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">BackboneTorsionEnergyTerm.setup_poses()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm"><code class="docutils literal notranslate"><span class="pre">DunbrackEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">DunbrackEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">DunbrackEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">DunbrackEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">DunbrackEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.dunbrack.dunbrack_energy_term.DunbrackEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">DunbrackEnergyTerm.setup_poses()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm"><code class="docutils literal notranslate"><span class="pre">RefEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">RefEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">RefEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.set_options"><code class="docutils literal notranslate"><span class="pre">RefEnergyTerm.set_options()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">RefEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">RefEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.ref.ref_energy_term.RefEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">RefEnergyTerm.setup_poses()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nucleic-acid-term">Nucleic-acid term</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm"><code class="docutils literal notranslate"><span class="pre">NaTorsionEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">NaTorsionEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">NaTorsionEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">NaTorsionEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">NaTorsionEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">NaTorsionEnergyTerm.setup_poses()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.na_torsion_energy_term.NaTorsionEnergyTerm.subterm_attributes"><code class="docutils literal notranslate"><span class="pre">NaTorsionEnergyTerm.subterm_attributes()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.params.sugar_ring_atoms"><code class="docutils literal notranslate"><span class="pre">sugar_ring_atoms()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.params.block_type_params"><code class="docutils literal notranslate"><span class="pre">block_type_params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.params.polymer_index"><code class="docutils literal notranslate"><span class="pre">polymer_index()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#constraints">Constraints</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm"><code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.score_types"><code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm.score_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.n_bodies"><code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm.n_bodies()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.harmonic"><code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm.harmonic()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.harmonic_coordinate"><code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm.harmonic_coordinate()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.bounded"><code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm.bounded()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.circularharmonic"><code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm.circularharmonic()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.setup_block_type"><code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm.setup_block_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.setup_packed_block_types"><code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm.setup_packed_block_types()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.constraint_energy_term.ConstraintEnergyTerm.setup_poses"><code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm.setup_poses()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.utility.constrain_all_ca"><code class="docutils literal notranslate"><span class="pre">constrain_all_ca()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.utility.create_mainchain_coordinate_constraints"><code class="docutils literal notranslate"><span class="pre">create_mainchain_coordinate_constraints()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/api/score_terms.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

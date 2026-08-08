@@ -1,0 +1,1597 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.pack.rotamer.opth_sampler &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fba6396e" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pack/rotamer/opth_sampler';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-403';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.46" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples_index.html">
+    Interactive tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples_index.html">
+    Interactive tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack.rotamer.opth_sampler</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.pack.rotamer.opth_sampler</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.array</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical.restypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.datatypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.conformer_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConformerSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.single_residue_kinforest</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">construct_single_residue_kinforest</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.na_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">na_proton_chi_roots</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.numeric.dihedrals</span><span class="w"> </span><span class="kn">import</span> <span class="n">coord_dihedrals</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor.common_operations</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span>
+
+<span class="c1"># Residue categories that get NHQ flip treatment (requires flip_NHQ=True)</span>
+<span class="n">_NQ_FLIP_BASES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s2">&quot;ASN&quot;</span><span class="p">,</span> <span class="s2">&quot;GLN&quot;</span><span class="p">))</span>
+<span class="n">_HIS_FLIP_BASES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s2">&quot;HIS&quot;</span><span class="p">,</span> <span class="s2">&quot;HIS_D&quot;</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="OptHSamplerRTCache">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSamplerRTCache">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">OptHSamplerRTCache</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Per-residue-type annotation for OptHSampler.</span>
+
+<span class="sd">    Covers two orthogonal features:</span>
+<span class="sd">    1. Proton chi sampling (SER/THR/TYR/CYS): samples the terminal (proton)</span>
+<span class="sd">       chi angle using values from restype definition.</span>
+<span class="sd">    2. NHQ flip (ASN/GLN/HIS/HIS_D): generates the input conformation plus a</span>
+<span class="sd">       180-degree rotation about the last chi angle.</span>
+<span class="sd">       HIS additionally generates both protonation states.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># proton chis (S/T/Y/C)</span>
+    <span class="n">has_proton_chi</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">n_chi_total</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">chi_defining_atom</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">n_proton_samples</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">expanded_samples</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">n_samples_per_chi</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+
+    <span class="c1"># N/H/Q flips</span>
+    <span class="n">nhq_chi_col</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># chi index or -1</span>
+    <span class="n">nhq_chi_atom</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">nhq_chi_4atoms</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">nhq_downstream_kfo</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">is_his</span><span class="p">:</span> <span class="nb">bool</span></div>
+
+
+
+<div class="viewcode-block" id="OptHSamplerPackedBlockTypeCache">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSamplerPackedBlockTypeCache">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">OptHSamplerPackedBlockTypeCache</span><span class="p">:</span>
+    <span class="n">opth_sample_for_bt</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:]</span>
+    <span class="n">has_proton_chi</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:]</span>
+    <span class="n">n_chi_total</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">chi_defining_atom</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">n_proton_samples</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">expanded_samples</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">n_samples_per_chi</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
+
+    <span class="n">nhq_chi_col</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">nhq_chi_atom</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">nhq_chi_4atoms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="mi">4</span><span class="p">]</span>
+    <span class="n">nhq_downstream_kfo</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">is_his</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:]</span>
+
+    <span class="c1"># These two tensors use 0 or 1 as an index to dim=0 to represent</span>
+    <span class="c1"># either flip_NHQ=False or flip_NHQ=True</span>
+    <span class="n">n_samples_for_bt_by_orig_bt</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][</span><span class="mi">2</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">n_chi_needed_for_bt</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_empty_proton_cache</span><span class="p">(</span>
+    <span class="n">nhq_chi_col</span><span class="p">,</span> <span class="n">nhq_chi_atom</span><span class="p">,</span> <span class="n">nhq_chi_4atoms</span><span class="p">,</span> <span class="n">nhq_downstream_kfo</span><span class="p">,</span> <span class="n">is_his</span>
+<span class="p">):</span>
+    <span class="k">return</span> <span class="n">OptHSamplerRTCache</span><span class="p">(</span>
+        <span class="n">has_proton_chi</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">n_chi_total</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">chi_defining_atom</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+        <span class="n">n_proton_samples</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">expanded_samples</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="n">n_samples_per_chi</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+        <span class="n">nhq_chi_col</span><span class="o">=</span><span class="n">nhq_chi_col</span><span class="p">,</span>
+        <span class="n">nhq_chi_atom</span><span class="o">=</span><span class="n">nhq_chi_atom</span><span class="p">,</span>
+        <span class="n">nhq_chi_4atoms</span><span class="o">=</span><span class="n">nhq_chi_4atoms</span><span class="p">,</span>
+        <span class="n">nhq_downstream_kfo</span><span class="o">=</span><span class="n">nhq_downstream_kfo</span><span class="p">,</span>
+        <span class="n">is_his</span><span class="o">=</span><span class="n">is_his</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_compute_nhq_downstream_kfo</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">nhq_rto</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return KFO indices of all atoms downstream of rt&#39;s NHQ chi-defining atom.</span>
+
+<span class="sd">    Traverses the per-residue-type kinforest parent array starting from the</span>
+<span class="sd">    children of nhq_chi_atom.  Computed once during _annotate_residue_type and</span>
+<span class="sd">    cached on the OptHSamplerRTCache; returns an empty array for non-NHQ rts.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nhq_rto</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">kfidx</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">kinforest_idx</span>  <span class="c1"># (n_atoms,) numpy, TO -&gt; KFO</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">parent</span>  <span class="c1"># (n_atoms,) numpy, KFO -&gt; parent KFO</span>
+    <span class="n">kfo_nhq</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">kfidx</span><span class="p">[</span><span class="n">nhq_rto</span><span class="p">])</span>
+    <span class="n">n_at</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parents</span><span class="p">)</span>
+    <span class="n">downstream</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">queue</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_at</span><span class="p">)</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">parents</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">==</span> <span class="n">kfo_nhq</span><span class="p">]</span>
+    <span class="k">while</span> <span class="n">queue</span><span class="p">:</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="n">downstream</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="n">queue</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">ch</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_at</span><span class="p">)</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">parents</span><span class="p">[</span><span class="n">ch</span><span class="p">])</span> <span class="o">==</span> <span class="n">k</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">downstream</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_opth_fill_dofs</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">,</span>
+    <span class="n">task</span><span class="p">,</span>
+    <span class="n">gbt_for_conformer</span><span class="p">,</span>
+    <span class="n">block_type_ind_for_conformer</span><span class="p">,</span>
+    <span class="n">n_dof_atoms_offset_for_conformer</span><span class="p">,</span>
+    <span class="n">conf_inds_for_sampler</span><span class="p">,</span>
+    <span class="n">orig_dofs_kto</span><span class="p">,</span>
+    <span class="n">chi_atoms</span><span class="p">,</span>
+    <span class="n">chi_vals</span><span class="p">,</span>
+    <span class="n">conf_dofs_kto</span><span class="p">,</span>
+    <span class="n">flip_NHQ</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fill conf_dofs_kto for all OptHSampler rotamers</span>
+
+<span class="sd">    1. Copy DOFs from pose into conf_dofs_kto.</span>
+<span class="sd">    2. For NHQ only: atoms that are kinematic children of the chi-defining atom</span>
+<span class="sd">       of the flip are reset to their ideal DOF values</span>
+<span class="sd">    3. Write the corrected chi torsion into DOF column 3 for</span>
+<span class="sd">       the chi-defining atom of each flip / proton-chi rotamer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.build_rotamers</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_chi_phi_c_corrections</span>
+
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">dev</span> <span class="o">=</span> <span class="n">conf_dofs_kto</span><span class="o">.</span><span class="n">device</span>
+
+    <span class="c1"># Per-sampler-rotamer lookup vectors (torch, length n_rots)</span>
+    <span class="n">bt_inds</span> <span class="o">=</span> <span class="n">block_type_ind_for_conformer</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]</span>
+    <span class="n">at_offs</span> <span class="o">=</span> <span class="n">n_dof_atoms_offset_for_conformer</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]</span>
+
+    <span class="c1"># Source offsets in orig_dofs_kto: mirrors create_full_dof_inds_to_copy_...</span>
+    <span class="n">orig_bt_ind</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">[</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">orig_at_off_base</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">orig_bt_ind</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">flat_block_for_gbt</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">global_block_ind_for_considered_block_types</span>
+    <span class="n">real_idx_for_flat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span>
+        <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">real_idx_for_flat</span><span class="p">[</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+        <span class="n">orig_bt_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span>
+    <span class="p">)</span>
+    <span class="n">orig_at_offs</span> <span class="o">=</span> <span class="n">orig_at_off_base</span><span class="p">[</span>
+        <span class="n">real_idx_for_flat</span><span class="p">[</span><span class="n">flat_block_for_gbt</span><span class="p">[</span><span class="n">gbt_for_conformer</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]]]</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Step 1: vectorised all-atom copy</span>
+    <span class="n">n_rots</span> <span class="o">=</span> <span class="n">conf_inds_for_sampler</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">n_atoms_per_rot</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">bt_inds</span><span class="p">]</span>
+    <span class="n">dummy</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_rots</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">real_mask</span> <span class="o">=</span> <span class="n">dummy</span> <span class="o">&lt;</span> <span class="n">n_atoms_per_rot</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">dst</span> <span class="o">=</span> <span class="p">(</span><span class="n">at_offs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">)</span> <span class="o">+</span> <span class="n">dummy</span><span class="p">)[</span><span class="n">real_mask</span><span class="p">]</span>
+    <span class="n">src</span> <span class="o">=</span> <span class="p">(</span><span class="n">orig_at_offs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">)</span> <span class="o">+</span> <span class="n">dummy</span><span class="p">)[</span><span class="n">real_mask</span><span class="p">]</span>
+    <span class="n">conf_dofs_kto</span><span class="p">[</span><span class="n">dst</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">orig_dofs_kto</span><span class="p">[</span><span class="n">src</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="c1"># Steps 2 &amp; 3: only for rotamers that have a chi override</span>
+    <span class="k">if</span> <span class="n">chi_atoms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="p">(</span><span class="n">chi_atoms</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="k">return</span>
+
+    <span class="n">kfidx</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">kinforest_idx</span>  <span class="c1"># (n_types, max_n_atoms) numpy</span>
+    <span class="n">dofs_ideal_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">dofs_ideal</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span>
+    <span class="p">)</span>
+    <span class="n">corrections</span> <span class="o">=</span> <span class="n">_build_chi_phi_c_corrections</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>  <span class="c1"># (n_types, max_n_chi) numpy</span>
+
+    <span class="n">reset_kto</span><span class="p">,</span> <span class="n">reset_bt</span><span class="p">,</span> <span class="n">reset_k</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="n">chi_kto</span><span class="p">,</span> <span class="n">chi_val_list</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+
+    <span class="c1"># chi_atoms is set &gt;= 0 only for rotamers needing a chi override:</span>
+    <span class="c1"># NHQ flips, HIS tautomer swaps, and proton-chi samples.  Step 2 and</span>
+    <span class="c1"># step 3 below run only over those rotamers.</span>
+    <span class="n">flip_sis</span> <span class="o">=</span> <span class="p">(</span><span class="n">chi_atoms</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">si</span> <span class="ow">in</span> <span class="n">flip_sis</span><span class="p">:</span>
+        <span class="n">bt_idx</span> <span class="o">=</span> <span class="n">bt_inds</span><span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">at_off</span> <span class="o">=</span> <span class="n">at_offs</span><span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+        <span class="c1"># Step 2: reset downstream atoms to ideal.</span>
+        <span class="k">if</span> <span class="n">flip_NHQ</span><span class="p">:</span>
+            <span class="n">downstream</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span>
+                <span class="n">bt_idx</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">nhq_downstream_kfo</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">downstream</span><span class="p">:</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="n">reset_kto</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="n">at_off</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">reset_bt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bt_idx</span><span class="p">)</span>
+                <span class="n">reset_k</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+        <span class="c1"># Step 3: write the chi torsion(s) into DOF column 3.</span>
+        <span class="k">for</span> <span class="n">chi_col</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">chi_atoms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">chi_rto</span> <span class="o">=</span> <span class="n">chi_atoms</span><span class="p">[</span><span class="n">si</span><span class="p">,</span> <span class="n">chi_col</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">chi_rto</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">kfo</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">kfidx</span><span class="p">[</span><span class="n">bt_idx</span><span class="p">,</span> <span class="n">chi_rto</span><span class="p">])</span>
+            <span class="n">corr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">corrections</span><span class="p">[</span><span class="n">bt_idx</span><span class="p">,</span> <span class="n">chi_col</span><span class="p">])</span>
+            <span class="n">chi_kto</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kfo</span> <span class="o">+</span> <span class="n">at_off</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">chi_val_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chi_vals</span><span class="p">[</span><span class="n">si</span><span class="p">,</span> <span class="n">chi_col</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">-</span> <span class="n">corr</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">reset_kto</span><span class="p">:</span>
+        <span class="n">conf_dofs_kto</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">reset_kto</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">dofs_ideal_t</span><span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">reset_bt</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">reset_k</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">chi_kto</span><span class="p">:</span>
+        <span class="n">conf_dofs_kto</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">chi_kto</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">),</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">chi_val_list</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">)</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_n_rots_for_gbt</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">blt</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">orig_cache</span><span class="p">,</span> <span class="n">bt</span><span class="p">,</span> <span class="n">bt_cache</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the number of rotamers OptHSampler generates for one GBT entry.&quot;&quot;&quot;</span>
+    <span class="c1"># Proton chi: only for the original block type</span>
+    <span class="k">if</span> <span class="n">bt_cache</span><span class="o">.</span><span class="n">has_proton_chi</span> <span class="ow">and</span> <span class="n">bt</span> <span class="ow">is</span> <span class="n">blt</span><span class="o">.</span><span class="n">original_block_type</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">bt_cache</span><span class="o">.</span><span class="n">n_proton_samples</span>
+
+    <span class="c1"># NHQ flip</span>
+    <span class="k">if</span> <span class="n">sampler</span><span class="o">.</span><span class="n">flip_NHQ</span> <span class="ow">and</span> <span class="n">orig_cache</span><span class="o">.</span><span class="n">nhq_chi_col</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">orig_cache</span><span class="o">.</span><span class="n">is_his</span><span class="p">:</span>
+            <span class="c1"># HIS/HIS_D: 2 rotamers for EVERY HIS/HIS_D considered block type</span>
+            <span class="k">if</span> <span class="n">bt_cache</span><span class="o">.</span><span class="n">is_his</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># ASN/GLN: 2 rotamers only for the original block type</span>
+            <span class="k">if</span> <span class="n">bt</span> <span class="ow">is</span> <span class="n">blt</span><span class="o">.</span><span class="n">original_block_type</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="mi">0</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_chi_cols_needed</span><span class="p">(</span><span class="n">bt_cache</span><span class="p">,</span> <span class="n">orig_cache</span><span class="p">,</span> <span class="n">flip_NHQ</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the minimum chi tensor width needed for a GBT with non-zero rots.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">bt_cache</span><span class="o">.</span><span class="n">has_proton_chi</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">bt_cache</span><span class="o">.</span><span class="n">n_chi_total</span>
+    <span class="k">if</span> <span class="n">flip_NHQ</span> <span class="ow">and</span> <span class="n">orig_cache</span><span class="o">.</span><span class="n">nhq_chi_col</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">orig_cache</span><span class="o">.</span><span class="n">nhq_chi_col</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="mi">1</span>
+
+
+<div class="viewcode-block" id="OptHSampler">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSampler">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">OptHSampler</span><span class="p">(</span><span class="n">ConformerSampler</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build rotamers by sampling proton chi angles only, keeping all heavy</span>
+<span class="sd">    atoms at their input-conformation positions.</span>
+
+<span class="sd">    When flip_NHQ is True (default), also builds flip rotamers for:</span>
+<span class="sd">    - ASN/GLN: current conformation + 180-degree rotation of the last chi.</span>
+<span class="sd">    - HIS/HIS_D: {HIS, HIS_D} x {current chi2, chi2+180} = 4 rotamers.</span>
+<span class="sd">      All atoms through CG are taken from the input; ring atoms are rebuilt</span>
+<span class="sd">      from ideal geometry for three non-input variants.</span>
+
+<span class="sd">    NOTE: DunbrackChiSampler and OptHSampler must not be assigned to the</span>
+<span class="sd">    same block (Dunbrack already samples proton chis, so both on one block</span>
+<span class="sd">    oversamples). Assigning them to different blocks in the same task is fine.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">flip_NHQ</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="OptHSampler.sampler_name">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSampler.sampler_name">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sampler_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;OptHSampler&quot;</span></div>
+
+
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_annotate_residue_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">&quot;opth_sampler_cache&quot;</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="n">base</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span>
+
+        <span class="c1"># NHQ flip annotation</span>
+        <span class="n">nhq_chi_col</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">nhq_chi_atom</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">nhq_chi_4atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">nhq_downstream_kfo</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">is_his</span> <span class="o">=</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">_HIS_FLIP_BASES</span>
+
+        <span class="k">if</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">_NQ_FLIP_BASES</span> <span class="ow">or</span> <span class="n">is_his</span><span class="p">:</span>
+            <span class="n">chi_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span> <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;chi&quot;</span><span class="p">))</span>
+            <span class="n">last_chi</span> <span class="o">=</span> <span class="n">chi_names</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">nhq_chi_col</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chi_names</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># 0-based index of the last chi</span>
+            <span class="n">uaids</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">last_chi</span><span class="p">]</span>
+            <span class="n">nhq_chi_atom</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">uaids</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># 3rd atom = defining atom</span>
+            <span class="n">nhq_chi_4atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">uaids</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
+            <span class="p">)</span>
+            <span class="c1"># rotamer_kinforest is required to walk downstream atoms; build it</span>
+            <span class="c1"># here (idempotent) since the OptHSampler annotation pass runs</span>
+            <span class="c1"># before build_rotamers.annotate_restype.</span>
+            <span class="n">construct_single_residue_kinforest</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
+            <span class="n">nhq_downstream_kfo</span> <span class="o">=</span> <span class="n">_compute_nhq_downstream_kfo</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">nhq_chi_atom</span><span class="p">)</span>
+
+        <span class="c1"># proton chi annotation</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span>
+                <span class="n">rt</span><span class="p">,</span>
+                <span class="s2">&quot;opth_sampler_cache&quot;</span><span class="p">,</span>
+                <span class="n">_build_empty_proton_cache</span><span class="p">(</span>
+                    <span class="n">nhq_chi_col</span><span class="p">,</span>
+                    <span class="n">nhq_chi_atom</span><span class="p">,</span>
+                    <span class="n">nhq_chi_4atoms</span><span class="p">,</span>
+                    <span class="n">nhq_downstream_kfo</span><span class="p">,</span>
+                    <span class="n">is_his</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">deg_to_rad</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+
+        <span class="n">chi_inds</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">]</span>
+        <span class="n">n_chi_total</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">chi_inds</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="n">chi_defining_atom</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_chi_total</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">n_samples_per_chi</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_chi_total</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="n">max_n_expanded</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">expansions</span><span class="p">))</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span>
+        <span class="p">)</span>
+        <span class="n">expanded_samples</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_chi_total</span><span class="p">,</span> <span class="n">max_n_expanded</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">:</span>
+            <span class="n">ci</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">chi_defining_atom</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">][</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">n_samp</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
+            <span class="n">n_exp_per_samp</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">expansions</span><span class="p">)</span>
+            <span class="n">n_samples_per_chi</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_samp</span> <span class="o">*</span> <span class="n">n_exp_per_samp</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samp</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_exp_per_samp</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">expanded_samples</span><span class="p">[</span><span class="n">ci</span><span class="p">,</span> <span class="n">n_exp_per_samp</span> <span class="o">*</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">deg_to_rad</span> <span class="o">*</span> <span class="n">cs</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">exp_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+                        <span class="n">factor</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span>
+                        <span class="n">expanded_samples</span><span class="p">[</span><span class="n">ci</span><span class="p">,</span> <span class="n">n_exp_per_samp</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">deg_to_rad</span> <span class="o">*</span> <span class="p">(</span>
+                            <span class="n">cs</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">cs</span><span class="o">.</span><span class="n">expansions</span><span class="p">[</span><span class="n">exp_idx</span><span class="p">]</span>
+                        <span class="p">)</span>
+
+        <span class="n">n_proton_samples_total</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">n_samples_per_chi</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">n_proton_samples_total</span> <span class="o">*=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span>
+            <span class="n">rt</span><span class="p">,</span>
+            <span class="s2">&quot;opth_sampler_cache&quot;</span><span class="p">,</span>
+            <span class="n">OptHSamplerRTCache</span><span class="p">(</span>
+                <span class="n">has_proton_chi</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">n_chi_total</span><span class="o">=</span><span class="n">n_chi_total</span><span class="p">,</span>
+                <span class="n">chi_defining_atom</span><span class="o">=</span><span class="n">chi_defining_atom</span><span class="p">,</span>
+                <span class="n">n_proton_samples</span><span class="o">=</span><span class="n">n_proton_samples_total</span><span class="p">,</span>
+                <span class="n">expanded_samples</span><span class="o">=</span><span class="n">expanded_samples</span><span class="p">,</span>
+                <span class="n">n_samples_per_chi</span><span class="o">=</span><span class="n">n_samples_per_chi</span><span class="p">,</span>
+                <span class="n">nhq_chi_col</span><span class="o">=</span><span class="n">nhq_chi_col</span><span class="p">,</span>
+                <span class="n">nhq_chi_atom</span><span class="o">=</span><span class="n">nhq_chi_atom</span><span class="p">,</span>
+                <span class="n">nhq_chi_4atoms</span><span class="o">=</span><span class="n">nhq_chi_4atoms</span><span class="p">,</span>
+                <span class="n">nhq_downstream_kfo</span><span class="o">=</span><span class="n">nhq_downstream_kfo</span><span class="p">,</span>
+                <span class="n">is_his</span><span class="o">=</span><span class="n">is_his</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_annotate_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">&quot;opth_sample_cache&quot;</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_annotate_residue_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
+
+        <span class="n">opth_sample_for_bt</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">defines_rotamers_for_rt</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="p">]</span>
+        <span class="n">opth_sample_for_bt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">opth_sample_for_bt</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+
+        <span class="n">has_proton_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n_chi_total</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">max_n_chi</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">orig_bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+            <span class="n">max_n_chi</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_n_chi</span><span class="p">,</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">n_chi_total</span><span class="p">)</span>
+
+        <span class="n">chi_defining_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_chi</span><span class="p">),</span>
+            <span class="n">fill_value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n_proton_samples</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">max_n_expanded</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="n">bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">expanded_samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="p">)</span>
+        <span class="n">expanded_samples</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_chi</span><span class="p">,</span> <span class="n">max_n_expanded</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n_samples_per_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_chi</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">nhq_chi_col</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">nhq_chi_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">nhq_chi_4atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">nhq_downstream_kfo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">is_his</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n_samples_for_bt_by_orig_bt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n_chi_needed_for_bt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+            <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>  <span class="c1"># the minimum chi tensor width needed for a GBT with non-zero rots</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">orig_bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">has_proton_chi</span><span class="p">:</span>
+                <span class="c1"># use n_proton_samples wether or not we&#39;re in flip_NHQ mode</span>
+                <span class="n">n_samples_for_bt_by_orig_bt</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">n_proton_samples</span>
+                <span class="p">)</span>
+                <span class="n">n_chi_needed_for_bt</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">n_chi_total</span>
+            <span class="k">elif</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">nhq_chi_col</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">n_chi_needed_for_bt</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">nhq_chi_col</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">is_his</span><span class="p">:</span>
+                    <span class="n">n_samples_for_bt_by_orig_bt</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+                    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">alt_bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="p">(</span>
+                            <span class="n">alt_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">nhq_chi_col</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                            <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">is_his</span>
+                        <span class="p">):</span>
+                            <span class="c1"># HIS/HIS_D: 2 rotamers for EVERY HIS/HIS_D considered block type</span>
+                            <span class="n">n_samples_for_bt_by_orig_bt</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">n_samples_for_bt_by_orig_bt</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+                    <span class="c1"># ASN/GLN: 2 rotamers only for the original block type; no need to fill w_flipNHQ since it&#39;s the same</span>
+            <span class="n">has_proton_chi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">has_proton_chi</span>
+            <span class="n">n_chi_total</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">n_chi_total</span>
+            <span class="n">chi_defining_atom</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">n_chi_total</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                    <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">chi_defining_atom</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">n_proton_samples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">n_proton_samples</span>
+            <span class="n">expanded_samples</span><span class="p">[</span>
+                <span class="n">i</span><span class="p">,</span>
+                <span class="p">:</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">n_chi_total</span><span class="p">,</span>
+                <span class="p">:</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">expanded_samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">expanded_samples</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">n_samples_per_chi</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">n_chi_total</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                    <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">n_samples_per_chi</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">nhq_chi_col</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">nhq_chi_col</span>
+            <span class="n">nhq_chi_atom</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">nhq_chi_atom</span>
+            <span class="n">nhq_chi_4atoms</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">nhq_chi_4atoms</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">nhq_downstream_kfo</span><span class="p">[</span>
+                <span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">nhq_downstream_kfo</span><span class="p">)</span>
+            <span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">nhq_downstream_kfo</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">is_his</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span><span class="o">.</span><span class="n">is_his</span>
+
+        <span class="n">cache</span> <span class="o">=</span> <span class="n">OptHSamplerPackedBlockTypeCache</span><span class="p">(</span>
+            <span class="n">opth_sample_for_bt</span><span class="o">=</span><span class="n">opth_sample_for_bt</span><span class="p">,</span>
+            <span class="n">has_proton_chi</span><span class="o">=</span><span class="n">has_proton_chi</span><span class="p">,</span>
+            <span class="n">n_chi_total</span><span class="o">=</span><span class="n">n_chi_total</span><span class="p">,</span>
+            <span class="n">chi_defining_atom</span><span class="o">=</span><span class="n">chi_defining_atom</span><span class="p">,</span>
+            <span class="n">n_proton_samples</span><span class="o">=</span><span class="n">n_proton_samples</span><span class="p">,</span>
+            <span class="n">expanded_samples</span><span class="o">=</span><span class="n">expanded_samples</span><span class="p">,</span>
+            <span class="n">n_samples_per_chi</span><span class="o">=</span><span class="n">n_samples_per_chi</span><span class="p">,</span>
+            <span class="n">nhq_chi_col</span><span class="o">=</span><span class="n">nhq_chi_col</span><span class="p">,</span>
+            <span class="n">nhq_chi_atom</span><span class="o">=</span><span class="n">nhq_chi_atom</span><span class="p">,</span>
+            <span class="n">nhq_chi_4atoms</span><span class="o">=</span><span class="n">nhq_chi_4atoms</span><span class="p">,</span>
+            <span class="n">nhq_downstream_kfo</span><span class="o">=</span><span class="n">nhq_downstream_kfo</span><span class="p">,</span>
+            <span class="n">is_his</span><span class="o">=</span><span class="n">is_his</span><span class="p">,</span>
+            <span class="n">n_samples_for_bt_by_orig_bt</span><span class="o">=</span><span class="n">n_samples_for_bt_by_orig_bt</span><span class="p">,</span>
+            <span class="n">n_chi_needed_for_bt</span><span class="o">=</span><span class="n">n_chi_needed_for_bt</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">&quot;opth_sample_cache&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
+
+<div class="viewcode-block" id="OptHSampler.defines_rotamers_for_rt">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSampler.defines_rotamers_for_rt">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">:</span>  <span class="c1"># has a proton chi</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flip_NHQ</span><span class="p">:</span>  <span class="c1"># is NHQ if flipNHQ is enabled</span>
+            <span class="k">return</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span> <span class="ow">in</span> <span class="n">_NQ_FLIP_BASES</span> <span class="ow">or</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span> <span class="ow">in</span> <span class="n">_HIS_FLIP_BASES</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="OptHSampler.defines_rotamers_for_bts">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSampler.defines_rotamers_for_bts">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_bts</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span> <span class="n">bt_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">]:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">opth_sample_cache</span><span class="o">.</span><span class="n">opth_sample_for_bt</span><span class="p">[</span><span class="n">bt_inds</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="OptHSampler.first_sc_atoms_for_rt">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSampler.first_sc_atoms_for_rt">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="c1"># long-term, it probably makes more sense to generate this programatically</span>
+        <span class="c1"># e.g., the pivot atom of the first chi(?)</span>
+        <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">polymer_type</span> <span class="o">==</span> <span class="s2">&quot;nucleic_acid&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">na_proton_chi_roots</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s2">&quot;CB&quot;</span><span class="p">,)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_assert_no_dun_opth_conflict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="s2">&quot;SetPackerTask&quot;</span><span class="p">):</span>  <span class="c1"># noqa: F821</span>
+        <span class="n">self_index_in_task</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">conformer_sampler_index</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span>
+        <span class="n">optH_sampler_allowed</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_conformer_sampler_allowed</span><span class="p">[</span>
+            <span class="p">:,</span> <span class="p">:,</span> <span class="n">self_index_in_task</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">conformer_samplers</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">sampler</span> <span class="ow">is</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">sampler</span><span class="o">.</span><span class="n">sampler_name</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;DunbrackChiSampler&quot;</span><span class="p">:</span>
+                <span class="n">i_allowed</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_conformer_sampler_allowed</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">optH_sampler_allowed</span><span class="p">,</span> <span class="n">i_allowed</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="s2">&quot;OptHSampler and DunbrackChiSampler cannot both be assigned &quot;</span>
+                        <span class="s2">&quot;to the same block. DunbrackChiSampler already samples proton &quot;</span>
+                        <span class="s2">&quot;chi angles as part of each library rotamer.&quot;</span>
+                    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_measure_all_nhq_flip_chis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">pose_inds</span><span class="p">,</span> <span class="n">block_inds</span><span class="p">):</span>
+        <span class="n">offsets</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">[</span><span class="n">pose_inds</span><span class="p">,</span> <span class="n">block_inds</span><span class="p">]</span>
+        <span class="n">block_types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose_inds</span><span class="p">,</span> <span class="n">block_inds</span><span class="p">]</span>
+        <span class="n">a4</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">opth_sample_cache</span><span class="o">.</span><span class="n">nhq_chi_4atoms</span><span class="p">[</span><span class="n">block_types</span><span class="p">]</span>
+
+        <span class="n">pose_inds_expanded</span> <span class="o">=</span> <span class="n">pose_inds</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">offsets_expanded</span> <span class="o">=</span> <span class="n">offsets</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+
+        <span class="n">c</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span>
+            <span class="n">pose_inds_expanded</span><span class="p">,</span> <span class="n">offsets_expanded</span> <span class="o">+</span> <span class="n">a4</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="p">]</span>  <span class="c1"># (4 * n, 3)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>  <span class="c1"># (n, 4, 3)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">coord_dihedrals</span><span class="p">(</span><span class="n">c</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">c</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">])</span>  <span class="c1"># (n,)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_measure_nhq_flip_chi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">pose_i</span><span class="p">,</span> <span class="n">block_j</span><span class="p">,</span> <span class="n">orig_cache</span><span class="p">):</span>
+        <span class="n">off</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">[</span><span class="n">pose_i</span><span class="p">,</span> <span class="n">block_j</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="n">a4</span> <span class="o">=</span> <span class="n">orig_cache</span><span class="o">.</span><span class="n">nhq_chi_4atoms</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">pose_i</span><span class="p">][</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">off</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">a4</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">]</span>  <span class="c1"># (4, 3)</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">coord_dihedrals</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">c</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">c</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">4</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_count_rots_and_measure_all_flips</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+        <span class="c1"># First we have to get the list of all the blocks where we are using</span>
+        <span class="c1"># this sampler. Next we will identify the subset of the NHQ blocks</span>
+        <span class="c1"># where we will measure the chi dihedrals for the flip. Then we will</span>
+        <span class="c1"># count the number of rotamers for each block as well as the number</span>
+        <span class="c1"># of chi columns.</span>
+        <span class="c1"># We will return:</span>
+        <span class="c1"># n_rots_for_gbt, max_n_chi_cols, pos_flip_chi</span>
+        <span class="c1"># n_rots_for_gbt: tensor[n_gbt]</span>
+        <span class="c1"># max_n_chi_cols: int</span>
+        <span class="c1"># pos_flip_chi: tensor[n_poses, max_n_blocks]</span>
+
+        <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+        <span class="n">optH_cache</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">opth_sample_cache</span>
+
+        <span class="n">n_gbt</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">n_rots_for_gbt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_gbt</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">self_index_in_task</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">conformer_sampler_index</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span>
+
+        <span class="n">allowed_bt_is_optH_buildable</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_conformer_sampler_allowed</span><span class="p">[</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">allowed_bt_pose</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">allowed_bt_block</span><span class="p">,</span> <span class="n">self_index_in_task</span>
+        <span class="p">]</span>  <span class="c1"># size (n_allowed_bt,)</span>
+        <span class="n">nz_allowed_bt_is_optH_buildable</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span>
+            <span class="n">allowed_bt_is_optH_buildable</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)[</span>
+            <span class="mi">0</span>
+        <span class="p">]</span>  <span class="c1"># size (n_allowed_and_buildable_bt,)</span>
+        <span class="n">allowed_and_buildable_pose</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">allowed_bt_pose</span><span class="p">[</span>
+            <span class="n">nz_allowed_bt_is_optH_buildable</span>
+        <span class="p">]</span>
+        <span class="n">allowed_and_buildable_block</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">allowed_bt_block</span><span class="p">[</span>
+            <span class="n">nz_allowed_bt_is_optH_buildable</span>
+        <span class="p">]</span>
+        <span class="n">allowed_and_buildable_bt</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">allowed_bt_block_type</span><span class="p">[</span>
+            <span class="n">nz_allowed_bt_is_optH_buildable</span>
+        <span class="p">]</span>
+        <span class="n">orig_bt_for_allowed_and_buildable</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span>
+            <span class="n">allowed_and_buildable_pose</span><span class="p">,</span> <span class="n">allowed_and_buildable_block</span>
+        <span class="p">]</span>
+
+        <span class="n">n_rots_for_allowed_and_buildable</span> <span class="o">=</span> <span class="n">optH_cache</span><span class="o">.</span><span class="n">n_samples_for_bt_by_orig_bt</span><span class="p">[</span>
+            <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flip_NHQ</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">orig_bt_for_allowed_and_buildable</span><span class="p">,</span>
+            <span class="n">allowed_and_buildable_bt</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="n">n_rots_for_gbt</span><span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">allowed_cons_bt</span><span class="p">[</span><span class="n">nz_allowed_bt_is_optH_buildable</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">n_rots_for_allowed_and_buildable</span>
+        <span class="p">)</span>
+
+        <span class="n">max_n_chi_cols</span> <span class="o">=</span> <span class="n">optH_cache</span><span class="o">.</span><span class="n">expanded_samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># now we need to figure out which residues are NHQ and measure their chi dihedrals</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">flip_NHQ</span><span class="p">:</span>
+            <span class="n">pos_flip_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">is_allowed_and_buildable_bt_nhq</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">optH_cache</span><span class="o">.</span><span class="n">nhq_chi_col</span><span class="p">[</span><span class="n">allowed_and_buildable_bt</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="n">nz_nhq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">is_allowed_and_buildable_bt_nhq</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nz_nhq</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">pos_flip_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pose_inds_nhq</span> <span class="o">=</span> <span class="n">allowed_and_buildable_pose</span><span class="p">[</span><span class="n">nz_nhq</span><span class="p">]</span>
+                <span class="n">block_inds_nhq</span> <span class="o">=</span> <span class="n">allowed_and_buildable_block</span><span class="p">[</span><span class="n">nz_nhq</span><span class="p">]</span>
+                <span class="n">pos_flip_chi_nhq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_measure_all_nhq_flip_chis</span><span class="p">(</span>
+                    <span class="n">pose_stack</span><span class="p">,</span> <span class="n">pose_inds_nhq</span><span class="p">,</span> <span class="n">block_inds_nhq</span>
+                <span class="p">)</span>
+                <span class="n">pos_flip_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">pos_flip_chi</span><span class="p">[</span><span class="n">pose_inds_nhq</span><span class="p">,</span> <span class="n">block_inds_nhq</span><span class="p">]</span> <span class="o">=</span> <span class="n">pos_flip_chi_nhq</span>
+        <span class="k">return</span> <span class="n">n_rots_for_gbt</span><span class="p">,</span> <span class="n">max_n_chi_cols</span><span class="p">,</span> <span class="n">pos_flip_chi</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_count_rots_and_measure_flips</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+        <span class="c1"># pos_flip_chi[(pose_i, block_j)] = current last-chi in radians</span>
+        <span class="n">pos_flip_chi</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">n_rots_for_gbt_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">max_n_chi_cols</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">pose_i</span><span class="p">,</span> <span class="n">one_pose_blts</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">blts</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">block_j</span><span class="p">,</span> <span class="n">blt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">one_pose_blts</span><span class="p">):</span>
+                <span class="n">orig</span> <span class="o">=</span> <span class="n">blt</span><span class="o">.</span><span class="n">original_block_type</span>
+                <span class="n">orig_cache</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">opth_sampler_cache</span>
+                <span class="n">opth_assigned</span> <span class="o">=</span> <span class="bp">self</span> <span class="ow">in</span> <span class="n">blt</span><span class="o">.</span><span class="n">conformer_samplers</span>
+
+                <span class="c1"># Measure chi-to-flip for NHQ</span>
+                <span class="k">if</span> <span class="n">opth_assigned</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">flip_NHQ</span> <span class="ow">and</span> <span class="n">orig_cache</span><span class="o">.</span><span class="n">nhq_chi_col</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">pos_flip_chi</span><span class="p">[(</span><span class="n">pose_i</span><span class="p">,</span> <span class="n">block_j</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_measure_nhq_flip_chi</span><span class="p">(</span>
+                        <span class="n">pose_stack</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">pose_i</span><span class="p">,</span> <span class="n">block_j</span><span class="p">,</span> <span class="n">orig_cache</span>
+                    <span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">blt</span><span class="o">.</span><span class="n">considered_block_types</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">opth_assigned</span><span class="p">:</span>
+                        <span class="n">n_rots_for_gbt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="k">continue</span>
+                    <span class="n">bt_cache</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">opth_sampler_cache</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">opth_assigned</span><span class="p">:</span>
+                        <span class="n">n_rots_for_gbt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="k">continue</span>
+                    <span class="n">n_rots</span> <span class="o">=</span> <span class="n">_n_rots_for_gbt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blt</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">orig_cache</span><span class="p">,</span> <span class="n">bt</span><span class="p">,</span> <span class="n">bt_cache</span><span class="p">)</span>
+                    <span class="n">n_rots_for_gbt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n_rots</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">n_rots</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">max_n_chi_cols</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                            <span class="n">max_n_chi_cols</span><span class="p">,</span>
+                            <span class="n">_chi_cols_needed</span><span class="p">(</span><span class="n">bt_cache</span><span class="p">,</span> <span class="n">orig_cache</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flip_NHQ</span><span class="p">),</span>
+                        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">n_rots_for_gbt_list</span><span class="p">,</span> <span class="n">max_n_chi_cols</span><span class="p">,</span> <span class="n">pos_flip_chi</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fill_proton_chi_for_all_blocks</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">,</span>
+        <span class="n">rot_offset_for_gbt</span><span class="p">,</span>
+        <span class="n">gbt_for_rotamer</span><span class="p">,</span>
+        <span class="n">chi_defining_atom_for_rotamer</span><span class="p">,</span>
+        <span class="n">chi_for_rotamers</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+        <span class="n">opth_cache</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">opth_sample_cache</span>
+
+        <span class="n">bt_for_rotamer</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block_type</span><span class="p">[</span><span class="n">gbt_for_rotamer</span><span class="p">]</span>
+        <span class="n">rotamers_w_proton_chi_samples</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span>
+            <span class="n">opth_cache</span><span class="o">.</span><span class="n">has_proton_chi</span><span class="p">[</span><span class="n">bt_for_rotamer</span><span class="p">],</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">rotamers_w_proton_chi_samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">bt_for_proton_rotamer</span> <span class="o">=</span> <span class="n">bt_for_rotamer</span><span class="p">[</span><span class="n">rotamers_w_proton_chi_samples</span><span class="p">]</span>
+        <span class="n">n_rotamers</span> <span class="o">=</span> <span class="n">gbt_for_rotamer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">sample_ind_for_rotamer</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_rotamers</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="o">-</span> <span class="n">rot_offset_for_gbt</span><span class="p">[</span><span class="n">gbt_for_rotamer</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">remaining_sample_ind</span> <span class="o">=</span> <span class="n">sample_ind_for_rotamer</span><span class="p">[</span><span class="n">rotamers_w_proton_chi_samples</span><span class="p">]</span>
+        <span class="n">n_samples_per_chi</span> <span class="o">=</span> <span class="n">opth_cache</span><span class="o">.</span><span class="n">n_samples_per_chi</span><span class="p">[</span><span class="n">bt_for_proton_rotamer</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">int64</span>
+        <span class="p">)</span>
+
+        <span class="n">n_chi_cols</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+            <span class="n">chi_for_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">opth_cache</span><span class="o">.</span><span class="n">expanded_samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">chi_col</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_chi_cols</span><span class="p">):</span>
+            <span class="n">n_samples</span> <span class="o">=</span> <span class="n">n_samples_per_chi</span><span class="p">[:,</span> <span class="n">chi_col</span><span class="p">]</span>
+            <span class="n">active</span> <span class="o">=</span> <span class="n">n_samples</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">active</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">active_rotamers</span> <span class="o">=</span> <span class="n">rotamers_w_proton_chi_samples</span><span class="p">[</span><span class="n">active</span><span class="p">]</span>
+            <span class="n">active_bt</span> <span class="o">=</span> <span class="n">bt_for_proton_rotamer</span><span class="p">[</span><span class="n">active</span><span class="p">]</span>
+            <span class="n">active_n_samples</span> <span class="o">=</span> <span class="n">n_samples</span><span class="p">[</span><span class="n">active</span><span class="p">]</span>
+            <span class="n">active_sample_ind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">remainder</span><span class="p">(</span>
+                <span class="n">remaining_sample_ind</span><span class="p">[</span><span class="n">active</span><span class="p">],</span>
+                <span class="n">active_n_samples</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">chi_for_rotamers</span><span class="p">[</span><span class="n">active_rotamers</span><span class="p">,</span> <span class="n">chi_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">opth_cache</span><span class="o">.</span><span class="n">expanded_samples</span><span class="p">[</span>
+                <span class="n">active_bt</span><span class="p">,</span>
+                <span class="n">chi_col</span><span class="p">,</span>
+                <span class="n">active_sample_ind</span><span class="p">,</span>
+            <span class="p">]</span>
+            <span class="n">chi_defining_atom_for_rotamer</span><span class="p">[</span><span class="n">active_rotamers</span><span class="p">,</span> <span class="n">chi_col</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">opth_cache</span><span class="o">.</span><span class="n">chi_defining_atom</span><span class="p">[</span><span class="n">active_bt</span><span class="p">,</span> <span class="n">chi_col</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">remaining_sample_ind</span><span class="p">[</span><span class="n">active</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span>
+                <span class="n">remaining_sample_ind</span><span class="p">[</span><span class="n">active</span><span class="p">],</span>
+                <span class="n">active_n_samples</span><span class="p">,</span>
+                <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">&quot;floor&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fill_all_nhq_blocks</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">,</span>
+        <span class="n">gbt_for_rotamer</span><span class="p">,</span>
+        <span class="n">pos_flip_chi</span><span class="p">,</span>
+        <span class="n">chi_defining_atom_for_rotamer</span><span class="p">,</span>
+        <span class="n">chi_for_rotamers</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+        <span class="n">opth_cache</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">opth_sample_cache</span>
+
+        <span class="n">bt_for_rotamer</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block_type</span><span class="p">[</span><span class="n">gbt_for_rotamer</span><span class="p">]</span>
+        <span class="n">rotamer_nhq_chi_col</span> <span class="o">=</span> <span class="n">opth_cache</span><span class="o">.</span><span class="n">nhq_chi_col</span><span class="p">[</span><span class="n">bt_for_rotamer</span><span class="p">]</span>
+        <span class="n">rotamer_is_flippable</span> <span class="o">=</span> <span class="n">rotamer_nhq_chi_col</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="n">flippable_rotamers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">rotamer_is_flippable</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">n_flippable_rotamers</span> <span class="o">=</span> <span class="n">flippable_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">flipped_flippable_rotamers</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">2</span>
+            <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                <span class="n">n_flippable_rotamers</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="o">+</span> <span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">flipped_rotamers</span> <span class="o">=</span> <span class="n">flippable_rotamers</span><span class="p">[</span><span class="n">flipped_flippable_rotamers</span><span class="p">]</span>
+        <span class="n">is_flipped_flippable_rotamer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_flippable_rotamers</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">is_flipped_flippable_rotamer</span><span class="p">[</span><span class="n">flipped_flippable_rotamers</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">is_unflipped_flippable_rotamer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_flippable_rotamers</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">is_unflipped_flippable_rotamer</span><span class="p">[</span><span class="n">flipped_flippable_rotamers</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">unflipped_flippable_rotamers</span> <span class="o">=</span> <span class="n">flippable_rotamers</span><span class="p">[</span>
+            <span class="n">is_unflipped_flippable_rotamer</span>
+        <span class="p">]</span>
+
+        <span class="n">flipped_rot_chi</span> <span class="o">=</span> <span class="n">rotamer_nhq_chi_col</span><span class="p">[</span><span class="n">flipped_rotamers</span><span class="p">]</span>
+        <span class="n">gbt_for_flipped_rotamer</span> <span class="o">=</span> <span class="n">gbt_for_rotamer</span><span class="p">[</span><span class="n">flipped_rotamers</span><span class="p">]</span>
+        <span class="n">pose_for_flipped_rotamer</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">[</span><span class="n">gbt_for_flipped_rotamer</span><span class="p">]</span>
+        <span class="n">block_for_flipped_rotamer</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">[</span><span class="n">gbt_for_flipped_rotamer</span><span class="p">]</span>
+        <span class="n">bt_for_flipped_rotamer</span> <span class="o">=</span> <span class="n">bt_for_rotamer</span><span class="p">[</span><span class="n">flipped_rotamers</span><span class="p">]</span>
+
+        <span class="n">is_his_rotamer</span> <span class="o">=</span> <span class="n">opth_cache</span><span class="o">.</span><span class="n">is_his</span><span class="p">[</span><span class="n">bt_for_rotamer</span><span class="p">]</span>
+        <span class="n">is_orig_bt_rotamer</span> <span class="o">=</span> <span class="n">bt_for_rotamer</span> <span class="o">==</span> <span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span>
+                <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">[</span><span class="n">gbt_for_rotamer</span><span class="p">],</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">[</span><span class="n">gbt_for_rotamer</span><span class="p">]</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">is_his_taut_rotamer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">is_his_rotamer</span><span class="p">,</span> <span class="o">~</span><span class="n">is_orig_bt_rotamer</span><span class="p">)</span>
+        <span class="n">is_unflipped_rotamer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">gbt_for_rotamer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">is_unflipped_rotamer</span><span class="p">[</span><span class="n">unflipped_flippable_rotamers</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">is_his_taut_not_flipped_rotamer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+            <span class="n">is_his_taut_rotamer</span><span class="p">,</span> <span class="n">is_unflipped_rotamer</span>
+        <span class="p">)</span>
+        <span class="n">his_taut_not_flipped_rotamers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span>
+            <span class="n">is_his_taut_not_flipped_rotamer</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">his_taut_not_flipped_rot_chi</span> <span class="o">=</span> <span class="n">rotamer_nhq_chi_col</span><span class="p">[</span>
+            <span class="n">his_taut_not_flipped_rotamers</span>
+        <span class="p">]</span>
+
+        <span class="n">gbt_for_his_taut_not_flipped_rotamer</span> <span class="o">=</span> <span class="n">gbt_for_rotamer</span><span class="p">[</span>
+            <span class="n">his_taut_not_flipped_rotamers</span>
+        <span class="p">]</span>
+        <span class="n">pose_for_his_taut_not_flipped_rotamer</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">[</span>
+            <span class="n">gbt_for_his_taut_not_flipped_rotamer</span>
+        <span class="p">]</span>
+        <span class="n">block_for_his_taut_not_flipped_rotamer</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">[</span>
+            <span class="n">gbt_for_his_taut_not_flipped_rotamer</span>
+        <span class="p">]</span>
+        <span class="n">bt_for_his_taut_not_flipped_rotamer</span> <span class="o">=</span> <span class="n">bt_for_rotamer</span><span class="p">[</span>
+            <span class="n">his_taut_not_flipped_rotamers</span>
+        <span class="p">]</span>
+
+        <span class="c1"># mark the chi for the HIS tautomer in its non-flipped state</span>
+        <span class="c1"># because we have to rebuild the ring from ideal geometry.</span>
+        <span class="n">chi_for_rotamers</span><span class="p">[</span>
+            <span class="n">his_taut_not_flipped_rotamers</span><span class="p">,</span> <span class="n">his_taut_not_flipped_rot_chi</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">pos_flip_chi</span><span class="p">[</span>
+            <span class="n">pose_for_his_taut_not_flipped_rotamer</span><span class="p">,</span>
+            <span class="n">block_for_his_taut_not_flipped_rotamer</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="n">chi_defining_atom_for_rotamer</span><span class="p">[</span>
+            <span class="n">his_taut_not_flipped_rotamers</span><span class="p">,</span> <span class="n">his_taut_not_flipped_rot_chi</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">opth_cache</span><span class="o">.</span><span class="n">nhq_chi_atom</span><span class="p">[</span><span class="n">bt_for_his_taut_not_flipped_rotamer</span><span class="p">]</span>
+
+        <span class="c1"># mark the flipped chi for all NHQ rotamers</span>
+        <span class="n">chi_for_rotamers</span><span class="p">[</span><span class="n">flipped_rotamers</span><span class="p">,</span> <span class="n">flipped_rot_chi</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">pos_flip_chi</span><span class="p">[</span>
+                <span class="n">pose_for_flipped_rotamer</span><span class="p">,</span>
+                <span class="n">block_for_flipped_rotamer</span><span class="p">,</span>
+            <span class="p">]</span>
+            <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span>
+        <span class="p">)</span>
+        <span class="n">chi_defining_atom_for_rotamer</span><span class="p">[</span><span class="n">flipped_rotamers</span><span class="p">,</span> <span class="n">flipped_rot_chi</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">opth_cache</span><span class="o">.</span><span class="n">nhq_chi_atom</span><span class="p">[</span><span class="n">bt_for_flipped_rotamer</span><span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fill_all_chi_tensors</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">,</span>
+        <span class="n">rot_offset_for_gbt</span><span class="p">,</span>
+        <span class="n">gbt_for_rotamer</span><span class="p">,</span>
+        <span class="n">pos_flip_chi</span><span class="p">,</span>
+        <span class="n">chi_defining_atom_for_rotamer</span><span class="p">,</span>
+        <span class="n">chi_for_rotamers</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fill_proton_chi_for_all_blocks</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="p">,</span>
+            <span class="n">task</span><span class="p">,</span>
+            <span class="n">rot_offset_for_gbt</span><span class="p">,</span>
+            <span class="n">gbt_for_rotamer</span><span class="p">,</span>
+            <span class="n">chi_defining_atom_for_rotamer</span><span class="p">,</span>
+            <span class="n">chi_for_rotamers</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fill_all_nhq_blocks</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="p">,</span>
+            <span class="n">task</span><span class="p">,</span>
+            <span class="n">gbt_for_rotamer</span><span class="p">,</span>
+            <span class="n">pos_flip_chi</span><span class="p">,</span>
+            <span class="n">chi_defining_atom_for_rotamer</span><span class="p">,</span>
+            <span class="n">chi_for_rotamers</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="OptHSampler.create_samples_for_poses">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSampler.create_samples_for_poses">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_samples_for_poses</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">:</span> <span class="s2">&quot;SetPackerTask&quot;</span><span class="p">,</span>  <span class="c1"># noqa: F821</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span> <span class="nb">dict</span><span class="p">,]:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_annotate_packed_block_types</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">)</span>
+
+        <span class="c1"># ensure dunbrack and optH sampler are not _both_ specified for the same block</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_assert_no_dun_opth_conflict</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+
+        <span class="c1"># 1) compute:</span>
+        <span class="c1">#      n_rots per GBT</span>
+        <span class="c1">#      max chi tensor width</span>
+        <span class="c1">#      current last-chi angle</span>
+        <span class="c1"># for each NHQ position in the input</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>  <span class="c1"># coord_dihedrals needs float64</span>
+        <span class="n">n_rots_for_gbt</span><span class="p">,</span> <span class="n">max_n_chi_cols</span><span class="p">,</span> <span class="n">pos_flip_chi</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_count_rots_and_measure_all_flips</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">n_rots_total</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_rots_for_gbt</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="n">n_rots_total</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">empty_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_n_chi_cols</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">n_rots_for_gbt</span><span class="p">,</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">chi_defining_atom_for_rotamer</span><span class="o">=</span><span class="n">empty_chi</span><span class="p">,</span>
+                    <span class="n">chi_for_rotamers</span><span class="o">=</span><span class="n">empty_chi</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="n">rot_offset_for_gbt</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">n_rots_for_gbt</span><span class="p">)</span>
+        <span class="n">gbt_for_rotamer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                <span class="n">n_rots_for_gbt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="n">n_rots_for_gbt</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">chi_defining_atom_for_rotamer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_rots_total</span><span class="p">,</span> <span class="n">max_n_chi_cols</span><span class="p">),</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">chi_for_rotamers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_rots_total</span><span class="p">,</span> <span class="n">max_n_chi_cols</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># # 2) fill chi tensors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fill_all_chi_tensors</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="p">,</span>
+            <span class="n">task</span><span class="p">,</span>
+            <span class="n">rot_offset_for_gbt</span><span class="p">,</span>
+            <span class="n">gbt_for_rotamer</span><span class="p">,</span>
+            <span class="n">pos_flip_chi</span><span class="p">,</span>
+            <span class="n">chi_defining_atom_for_rotamer</span><span class="p">,</span>
+            <span class="n">chi_for_rotamers</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">n_rots_for_gbt</span><span class="p">,</span>
+            <span class="n">gbt_for_rotamer</span><span class="p">,</span>
+            <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">chi_defining_atom_for_rotamer</span><span class="o">=</span><span class="n">chi_defining_atom_for_rotamer</span><span class="p">,</span>
+                <span class="n">chi_for_rotamers</span><span class="o">=</span><span class="n">chi_for_rotamers</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="OptHSampler.fill_dofs_for_samples">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSampler.fill_dofs_for_samples">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fill_dofs_for_samples</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">:</span> <span class="s2">&quot;PackerTask&quot;</span><span class="p">,</span>  <span class="c1"># noqa: F821</span>
+        <span class="n">orig_kinforest</span><span class="p">:</span> <span class="n">KinForest</span><span class="p">,</span>
+        <span class="n">orig_dofs_kto</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">],</span>
+        <span class="n">gbt_for_conformer</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+        <span class="n">block_type_ind_for_conformer</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+        <span class="n">n_dof_atoms_offset_for_conformer</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+        <span class="n">conformer_built_by_sampler</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:],</span>
+        <span class="n">conf_inds_for_sampler</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+        <span class="n">sampler_n_rots_for_gbt</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+        <span class="n">sampler_gbt_for_rotamer</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
+        <span class="n">sample_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">conf_dofs_kto</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">],</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">sampler_gbt_for_rotamer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
+
+        <span class="n">_opth_fill_dofs</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="p">,</span>
+            <span class="n">task</span><span class="p">,</span>
+            <span class="n">gbt_for_conformer</span><span class="p">,</span>
+            <span class="n">block_type_ind_for_conformer</span><span class="p">,</span>
+            <span class="n">n_dof_atoms_offset_for_conformer</span><span class="p">,</span>
+            <span class="n">conf_inds_for_sampler</span><span class="p">,</span>
+            <span class="n">orig_dofs_kto</span><span class="p">,</span>
+            <span class="n">sample_dict</span><span class="p">[</span><span class="s2">&quot;chi_defining_atom_for_rotamer&quot;</span><span class="p">],</span>
+            <span class="n">sample_dict</span><span class="p">[</span><span class="s2">&quot;chi_for_rotamers&quot;</span><span class="p">],</span>
+            <span class="n">conf_dofs_kto</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">flip_NHQ</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

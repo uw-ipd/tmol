@@ -36,7 +36,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=f529eb24" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -481,10 +481,9 @@
 tutorial suite. It is a capability crosswalk, not a promise of API or protocol
 parity: Rosetta is a broad modeling suite, while TMol is a PyTorch library built
 around batched, differentiable molecular operations.</p>
-<p>TMol statements below are grounded in the current repository sources. The
-nucleic-acid section is the one exception: it describes the proposed behavior
-in <a class="reference external" href="https://github.com/uw-ipd/tmol/pull/404">TMol PR #404</a>, which is not part of
-<code class="docutils literal notranslate"><span class="pre">master</span></code> while that PR remains open.</p>
+<p>TMol statements below are grounded in the current repository sources, including
+the nucleic-acid functionality merged through
+<a class="reference external" href="https://github.com/uw-ipd/tmol/pull/404">TMol PR #404</a>.</p>
 <section id="molecular-objects-and-chemical-types">
 <h2>Molecular objects and chemical types<a class="headerlink" href="#molecular-objects-and-chemical-types" title="Link to this heading">#</a></h2>
 <p>Rosetta’s central object is a single <code class="docutils literal notranslate"><span class="pre">Pose</span></code>, an ordered collection of
@@ -692,23 +691,21 @@ Parallel, Slurm, or another scheduler can assign one TMol process and one
 <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> shard to each GPU. That orchestration remains application code; it
 should not be presented as a built-in TMol feature.</p>
 </section>
-<section id="dna-and-rna-after-pr-404">
-<h2>DNA and RNA after PR #404<a class="headerlink" href="#dna-and-rna-after-pr-404" title="Link to this heading">#</a></h2>
-<p>This section is prospective until
-<a class="reference external" href="https://github.com/uw-ipd/tmol/pull/404">PR #404</a> is merged. The current
-<code class="docutils literal notranslate"><span class="pre">master</span></code> code does not yet provide these score terms or samplers.</p>
-<p>The PR proposes one unified <code class="docutils literal notranslate"><span class="pre">na_torsion</span></code> functional form for both polymers,
+<section id="dna-and-rna">
+<h2>DNA and RNA<a class="headerlink" href="#dna-and-rna" title="Link to this heading">#</a></h2>
+<p><a class="reference external" href="https://github.com/uw-ipd/tmol/pull/404">PR #404</a> added one unified
+<code class="docutils literal notranslate"><span class="pre">na_torsion</span></code> functional form for both polymers,
 based on Rosetta’s DNA-torsion form but using separate fitted parameter sets for
 DNA and RNA. The associated terms are <code class="docutils literal notranslate"><span class="pre">na_torsion</span></code> and <code class="docutils literal notranslate"><span class="pre">na_torsion_well</span></code>.
-Nucleic-acid chi packing is generated from those wells: the PR describes
+Nucleic-acid chi packing is generated from those wells:
 anti-only sampling for DNA and anti/syn sampling for RNA.</p>
 <p>That scope is much narrower than Rosetta’s RNA and DNA toolset. Even after the
-PR, do not imply that TMol has:</p>
+addition, TMol does not have:</p>
 <ul class="simple">
 <li><p>low-resolution or centroid RNA scoring;</p></li>
 <li><p>RNA motif, base-pair, or suite classifiers;</p></li>
 <li><p>RNA fragment insertion, FARNA, FARFAR, or FARFAR2 structure generation;</p></li>
-<li><p>coupled nucleobase-sequence design;</p></li>
+<li><p>a mature coupled nucleobase-sequence design protocol;</p></li>
 <li><p>Rosetta’s A-form helix assembly, RNA threading, or mature RNA protocol
 ecosystem.</p></li>
 </ul>
@@ -812,7 +809,7 @@ supported <code class="docutils literal notranslate"><span class="pre">PoseStack
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#minimization-constraints-relax-and-kinematics">Minimization, constraints, relax, and kinematics</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ligands-and-residue-parameter-files">Ligands and residue-parameter files</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-batching-and-external-orchestration">GPU batching and external orchestration</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dna-and-rna-after-pr-404">DNA and RNA after PR #404</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dna-and-rna">DNA and RNA</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#parametric-helical-bundles">Parametric helical bundles</a></li>
 </ul>
   </nav></div>

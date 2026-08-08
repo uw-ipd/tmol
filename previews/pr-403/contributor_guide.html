@@ -36,7 +36,7 @@
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=f529eb24" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -473,19 +473,22 @@ abstractions unless the new abstraction removes real complexity.</p>
 <p>The external docs are built with Sphinx, MyST Markdown, nbsphinx, autodoc, and
 sphinx-gallery.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>docs/docs_requirements.txt
+python<span class="w"> </span>.github/scripts/smoke_tutorial_notebooks.py<span class="w"> </span>--write
 docs/make
 </pre></div>
 </div>
 <p>Rendered HTML is written to <code class="docutils literal notranslate"><span class="pre">docs/_build/html</span></code>.</p>
 <p>Examples live in <code class="docutils literal notranslate"><span class="pre">docs/examples/</span></code> and are rendered by sphinx-gallery with
-committed thumbnails. Notebooks are rendered without execution during docs
-builds, so interactive notebooks must commit their saved outputs.</p>
+committed thumbnails. nbsphinx does not execute notebooks during the Sphinx
+phase; the smoke command above executes them first and writes the plots, tables,
+and viewer HTML that Sphinx consumes. CI performs the same two-step build.</p>
 </section>
 <section id="pull-requests">
 <h2>Pull Requests<a class="headerlink" href="#pull-requests" title="Link to this heading">#</a></h2>
 <p>Before opening a PR:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
 pytest<span class="w"> </span>tmol/tests/<span class="w"> </span>-v<span class="w"> </span>-k<span class="w"> </span><span class="s2">&quot;not cuda&quot;</span>
+python<span class="w"> </span>.github/scripts/smoke_tutorial_notebooks.py<span class="w"> </span>--write
 docs/make
 </pre></div>
 </div>
@@ -494,10 +497,9 @@ include the relevant GPU tests or explain why they were not run locally.</p>
 </section>
 <section id="api-documentation">
 <h2>API Documentation<a class="headerlink" href="#api-documentation" title="Link to this heading">#</a></h2>
-<p>API pages under <code class="docutils literal notranslate"><span class="pre">docs/api/</span></code> are authored and use <code class="docutils literal notranslate"><span class="pre">sphinx.ext.autodoc</span></code>, matching
-the AtomWorks and RFD4 docs setup. Public modules should have useful module,
-class, and function docstrings because those docstrings become the reference
-documentation.</p>
+<p>API pages under <code class="docutils literal notranslate"><span class="pre">docs/api/</span></code> use <code class="docutils literal notranslate"><span class="pre">sphinx.ext.autodoc</span></code>. Public modules should have
+useful module, class, and function docstrings because those docstrings become
+the reference documentation.</p>
 <p>Use Google or NumPy-style docstrings.</p>
 <div class="toctree-wrapper compound">
 <ul>

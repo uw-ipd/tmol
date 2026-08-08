@@ -5,10 +5,9 @@ tutorial suite. It is a capability crosswalk, not a promise of API or protocol
 parity: Rosetta is a broad modeling suite, while TMol is a PyTorch library built
 around batched, differentiable molecular operations.
 
-TMol statements below are grounded in the current repository sources. The
-nucleic-acid section is the one exception: it describes the proposed behavior
-in [TMol PR #404](https://github.com/uw-ipd/tmol/pull/404), which is not part of
-`master` while that PR remains open.
+TMol statements below are grounded in the current repository sources, including
+the nucleic-acid functionality merged through
+[TMol PR #404](https://github.com/uw-ipd/tmol/pull/404).
 
 ## Molecular objects and chemical types
 
@@ -229,25 +228,22 @@ Parallel, Slurm, or another scheduler can assign one TMol process and one
 `PoseStack` shard to each GPU. That orchestration remains application code; it
 should not be presented as a built-in TMol feature.
 
-## DNA and RNA after PR #404
+## DNA and RNA
 
-This section is prospective until
-[PR #404](https://github.com/uw-ipd/tmol/pull/404) is merged. The current
-`master` code does not yet provide these score terms or samplers.
-
-The PR proposes one unified `na_torsion` functional form for both polymers,
+[PR #404](https://github.com/uw-ipd/tmol/pull/404) added one unified
+`na_torsion` functional form for both polymers,
 based on Rosetta's DNA-torsion form but using separate fitted parameter sets for
 DNA and RNA. The associated terms are `na_torsion` and `na_torsion_well`.
-Nucleic-acid chi packing is generated from those wells: the PR describes
+Nucleic-acid chi packing is generated from those wells:
 anti-only sampling for DNA and anti/syn sampling for RNA.
 
 That scope is much narrower than Rosetta's RNA and DNA toolset. Even after the
-PR, do not imply that TMol has:
+addition, TMol does not have:
 
 - low-resolution or centroid RNA scoring;
 - RNA motif, base-pair, or suite classifiers;
 - RNA fragment insertion, FARNA, FARFAR, or FARFAR2 structure generation;
-- coupled nucleobase-sequence design;
+- a mature coupled nucleobase-sequence design protocol;
 - Rosetta's A-form helix assembly, RNA threading, or mature RNA protocol
   ecosystem.
 

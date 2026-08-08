@@ -17,7 +17,7 @@ The most deterministic install path is an explicit wheel URL from the GitHub
 Releases page:
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu130torch2.13-cp313-cp313-manylinux_2_28_x86_64.whl"
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.12-cp313-cp313-manylinux_2_28_x86_64.whl"
 ```
 
 Install the matching PyTorch build first:

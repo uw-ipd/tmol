@@ -35,7 +35,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=f529eb24" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -426,6 +426,9 @@
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
     
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    
     <li class="breadcrumb-item"><a href="../io.html" class="nav-link">tmol.io</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io.pose_stack_from_rosettafold2</span></li>
@@ -463,7 +466,7 @@
 
 
 <div class="viewcode-block" id="pose_stack_from_rosettafold2">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_rosettafold2.pose_stack_from_rosettafold2">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.io.pose_stack_from_rosettafold2.pose_stack_from_rosettafold2">[docs]</a>
 <span class="nd">@validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_rosettafold2</span><span class="p">(</span>
     <span class="n">seq</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
@@ -497,7 +500,7 @@
 
 
 <div class="viewcode-block" id="canonical_form_from_rosettafold2">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_rosettafold2.canonical_form_from_rosettafold2">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.io.pose_stack_from_rosettafold2.canonical_form_from_rosettafold2">[docs]</a>
 <span class="nd">@validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">canonical_form_from_rosettafold2</span><span class="p">(</span>
     <span class="n">seq</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span> <span class="n">xyz</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">chainlens</span><span class="p">:</span> <span class="n">List</span>
@@ -648,7 +651,7 @@
 
 
 <div class="viewcode-block" id="packed_block_types_for_rosettafold2">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_rosettafold2.packed_block_types_for_rosettafold2">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.io.pose_stack_from_rosettafold2.packed_block_types_for_rosettafold2">[docs]</a>
 <span class="nd">@validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">packed_block_types_for_rosettafold2</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackedBlockTypes</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Construct the PackedBlockTypes (PBT) object that will be used for</span>

@@ -35,7 +35,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=f529eb24" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -426,6 +426,9 @@
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
     
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    
     <li class="breadcrumb-item"><a href="../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.score_function</span></li>
@@ -472,8 +475,16 @@
 
 
 <div class="viewcode-block" id="ScoreFunction">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ScoreFunction</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Weighted collection of energy terms rendered for a target pose layout.</span>
+
+<span class="sd">    A score function owns score-type weights, term options, a parameter</span>
+<span class="sd">    database, and a device. Setting a non-zero weight activates the</span>
+<span class="sd">    corresponding energy-term implementation. Rendering prepares those terms</span>
+<span class="sd">    for one ``PoseStack`` and returns a callable scoring wrapper.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">n_score_types</span><span class="o">.</span><span class="n">value</span><span class="p">,),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
@@ -504,8 +515,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">term_options</span> <span class="o">=</span> <span class="p">{}</span>
 
 <div class="viewcode-block" id="ScoreFunction.set_weight">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.set_weight">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.set_weight">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the weight for a score type, activating its energy term.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_type_covered_by_contained_term</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_term_for_score_type</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">weight</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_for_st_has_no_other_non_zero_weights</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>
@@ -515,8 +527,9 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.get_weight">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.get_weight">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.get_weight">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the configured weight for a score type.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span><span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span></div>
 
 
@@ -566,7 +579,7 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.all_terms">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.all_terms">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.all_terms">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">all_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Grant read access to the list of terms.</span>
 
@@ -630,15 +643,14 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.render_whole_pose_scoring_module">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.render_whole_pose_scoring_module">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.render_whole_pose_scoring_module">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">render_whole_pose_scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an object designed to evaluate the score of a set of Poses</span>
-<span class="sd">        repeatedly as the Poses change their conformation, e.g., as in</span>
-<span class="sd">        minimization. This object will derive from torch.nn.Module and</span>
-<span class="sd">        it will contain a set of objects rendered by the ScoreFunction&#39;s</span>
-<span class="sd">        terms that themselves are derived from torch.nn.Module. This</span>
-<span class="sd">        object&#39;s __call__ will return a tensor of weighted energies of</span>
-<span class="sd">        shape (n_poses,).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Render a callable whole-pose scorer for a fixed pose layout.</span>
+
+<span class="sd">        The wrapper contains the ``torch.nn.Module`` objects rendered by the</span>
+<span class="sd">        active energy terms. Its ``__call__`` returns weighted totals with</span>
+<span class="sd">        shape ``[n_poses]``, or ``[n_terms, n_poses]`` when</span>
+<span class="sd">        ``sum_terms=False``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_work_initialization</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
         <span class="n">term_modules</span> <span class="o">=</span> <span class="p">[</span>
@@ -648,15 +660,14 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.render_block_pair_scoring_module">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.render_block_pair_scoring_module">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.render_block_pair_scoring_module">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">render_block_pair_scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an object designed to evaluate the score of a set of Poses</span>
-<span class="sd">        repeatedly as the Poses change their conformation, e.g., as in</span>
-<span class="sd">        minimization. This object will derive from torch.nn.Module and</span>
-<span class="sd">        it will contain a set of objects rendered by the ScoreFunction&#39;s</span>
-<span class="sd">        terms that themselves are derived from torch.nn.Module. This</span>
-<span class="sd">        object&#39;s __call__ will return a tensor of weighted energies of</span>
-<span class="sd">        shape (n_poses, max_n_blocks, max_n_blocks).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Render a callable block-pair scorer for a fixed pose layout.</span>
+
+<span class="sd">        The wrapper contains the ``torch.nn.Module`` objects rendered by the</span>
+<span class="sd">        active energy terms. Its ``__call__`` returns weighted values with</span>
+<span class="sd">        shape ``[n_poses, max_n_blocks, max_n_blocks]``, or a leading</span>
+<span class="sd">        score-term axis when ``sum_terms=False``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_work_initialization</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
         <span class="n">term_modules</span> <span class="o">=</span> <span class="p">[</span>
@@ -666,17 +677,15 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.render_rotamer_scoring_module">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.render_rotamer_scoring_module">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.render_rotamer_scoring_module">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">render_rotamer_scoring_module</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">:</span> <span class="s2">&quot;RotamerSet&quot;</span>  <span class="c1"># noqa: F405</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an object designed to evaluate the score a RotamerSet</span>
-<span class="sd">        repeatedly as the Poses change their conformation, e.g., as in</span>
-<span class="sd">        minimization. This object will derive from torch.nn.Module and</span>
-<span class="sd">        it will contain a set of objects rendered by the ScoreFunction&#39;s</span>
-<span class="sd">        terms that themselves are derived from torch.nn.Module. This</span>
-<span class="sd">        object&#39;s __call__ will return a tensor of weighted energies of</span>
-<span class="sd">        shape (n_poses, max_n_blocks, max_n_blocks).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Render a callable sparse rotamer scorer for a pose and rotamer set.</span>
+
+<span class="sd">        The wrapper contains the ``torch.nn.Module`` objects rendered by the</span>
+<span class="sd">        active terms and returns the weighted one- and two-rotamer energies</span>
+<span class="sd">        consumed by the packer.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_work_initialization</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
         <span class="n">term_modules</span> <span class="o">=</span> <span class="p">[</span>
@@ -704,7 +713,7 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.set_option">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.set_option">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.set_option">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_option</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Set an option for all energy terms.</span>
 
@@ -715,7 +724,7 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.set_options">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.set_options">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.set_options">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="n">Dict</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the score function options by a dict.</span>
 
@@ -743,7 +752,7 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.from_sfxn_file">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.from_sfxn_file">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.from_sfxn_file">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_sfxn_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a ScoreFunction from a YAML weights file.</span>
@@ -829,6 +838,12 @@
 <div class="viewcode-block" id="WholePoseScoringModule">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.WholePoseScoringModule">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">WholePoseScoringModule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Combine rendered term modules into whole-pose scores.</span>
+
+<span class="sd">    This is a callable wrapper around term-specific ``torch.nn.Module``</span>
+<span class="sd">    instances; it is not itself a ``torch.nn.Module``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">weights</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:],</span>
@@ -855,6 +870,8 @@
 <div class="viewcode-block" id="BlockPairScoringModule">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.BlockPairScoringModule">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">BlockPairScoringModule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Combine rendered term modules into block-pair score matrices.&quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">weights</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:],</span>
@@ -883,6 +900,8 @@
 <div class="viewcode-block" id="RotamerScoringModule">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.RotamerScoringModule">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RotamerScoringModule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Combine sparse rotamer energies from all rendered score terms.&quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">weights</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:],</span>

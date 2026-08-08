@@ -35,7 +35,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=f529eb24" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -425,6 +425,9 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand.params_io</span></li>
   </ul>
 </nav>
@@ -574,7 +577,7 @@
 
 
 <div class="viewcode-block" id="read_params_file">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.params_io.read_params_file">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.read_params_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">read_params_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RawResidueType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a Rosetta .params file into a RawResidueType.</span>
 
@@ -890,7 +893,7 @@
 
 
 <div class="viewcode-block" id="write_params_file">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.params_io.write_params_file">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.write_params_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">write_params_file</span><span class="p">(</span>
     <span class="n">preparation</span><span class="p">:</span> <span class="s2">&quot;LigandPreparation | list[LigandPreparation]&quot;</span><span class="p">,</span>
     <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
@@ -942,7 +945,7 @@
 
 
 <div class="viewcode-block" id="write_params_from_mol2">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.params_io.write_params_from_mol2">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.write_params_from_mol2">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">write_params_from_mol2</span><span class="p">(</span>
     <span class="n">mol2_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">out_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>

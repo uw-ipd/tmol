@@ -35,7 +35,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=f529eb24" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -425,6 +425,9 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand.registry</span></li>
   </ul>
 </nav>
@@ -618,7 +621,7 @@
 
 
 <div class="viewcode-block" id="collect_new_atom_types">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.registry.collect_new_atom_types">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.collect_new_atom_types">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">collect_new_atom_types</span><span class="p">(</span>
     <span class="n">chem_db</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">,</span>
     <span class="n">residue_type</span><span class="p">:</span> <span class="n">RawResidueType</span><span class="p">,</span>
@@ -671,7 +674,7 @@
 
 
 <div class="viewcode-block" id="LigandPreparation">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.registry.LigandPreparation">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.LigandPreparation">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LigandPreparation</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The unified abstraction both ligand-pipeline paths converge on.</span>
@@ -709,7 +712,7 @@
 
 
 <div class="viewcode-block" id="inject_ligand_preparations">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.registry.inject_ligand_preparations">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.inject_ligand_preparations">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">inject_ligand_preparations</span><span class="p">(</span>
     <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
     <span class="n">preparations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LigandPreparation</span><span class="p">],</span>
@@ -783,7 +786,7 @@
 
 
 <div class="viewcode-block" id="rebuild_canonical_ordering">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.registry.rebuild_canonical_ordering">[docs]</a>
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.rebuild_canonical_ordering">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">rebuild_canonical_ordering</span><span class="p">(</span>
     <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CanonicalOrdering</span><span class="p">:</span>

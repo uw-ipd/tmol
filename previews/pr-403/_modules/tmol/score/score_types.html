@@ -35,7 +35,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=f529eb24" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -426,6 +426,9 @@
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
     
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    
     <li class="breadcrumb-item"><a href="../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.score_types</span></li>
@@ -446,12 +449,21 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.score.score_types</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.auto_number</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoNumber</span>
+<span></span><span class="sd">&quot;&quot;&quot;Identifiers for weighted components of a TMol score function.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.auto_number</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoNumber</span>
 
 
 <div class="viewcode-block" id="ScoreType">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_types.ScoreType">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_types.ScoreType">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ScoreType</span><span class="p">(</span><span class="n">AutoNumber</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumerate score-function components in stable weight-vector order.</span>
+
+<span class="sd">    ``n_score_types`` is a terminal size sentinel and is not an energy</span>
+<span class="sd">    component. See the API score-term map for the implementation and meaning</span>
+<span class="sd">    of every preceding member.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">fa_ljatr</span> <span class="o">=</span> <span class="p">()</span>
     <span class="n">fa_ljrep</span> <span class="o">=</span> <span class="p">()</span>
     <span class="n">fa_lk</span> <span class="o">=</span> <span class="p">()</span>

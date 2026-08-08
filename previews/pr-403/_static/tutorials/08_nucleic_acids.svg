@@ -1,14 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" role="img" aria-labelledby="t d">
-  <title id="t">Working with DNA and RNA</title><desc id="d">A DNA duplex contacted by a protein helix and an RNA pocket around a ligand.</desc>
-  <rect width="560" height="320" rx="24" fill="#151f33"/>
-  <g fill="none" stroke-width="8">
-    <path d="M68 42c96 54 10 124 96 180s10 56 10 56" stroke="#69d2e7"/>
-    <path d="M158 42c-96 54-10 124-96 180s-10 56-10 56" stroke="#7de2a8"/>
-    <g stroke="#dce6f7" stroke-width="4"><path d="M91 68h44M71 105h84M66 145h94M72 187h82M93 226h43"/></g>
-  </g>
-  <path d="M184 138c55-68 119-72 176-8" fill="none" stroke="#f6c85f" stroke-width="22" stroke-linecap="round"/>
-  <path d="m276 104 34 27-35 26" fill="none" stroke="#ff7f7f" stroke-width="8" stroke-linejoin="round"/>
-  <path d="M391 68c104 4 115 111 32 128-79 16-79 93 35 82" fill="none" stroke="#b39ddb" stroke-width="12" stroke-linecap="round"/>
-  <g transform="translate(436 169)" stroke="#f6c85f" stroke-width="7"><path d="m0-28 25 14v28L0 28-25 14v-28z" fill="#263754"/><circle cx="0" cy="-28" r="8" fill="#ff7f7f" stroke="none"/></g>
-  <text x="206" y="279" font-family="sans-serif" font-size="18" fill="#dce6f7">base substitutions · NA rotamers · aptamer</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" role="img" aria-labelledby="title description">
+<title id="title">Nucleic acids â€” homeodomainâ€“DNA and theophylline aptamer</title>
+<desc id="description">Static molecular render generated from 1HDD.cif, 1EHT.cif used by this tutorial.</desc>
+<metadata>Generated from tutorial fixtures: 1HDD.cif, 1EHT.cif</metadata>
+<rect width="560" height="320" rx="24" fill="#111a2d"/>
+<rect x="10" y="10" width="540" height="300" rx="18" fill="none" stroke="#263a5e" stroke-width="2"/>
+<polyline points="334.0,177.8 329.4,189.3 321.3,206.3 299.3,209.1 278.1,200.0 258.1,187.2 240.1,164.7 232.4,147.6 232.1,137.5 232.4,144.7 234.9,159.1 225.8,176.9 214.5,195.7 192.5,198.4 170.9,192.2 149.4,176.9 130.6,158.3 120.7,142.3 118.2,133.3 121.6,131.1 120.0,145.7" fill="none" stroke="#ff7b89" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="101.9,189.9 116.8,195.0 136.2,201.9 154.2,196.6 168.9,181.8 174.2,160.2 172.7,141.2 165.9,125.4 165.9,126.7 171.3,140.3 181.6,162.3 194.4,185.7 217.1,202.4 238.7,207.0 258.7,200.3 271.3,183.8 281.7,165.1 278.9,148.6 273.1,139.7 274.5,145.9 286.4,162.4" fill="none" stroke="#75d7e8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="213.6,212.3 221.6,216.1 224.9,203.5 230.5,205.1 243.1,202.2 245.0,196.1 257.2,199.3 263.8,189.0 261.9,191.6 248.0,190.8 244.7,178.5 250.8,173.8 242.8,176.6 231.4,172.9 233.8,160.1 237.5,158.8 225.4,161.7 217.1,152.4 221.9,141.8 218.4,143.0 206.2,146.3 200.4,145.1 189.9,151.1 193.5,165.1 187.3,170.6 186.1,183.8 195.1,187.3 204.0,181.2 201.5,186.3 204.9,198.9 216.7,198.6 222.6,194.5 220.6,206.2 228.2,215.2 238.8,208.9 240.0,206.1 236.6,217.8 226.9,210.8 213.1,211.1 202.6,201.0 197.5,197.7 208.4,194.2 210.0,186.3 196.4,180.4 197.3,176.5 209.5,172.8 203.4,162.6 192.2,158.5 200.8,157.7 208.6,151.0 197.2,140.3 194.2,139.8 205.7,136.3 205.6,127.8 192.6,120.5 196.4,120.4 208.3,117.8" fill="none" stroke="#54c7ec" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="108.6,202.5 96.7,206.3 87.4,197.5 76.9,191.0 64.0,181.8 58.9,170.2 46.5,166.8 38.0,154.4 38.8,150.8 52.7,152.8 53.1,148.7 45.2,136.1 52.6,134.4 64.6,137.5 58.4,127.8 54.2,118.1 67.5,120.4 72.9,120.6 64.5,107.8 69.7,102.2 83.2,107.5 89.1,116.9 101.0,123.0 100.9,131.6 108.8,132.1 114.5,143.3 106.5,139.8 95.3,135.4 98.3,147.4 98.4,153.7 86.2,144.9 79.0,147.4 84.0,161.5 79.3,162.6 67.6,153.3 64.2,158.1 70.7,171.5 78.9,173.0 92.8,178.2 100.6,168.7 107.2,174.3 94.8,172.9 90.6,159.2 103.0,157.4 101.7,162.3 87.9,155.5 91.8,143.4 102.6,146.6 94.2,149.9 83.8,138.5 92.4,129.8 97.5,135.9 84.5,134.0 79.0,120.7 90.2,117.7 87.1,121.4 76.4,109.0" fill="none" stroke="#77d6a5" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="471.5,110.1 466.0,108.3 475.4,117.5 485.2,138.7 487.0,161.0 479.4,182.4 460.3,197.6 440.4,201.2 424.3,211.7 393.3,198.3 380.2,170.8 372.0,145.4 377.9,124.0 391.1,108.3 392.8,109.9 397.6,136.7 421.0,160.9 447.1,169.1 452.8,164.5 449.1,150.9 436.5,139.6 421.4,141.1 442.2,143.9 414.0,147.1 405.3,143.1 388.9,152.2 396.0,176.2 425.8,174.8 432.0,190.5 460.4,207.4 487.2,200.4 508.5,198.5 520.0,176.9" fill="none" stroke="#ff7b89" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="450.1,202.5 445.9,197.9" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="445.9,197.9 441.8,199.6" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="445.9,197.9 446.2,192.0" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="441.8,199.6 442.0,205.1" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="441.8,199.6 437.4,195.6" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="437.4,195.6 433.2,197.4" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="437.4,195.6 437.5,189.6" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="437.5,189.6 441.7,187.9" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="437.5,189.6 433.8,184.4" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="441.7,187.9 446.2,192.0" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="441.7,187.9 440.5,181.6" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="446.2,192.0 450.0,190.7" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="440.5,181.6 435.7,179.8" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="435.7,179.8 433.8,184.4" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<circle cx="450.1" cy="202.5" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="445.9" cy="197.9" r="4.2" fill="#5ca9ff" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="441.8" cy="199.6" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="442.0" cy="205.1" r="4.2" fill="#ff6577" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="437.4" cy="195.6" r="4.2" fill="#5ca9ff" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="433.2" cy="197.4" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="437.5" cy="189.6" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="441.7" cy="187.9" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="446.2" cy="192.0" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="450.0" cy="190.7" r="4.2" fill="#ff6577" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="440.5" cy="181.6" r="4.2" fill="#5ca9ff" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="435.7" cy="179.8" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="433.8" cy="184.4" r="4.2" fill="#5ca9ff" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
 </svg>

@@ -36,7 +36,7 @@
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=f529eb24" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -408,6 +408,7 @@
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="datatypes.html">Datatypes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/top_level.html">Top-level API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/chemical.html">Chemical Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/database.html">Databases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/io.html">Input and Output</a></li>
@@ -419,6 +420,8 @@
 <li class="toctree-l1"><a class="reference internal" href="api/pose.html">Pose</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/relax.html">Relax</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/score.html">Scoring API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/analysis.html">Scoring Analyses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/score_terms.html">Score Terms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/types.html">Types</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/utility.html">Utilities</a></li>
 </ul>
@@ -518,64 +521,25 @@ and then render <code class="docutils literal notranslate"><span class="pre">tor
 <section id="scoring-overview">
 <h2>Scoring Overview<a class="headerlink" href="#scoring-overview" title="Link to this heading">#</a></h2>
 <p>Scoring is managed by rendered PyTorch modules that evaluate configured energy
-terms over one or more poses. A model is defined over a set <code class="docutils literal notranslate"><span class="pre">n</span></code> of bonded
-atoms. Each atom is located at an atom index and is defined by a type and
-coordinate. Atoms may be null, defining no type and a NaN coordinate at a given
-index. Bonds are represented as sparse, undirected bonded inter-atom index
-pairs.</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>+---------------------------------------+
-|                                  --   |
-| &quot;[n] atom_types&quot;                /  \  |
-| &quot;[n] coordinates&quot;            +-+    + |
-| &quot;[b] (a,b) bond indices&quot;    /   \  /  |
-|                                  --   |
-+----------------------------------+----+
-                                   |
-                                   |
-+----------------------------------|----+
-|                              +---o--+ |
-|                              +------+ |
-| &quot;[l] layers&quot;                 +------+ |
-|                              +------+ |
-|                              +------+ |
-+---------------------------------------+
+terms over a <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code>. Coordinates have shape
+<code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">max_n_atoms,</span> <span class="pre">3]</span></code>; <code class="docutils literal notranslate"><span class="pre">real_atoms</span></code> distinguishes molecular atoms
+from padding, while block-type and connection tensors describe residue and
+polymer topology.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PoseStack + ScoreFunction
+           |
+           +--&gt; whole-pose module --&gt; [n_poses]
+           |
+           +--&gt; block-pair module --&gt; [n_poses, n_blocks, n_blocks]
+           |
+           +--&gt; rotamer module -----&gt; packer candidate energies
 </pre></div>
-</div>
-<p>Score calculation is performed on an intra-layer and inter-layer basis.
-Intra-layer scoring is defined across all interactions, bonded and non-bonded,
-within a layer. Inter-layer scoring is defined over inter-layer non-bonded
-interactions.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">tmol.score</span></code> currently only supports intra-layer scoring and is
-limited to models of depth 1.</p>
 </div>
 <p>The score function implementation is partitioned into score term classes, each
 covering a logically distinct component of the energy function. These
-components include score terms, derived pose representations, and support data
-required for score evaluation. A rendered scoring module includes an atomic
-representation, some number of score terms, and a weighted total score.</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>+------------------------------+
-|                              |
-|          +-------+           |
-|          | Atoms |           |
-|          ++-----++           |
-|           |     |            |
-|        +--+    ++------+     |
-|        |       |Derived|     |
-|        v       ++-----++     |
-|    +----+       |     |      |
-|    |Term|       v     v      |
-|    +---++   +----+ +----+    |
-|        |    |Term| |Term|    |
-|        v    +--+-+ +--+-+    |
-|      +-----+   |      |      |
-|      |Total|&lt;--+------+      |
-|      +-----+                 |
-|                              |
-+------------------------------+
-</pre></div>
-</div>
+term annotates residue/block data before rendering its coordinate-dependent
+module. Calls may return either the weighted total or a leading score-term axis
+when <code class="docutils literal notranslate"><span class="pre">sum_terms=False</span></code>. The complete score-type-to-term map is documented in
+<a class="reference internal" href="api/score_terms.html"><span class="doc">Score Terms</span></a>.</p>
 </section>
 </section>
 

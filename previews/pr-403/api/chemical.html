@@ -36,7 +36,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=f529eb24" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -66,7 +66,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Databases" href="database.html" />
-    <link rel="prev" title="Datatypes" href="../datatypes.html" />
+    <link rel="prev" title="Top-level API" href="top_level.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.46" />
@@ -408,6 +408,7 @@
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="top_level.html">Top-level API</a></li>
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">Chemical Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="database.html">Databases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="io.html">Input and Output</a></li>
@@ -419,6 +420,8 @@
 <li class="toctree-l1"><a class="reference internal" href="pose.html">Pose</a></li>
 <li class="toctree-l1"><a class="reference internal" href="relax.html">Relax</a></li>
 <li class="toctree-l1"><a class="reference internal" href="score.html">Scoring API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">Scoring Analyses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="score_terms.html">Score Terms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="types.html">Types</a></li>
 <li class="toctree-l1"><a class="reference internal" href="utility.html">Utilities</a></li>
 </ul>
@@ -481,9 +484,9 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="module-tmol.chemical">
-<span id="chemical-data"></span><h1>Chemical Data<a class="headerlink" href="#module-tmol.chemical" title="Link to this heading">#</a></h1>
-<dl class="py class" id="module-tmol.chemical.restypes">
+  <section id="module-tmol.chemical.restypes">
+<span id="chemical-data"></span><h1>Chemical Data<a class="headerlink" href="#module-tmol.chemical.restypes" title="Link to this heading">#</a></h1>
+<dl class="py class">
 <dt class="sig sig-object py" id="tmol.chemical.restypes.BondType">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.chemical.restypes.</span></span><span class="sig-name descname"><span class="pre">BondType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/chemical/restypes.html#BondType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.restypes.BondType" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
@@ -829,6 +832,76 @@ or None if not a valid one-letter code.</p>
 
 </dd></dl>
 
+<section id="module-tmol.chemical.ideal_coords">
+<span id="advanced-chemistry-helpers"></span><h2>Advanced chemistry helpers<a class="headerlink" href="#module-tmol.chemical.ideal_coords" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.chemical.ideal_coords.eye4">
+<span class="sig-prename descclassname"><span class="pre">tmol.chemical.ideal_coords.</span></span><span class="sig-name descname"><span class="pre">eye4</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/chemical/ideal_coords.html#eye4"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.ideal_coords.eye4" title="Link to this definition">#</a></dt>
+<dd><p>Create the identity homogeneous transform
+Only necessary because numpy.eye(4, dtype=numpy.float32)
+is strangely unsupported in numpy</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.chemical.ideal_coords.normalize">
+<span class="sig-prename descclassname"><span class="pre">tmol.chemical.ideal_coords.</span></span><span class="sig-name descname"><span class="pre">normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/chemical/ideal_coords.html#normalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.ideal_coords.normalize" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.chemical.ideal_coords.frame_from_coords">
+<span class="sig-prename descclassname"><span class="pre">tmol.chemical.ideal_coords.</span></span><span class="sig-name descname"><span class="pre">frame_from_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/chemical/ideal_coords.html#frame_from_coords"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.ideal_coords.frame_from_coords" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.chemical.ideal_coords.rot_x">
+<span class="sig-prename descclassname"><span class="pre">tmol.chemical.ideal_coords.</span></span><span class="sig-name descname"><span class="pre">rot_x</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rot</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/chemical/ideal_coords.html#rot_x"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.ideal_coords.rot_x" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.chemical.ideal_coords.rot_z">
+<span class="sig-prename descclassname"><span class="pre">tmol.chemical.ideal_coords.</span></span><span class="sig-name descname"><span class="pre">rot_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rot</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/chemical/ideal_coords.html#rot_z"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.ideal_coords.rot_z" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.chemical.ideal_coords.trans_z">
+<span class="sig-prename descclassname"><span class="pre">tmol.chemical.ideal_coords.</span></span><span class="sig-name descname"><span class="pre">trans_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trans</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/chemical/ideal_coords.html#trans_z"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.ideal_coords.trans_z" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.chemical.ideal_coords.build_coords_from_icoors">
+<span class="sig-prename descclassname"><span class="pre">tmol.chemical.ideal_coords.</span></span><span class="sig-name descname"><span class="pre">build_coords_from_icoors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">icoors_ancestors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">icoors_geom</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/chemical/ideal_coords.html#build_coords_from_icoors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.ideal_coords.build_coords_from_icoors" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.chemical.ideal_coords.build_ideal_coords">
+<span class="sig-prename descclassname"><span class="pre">tmol.chemical.ideal_coords.</span></span><span class="sig-name descname"><span class="pre">build_ideal_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tmol.chemical.restypes.RefinedResidueType" title="tmol.chemical.restypes.RefinedResidueType"><span class="pre">RefinedResidueType</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/chemical/ideal_coords.html#build_ideal_coords"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.ideal_coords.build_ideal_coords" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function" id="module-tmol.chemical.all_bonds">
+<dt class="sig sig-object py" id="tmol.chemical.all_bonds.bonds_and_bond_ranges">
+<span class="sig-prename descclassname"><span class="pre">tmol.chemical.all_bonds.</span></span><span class="sig-name descname"><span class="pre">bonds_and_bond_ranges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">intra_res_bonds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.array.NDArray" title="tmol.types.array.NDArray"><span class="pre">NDArray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a><span class="p"><span class="pre">(</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordered_connection_atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.array.NDArray" title="tmol.types.array.NDArray"><span class="pre">NDArray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.14)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="types.html#tmol.types.array.NDArray" title="tmol.types.array.NDArray"><span class="pre">NDArray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a><span class="p"><span class="pre">(</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="types.html#tmol.types.array.NDArray" title="tmol.types.array.NDArray"><span class="pre">NDArray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a><span class="p"><span class="pre">(</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/tmol/chemical/all_bonds.html#bonds_and_bond_ranges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.all_bonds.bonds_and_bond_ranges" title="Link to this definition">#</a></dt>
+<dd><p>Concatenate the set of intra- and inter-block bonds</p>
+<p>The intra-block bonds should list each bond twice, once for each of the
+two atoms it connects. The ordered-connection-atoms array lists the atom
+on this block that connects to another block such that the ith position
+in this array represents the ith inter-block connection; the cases when
+a single atom serves as a connection point to multiple other blocks
+(as might happen with metal ions) is handled correctly.</p>
+<p>This function returns a pair of arrays. The first array lists each bond
+as a tuple of (atom-ind, (other-atom)) where “other-atom” is similar to
+an unresolved-atom-id: it is itself a 2-tuple where if the indicated atom
+is a member of this block, then the first value in the tuple is a
+non-negative integer index of that atom, and if not, then the sentinel
+value of -1; if the atom is not a member of this block, then the second
+value in the tuple is the non-negative connection id, which can then
+be used to look up which other block, and which connection on that block
+is this block connected to in the PoseStack’s data. The second array gives
+for each atom on this block the start and end indices of its bonds in
+the first array (all bonds in the first array for a single atom are
+contiguous).</p>
+</dd></dl>
+
+</section>
 </section>
 
 
@@ -842,12 +915,12 @@ or None if not a valid one-letter code.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="../datatypes.html"
+       href="top_level.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Datatypes</p>
+        <p class="prev-next-title">Top-level API</p>
       </div>
     </a>
     <a class="right-next"
@@ -953,6 +1026,18 @@ or None if not a valid one-letter code.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.patched_chemdb.PatchedChemicalDatabase.residues"><code class="docutils literal notranslate"><span class="pre">PatchedChemicalDatabase.residues</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.patched_chemdb.PatchedChemicalDatabase.variants"><code class="docutils literal notranslate"><span class="pre">PatchedChemicalDatabase.variants</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.patched_chemdb.PatchedChemicalDatabase.from_chem_db"><code class="docutils literal notranslate"><span class="pre">PatchedChemicalDatabase.from_chem_db()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-tmol.chemical.ideal_coords">Advanced chemistry helpers</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.ideal_coords.eye4"><code class="docutils literal notranslate"><span class="pre">eye4()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.ideal_coords.normalize"><code class="docutils literal notranslate"><span class="pre">normalize()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.ideal_coords.frame_from_coords"><code class="docutils literal notranslate"><span class="pre">frame_from_coords()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.ideal_coords.rot_x"><code class="docutils literal notranslate"><span class="pre">rot_x()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.ideal_coords.rot_z"><code class="docutils literal notranslate"><span class="pre">rot_z()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.ideal_coords.trans_z"><code class="docutils literal notranslate"><span class="pre">trans_z()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.ideal_coords.build_coords_from_icoors"><code class="docutils literal notranslate"><span class="pre">build_coords_from_icoors()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.ideal_coords.build_ideal_coords"><code class="docutils literal notranslate"><span class="pre">build_ideal_coords()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.all_bonds.bonds_and_bond_ranges"><code class="docutils literal notranslate"><span class="pre">bonds_and_bond_ranges()</span></code></a></li>
 </ul>
 </li>
 </ul>
