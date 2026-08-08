@@ -37,10 +37,9 @@ include the relevant GPU tests or explain why they were not run locally.
 
 ## API Documentation
 
-API pages under `docs/api/` are authored and use `sphinx.ext.autodoc`, matching
-the AtomWorks and RFD4 docs setup. Public modules should have useful module,
-class, and function docstrings because those docstrings become the reference
-documentation.
+API pages under `docs/api/` use `sphinx.ext.autodoc`. Public modules should have
+useful module, class, and function docstrings because those docstrings become
+the reference documentation.
 
 Use Google or NumPy-style docstrings.
 

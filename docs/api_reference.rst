@@ -1,16 +1,16 @@
 API Reference
 =============
 
-The API reference is maintained as authored Sphinx pages using ``autodoc``.
-This matches the AtomWorks and RFD4 docs layout: source pages stay on the
-development branch, while rendered HTML is built by CI and published to
-``gh-pages``.
+The reference groups TMol's public classes and functions by modeling task.
+Start with :doc:`api/pose`, :doc:`api/io`, and :doc:`api/score`; the
+:doc:`api/score_terms` page maps every score type to its implementation.
 
 .. toctree::
    :maxdepth: 2
 
    architecture
    datatypes
+   api/top_level
    api/chemical
    api/database
    api/io
@@ -22,5 +22,7 @@ development branch, while rendered HTML is built by CI and published to
    api/pose
    api/relax
    api/score
+   api/analysis
+   api/score_terms
    api/types
    api/utility

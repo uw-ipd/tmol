@@ -1,7 +1,16 @@
+"""Identifiers for weighted components of a TMol score function."""
+
 from tmol.utility.auto_number import AutoNumber
 
 
 class ScoreType(AutoNumber):
+    """Enumerate score-function components in stable weight-vector order.
+
+    ``n_score_types`` is a terminal size sentinel and is not an energy
+    component. See the API score-term map for the implementation and meaning
+    of every preceding member.
+    """
+
     fa_ljatr = ()
     fa_ljrep = ()
     fa_lk = ()

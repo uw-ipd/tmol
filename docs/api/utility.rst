@@ -21,6 +21,11 @@ Utilities
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: tmol.utility.device
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. automodule:: tmol.utility.units
    :members:
    :undoc-members:

@@ -10,6 +10,8 @@ from tmol.score.common.scoring_module import (
 
 
 class EnergyTerm:
+    """Base interface for score terms that annotate chemistry and render scorers."""
+
     def __init__(self, **kwargs):
         pass
 

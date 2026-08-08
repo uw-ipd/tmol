@@ -33,6 +33,8 @@ SUGAR_SLOTS = (DELTA, TORSION_IND["nu4"], TORSION_IND["nu0"], TORSION_IND["nu1"]
 
 
 class NaTorsionEnergyTerm(EnergyTerm):
+    """DNA/RNA torsion, coupling, sugar, and rotamer-well preference term."""
+
     device: torch.device
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):

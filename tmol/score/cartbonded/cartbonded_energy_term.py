@@ -41,6 +41,8 @@ class CartBondedPackedBlockTypesAnnotations:
 
 
 class CartBondedEnergyTerm(AtomTypeDependentTerm):
+    """Bond-length, angle, proper/improper, and hydroxyl torsion geometry term."""
+
     device: torch.device  # = attr.ib()
     improper_roots: set()
 

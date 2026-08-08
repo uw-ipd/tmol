@@ -20,3 +20,8 @@ Kinematics
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. automodule:: tmol.kinematics.script_modules
+   :members:
+   :undoc-members:
+   :show-inheritance:

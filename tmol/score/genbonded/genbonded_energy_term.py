@@ -68,6 +68,8 @@ GB_WILDCARD_BOND_INT = 0
 
 
 class GenBondedEnergyTerm(AtomTypeDependentTerm):
+    """Generic atom-type-dependent bonded torsion term."""
+
     device: torch.device
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):

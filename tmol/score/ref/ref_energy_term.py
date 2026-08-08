@@ -10,6 +10,8 @@ from tmol.pose.pose_stack import PoseStack
 
 
 class RefEnergyTerm(EnergyTerm):
+    """Per-residue-type reference-energy term."""
+
     device: torch.device  # = attr.ib()
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):

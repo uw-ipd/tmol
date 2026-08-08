@@ -36,6 +36,8 @@ class BackboneTorsionPackedBlockTypesParams:
 
 
 class BackboneTorsionEnergyTerm(EnergyTerm):
+    """Backbone-dependent Ramachandran and peptide-omega torsion term."""
+
     device: torch.device
     param_resolver: BackboneTorsionParamResolver
     rama_tables: Tensor[torch.float32][:, :, :]

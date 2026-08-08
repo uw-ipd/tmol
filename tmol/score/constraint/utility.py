@@ -7,6 +7,12 @@ from tmol.pose.pose_stack import PoseStack
 
 
 def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
+    """Return a pose with 0.5 Å coordinate restraints on every protein CA.
+
+    Existing constraints are retained. Use
+    :func:`create_mainchain_coordinate_constraints` for mixed polymers or to
+    restrain every residue type's declared main-chain atoms.
+    """
     from tmol.pose.constraint_set import ConstraintSet
     from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
 
@@ -110,6 +116,11 @@ def _annotate_mainchain_atom_indices(packed_block_types: PackedBlockTypes) -> No
 
 
 def create_mainchain_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
+    """Return a pose with 0.5 Å restraints on all declared main-chain atoms.
+
+    Target coordinates are copied from ``pose_stack``. Existing constraints
+    are retained, and the input pose is not modified.
+    """
     from tmol.pose.constraint_set import ConstraintSet
     from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
 
