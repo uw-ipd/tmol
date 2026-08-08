@@ -2,6 +2,7 @@ import torch
 import numpy
 import toolz
 
+from tmol.utility.device import resolve_device
 from tmol.types.functional import validate_args
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.database import ParameterDatabase
@@ -176,7 +177,6 @@ def canonical_ordering_for_openfold() -> CanonicalOrdering:
 
 
 @validate_args
-@toolz.functoolz.memoize
 def packed_block_types_for_openfold(device: torch.device) -> PackedBlockTypes:
     """Construct the PackedBlockTypes (PBT) object that will be used for
     the subset of residue types that are used by OpenFold. For efficiency
@@ -185,6 +185,14 @@ def packed_block_types_for_openfold(device: torch.device) -> PackedBlockTypes:
     function if they are constructing PoseStacks from deserialized
     canonical form objects. See canonical_form_from_openfold for details.
     """
+    # resolved before the memo lookup so 'cuda' and 'cuda:0' share one entry
+    return _memoized_packed_block_types_for_openfold(resolve_device(device))
+
+
+@toolz.functoolz.memoize
+def _memoized_packed_block_types_for_openfold(
+    device: torch.device,
+) -> PackedBlockTypes:
     restype_set = _restype_set_for_openfold()
 
     return PackedBlockTypes.from_restype_list(

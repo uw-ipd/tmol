@@ -220,8 +220,8 @@ def read_params_file(path: str | Path) -> RawResidueType:
         is_canonical=False,
         polymer=PolymerProperties(
             is_polymer=False,
-            polymer_type="NA",
-            backbone_type="NA",
+            polymer_type=None,
+            backbone_type=None,
             mainchain_atoms=None,
             sidechain_chirality="NA",
             termini_variants=(),

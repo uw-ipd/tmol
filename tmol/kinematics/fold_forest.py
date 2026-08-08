@@ -131,9 +131,12 @@ def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c, chain_id_p):
         prev = start - 1
         if prev >= 0 and bti_p[prev] >= 0 and chain_id_p[prev] == chain_id_p[start]:
             result.append([int(EdgeType.jump), prev, start, jump_idx])
+            # only true jumps are numbered; a root jump is identified by its
+            # downstream block, and numbering it would leave a gap in the
+            # jump indices, which must run contiguously from 0
+            jump_idx += 1
         else:
-            result.append([int(EdgeType.root_jump), -1, start, jump_idx])
-        jump_idx += 1
+            result.append([int(EdgeType.root_jump), -1, start, -1])
         if start != end:
             result.append([int(EdgeType.polymer), start, end, -1])
 
