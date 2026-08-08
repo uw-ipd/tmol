@@ -897,10 +897,16 @@ def test_select_best_block_type_candidate_choosing_default_term(
 
 
 def pser_and_mser_patches():
+    """Two throwaway hydroxyl patches for the block-type candidate tests.
+
+    applies_to keeps the loose hydroxyl pattern off every other residue that has
+    one, notably the nucleic acid 5'/3' termini and the RNA 2'-OH.
+    """
     return """
   - name:  PhosphatePatch
     display_name: phospho
     pattern: '[*][*]C[OH]'
+    applies_to: { base_names: [SER, THR] }
     remove_atoms:
     - <H1>
     add_atoms:
@@ -925,6 +931,7 @@ def pser_and_mser_patches():
   - name:  MosphatePatch
     display_name: mospho
     pattern: '[*][*]C[OH]'
+    applies_to: { base_names: [SER, THR] }
     remove_atoms:
     - <H1>
     add_atoms:

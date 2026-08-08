@@ -4,6 +4,7 @@ import attr
 from .cartbonded import CartBondedDatabase
 from .genbonded import GenBondedDatabase
 from .disulfide import DisulfideDatabase
+from .na_torsion import NaTorsionDatabase
 from .dunbrack_libraries import DunbrackRotamerLibrary
 from .elec import ElecDatabase
 from .hbond import HBondDatabase
@@ -18,6 +19,7 @@ class ScoringDatabase:
     cartbonded: CartBondedDatabase
     genbonded: GenBondedDatabase
     disulfide: DisulfideDatabase
+    na_torsion: NaTorsionDatabase
     dun: DunbrackRotamerLibrary
     elec: ElecDatabase
     hbond: HBondDatabase
@@ -35,6 +37,9 @@ class ScoringDatabase:
             ),
             genbonded=GenBondedDatabase.from_file(os.path.join(path, "genbonded.yaml")),
             disulfide=DisulfideDatabase.from_file(os.path.join(path, "disulfide.yaml")),
+            na_torsion=NaTorsionDatabase.from_file(
+                os.path.join(path, "na_torsion.yaml")
+            ),
             dun=DunbrackRotamerLibrary.from_file(os.path.join(path, "dunbrack.bin")),
             elec=ElecDatabase.from_file(os.path.join(path, "elec.yaml")),
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),

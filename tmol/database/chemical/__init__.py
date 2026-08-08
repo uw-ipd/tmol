@@ -139,8 +139,9 @@ class SidechainBuilding:
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class PolymerProperties:
     is_polymer: bool
-    polymer_type: str
-    backbone_type: str
+    # None for a non-polymer
+    polymer_type: Optional[str]
+    backbone_type: Optional[str]
     mainchain_atoms: Optional[Tuple[str, ...]]
     sidechain_chirality: str
     termini_variants: Tuple[str, ...]
@@ -213,7 +214,26 @@ class ChemicalPropertiesVariant:
     polymer: Optional[PolymerPropertiesVariant] = None
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class VariantScope:
+    """Which base residue types a patch is allowed to match.
+
+    An unset field places no restriction. Only properties that patching cannot
+    alter may be named here, so that a patch can never see another patch's
+    effects; mainchain_atoms, for one, does not qualify.
+    """
+
+    backbone_types: Optional[Tuple[str, ...]] = None
+    base_names: Optional[Tuple[str, ...]] = None
+
+    def matches(self, res):
+        if self.base_names is not None and res.base_name not in self.base_names:
+            return False
+        backbone = res.properties.polymer.backbone_type
+        return self.backbone_types is None or backbone in self.backbone_types
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class VariantType:
     name: str
     display_name: str
@@ -225,6 +245,9 @@ class VariantType:
     add_connections: Tuple[Connection, ...]
     add_bonds: Tuple[tuple, ...]
     icoors: Tuple[IcoorVariant, ...]
+    add_torsions: Tuple[Torsion, ...] = ()
+    add_chi_samples: Tuple[ChiSamples, ...] = ()
+    applies_to: VariantScope = VariantScope()
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

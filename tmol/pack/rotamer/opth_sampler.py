@@ -17,6 +17,7 @@ from tmol.pack.rotamer.conformer_sampler import ConformerSampler
 from tmol.pack.rotamer.single_residue_kinforest import (
     construct_single_residue_kinforest,
 )
+from tmol.pack.rotamer.na_chi_sampler import na_proton_chi_roots
 from tmol.numeric.dihedrals import coord_dihedrals
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
@@ -577,6 +578,10 @@ class OptHSampler(ConformerSampler):
 
     @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
+        # long-term, it probably makes more sense to generate this programatically
+        # e.g., the pivot atom of the first chi(?)
+        if rt.properties.polymer.polymer_type == "nucleic_acid":
+            return na_proton_chi_roots(rt)
         return ("CB",)
 
     def _assert_no_dun_opth_conflict(self, task: "SetPackerTask"):  # noqa: F821

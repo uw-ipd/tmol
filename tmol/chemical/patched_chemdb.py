@@ -37,7 +37,7 @@ class RestypeGraphBuilder:
 
 
 # remove all atom references from a raw restype
-# delete atoms, bonds, torsions, and connections involving atom
+# delete atoms, bonds, torsions, connections, and mainchain entries involving atom
 def remove_atom(res, atom):
     res.atoms = tuple(x for x in res.atoms if x.name != atom)
     res.bonds = tuple(b for b in res.bonds if b[0] != atom and b[1] != atom)
@@ -50,6 +50,18 @@ def remove_atom(res, atom):
         if atom not in [x.a.connection, x.b.connection, x.c.connection, x.d.connection]
     )
     res.connections = tuple(x for x in res.connections if x.name != atom)
+
+    # atom_downstream_of_conn indexes every mainchain atom, so a patch that drops
+    # one (e.g. the DNA 5' terminus dropping P) must drop it here too
+    mainchain = res.properties.polymer.mainchain_atoms
+    if mainchain is not None and atom in mainchain:
+        res.properties = attr.evolve(
+            res.properties,
+            polymer=attr.evolve(
+                res.properties.polymer,
+                mainchain_atoms=tuple(x for x in mainchain if x != atom),
+            ),
+        )
     return res
 
 
@@ -475,7 +487,9 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
     #    -if the patch adds atoms, we need to figure out how to ensure unique names
     #    -need a patch naming scheme if a patch applied twice
     assert len(mod_unique) <= 1, (
-        "Patch " + variant.name + " applies to residue " + res.name + " multiple times!"
+        f"Patch {variant.name} applies to residue {res.name} multiple times, "
+        f"matching the atom sets {mod_unique}. Narrow the pattern, or scope the "
+        f"patch with applies_to."
     )
 
     # apply patches
@@ -553,6 +567,22 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
             newres.icoors, variant.icoors, variant.remove_atoms, namemap
         )
 
+        # 5b. add torsions and the chi samples that name them
+        newtorsions = []
+        for torsion in variant.add_torsions:
+            ats = {
+                x: attr.evolve(a, atom=namemap.get(a.atom, a.atom))
+                for x, a in (
+                    ("a", torsion.a),
+                    ("b", torsion.b),
+                    ("c", torsion.c),
+                    ("d", torsion.d),
+                )
+            }
+            newtorsions.append(attr.evolve(torsion, **ats))
+        newres.torsions = (*newres.torsions, *newtorsions)
+        newres.chi_samples = (*newres.chi_samples, *variant.add_chi_samples)
+
         # 6. update modified atoms
         # a) directly modified/added
         newmark.extend(modded)
@@ -593,6 +623,11 @@ class PatchedChemicalDatabase:
         for res in chemdb.residues:
             done = False
 
+            # resolve against the unpatched residue
+            #   BY DESIGN ... a patch can never be made conditional on another
+            #   patch having been applied
+            variants = [v for v in chemdb.variants if v.applies_to.matches(res)]
+
             resvariants, resvariantnames, marked_atoms = [res], [""], [[]]
             while not done:
                 done = True
@@ -603,7 +638,7 @@ class PatchedChemicalDatabase:
                     resvariants, resvariantnames, marked_atoms
                 ):
                     resgraph = G.from_raw_res(res_i)
-                    for variant in chemdb.variants:
+                    for variant in variants:
                         newtag = [*name_i, variant.name]
                         newtag.sort()
                         if newtag in resvariantnames or newtag in rvn_new:

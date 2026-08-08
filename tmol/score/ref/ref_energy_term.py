@@ -96,45 +96,36 @@ class RefEnergyTerm(EnergyTerm):
         return eval_ref_energy_for_rotamers
 
     def get_score_term_attributes(self, pose_stack):
-        # print("arrived at get_score_term_attributes")
-        atts = [pose_stack.packed_block_types.ref_weights]
-        # print("n atts:", len(atts))
-        return atts
+        # ref depends only on block type, so per-block energies are constant for
+        # this pose stack; the rotamer path indexes by block type and needs the
+        # raw weights instead.
+        ref_weights = pose_stack.packed_block_types.ref_weights
+        bt = pose_stack.block_type_ind64
+        weights = ref_weights[bt.clamp_min(0)]
+        block_ref = torch.where(bt >= 0, weights, torch.zeros_like(weights))
+        return [block_ref, ref_weights]
 
 
 def eval_ref_energy_for_pose(
     # common args
-    rot_coords,
+    _rot_coords,
     _rot_coord_offset,
     _pose_ind_for_atom,
-    first_rot_for_block,
+    _first_rot_for_block,
     _first_rot_block_type,
     _block_ind_for_rot,
-    pose_ind_for_rot,
-    block_type_ind_for_rot,
+    _pose_ind_for_rot,
+    _block_type_ind_for_rot,
     _n_rots_for_pose,
     _rot_offset_for_pose,
     _n_rots_for_block,
     _rot_offset_for_block,
     _max_n_rots_per_pose,
-    ref_weights,
+    block_ref,
+    _ref_weights,
     output_block_pair_energies: bool,
 ):
-    n_poses = first_rot_for_block.shape[0]
-    max_n_blocks = first_rot_for_block.shape[1]
-    block_type_ind_for_rot = block_type_ind_for_rot.view(n_poses, max_n_blocks)
-    # block_type_ind_for_rot64 = block_type_ind_for_rot.to(torch.int64)
-
-    # fill our per-block ref scores with zeros to start
-    score = torch.zeros_like(block_type_ind_for_rot, dtype=rot_coords.dtype)
-
-    # grab the indices of any non-negative (real) blocks
-    real_blocks = block_type_ind_for_rot >= 0
-
-    # fill out the scores for the real blocks by dereferencing the block types into the ref weights
-    score[real_blocks] = torch.index_select(
-        ref_weights, 0, block_type_ind_for_rot[real_blocks]
-    )
+    score = block_ref
 
     if output_block_pair_energies:
         score = torch.diag_embed(score)
@@ -165,6 +156,7 @@ def eval_ref_energy_for_rotamers(
     _n_rots_for_block,
     _rot_offset_for_block,
     _max_n_rots_per_pose,
+    _block_ref,
     ref_weights,
     output_block_pair_energies: bool,
 ):
@@ -174,9 +166,8 @@ def eval_ref_energy_for_rotamers(
     dtype = ref_weights.dtype
     assert rot_coords.dtype == dtype
     is_real_rot = block_type_ind_for_rot64 >= 0
-    rotamer_scores = torch.index_select(
-        ref_weights, 0, block_type_ind_for_rot64[is_real_rot]
-    )
+    rot_ref = ref_weights[block_type_ind_for_rot64.clamp_min(0)]
+    rotamer_scores = torch.where(is_real_rot, rot_ref, torch.zeros_like(rot_ref))
     device = rot_coords.device
 
     if output_block_pair_energies:
@@ -191,7 +182,7 @@ def eval_ref_energy_for_rotamers(
         # for each pose, sum up the block scores
         pose_ind_for_rot64 = pose_ind_for_rot.to(torch.int64)
         output_scores = torch.zeros_like((n_rots_for_pose), dtype=dtype)
-        output_scores.index_add_(0, pose_ind_for_rot64[is_real_rot], rotamer_scores)
+        output_scores.index_add_(0, pose_ind_for_rot64, rotamer_scores)
         indices = torch.zeros((0,), dtype=torch.int32, device=device)
     output_scores = output_scores.unsqueeze(0)
     output_scores.requires_grad = True  # a bit of a hack to make the benchmark test not error out because there are no grads
