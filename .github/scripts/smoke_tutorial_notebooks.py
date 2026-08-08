@@ -21,6 +21,7 @@ PLANNED_NOTEBOOKS = (
     "07_ligand_and_params.ipynb",
     "08_nucleic_acids.ipynb",
 )
+TUTORIAL_REF = "kdidi/sphinx-docs"
 
 
 def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
@@ -35,10 +36,10 @@ def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
         raise ValueError(f"{path} is missing its guarded Colab bootstrap")
     if notebook.metadata.get("accelerator") != "GPU":
         raise ValueError(f"{path} does not request a Colab GPU runtime")
-    if "blob/master/docs/tutorial/" not in markdown:
-        raise ValueError(f"{path} does not use a stable default-branch Colab URL")
-    if "master/docs/tutorial/colab_setup.py" not in code:
-        raise ValueError(f"{path} does not use the default-branch Colab bootstrap")
+    if f"blob/{TUTORIAL_REF}/docs/tutorial/" not in markdown:
+        raise ValueError(f"{path} does not use the current tutorial-branch Colab URL")
+    if f"{TUTORIAL_REF}/docs/tutorial/colab_setup.py" not in code:
+        raise ValueError(f"{path} does not use the current tutorial bootstrap")
 
 
 def _without_gpu_cells(notebook):

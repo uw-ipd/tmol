@@ -7,6 +7,8 @@ importing :mod:`tmol.io.visualize` does not require IPython or py3Dmol.
 from __future__ import annotations
 
 import json
+import warnings
+from html import escape
 from io import StringIO
 from os import PathLike
 from pathlib import Path
@@ -57,9 +59,17 @@ def _biotite_to_pdb_string(model: AtomArray | AtomArrayStack) -> str:
         raise ImportError("Viewing a Biotite structure requires biotite.") from exc
 
     pdb_file = PDBFile()
-    pdb_file.set_structure(model)
+    # Biotite warns when PDB's fixed-width compatibility format cannot carry
+    # every annotation. The viewer only consumes coordinates and connectivity,
+    # so these warnings are expected and would otherwise become alarming red
+    # stderr boxes in rendered notebooks.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        pdb_file.set_structure(model)
     output = StringIO()
-    pdb_file.write(output)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        pdb_file.write(output)
     return output.getvalue()
 
 
@@ -153,29 +163,12 @@ def _display_html(html: str):
     return HTML(html)
 
 
-def _loader_javascript(on_ready: str) -> str:
-    """Return a tiny 3Dmol.js loader followed by ``on_ready``."""
-    return f"""
-const start = () => {{ {on_ready} }};
-if (window.$3Dmol) {{
-  start();
-}} else {{
-  const prior = document.querySelector('script[data-tmol-3dmol]');
-  if (prior) {{
-    prior.addEventListener('load', start, {{once: true}});
-  }} else {{
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/3dmol@2.5.4/build/3Dmol-min.js';
-    script.setAttribute('data-tmol-3dmol', 'true');
-    script.addEventListener('load', start, {{once: true}});
-    script.addEventListener('error', () => {{
-      document.getElementById(rootId).textContent =
-        'Interactive viewer unavailable because 3Dmol.js could not be loaded. ' +
-        'Check network or CDN access.';
-    }}, {{once: true}});
-    document.head.appendChild(script);
-  }}
-}}"""
+def _viewer_html(viewer: object) -> str:
+    """Render a py3Dmol viewer through py3Dmol's supported notebook path."""
+    make_html = getattr(viewer, "_make_html", None)
+    if not callable(make_html):
+        raise RuntimeError("The installed py3Dmol version cannot render HTML")
+    return str(make_html())
 
 
 def _add_hover_labels(viewer) -> None:
@@ -299,86 +292,39 @@ def switchable_view(
         raise ValueError("structures must contain at least one labeled structure")
 
     notes = notes or {}
-    payload = [
-        {
-            "label": str(label),
-            "pdb": _pdb_text(model),
-            "note": str(notes.get(label, "")),
-        }
-        for label, model in structures.items()
-    ]
     root_id = f"tmol-switch-{uuid4().hex}"
-    data_id = f"{root_id}-data"
-    viewer_id = f"{root_id}-viewer"
     select_id = f"{root_id}-select"
-    note_id = f"{root_id}-note"
-    encoded = _safe_json(payload)
-    on_ready = f"""
-const data = JSON.parse(
-  document.getElementById({json.dumps(data_id)}).textContent
-);
-const select = document.getElementById({json.dumps(select_id)});
-const note = document.getElementById({json.dumps(note_id)});
-const viewerElement = document.getElementById({json.dumps(viewer_id)});
-const viewer = window.$3Dmol.createViewer(
-  viewerElement,
-  {{backgroundColor: 'white'}}
-);
-data.forEach((item, index) => {{
-  const option = document.createElement('option');
-  option.value = String(index);
-  option.textContent = item.label;
-  select.appendChild(option);
-}});
-const render = (index) => {{
-  const item = data[index];
-  viewer.clear();
-  viewer.addModel(item.pdb, 'pdb');
-  viewer.setStyle({{}}, {{cartoon: {{color: 'spectrum'}}}});
-  viewer.addStyle(
-    {{not: {{hetflag: true}}}},
-    {{stick: {{radius: 0.10, opacity: 0.65}}}}
-  );
-  viewer.addStyle({{hetflag: true}}, {{stick: {{colorscheme: 'orangeCarbon'}}}});
-  viewer.setHoverable(
-    {{}},
-    true,
-    function(atom, activeViewer) {{
-      if (!atom.label) {{
-        atom.label = activeViewer.addLabel(
-          atom.chain + ':' + atom.resn + '(' + atom.resi + '):' + atom.atom,
-          {{position: atom, backgroundColor: 'white', fontColor: 'black'}}
-        );
-      }}
-    }},
-    function(atom, activeViewer) {{
-      if (atom.label) {{
-        activeViewer.removeLabel(atom.label);
-        delete atom.label;
-      }}
-    }}
-  );
-  viewer.zoomTo();
-  viewer.render();
-  note.textContent = item.note;
-}};
-select.addEventListener('change', () => render(Number(select.value)));
-render(0);
-if (window.ResizeObserver) {{
-  new ResizeObserver(() => viewer.resize()).observe(viewerElement);
-}}
-"""
+    panels = []
+    options = []
+    for index, (label, model) in enumerate(structures.items()):
+        viewer = view(model, width=width, height=height)
+        panel_id = f"{root_id}-panel-{index}"
+        note = str(notes.get(label, ""))
+        options.append(f'<option value="{index}">{escape(str(label))}</option>')
+        panels.append(f"""
+<section id="{panel_id}" class="tmol-switch-panel"
+         style="position:absolute;inset:0;visibility:{'visible' if index == 0 else 'hidden'}">
+  <div class="tmol-viewer-note">{escape(note)}</div>
+  {_viewer_html(viewer)}
+</section>""")
     html = f"""
 <div class="tmol-switchable-view" id="{root_id}" style="max-width:{width}px">
-  <label>Structure: <select id="{select_id}"></select></label>
-  <div class="tmol-viewer-note" id="{note_id}"></div>
-  <div id="{viewer_id}" style="width:100%;max-width:{width}px;height:{height}px"></div>
+  <label>Structure: <select id="{select_id}">{''.join(options)}</select></label>
+  <div style="position:relative;width:100%;height:{height + 32}px">
+    {''.join(panels)}
+  </div>
 </div>
-<script type="application/json" id="{data_id}">{encoded}</script>
 <script>
 (() => {{
-  const rootId = {json.dumps(root_id)};
-  {_loader_javascript(on_ready)}
+  const root = document.getElementById({json.dumps(root_id)});
+  const select = document.getElementById({json.dumps(select_id)});
+  const panels = root.querySelectorAll('.tmol-switch-panel');
+  select.addEventListener('change', () => {{
+    panels.forEach((panel, index) => {{
+      panel.style.visibility = index === Number(select.value) ? 'visible' : 'hidden';
+    }});
+    window.dispatchEvent(new Event('resize'));
+  }});
 }})();
 </script>
 """
@@ -433,56 +379,24 @@ def selection_gallery(
         ]
         gallery.append({"label": str(label), "serials": selected_serials})
 
-    root_id = f"tmol-gallery-{uuid4().hex}"
-    data_id = f"{root_id}-data"
-    payload = {"pdb": pdb_text, "selections": gallery}
-    encoded = _safe_json(payload)
-    encoded_highlight_color = _safe_json(highlight_color)
-    on_ready = f"""
-const data = JSON.parse(
-  document.getElementById({json.dumps(data_id)}).textContent
-);
-const root = document.getElementById(rootId);
-data.selections.forEach((selection) => {{
-  const card = document.createElement('section');
-  card.className = 'tmol-selection-card';
-  const title = document.createElement('strong');
-  title.textContent = selection.label;
-  const viewport = document.createElement('div');
-  viewport.style.width = '100%';
-  viewport.style.maxWidth = {json.dumps(f"{width}px")};
-  viewport.style.height = {json.dumps(f"{height}px")};
-  card.append(title, viewport);
-  root.appendChild(card);
-
-  const viewer = window.$3Dmol.createViewer(viewport, {{backgroundColor: 'white'}});
-  viewer.addModel(data.pdb, 'pdb');
-  viewer.setStyle({{}}, {{cartoon: {{color: 'spectrum'}}}});
-  const exactAtoms = {{serial: selection.serials}};
-  if (selection.serials.length) {{
-    viewer.addStyle(
-      exactAtoms,
-      {{
-        stick: {{color: {encoded_highlight_color}, radius: 0.28}},
-        sphere: {{color: {encoded_highlight_color}, radius: 0.45}}
-      }}
-    );
-  }}
-  viewer.zoomTo(selection.serials.length ? exactAtoms : {{}});
-  viewer.render();
-  if (window.ResizeObserver) {{
-    new ResizeObserver(() => viewer.resize()).observe(viewport);
-  }}
-}});
-"""
+    cards = []
+    for entry in gallery:
+        selected_serials = set(entry["serials"])
+        mask = [serial in selected_serials for serial in serials]
+        viewer = view(
+            atom_array,
+            width=width,
+            height=height,
+            highlighted=mask,
+            highlight_color=highlight_color,
+            zoom_to={"serial": entry["serials"]} if entry["serials"] else None,
+        )
+        cards.append(f"""
+<section class="tmol-selection-card">
+  <strong>{escape(entry['label'])}</strong>
+  {_viewer_html(viewer)}
+</section>""")
     html = f"""
-<div class="tmol-selection-gallery" id="{root_id}"></div>
-<script type="application/json" id="{data_id}">{encoded}</script>
-<script>
-(() => {{
-  const rootId = {json.dumps(root_id)};
-  {_loader_javascript(on_ready)}
-}})();
-</script>
+<div class="tmol-selection-gallery">{''.join(cards)}</div>
 """
     return _display_html(html)

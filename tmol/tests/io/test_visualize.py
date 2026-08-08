@@ -83,6 +83,9 @@ class _Viewer:
     def zoomTo(self, *args):
         self.zoom = args
 
+    def _make_html(self):
+        return '<div class="mock-py3dmol-viewer"></div>'
+
 
 def test_view_highlights_validated_biotite_mask(monkeypatch):
     viewer = _Viewer()
@@ -123,13 +126,18 @@ def test_view_rejects_invalid_highlight_masks(monkeypatch, mask, error):
         visualize.view(_atom_array(), highlighted=mask, show_hover=False)
 
 
-def test_switchable_view_escapes_payload_and_uses_unique_ids():
+def test_switchable_view_escapes_payload_and_uses_unique_ids(monkeypatch):
+    monkeypatch.setitem(
+        sys.modules,
+        "py3Dmol",
+        SimpleNamespace(view=lambda **kwargs: _Viewer()),
+    )
     unsafe = "</script><img src=x onerror=alert(1)>"
     first = visualize.switchable_view({"before": "ATOM\n"}, notes={"before": unsafe})
     second = visualize.switchable_view({"before": "ATOM\n"})
 
     assert unsafe not in first.data
-    assert r"\u003c/script\u003e" in first.data
+    assert "&lt;/script&gt;" in first.data
     first_match = re.search(r'id="(tmol-switch-[a-f0-9]+)"', first.data)
     second_match = re.search(r'id="(tmol-switch-[a-f0-9]+)"', second.data)
     assert first_match is not None
@@ -137,12 +145,24 @@ def test_switchable_view_escapes_payload_and_uses_unique_ids():
     first_id = first_match.group(1)
     second_id = second_match.group(1)
     assert first_id != second_id
-    assert "setHoverable" in first.data
-    assert "ResizeObserver" in first.data
-    assert "opacity: 0.65" in first.data
+    assert "mock-py3dmol-viewer" in first.data
+    assert "visibility:visible" in first.data
+    assert "window.dispatchEvent(new Event('resize'))" in first.data
 
 
-def test_selection_gallery_bakes_exact_atom_serials_and_escapes_labels():
+def test_selection_gallery_bakes_exact_atom_serials_and_escapes_labels(monkeypatch):
+    viewers = []
+
+    def make_viewer(**kwargs):
+        viewer = _Viewer()
+        viewers.append(viewer)
+        return viewer
+
+    monkeypatch.setitem(
+        sys.modules,
+        "py3Dmol",
+        SimpleNamespace(view=make_viewer),
+    )
     atoms = _atom_array()
     unsafe_label = "<selected>"
     gallery = visualize.selection_gallery(
@@ -151,9 +171,10 @@ def test_selection_gallery_bakes_exact_atom_serials_and_escapes_labels():
     )
 
     assert unsafe_label not in gallery.data
-    assert r"\u003cselected\u003e" in gallery.data
-    assert '"serials": [2]' in gallery.data
-    assert "ResizeObserver" in gallery.data
+    assert "&lt;selected&gt;" in gallery.data
+    assert "mock-py3dmol-viewer" in gallery.data
+    assert viewers[-1].added_styles[-1][0] == {"serial": [2]}
+    assert viewers[-1].zoom == ({"serial": [2]},)
 
 
 def test_query_selection_uses_mask_method_when_available():

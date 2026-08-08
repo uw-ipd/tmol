@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from urllib.request import urlretrieve
 
-TUTORIAL_REF = "master"
+TUTORIAL_REF = "kdidi/sphinx-docs"
 RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
 TMOL_WHEEL = (
     "https://github.com/uw-ipd/tmol/releases/download/v0.1.46/"
@@ -63,8 +63,8 @@ def setup_colab(fixtures: list[str]) -> None:
         if not destination.exists():
             urlretrieve(f"{RAW_BASE}/{relative_path}", destination)
 
-    # The released wheel supplies matching compiled CUDA extensions. Load the
-    # default branch's pure-Python viewer helpers, then expose the same
+    # The released wheel supplies matching compiled CUDA extensions. Load this
+    # tutorial branch's pure-Python viewer helpers, then expose the same
     # convenience functions used in the notebooks.
     import tmol
 
