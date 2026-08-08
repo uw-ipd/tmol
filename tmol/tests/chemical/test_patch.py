@@ -230,7 +230,7 @@ def test_patch_validation_missing_fields(default_unpatched_chemical_database):
     icoors: []
     """
     variants = variant_from_yaml(patch)
-    variants[0].modify_atoms = None  # drop a field!
+    variants = (evolve(variants[0], modify_atoms=None),)  # drop a field!
     unpatched_chemical_database = evolve(
         default_unpatched_chemical_database, variants=variants
     )
@@ -251,7 +251,7 @@ def test_patch_validation_missing_fields(default_unpatched_chemical_database):
         threw = True
     assert threw
 
-    variants[0].remove_atoms = None  # drop another field!
+    variants = (evolve(variants[0], remove_atoms=None),)  # drop another field!
     unpatched_chemical_database = evolve(
         default_unpatched_chemical_database, variants=variants
     )

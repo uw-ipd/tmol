@@ -105,11 +105,11 @@ class NaTorsionEnergyTerm(EnergyTerm):
         pbt = pose_stack.packed_block_types
         p = self.params
         bt = pose_stack.block_type_ind64
-        has_dna = bool(
+        has_na = bool(
             (pbt.na_torsion_base.to(torch.int64)[bt.clamp_min(0)] >= 0)[bt >= 0].any()
         )
         return [
-            has_dna,
+            has_na,
             *self.subterm_attributes(pose_stack),
             p.weight_bb,
             p.weight_chi,
@@ -220,7 +220,7 @@ def eval_na_torsion_for_pose(
     _rot_offset_for_block,
     _max_n_rots_per_pose,
     # term args
-    has_dna,
+    has_na,
     bt_base,
     bt_uaids,
     bt_ring,
@@ -247,14 +247,14 @@ def eval_na_torsion_for_pose(
     weight_sugar,
     output_block_pair_energies: bool,
 ):
-    if not has_dna:
+    if not has_na:
         n_poses, max_n_blocks = block_coord_offset.shape
         zero = torch.zeros(
             (n_poses, max_n_blocks), dtype=rot_coords.dtype, device=rot_coords.device
         )
         return _finish((zero, zero), output_block_pair_energies)
 
-    e_bb, e_chi, e_sugar, e_well, is_dna, base = na_torsion_subterms(
+    e_bb, e_chi, e_sugar, e_well, is_na, base = na_torsion_subterms(
         rot_coords,
         block_type_ind_for_rot,
         bt_base,
@@ -286,7 +286,7 @@ def eval_na_torsion_for_pose(
     well = e_well
     zero = torch.zeros_like(harmonic)
     return _finish(
-        (torch.where(is_dna, harmonic, zero), torch.where(is_dna, well, zero)),
+        (torch.where(is_na, harmonic, zero), torch.where(is_na, well, zero)),
         output_block_pair_energies,
     )
 
@@ -328,7 +328,7 @@ def na_torsion_subterms(
     real = block_type >= 0
     bt_safe = block_type.clamp_min(0)
     base = torch.where(real, bt_base.to(torch.int64)[bt_safe], -1)
-    is_dna = base >= 0
+    is_na = base >= 0
 
     def gather_coords(pose, index, ok):
         flat = (pose * max_n_atoms + index).clamp_min(0)
@@ -343,12 +343,12 @@ def na_torsion_subterms(
         atom_downstream_of_conn,
     )
     xyz = gather_coords(pose, index, ok)
-    tor_ok = ok.all(-1) & is_dna.unsqueeze(-1)
+    tor_ok = ok.all(-1) & is_na.unsqueeze(-1)
 
     ring_local = bt_ring.to(torch.int64)[bt_safe]
     ring_pose = torch.arange(n_poses, device=rot_coords.device).view(n_poses, 1, 1)
     ring_index = block_coord_offset.to(torch.int64).unsqueeze(-1) + ring_local
-    ring_ok = (ring_local >= 0) & is_dna.unsqueeze(-1)
+    ring_ok = (ring_local >= 0) & is_na.unsqueeze(-1)
     ring_xyz = gather_coords(ring_pose.expand_as(ring_local), ring_index, ring_ok)
 
     # index of the preceding block in the flattened pose x block axis
@@ -396,7 +396,7 @@ def na_torsion_subterms(
         e_chi.reshape(shape),
         e_sugar.reshape(shape),
         e_well.reshape(shape),
-        is_dna,
+        is_na,
         base,
     )
 
@@ -429,7 +429,7 @@ def _subterm_energies(
     nucleotide, -1 if there is none.
     """
     dtype = xyz.dtype
-    is_dna = base >= 0
+    is_na = base >= 0
     # DNA and RNA share the functional form and nothing else; every table below
     # that is not per-base is gathered on this index
     poly = polymer_index(base)
@@ -438,7 +438,7 @@ def _subterm_energies(
     zero = torch.zeros(tors.shape[:-1], dtype=dtype, device=tors.device)
 
     pucker = pucker_weights(ring_xyz, pucker_temperature).to(dtype)
-    pucker = torch.where(is_dna.unsqueeze(-1), pucker, torch.zeros_like(pucker))
+    pucker = torch.where(is_na.unsqueeze(-1), pucker, torch.zeros_like(pucker))
 
     # --- backbone -----------------------------------------------------------
     means = backbone_means.to(dtype)[poly]
@@ -468,7 +468,7 @@ def _subterm_energies(
         )
 
     # beta is binned on the previous residue's BI/BII state;
-    # fall back to BI mean when there is no preceding DNA residue
+    # fall back to BI mean when there is no preceding nucleotide
     prev_safe = prev.clamp_min(0)
     prev_ok = (prev >= 0) & both[prev_safe]
     w_beta = torch.where(prev_ok, w_bi[prev_safe], torch.ones_like(w_bi))
@@ -508,7 +508,7 @@ def _subterm_energies(
 
     # --- wells --------------------------------------------------------------
     # -ln P of each bin assignment
-    e_well = torch.where(is_dna, (pucker * well_pucker.to(dtype)[poly]).sum(-1), zero)
+    e_well = torch.where(is_na, (pucker * well_pucker.to(dtype)[poly]).sum(-1), zero)
 
     w_a, w_g = bin_w[ALPHA], bin_w[GAMMA]
     e_well = e_well + torch.where(
@@ -614,7 +614,7 @@ def eval_na_torsion_for_rotamers(
     _rot_offset_for_block,
     _max_n_rots_per_pose,
     # term args
-    has_dna,
+    has_na,
     bt_base,
     bt_uaids,
     bt_ring,
@@ -646,7 +646,7 @@ def eval_na_torsion_for_rotamers(
     n_rots = block_type_ind_for_rot.shape[0]
     n_poses = n_rots_for_pose.shape[0]
 
-    if not has_dna:
+    if not has_na:
         score = torch.zeros((2, n_rots), dtype=dtype, device=device)
     else:
         bt = block_type_ind_for_rot.to(torch.int64)
@@ -665,8 +665,8 @@ def eval_na_torsion_for_rotamers(
             inter_residue_connections,
             atom_downstream_of_conn,
         )
-        is_dna = base >= 0
-        tor_ok = ok.all(-1) & is_dna.unsqueeze(-1)
+        is_na = base >= 0
+        tor_ok = ok.all(-1) & is_na.unsqueeze(-1)
 
         def gather_coords(index, ok):
             xyz = rot_coords[index.clamp_min(0).reshape(-1)].reshape(*index.shape, 3)
@@ -675,7 +675,7 @@ def eval_na_torsion_for_rotamers(
         xyz = gather_coords(index, ok)
 
         ring_local = bt_ring.to(torch.int64)[bt_safe]
-        ring_ok = (ring_local >= 0) & is_dna.unsqueeze(-1)
+        ring_ok = (ring_local >= 0) & is_na.unsqueeze(-1)
         ring_xyz = gather_coords(
             rot_coord_offset.to(torch.int64).unsqueeze(-1) + ring_local, ring_ok
         )
@@ -721,7 +721,7 @@ def eval_na_torsion_for_rotamers(
             + weight_sugar[poly] * e_sugar
         )
         score = torch.stack([harmonic, e_well])
-        score = torch.where(is_dna.unsqueeze(0), score, torch.zeros_like(score))
+        score = torch.where(is_na.unsqueeze(0), score, torch.zeros_like(score))
 
     if output_block_pair_energies:
         # a one-body term: each energy sits on the diagonal of the rotamer pair

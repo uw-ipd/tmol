@@ -1,4 +1,4 @@
-"""Differentiable DNA torsion potentials.
+"""Differentiable nucleic acid torsion potentials.
 
 Each torsion sits in a harmonic well around a mean angle, summed over sugar
 pucker states. Rosetta picks the alpha/gamma and syn-chi bins with hard
@@ -87,7 +87,10 @@ def triple_bin_weights(angle, means, sdev):
 
 
 def bi_bii_weight(epsilon, zeta):
-    """Weight on BI. Rosetta's sigmoid on sin(epsilon - zeta), sharpness 20."""
+    """Weight on BI, from sin(epsilon - zeta).
+
+    exp(-s*del) / (exp(-s*del) + exp(s.del)) with s = 20
+    """
     return torch.sigmoid(-40.0 * torch.sin(wrap_degrees(epsilon - zeta) * RAD))
 
 

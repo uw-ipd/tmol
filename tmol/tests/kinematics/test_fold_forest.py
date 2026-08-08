@@ -71,8 +71,6 @@ def test_jagged_reasonable_fold_forest(
     }
     _check_jump_indices(fold_forest, 0)
 
-    print(_real_edges(fold_forest, 1))
-
     # Pose 1: erbb2 + pertuzumab — three disconnected polymer chains
     assert _real_edges(fold_forest, 1) == {
         (EdgeType.polymer, 0, 554),
