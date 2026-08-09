@@ -105,8 +105,7 @@ def test_colab_release_lanes_match_publish_and_smoke_matrices():
     test_rows = smoke["jobs"]["test"]["strategy"]["matrix"]["include"]
     assert len(build_rows) == len(test_rows) == 32
     assert any(
-        row.get("local-tag") == "cu128torch2.11"
-        and row.get("cuda-archs") == "75;80;89"
+        row.get("local-tag") == "cu128torch2.11" and row.get("cuda-archs") == "75;80;89"
         for row in build_rows
     )
     assert any(row.get("local-tag") == "cu128torch2.11" for row in test_rows)
