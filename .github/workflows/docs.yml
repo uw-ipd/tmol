@@ -17,13 +17,23 @@ permissions:
 
 env:
   DOCS_BASE_URL: https://uw-ipd.github.io/tmol
+  SIF: /home/bench/git_ci_apptainer/tmol.sif
+  SLURM_PARTITION: gpu-train
+  SLURM_GRES: gpu:1
+  SLURM_CPUS_PER_TASK: 16
+  SLURM_MEM: 128G
+  SLURM_TIME: 03:00:00
+  SLURM_EXCLUDE: g2548
+  SRUN_GPU_MAX_ATTEMPTS: 5
+  SRUN_GPU_RETRY_SLEEP: 10
 
 jobs:
   docs:
     name: build docs
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
           fetch-depth: 0
@@ -32,6 +42,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - run: .github/ci/restore_source_timestamps.sh
+      - run: .github/ci/setup_ci_venv.sh
+
       - name: Configure docs version
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -39,25 +52,14 @@ jobs:
           fi
           echo "TMOL_DOCS_BASE_URL=${DOCS_BASE_URL}" >> "$GITHUB_ENV"
 
-      - name: Install docs dependencies
+      - name: Execute tutorials and build docs
+        env:
+          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.5"
-          python -m pip install scikit-build-core pybind11 ninja packaging "cmake>=3.18,<4"
-          TMOL_DISABLE_WHEEL_FETCH=1 \
-            python -m pip install --no-build-isolation -e ".[docs]" \
-            -Ccmake.define.TMOL_ENABLE_CUDA=OFF
-
-      - name: Verify tutorial thumbnails match tutorial structures
-        run: |
-          python .github/scripts/render_tutorial_thumbnails.py
-          git diff --exit-code -- docs/_static/tutorials
-
-      - name: Execute CPU tutorial notebooks
-        run: python .github/scripts/smoke_tutorial_notebooks.py --write
-
-      - name: Build docs
-        run: make -C docs html
+          rm -f "$GPU_ALLOC_SENTINEL"
+          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
+          .github/ci/exec_gpu_apptainer.sh .github/ci/run_docs_gpu_work.sh
+          SCRIPT
 
       - name: Upload rendered docs
         uses: actions/upload-artifact@v4
@@ -76,7 +78,7 @@ jobs:
           github.event_name == 'push' ||
           (github.event_name == 'pull_request' &&
            github.event.pull_request.head.repo.full_name == github.repository)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: gh-pages
           path: gh-pages

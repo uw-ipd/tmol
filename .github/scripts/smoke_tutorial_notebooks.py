@@ -55,19 +55,27 @@ def _without_gpu_cells(notebook):
         )
         if "gpu-only" in tags or has_source_tag:
             cell.source = (
-                "print('Skipped by CPU documentation build: this cell requires CUDA.')"
+                "print('Skipped by CPU smoke execution: this cell requires CUDA.')"
             )
             cell.outputs = []
             cell.execution_count = None
     return notebook
 
 
-def execute_notebook(path: Path, timeout: int, *, write: bool = False) -> None:
+def execute_notebook(
+    path: Path,
+    timeout: int,
+    *,
+    write: bool = False,
+    include_gpu_cells: bool = False,
+) -> None:
     """Execute one notebook, optionally retaining outputs for Sphinx."""
     with path.open(encoding="utf-8") as handle:
         notebook = nbformat.read(handle, as_version=4)
     _validate_tutorial_entrypoints(notebook, path)
-    executed = _without_gpu_cells(notebook)
+    executed = (
+        copy.deepcopy(notebook) if include_gpu_cells else _without_gpu_cells(notebook)
+    )
     client = NotebookClient(
         executed,
         timeout=timeout,
@@ -106,10 +114,28 @@ def main() -> int:
         action="store_true",
         help="Retain executed outputs in the source notebooks for a docs build",
     )
+    parser.add_argument(
+        "--execution-device",
+        choices=("cpu", "cuda"),
+        default="cpu",
+        help=(
+            "Execution device policy. CPU hides CUDA and replaces gpu-only cells; "
+            "CUDA requires a visible GPU and executes every cell (default: cpu)."
+        ),
+    )
     args = parser.parse_args()
 
-    # Ensure kernels spawned by nbclient cannot see a runner GPU.
-    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    include_gpu_cells = args.execution_device == "cuda"
+    if include_gpu_cells:
+        import torch
+
+        if not torch.cuda.is_available():
+            parser.error(
+                "--execution-device cuda requires a CUDA device visible to PyTorch"
+            )
+    else:
+        # Ensure kernels spawned by nbclient cannot see a runner GPU.
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
     if args.notebooks:
         paths = args.notebooks
@@ -131,7 +157,12 @@ def main() -> int:
 
     for path in paths:
         print(f"Executing {path}")
-        execute_notebook(path, args.timeout, write=args.write)
+        execute_notebook(
+            path,
+            args.timeout,
+            write=args.write,
+            include_gpu_cells=include_gpu_cells,
+        )
     print(f"Successfully executed {len(paths)} tutorial notebook(s).")
     return 0
 
