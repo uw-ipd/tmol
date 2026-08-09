@@ -63,9 +63,9 @@ on:
         default: ""
         description: >
           Override CMAKE_CUDA_ARCHITECTURES (semicolon-separated SM list). When
-          empty, defaults to "80;86;89;90" (CUDA<13) or "80;86;89;90;100"
-          (CUDA>=13). Set e.g. "75;80;89" for the Colab/T4 wheel; sm_75 is kept
-          out of the default lists so datacenter wheels stay lean.
+          empty, this workflow defaults to "75;80;86;89;90" (CUDA<13) or
+          "80;86;89;90;100" (CUDA>=13). Set e.g. "75;80;89" to make the
+          Colab/T4 wheel's supported architectures explicit.
 
 jobs:
   build-wheel:

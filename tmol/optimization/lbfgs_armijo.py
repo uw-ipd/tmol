@@ -156,7 +156,7 @@ class LBFGS_Armijo(Optimizer):
         max_iter (int): maximal number of iterations (default: 200)
         rtol (float): relative tolerance (default: 1e-6)
         atol (float): absolute tolerance (default: 0)
-        gradtol (float): an absolute tolerance on max_i df/dx_i (default: 1e-4)
+        gradtol (float): an absolute tolerance on max_i |df/dx_i| (default: 1)
         history_size (int): update history size (default: 128).
     """
 
@@ -523,7 +523,7 @@ class LBFGS_Armijo(Optimizer):
                 closure()
 
             ctx.flat_grad = ctx.param.grad.data.view(-1)  # Direct reference
-            max_grad = ctx.flat_grad.max().item()
+            max_grad = ctx.flat_grad.abs().max().item()
 
             # update func eval
             current_evals += self.ls_func_evals
