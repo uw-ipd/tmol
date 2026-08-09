@@ -5,8 +5,18 @@ abstractions unless the new abstraction removes real complexity.
 
 ## Documentation
 
-The external docs are built with Sphinx, MyST Markdown, nbsphinx, autodoc, and
-sphinx-gallery.
+The external docs are built with Sphinx, MyST Markdown, nbsphinx, and autodoc.
+Three documentation forms serve different purposes:
+
+- `docs/workflows/` and selected `docs/user_guide/` pages are concise,
+  reusable recipes.
+- The top-level **Examples** section contains the eight interactive notebooks in
+  `docs/tutorial/`. They are deeper, executable demonstrations rendered by
+  nbsphinx.
+- `docs/examples/` contains separate sphinx-gallery-style Python scripts. The
+  generated `auto_examples` output is currently excluded from the published
+  documentation source set; do not assume these scripts appear in the Examples
+  navigation.
 
 ```bash
 pip install -r docs/docs_requirements.txt
@@ -16,10 +26,10 @@ docs/make
 
 Rendered HTML is written to `docs/_build/html`.
 
-Examples live in `docs/examples/` and are rendered by sphinx-gallery with
-committed thumbnails. nbsphinx does not execute notebooks during the Sphinx
-phase; the smoke command above executes them first and writes the plots, tables,
-and viewer HTML that Sphinx consumes. CI performs the same two-step build.
+The committed notebook thumbnails live under `docs/_static/tutorials/`.
+nbsphinx does not execute notebooks during the Sphinx phase; the smoke command
+above executes them first and writes the plots, tables, and viewer HTML that
+Sphinx consumes. CI performs the same two-step notebook-and-Sphinx build.
 
 ## Pull Requests
 

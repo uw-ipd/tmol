@@ -56,3 +56,10 @@ pose_stack = pose_stack_from_biotite(structure, device)
 
 Biotite is especially important for ligands because tmol uses explicit bond
 tables from the `AtomArray` during ligand preparation.
+
+## Related examples
+
+- {doc}`Working with TMol </tutorial/01_working_with_tmol>` follows mmCIF input
+  through Biotite conversion, `PoseStack` inspection, selections, and export.
+- {doc}`Ligands and Parameter Files </tutorial/07_ligand_and_params>` uses
+  Biotite bond tables and a reusable build context for a protein–ligand system.

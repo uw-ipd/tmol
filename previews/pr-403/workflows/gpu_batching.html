@@ -2,13 +2,13 @@
 <!DOCTYPE html>
 
 
-<html lang="en" data-content_root="./" >
+<html lang="en" data-content_root="../" >
 
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Contributor Guide &#8212; tmol documentation</title>
+    <title>GPU Batching &#8212; tmol documentation</title>
   
   
   
@@ -27,34 +27,34 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
-<link href="_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
-    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
-    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
-    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=fba6396e" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=fba6396e" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
-<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
 
-    <script src="_static/documentation_options.js?v=f98a5df1"></script>
-    <script src="_static/doctools.js?v=9bcbadda"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
     <script>let toggleHintShow = 'Show code';</script>
     <script>let toggleHintHide = 'Hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
-    <script src="_static/togglebutton.js?v=b8b12719"></script>
+    <script src="../_static/togglebutton.js?v=b8b12719"></script>
     <script>var togglebuttonSelector = '.nbinput';</script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'contributor_guide';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'workflows/gpu_batching';</script>
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
@@ -63,18 +63,18 @@
             false;
         </script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Development" href="user_guide/development.html" />
-    <link rel="prev" title="Utilities" href="api/utility.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Scoring" href="../user_guide/scoring.html" />
+    <link rel="prev" title="Integrations" href="../user_guide/integrations.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.46" />
   
     
-    <script src="_static/searchtools.js"></script>
-    <script src="_static/language_data.js"></script>
-    <script src="searchindex.js"></script>
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
   
   </head>
   <body data-default-mode="">
@@ -94,7 +94,7 @@
   <dialog id="pst-search-dialog">
     
 <form class="bd-search d-flex align-items-center"
-      action="search.html"
+      action="../search.html"
       method="get">
   <i class="fa-solid fa-magnifying-glass"></i>
   <input type="search"
@@ -130,7 +130,7 @@
     
   
 
-<a class="navbar-brand logo" href="index.html">
+<a class="navbar-brand logo" href="../index.html">
   
   
   
@@ -172,42 +172,42 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="quickstart.html">
+  <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="installation.html">
+  <a class="nav-link nav-internal" href="../installation.html">
     Installation
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="workflows/index.html">
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
     Workflows
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="examples_index.html">
+  <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="api_reference.html">
+  <a class="nav-link nav-internal" href="../api_reference.html">
     API Reference
   </a>
 </li>
 
 
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="#">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
@@ -308,42 +308,42 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="quickstart.html">
+  <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="installation.html">
+  <a class="nav-link nav-internal" href="../installation.html">
     Installation
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="workflows/index.html">
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
     Workflows
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="examples_index.html">
+  <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="api_reference.html">
+  <a class="nav-link nav-internal" href="../api_reference.html">
     API Reference
   </a>
 </li>
 
 
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="#">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
@@ -405,8 +405,15 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="user_guide/development.html">Development</a></li>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Integrations</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">GPU Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/scoring.html">Scoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="packing.html">Packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nucleic_acids.html">Nucleic Acids</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/benchmarking.html">Benchmarking</a></li>
 </ul>
 </div>
 </nav></div>
@@ -443,11 +450,14 @@
   <ul class="bd-breadcrumbs">
     
     <li class="breadcrumb-item breadcrumb-home">
-      <a href="index.html" class="nav-link" aria-label="Home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Contributor Guide</span></li>
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Workflows</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">GPU Batching</span></li>
   </ul>
 </nav>
 </div>
@@ -464,69 +474,63 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="contributor-guide">
-<h1>Contributor Guide<a class="headerlink" href="#contributor-guide" title="Link to this heading">#</a></h1>
-<p>Keep changes focused and testable. Prefer existing tmol patterns over new
-abstractions unless the new abstraction removes real complexity.</p>
-<section id="documentation">
-<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading">#</a></h2>
-<p>The external docs are built with Sphinx, MyST Markdown, nbsphinx, and autodoc.
-Three documentation forms serve different purposes:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">docs/workflows/</span></code> and selected <code class="docutils literal notranslate"><span class="pre">docs/user_guide/</span></code> pages are concise,
-reusable recipes.</p></li>
-<li><p>The top-level <strong>Examples</strong> section contains the eight interactive notebooks in
-<code class="docutils literal notranslate"><span class="pre">docs/tutorial/</span></code>. They are deeper, executable demonstrations rendered by
-nbsphinx.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">docs/examples/</span></code> contains separate sphinx-gallery-style Python scripts. The
-generated <code class="docutils literal notranslate"><span class="pre">auto_examples</span></code> output is currently excluded from the published
-documentation source set; do not assume these scripts appear in the Examples
-navigation.</p></li>
-</ul>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>docs/docs_requirements.txt
-python<span class="w"> </span>.github/scripts/smoke_tutorial_notebooks.py<span class="w"> </span>--write
-docs/make
+  <section id="gpu-batching">
+<h1>GPU Batching<a class="headerlink" href="#gpu-batching" title="Link to this heading">#</a></h1>
+<p>TMol gets application throughput by evaluating several structures in one
+<code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> on one device. Build each input pose from the same chemical
+database, combine them, and render the scorer for the resulting batch layout:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">perf_counter</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.pose_stack_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackBuilder</span>
+
+<span class="n">batch</span> <span class="o">=</span> <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">from_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Rendered HTML is written to <code class="docutils literal notranslate"><span class="pre">docs/_build/html</span></code>.</p>
-<p>The committed notebook thumbnails live under <code class="docutils literal notranslate"><span class="pre">docs/_static/tutorials/</span></code>.
-nbsphinx does not execute notebooks during the Sphinx phase; the smoke command
-above executes them first and writes the plots, tables, and viewer HTML that
-Sphinx consumes. CI performs the same two-step notebook-and-Sphinx build.</p>
-</section>
-<section id="pull-requests">
-<h2>Pull Requests<a class="headerlink" href="#pull-requests" title="Link to this heading">#</a></h2>
-<p>Before opening a PR:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
-pytest<span class="w"> </span>tmol/tests/<span class="w"> </span>-v<span class="w"> </span>-k<span class="w"> </span><span class="s2">&quot;not cuda&quot;</span>
-python<span class="w"> </span>.github/scripts/smoke_tutorial_notebooks.py<span class="w"> </span>--write
-docs/make
+<p><code class="docutils literal notranslate"><span class="pre">from_poses()</span></code> accepts heterogeneous sizes but pads the batch to its largest
+member. Group similarly sized structures when practical, and use a score
+function built from the same parameter database as poses with custom residue or
+ligand types.</p>
+<section id="time-cuda-work-correctly">
+<h2>Time CUDA work correctly<a class="headerlink" href="#time-cuda-work-correctly" title="Link to this heading">#</a></h2>
+<p>CUDA launches are asynchronous. Warm up the rendered module, synchronize on both
+sides of each timed call, and report multiple repeats:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">warmup</span><span class="p">):</span>
+    <span class="n">scorer</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+<span class="n">elapsed</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">repeats</span><span class="p">):</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">scorer</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">elapsed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>If your change touches CUDA kernels, packing, scoring terms, or minimization,
-include the relevant GPU tests or explain why they were not run locally.</p>
+<p>Measure total batch latency and throughput separately. First-call compilation
+time should not be mixed into steady-state kernel timing.</p>
 </section>
-<section id="api-documentation">
-<h2>API Documentation<a class="headerlink" href="#api-documentation" title="Link to this heading">#</a></h2>
-<p>API pages under <code class="docutils literal notranslate"><span class="pre">docs/api/</span></code> use <code class="docutils literal notranslate"><span class="pre">sphinx.ext.autodoc</span></code>. Public modules should have
-useful module, class, and function docstrings because those docstrings become
-the reference documentation.</p>
-<p>Use Google or NumPy-style docstrings.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/development.html">Development</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#local-setup">Local Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#building-extensions">Building Extensions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#aot-vs-jit-extension-loading">AOT vs JIT Extension Loading</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#tests">Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#containers">Containers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#ci">CI</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#releasing">Releasing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#code-style">Code Style</a></li>
-</ul>
-</li>
-</ul>
-</div>
+<section id="chunk-larger-workloads">
+<h2>Chunk larger workloads<a class="headerlink" href="#chunk-larger-workloads" title="Link to this heading">#</a></h2>
+<p>Batch size is limited by padding and operation-specific intermediates. Choose a
+conservative chunk size, render and score one chunk, move only the needed
+results off device, and then release that chunk before continuing. Monitor both
+the live CUDA allocation after construction and the incremental peak during the
+operation.</p>
+<p>TMol does not provide a multi-GPU scheduler. Shard independent chunks outside
+TMol, normally with one process owning one GPU. This application workflow is
+separate from the <a class="reference internal" href="../user_guide/benchmarking.html"><span class="doc">developer benchmark harness</span></a>.</p>
+</section>
+<section id="related-example">
+<h2>Related example<a class="headerlink" href="#related-example" title="Link to this heading">#</a></h2>
+<p>See <a class="reference internal" href="../tutorial/02_gpu_batching.html"><span class="doc">GPU Batching with TMol</span></a> for heterogeneous
+batches, synchronized timing, allocator measurements, and practical chunking.</p>
 </section>
 </section>
 
@@ -541,20 +545,20 @@ the reference documentation.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="api/utility.html"
+       href="../user_guide/integrations.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Utilities</p>
+        <p class="prev-next-title">Integrations</p>
       </div>
     </a>
     <a class="right-next"
-       href="user_guide/development.html"
+       href="../user_guide/scoring.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Development</p>
+        <p class="prev-next-title">Scoring</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -577,16 +581,16 @@ the reference documentation.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#documentation">Documentation</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pull-requests">Pull Requests</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-documentation">API Documentation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#time-cuda-work-correctly">Time CUDA work correctly</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#chunk-larger-workloads">Chunk larger workloads</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#related-example">Related example</a></li>
 </ul>
   </nav></div>
 
   <div class="sidebar-secondary-item">
 
   <div class="tocsection sourcelink">
-    <a href="_sources/contributor_guide.md.txt">
+    <a href="../_sources/workflows/gpu_batching.md.txt">
       <i class="fa-solid fa-file-lines"></i> Show Source
     </a>
   </div>
@@ -605,8 +609,8 @@ the reference documentation.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
-<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+  <script defer src="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">

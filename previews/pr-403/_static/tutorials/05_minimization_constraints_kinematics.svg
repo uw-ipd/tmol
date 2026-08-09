@@ -1,11 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" role="img" aria-labelledby="title description">
-<title id="title">Minimization — overlaid 1UBQ conformations and restraint anchors</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 315" role="img" aria-labelledby="title description">
+<title id="title">Minimization — restrained eight-residue 1UBQ tutorial system</title>
 <desc id="description">Static molecular render generated from 1UBQ.cif used by this tutorial.</desc>
 <metadata>Generated from tutorial fixtures: 1UBQ.cif</metadata>
-<rect width="560" height="320" rx="24" fill="#111a2d"/>
-<rect x="10" y="10" width="540" height="300" rx="18" fill="none" stroke="#263a5e" stroke-width="2"/>
-<polyline points="318.8,212.8 323.3,183.0 302.6,163.4 303.2,133.5 300.4,125.1 291.0,91.8 298.3,81.1 283.9,51.8 310.6,40.0 307.9,41.2 332.1,68.8 324.2,92.7 342.6,124.0 343.6,147.1 345.4,178.3 349.4,206.8 328.4,223.5 311.5,245.4 278.6,240.5 285.9,268.0 301.9,253.8 287.5,245.4 281.0,214.5 303.3,226.4 326.4,236.3 318.6,206.9 321.8,192.0 352.1,213.1 361.4,205.4 351.4,173.0 368.8,178.8 395.5,195.9 393.9,171.2 382.8,143.0 387.7,153.7 356.5,144.1 350.1,165.1 325.7,178.9 308.5,168.9 304.7,137.1 293.7,141.3 261.4,132.7 257.5,140.1 229.8,124.2 218.7,131.4 188.4,118.6 178.5,105.4 186.3,134.3 210.5,142.3 230.4,171.9 234.8,196.8 264.9,218.0 257.7,247.4 241.9,238.7 257.9,241.4 256.0,217.2 238.5,233.0 215.1,229.2 208.5,196.4 210.9,198.3 237.0,184.5 248.3,187.5 276.7,182.8 281.1,152.4 258.5,143.4 263.6,122.1 260.0,127.9 257.8,103.5 277.4,109.7 266.3,92.1 286.7,97.9 274.7,101.6 297.5,98.2 297.4,110.4 296.4,84.7 285.0,51.6" fill="none" stroke="#54c7ec" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.32"/>
-<polyline points="311.8,218.8 316.3,189.0 295.6,169.4 296.2,139.5 293.4,131.1 284.0,97.8 291.3,87.1 276.9,57.8 303.6,46.0 300.9,47.2 325.1,74.8 317.2,98.7 335.6,130.0 336.6,153.1 338.4,184.3 342.4,212.8 321.4,229.5 304.5,251.4 271.6,246.5 278.9,274.0 294.9,259.8 280.5,251.4 274.0,220.5 296.3,232.4 319.4,242.3 311.6,212.9 314.8,198.0 345.1,219.1 354.4,211.4 344.4,179.0 361.8,184.8 388.5,201.9 386.9,177.2 375.8,149.0 380.7,159.7 349.5,150.1 343.1,171.1 318.7,184.9 301.5,174.9 297.7,143.1 286.7,147.3 254.4,138.7 250.5,146.1 222.8,130.2 211.7,137.4 181.4,124.6 171.5,111.4 179.3,140.3 203.5,148.3 223.4,177.9 227.8,202.8 257.9,224.0 250.7,253.4 234.9,244.7 250.9,247.4 249.0,223.2 231.5,239.0 208.1,235.2 201.5,202.4 203.9,204.3 230.0,190.5 241.3,193.5 269.7,188.8 274.1,158.4 251.5,149.4 256.6,128.1 253.0,133.9 250.8,109.5 270.4,115.7 259.3,98.1 279.7,103.9 267.7,107.6 290.5,104.2 290.4,116.4 289.4,90.7 278.0,57.6" fill="none" stroke="#54c7ec" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.82"/>
-<circle cx="94" cy="76" r="8" fill="#b99bea" stroke="#f5efff" stroke-width="2"/>
-<circle cx="468" cy="244" r="8" fill="#b99bea" stroke="#f5efff" stroke-width="2"/>
+<rect width="560" height="315" rx="24" fill="#111a2d"/>
+<rect x="10" y="10" width="540" height="295" rx="18" fill="none" stroke="#263a5e" stroke-width="2"/>
+<polyline points="302.1,275.0 308.7,231.4 278.5,202.8 279.4,159.2 275.2,147.0 261.6,98.3 272.3,82.8 251.3,40.0" fill="none" stroke="#54c7ec" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<circle cx="302.1" cy="275.0" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="308.7" cy="231.4" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="278.5" cy="202.8" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="279.4" cy="159.2" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="275.2" cy="147.0" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="261.6" cy="98.3" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="272.3" cy="82.8" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="251.3" cy="40.0" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
 </svg>

@@ -1,8 +1,17 @@
 # Benchmarking
 
-tmol keeps benchmark helpers under `dev/bin`.
+Performance work happens at two different levels:
 
-## Running Benchmarks
+- Application-level GPU batching measures a real workload over a `PoseStack`;
+  use the {doc}`GPU batching workflow </workflows/gpu_batching>` for batch
+  construction, synchronized timing, memory measurement, and chunking.
+- The developer benchmark harness runs pytest benchmark cases to detect kernel
+  or implementation regressions across code revisions.
+
+The harness is not an application scheduler and its microbenchmark results do
+not choose a production batch size.
+
+## Running Developer Benchmarks
 
 Use `dev/bin/benchmark` with pytest selectors:
 
@@ -32,11 +41,19 @@ Ancillary benchmark plots live near the tests as `plot_*.py` scripts.
 
 ## Profiling
 
-`dev/bin/profile_benchmark` runs the benchmark once for timing, then runs under
-NVIDIA profiling tools for trace capture:
+`dev/bin/profile_benchmark` wraps the legacy `nvprof` command and the tmol
+pytest CUDA-profile hook:
 
 ```bash
 dev/bin/profile_benchmark tmol/tests/score -k cuda-full-lk_ball -- -o profile.nvvp
 ```
 
-Open the trace with NVIDIA Visual Profiler or a compatible CUDA profiling UI.
+Use it only in a CUDA environment that still provides `nvprof`; current NVIDIA
+toolkits may require a separate Nsight-based profiling workflow instead.
+
+## Related example
+
+{doc}`GPU Batching with TMol </tutorial/02_gpu_batching>` demonstrates
+application-level latency, throughput, allocator memory, heterogeneous padding,
+and chunking. Use the developer harness above when the question is whether a
+specific tmol implementation changed performance.

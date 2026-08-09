@@ -194,7 +194,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -330,7 +330,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -550,13 +550,22 @@ recent container image.</p>
 </section>
 <section id="google-colab">
 <h2>Google Colab<a class="headerlink" href="#google-colab" title="Link to this heading">#</a></h2>
-<p>For Colab runtimes on a Turing T4 GPU, use the wheel lane that includes <code class="docutils literal notranslate"><span class="pre">sm_75</span></code>
-support:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-manylinux_2_28_x86_64.whl&quot;</span>
+<p>The current Colab GPU runtime uses Python 3.12, PyTorch 2.11.0 with CUDA 12.8,
+and commonly a Turing T4 (<code class="docutils literal notranslate"><span class="pre">sm_75</span></code>). The published v0.1.46 artifacts do not
+include a wheel for that PyTorch ABI, so the tutorial bootstrap builds the
+tutorial branch from source against Colab’s existing PyTorch. It reads the
+branch’s <code class="docutils literal notranslate"><span class="pre">[project].dependencies</span></code>, installs them without replacing PyTorch, and
+sets <code class="docutils literal notranslate"><span class="pre">CMAKE_CUDA_ARCHITECTURES=75;80;89</span></code>.</p>
+<p>v0.1.46 does provide this ABI-specific wheel for runtimes that still have
+PyTorch 2.10 with CUDA 12.8:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.46/tmol-0.1.46+cu128torch2.10-cp312-cp312-manylinux_2_28_x86_64.whl&quot;</span>
 </pre></div>
 </div>
-<p>Confirm the current Colab Python and PyTorch versions before installing a
-versioned wheel URL.</p>
+<p>The next release matrix includes a <code class="docutils literal notranslate"><span class="pre">+cu128torch2.11</span></code> Python 3.12 wheel with
+explicit <code class="docutils literal notranslate"><span class="pre">sm_75</span></code>, <code class="docutils literal notranslate"><span class="pre">sm_80</span></code>, and <code class="docutils literal notranslate"><span class="pre">sm_89</span></code> support. Until that release is actually
+published, current PyTorch 2.11 Colab runtimes must use the source fallback.
+Always confirm the active Python and PyTorch versions before installing an
+ABI-specific wheel URL.</p>
 </section>
 </section>
 

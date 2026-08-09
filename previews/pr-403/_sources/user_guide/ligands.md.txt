@@ -1,10 +1,11 @@
 # Ligand Preparation
 
 tmol can turn a non-standard, non-polymer residue into a parameterized residue
-type with protonated 3D coordinates, MMFF94 partial charges, Rosetta-compatible
-atom types, and cartbonded parameters. The prepared ligand is injected into a
-new `ParameterDatabase` and can then be scored and minimized like a normal
-residue.
+type with protonated 3D coordinates, MMFF94 partial charges,
+generic-potential-style atom types used by tmol, and cartbonded parameters. The
+prepared ligand is injected into a new `ParameterDatabase` and can then be
+scored and minimized like a normal residue. These atom-type names do not by
+themselves make a ligand parameterization usable by Rosetta.
 
 ## Entry Points
 
@@ -129,6 +130,36 @@ python scripts/ligand_prep/smiles_to_params.py "<SMILES>" <out_prefix> \
 Useful flags include `--no-protonate`, `--sample-proton-chi`, and
 `--no-conformer-search`.
 
+The emitted Rosetta-syntax `.params` file is an experimental interchange
+artifact, not a Rosetta-validated parameterization. It carries tmol's atom-type
+strings into the Rosetta atom-type field, uses MM type `X`, and writes a
+placeholder `NBR_RADIUS 999.0`. Use a Rosetta-native preparation and validation
+workflow before running the ligand in Rosetta.
+
+## Interaction Scores
+
+Use the ligand-aware score function with an explicit ligand block mask:
+
+```python
+from tmol.score.score_utils import calculate_block_pair_ddg
+
+interaction = calculate_block_pair_ddg(
+    pose_stack,
+    ligand_mask,
+    sfxn=sfxn,
+    minimize=False,
+    pack=False,
+    database=context.parameter_database,
+)
+```
+
+With both flags disabled, the helper returns a fixed-coordinate, weighted
+cross-mask block-pair interaction score from one complex. It performs no
+separated-state subtraction and is not a binding free energy despite its
+historical name. `minimize` defaults to `True`; `pack=True` additionally invokes
+local repacking. Set those options only when the resulting refined structure is
+part of the intended scoring convention.
+
 ## Troubleshooting
 
 `prepare_ligands=True` is strict by default. An unpreparable ligand raises
@@ -158,9 +189,18 @@ The ligand package is organized around a small set of responsibilities:
 - `openbabel_compat.py`: OpenBabel compatibility for MMFF94 mol2 generation.
 - `mol3d.py`: MMFF94 charges by atom index.
 - `rdkit_mol.py`: AtomArray to RDKit `Mol`.
-- `atom_typing.py`: Rosetta generic-potential atom typing.
+- `atom_typing.py`: tmol's port of Rosetta generic-potential atom
+  classification.
 - `chi_topology.py`: rotatable-bond and `PROTON_CHI` topology.
 - `residue_builder.py`: `RawResidueType` construction.
 - `registry.py`: database injection and cartbonded params.
 - `params_file.py`: `.tmol` YAML load/injection.
 - `params_io.py`: `.params` and `.tmol` writing.
+
+## Related examples
+
+- {doc}`Ligands and Parameter Files </tutorial/07_ligand_and_params>` traces
+  authoritative chemistry, `.tmol` persistence, the experimental Rosetta
+  writer, pocket selection, and local interaction scoring.
+- {doc}`Working with DNA and RNA </tutorial/08_nucleic_acids>` prepares a ligand
+  in an RNA aptamer and repacks nearby RNA while holding the ligand fixed.

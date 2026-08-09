@@ -191,7 +191,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -325,7 +325,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -612,7 +612,7 @@
 <span class="sd">        max_iter (int): maximal number of iterations (default: 200)</span>
 <span class="sd">        rtol (float): relative tolerance (default: 1e-6)</span>
 <span class="sd">        atol (float): absolute tolerance (default: 0)</span>
-<span class="sd">        gradtol (float): an absolute tolerance on max_i df/dx_i (default: 1e-4)</span>
+<span class="sd">        gradtol (float): an absolute tolerance on max_i |df/dx_i| (default: 1)</span>
 <span class="sd">        history_size (int): update history size (default: 128).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -981,7 +981,7 @@
                 <span class="n">closure</span><span class="p">()</span>
 
             <span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Direct reference</span>
-            <span class="n">max_grad</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">max_grad</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">flat_grad</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
 
             <span class="c1"># update func eval</span>
             <span class="n">current_evals</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ls_func_evals</span>

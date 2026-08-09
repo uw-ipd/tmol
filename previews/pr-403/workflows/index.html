@@ -65,7 +65,7 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Scoring" href="../user_guide/scoring.html" />
+    <link rel="next" title="Integrations" href="../user_guide/integrations.html" />
     <link rel="prev" title="Installation" href="../installation.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -194,7 +194,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -330,7 +330,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -406,11 +406,13 @@
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU Batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/scoring.html">Scoring</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="packing.html">Packing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Optimization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nucleic_acids.html">Nucleic Acids</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/benchmarking.html">Benchmarking</a></li>
 </ul>
 </div>
@@ -471,14 +473,45 @@
                   
   <section id="workflows">
 <h1>Workflows<a class="headerlink" href="#workflows" title="Link to this heading">#</a></h1>
-<p>Use these workflow guides for the common tmol paths: scoring structures,
-preparing ligands, packing side chains, optimizing coordinates, integrating
-with structure-tooling libraries, and benchmarking performance.</p>
+<p>Use these concise recipes for recurring tmol tasks. The
+<a class="reference internal" href="../examples_index.html"><span class="doc">Examples</span></a> are executable, notebook-length
+demonstrations; these pages focus on reusable steps and link to the
+corresponding examples for deeper analysis.</p>
+<p>The eight guides cover structure I/O and integrations, application-level GPU
+batching, scoring, packing, minimization and relax, ligand preparation, DNA/RNA,
+and the developer benchmark harness.</p>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#rosettafold2">RosettaFold2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#openfold">OpenFold</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#biotite-and-atomarray">Biotite and AtomArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#related-examples">Related examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU Batching</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="gpu_batching.html#time-cuda-work-correctly">Time CUDA work correctly</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gpu_batching.html#chunk-larger-workloads">Chunk larger workloads</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gpu_batching.html#related-example">Related example</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/scoring.html">Scoring</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/scoring.html#ligand-aware-scoring">Ligand-aware Scoring</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/scoring.html#block-pair-scores">Block-pair Scores</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/scoring.html#related-examples">Related examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="packing.html">Packing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="packing.html#related-examples">Related examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Optimization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#cartesian-minimization">Cartesian Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#constraints">Constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#missing-side-chains-and-hydrogens">Missing Side Chains and Hydrogens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#kinematic-minimization">Kinematic Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#relax">Relax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#related-examples">Related examples</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a><ul>
@@ -487,29 +520,22 @@ with structure-tooling libraries, and benchmarking performance.</p>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#reuse-prepared-context">Reuse Prepared Context</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#persist-prepared-ligands">Persist Prepared Ligands</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#smiles-to-params-cli">SMILES to Params CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#interaction-scores">Interaction Scores</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#troubleshooting">Troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#module-inventory">Module Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#related-examples">Related examples</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="packing.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Optimization</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#cartesian-minimization">Cartesian Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#repacking">Repacking</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#missing-side-chains-and-hydrogens">Missing Side Chains and Hydrogens</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#kinematic-minimization">Kinematic Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#relax">Relax</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Integrations</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#rosettafold2">RosettaFold2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#openfold">OpenFold</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#biotite-and-atomarray">Biotite and AtomArray</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nucleic_acids.html">Nucleic Acids</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="nucleic_acids.html#repack-selected-bases">Repack selected bases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nucleic_acids.html#related-example">Related example</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/benchmarking.html">Benchmarking</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/benchmarking.html#running-benchmarks">Running Benchmarks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/benchmarking.html#running-developer-benchmarks">Running Developer Benchmarks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/benchmarking.html#comparing-revisions">Comparing Revisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/benchmarking.html#profiling">Profiling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/benchmarking.html#related-example">Related example</a></li>
 </ul>
 </li>
 </ul>
@@ -536,11 +562,11 @@ with structure-tooling libraries, and benchmarking performance.</p>
       </div>
     </a>
     <a class="right-next"
-       href="../user_guide/scoring.html"
+       href="../user_guide/integrations.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Scoring</p>
+        <p class="prev-next-title">Integrations</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

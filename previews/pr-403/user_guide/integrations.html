@@ -65,8 +65,8 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Benchmarking" href="benchmarking.html" />
-    <link rel="prev" title="Optimization" href="optimization.html" />
+    <link rel="next" title="GPU Batching" href="../workflows/gpu_batching.html" />
+    <link rel="prev" title="Workflows" href="../workflows/index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.46" />
@@ -194,7 +194,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -330,7 +330,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -406,11 +406,13 @@
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU Batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scoring.html">Scoring</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ligands.html">Ligand Preparation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/packing.html">Packing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic Acids</a></li>
 <li class="toctree-l1"><a class="reference internal" href="benchmarking.html">Benchmarking</a></li>
 </ul>
 </div>
@@ -521,6 +523,15 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 <p>Biotite is especially important for ligands because tmol uses explicit bond
 tables from the <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> during ligand preparation.</p>
 </section>
+<section id="related-examples">
+<h2>Related examples<a class="headerlink" href="#related-examples" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="../tutorial/01_working_with_tmol.html"><span class="doc">Working with TMol</span></a> follows mmCIF input
+through Biotite conversion, <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> inspection, selections, and export.</p></li>
+<li><p><a class="reference internal" href="../tutorial/07_ligand_and_params.html"><span class="doc">Ligands and Parameter Files</span></a> uses
+Biotite bond tables and a reusable build context for a protein–ligand system.</p></li>
+</ul>
+</section>
 </section>
 
 
@@ -534,20 +545,20 @@ tables from the <code class="docutils literal notranslate"><span class="pre">Ato
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="optimization.html"
+       href="../workflows/index.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Optimization</p>
+        <p class="prev-next-title">Workflows</p>
       </div>
     </a>
     <a class="right-next"
-       href="benchmarking.html"
+       href="../workflows/gpu_batching.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Benchmarking</p>
+        <p class="prev-next-title">GPU Batching</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -573,6 +584,7 @@ tables from the <code class="docutils literal notranslate"><span class="pre">Ato
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rosettafold2">RosettaFold2</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#openfold">OpenFold</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#biotite-and-atomarray">Biotite and AtomArray</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#related-examples">Related examples</a></li>
 </ul>
   </nav></div>
 

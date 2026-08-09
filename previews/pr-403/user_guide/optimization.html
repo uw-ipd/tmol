@@ -65,7 +65,7 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Integrations" href="integrations.html" />
+    <link rel="next" title="Ligand Preparation" href="ligands.html" />
     <link rel="prev" title="Packing" href="../workflows/packing.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -194,7 +194,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -330,7 +330,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -406,11 +406,13 @@
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="integrations.html">Integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU Batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scoring.html">Scoring</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ligands.html">Ligand Preparation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/packing.html">Packing</a></li>
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">Optimization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="integrations.html">Integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic Acids</a></li>
 <li class="toctree-l1"><a class="reference internal" href="benchmarking.html">Benchmarking</a></li>
 </ul>
 </div>
@@ -474,9 +476,9 @@
                   
   <section id="optimization">
 <h1>Optimization<a class="headerlink" href="#optimization" title="Link to this heading">#</a></h1>
-<p>tmol exposes the same primitives used by Rosetta-style refinement workflows:
-hydrogen placement, missing-side-chain rebuild, fixed-sequence repacking,
-Cartesian minimization, kinematic minimization, and relax.</p>
+<p>tmol exposes hydrogen placement, missing-side-chain rebuild, Cartesian and
+kinematic minimization, constraints, and relax. Fixed-sequence repacking is
+covered separately in the <a class="reference internal" href="../workflows/packing.html"><span class="doc">Packing workflow</span></a>.</p>
 <section id="cartesian-minimization">
 <h2>Cartesian Minimization<a class="headerlink" href="#cartesian-minimization" title="Link to this heading">#</a></h2>
 <p>Use <code class="docutils literal notranslate"><span class="pre">run_cart_min()</span></code> to optimize coordinates directly:</p>
@@ -492,31 +494,26 @@ Cartesian minimization, kinematic minimization, and relax.</p>
 </pre></div>
 </div>
 </section>
-<section id="repacking">
-<h2>Repacking<a class="headerlink" href="#repacking" title="Link to this heading">#</a></h2>
-<p>Fixed-sequence side-chain optimization uses a <code class="docutils literal notranslate"><span class="pre">PackerTask</span></code> and one or more
-conformer samplers:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.pack_rotamers</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">PackerTask</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">create_dunbrack_sampler_from_database</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.fixed_aa_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedAAChiSampler</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.include_current_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">IncludeCurrentSampler</span>
+<section id="constraints">
+<h2>Constraints<a class="headerlink" href="#constraints" title="Link to this heading">#</a></h2>
+<p>Constraints affect optimization only when they are attached to the pose and the
+score function gives the constraint term a nonzero weight. This helper returns a
+new pose with harmonic coordinate restraints targeting a copy of each residue
+type’s declared main-chain atom coordinates:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.constraint.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_mainchain_coordinate_constraints</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.score_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreType</span>
 
-<span class="n">task</span> <span class="o">=</span> <span class="n">PackerTask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">())</span>
-<span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>
-<span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span>
-    <span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-<span class="p">)</span>
-<span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">FixedAAChiSampler</span><span class="p">())</span>
-<span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">IncludeCurrentSampler</span><span class="p">())</span>
-
-<span class="n">packed_pose_stack</span> <span class="o">=</span> <span class="n">pack_rotamers</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span>
+<span class="n">constrained_pose</span> <span class="o">=</span> <span class="n">create_mainchain_coordinate_constraints</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+<span class="n">sfxn</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">constraint</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">minimized_pose_stack</span> <span class="o">=</span> <span class="n">run_cart_min</span><span class="p">(</span><span class="n">constrained_pose</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Disable packing outside a selected residue mask with
-<code class="docutils literal notranslate"><span class="pre">task.disable_packing_by_block_mask()</span></code>.</p>
+<p>The helper uses a 0.5 Å harmonic standard deviation. For the standard amino-acid
+types, the declared main-chain atoms are N, CA, and C, not O. The lower-level
+<code class="docutils literal notranslate"><span class="pre">ConstraintSet</span></code> and <code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm</span></code> interfaces support harmonic and
+bounded atom-pair distances, harmonic coordinates, and circular-harmonic
+four-atom torsions. TMol does not currently provide Rosetta’s constraint-file
+parser, ambiguous-constraint layer, or a dedicated three-atom angle constraint.</p>
 </section>
 <section id="missing-side-chains-and-hydrogens">
 <h2>Missing Side Chains and Hydrogens<a class="headerlink" href="#missing-side-chains-and-hydrogens" title="Link to this heading">#</a></h2>
@@ -588,6 +585,16 @@ still a required argument because the same protocol can run a custom
 kinematic <code class="docutils literal notranslate"><span class="pre">min_fn</span></code>; in that case pass a full <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code> and have <code class="docutils literal notranslate"><span class="pre">min_fn</span></code> call
 <code class="docutils literal notranslate"><span class="pre">run_kin_min()</span></code> with the supplied fold forest and move map.</p>
 </section>
+<section id="related-examples">
+<h2>Related examples<a class="headerlink" href="#related-examples" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>The <a class="reference internal" href="../tutorial/05_minimization_constraints_kinematics.html"><span class="doc">constraints example</span></a>
+compares Cartesian and kinematic degrees of freedom with explicit coordinate
+restraints.</p></li>
+<li><p><a class="reference internal" href="../tutorial/06_fast_relax.html"><span class="doc">FastRelax</span></a> demonstrates repack/minimize
+schedules, score-weight ramps, and constraint ramps.</p></li>
+</ul>
+</section>
 </section>
 
 
@@ -610,11 +617,11 @@ kinematic <code class="docutils literal notranslate"><span class="pre">min_fn</s
       </div>
     </a>
     <a class="right-next"
-       href="integrations.html"
+       href="ligands.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Integrations</p>
+        <p class="prev-next-title">Ligand Preparation</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -638,10 +645,11 @@ kinematic <code class="docutils literal notranslate"><span class="pre">min_fn</s
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cartesian-minimization">Cartesian Minimization</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#repacking">Repacking</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#constraints">Constraints</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#missing-side-chains-and-hydrogens">Missing Side Chains and Hydrogens</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kinematic-minimization">Kinematic Minimization</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#relax">Relax</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#related-examples">Related examples</a></li>
 </ul>
   </nav></div>
 

@@ -66,7 +66,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Optimization" href="../user_guide/optimization.html" />
-    <link rel="prev" title="Ligand Preparation" href="../user_guide/ligands.html" />
+    <link rel="prev" title="Scoring" href="../user_guide/scoring.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.46" />
@@ -194,7 +194,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -330,7 +330,7 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Interactive tutorials
+    Examples
   </a>
 </li>
 
@@ -406,11 +406,13 @@
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU Batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/scoring.html">Scoring</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a></li>
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">Packing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Optimization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nucleic_acids.html">Nucleic Acids</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/benchmarking.html">Benchmarking</a></li>
 </ul>
 </div>
@@ -503,6 +505,21 @@ packing for those blocks:</p>
 </div>
 <p>The protein-ligand refinement example uses this pattern to repack protein side
 chains while holding the ligand block fixed.</p>
+<p><code class="docutils literal notranslate"><span class="pre">restrict_to_repacking()</span></code> intersects the task with each block’s original
+identity. Mutation or design therefore needs an explicitly constructed identity
+task instead of this fixed-sequence recipe. TMol does not provide a built-in
+mutation-scan or Rosetta resfile protocol.</p>
+<section id="related-examples">
+<h2>Related examples<a class="headerlink" href="#related-examples" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>The <a class="reference internal" href="../tutorial/04_packing_and_mutation_scan.html"><span class="doc">packing example</span></a> expands
+this recipe into local repacking and carefully scoped mutation/design
+experiments.</p></li>
+<li><p><a class="reference internal" href="../tutorial/06_fast_relax.html"><span class="doc">FastRelax</span></a> composes packing with minimization.</p></li>
+<li><p><a class="reference internal" href="../tutorial/08_nucleic_acids.html"><span class="doc">Working with DNA and RNA</span></a> uses an
+NA-specific chi sampler and explicit masks.</p></li>
+</ul>
+</section>
 </section>
 
 
@@ -516,12 +533,12 @@ chains while holding the ligand block fixed.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="../user_guide/ligands.html"
+       href="../user_guide/scoring.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Ligand Preparation</p>
+        <p class="prev-next-title">Scoring</p>
       </div>
     </a>
     <a class="right-next"
@@ -543,6 +560,18 @@ chains while holding the ligand block fixed.</p>
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#related-examples">Related examples</a></li>
+</ul>
+  </nav></div>
 
   <div class="sidebar-secondary-item">
 
