@@ -1,14 +1,15 @@
-Interactive tutorials
-=====================
+Examples
+========
 
-These CIF-first notebooks form one guided path through tmol. They use live
-molecular viewers, selectable structures and atom subsets, sortable result
-tables, plots, and executable exercises. Start with the first two notebooks;
-later notebooks assume their ``PoseStack`` and GPU-batching vocabulary.
+These eight executable notebooks are in-depth demonstrations with live molecular
+viewers, selectable structures and atom subsets, result tables, plots, and
+exercises. For shorter, reusable recipes, see :doc:`Workflows <workflows/index>`.
+Start with the first two examples; later notebooks assume their ``PoseStack``
+and GPU-batching vocabulary.
 
 Readers coming from Rosetta or PyRosetta can consult the
 :doc:`Rosetta-to-TMol crosswalk <tutorial/rosetta_crosswalk>` alongside the
-tutorials. The crosswalk distinguishes genuine API parallels from capabilities
+examples. The crosswalk distinguishes genuine API parallels from capabilities
 that tmol does not currently implement.
 
 .. raw:: html

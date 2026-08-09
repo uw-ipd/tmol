@@ -1,8 +1,8 @@
 # Optimization
 
-tmol exposes the same primitives used by Rosetta-style refinement workflows:
-hydrogen placement, missing-side-chain rebuild, fixed-sequence repacking,
-Cartesian minimization, kinematic minimization, and relax.
+tmol exposes hydrogen placement, missing-side-chain rebuild, Cartesian and
+kinematic minimization, constraints, and relax. Fixed-sequence repacking is
+covered separately in the {doc}`Packing workflow </workflows/packing>`.
 
 ## Cartesian Minimization
 
@@ -22,33 +22,28 @@ coord_mask[:, ligand_atom_indices] = True
 minimized_pose_stack = run_cart_min(pose_stack, sfxn, coord_mask=coord_mask)
 ```
 
-## Repacking
+## Constraints
 
-Fixed-sequence side-chain optimization uses a `PackerTask` and one or more
-conformer samplers:
+Constraints affect optimization only when they are attached to the pose and the
+score function gives the constraint term a nonzero weight. This helper returns a
+new pose with harmonic coordinate restraints targeting a copy of each residue
+type's declared main-chain atom coordinates:
 
 ```python
-from tmol.pack.pack_rotamers import pack_rotamers
-from tmol.pack.packer_task import PackerPalette, PackerTask
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
-    create_dunbrack_sampler_from_database,
-)
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
+from tmol.score.constraint.utility import create_mainchain_coordinate_constraints
+from tmol.score.score_types import ScoreType
 
-task = PackerTask(pose_stack, PackerPalette())
-task.restrict_to_repacking()
-task.add_conformer_sampler(
-    create_dunbrack_sampler_from_database(context.parameter_database, device)
-)
-task.add_conformer_sampler(FixedAAChiSampler())
-task.add_conformer_sampler(IncludeCurrentSampler())
-
-packed_pose_stack = pack_rotamers(pose_stack, sfxn, task)
+constrained_pose = create_mainchain_coordinate_constraints(pose_stack)
+sfxn.set_weight(ScoreType.constraint, 1.0)
+minimized_pose_stack = run_cart_min(constrained_pose, sfxn)
 ```
 
-Disable packing outside a selected residue mask with
-`task.disable_packing_by_block_mask()`.
+The helper uses a 0.5 Å harmonic standard deviation. For the standard amino-acid
+types, the declared main-chain atoms are N, CA, and C, not O. The lower-level
+`ConstraintSet` and `ConstraintEnergyTerm` interfaces support harmonic and
+bounded atom-pair distances, harmonic coordinates, and circular-harmonic
+four-atom torsions. TMol does not currently provide Rosetta's constraint-file
+parser, ambiguous-constraint layer, or a dedicated three-atom angle constraint.
 
 ## Missing Side Chains and Hydrogens
 
@@ -126,3 +121,11 @@ The default FastRelax minimizer is Cartesian, so it reads
 still a required argument because the same protocol can run a custom
 kinematic `min_fn`; in that case pass a full `MoveMap` and have `min_fn` call
 `run_kin_min()` with the supplied fold forest and move map.
+
+## Related examples
+
+- The {doc}`constraints example </tutorial/05_minimization_constraints_kinematics>`
+  compares Cartesian and kinematic degrees of freedom with explicit coordinate
+  restraints.
+- {doc}`FastRelax </tutorial/06_fast_relax>` demonstrates repack/minimize
+  schedules, score-weight ramps, and constraint ramps.

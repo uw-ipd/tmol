@@ -150,12 +150,19 @@ pip install git+https://github.com/uw-ipd/tmol.git@vX.Y.Z
 pytest --pyargs tmol.tests -v
 ```
 
-On Google Colab (Python 3.12, torch 2.8, Turing T4) use the `+cu128torch2.8`
-wheel — it is the only variant built with `sm_75`:
+Current Google Colab GPU runtimes use Python 3.12, torch 2.11.0+cu128, and
+commonly a Turing T4 (`sm_75`). v0.1.46 has no wheel for that PyTorch ABI, so
+the tutorial bootstrap builds the tutorial branch from source against the
+active PyTorch. For a runtime that still has torch 2.10+cu128, the published
+v0.1.46 ABI-specific wheel is:
 
 ```bash
-pip install "https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-manylinux_2_28_x86_64.whl"
+pip install "https://github.com/uw-ipd/tmol/releases/download/v0.1.46/tmol-0.1.46+cu128torch2.10-cp312-cp312-manylinux_2_28_x86_64.whl"
 ```
+
+The next release matrix replaces the old dedicated Colab lane with
+`+cu128torch2.11` and explicitly compiles `sm_75;sm_80;sm_89`. Do not use that
+wheel URL until the corresponding release has been published.
 
 ## Containers
 
@@ -183,7 +190,7 @@ tmol uses GitHub Actions for all CI:
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
-| `wheel-smoke.yml` | Push to wheel feature branches, manual | Builds and installs the complete 32-wheel manylinux matrix, checks auditwheel metadata and glibc-2.28 portability, and loads a representative wheel on the self-hosted GPU runner. |
+| `wheel-smoke.yml` | Push to wheel feature branches, manual | Builds and installs the complete 32-wheel manylinux smoke matrix, checks auditwheel metadata and glibc-2.28 portability, and loads a representative wheel on the self-hosted GPU runner. |
 | `publish.yml` | Push `v*` tag, manual | Builds manylinux wheels (GPU + CPU) + sdist, uploads sdist to PyPI, uploads wheels to a GitHub Release. |
 
 ### CI architecture
@@ -218,13 +225,14 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
 ## Releasing
 
 The version in a development checkout is not proof that a release has been
-published. As of 2026-07-17, GitHub Releases and PyPI contain v0.1.40; v0.1.42
-is the next validated release candidate. Check the GitHub Releases page before
-using a versioned wheel URL.
+published. v0.1.46 is the currently published release; the wheel lanes described
+by the current matrix belong to the next release only after its matching tag
+has been published. Check the GitHub Releases page before using a versioned
+wheel URL.
 
 1. Bump `project.version` in `pyproject.toml`.
 2. Commit the version bump and ensure both `CI` and `Wheel smoke test` pass.
-3. Create and push the matching version tag (for example `v0.1.42`):
+3. Create and push the matching version tag (for example `vX.Y.Z`):
    - `publish.yml` triggers only from a pushed `v*` tag.
    - The workflow rejects tags that do not match `project.version`.
 4. Wait for workflow completion:
@@ -235,7 +243,7 @@ using a versioned wheel URL.
    - `upload`
 5. Verify release artifacts:
    - PyPI sdist upload succeeds.
-   - GitHub prerelease `vX.Y.Z` exists and contains exactly 32 manylinux wheel files: 24 GPU and 8 CPU.
+   - GitHub prerelease `vX.Y.Z` exists and contains exactly 33 manylinux wheel files: 25 GPU and 8 CPU.
 6. Install using explicit wheel files (recommended):
    - Install matching PyTorch/CUDA first.
    - Install from GitHub release wheel URL (or pinned `tmol==X.Y.Z+...` with `--find-links`).

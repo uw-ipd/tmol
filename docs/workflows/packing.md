@@ -33,3 +33,17 @@ task.disable_packing_by_block_mask(fixed_block_mask)
 
 The protein-ligand refinement example uses this pattern to repack protein side
 chains while holding the ligand block fixed.
+
+`restrict_to_repacking()` intersects the task with each block's original
+identity. Mutation or design therefore needs an explicitly constructed identity
+task instead of this fixed-sequence recipe. TMol does not provide a built-in
+mutation-scan or Rosetta resfile protocol.
+
+## Related examples
+
+- The {doc}`packing example </tutorial/04_packing_and_mutation_scan>` expands
+  this recipe into local repacking and carefully scoped mutation/design
+  experiments.
+- {doc}`FastRelax </tutorial/06_fast_relax>` composes packing with minimization.
+- {doc}`Working with DNA and RNA </tutorial/08_nucleic_acids>` uses an
+  NA-specific chi sampler and explicit masks.

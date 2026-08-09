@@ -50,8 +50,9 @@ jobs:
             "$SIF" bash <<'LINT'
           set -ex
           source .venv/bin/activate
-          uv pip install pre-commit
+          uv pip install pre-commit pytest pytest-benchmark pyyaml
           pre-commit run --all-files --show-diff-on-failure
+          pytest -q .github/scripts/test_colab_release_config.py
           LINT
 
       - name: build and test
