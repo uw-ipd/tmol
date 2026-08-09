@@ -150,31 +150,32 @@ def test_switchable_view_escapes_payload_and_uses_unique_ids(monkeypatch):
     assert "window.dispatchEvent(new Event('resize'))" in first.data
 
 
-def test_selection_gallery_bakes_exact_atom_serials_and_escapes_labels(monkeypatch):
-    viewers = []
-
-    def make_viewer(**kwargs):
-        viewer = _Viewer()
-        viewers.append(viewer)
-        return viewer
-
-    monkeypatch.setitem(
-        sys.modules,
-        "py3Dmol",
-        SimpleNamespace(view=make_viewer),
-    )
+def test_selection_gallery_uses_one_switchable_viewer_and_escapes_payload():
     atoms = _atom_array()
-    unsafe_label = "<selected>"
-    gallery = visualize.selection_gallery(
+    unsafe_label = "</script><selected>"
+    first = visualize.selection_gallery(
         atoms,
-        {unsafe_label: numpy.array([False, True, False])},
+        {
+            unsafe_label: numpy.array([False, True, False]),
+            "all": numpy.array([True, True, True]),
+        },
+    )
+    second = visualize.selection_gallery(
+        atoms, {"other": numpy.array([True, False, False])}
     )
 
-    assert unsafe_label not in gallery.data
-    assert "&lt;selected&gt;" in gallery.data
-    assert "mock-py3dmol-viewer" in gallery.data
-    assert viewers[-1].added_styles[-1][0] == {"serial": [2]}
-    assert viewers[-1].zoom == ({"serial": [2]},)
+    assert unsafe_label not in first.data
+    assert r"\u003c/script\u003e\u003cselected\u003e" in first.data
+    assert '"serials": [2]' in first.data
+    assert '"serials": [1, 2, 3]' in first.data
+    assert first.data.count("$3Dmol.createViewer") == 1
+    assert "viewer.zoomTo(selection, 400)" in first.data
+    assert 'button.addEventListener("click"' in first.data
+    first_match = re.search(r'id="(tmol-selection-[a-f0-9]+)"', first.data)
+    second_match = re.search(r'id="(tmol-selection-[a-f0-9]+)"', second.data)
+    assert first_match is not None
+    assert second_match is not None
+    assert first_match.group(1) != second_match.group(1)
 
 
 def test_query_selection_uses_mask_method_when_available():

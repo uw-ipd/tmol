@@ -347,22 +347,28 @@ def selection_gallery(
     atom_array: AtomArray,
     selections: Mapping[str, object],
     *,
-    width: int = 340,
-    height: int = 300,
+    width: int = 720,
+    height: int = 420,
     highlight_color: str = "#e83e8c",
 ):
-    """Return an HTML gallery highlighting labeled AtomArray selections.
+    """Return one interactive viewer for several labeled AtomArray selections.
 
     Selection values may be boolean atom masks. Query strings are also accepted
     when the supplied AtomArray provides a callable ``aa.mask(query)`` method.
     Selection results are resolved in Python and exact PDB atom serials are
     baked into the HTML. This avoids viewer-side query-language differences
     and remains exact when atom names or residue identifiers are duplicated.
+    Clicking a label restyles the same model and animates the camera to the
+    selected atoms, following the AtomWorks selection-gallery interaction.
     """
     if not _is_atom_array(atom_array):
         raise TypeError("selection_gallery() expects a Biotite AtomArray")
     if not selections:
         raise ValueError("selections must contain at least one labeled selection")
+    width = int(width)
+    height = int(height)
+    if width <= 0 or height <= 0:
+        raise ValueError("width and height must be positive")
 
     pdb_text = _biotite_to_pdb_string(atom_array)
     serials = _first_model_atom_serials(pdb_text)
@@ -379,24 +385,121 @@ def selection_gallery(
         ]
         gallery.append({"label": str(label), "serials": selected_serials})
 
-    cards = []
-    for entry in gallery:
-        selected_serials = set(entry["serials"])
-        mask = [serial in selected_serials for serial in serials]
-        viewer = view(
-            atom_array,
-            width=width,
-            height=height,
-            highlighted=mask,
-            highlight_color=highlight_color,
-            zoom_to={"serial": entry["serials"]} if entry["serials"] else None,
-        )
-        cards.append(f"""
-<section class="tmol-selection-card">
-  <strong>{escape(entry['label'])}</strong>
-  {_viewer_html(viewer)}
-</section>""")
+    root_id = f"tmol-selection-{uuid4().hex}"
+    controls_id = f"{root_id}-controls"
+    viewer_id = f"{root_id}-viewer"
     html = f"""
-<div class="tmol-selection-gallery">{''.join(cards)}</div>
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js"></script>
+<style>
+  #{root_id} {{
+    border: 1px solid var(--pst-color-border, #ccc);
+    border-radius: 8px;
+    max-width: {width}px;
+    overflow: hidden;
+  }}
+  #{controls_id} {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.7rem;
+    background: var(--pst-color-surface, #f4f4f4);
+  }}
+  #{controls_id} button {{
+    border: 1px solid var(--pst-color-border, #bbb);
+    border-radius: 999px;
+    background: var(--pst-color-on-surface, #fff);
+    color: inherit;
+    cursor: pointer;
+    font-size: 0.85em;
+    padding: 0.25rem 0.8rem;
+  }}
+  #{controls_id} button.active {{
+    color: #fff;
+  }}
+  #{viewer_id} {{ position: relative; width: 100%; height: {height}px; }}
+  #{root_id} .tmol-selection-hint {{
+    font-size: 0.78em;
+    opacity: 0.65;
+    padding: 0.35rem 0.9rem;
+  }}
+</style>
+<div id="{root_id}">
+  <div id="{controls_id}"></div>
+  <div id="{viewer_id}"></div>
+  <div class="tmol-selection-hint">
+    pick a selection · drag to rotate · scroll to zoom · click a highlighted atom to label it
+  </div>
+</div>
+<script>
+(() => {{
+  const root = document.getElementById({json.dumps(root_id)});
+  const controls = document.getElementById({json.dumps(controls_id)});
+  const viewerElement = document.getElementById({json.dumps(viewer_id)});
+  const pdb = {_safe_json(pdb_text)};
+  const presets = {_safe_json(gallery)};
+  const highlightColor = {_safe_json(highlight_color)};
+
+  function initialize() {{
+    if (!window.$3Dmol) {{
+      window.setTimeout(initialize, 50);
+      return;
+    }}
+    const viewer = window.$3Dmol.createViewer(
+      viewerElement, {{backgroundColor: "white"}}
+    );
+    viewer.addModel(pdb, "pdb");
+    const buttons = presets.map((preset, index) => {{
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = preset.label;
+      button.addEventListener("click", () => apply(index));
+      controls.appendChild(button);
+      return button;
+    }});
+
+    function apply(index) {{
+      const preset = presets[index];
+      const selection = preset.serials.length
+        ? {{serial: preset.serials}}
+        : {{}};
+      viewer.removeAllLabels();
+      viewer.setStyle(
+        {{}}, {{cartoon: {{color: "lightgrey", opacity: 0.55}}}}
+      );
+      if (preset.serials.length) {{
+        viewer.addStyle(selection, {{
+          stick: {{color: highlightColor, radius: 0.18}},
+          sphere: {{color: highlightColor, radius: 0.35}},
+          cartoon: {{color: highlightColor}}
+        }});
+        viewer.setClickable(selection, true, (atom) => {{
+          viewer.addLabel(
+            atom.chain + ":" + atom.resn + atom.resi + ":" + atom.atom,
+            {{
+              position: atom,
+              backgroundColor: "0x1b1b1b",
+              backgroundOpacity: 0.85,
+              fontColor: "white",
+              fontSize: 11
+            }}
+          );
+          viewer.render();
+        }});
+      }}
+      buttons.forEach((button, buttonIndex) => {{
+        const active = buttonIndex === index;
+        button.className = active ? "active" : "";
+        button.style.backgroundColor = active ? highlightColor : "";
+        button.style.borderColor = active ? highlightColor : "";
+      }});
+      viewer.zoomTo(selection, 400);
+      viewer.render();
+    }}
+
+    apply(0);
+  }}
+  initialize();
+}})();
+</script>
 """
     return _display_html(html)
