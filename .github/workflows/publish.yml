@@ -141,17 +141,17 @@ jobs:
             runs-on: ubuntu-22.04
             label: "py3.12 pt2.10 x86_64 manylinux cu128"
 
-          # ── x86_64 py3.12 Colab wheel (T4/sm_75, torch 2.8 cu128) ──
-          # The ONLY wheel that carries sm_75. Matches Colab runtime 2025.10
-          # (Python 3.12, torch 2.8, T4); archs cover T4(75)/A100(80)/L4(89).
+          # ── x86_64 py3.12 Colab wheel (T4/sm_75, torch 2.11 cu128) ──
+          # Matches the current Colab runtime (Python 3.12, torch 2.11, T4);
+          # explicit archs cover T4(75)/A100(80)/L4(89).
           - python-version: "3.12"
             container-image: nvcr.io/nvidia/pytorch:25.02-py3
-            torch-version: "2.8"
-            torch-package-version: "2.8.0"
+            torch-version: "2.11"
+            torch-package-version: "2.11.0"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu128"
             cuda-archs: "75;80;89"
             runs-on: ubuntu-22.04
-            label: "py3.12 pt2.8 x86_64 Colab cu128"
+            label: "py3.12 pt2.11 x86_64 Colab cu128"
 
           # ── ARM64 py3.11 ──
           - python-version: "3.11"
@@ -403,7 +403,7 @@ jobs:
             --platform manylinux_2_28_aarch64 \
             --require cu132torch2.12:cp311:x86_64 \
             --require cu129torch2.8:cp312:x86_64 \
-            --require cu128torch2.8:cp312:x86_64 \
+            --require cu128torch2.11:cp312:x86_64 \
             --require cu130torch2.9:cp312:x86_64 \
             --require cu130torch2.10:cp312:x86_64 \
             --require cu128torch2.10:cp312:x86_64 \
