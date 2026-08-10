@@ -6,7 +6,7 @@ from tmol.kinematics.fold_forest import FoldForest
 from tmol.kinematics.move_map import MoveMap, MinimizerMap
 from tmol.score.score_function import ScoreFunction
 
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
+from tmol.optimization.lbfgs_armijo import LBFGS_Armijo, LBFGS_Armijo_HaltConverged
 
 
 def build_kinforest_network(
@@ -55,6 +55,7 @@ def run_min(
     sfxn_module,
     optimizer_cls=LBFGS_Armijo,
     optimizer_kwargs=None,
+    halt_converged_poses=False,
     verbose=False,
 ):
     """Run minimization on any sfxn module (Cartesian or KinForest).
@@ -70,6 +71,11 @@ def run_min(
             closure-based step() call (e.g. LBFGS_Armijo, torch LBFGS).
         optimizer_kwargs: Dict of keyword arguments passed to the optimizer
             constructor.
+        halt_converged_poses: If True, switch to LBFGS_Armijo_HaltConverged,
+            which freezes individual poses at their energy minimum once they
+            stop improving, while other poses continue minimizing.  The
+            sfxn_module must expose a dof_pose_assignment() method (both
+            CartesianSfxnNetwork and KinForestSfxnNetwork do).
         verbose: Print timing information.
 
     Returns:
@@ -77,6 +83,20 @@ def run_min(
     """
     if optimizer_kwargs is None:
         optimizer_kwargs = {}
+
+    if halt_converged_poses:
+        optimizer_cls = LBFGS_Armijo_HaltConverged
+        optimizer_kwargs = dict(optimizer_kwargs)
+        optimizer_kwargs.setdefault("n_poses", sfxn_module.pose_stack.n_poses)
+        optimizer_kwargs.setdefault(
+            "dof_pose_assignment", sfxn_module.dof_pose_assignment()
+        )
+
+        def _per_pose_eval():
+            with torch.no_grad():
+                return sfxn_module()
+
+        optimizer_kwargs.setdefault("per_pose_eval_fn", _per_pose_eval)
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -119,6 +139,7 @@ def run_kin_min(
     mm: MoveMap,
     optimizer_cls=LBFGS_Armijo,
     optimizer_kwargs=None,
+    halt_converged_poses=False,
     verbose=False,
     kin_dtype=torch.float32,
 ):
@@ -133,6 +154,7 @@ def run_kin_min(
         kf_network,
         optimizer_cls=optimizer_cls,
         optimizer_kwargs=optimizer_kwargs,
+        halt_converged_poses=halt_converged_poses,
         verbose=verbose,
     )
 
@@ -143,6 +165,7 @@ def run_cart_min(
     coord_mask=None,
     optimizer_cls=LBFGS_Armijo,
     optimizer_kwargs=None,
+    halt_converged_poses=False,
     verbose=False,
 ):
     """Run minimization on a PoseStack in Cartesian coordinate space.
@@ -157,5 +180,6 @@ def run_cart_min(
         cart_network,
         optimizer_cls=optimizer_cls,
         optimizer_kwargs=optimizer_kwargs,
+        halt_converged_poses=halt_converged_poses,
         verbose=verbose,
     )

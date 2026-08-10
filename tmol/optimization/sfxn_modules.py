@@ -41,6 +41,20 @@ class CartesianSfxnNetwork(torch.nn.Module):
         self.masked_coords = torch.nn.Parameter(self.full_coords[self.coord_mask])
         self.count = 0
 
+    def dof_pose_assignment(self):
+        """Return a 1-D int64 tensor of length n_flat_dofs giving the pose
+        index for each DOF in the flat parameter vector (masked_coords.view(-1)).
+
+        Atoms in masked_coords are ordered by (pose, atom) because coord_mask
+        is reshaped row-major, so all atoms of pose 0 precede pose 1, etc.
+        """
+        n_poses = self.full_coords.shape[0]
+        device = self.full_coords.device
+        atoms_per_pose = self.coord_mask.sum(dim=1)  # [n_poses]
+        pose_indices = torch.arange(n_poses, device=device, dtype=torch.int64)
+        atom_pose = torch.repeat_interleave(pose_indices, atoms_per_pose)
+        return atom_pose.repeat_interleave(3)  # x,y,z for each atom
+
     def forward(self):
         self.count += 1
         self.full_coords = self.full_coords.detach()
@@ -121,6 +135,23 @@ class KinForestSfxnNetwork(torch.nn.Module):
 
         self.masked_dofs = torch.nn.Parameter(self.full_dofs[self.dof_mask])
         self.count = 0
+
+    def dof_pose_assignment(self):
+        """Return a 1-D int64 tensor of length n_flat_dofs giving the pose
+        index for each DOF in the flat parameter vector (masked_dofs.view(-1)).
+
+        kmd.forest.id maps kinematic-atom index -> flat pose-stack atom index
+        (into coords.view(-1, 3)).  Index 0 is a virtual root; id[1:] are
+        the real atoms.  Pose index = flat_atom_idx // max_n_pose_atoms.
+        """
+        max_n_pose_atoms = self.pose_stack.max_n_pose_atoms
+        kin_atom_to_pose = torch.zeros(
+            self.id.shape[0], dtype=torch.int64, device=self.id.device
+        )
+        kin_atom_to_pose[1:] = self.id[1:].to(torch.int64) // max_n_pose_atoms
+        # For each masked DOF, retrieve the pose of its kinematic atom
+        masked_kin_atoms = self.dof_mask.nonzero(as_tuple=False)[:, 0]
+        return kin_atom_to_pose[masked_kin_atoms]
 
     def forward(self):
         self.count += 1

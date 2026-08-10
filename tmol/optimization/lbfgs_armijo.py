@@ -568,3 +568,285 @@ class LBFGS_Armijo(Optimizer):
         ctx.state["x_ref"] = ctx.x_ref
 
         return ctx.orig_loss
+
+
+class LBFGS_Armijo_HaltConverged(LBFGS_Armijo):
+    """L-BFGS / Armijo that freezes individual poses once they stop improving.
+
+    When minimizing a batch of N independent poses simultaneously, the joint
+    line search can keep dragging a well-converged pose away from its minimum
+    because other poses are still descending.  This class tracks per-pose
+    energies each iteration and, for any pose that has not improved by at
+    least ``pose_energy_atol`` for ``n_iter_no_improve`` consecutive
+    iterations, permanently freezes that pose at its best-seen position:
+
+    * its DOF values are pinned to ``best_pose_x[i]`` at the start of every
+      subsequent iteration,
+    * its gradient components are zeroed before the search-direction update
+      (so it cannot drive the L-BFGS Hessian approximation), and
+    * its search-direction components are zeroed so the line search does not
+      move it.
+
+    The L-BFGS curvature history is reset whenever new poses are frozen to
+    avoid stale (s, y) pairs that coupled the frozen and active sub-spaces.
+
+    Parameters beyond ``LBFGS_Armijo``
+    ------------------------------------
+    n_poses : int
+        Number of poses being minimized simultaneously.
+    dof_pose_assignment : Tensor, int64, shape [n_flat_dofs]
+        Maps each element of the flat parameter vector to its pose index
+        (0 .. n_poses-1).  Obtain from ``sfxn_module.dof_pose_assignment()``.
+    per_pose_eval_fn : callable -> Tensor[n_poses]
+        Zero-argument function that returns current per-pose energies.
+        Called once per accepted step under ``torch.no_grad()``.
+    pose_energy_atol : float, default 0.001
+        Minimum energy drop (REU) for a pose to be considered still improving.
+    n_iter_no_improve : int, default 5
+        Consecutive iterations without improvement before a pose is frozen.
+    """
+
+    def __init__(
+        self,
+        params,
+        n_poses,
+        dof_pose_assignment,
+        per_pose_eval_fn,
+        pose_energy_atol=0.001,
+        n_iter_no_improve=5,
+        **kwargs,
+    ):
+        super().__init__(params, **kwargs)
+        self.n_poses = n_poses
+        self.dof_pose_assignment = dof_pose_assignment
+        self.per_pose_eval_fn = per_pose_eval_fn
+        self.pose_energy_atol = pose_energy_atol
+        self.n_iter_no_improve = n_iter_no_improve
+        # Boolean mask per pose into the flat parameter vector; computed once.
+        self._pose_dof_masks = [dof_pose_assignment == i for i in range(n_poses)]
+
+    # ------------------------------------------------------------------
+    # small helpers
+    # ------------------------------------------------------------------
+
+    def _zero_converged(self, tensor, pose_converged):
+        """Zero tensor elements that belong to any converged pose."""
+        for i, converged in enumerate(pose_converged):
+            if converged:
+                tensor[self._pose_dof_masks[i]] = 0.0
+
+    def _restore_converged(self, x, pose_converged, best_pose_x):
+        """Write best-seen DOFs back for every frozen pose."""
+        for i, converged in enumerate(pose_converged):
+            if converged:
+                x[self._pose_dof_masks[i]] = best_pose_x[i]
+
+    def _init_pose_tracking(self, state, x, n_poses, pose_dof_masks):
+        """Populate per-pose tracking entries in state on the first call."""
+        if "best_pose_energy" not in state:
+            with torch.no_grad():
+                per_pose_init = self.per_pose_eval_fn()
+            state["best_pose_energy"] = per_pose_init.tolist()
+            state["best_pose_x"] = [x[m].clone() for m in pose_dof_masks]
+            state["n_no_improve"] = [0] * n_poses
+            state["pose_converged"] = [False] * n_poses
+
+    def _prepare_iteration(self, ctx, x, pose_converged, best_pose_x):
+        """Pin frozen poses, zero their gradient, compute search direction,
+        save prev_grad/prev_loss, and initialise step size on iteration 1."""
+        # Pin frozen poses before x_backup is captured.
+        self._restore_converged(x, pose_converged, best_pose_x)
+        # Zero gradient for frozen poses so they don't drive the L-BFGS update.
+        self._zero_converged(ctx.flat_grad, pose_converged)
+        self._compute_search_direction(ctx)
+        # The two-loop result may carry residual components from stale history.
+        self._zero_converged(ctx.d, pose_converged)
+        if ctx.prev_flat_grad is None:
+            ctx.prev_flat_grad = ctx.flat_grad.clone()
+        else:
+            ctx.prev_flat_grad.copy_(ctx.flat_grad)
+        ctx.prev_loss = ctx.loss
+        if ctx.state["n_iter"] == 1:
+            ctx.t = ctx.lr
+
+    def _fix_direction_gtd(self, ctx, pose_converged):
+        """Apply the two directional-derivative rescues and return gtd.
+
+        Rescue #1: flip sign of components where d and grad point the same way.
+        Rescue #2: fall back to steepest descent if gtd is still non-negative.
+        After each modification the frozen-pose components of d are re-zeroed.
+        """
+        d = ctx.d
+        gtd_val = ctx.flat_grad.dot(d).item()
+        if gtd_val > -1e-5:
+            d.mul_(-torch.sign(ctx.flat_grad * d))
+            self._zero_converged(d, pose_converged)
+            gtd_val = ctx.flat_grad.dot(d).item()
+        if gtd_val > -1e-5:
+            d.copy_(ctx.flat_grad).neg_()
+            self._zero_converged(d, pose_converged)
+            gtd_val = ctx.flat_grad.dot(d).item()
+        return gtd_val
+
+    def _post_step_update(self, ctx, x, x_backup, pose_converged, best_pose_x, closure):
+        """Accept the line-search step, re-pin frozen poses, refresh gradient."""
+        # Frozen-pose components of d are 0, so they land on x_backup values.
+        x.copy_(x_backup).add_(ctx.d, alpha=ctx.t)
+        # Defensive pin in case of floating-point residual.
+        self._restore_converged(x, pose_converged, best_pose_x)
+        if ctx.status == "step_back":
+            closure()
+        ctx.flat_grad = ctx.param.grad.data.view(-1)
+        self._zero_converged(ctx.flat_grad, pose_converged)
+
+    def _update_per_pose_convergence(self, state, x, n_poses, pose_dof_masks, n_iter):
+        """Evaluate per-pose energies and update freeze state.
+
+        Returns True if any pose was newly frozen this iteration.
+        """
+        best_pose_energy = state["best_pose_energy"]
+        best_pose_x = state["best_pose_x"]
+        n_no_improve = state["n_no_improve"]
+        pose_converged = state["pose_converged"]
+
+        with torch.no_grad():
+            current_per_pose = self.per_pose_eval_fn()
+
+        newly_converged = False
+        for i in range(n_poses):
+            if pose_converged[i]:
+                continue
+            e = current_per_pose[i].item()
+            if e < best_pose_energy[i] - self.pose_energy_atol:
+                best_pose_energy[i] = e
+                best_pose_x[i].copy_(x[pose_dof_masks[i]])
+                n_no_improve[i] = 0
+            else:
+                n_no_improve[i] += 1
+            if n_no_improve[i] >= self.n_iter_no_improve:
+                pose_converged[i] = True
+                newly_converged = True
+                if self.verbose:
+                    print(
+                        f"  pose {i} halted at E={best_pose_energy[i]:.4f}"
+                        f" (iter {n_iter})"
+                    )
+        return newly_converged
+
+    def _check_global_convergence(self, ctx):
+        """Check gradient/absolute/relative convergence criteria.
+
+        Returns ``(converged, reason_string)``.
+        """
+        max_grad = ctx.flat_grad.abs().max().item()
+        if max_grad <= ctx.gradtol:
+            return True, f"max_grad {max_grad:.4e} <= {ctx.gradtol}"
+        delta = abs(ctx.loss - ctx.prev_loss)
+        if delta <= ctx.atol:
+            return True, f"|dE| {delta:.4e} <= atol {ctx.atol}"
+        rdiff = 2 * delta / (abs(ctx.loss) + abs(ctx.prev_loss) + 1e-10)
+        if rdiff <= ctx.rtol:
+            return True, f"rel_dE {rdiff:.4e} <= rtol {ctx.rtol}"
+        return False, ""
+
+    # ------------------------------------------------------------------
+    # step
+    # ------------------------------------------------------------------
+
+    def step(self, closure):
+        """Full L-BFGS minimization with per-pose halt-on-convergence.
+
+        Follows the same structure as ``LBFGS_Armijo.step`` with additional
+        per-pose bookkeeping before and after each line search.
+        """
+        ctx = self._step_setup(closure)
+        state = ctx.state
+        x, x_backup, d = ctx.x, ctx.x_backup, ctx.d
+        n_poses = self.n_poses
+        pose_dof_masks = self._pose_dof_masks
+
+        self._init_pose_tracking(state, x, n_poses, pose_dof_masks)
+        pose_converged = state["pose_converged"]
+        best_pose_x = state["best_pose_x"]
+
+        # linefn must capture x / x_backup / d so that the parent's
+        # _rescue_failed_linesearch works correctly when called from here.
+        def linefn(alpha_test):
+            self.ls_func_evals += 1
+            x.copy_(x_backup).add_(d, alpha=alpha_test)
+            return closure().item()
+
+        current_evals = 1
+        n_iter = 0
+        while n_iter < ctx.max_iter:
+            if all(pose_converged):
+                if self.verbose:
+                    print(f"  all {n_poses} poses halted, stopping")
+                break
+
+            n_iter += 1
+            ctx.state["n_iter"] += 1
+
+            self._prepare_iteration(ctx, x, pose_converged, best_pose_x)
+            gtd_val = self._fix_direction_gtd(ctx, pose_converged)
+
+            self.ls_func_evals = 0
+            x_backup.copy_(x)
+            start_t = min(ctx.t / 0.5, 1.0)
+            ctx.t, ctx.loss, ctx.ls_evals, ctx.status = armijo_linesearch(
+                linefn,
+                gtd_val,
+                ctx.prev_loss,
+                alpha0=start_t,
+                factor=0.5,
+                sigma_decrease=0.1,
+                sigma_increase=0.8,
+                minstep=self._minstep,
+            )
+
+            if ctx.t == 0.0:
+                # _rescue_failed_linesearch rebuilds d as -grad and retries.
+                # flat_grad is already zeroed for frozen poses, so the
+                # steepest-descent direction is also zero for them.
+                if self._rescue_failed_linesearch(ctx, linefn, n_iter):
+                    break
+
+            self._post_step_update(
+                ctx, x, x_backup, pose_converged, best_pose_x, closure
+            )
+            current_evals += self.ls_func_evals
+            ctx.state["func_evals"] += self.ls_func_evals
+
+            newly_converged = self._update_per_pose_convergence(
+                state, x, n_poses, pose_dof_masks, n_iter
+            )
+            # Reset curvature history when poses are newly frozen; stale (s, y)
+            # pairs that coupled the frozen and active sub-spaces would produce
+            # a misleading inverse-Hessian approximation.
+            if newly_converged:
+                ctx.history_count = 0
+                ctx.history_start = 0
+                ctx.x_ref = x.clone()
+
+            converged, reason = self._check_global_convergence(ctx)
+            if converged:
+                if self.verbose:
+                    print(f"  converged: {reason}")
+                break
+
+        if self.verbose:
+            n_halted = sum(pose_converged)
+            print(
+                f"  LBFGS_Armijo_HaltConverged done: {n_iter} iters,"
+                f" {current_evals} func evals, E={ctx.loss:.4f},"
+                f" {n_halted}/{n_poses} poses halted"
+            )
+
+        ctx.state["t"] = ctx.t
+        ctx.state["history_start"] = ctx.history_start
+        ctx.state["history_count"] = ctx.history_count
+        ctx.state["prev_flat_grad"] = ctx.prev_flat_grad
+        ctx.state["prev_loss"] = ctx.prev_loss
+        ctx.state["x_ref"] = ctx.x_ref
+
+        return ctx.orig_loss
