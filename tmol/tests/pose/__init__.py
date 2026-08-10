@@ -61,6 +61,21 @@ def stack_of_two_six_res_ubqs_no_term(ubq_pdb, torch_device):
 
 
 @pytest.fixture
+def distinct_pose_stacks(systems_bysize, torch_device):
+    """Single-pose PoseStacks for three unrelated proteins (40, 75, 150 res)."""
+    return [
+        pose_stack_from_pdb(systems_bysize[nres], torch_device)
+        for nres in (40, 75, 150)
+    ]
+
+
+@pytest.fixture
+def stack_of_distinct_poses(distinct_pose_stacks, torch_device):
+    """Jagged PoseStack of the three unrelated proteins in distinct_pose_stacks."""
+    return PoseStackBuilder.from_poses(distinct_pose_stacks, torch_device)
+
+
+@pytest.fixture
 def jagged_stack_of_465_res_ubqs(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
