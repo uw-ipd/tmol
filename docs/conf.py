@@ -141,6 +141,9 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable", None),
     "torch": ("https://pytorch.org/docs/stable", None),
 }
+# Documentation builds must not consume an entire GPU allocation when an
+# external inventory host is slow or unavailable.
+intersphinx_timeout = 10
 
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
