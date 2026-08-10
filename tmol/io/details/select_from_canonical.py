@@ -94,6 +94,15 @@ def assign_block_types(
         ),
     )
 
+    # If a block cannot be resolved make sure it is completely
+    # removed from the connection table!
+    resolved = block_type_ind64 >= 0
+    pad = torch.zeros((n_poses, 1), dtype=torch.bool, device=device)
+    prev_resolved = torch.cat((pad, resolved[:, :-1]), dim=1)
+    next_resolved = torch.cat((resolved[:, 1:], pad), dim=1)
+    res_is_polymeric_and_conn_to_prev &= resolved & prev_resolved
+    res_is_polymeric_and_conn_to_next &= resolved & next_resolved
+
     connected_up_conn_inds = pbt.up_conn_inds[
         block_type_ind64[res_is_polymeric_and_conn_to_next]
     ].to(torch.int64)
@@ -173,6 +182,10 @@ def assign_block_types(
         ] = cyd1_dslf_conn64
 
     # now that we have the inter-residue connections established,
+    _assert_connections_are_well_formed(
+        pbt, block_type_ind64, inter_residue_connections64
+    )
+
     # proceed with the rest of the PoseStackBuilder's steps
     # in constructing the inter_block_bondsep tensor using the
     # all-pairs-shortest-path algorithm
@@ -199,6 +212,37 @@ def assign_block_types(
     )
 
     return (block_type_ind64, inter_residue_connections64, ibb64)
+
+
+def _assert_connections_are_well_formed(
+    pbt, block_type_ind64, inter_residue_connections64
+):
+    """Raise if any inter-residue connection is malformed."""
+    partner = inter_residue_connections64[..., 0]
+    partner_conn = inter_residue_connections64[..., 1]
+    has_partner = partner >= 0
+
+    bad = []
+    for pose, block, conn in torch.nonzero(has_partner, as_tuple=False).tolist():
+        p = int(partner[pose, block, conn])
+        pc = int(partner_conn[pose, block, conn])
+        if int(block_type_ind64[pose, block]) < 0:
+            bad.append(f"block {block} has no resolved type but connects to {p}")
+        elif int(block_type_ind64[pose, p]) < 0:
+            bad.append(f"block {block} connects to {p}, which has no resolved type")
+        elif pc < 0:
+            bad.append(f"block {block} conn {conn} names block {p} connection {pc}")
+        elif int(inter_residue_connections64[pose, p, pc, 0]) != block:
+            bad.append(
+                f"block {block} conn {conn} points at block {p} conn {pc}, "
+                f"which points back at {int(inter_residue_connections64[pose, p, pc, 0])}"
+            )
+        if bad and len(bad) >= 20:
+            break
+    if bad:
+        raise RuntimeError(
+            "malformed inter-residue connections:\n  " + "\n  ".join(bad)
+        )
 
 
 @validate_args
@@ -526,7 +570,7 @@ def select_best_block_type_candidate(
             max_n_res,
             max_n_candidates,
         ),
-        warning_threshold,
+        1 << 30,  # big number
         dtype=torch.int64,
         device=device,
     )

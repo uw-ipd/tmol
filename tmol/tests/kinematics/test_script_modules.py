@@ -33,7 +33,10 @@ def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
         dofsfull[:, :6] = dofs_x
         return kop(dofsfull)
 
-    torch.autograd.gradcheck(eval_kin, minimizable_dofs, atol=atol, rtol=rtol)
+    # fd allow a small nondeterminism tolerance
+    torch.autograd.gradcheck(
+        eval_kin, minimizable_dofs, atol=atol, rtol=rtol, nondet_tol=1e-6
+    )
 
 
 def kincoords_and_dofs_for_pose_stack_system(
@@ -219,6 +222,25 @@ def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
     pose_stack_gradcheck_test_system1, coord_weights, torch_device
 ):
     pose_stack, kinematics_module, kincoords, dofs = pose_stack_gradcheck_test_system1
+
+    torch.random.manual_seed(1663)
+    start_dofs = (
+        (dofs.raw + ((torch.rand_like(dofs.raw) - 0.5) * 0.01))
+        .clone()
+        .detach()
+        .requires_grad_(True)
+    )
+
+    def func(dofs):
+        return torch.sum(coord_weights * kinematics_module(dofs)[:, :])
+
+    kop_gradcheck_report(func, start_dofs)
+
+
+def test_pose_stack_kinematic_torch_op_gradcheck_perturbed2(
+    pose_stack_gradcheck_test_system2, coord_weights, torch_device
+):
+    pose_stack, kinematics_module, kincoords, dofs = pose_stack_gradcheck_test_system2
 
     torch.random.manual_seed(1663)
     start_dofs = (

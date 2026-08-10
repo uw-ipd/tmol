@@ -43,16 +43,16 @@ jobs:
             label: "smoke py3.12 pt2.8 cu129 x86_64"
           - python-version: "3.12"
             python-tag: "312"
-            torch-version: "2.8"
-            torch-package-version: "2.8.0"
+            torch-version: "2.11"
+            torch-package-version: "2.11.0"
             torch-index-url: "https://download.pytorch.org/whl/cu128"
-            local-tag: "cu128torch2.8"
+            local-tag: "cu128torch2.11"
             enable-cuda: true
             cuda-archs: "75;80;89"
             container-image: nvcr.io/nvidia/pytorch:25.02-py3
             runs-on: ubuntu-22.04
             arch: x86_64
-            label: "smoke py3.12 pt2.8 cu128 Colab x86_64"
+            label: "smoke py3.12 pt2.11 cu128 Colab x86_64"
           - python-version: "3.12"
             python-tag: "312"
             torch-version: "2.9"
@@ -399,7 +399,7 @@ jobs:
         include:
           - { python-version: "3.11", python-tag: "311", torch-package-version: "2.12.0", torch-minor: "2.12", torch-index-url: "https://download.pytorch.org/whl/cu132", local-tag: "cu132torch2.12", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
           - { python-version: "3.12", python-tag: "312", torch-package-version: "2.8.0", torch-minor: "2.8", torch-index-url: "https://download.pytorch.org/whl/cu129", local-tag: "cu129torch2.8", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64, gpu-runtime: true }
-          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.8.0", torch-minor: "2.8", torch-index-url: "https://download.pytorch.org/whl/cu128", local-tag: "cu128torch2.8", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
+          - { python-version: "3.12", python-tag: "312", torch-package-version: "2.11.0", torch-minor: "2.11", torch-index-url: "https://download.pytorch.org/whl/cu128", local-tag: "cu128torch2.11", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
           - { python-version: "3.12", python-tag: "312", torch-package-version: "2.9.1", torch-minor: "2.9", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.9", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
           - { python-version: "3.12", python-tag: "312", torch-package-version: "2.10.0", torch-minor: "2.10", torch-index-url: "https://download.pytorch.org/whl/cu130", local-tag: "cu130torch2.10", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }
           - { python-version: "3.12", python-tag: "312", torch-package-version: "2.10.0", torch-minor: "2.10", torch-index-url: "https://download.pytorch.org/whl/cu128", local-tag: "cu128torch2.10", enable-cuda: true, runs-on: ubuntu-22.04, arch: x86_64 }

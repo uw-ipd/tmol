@@ -16,6 +16,7 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.utility.biotite_util import get_all_residue_positions
+from tmol.utility.device import resolve_device
 
 from tmol import beta2016_score_function
 
@@ -37,6 +38,10 @@ class BiotitePoseBuildContext:
     packed_block_types: PackedBlockTypes
     parameter_database: ParameterDatabase
     restype_set: ResidueTypeSet
+    # Definitions derived from tmol_fragment_id annotations. These are carried
+    # by reusable contexts so each compatible structure can be expanded without
+    # repeating ligand preparation.
+    fragment_definitions: tuple = ()
 
 
 @validate_args
@@ -89,13 +94,14 @@ def build_context_from_biotite(
         BiotitePoseBuildContext containing canonical ordering, packed block
         types, parameter database, and residue type set.
     """
+    torch_device = resolve_device(torch_device)
     if prepare_ligands:
         from tmol.ligand import prepare_ligands as _prepare_ligands
 
         if param_db is None:
             param_db = ParameterDatabase.get_default()
 
-        param_db, co = _prepare_ligands(
+        param_db, co, fragment_definitions = _prepare_ligands(
             biotite_structure,
             param_db=param_db,
             ph=ligand_ph,
@@ -103,6 +109,7 @@ def build_context_from_biotite(
             params_files=ligand_params_files,
             sample_proton_chi=sample_proton_chi,
             strict_ligands=strict_ligands,
+            return_fragment_definitions=True,
         )
         rts = ResidueTypeSet.from_database(param_db.chemical)
         pbt = PackedBlockTypes.from_restype_list(
@@ -113,6 +120,7 @@ def build_context_from_biotite(
             packed_block_types=pbt,
             parameter_database=param_db,
             restype_set=rts,
+            fragment_definitions=fragment_definitions,
         )
 
     if param_db is None:
@@ -198,9 +206,14 @@ def pose_stack_from_biotite(
         PoseStack when no optional values requested and return_context is False.
         ``(PoseStack, BiotitePoseBuildContext)`` when return_context is True.
         ``(PoseStack, dict)`` when optional return values were requested via kwargs.
+        Fragmented poses expose their block mapping as
+        ``pose_stack.fragmented_ligand_mapping``.
     """
+    torch_device = resolve_device(torch_device)
+
     from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
     from tmol.pack.build_missing_sidechains import build_missing_sidechains
+    from tmol.pack.rotamer.na_chi_sampler import NaChiRotamerSampler
     from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
         create_dunbrack_sampler_from_database,
     )
@@ -235,6 +248,14 @@ def pose_stack_from_biotite(
             sample_proton_chi=sample_proton_chi,
         )
 
+    fragment_mapping = None
+    if context.fragment_definitions:
+        from tmol.ligand.fragmentation import expand_fragmented_ligands
+
+        biotite_structure, fragment_mapping = expand_fragmented_ligands(
+            biotite_structure, context.fragment_definitions
+        )
+
     # The canonical form is per-structure, so it is always computed here for the
     # given structure (never carried in the reusable context).
     cf = canonical_form_from_biotite(
@@ -253,6 +274,11 @@ def pose_stack_from_biotite(
     )
 
     pose_stack, opt_return_vals = result
+    if fragment_mapping is not None:
+        from tmol.ligand.fragmentation import apply_fragment_connections
+
+        pose_stack = apply_fragment_connections(pose_stack, fragment_mapping)
+        fragment_mapping = pose_stack.fragmented_ligand_mapping
     block_has_missing_atoms = opt_return_vals["block_has_missing_atoms"]
 
     if block_has_missing_atoms is not None and torch.any(block_has_missing_atoms):
@@ -265,6 +291,7 @@ def pose_stack_from_biotite(
         db = context.parameter_database
         sfxn = beta2016_score_function(torch_device, param_db=db)
         dunbrack_sampler = create_dunbrack_sampler_from_database(db, torch_device)
+        na_sampler = NaChiRotamerSampler.from_database(db, torch_device)
 
         if torch.any(block_has_missing_atoms):
             logger.info(
@@ -277,8 +304,11 @@ def pose_stack_from_biotite(
             dunbrack_sampler,
             block_has_missing_atoms,
             no_optH=no_optH,
+            na_sampler=na_sampler,
         )
 
+    if fragment_mapping is not None:
+        pose_stack.fragmented_ligand_mapping = fragment_mapping
     _assert_no_nan_coords(pose_stack)
 
     # This code tries to faithfully return what the caller expects based on the optional
@@ -408,6 +438,7 @@ def _assert_no_nan_coords(pose_stack: PoseStack) -> None:
 def biotite_from_pose_stack(
     pose_stack: PoseStack,
     co: CanonicalOrdering | None = None,
+    merge_fragments: bool = True,
 ) -> biotite.structure.AtomArray | biotite.structure.AtomArrayStack:
     """Convert PoseStack back to Biotite structure.
 
@@ -415,6 +446,8 @@ def biotite_from_pose_stack(
         pose_stack: Pose stack to convert.
         co: Canonical ordering used for conversion. Provide the ordering that
             was used when ligands or custom residue types are present.
+        merge_fragments: Restore fragmented ligands to their original residue
+            identity. Set to False to keep fragment residues separate.
 
     Returns:
         Biotite AtomArray for single-pose or AtomArrayStack for multi-pose.
@@ -422,7 +455,13 @@ def biotite_from_pose_stack(
     if co is None:
         co = canonical_ordering_for_biotite()
     cf = canonical_form_from_pose_stack(co, pose_stack)
-    return biotite_from_canonical_form(cf, co=co)
+    structure = biotite_from_canonical_form(cf, co=co)
+    mapping = getattr(pose_stack, "fragmented_ligand_mapping", None)
+    if merge_fragments and mapping is not None:
+        from tmol.ligand.fragmentation import recombine_fragmented_ligands
+
+        structure = recombine_fragmented_ligands(structure, mapping)
+    return structure
 
 
 def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names):
@@ -480,8 +519,9 @@ def _filter_supported_atoms_and_connectivity(
     ]
 
     # Filter residues missing mainchain atoms required for rotamer building.
-    # The required atoms are taken from the residue type's polymer.mainchain_atoms
-    # definition; residues with no mainchain definition (non-polymer) are skipped.
+    # Only atoms present in every variant count as required, so an atom a terminus
+    # patch removes (the DNA 5' phosphate) does not disqualify the residue.
+    # Residues with no mainchain definition (non-polymer) are skipped.
     atom_names = biotite_structure.atom_name
     if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
         coords = biotite_structure.coord  # (n_poses, n_atoms, 3)
@@ -495,7 +535,7 @@ def _filter_supported_atoms_and_connectivity(
             continue
         start, end = biotite_residue_starts[i], residue_ends[i]
         res_name3 = biotite_structure.res_name[start]
-        required = co.restypes_mainchain_atoms.get(res_name3)
+        required = co.restypes_required_mainchain_atoms.get(res_name3)
         if not required:
             continue
         res_atom_names = atom_names[start:end]
@@ -516,12 +556,14 @@ def _filter_supported_atoms_and_connectivity(
 
     valid_atoms = valid_res[get_all_residue_positions(biotite_structure)]
 
-    lower = numpy.roll(valid_res, 1)
-    lower[0] = True
-    lower = lower[valid_res]
-    upper = numpy.roll(valid_res, -1)
-    upper[-1] = True
-    upper = upper[valid_res]
+    # A kept residue whose neighbor was dropped has an unknown connection on
+    # that side; the ends of the kept set are termini, so they are marked after
+    # filtering
+    lower = numpy.roll(valid_res, 1)[valid_res]
+    upper = numpy.roll(valid_res, -1)[valid_res]
+    if lower.size:
+        lower[0] = True
+        upper[-1] = True
     not_connected = numpy.invert(numpy.column_stack((lower, upper)))
 
     if isinstance(biotite_structure, biotite.structure.AtomArrayStack):

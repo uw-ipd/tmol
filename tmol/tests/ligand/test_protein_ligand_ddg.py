@@ -18,15 +18,13 @@ termini atoms (OXT, H1–H3) that standard tmol residue types do not model.
 
 from __future__ import annotations
 
-from pathlib import Path
+from tmol.tests.data import data_path
 
 import numpy
 import pytest
 import torch
 
-from tmol.ligand.registry import clear_cache
-
-PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
+PLI_DATA_DIR = data_path("protein_ligand_test")
 LIGAND_RES_NAME = "LG1"
 
 # Weighted block-pair ddG (beta2016, minimize=False, pack=False, no_optH=True)
@@ -60,11 +58,6 @@ _GOLDEN_DDG: dict[str, float] = {
     "tk": -29.968708,
     "vegfr2": 48.421783,
 }
-
-
-@pytest.fixture(autouse=True)
-def _clear_ligand_cache() -> None:
-    clear_cache()
 
 
 def _load_complex_cif(target: str):

@@ -66,6 +66,20 @@ atom_type_parameters:
   - { name: Hwat, *ljr: 1.000000, *ljw: 0.050000, *lkd:   0.00000, *lkl: 3.500000, *lkv:  0.000000 }
   - { name: Vrt,  *ljr: 1.000000, *ljw: 0.000000, *lkd:   0.00000, *lkl: 3.500000, *lkv:  0.000000 }
 
+  # DNA atom types, from flags_opt46A.523. The DNA-specific splits of Ntrp/Nhis/
+  # NH2O/Npro carry that fit's refit lk_dgfree; the protein types keep beta_nov2016.
+  - { name: Pdna, *ljr: 2.150000, *ljw: 0.585000, *lkd:   1.69415, *lkl: 3.500000, *lkv: 14.700000 }
+  - { name: OOP , *ljr: 1.492871, *ljw: 0.099873, *lkd:   0.96374, *lkl: 3.500000, *lkv:  9.995600 }
+  - { name: Oet2, *ljr: 1.550000, *ljw: 0.159100, *lkd:  11.44825, *lkl: 3.500000, *lkv: 10.800000 }
+  - { name: Oet3, *ljr: 1.550000, *ljw: 0.159100, *lkd:   1.69112, *lkl: 3.500000, *lkv: 10.800000 }
+  - &Obacc
+    { name: Obacc   , *ljr: 1.540580, *ljw: 0.142417, *lkd:  -1.56420, *lkl: 3.500000, *lkv: 12.196000 }
+  - { <<: *Obacc, name: ObaccG } # differs from Obacc only in hbond acceptor type
+  - { name: Nglyc, *ljr: 1.802452, *ljw: 0.161725, *lkd:   5.95295, *lkl: 3.500000, *lkv:  3.718100 }
+  - { name: Nbacc, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -7.52440, *lkl: 3.500000, *lkv:  9.317700 }
+  - { name: Nbamn, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -9.57862, *lkl: 3.500000, *lkv: 15.689000 }
+  - { name: Nbdon, *ljr: 1.802452, *ljw: 0.161725, *lkd: -11.40290, *lkl: 3.500000, *lkv:  9.522100 }
+
   # Generic potential atom types for ligands (from Rosetta generic_potential)
   # Carbon
   - { name: CD  , *ljr: 2.012200, *ljw: 0.060400, *lkd:   2.11290, *lkl: 3.500000, *lkv: 10.686000 }

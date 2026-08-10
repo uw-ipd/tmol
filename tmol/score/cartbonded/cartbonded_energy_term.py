@@ -15,6 +15,10 @@ from tmol.score.common.hash_util import make_hashtable_keys_values, add_to_hasht
 
 debug = False
 
+# marks an atom in a cartbonded.yaml param as being on the far side of a
+# residue connection
+CROSS_RES_PREFIX = "+"
+
 
 @attrs.define(auto_attribs=True, slots=True, frozen=True)
 class CartBondedBlockAnnotations:
@@ -48,7 +52,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             roots = set()
             for res, params in db.residue_params.items():
                 for imp in params.improper_parameters:
-                    roots.add(imp.atm3)
+                    roots.add(imp.atm3.lstrip(CROSS_RES_PREFIX))
             return roots
 
         self.improper_roots = find_improper_roots(param_db.scoring.cartbonded)
@@ -154,33 +158,23 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         # Fetch the raw params from the DB
         all_params = self.get_raw_params_for_res(res)
 
+        # res "wildcard" matches by atom name in any residue type; a leading '+'
+        # marks an atom across a residue connection. The two axes are independent.
+        is_wildcard = res == "wildcard"
+
         for param in all_params:
             # Format the raw param
             atoms, params = self.get_formatted_atoms_and_params(param)
 
-            previous_atm = ""
-            is_wildcard = False
             for i, atom in enumerate(atoms):
-                # Check if these atoms should be wildcard ids. This includes atoms after any bonds that span the residue connection.
-                # TO DO: should this code handle generic inter-residue connections and not merely peptide bonds?
-                if (
-                    res == "wildcard"
-                    or not (hasattr(param, "type") and param.type == 3)
-                    and (
-                        previous_atm == "N"
-                        and atom == "C"
-                        or previous_atm == "C"
-                        and atom == "N"
+                if atom.startswith(CROSS_RES_PREFIX):
+                    atoms[i] = self.get_atom_cross_id_name(
+                        atom[len(CROSS_RES_PREFIX) :]
                     )
-                ):
-                    is_wildcard = True
-
-                previous_atm = atom
-                atoms[i] = (
-                    self.get_atom_wildcard_id_name(atom)
-                    if is_wildcard
-                    else self.get_atom_unique_id_name(res, atom)
-                )
+                elif is_wildcard:
+                    atoms[i] = self.get_atom_wildcard_id_name(atom)
+                else:
+                    atoms[i] = self.get_atom_unique_id_name(res, atom)
 
             key = tuple(atoms)
 
@@ -233,6 +227,15 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
+        if not hasattr(packed_block_types, "cartbonded_is_fragment"):
+            packed_block_types.cartbonded_is_fragment = torch.tensor(
+                [
+                    block_type.is_ligand_fragment
+                    for block_type in packed_block_types.active_block_types
+                ],
+                dtype=torch.int32,
+                device=self.device,
+            )
         if (
             hasattr(packed_block_types, "cartbonded_annotations")
             and self.hash in packed_block_types.cartbonded_annotations
@@ -373,6 +376,8 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             pbt.atom_paths_from_conn,
             pbt.atom_unique_ids,
             pbt.atom_wildcard_ids,
+            pbt.cartbonded_is_fragment,
+            pbt.atom_cross_ids,
             pbt_cb_ann.cartbonded_params_hash_keys,
             pbt_cb_ann.cartbonded_params_hash_values,
             pbt_cb_ann.cartbonded_subgraphs,

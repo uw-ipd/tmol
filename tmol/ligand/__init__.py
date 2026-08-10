@@ -11,6 +11,12 @@ from tmol.ligand.detect import (
 )
 from tmol.ligand.params_file import inject_params_file
 from tmol.ligand.params_io import write_params_from_mol2
+from tmol.ligand.fragmentation import (
+    FRAGMENT_ID_ANNOTATION,
+    FragmentedLigandPoseMapping,
+    LigandFragmentBlockMapping,
+    recombine_fragmented_ligands,
+)
 from tmol.ligand.preparation import (
     LigandPreparationError,
     prepare_ligand_from_cif,
@@ -19,21 +25,21 @@ from tmol.ligand.preparation import (
     prepare_ligands,
     prepare_single_ligand,
 )
-from tmol.ligand.registry import LigandPreparation, clear_cache
+from tmol.ligand.registry import LigandPreparation
 from tmol.ligand.structure_to_smiles import (
-    ligand_smiles_candidates_from_atom_array,
     ligand_smiles_from_atom_array,
 )
 
 __all__ = [
     "LigandPreparation",
     "LigandPreparationError",
+    "FRAGMENT_ID_ANNOTATION",
+    "FragmentedLigandPoseMapping",
+    "LigandFragmentBlockMapping",
     "NonStandardResidueInfo",
     "RawResidueType",
-    "clear_cache",
     "detect_nonstandard_residues",
     "inject_params_file",
-    "ligand_smiles_candidates_from_atom_array",
     "ligand_smiles_from_atom_array",
     "nonstandard_residue_info_from_smiles_via_mol2",
     "prepare_ligand_from_cif",
@@ -41,5 +47,6 @@ __all__ = [
     "prepare_ligand_from_smiles",
     "prepare_ligands",
     "prepare_single_ligand",
+    "recombine_fragmented_ligands",
     "write_params_from_mol2",
 ]

@@ -49,6 +49,22 @@ def test_lbfgs_armijo():
     assert score_start > score_stop
 
 
+def test_large_negative_gradient_does_not_converge():
+    x = torch.zeros(1, dtype=torch.float64, requires_grad=True)
+    optimizer = LBFGS_Armijo([x], max_iter=2, rtol=1e-6, atol=1e-6, gradtol=1.0)
+
+    def closure():
+        optimizer.zero_grad()
+        loss = -10 * x.sum()
+        loss.backward()
+        return loss
+
+    optimizer.step(closure)
+
+    assert optimizer.state[x]["n_iter"] == 2
+    torch.testing.assert_close(x.grad, torch.tensor([-10.0], dtype=x.dtype))
+
+
 @pytest.mark.xfail(reason="sparse tensor _copy failure in torch 1.6")
 def test_lbfgs_armijo_sparse():
     indices = torch.LongTensor([[0, 0, 1], [0, 1, 1]])

@@ -4,6 +4,20 @@ from typing import Optional, Union
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 from tmol.pose.pose_stack import PoseStack
+from tmol.io.visualize import (
+    pose_stack_to_pdb_string,
+    selection_gallery,
+    switchable_view,
+    view,
+)
+
+__all__ = [
+    "pose_stack_from_pdb",
+    "pose_stack_to_pdb_string",
+    "selection_gallery",
+    "switchable_view",
+    "view",
+]
 
 
 @validate_args
@@ -29,7 +43,9 @@ def pose_stack_from_pdb(
         canonical_form_from_pdb,
     )
     from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
+    from tmol.utility.device import resolve_device
 
+    device = resolve_device(device)
     co = default_canonical_ordering()
     pbt = default_packed_block_types(device)
     cf = canonical_form_from_pdb(

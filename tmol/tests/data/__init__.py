@@ -2,10 +2,21 @@ import pytest
 import os
 import torch
 import biotite.structure.io
+from pathlib import Path
 
 from . import pdb
 
 _CIF_DATA_DIR = os.path.join(os.path.dirname(__file__), "cif")
+
+
+def data_path(*parts: str) -> Path:
+    """Absolute path to a file/dir under ``tmol/tests/data``.
+
+    Anchored to this package's own location, so it is robust to test modules
+    moving between directories (unlike ``Path(__file__).parent.parent / ...``
+    in a test file, which breaks if the file's depth changes).
+    """
+    return Path(__file__).parent.joinpath(*parts)
 
 
 def load_cif(pdb_code):
@@ -59,6 +70,46 @@ def pdb_6DMZ():
 @pytest.fixture()
 def water_box_pdb():
     return pdb.data["water_box"]
+
+
+@pytest.fixture()
+def dna_pdb():
+    # 1BNA, the Dickerson dodecamer: two DNA chains, no protein.
+    # Waters stripped and hydrogens added by Rosetta.
+    return pdb.data["1BNA"]
+
+
+@pytest.fixture()
+def rna_pdb():
+    # 3ZP8, the full-length hammerhead ribozyme: chain A residues 2-43, a
+    # single 42-nt RNA strand. The 5' GDP cap, the sodium ions, waters, and
+    # chain B (which carries a 2'-O-methyl C and a deoxy C) are stripped.
+    # Hydrogens added by Rosetta.
+    return pdb.data["3ZP8"]
+
+
+@pytest.fixture()
+def protein_dna_pdb():
+    # 1YSA, the GCN4 bZIP dimer bound to DNA: two DNA chains and two protein
+    # chains. Waters stripped and hydrogens added by Rosetta.
+    return pdb.data["1YSA"]
+
+
+def _load_pdb_structure(name):
+    fname = os.path.join(__file__.rpartition("/")[0], "pdb", name)
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
+
+
+@pytest.fixture()
+def biotite_dna():
+    return _load_pdb_structure("1bna.pdb")
+
+
+@pytest.fixture()
+def biotite_protein_dna():
+    return _load_pdb_structure("1ysa.pdb")
 
 
 @pytest.fixture(scope="session")

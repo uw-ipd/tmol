@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
@@ -136,7 +138,14 @@ struct GeneratePoseLeafAtoms {
             block_type_atom_ancestors_backup,
             block_type_atom_icoors_backup,
             pose_stack_atom_missing);
+
+        // An atom that cannot be placed is left NaN rather than at the origin
+        // new_coords was allocated with; the caller checks for NaN and must not
+        // be handed a plausible-looking coordinate in its place.
+        Vec<Real, 3> const unbuildable = Vec<Real, 3>::Constant(Real(NAN));
+
         if (geom.anc0 == -1) {
+          new_coords[pose_ind][block_offset + atom_ind] = unbuildable;
           return;
         }
 
@@ -144,10 +153,11 @@ struct GeneratePoseLeafAtoms {
         Vec<Real, 3> coord1 = orig_coords[pose_ind][geom.anc1];
         Vec<Real, 3> coord2 = orig_coords[pose_ind][geom.anc2];
 
-        // Early exit if any base atoms have NaN coordinates
+        // an ancestor that is itself missing leaves this atom unbuildable
         if (isnan(coord0[0]) || isnan(coord0[1]) || isnan(coord0[2])
             || isnan(coord1[0]) || isnan(coord1[1]) || isnan(coord1[2])
             || isnan(coord2[0]) || isnan(coord2[1]) || isnan(coord2[2])) {
+          new_coords[pose_ind][block_offset + atom_ind] = unbuildable;
           return;
         }
 

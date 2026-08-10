@@ -19,7 +19,9 @@ class CartesianSfxnNetwork(torch.nn.Module):
         self.whole_pose_scoring_module = wpsm
 
         self.pose_stack = pose_stack
-        self.full_coords = pose_stack.coords
+        # clone: forward() writes into full_coords in place, which would
+        # otherwise overwrite the caller's coordinates
+        self.full_coords = pose_stack.coords.clone().detach()
         if coord_mask is None:
             coord_mask = torch.full(
                 self.full_coords.shape[:-1],

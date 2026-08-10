@@ -66,8 +66,8 @@ _RAW_RESIDUE_DEFAULTS: dict[str, Any] = {
 
 _POLYMER_PROPERTIES_DEFAULTS: dict[str, Any] = {
     "is_polymer": False,
-    "polymer_type": "",
-    "backbone_type": "",
+    "polymer_type": None,
+    "backbone_type": None,
     "mainchain_atoms": None,
     "sidechain_chirality": "",
     "termini_variants": [],

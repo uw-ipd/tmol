@@ -154,6 +154,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 1, D> block_type_is_fragment,
+    TView<Int, 2, D> atom_cross_ids,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -221,7 +223,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(atom_unique_ids.size(1) == n_max_atoms_per_block);
 
   assert(atom_wildcard_ids.size(0) == n_block_types);
+  assert(atom_cross_ids.size(0) == n_block_types);
   assert(atom_wildcard_ids.size(1) == n_max_atoms_per_block);
+  assert(atom_cross_ids.size(1) == n_max_atoms_per_block);
 
   assert(cart_subgraph_offsets.size(0) == n_block_types);
   assert(cart_subgraph_type_counts.size(0) == n_block_types);
@@ -365,17 +369,26 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         for (int i = tid; i < n_subgraphs; i += nt) {
           int param_index = -1;
           Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool reverse : {false, true}) {
-            Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-            if (reverse) reverse_subgraph(subgraph);
+          for (bool wildcard : {false, true}) {
+            for (bool reverse : {false, true}) {
+              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
+              if (reverse) reverse_subgraph(subgraph);
 
-            Vec<Int, 4> subgraph_atom_ids =
-                get_atom_ids(atom_unique_ids[block_type1], subgraph);
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
+              const auto& atom_id_table = (wildcard)
+                                              ? atom_wildcard_ids[block_type1]
+                                              : atom_unique_ids[block_type1];
+              Vec<Int, 4> subgraph_atom_ids =
+                  get_atom_ids(atom_id_table, subgraph);
+              param_index =
+                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
 
-            subgraph_atom_indices =
-                atom_local_to_global_indices(subgraph, rot_coord_offset1);
+              subgraph_atom_indices =
+                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
 
+              if (param_index != -1) {
+                break;
+              }
+            }
             if (param_index != -1) {
               break;
             }
@@ -450,13 +463,22 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           Int resA_size = (resA_atom_indices.array() != -1).count();
           Int resB_size = (resB_atom_indices.array() != -1).count();
 
-          // Try both unique and wildcard IDs for block A
-          for (bool wildcard : {false, true}) {
-            // Get the lookup tables for atom ID
+          // Prefer exact parameters when both blocks share a residue base name,
+          // then fall back to the historical unique/wildcard and
+          // wildcard/wildcard lookups used by polymer connections.
+          int const first_lookup_mode =
+              block_type_is_fragment[block_typeA]
+                      && block_type_is_fragment[block_typeB]
+                  ? 0
+                  : 1;
+          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
+               ++lookup_mode) {
             const auto& resA_atom_id_table =
-                (wildcard) ? atom_wildcard_ids[block_typeA]
-                           : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = atom_wildcard_ids[block_typeB];
+                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
+                                   : atom_unique_ids[block_typeA];
+            const auto& resB_atom_id_table = (lookup_mode == 0)
+                                                 ? atom_unique_ids[block_typeB]
+                                                 : atom_cross_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =
@@ -521,22 +543,31 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
       if (tid == 0) {
         // straight assignment in the block-pair scoring case; atomic add
-        // otherwise
+        // otherwise;
         if (output_block_pair_energies) {
+          // We cannot just perform assignment here because it is possible that
+          // a residue may form more than one bond to another residue,
+          // e.g. i to i+1 disulfide
           if (cta_length_score != 0.0) {
-            V[0][pose_ind][block_ind1][block_ind2] = cta_length_score;
+            accumulate<D, Real>::add(
+                V[0][pose_ind][block_ind1][block_ind2], cta_length_score);
           }
           if (cta_angle_score != 0.0) {
-            V[1][pose_ind][block_ind1][block_ind2] = cta_angle_score;
+            accumulate<D, Real>::add(
+                V[1][pose_ind][block_ind1][block_ind2], cta_angle_score);
           }
           if (cta_torsion_score != 0.0) {
-            V[2][pose_ind][block_ind1][block_ind2] = cta_torsion_score;
+            accumulate<D, Real>::add(
+                V[2][pose_ind][block_ind1][block_ind2], cta_torsion_score);
           }
           if (cta_improper_torsion_score != 0.0) {
-            V[3][pose_ind][block_ind1][block_ind2] = cta_improper_torsion_score;
+            accumulate<D, Real>::add(
+                V[3][pose_ind][block_ind1][block_ind2],
+                cta_improper_torsion_score);
           }
           if (cta_hxyl_torsion_score != 0.0) {
-            V[4][pose_ind][block_ind1][block_ind2] = cta_hxyl_torsion_score;
+            accumulate<D, Real>::add(
+                V[4][pose_ind][block_ind1][block_ind2], cta_hxyl_torsion_score);
           }
         } else {
           if (cta_length_score != 0.0) {
@@ -595,6 +626,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 1, D> block_type_is_fragment,
+    TView<Int, 2, D> atom_cross_ids,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -650,7 +683,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   assert(atom_unique_ids.size(1) == n_max_atoms_per_block);
 
   assert(atom_wildcard_ids.size(0) == n_block_types);
+  assert(atom_cross_ids.size(0) == n_block_types);
   assert(atom_wildcard_ids.size(1) == n_max_atoms_per_block);
+  assert(atom_cross_ids.size(1) == n_max_atoms_per_block);
 
   assert(cart_subgraph_offsets.size(0) == n_block_types);
   assert(cart_subgraph_type_counts.size(0) == n_block_types);
@@ -767,17 +802,26 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
         for (int i = tid; i < n_subgraphs; i += nt) {
           int param_index = -1;
           Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool reverse : {false, true}) {
-            Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-            if (reverse) reverse_subgraph(subgraph);
+          for (bool wildcard : {false, true}) {
+            for (bool reverse : {false, true}) {
+              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
+              if (reverse) reverse_subgraph(subgraph);
 
-            Vec<Int, 4> subgraph_atom_ids =
-                get_atom_ids(atom_unique_ids[block_type1], subgraph);
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
+              const auto& atom_id_table = (wildcard)
+                                              ? atom_wildcard_ids[block_type1]
+                                              : atom_unique_ids[block_type1];
+              Vec<Int, 4> subgraph_atom_ids =
+                  get_atom_ids(atom_id_table, subgraph);
+              param_index =
+                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
 
-            subgraph_atom_indices =
-                atom_local_to_global_indices(subgraph, rot_coord_offset1);
+              subgraph_atom_indices =
+                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
 
+              if (param_index != -1) {
+                break;
+              }
+            }
             if (param_index != -1) {
               break;
             }
@@ -858,13 +902,20 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           Int resA_size = (resA_atom_indices.array() != -1).count();
           Int resB_size = (resB_atom_indices.array() != -1).count();
 
-          // Try both unique and wildcard IDs for block A
-          for (bool wildcard : {false, true}) {
-            // Get the lookup tables for atom ID
+          // Prefer exact unique/unique parameters across generic connections.
+          int const first_lookup_mode =
+              block_type_is_fragment[block_typeA]
+                      && block_type_is_fragment[block_typeB]
+                  ? 0
+                  : 1;
+          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
+               ++lookup_mode) {
             const auto& resA_atom_id_table =
-                (wildcard) ? atom_wildcard_ids[block_typeA]
-                           : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = atom_wildcard_ids[block_typeB];
+                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
+                                   : atom_unique_ids[block_typeA];
+            const auto& resB_atom_id_table = (lookup_mode == 0)
+                                                 ? atom_unique_ids[block_typeB]
+                                                 : atom_cross_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =
@@ -953,6 +1004,8 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 1, D> block_type_is_fragment,
+    TView<Int, 2, D> atom_cross_ids,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -1020,7 +1073,9 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(atom_unique_ids.size(1) == n_max_atoms_per_block);
 
   assert(atom_wildcard_ids.size(0) == n_block_types);
+  assert(atom_cross_ids.size(0) == n_block_types);
   assert(atom_wildcard_ids.size(1) == n_max_atoms_per_block);
+  assert(atom_cross_ids.size(1) == n_max_atoms_per_block);
 
   assert(cart_subgraph_offsets.size(0) == n_block_types);
   assert(cart_subgraph_type_counts.size(0) == n_block_types);
@@ -1253,17 +1308,26 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         for (int i = tid; i < n_subgraphs; i += nt) {
           int param_index = -1;
           Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool reverse : {false, true}) {
-            Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-            if (reverse) reverse_subgraph(subgraph);
+          for (bool wildcard : {false, true}) {
+            for (bool reverse : {false, true}) {
+              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
+              if (reverse) reverse_subgraph(subgraph);
 
-            Vec<Int, 4> subgraph_atom_ids =
-                get_atom_ids(atom_unique_ids[block_type1], subgraph);
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
+              const auto& atom_id_table = (wildcard)
+                                              ? atom_wildcard_ids[block_type1]
+                                              : atom_unique_ids[block_type1];
+              Vec<Int, 4> subgraph_atom_ids =
+                  get_atom_ids(atom_id_table, subgraph);
+              param_index =
+                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
 
-            subgraph_atom_indices =
-                atom_local_to_global_indices(subgraph, rot_coord_offset1);
+              subgraph_atom_indices =
+                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
 
+              if (param_index != -1) {
+                break;
+              }
+            }
             if (param_index != -1) {
               break;
             }
@@ -1337,13 +1401,20 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           Int resA_size = (resA_atom_indices.array() != -1).count();
           Int resB_size = (resB_atom_indices.array() != -1).count();
 
-          // Try both unique and wildcard IDs for block A
-          for (bool wildcard : {false, true}) {
-            // Get the lookup tables for atom ID
+          // Prefer exact unique/unique parameters across generic connections.
+          int const first_lookup_mode =
+              block_type_is_fragment[block_typeA]
+                      && block_type_is_fragment[block_typeB]
+                  ? 0
+                  : 1;
+          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
+               ++lookup_mode) {
             const auto& resA_atom_id_table =
-                (wildcard) ? atom_wildcard_ids[block_typeA]
-                           : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = atom_wildcard_ids[block_typeB];
+                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
+                                   : atom_unique_ids[block_typeA];
+            const auto& resB_atom_id_table = (lookup_mode == 0)
+                                                 ? atom_unique_ids[block_typeB]
+                                                 : atom_cross_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =
@@ -1466,6 +1537,8 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 1, D> block_type_is_fragment,
+    TView<Int, 2, D> atom_cross_ids,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -1525,7 +1598,9 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   assert(atom_unique_ids.size(1) == n_max_atoms_per_block);
 
   assert(atom_wildcard_ids.size(0) == n_block_types);
+  assert(atom_cross_ids.size(0) == n_block_types);
   assert(atom_wildcard_ids.size(1) == n_max_atoms_per_block);
+  assert(atom_cross_ids.size(1) == n_max_atoms_per_block);
 
   assert(cart_subgraph_offsets.size(0) == n_block_types);
   assert(cart_subgraph_type_counts.size(0) == n_block_types);
@@ -1640,17 +1715,26 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
         for (int i = tid; i < n_subgraphs; i += nt) {
           int param_index = -1;
           Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool reverse : {false, true}) {
-            Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-            if (reverse) reverse_subgraph(subgraph);
+          for (bool wildcard : {false, true}) {
+            for (bool reverse : {false, true}) {
+              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
+              if (reverse) reverse_subgraph(subgraph);
 
-            Vec<Int, 4> subgraph_atom_ids =
-                get_atom_ids(atom_unique_ids[block_type1], subgraph);
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
+              const auto& atom_id_table = (wildcard)
+                                              ? atom_wildcard_ids[block_type1]
+                                              : atom_unique_ids[block_type1];
+              Vec<Int, 4> subgraph_atom_ids =
+                  get_atom_ids(atom_id_table, subgraph);
+              param_index =
+                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
 
-            subgraph_atom_indices =
-                atom_local_to_global_indices(subgraph, rot_coord_offset1);
+              subgraph_atom_indices =
+                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
 
+              if (param_index != -1) {
+                break;
+              }
+            }
             if (param_index != -1) {
               break;
             }
@@ -1724,13 +1808,20 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           Int resA_size = (resA_atom_indices.array() != -1).count();
           Int resB_size = (resB_atom_indices.array() != -1).count();
 
-          // Try both unique and wildcard IDs for block A
-          for (bool wildcard : {false, true}) {
-            // Get the lookup tables for atom ID
+          // Prefer exact unique/unique parameters across generic connections.
+          int const first_lookup_mode =
+              block_type_is_fragment[block_typeA]
+                      && block_type_is_fragment[block_typeB]
+                  ? 0
+                  : 1;
+          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
+               ++lookup_mode) {
             const auto& resA_atom_id_table =
-                (wildcard) ? atom_wildcard_ids[block_typeA]
-                           : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = atom_wildcard_ids[block_typeB];
+                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
+                                   : atom_unique_ids[block_typeA];
+            const auto& resB_atom_id_table = (lookup_mode == 0)
+                                                 ? atom_unique_ids[block_typeB]
+                                                 : atom_cross_ids[block_typeB];
 
             // Get the atom IDs
             Vec<Int, 3> resA_subgraph_atom_ids =

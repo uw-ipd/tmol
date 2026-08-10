@@ -5,6 +5,7 @@ import torch
 import os
 
 from tmol.database import ParameterDatabase
+from tmol.utility.device import resolve_device
 
 from typing import Optional, TYPE_CHECKING
 
@@ -59,6 +60,8 @@ def beta2016_score_function(
     https://pubs.acs.org/doi/10.1021/acs.jctc.6b0081 and
     https://pubs.acs.org/doi/full/10.1021/acs.jctc.7b00125
     """
+    # resolved before the memo lookup so that 'cuda' and 'cuda:0' share one entry
+    device = resolve_device(device)
     if param_db is not None:
         return _non_memoized_beta2016(device, param_db)
     return _memoized_beta2016(device)

@@ -9,7 +9,7 @@ params loader's validation paths. The focus is on the documented fallback and
 
 from __future__ import annotations
 
-from pathlib import Path
+from tmol.tests.data import data_path
 
 import numpy as np
 import pytest
@@ -17,7 +17,7 @@ from rdkit import Chem
 
 import biotite.structure as struc
 
-DATA = Path(__file__).parent.parent / "data"
+DATA = data_path()
 GROUND_TRUTH = DATA / "ligand_test" / "ligand_ground_truth"
 
 
@@ -171,12 +171,6 @@ class TestStructureToSmiles:
             arr = arr[0]
         return arr
 
-    def test_system_charge_explicit_overrides_annotation(self) -> None:
-        from tmol.ligand.structure_to_smiles import _system_charge
-
-        arr = self._array()
-        assert _system_charge(arr, 3) == 3
-
     def test_mol_to_smiles_returns_none_on_failure(self, monkeypatch) -> None:
         import tmol.ligand.structure_to_smiles as mod
 
@@ -186,14 +180,11 @@ class TestStructureToSmiles:
         monkeypatch.setattr(mod.Chem, "MolToSmiles", _boom)
         assert mod._mol_to_smiles(Chem.MolFromSmiles("CCO")) is None
 
-    def test_smiles_from_atom_array_raises_when_no_candidates(
-        self, monkeypatch
-    ) -> None:
+    def test_smiles_from_atom_array_raises_when_no_smiles(self, monkeypatch) -> None:
         import tmol.ligand.structure_to_smiles as mod
 
-        monkeypatch.setattr(
-            mod, "ligand_smiles_candidates_from_atom_array", lambda *a, **k: []
-        )
+        # Bonds are present, but SMILES generation yields nothing.
+        monkeypatch.setattr(mod, "_mol_to_smiles", lambda *a, **k: None)
         with pytest.raises(ValueError, match="Could not derive a SMILES"):
             mod.ligand_smiles_from_atom_array(self._array(), res_name="LIG")
 
@@ -240,7 +231,7 @@ class TestAuthoritativeCharges:
 # --------------------------------------------------------------------------- #
 class TestEquivalenceElementFromName:
     def test_infer_element_from_name(self) -> None:
-        from tmol.ligand.equivalence import _infer_element_from_name
+        from tmol.tests.ligand.equivalence import _infer_element_from_name
 
         assert _infer_element_from_name("CB") == "C"
         assert _infer_element_from_name("CA") == "Ca"
@@ -290,14 +281,16 @@ class TestLigandAtomArrayToRdkitMol:
         with pytest.raises(ValueError, match="bond inference is unsupported"):
             ligand_atom_array_to_rdkit_mol(self._info(arr))
 
-    def test_topology_only_single_bonds_raises(self) -> None:
+    def test_topology_only_any_bonds_raises(self) -> None:
         from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
 
         arr = self._carbon_array(2)
+        # BondType.ANY marks bonds whose order was perceived from geometry
+        #   (e.g. PDB input) ... ensure this fails
         arr.bonds = struc.BondList(
-            2, np.array([[0, 1, int(struc.BondType.SINGLE)]], dtype=np.uint32)
+            2, np.array([[0, 1, int(struc.BondType.ANY)]], dtype=np.uint32)
         )
-        with pytest.raises(ValueError, match="topology-only SINGLE bonds"):
+        with pytest.raises(ValueError, match="topology-only bonds"):
             ligand_atom_array_to_rdkit_mol(self._info(arr))
 
 
