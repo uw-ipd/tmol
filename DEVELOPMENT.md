@@ -137,11 +137,11 @@ parameter-generation parity is the guanfeng DUD-80 SMILES suite
 ### Testing a specific release
 
 ```bash
-# Install matching PyTorch first (example: x86_64 manylinux cu128/torch2.10)
-pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu128
+# Install matching PyTorch first (example: x86_64 manylinux cu128/torch2.11)
+pip install "torch==2.11.*" --index-url https://download.pytorch.org/whl/cu128
 
 # Install a release wheel from GitHub
-pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.10-cp312-cp312-manylinux_2_28_x86_64.whl
+pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl
 
 # Or install a specific branch/tag from source
 pip install git+https://github.com/uw-ipd/tmol.git@vX.Y.Z
@@ -151,18 +151,14 @@ pytest --pyargs tmol.tests -v
 ```
 
 Current Google Colab GPU runtimes use Python 3.12, torch 2.11.0+cu128, and
-commonly a Turing T4 (`sm_75`). v0.1.46 has no wheel for that PyTorch ABI, so
-the tutorial bootstrap builds the tutorial branch from source against the
-active PyTorch. For a runtime that still has torch 2.10+cu128, the published
-v0.1.46 ABI-specific wheel is:
+commonly a Turing T4 (`sm_75`). The published v0.1.47 ABI-specific wheel is:
 
 ```bash
-pip install "https://github.com/uw-ipd/tmol/releases/download/v0.1.46/tmol-0.1.46+cu128torch2.10-cp312-cp312-manylinux_2_28_x86_64.whl"
+pip install "https://github.com/uw-ipd/tmol/releases/download/v0.1.47/tmol-0.1.47+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
 ```
 
-The next release matrix replaces the old dedicated Colab lane with
-`+cu128torch2.11` and explicitly compiles `sm_75;sm_80;sm_89`. Do not use that
-wheel URL until the corresponding release has been published.
+This dedicated Colab lane explicitly compiles `sm_75;sm_80;sm_89`. The tutorial
+bootstrap installs it directly while preserving Colab's active PyTorch.
 
 ## Containers
 

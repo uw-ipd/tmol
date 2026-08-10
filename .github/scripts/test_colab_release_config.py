@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import importlib.util
-import io
-import tomllib
 from pathlib import Path
 
 import yaml
@@ -25,27 +23,24 @@ def _workflow(path: str) -> dict:
     return yaml.safe_load((ROOT / path).read_text(encoding="utf-8"))
 
 
-def test_colab_source_dependencies_track_pyproject(monkeypatch):
+def test_colab_uses_published_v0147_wheel_without_source_fallback():
     module = _load_colab_setup()
-    pyproject_bytes = (ROOT / "pyproject.toml").read_bytes()
+    source = (ROOT / "docs/tutorial/colab_setup.py").read_text(encoding="utf-8")
 
-    class Response(io.BytesIO):
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_args):
-            self.close()
-
-    monkeypatch.setattr(
-        module, "urlopen", lambda _url, timeout: Response(pyproject_bytes)
+    assert module.RELEASE_WHEEL_TORCH_MINOR == "2.11"
+    assert module.RELEASE_WHEEL_CUDA == "12.8"
+    assert module.RELEASE_WHEEL_PYTHON == (3, 12)
+    assert module.TMOL_WHEEL.endswith(
+        "/v0.1.47/" "tmol-0.1.47+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
     )
-    dependencies = tomllib.loads(pyproject_bytes.decode())["project"]["dependencies"]
-
-    assert module._project_dependencies_without_torch() == [
-        dependency
-        for dependency in dependencies
-        if not dependency.lstrip().startswith("torch")
-    ]
+    assert "install_tutorial_source" not in source
+    assert "git+https://github.com/uw-ipd/tmol.git" not in source
+    assert "CMAKE_CUDA_ARCHITECTURES" not in source
+    assert "_tmol_tutorial_visualize.py" not in source
+    nucleic_acid_notebook = (ROOT / "docs/tutorial/08_nucleic_acids.ipynb").read_text(
+        encoding="utf-8"
+    )
+    assert "install_tutorial_source" not in nucleic_acid_notebook
 
 
 def test_colab_pip_install_constrains_active_torch(monkeypatch):
