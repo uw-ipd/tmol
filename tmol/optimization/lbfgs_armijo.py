@@ -715,7 +715,6 @@ class LBFGS_Armijo(Optimizer):
             self._segment_line_search(ctx, linefn)
 
             ctx.flat_grad = ctx.param.grad.data.view(-1)  # Direct reference
-            max_grad = ctx.flat_grad.abs().max().item()
 
             # update func eval
             current_evals += self.ls_func_evals
