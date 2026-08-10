@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
 
-    <script src="../_static/documentation_options.js?v=f98a5df1"></script>
+    <script src="../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
@@ -69,7 +69,7 @@
     <link rel="prev" title="Score Terms" href="score_terms.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.46" />
+  <meta name="docsearch:version" content="0.1.47" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -698,8 +698,8 @@ utilizing the slide step component:</p>
 <dd><p>Perform dtype/device conversion for all subtensors.</p>
 <p>Note that this may be an invalid operations if the TensorGroup contains
 heterogenous tensor dtypes.</p>
-<p>Performs Tensor dtype and/or device conversion. A <a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.dtype</span></code></a>
-and <a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.device</span></code></a> are inferred from the arguments of
+<p>Performs Tensor dtype and/or device conversion. A <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.dtype</span></code>
+and <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.device</span></code> are inferred from the arguments of
 <code class="docutils literal notranslate"><span class="pre">self.to(*args,</span> <span class="pre">**kwargs)</span></code>.</p>
 <p>If all subtensors already have the correct dtype and device then
 <code class="docutils literal notranslate"><span class="pre">self</span></code> is returned.</p>
@@ -717,7 +717,7 @@ and <a class="reference external" href="https://docs.pytorch.org/docs/stable/ten
 <dt class="sig sig-object py" id="tmol.types.torch.torch_dtype">
 <span class="sig-prename descclassname"><span class="pre">tmol.types.torch.</span></span><span class="sig-name descname"><span class="pre">torch_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/types/torch.html#torch_dtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.types.torch.torch_dtype" title="Link to this definition">#</a></dt>
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">tmol.types.torch.</span></span><span class="sig-name descname"><span class="pre">torch_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.13)"><span class="pre">dtype</span></a></span></em><span class="sig-paren">)</span></dt>
+<span class="sig-prename descclassname"><span class="pre">tmol.types.torch.</span></span><span class="sig-name descname"><span class="pre">torch_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dtype</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Resolve a torch dtype via numpy’s dtype parsing system.</p>
 </dd></dl>
 
