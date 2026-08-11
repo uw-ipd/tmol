@@ -35,7 +35,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fba6396e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c9b21c7c" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -52,7 +52,6 @@
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
     <script>var togglebuttonSelector = '.nbinput';</script>
-    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/io/visualize';</script>
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
@@ -458,8 +457,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">html</span><span class="w"> </span><span class="kn">import</span> <span class="n">escape</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">StringIO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">os</span><span class="w"> </span><span class="kn">import</span> <span class="n">PathLike</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
@@ -607,6 +606,18 @@
     <span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_hex_color</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate a ``#rrggbb`` color and return it with its integer form.</span>
+
+<span class="sd">    Colors reach both a stylesheet and a 3Dmol element-color map, so they are</span>
+<span class="sd">    restricted to a shape that is safe to interpolate and cheap to convert.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">color</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;#[0-9A-Fa-f]</span><span class="si">{6}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be a hex color of the form &#39;#rrggbb&#39;&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">text</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">text</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="mi">16</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_display_html</span><span class="p">(</span><span class="n">html</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTML</span>
@@ -615,14 +626,6 @@
             <span class="s2">&quot;switchable_view() and selection_gallery() require IPython.&quot;</span>
         <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
     <span class="k">return</span> <span class="n">HTML</span><span class="p">(</span><span class="n">html</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_viewer_html</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Render a py3Dmol viewer through py3Dmol&#39;s supported notebook path.&quot;&quot;&quot;</span>
-    <span class="n">make_html</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">viewer</span><span class="p">,</span> <span class="s2">&quot;_make_html&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">make_html</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;The installed py3Dmol version cannot render HTML&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">make_html</span><span class="p">())</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_add_hover_labels</span><span class="p">(</span><span class="n">viewer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -644,6 +647,85 @@
     <span class="n">viewer</span><span class="o">.</span><span class="n">setHoverable</span><span class="p">({},</span> <span class="kc">True</span><span class="p">,</span> <span class="n">hover_in</span><span class="p">,</span> <span class="n">hover_out</span><span class="p">)</span>
 
 
+<span class="n">VIEWER_SOURCE</span> <span class="o">=</span> <span class="s2">&quot;https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js&quot;</span>
+
+<span class="c1">#: Highlight color for selected atoms; the carbon color of 3Dmol&#39;s</span>
+<span class="c1">#: ``orangeCarbon`` scheme, as used by the AtomWorks selection widget.</span>
+<span class="n">HIGHLIGHT_COLOR</span> <span class="o">=</span> <span class="s2">&quot;#ffa500&quot;</span>
+
+<span class="c1">#: Fill color of the active pill button, as used by the AtomWorks widget.</span>
+<span class="n">_ACTIVE_COLOR</span> <span class="o">=</span> <span class="s2">&quot;#e8850c&quot;</span>
+
+<span class="c1"># Chrome shared by every switchable viewer, matching the AtomWorks selection</span>
+<span class="c1"># widget: a row of pill buttons, the active selection written out underneath,</span>
+<span class="c1"># then the viewer and a one-line interaction hint.</span>
+<span class="n">_WIDGET_CSS</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">  .sel-widget { border: 1px solid var(--pst-color-border, #ccc); border-radius: 8px;</span>
+<span class="s2">                overflow: hidden; margin: 1rem 0; }</span>
+<span class="s2">  .sel-controls { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.7rem;</span>
+<span class="s2">                  background: var(--pst-color-surface, #f4f4f4); }</span>
+<span class="s2">  .sel-controls button { border: 1px solid var(--pst-color-border, #bbb);</span>
+<span class="s2">    border-radius: 999px; background: var(--pst-color-on-surface, #fff);</span>
+<span class="s2">    color: inherit; padding: 0.25rem 0.8rem; font-size: 0.85em; cursor: pointer; }</span>
+<span class="s2">  .sel-desc { padding: 0.7rem 0.9rem;</span>
+<span class="s2">              border-top: 1px solid var(--pst-color-border, #eee); }</span>
+<span class="s2">  .sel-desc code { font-weight: 600; }</span>
+<span class="s2">  .sel-desc-text { font-size: 0.9em; opacity: 0.85; margin-top: 0.25rem; }</span>
+<span class="s2">  .sel-viewer { position: relative; width: 100%; height: 420px; }</span>
+<span class="s2">  .sel-hint { font-size: 0.78em; opacity: 0.6; padding: 0.3rem 0.9rem; }</span>
+<span class="s2">  .sel-error { background: #ffcccc; color: #1b1b1b; font-size: 0.85em;</span>
+<span class="s2">               margin: 0; padding: 0.7rem 0.9rem; }</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_widget_shell</span><span class="p">(</span><span class="n">root_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hint</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the shared widget markup for one switchable viewer.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">&lt;style&gt;</span><span class="si">{</span><span class="n">_WIDGET_CSS</span><span class="si">}</span>
+<span class="s2">  #</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2"> </span><span class="se">{{</span><span class="s2"> max-width: </span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2">px; </span><span class="se">}}</span>
+<span class="s2">  #</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2"> .sel-viewer </span><span class="se">{{</span><span class="s2"> height: </span><span class="si">{</span><span class="n">height</span><span class="si">}</span><span class="s2">px; </span><span class="se">}}</span>
+<span class="s2">  #</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2"> .sel-controls button.active </span><span class="se">{{</span><span class="s2"> background: </span><span class="si">{</span><span class="n">_ACTIVE_COLOR</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">    border-color: </span><span class="si">{</span><span class="n">_ACTIVE_COLOR</span><span class="si">}</span><span class="s2">; color: #fff; </span><span class="se">}}</span>
+<span class="s2">&lt;/style&gt;</span>
+<span class="s2">&lt;div class=&quot;sel-widget&quot; id=&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">&quot;&gt;</span>
+<span class="s2">  &lt;div class=&quot;sel-controls&quot;&gt;&lt;/div&gt;</span>
+<span class="s2">  &lt;div class=&quot;sel-desc&quot;&gt;&lt;code&gt;&lt;/code&gt;&lt;div class=&quot;sel-desc-text&quot;&gt;&lt;/div&gt;&lt;/div&gt;</span>
+<span class="s2">  &lt;div class=&quot;sel-viewer&quot;&gt;&lt;/div&gt;</span>
+<span class="s2">  &lt;div class=&quot;sel-hint&quot;&gt;</span><span class="si">{</span><span class="n">hint</span><span class="si">}</span><span class="s2">&lt;/div&gt;</span>
+<span class="s2">  &lt;p class=&quot;sel-error&quot; hidden&gt;&lt;/p&gt;</span>
+<span class="s2">&lt;/div&gt;&quot;&quot;&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_viewer_script_tag</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the plain 3Dmol.js include, loaded like the AtomWorks docs.</span>
+
+<span class="sd">    3Dmol.js is a UMD bundle. On a page without an AMD loader a normal</span>
+<span class="sd">    ``&lt;script src&gt;`` runs synchronously before the widget&#39;s own script and sets</span>
+<span class="sd">    the ``$3Dmol`` global directly. tmol disables nbsphinx&#39;s RequireJS injection</span>
+<span class="sd">    (see ``docs/conf.py``) so this AtomWorks-style direct load works unchanged.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;&lt;script src=&quot;</span><span class="si">{</span><span class="n">VIEWER_SOURCE</span><span class="si">}</span><span class="s1">&quot;&gt;&lt;/script&gt;&#39;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_widget_prelude_js</span><span class="p">(</span><span class="n">root_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the JS that resolves widget elements and guards on 3Dmol.js.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">  var root = document.getElementById(</span><span class="si">{</span><span class="n">_safe_json</span><span class="p">(</span><span class="n">root_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
+<span class="s2">  var controls = root.querySelector(&quot;.sel-controls&quot;);</span>
+<span class="s2">  var label = root.querySelector(&quot;.sel-desc code&quot;);</span>
+<span class="s2">  var description = root.querySelector(&quot;.sel-desc-text&quot;);</span>
+<span class="s2">  var viewerElement = root.querySelector(&quot;.sel-viewer&quot;);</span>
+<span class="s2">  var errorElement = root.querySelector(&quot;.sel-error&quot;);</span>
+<span class="s2">  if (typeof $3Dmol === &quot;undefined&quot;) </span><span class="se">{{</span>
+<span class="s2">    errorElement.textContent =</span>
+<span class="s2">      &quot;3Dmol.js failed to load, so this viewer is not interactive. &quot; +</span>
+<span class="s2">      &quot;Please check your browser console for error messages.&quot;;</span>
+<span class="s2">    errorElement.hidden = false;</span>
+<span class="s2">    return;</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
 <div class="viewcode-block" id="view">
 <a class="viewcode-back" href="../../../api/top_level.html#tmol.io.view">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">view</span><span class="p">(</span>
@@ -659,7 +741,7 @@
     <span class="n">show_hover</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">zoom_to</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">highlighted</span><span class="p">:</span> <span class="nb">object</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">highlight_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#e83e8c&quot;</span><span class="p">,</span>
+    <span class="n">highlight_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">HIGHLIGHT_COLOR</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a draggable py3Dmol viewer for a molecular structure.</span>
 
@@ -740,6 +822,12 @@
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return HTML that switches one 3Dmol viewer among labeled structures.</span>
 
+<span class="sd">    The widget uses the same chrome and pill-button switching as</span>
+<span class="sd">    :func:`selection_gallery` and the AtomWorks selection widget. One viewer is</span>
+<span class="sd">    reused for every structure and the camera is carried across switches, so</span>
+<span class="sd">    conformational differences are visible in place instead of being hidden by</span>
+<span class="sd">    an independent starting orientation per structure.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        structures: Ordered mapping of display labels to structures accepted by</span>
 <span class="sd">            :func:`view`.</span>
@@ -749,41 +837,83 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">structures</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;structures must contain at least one labeled structure&quot;</span><span class="p">)</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">width</span><span class="p">)</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">height</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">width</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">height</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;width and height must be positive&quot;</span><span class="p">)</span>
 
     <span class="n">notes</span> <span class="o">=</span> <span class="n">notes</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">gallery</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">),</span>
+            <span class="s2">&quot;note&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">notes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)),</span>
+            <span class="s2">&quot;pdb&quot;</span><span class="p">:</span> <span class="n">_pdb_text</span><span class="p">(</span><span class="n">model</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">structures</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">]</span>
+
     <span class="n">root_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;tmol-switch-</span><span class="si">{</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="si">}</span><span class="s2">&quot;</span>
-    <span class="n">select_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">-select&quot;</span>
-    <span class="n">panels</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">structures</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-        <span class="n">viewer</span> <span class="o">=</span> <span class="n">view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">)</span>
-        <span class="n">panel_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">-panel-</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="n">note</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">notes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
-        <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&lt;option value=&quot;</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s1">&quot;&gt;</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">))</span><span class="si">}</span><span class="s1">&lt;/option&gt;&#39;</span><span class="p">)</span>
-        <span class="n">panels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">&lt;section id=&quot;</span><span class="si">{</span><span class="n">panel_id</span><span class="si">}</span><span class="s2">&quot; class=&quot;tmol-switch-panel&quot;</span>
-<span class="s2">         style=&quot;position:absolute;inset:0;visibility:</span><span class="si">{</span><span class="s1">&#39;visible&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">index</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;hidden&#39;</span><span class="si">}</span><span class="s2">&quot;&gt;</span>
-<span class="s2">  &lt;div class=&quot;tmol-viewer-note&quot;&gt;</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="n">note</span><span class="p">)</span><span class="si">}</span><span class="s2">&lt;/div&gt;</span>
-<span class="s2">  </span><span class="si">{</span><span class="n">_viewer_html</span><span class="p">(</span><span class="n">viewer</span><span class="p">)</span><span class="si">}</span>
-<span class="s2">&lt;/section&gt;&quot;&quot;&quot;</span><span class="p">)</span>
-    <span class="n">html</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">&lt;div class=&quot;tmol-switchable-view&quot; id=&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">&quot; style=&quot;max-width:</span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2">px&quot;&gt;</span>
-<span class="s2">  &lt;label&gt;Structure: &lt;select id=&quot;</span><span class="si">{</span><span class="n">select_id</span><span class="si">}</span><span class="s2">&quot;&gt;</span><span class="si">{</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">options</span><span class="p">)</span><span class="si">}</span><span class="s2">&lt;/select&gt;&lt;/label&gt;</span>
-<span class="s2">  &lt;div style=&quot;position:relative;width:100%;height:</span><span class="si">{</span><span class="n">height</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">32</span><span class="si">}</span><span class="s2">px&quot;&gt;</span>
-<span class="s2">    </span><span class="si">{</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">panels</span><span class="p">)</span><span class="si">}</span>
-<span class="s2">  &lt;/div&gt;</span>
-<span class="s2">&lt;/div&gt;</span>
+    <span class="n">html</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="n">_viewer_script_tag</span><span class="p">()</span><span class="si">}{</span><span class="n">_widget_shell</span><span class="p">(</span>
+<span class="w">        </span><span class="n">root_id</span><span class="p">,</span>
+<span class="w">        </span><span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
+<span class="w">        </span><span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
+<span class="w">        </span><span class="n">hint</span><span class="o">=</span><span class="p">(</span>
+<span class="w">            </span><span class="s2">&quot;pick a structure above · drag to rotate · scroll to zoom · &quot;</span>
+<span class="w">            </span><span class="s2">&quot;click an atom to label it&quot;</span>
+<span class="w">        </span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span><span class="si">}</span>
 <span class="s2">&lt;script&gt;</span>
-<span class="s2">(() =&gt; </span><span class="se">{{</span>
-<span class="s2">  const root = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">root_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
-<span class="s2">  const select = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">select_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
-<span class="s2">  const panels = root.querySelectorAll(&#39;.tmol-switch-panel&#39;);</span>
-<span class="s2">  select.addEventListener(&#39;change&#39;, () =&gt; </span><span class="se">{{</span>
-<span class="s2">    panels.forEach((panel, index) =&gt; </span><span class="se">{{</span>
-<span class="s2">      panel.style.visibility = index === Number(select.value) ? &#39;visible&#39; : &#39;hidden&#39;;</span>
-<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
-<span class="s2">    window.dispatchEvent(new Event(&#39;resize&#39;));</span>
+<span class="s2">(function() </span><span class="se">{{</span><span class="si">{</span><span class="n">_widget_prelude_js</span><span class="p">(</span><span class="n">root_id</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">  var presets = </span><span class="si">{</span><span class="n">_safe_json</span><span class="p">(</span><span class="n">gallery</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">  var viewer = $3Dmol.createViewer(viewerElement, </span><span class="se">{{</span><span class="s2">backgroundColor: &quot;white&quot;</span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">  var camera = null;</span>
+
+<span class="s2">  var buttons = presets.map(function(preset, index) </span><span class="se">{{</span>
+<span class="s2">    var button = document.createElement(&quot;button&quot;);</span>
+<span class="s2">    button.type = &quot;button&quot;;</span>
+<span class="s2">    button.textContent = preset.label;</span>
+<span class="s2">    button.onclick = function() </span><span class="se">{{</span><span class="s2"> apply(index); </span><span class="se">}}</span><span class="s2">;</span>
+<span class="s2">    controls.appendChild(button);</span>
+<span class="s2">    return button;</span>
 <span class="s2">  </span><span class="se">}}</span><span class="s2">);</span>
+
+<span class="s2">  function apply(index) </span><span class="se">{{</span>
+<span class="s2">    var preset = presets[index];</span>
+<span class="s2">    if (camera !== null) </span><span class="se">{{</span>
+<span class="s2">      camera = viewer.getView();</span>
+<span class="s2">    </span><span class="se">}}</span>
+<span class="s2">    viewer.clear();</span>
+<span class="s2">    viewer.addModel(preset.pdb, &quot;pdb&quot;);</span>
+<span class="s2">    viewer.setStyle(</span><span class="se">{{}}</span><span class="s2">, </span><span class="se">{{</span><span class="s2">cartoon: </span><span class="se">{{</span><span class="s2">color: &quot;spectrum&quot;</span><span class="se">}}}}</span><span class="s2">);</span>
+<span class="s2">    viewer.addStyle(</span>
+<span class="s2">      </span><span class="se">{{</span><span class="s2">not: </span><span class="se">{{</span><span class="s2">hetflag: true</span><span class="se">}}}}</span><span class="s2">, </span><span class="se">{{</span><span class="s2">stick: </span><span class="se">{{</span><span class="s2">radius: 0.08, opacity: 0.55</span><span class="se">}}}}</span>
+<span class="s2">    );</span>
+<span class="s2">    viewer.setStyle(</span>
+<span class="s2">      </span><span class="se">{{</span><span class="s2">hetflag: true</span><span class="se">}}</span><span class="s2">, </span><span class="se">{{</span><span class="s2">stick: </span><span class="se">{{</span><span class="s2">colorscheme: &quot;orangeCarbon&quot;, radius: 0.22</span><span class="se">}}}}</span>
+<span class="s2">    );</span>
+<span class="s2">    viewer.setClickable(</span><span class="se">{{}}</span><span class="s2">, true, function(atom) </span><span class="se">{{</span>
+<span class="s2">      viewer.addLabel(</span>
+<span class="s2">        atom.chain + &quot; . &quot; + atom.resn + atom.resi + &quot; . &quot; + atom.atom,</span>
+<span class="s2">        </span><span class="se">{{</span><span class="s2">position: atom, backgroundColor: &quot;0x1b1b1b&quot;, backgroundOpacity: 0.85,</span>
+<span class="s2">          fontColor: &quot;white&quot;, fontSize: 11</span><span class="se">}}</span>
+<span class="s2">      );</span>
+<span class="s2">      viewer.render();</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    label.textContent = preset.label;</span>
+<span class="s2">    description.textContent = preset.note;</span>
+<span class="s2">    buttons.forEach(function(button, buttonIndex) </span><span class="se">{{</span>
+<span class="s2">      button.className = buttonIndex === index ? &quot;active&quot; : &quot;&quot;;</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    if (camera === null) </span><span class="se">{{</span>
+<span class="s2">      viewer.zoomTo();</span>
+<span class="s2">      camera = viewer.getView();</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2"> else </span><span class="se">{{</span>
+<span class="s2">      viewer.setView(camera);</span>
+<span class="s2">    </span><span class="se">}}</span>
+<span class="s2">    viewer.render();</span>
+<span class="s2">  </span><span class="se">}}</span>
+
+<span class="s2">  apply(0);</span>
 <span class="se">}}</span><span class="s2">)();</span>
 <span class="s2">&lt;/script&gt;</span>
 <span class="s2">&quot;&quot;&quot;</span>
@@ -809,19 +939,23 @@
     <span class="n">atom_array</span><span class="p">:</span> <span class="n">AtomArray</span><span class="p">,</span>
     <span class="n">selections</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
+    <span class="n">notes</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">720</span><span class="p">,</span>
     <span class="n">height</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">420</span><span class="p">,</span>
-    <span class="n">highlight_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#e83e8c&quot;</span><span class="p">,</span>
+    <span class="n">highlight_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">HIGHLIGHT_COLOR</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return one interactive viewer for several labeled AtomArray selections.</span>
 
 <span class="sd">    Selection values may be boolean atom masks. Query strings are also accepted</span>
 <span class="sd">    when the supplied AtomArray provides a callable ``aa.mask(query)`` method.</span>
 <span class="sd">    Selection results are resolved in Python and exact PDB atom serials are</span>
-<span class="sd">    baked into the HTML. This avoids viewer-side query-language differences</span>
-<span class="sd">    and remains exact when atom names or residue identifiers are duplicated.</span>
-<span class="sd">    Clicking a label restyles the same model and animates the camera to the</span>
-<span class="sd">    selected atoms, following the AtomWorks selection-gallery interaction.</span>
+<span class="sd">    baked into the HTML. This avoids viewer-side query-language differences,</span>
+<span class="sd">    remains exact when atom names or residue identifiers are duplicated, and</span>
+<span class="sd">    stays aligned when the viewer drops atoms it will not draw, such as the</span>
+<span class="sd">    alternate locations of a crystal structure.</span>
+
+<span class="sd">    Choosing a selection restyles one shared model and animates the camera onto</span>
+<span class="sd">    the selected atoms, matching the AtomWorks selection widget.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_atom_array</span><span class="p">(</span><span class="n">atom_array</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;selection_gallery() expects a Biotite AtomArray&quot;</span><span class="p">)</span>
@@ -831,7 +965,11 @@
     <span class="n">height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">height</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">width</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">height</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;width and height must be positive&quot;</span><span class="p">)</span>
+    <span class="n">highlight_color</span><span class="p">,</span> <span class="n">highlight_carbon</span> <span class="o">=</span> <span class="n">_hex_color</span><span class="p">(</span>
+        <span class="n">highlight_color</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;highlight_color&quot;</span>
+    <span class="p">)</span>
 
+    <span class="n">notes</span> <span class="o">=</span> <span class="n">notes</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">pdb_text</span> <span class="o">=</span> <span class="n">_biotite_to_pdb_string</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
     <span class="n">serials</span> <span class="o">=</span> <span class="n">_first_model_atom_serials</span><span class="p">(</span><span class="n">pdb_text</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">serials</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_array</span><span class="p">):</span>
@@ -842,125 +980,84 @@
     <span class="n">gallery</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">selection</span> <span class="ow">in</span> <span class="n">selections</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="n">_selection_mask</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">selection</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">))</span>
-        <span class="n">selected_serials</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">serial</span> <span class="k">for</span> <span class="n">serial</span><span class="p">,</span> <span class="n">selected</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">serials</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span> <span class="k">if</span> <span class="n">selected</span>
-        <span class="p">]</span>
-        <span class="n">gallery</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">),</span> <span class="s2">&quot;serials&quot;</span><span class="p">:</span> <span class="n">selected_serials</span><span class="p">})</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="p">[</span><span class="n">serial</span> <span class="k">for</span> <span class="n">serial</span><span class="p">,</span> <span class="n">keep</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">serials</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span> <span class="k">if</span> <span class="n">keep</span><span class="p">]</span>
+        <span class="n">note</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">notes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">note</span><span class="p">:</span>
+            <span class="n">note</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span><span class="si">}</span><span class="s2"> atoms&quot;</span>
+        <span class="n">gallery</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">),</span>
+                <span class="s2">&quot;expression&quot;</span><span class="p">:</span> <span class="n">selection</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">),</span>
+                <span class="s2">&quot;note&quot;</span><span class="p">:</span> <span class="n">note</span><span class="p">,</span>
+                <span class="s2">&quot;serials&quot;</span><span class="p">:</span> <span class="n">selected</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
 
     <span class="n">root_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;tmol-selection-</span><span class="si">{</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="si">}</span><span class="s2">&quot;</span>
-    <span class="n">controls_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">-controls&quot;</span>
-    <span class="n">viewer_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">-viewer&quot;</span>
-    <span class="n">html</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">&lt;script src=&quot;https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js&quot;&gt;&lt;/script&gt;</span>
-<span class="s2">&lt;style&gt;</span>
-<span class="s2">  #</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2"> </span><span class="se">{{</span>
-<span class="s2">    border: 1px solid var(--pst-color-border, #ccc);</span>
-<span class="s2">    border-radius: 8px;</span>
-<span class="s2">    max-width: </span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2">px;</span>
-<span class="s2">    overflow: hidden;</span>
-<span class="s2">  </span><span class="se">}}</span>
-<span class="s2">  #</span><span class="si">{</span><span class="n">controls_id</span><span class="si">}</span><span class="s2"> </span><span class="se">{{</span>
-<span class="s2">    display: flex;</span>
-<span class="s2">    flex-wrap: wrap;</span>
-<span class="s2">    gap: 0.4rem;</span>
-<span class="s2">    padding: 0.7rem;</span>
-<span class="s2">    background: var(--pst-color-surface, #f4f4f4);</span>
-<span class="s2">  </span><span class="se">}}</span>
-<span class="s2">  #</span><span class="si">{</span><span class="n">controls_id</span><span class="si">}</span><span class="s2"> button </span><span class="se">{{</span>
-<span class="s2">    border: 1px solid var(--pst-color-border, #bbb);</span>
-<span class="s2">    border-radius: 999px;</span>
-<span class="s2">    background: var(--pst-color-on-surface, #fff);</span>
-<span class="s2">    color: inherit;</span>
-<span class="s2">    cursor: pointer;</span>
-<span class="s2">    font-size: 0.85em;</span>
-<span class="s2">    padding: 0.25rem 0.8rem;</span>
-<span class="s2">  </span><span class="se">}}</span>
-<span class="s2">  #</span><span class="si">{</span><span class="n">controls_id</span><span class="si">}</span><span class="s2"> button.active </span><span class="se">{{</span>
-<span class="s2">    color: #fff;</span>
-<span class="s2">  </span><span class="se">}}</span>
-<span class="s2">  #</span><span class="si">{</span><span class="n">viewer_id</span><span class="si">}</span><span class="s2"> </span><span class="se">{{</span><span class="s2"> position: relative; width: 100%; height: </span><span class="si">{</span><span class="n">height</span><span class="si">}</span><span class="s2">px; </span><span class="se">}}</span>
-<span class="s2">  #</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2"> .tmol-selection-hint </span><span class="se">{{</span>
-<span class="s2">    font-size: 0.78em;</span>
-<span class="s2">    opacity: 0.65;</span>
-<span class="s2">    padding: 0.35rem 0.9rem;</span>
-<span class="s2">  </span><span class="se">}}</span>
-<span class="s2">&lt;/style&gt;</span>
-<span class="s2">&lt;div id=&quot;</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">&quot;&gt;</span>
-<span class="s2">  &lt;div id=&quot;</span><span class="si">{</span><span class="n">controls_id</span><span class="si">}</span><span class="s2">&quot;&gt;&lt;/div&gt;</span>
-<span class="s2">  &lt;div id=&quot;</span><span class="si">{</span><span class="n">viewer_id</span><span class="si">}</span><span class="s2">&quot;&gt;&lt;/div&gt;</span>
-<span class="s2">  &lt;div class=&quot;tmol-selection-hint&quot;&gt;</span>
-<span class="s2">    pick a selection · drag to rotate · scroll to zoom · click a highlighted atom to label it</span>
-<span class="s2">  &lt;/div&gt;</span>
-<span class="s2">&lt;/div&gt;</span>
+    <span class="n">html</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="n">_viewer_script_tag</span><span class="p">()</span><span class="si">}{</span><span class="n">_widget_shell</span><span class="p">(</span>
+<span class="w">        </span><span class="n">root_id</span><span class="p">,</span>
+<span class="w">        </span><span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
+<span class="w">        </span><span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
+<span class="w">        </span><span class="n">hint</span><span class="o">=</span><span class="p">(</span>
+<span class="w">            </span><span class="s2">&quot;pick a selection above · drag to rotate · scroll to zoom · &quot;</span>
+<span class="w">            </span><span class="s2">&quot;click a highlighted atom to label it&quot;</span>
+<span class="w">        </span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span><span class="si">}</span>
 <span class="s2">&lt;script&gt;</span>
-<span class="s2">(() =&gt; </span><span class="se">{{</span>
-<span class="s2">  const root = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">root_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
-<span class="s2">  const controls = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">controls_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
-<span class="s2">  const viewerElement = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">viewer_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
-<span class="s2">  const pdb = </span><span class="si">{</span><span class="n">_safe_json</span><span class="p">(</span><span class="n">pdb_text</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
-<span class="s2">  const presets = </span><span class="si">{</span><span class="n">_safe_json</span><span class="p">(</span><span class="n">gallery</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
-<span class="s2">  const highlightColor = </span><span class="si">{</span><span class="n">_safe_json</span><span class="p">(</span><span class="n">highlight_color</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">(function() </span><span class="se">{{</span><span class="si">{</span><span class="n">_widget_prelude_js</span><span class="p">(</span><span class="n">root_id</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">  var pdb = </span><span class="si">{</span><span class="n">_safe_json</span><span class="p">(</span><span class="n">pdb_text</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">  var presets = </span><span class="si">{</span><span class="n">_safe_json</span><span class="p">(</span><span class="n">gallery</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">  var highlightColor = </span><span class="si">{</span><span class="n">_safe_json</span><span class="p">(</span><span class="n">highlight_color</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">  var viewer = $3Dmol.createViewer(viewerElement, </span><span class="se">{{</span><span class="s2">backgroundColor: &quot;white&quot;</span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">  viewer.addModel(pdb, &quot;pdb&quot;);</span>
+<span class="s2">  // Element colors with carbon recolored, which is how 3Dmol builds its own</span>
+<span class="s2">  // &quot;&lt;color&gt;Carbon&quot; schemes (e.g. orangeCarbon) internally.</span>
+<span class="s2">  var scheme = </span><span class="se">{{</span>
+<span class="s2">    prop: &quot;elem&quot;,</span>
+<span class="s2">    map: Object.assign(</span>
+<span class="s2">      </span><span class="se">{{}}</span><span class="s2">, $3Dmol.elementColors.defaultColors, </span><span class="se">{{</span><span class="s2">C: </span><span class="si">{</span><span class="n">highlight_carbon</span><span class="si">}</span><span class="se">}}</span>
+<span class="s2">    )</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2">;</span>
 
-<span class="s2">  function initialize() </span><span class="se">{{</span>
-<span class="s2">    if (!window.$3Dmol) </span><span class="se">{{</span>
-<span class="s2">      window.setTimeout(initialize, 50);</span>
-<span class="s2">      return;</span>
-<span class="s2">    </span><span class="se">}}</span>
-<span class="s2">    const viewer = window.$3Dmol.createViewer(</span>
-<span class="s2">      viewerElement, </span><span class="se">{{</span><span class="s2">backgroundColor: &quot;white&quot;</span><span class="se">}}</span>
-<span class="s2">    );</span>
-<span class="s2">    viewer.addModel(pdb, &quot;pdb&quot;);</span>
-<span class="s2">    const buttons = presets.map((preset, index) =&gt; </span><span class="se">{{</span>
-<span class="s2">      const button = document.createElement(&quot;button&quot;);</span>
-<span class="s2">      button.type = &quot;button&quot;;</span>
-<span class="s2">      button.textContent = preset.label;</span>
-<span class="s2">      button.addEventListener(&quot;click&quot;, () =&gt; apply(index));</span>
-<span class="s2">      controls.appendChild(button);</span>
-<span class="s2">      return button;</span>
-<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">  var buttons = presets.map(function(preset, index) </span><span class="se">{{</span>
+<span class="s2">    var button = document.createElement(&quot;button&quot;);</span>
+<span class="s2">    button.type = &quot;button&quot;;</span>
+<span class="s2">    button.textContent = preset.label;</span>
+<span class="s2">    button.onclick = function() </span><span class="se">{{</span><span class="s2"> apply(index); </span><span class="se">}}</span><span class="s2">;</span>
+<span class="s2">    controls.appendChild(button);</span>
+<span class="s2">    return button;</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2">);</span>
 
-<span class="s2">    function apply(index) </span><span class="se">{{</span>
-<span class="s2">      const preset = presets[index];</span>
-<span class="s2">      const selection = preset.serials.length</span>
-<span class="s2">        ? </span><span class="se">{{</span><span class="s2">serial: preset.serials</span><span class="se">}}</span>
-<span class="s2">        : </span><span class="se">{{}}</span><span class="s2">;</span>
-<span class="s2">      viewer.removeAllLabels();</span>
-<span class="s2">      viewer.setStyle(</span>
-<span class="s2">        </span><span class="se">{{}}</span><span class="s2">, </span><span class="se">{{</span><span class="s2">cartoon: </span><span class="se">{{</span><span class="s2">color: &quot;lightgrey&quot;, opacity: 0.55</span><span class="se">}}}}</span>
-<span class="s2">      );</span>
-<span class="s2">      if (preset.serials.length) </span><span class="se">{{</span>
-<span class="s2">        viewer.addStyle(selection, </span><span class="se">{{</span>
-<span class="s2">          stick: </span><span class="se">{{</span><span class="s2">color: highlightColor, radius: 0.18</span><span class="se">}}</span><span class="s2">,</span>
-<span class="s2">          sphere: </span><span class="se">{{</span><span class="s2">color: highlightColor, radius: 0.35</span><span class="se">}}</span><span class="s2">,</span>
-<span class="s2">          cartoon: </span><span class="se">{{</span><span class="s2">color: highlightColor</span><span class="se">}}</span>
-<span class="s2">        </span><span class="se">}}</span><span class="s2">);</span>
-<span class="s2">        viewer.setClickable(selection, true, (atom) =&gt; </span><span class="se">{{</span>
-<span class="s2">          viewer.addLabel(</span>
-<span class="s2">            atom.chain + &quot;:&quot; + atom.resn + atom.resi + &quot;:&quot; + atom.atom,</span>
-<span class="s2">            </span><span class="se">{{</span>
-<span class="s2">              position: atom,</span>
-<span class="s2">              backgroundColor: &quot;0x1b1b1b&quot;,</span>
-<span class="s2">              backgroundOpacity: 0.85,</span>
-<span class="s2">              fontColor: &quot;white&quot;,</span>
-<span class="s2">              fontSize: 11</span>
-<span class="s2">            </span><span class="se">}}</span>
-<span class="s2">          );</span>
-<span class="s2">          viewer.render();</span>
-<span class="s2">        </span><span class="se">}}</span><span class="s2">);</span>
-<span class="s2">      </span><span class="se">}}</span>
-<span class="s2">      buttons.forEach((button, buttonIndex) =&gt; </span><span class="se">{{</span>
-<span class="s2">        const active = buttonIndex === index;</span>
-<span class="s2">        button.className = active ? &quot;active&quot; : &quot;&quot;;</span>
-<span class="s2">        button.style.backgroundColor = active ? highlightColor : &quot;&quot;;</span>
-<span class="s2">        button.style.borderColor = active ? highlightColor : &quot;&quot;;</span>
+<span class="s2">  function apply(index) </span><span class="se">{{</span>
+<span class="s2">    var preset = presets[index];</span>
+<span class="s2">    var selection = preset.serials.length ? </span><span class="se">{{</span><span class="s2">serial: preset.serials</span><span class="se">}}</span><span class="s2"> : </span><span class="se">{{}}</span><span class="s2">;</span>
+<span class="s2">    viewer.removeAllLabels();</span>
+<span class="s2">    viewer.setStyle(</span><span class="se">{{}}</span><span class="s2">, </span><span class="se">{{</span><span class="s2">cartoon: </span><span class="se">{{</span><span class="s2">color: &quot;lightgrey&quot;, opacity: 0.55</span><span class="se">}}}}</span><span class="s2">);</span>
+<span class="s2">    if (preset.serials.length) </span><span class="se">{{</span>
+<span class="s2">      viewer.addStyle(selection, </span><span class="se">{{</span>
+<span class="s2">        stick: </span><span class="se">{{</span><span class="s2">radius: 0.18, colorscheme: scheme</span><span class="se">}}</span><span class="s2">,</span>
+<span class="s2">        sphere: </span><span class="se">{{</span><span class="s2">scale: 0.18, colorscheme: scheme</span><span class="se">}}</span>
 <span class="s2">      </span><span class="se">}}</span><span class="s2">);</span>
-<span class="s2">      viewer.zoomTo(selection, 400);</span>
-<span class="s2">      viewer.render();</span>
+<span class="s2">      viewer.addStyle(selection, </span><span class="se">{{</span><span class="s2">cartoon: </span><span class="se">{{</span><span class="s2">color: highlightColor</span><span class="se">}}}}</span><span class="s2">);</span>
+<span class="s2">      viewer.setClickable(selection, true, function(atom) </span><span class="se">{{</span>
+<span class="s2">        viewer.addLabel(</span>
+<span class="s2">          atom.chain + &quot; . &quot; + atom.resn + atom.resi + &quot; . &quot; + atom.atom,</span>
+<span class="s2">          </span><span class="se">{{</span><span class="s2">position: atom, backgroundColor: &quot;0x1b1b1b&quot;, backgroundOpacity: 0.85,</span>
+<span class="s2">            fontColor: &quot;white&quot;, fontSize: 11</span><span class="se">}}</span>
+<span class="s2">        );</span>
+<span class="s2">        viewer.render();</span>
+<span class="s2">      </span><span class="se">}}</span><span class="s2">);</span>
 <span class="s2">    </span><span class="se">}}</span>
-
-<span class="s2">    apply(0);</span>
+<span class="s2">    label.textContent = preset.expression;</span>
+<span class="s2">    description.textContent = preset.note;</span>
+<span class="s2">    buttons.forEach(function(button, buttonIndex) </span><span class="se">{{</span>
+<span class="s2">      button.className = buttonIndex === index ? &quot;active&quot; : &quot;&quot;;</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    viewer.zoomTo(selection, 400);</span>
+<span class="s2">    viewer.render();</span>
 <span class="s2">  </span><span class="se">}}</span>
-<span class="s2">  initialize();</span>
+
+<span class="s2">  apply(0);</span>
 <span class="se">}}</span><span class="s2">)();</span>
 <span class="s2">&lt;/script&gt;</span>
 <span class="s2">&quot;&quot;&quot;</span>
