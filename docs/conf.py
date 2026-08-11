@@ -105,6 +105,13 @@ myst_enable_extensions = [
 myst_heading_anchors = 4
 
 nbsphinx_execute = "never"
+# nbsphinx loads RequireJS on every page. 3Dmol.js is a UMD bundle, so when an
+# AMD loader is present it registers as an anonymous module and never exposes
+# the ``$3Dmol`` global that the tmol viewers use, leaving an empty grey box.
+# ITables, the only other interactive output, loads itself as an ES module and
+# does not use RequireJS, so we disable it and load 3Dmol directly with a plain
+# script tag, exactly as the AtomWorks selection docs do.
+nbsphinx_requirejs_path = ""
 nbsphinx_thumbnails = {
     "tutorial/01_working_with_tmol": "_static/tutorials/01_working_with_tmol.svg",
     "tutorial/02_gpu_batching": "_static/tutorials/02_gpu_batching.svg",
