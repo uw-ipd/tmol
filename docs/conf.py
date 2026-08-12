@@ -125,7 +125,7 @@ nbsphinx_thumbnails = {
 nbsphinx_epilog = r"""
 ----
 
-:download:`Download this notebook <{{ env.doc2path(env.docname, base=None) }}>`
+:download:`Download this notebook <{{ env.doc2path(env.docname, base=None).name }}>`
 """
 
 # Keep every executable input available without forcing readers to scroll
