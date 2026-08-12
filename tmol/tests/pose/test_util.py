@@ -182,12 +182,73 @@ def test_set_named_torsions_radians(torch_device):
     )
 
 
-def test_set_named_torsions_undefined_torsion_raises(torch_device):
+def test_set_named_torsions_absent_torsion_raises(torch_device):
     pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
 
-    # phi of the n-terminal residue reaches a residue that is not there
+    # the nterm patch removes the down connection, and phi along with it
+    assert "phi" not in get_torsion_names(pose_stack, 0, 0)
+    with pytest.raises(ValueError, match="no torsion"):
+        set_named_torsions(pose_stack, 0, 0, "phi", -60.0)
+
+
+def test_set_named_torsions_undefined_torsion_raises(torch_device):
+    pose_stack = extended_pose_stack_from_sequences(
+        "AKLFG", device=torch_device, termini=False
+    )
+
+    # unpatched, residue 0 keeps phi, but it reaches a residue that is not there
+    assert "phi" in get_torsion_names(pose_stack, 0, 0)
+    assert numpy.isnan(get_named_torsions(pose_stack, 0, 0, "phi"))
     with pytest.raises(ValueError, match="undefined"):
         set_named_torsions(pose_stack, 0, 0, "phi", -60.0)
+
+
+def c_to_n_fold_forest(pose_stack):
+    """Fold forest rooting each single-chain pose at its last residue."""
+    from tmol.kinematics.fold_forest import EdgeType, FoldForest
+
+    n_poses = pose_stack.n_poses
+    edges = numpy.full((n_poses, 2, 4), -1, dtype=int)
+    for pose in range(n_poses):
+        last = int((pose_stack.block_type_ind64[pose] != -1).sum()) - 1
+        edges[pose, 0] = [EdgeType.root_jump, -1, last, -1]
+        edges[pose, 1] = [EdgeType.polymer, last, 0, -1]
+    return FoldForest.from_edges(edges)
+
+
+def test_named_torsions_agree_across_fold_forests(torch_device):
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    reversed_ff = c_to_n_fold_forest(pose_stack)
+
+    targets = {"phi": -61.0, "psi": -43.0, "chi1": 58.0}
+    names, values = list(targets), list(targets.values())
+    default_moved = set_named_torsions(pose_stack, 0, 2, names, values)
+    reversed_moved = set_named_torsions(
+        pose_stack, 0, 2, names, values, fold_forest=reversed_ff
+    )
+
+    # both trees drive the torsion to the requested value
+    for name, target in targets.items():
+        assert get_named_torsions(default_moved, 0, 2, name) == pytest.approx(
+            target, abs=1e-3
+        )
+        assert get_named_torsions(reversed_moved, 0, 2, name) == pytest.approx(
+            target, abs=1e-3
+        )
+
+    # ... but they move opposite ends of the chain
+    start = real_coords(pose_stack, 0)
+    n_first = int(pose_stack.block_coord_offset64[0, 1])
+    last_offset = int(pose_stack.block_coord_offset64[0, 4])
+    numpy.testing.assert_allclose(
+        real_coords(default_moved, 0)[:n_first], start[:n_first], atol=1e-4
+    )
+    numpy.testing.assert_allclose(
+        real_coords(reversed_moved, 0)[last_offset:], start[last_offset:], atol=1e-4
+    )
+    assert not numpy.allclose(
+        real_coords(default_moved, 0), real_coords(reversed_moved, 0), atol=1e-3
+    )
 
 
 PROTEIN_GOLD_TORSION_NAMES = {
