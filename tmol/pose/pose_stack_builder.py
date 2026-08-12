@@ -20,6 +20,7 @@ from tmol.chemical.restypes import (
 )
 from tmol.database import ParameterDatabase
 
+from tmol.io.canonical_ordering import CanonicalOrdering, default_packed_block_types
 from tmol.pose.build_context import PoseBuildContext
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.sequence import (
@@ -167,6 +168,7 @@ class PoseStackBuilder:
         else:
             smiles = smiles_in_tokens(tokens)
             if smiles:
+                # Deferred: slow import
                 from tmol.ligand import prepare_ligands_from_smiles
 
                 param_db, ligand_names = prepare_ligands_from_smiles(
@@ -183,17 +185,18 @@ class PoseStackBuilder:
         )
 
         if packed_block_types is None:
-            packed_block_types = cls._packed_block_types_for_names(
-                restype_set, names, device
-            )
+            if restype_set.chem_db is ParameterDatabase.get_default().chemical:
+                packed_block_types = default_packed_block_types(device)
+            else:
+                packed_block_types = PackedBlockTypes.from_restype_list(
+                    restype_set.chem_db, restype_set, restype_set.residue_types, device
+                )
 
         pose_stack = cls.from_block_type_names(packed_block_types, names, chain_lengths)
         if not return_context:
             return pose_stack
 
         if canonical_ordering is None:
-            from tmol.io.canonical_ordering import CanonicalOrdering
-
             canonical_ordering = CanonicalOrdering.from_chemdb(param_db.chemical)
         return pose_stack, PoseBuildContext(
             canonical_ordering=canonical_ordering,
@@ -201,15 +204,6 @@ class PoseStackBuilder:
             parameter_database=param_db,
             restype_set=restype_set,
             ligand_names=ligand_names,
-        )
-
-    @classmethod
-    def _packed_block_types_for_names(cls, restype_set, names, device):
-        needed = {name.split("--")[0] for seq in names for name in seq}
-        rt_by_name = {rt.name: rt for rt in restype_set.residue_types}
-        subset = [rt_by_name[name] for name in sorted(needed)]
-        return PackedBlockTypes.from_restype_list(
-            restype_set.chem_db, restype_set, subset, device
         )
 
     @classmethod

@@ -1,11 +1,8 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from tmol.chemical.restypes import ResidueTypeSet
-    from tmol.database import ParameterDatabase
-    from tmol.io.canonical_ordering import CanonicalOrdering
-    from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.chemical.restypes import ResidueTypeSet
+from tmol.database import ParameterDatabase
+from tmol.io.canonical_ordering import CanonicalOrdering
+from tmol.pose.packed_block_types import PackedBlockTypes
 
 
 @dataclass(frozen=True)
@@ -17,10 +14,10 @@ class PoseBuildContext:
     many inputs that share the same ligand(s).
     """
 
-    canonical_ordering: "CanonicalOrdering"
-    packed_block_types: "PackedBlockTypes"
-    parameter_database: "ParameterDatabase"
-    restype_set: "ResidueTypeSet"
+    canonical_ordering: CanonicalOrdering
+    packed_block_types: PackedBlockTypes
+    parameter_database: ParameterDatabase
+    restype_set: ResidueTypeSet
     # Definitions derived from tmol_fragment_id annotations. These are carried
     # by reusable contexts so each compatible structure can be expanded without
     # repeating ligand preparation.
