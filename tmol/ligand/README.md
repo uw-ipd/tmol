@@ -200,7 +200,7 @@ calculated.
 ### Reuse the context (preferred)
 
 When scoring many poses that share the same ligand(s), build the expensive,
-structure-independent `BiotitePoseBuildContext` **once** and reuse it. This is
+structure-independent `PoseBuildContext` **once** and reuse it. This is
 the preferred reuse path: it skips rebuilding the parameter database, canonical
 ordering, and packed block types on every structure.
 

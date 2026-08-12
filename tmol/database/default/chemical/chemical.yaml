@@ -151,6 +151,7 @@ residues:
     base_name: ALA
     name3: ALA
     io_equiv_class: ALA
+    one_letter_code: A
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -233,6 +234,7 @@ residues:
     base_name: ARG
     name3: ARG
     io_equiv_class: ARG
+    one_letter_code: R
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -368,6 +370,7 @@ residues:
     base_name: ASN
     name3: ASN
     io_equiv_class: ASN
+    one_letter_code: N
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -465,6 +468,7 @@ residues:
     base_name: ASP
     name3: ASP
     io_equiv_class: ASP
+    one_letter_code: D
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -554,6 +558,7 @@ residues:
     base_name: CYS
     name3: CYS
     io_equiv_class: CYS
+    one_letter_code: C
     atoms:
     - { name: N   , atom_type: Nbb  }
     - { name: CA  , atom_type: CAbb }
@@ -726,6 +731,7 @@ residues:
     base_name: GLN
     name3: GLN
     io_equiv_class: GLN
+    one_letter_code: Q
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -835,6 +841,7 @@ residues:
     base_name: GLU
     name3: GLU
     io_equiv_class: GLU
+    one_letter_code: E
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -936,6 +943,7 @@ residues:
     base_name: GLY
     name3: GLY
     io_equiv_class: GLY
+    one_letter_code: G
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1008,6 +1016,7 @@ residues:
     base_name: HIS
     name3: HIS
     io_equiv_class: HIS
+    one_letter_code: H
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1329,6 +1338,7 @@ residues:
     base_name: ILE
     name3: ILE
     io_equiv_class: ILE
+    one_letter_code: I
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1445,6 +1455,7 @@ residues:
     base_name: LEU
     name3: LEU
     io_equiv_class: LEU
+    one_letter_code: L
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1561,6 +1572,7 @@ residues:
     base_name: LYS
     name3: LYS
     io_equiv_class: LYS
+    one_letter_code: K
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1691,6 +1703,7 @@ residues:
     base_name: MET
     name3: MET
     io_equiv_class: MET
+    one_letter_code: M
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1801,6 +1814,7 @@ residues:
     base_name: PHE
     name3: PHE
     io_equiv_class: PHE
+    one_letter_code: F
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1915,6 +1929,7 @@ residues:
     base_name: PRO
     name3: PRO
     io_equiv_class: PRO
+    one_letter_code: P
     atoms:
     - { name: N   ,  atom_type: Npro }
     - { name: CA  ,  atom_type: CAbb }
@@ -2016,6 +2031,7 @@ residues:
     base_name: SER
     name3: SER
     io_equiv_class: SER
+    one_letter_code: S
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2105,6 +2121,7 @@ residues:
     base_name: THR
     name3: THR
     io_equiv_class: THR
+    one_letter_code: T
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2204,6 +2221,7 @@ residues:
     base_name: TRP
     name3: TRP
     io_equiv_class: TRP
+    one_letter_code: W
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2331,6 +2349,7 @@ residues:
     base_name: TYR
     name3: TYR
     io_equiv_class: TYR
+    one_letter_code: Y
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2453,6 +2472,7 @@ residues:
     base_name: VAL
     name3: VAL
     io_equiv_class: VAL
+    one_letter_code: V
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2558,6 +2578,7 @@ residues:
     base_name: DA
     name3: DA
     io_equiv_class: DA
+    one_letter_code: a
     atoms:
     - { name: P ,   atom_type: Pdna     }
     - { name: OP2 , atom_type: OOP      }
@@ -2711,6 +2732,7 @@ residues:
     base_name: DC
     name3: DC
     io_equiv_class: DC
+    one_letter_code: c
     atoms:
     - { name: P ,   atom_type: Pdna     }
     - { name: OP2 , atom_type: OOP      }
@@ -2857,6 +2879,7 @@ residues:
     base_name: DG
     name3: DG
     io_equiv_class: DG
+    one_letter_code: g
     atoms:
     - { name: P ,   atom_type: Pdna     }
     - { name: OP2 , atom_type: OOP      }
@@ -3013,6 +3036,7 @@ residues:
     base_name: DT
     name3: DT
     io_equiv_class: DT
+    one_letter_code: t
     atoms:
     - { name: P ,   atom_type: Pdna     }
     - { name: OP2 , atom_type: OOP      }
@@ -3167,6 +3191,7 @@ residues:
     base_name: RA
     name3: A
     io_equiv_class: A
+    one_letter_code: a
     atoms:
     - { name: P    , atom_type: Pdna     }
     - { name: OP2  , atom_type: OOP      }
@@ -3327,6 +3352,7 @@ residues:
     base_name: RC
     name3: C
     io_equiv_class: C
+    one_letter_code: c
     atoms:
     - { name: P    , atom_type: Pdna     }
     - { name: OP2  , atom_type: OOP      }
@@ -3480,6 +3506,7 @@ residues:
     base_name: RG
     name3: G
     io_equiv_class: G
+    one_letter_code: g
     atoms:
     - { name: P    , atom_type: Pdna     }
     - { name: OP2  , atom_type: OOP      }
@@ -3643,6 +3670,7 @@ residues:
     base_name: RU
     name3: U
     io_equiv_class: U
+    one_letter_code: u
     atoms:
     - { name: P    , atom_type: Pdna     }
     - { name: OP2  , atom_type: OOP      }

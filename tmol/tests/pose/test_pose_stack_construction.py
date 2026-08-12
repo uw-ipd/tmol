@@ -18,7 +18,8 @@ def test_concatenate_pose_stacks_ctor(ubq_pdb, default_database, torch_device):
 def test_create_pose_from_sequence(fresh_default_packed_block_types, torch_device):
     pbt = fresh_default_packed_block_types
     seqs = [["A", "P", "L", "F"], ["F", "P", "D"], ["A", "S", "F"]]
-    PoseStackBuilder.pose_stack_from_monomer_polymer_sequences(pbt, seqs)
+    chain_lengths = [[len(seq)] for seq in seqs]
+    PoseStackBuilder.from_block_type_names(pbt, seqs, chain_lengths)
 
 
 def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
@@ -657,9 +658,8 @@ def test_construct_pose_stack_containing_disulfides_smoke(
         ["PHE", "CYD--dslf-foo", "PRO", "CYD--dslf-foo", "ASP"],
     ]
 
-    _ = PoseStackBuilder.pose_stack_from_monomer_sequences_w_extrapolymeric_conns(
-        pbt, sequences
-    )
+    chain_lengths = [[len(seq)] for seq in sequences]
+    _ = PoseStackBuilder.from_block_type_names(pbt, sequences, chain_lengths)
 
 
 def interblock_dslf_self_correction(ibb, res_bound_to_next, p, i):
@@ -696,9 +696,7 @@ def interblock_dslf_pair_correction(ibb, res_bound_to_next, p, i, j):
         ibb[p, i, j + 1, 2, 0] = 5
 
 
-def test_pose_stack_from_sequences_smoke(
-    fresh_default_packed_block_types, torch_device
-):
+def test_from_block_type_names_smoke(fresh_default_packed_block_types, torch_device):
     pbt = fresh_default_packed_block_types
     n_poses, max_n_res, max_n_conn = 2, 8, 3
     sequences = [
@@ -721,9 +719,7 @@ def test_pose_stack_from_sequences_smoke(
             count += j
 
     # the call we are testing
-    pose_stack = PoseStackBuilder.pose_stack_from_sequences(
-        pbt, sequences, chain_lengths
-    )
+    pose_stack = PoseStackBuilder.from_block_type_names(pbt, sequences, chain_lengths)
 
     # what is the inter_block_bondsep that should be computed?
     i_to_ip1_no_dslf_gold = torch.tensor(

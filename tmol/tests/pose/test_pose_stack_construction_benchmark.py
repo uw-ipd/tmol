@@ -29,7 +29,7 @@ def test_pose_construction_from_sequence(
 
     @benchmark
     def construct_pass():
-        pose_stack_n = PoseStackBuilder.pose_stack_from_monomer_polymer_sequences(
-            fresh_default_packed_block_types, n_pose_seq
+        pose_stack_n = PoseStackBuilder.from_block_type_names(
+            fresh_default_packed_block_types, n_pose_seq, [[len(seq)]] * n_poses
         )
         return pose_stack_n
