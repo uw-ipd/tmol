@@ -32,12 +32,6 @@ template <
     typename Real,
     typename Int>
 struct DunbrackChiSampler {
-#ifdef __NVCC__
-  using launch_t = mgpu::launch_params_t<128, 2>;
-#else
-  using launch_t = launch_t_cpu<128, 2>;
-#endif
-
   static auto
   f(ContextManager& mgr,
     TView<Vec<Real, 3>, 1, D> coords,
@@ -155,6 +149,8 @@ struct DunbrackChiSampler {
     //                     type
     //                     [0..1) which should have been previously calculated
     //                     based on residue burial and residue type
+
+    LAUNCH_BOX_32;
 
     Int const nbubl(ndihe_for_res.size(0));
     // The number of buildable residue types across all residues
@@ -356,6 +352,8 @@ struct DunbrackChiSampler {
       TView<Int, 2, D> bubl_and_rottable_set_for_buildable_restype,
       TView<int64_t, 1, D> n_rotamers_for_tableset,
       TView<Int, 1, D> n_possible_rotamers_per_brt) {
+    LAUNCH_BOX_32;
+
     Int const n_brt = bubl_and_rottable_set_for_buildable_restype.size(0);
     assert(n_possible_rotamers_per_brt.size(0) == n_brt);
     auto lambda_determine_n_possible_rots = [=] EIGEN_DEVICE_FUNC(int brt) {
@@ -371,6 +369,8 @@ struct DunbrackChiSampler {
       ContextManager& mgr,
       TView<Int, 1, D> possible_rotamer_offset_for_brt,
       TView<Int, 1, D> brt_for_possible_rotamer) {
+    LAUNCH_BOX_32;
+
     int const n_brt = possible_rotamer_offset_for_brt.size(0);
     int const n_possible_rotamers = brt_for_possible_rotamer.size(0);
 
@@ -419,6 +419,8 @@ struct DunbrackChiSampler {
       TView<Int, 1, D> possible_rotamer_offset_for_brt,
       TView<Real, 1, D> backbone_dihedrals,
       TView<Real, 1, D> rotamer_probability) {
+    LAUNCH_BOX_32;
+
     // std::cout << "interpolate_probabilities_for_possible_rotamers" <<
     // std::endl;
     int const n_possible_rotamers = brt_for_possible_rotamer.size(0);
@@ -492,6 +494,8 @@ struct DunbrackChiSampler {
       TView<Int, 1, D> possible_rotamer_offset_for_brt,
       TView<Real, 1, D> rotamer_probability,
       TView<Int, 1, D> n_rotamers_to_build_per_brt) {
+    LAUNCH_BOX_32;
+
     int const n_brt = n_rotamers_to_build_per_brt.size(0);
     int const n_possible_rotamers = rotamer_probability.size(0);
     assert(prob_cumsum_limit_for_buildable_restype.size(0) == n_brt);
@@ -503,7 +507,7 @@ struct DunbrackChiSampler {
     // probabilities to get the cumulative sums of the probabilities so
     // that we can decide where to put the cutoff
     auto rotamer_probability_cumsum_tp =
-        Dispatch<D>::template segmented_scan<mgpu::scan_type_exc, launch_t>(
+        Dispatch<D>::template segmented_scan<mgpu::scan_type_exc>(
             mgr,
             rotamer_probability.data(),
             possible_rotamer_offset_for_brt.data(),
@@ -531,7 +535,7 @@ struct DunbrackChiSampler {
 
     // *in*clusive segmented scan on the build_possible_rotamer array
     auto count_rotamers_to_build_tp =
-        Dispatch<D>::template segmented_scan<mgpu::scan_type_inc, launch_t>(
+        Dispatch<D>::template segmented_scan<mgpu::scan_type_inc>(
             mgr,
             build_possible_rotamer.data(),
             possible_rotamer_offset_for_brt.data(),
@@ -564,6 +568,8 @@ struct DunbrackChiSampler {
       TView<Int, 2, D> expansion_dim_prods_for_brt,
       TView<Int, 1, D> n_rotamers_to_build_per_brt,
       TView<Int, 1, D> n_rotamers_to_build_per_brt_offsets) {
+    LAUNCH_BOX_32;
+
     int const n_brt = nchi_for_buildable_restype.size(0);
     int const max_nchi = expansion_dim_prods_for_brt.size(1);
 
@@ -621,6 +627,8 @@ struct DunbrackChiSampler {
       ContextManager& mgr,
       TView<Int, 1, D> n_rotamers_to_build_per_brt_offsets,
       TView<Int, 1, D> brt_for_rotamer) {
+    LAUNCH_BOX_32;
+
     int const n_rotamers = brt_for_rotamer.size(0);
     int const n_brt = n_rotamers_to_build_per_brt_offsets.size(0);
 
@@ -672,6 +680,8 @@ struct DunbrackChiSampler {
 
       TView<Int, 2, D> expansion_dim_prods_for_brt,
       TView<Real, 2, D> chi_for_rotamers) {
+    LAUNCH_BOX_32;
+
     int const n_rotamers = chi_for_rotamers.size(0);
     int const max_n_chi = chi_for_rotamers.size(1);
 
