@@ -1,5 +1,5 @@
 #include <tmol/score/bonded_atom.hh>
-#include <tmol/score/common/forall_dispatch.cpu.impl.hh>
+#include <tmol/score/common/device_operations.cpu.impl.hh>
 
 #include <tmol/tests/score/bonded_atom/test.impl.hh>
 
@@ -9,7 +9,7 @@ namespace score {
 namespace bonded_atom {
 
 template struct BondedAtomTests<
-    tmol::score::common::ForallDispatch,
+    tmol::score::common::DeviceOperations,
     Device::CPU,
     int32_t>;
 

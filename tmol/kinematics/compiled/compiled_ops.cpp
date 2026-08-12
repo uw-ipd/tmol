@@ -5,7 +5,6 @@
 #include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
-#include <tmol/score/common/simple_dispatch.hh>
 #include <tmol/score/common/device_operations.hh>
 
 #include "common.hh"

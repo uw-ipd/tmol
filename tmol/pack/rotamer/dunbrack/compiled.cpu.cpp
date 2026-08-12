@@ -7,8 +7,7 @@
 #include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
-// #include <tmol/score/common/forall_dispatch.cpu.impl.hh>
-#include <tmol/score/common/complex_dispatch.cpu.impl.hh>
+#include <tmol/score/common/device_operations.cpu.impl.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/numeric/bspline_compiled/bspline.hh>
 
@@ -22,22 +21,22 @@ namespace rotamer {
 namespace dunbrack {
 
 template struct DunbrackChiSampler<
-    score::common::ComplexDispatch,
+    score::common::DeviceOperations,
     tmol::Device::CPU,
     float,
     int32_t>;
 template struct DunbrackChiSampler<
-    score::common::ComplexDispatch,
+    score::common::DeviceOperations,
     tmol::Device::CPU,
     double,
     int32_t>;
 template struct DunbrackChiSampler<
-    score::common::ComplexDispatch,
+    score::common::DeviceOperations,
     tmol::Device::CPU,
     float,
     int64_t>;
 template struct DunbrackChiSampler<
-    score::common::ComplexDispatch,
+    score::common::DeviceOperations,
     tmol::Device::CPU,
     double,
     int64_t>;
