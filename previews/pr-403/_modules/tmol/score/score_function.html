@@ -516,11 +516,25 @@
 <div class="viewcode-block" id="ScoreFunction.set_weight">
 <a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.set_weight">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the weight for a score type, activating its energy term.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_type_covered_by_contained_term</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set a score-type weight and update the active energy terms.</span>
+
+<span class="sd">        A non-zero weight activates the energy term responsible for ``st``.</span>
+<span class="sd">        Setting the last non-zero score type supplied by an energy term to zero</span>
+<span class="sd">        removes that term. Repeated calls update the existing term rather than</span>
+<span class="sd">        adding duplicate term objects.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span><span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="o">==</span> <span class="n">weight</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">weight</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_type_covered_by_contained_term</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_term_for_score_type</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">weight</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_for_st_has_no_other_non_zero_weights</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">remove_term_for_score_type</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>  <span class="c1"># TO DO!</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">weight</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_type_covered_by_contained_term</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_for_st_has_no_other_non_zero_weights</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_term_for_score_type</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span><span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="n">weight</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_weights_tensor_out_of_date</span> <span class="o">=</span> <span class="kc">True</span></div>
 
@@ -533,17 +547,27 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.score_type_covered_by_contained_term">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.score_type_covered_by_contained_term">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.score_type_covered_by_contained_term">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">score_type_covered_by_contained_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">score_types</span><span class="p">():</span>
-                <span class="k">return</span> <span class="kc">True</span>
-        <span class="k">return</span> <span class="kc">False</span></div>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return whether an active term provides ``st``.</span>
+
+<span class="sd">        This consults the authoritative score-type-to-term mapping rather than</span>
+<span class="sd">        the lazily rebuilt, sorted term cache.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_term_for_st</span><span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="ScoreFunction.retrieve_term_for_score_type">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.retrieve_term_for_score_type">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.retrieve_term_for_score_type">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">retrieve_term_for_score_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create and activate the energy term responsible for ``st``.</span>
+
+<span class="sd">        If a sibling score type has already activated the same term, this is a</span>
+<span class="sd">        no-op.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_type_covered_by_contained_term</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>
+            <span class="k">return</span>
+
         <span class="n">term</span> <span class="o">=</span> <span class="n">ScoreTermFactory</span><span class="o">.</span><span class="n">create_term_for_score_type</span><span class="p">(</span>
             <span class="n">st</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_param_db</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device</span>
         <span class="p">)</span>
@@ -562,19 +586,55 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_two_body_terms_out_of_date</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_unordered</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_out_of_date</span> <span class="o">=</span> <span class="kc">True</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_out_of_date</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_weights_tensor_out_of_date</span> <span class="o">=</span> <span class="kc">True</span></div>
 
 
 <div class="viewcode-block" id="ScoreFunction.term_for_st_has_no_other_non_zero_weights">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.term_for_st_has_no_other_non_zero_weights">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.term_for_st_has_no_other_non_zero_weights">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">term_for_st_has_no_other_non_zero_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return whether ``st`` is the term&#39;s only possibly non-zero weight.&quot;&quot;&quot;</span>
         <span class="n">term</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_term_for_st</span><span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">term</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
         <span class="k">for</span> <span class="n">st2</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">score_types</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">st2</span> <span class="o">==</span> <span class="n">st</span><span class="p">:</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span><span class="p">[</span><span class="n">st2</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">return</span> <span class="kc">True</span>
-        <span class="k">return</span> <span class="kc">False</span></div>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="ScoreFunction.remove_term_for_score_type">
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.remove_term_for_score_type">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_term_for_score_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove the active energy term responsible for ``st``.</span>
+
+<span class="sd">        All score types emitted by the removed term are reset to zero, and all</span>
+<span class="sd">        sorted-term and weight caches are invalidated. Removing an inactive</span>
+<span class="sd">        score type is a no-op.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">term</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_term_for_st</span><span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">term</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms_unordered</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms_out_of_date</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">term</span><span class="o">.</span><span class="n">n_bodies</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_one_body_terms_unordered</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_one_body_terms_out_of_date</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">term</span><span class="o">.</span><span class="n">n_bodies</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_two_body_terms_unordered</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_two_body_terms_out_of_date</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_unordered</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_out_of_date</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">for</span> <span class="n">term_st</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">score_types</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_term_for_st</span><span class="p">[</span><span class="n">term_st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span><span class="p">[</span><span class="n">term_st</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_weights_tensor_out_of_date</span> <span class="o">=</span> <span class="kc">True</span></div>
 
 
 <div class="viewcode-block" id="ScoreFunction.all_terms">
@@ -582,7 +642,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">all_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Grant read access to the list of terms.</span>
 
-<span class="sd">        Do not modify this list directly</span>
+<span class="sd">        Do not modify this list directly.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms_out_of_date</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_score_types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sorted_terms</span><span class="p">(</span>
@@ -594,8 +654,15 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.all_score_types">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.all_score_types">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.all_score_types">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">all_score_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return score types emitted by the currently active terms.</span>
+
+<span class="sd">        Score types are ordered by their position in :class:`ScoreType`, which</span>
+<span class="sd">        is also the order used by :meth:`weights_tensor` and rendered scoring</span>
+<span class="sd">        modules. A returned score type may have weight zero when a sibling</span>
+<span class="sd">        score type keeps their shared energy term active.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms_out_of_date</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_score_types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sorted_terms</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_all_terms_unordered</span>
@@ -606,8 +673,9 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.one_body_terms">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.one_body_terms">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.one_body_terms">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">one_body_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return active one-body energy terms in score-type order.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_one_body_terms_out_of_date</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_one_body_terms</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sorted_terms</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_one_body_terms_unordered</span>
@@ -618,8 +686,9 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.two_body_terms">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.two_body_terms">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.two_body_terms">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">two_body_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return active two-body energy terms in score-type order.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_two_body_terms_out_of_date</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_two_body_terms</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sorted_terms</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_two_body_terms_unordered</span>
@@ -630,8 +699,9 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.multi_body_terms">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.multi_body_terms">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.multi_body_terms">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">multi_body_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return active energy terms involving more than two bodies.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_out_of_date</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sorted_terms</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_multi_body_terms_unordered</span>
@@ -695,8 +765,9 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.pre_work_initialization">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.pre_work_initialization">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.pre_work_initialization">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">pre_work_initialization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepare all active terms for rendering against ``pose_stack``.&quot;&quot;&quot;</span>
         <span class="c1"># set_options must be first, since some of the logic that follows it</span>
         <span class="c1"># may depend on the options</span>
         <span class="k">for</span> <span class="n">energy_term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_terms</span><span class="p">():</span>
@@ -734,8 +805,9 @@
 
 
 <div class="viewcode-block" id="ScoreFunction.weights_tensor">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.score_function.ScoreFunction.weights_tensor">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.score.score_function.ScoreFunction.weights_tensor">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">weights_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return active score-type weights in :meth:`all_score_types` order.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weights_tensor_out_of_date</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_weights_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
                 <span class="p">[</span>

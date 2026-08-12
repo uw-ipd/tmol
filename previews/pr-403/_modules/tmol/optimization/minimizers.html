@@ -508,6 +508,7 @@
     <span class="n">optimizer_cls</span><span class="o">=</span><span class="n">LBFGS_Armijo</span><span class="p">,</span>
     <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">per_pose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run minimization on any sfxn module (Cartesian or KinForest).</span>
 
@@ -523,6 +524,10 @@
 <span class="sd">        optimizer_kwargs: Dict of keyword arguments passed to the optimizer</span>
 <span class="sd">            constructor.</span>
 <span class="sd">        verbose: Print timing information.</span>
+<span class="sd">        per_pose: Give each pose its own inverse-Hessian estimate and</span>
+<span class="sd">            convergence test, so that minimizing a stack matches minimizing</span>
+<span class="sd">            its poses one at a time. Ignored by optimizers that do not</span>
+<span class="sd">            support it.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A new PoseStack with optimized coordinates.</span>
@@ -534,13 +539,22 @@
         <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
+    <span class="n">segment_ids</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sfxn_module</span><span class="p">,</span> <span class="s2">&quot;segment_ids&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">segmented</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">per_pose</span>
+        <span class="ow">and</span> <span class="n">segment_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">optimizer_cls</span><span class="p">,</span> <span class="s2">&quot;supports_segments&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">segmented</span><span class="p">:</span>
+        <span class="n">optimizer_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">optimizer_kwargs</span><span class="p">,</span> <span class="n">segment_ids</span><span class="o">=</span><span class="n">segment_ids</span><span class="p">)</span>
+
     <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_cls</span><span class="p">(</span><span class="n">sfxn_module</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="o">**</span><span class="n">optimizer_kwargs</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">closure</span><span class="p">():</span>
         <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-        <span class="n">E</span> <span class="o">=</span> <span class="n">sfxn_module</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-        <span class="n">E</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">E</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">sfxn_module</span><span class="p">()</span>
+        <span class="n">E</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">E</span> <span class="k">if</span> <span class="n">segmented</span> <span class="k">else</span> <span class="n">E</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>

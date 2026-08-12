@@ -505,7 +505,10 @@
         <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="o">.</span><span class="n">chain_id64</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">,</span>
-        <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span>
+        <span class="c1"># The record-construction kernels use the historical float32 contract.</span>
+        <span class="c1"># PDB stores coordinates to three decimal places, so convert a</span>
+        <span class="c1"># float64 minimization result here without mutating the PoseStack.</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
         <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_insertion_codes</span><span class="p">,</span>

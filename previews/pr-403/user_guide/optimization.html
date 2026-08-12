@@ -557,32 +557,30 @@ the optimization variables.</p>
 </section>
 <section id="relax">
 <h2>Relax<a class="headerlink" href="#relax" title="Link to this heading">#</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">tmol.relax.fast_relax.fast_relax()</span></code> combines repacking and minimization over a
-schedule of score-function weights. It is the highest-level refinement
-primitive in the package:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.fold_forest</span><span class="w"> </span><span class="kn">import</span> <span class="n">FoldForest</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.move_map</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianMoveMap</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerPalette</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.relax.fast_relax</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_relax</span>
+<p><code class="docutils literal notranslate"><span class="pre">cartesian_fast_relax()</span></code> and <code class="docutils literal notranslate"><span class="pre">kin_fast_relax()</span></code> combine repacking and
+minimization over a schedule of score-function weights. They are the
+highest-level refinement primitives in the package:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianMoveMap</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">cartesian_fast_relax</span>
 
 <span class="n">palette</span> <span class="o">=</span> <span class="n">PackerPalette</span><span class="p">()</span>
 <span class="n">move_map</span> <span class="o">=</span> <span class="n">CartesianMoveMap</span><span class="p">()</span>  <span class="c1"># coord_mask=None allows all atom coordinates</span>
-<span class="n">fold_forest</span> <span class="o">=</span> <span class="n">FoldForest</span><span class="o">.</span><span class="n">reasonable_fold_forest</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
 
-<span class="n">relaxed_pose_stack</span> <span class="o">=</span> <span class="n">fast_relax</span><span class="p">(</span>
+<span class="n">relaxed_pose_stack</span> <span class="o">=</span> <span class="n">cartesian_fast_relax</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">,</span>
     <span class="n">sfxn</span><span class="p">,</span>
     <span class="n">palette</span><span class="p">,</span>
     <span class="n">move_map</span><span class="p">,</span>
-    <span class="n">fold_forest</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>The default FastRelax minimizer is Cartesian, so it reads
-<code class="docutils literal notranslate"><span class="pre">CartesianMoveMap.coord_mask</span></code> and ignores the fold forest. The fold forest is
-still a required argument because the same protocol can run a custom
-kinematic <code class="docutils literal notranslate"><span class="pre">min_fn</span></code>; in that case pass a full <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code> and have <code class="docutils literal notranslate"><span class="pre">min_fn</span></code> call
-<code class="docutils literal notranslate"><span class="pre">run_kin_min()</span></code> with the supplied fold forest and move map.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cartesian_fast_relax()</span></code> reads <code class="docutils literal notranslate"><span class="pre">CartesianMoveMap.coord_mask</span></code> and does not
+require a fold forest. <code class="docutils literal notranslate"><span class="pre">kin_fast_relax()</span></code> requires a full <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code> and
+<code class="docutils literal notranslate"><span class="pre">FoldForest</span></code> and selects kinematic minimization. The lower-level <code class="docutils literal notranslate"><span class="pre">fast_relax()</span></code>
+defaults to Cartesian minimization, accepts an optional fold forest, and can
+run a custom compatible <code class="docutils literal notranslate"><span class="pre">min_fn</span></code>.</p>
+<p>Packing always runs in float32. If the input pose has float64 coordinates,
+FastRelax restores float64 after every packing stage and uses that precision
+for minimization and the returned pose.</p>
 </section>
 <section id="related-examples">
 <h2>Related examples<a class="headerlink" href="#related-examples" title="Link to this heading">#</a></h2>

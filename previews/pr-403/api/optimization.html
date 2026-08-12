@@ -496,7 +496,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.optimization.minimizers.run_min">
-<span class="sig-prename descclassname"><span class="pre">tmol.optimization.minimizers.</span></span><span class="sig-name descname"><span class="pre">run_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sfxn_module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_cls=&lt;class</span> <span class="pre">'tmol.optimization.lbfgs_armijo.LBFGS_Armijo'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose=False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/minimizers.html#run_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.minimizers.run_min" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmol.optimization.minimizers.</span></span><span class="sig-name descname"><span class="pre">run_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sfxn_module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_cls=&lt;class</span> <span class="pre">'tmol.optimization.lbfgs_armijo.LBFGS_Armijo'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_pose=True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/minimizers.html#run_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.minimizers.run_min" title="Link to this definition">#</a></dt>
 <dd><p>Run minimization on any sfxn module (Cartesian or KinForest).</p>
 <p>The sfxn_module must be a torch.nn.Module whose forward() returns
 per-pose energies and which provides a pose_stack_from_dofs() method
@@ -511,6 +511,10 @@ closure-based step() call (e.g. LBFGS_Armijo, torch LBFGS).</p></li>
 <li><p><strong>optimizer_kwargs</strong> – Dict of keyword arguments passed to the optimizer
 constructor.</p></li>
 <li><p><strong>verbose</strong> – Print timing information.</p></li>
+<li><p><strong>per_pose</strong> – Give each pose its own inverse-Hessian estimate and
+convergence test, so that minimizing a stack matches minimizing
+its poses one at a time. Ignored by optimizers that do not
+support it.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -545,19 +549,23 @@ H_k g = g + [S Y] M [S^T g ; Y^T g]</p>
 </div></blockquote>
 <p>Algebraically identical to the classic two-loop recursion, but all O(N*m)
 ops are parallelized.</p>
+<p>grad is (N) or (k, N) and dirs/stps are (m, N) or (m, k, N); in the latter
+case each of the k batches gets its own inverse-Hessian estimate.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="tmol.optimization.lbfgs_armijo.armijo_linesearch">
-<span class="sig-prename descclassname"><span class="pre">tmol.optimization.lbfgs_armijo.</span></span><span class="sig-name descname"><span class="pre">armijo_linesearch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">derphi0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">old_fval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_decrease</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_increase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minstep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/lbfgs_armijo.html#armijo_linesearch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.lbfgs_armijo.armijo_linesearch" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="tmol.optimization.lbfgs_armijo.armijo_linesearch_segmented">
+<span class="sig-prename descclassname"><span class="pre">tmol.optimization.lbfgs_armijo.</span></span><span class="sig-name descname"><span class="pre">armijo_linesearch_segmented</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">derphi0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">old_fval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">searching</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_decrease</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_increase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minstep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/lbfgs_armijo.html#armijo_linesearch_segmented"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.lbfgs_armijo.armijo_linesearch_segmented" title="Link to this definition">#</a></dt>
 <dd><p>Minimize over alpha, the function <code class="docutils literal notranslate"><span class="pre">f(xk+alpha</span> <span class="pre">pk)</span></code>.</p>
+<p>Each segment gets its own alpha; one call to f evaluates all of them.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>f</strong> (<em>callable</em>) – Function to be minimized, f(step)</p></li>
-<li><p><strong>derphi0</strong> – (float) directional derivative</p></li>
-<li><p><strong>fval0</strong> – (float) func(0), the value of the function at the origin</p></li>
-<li><p><strong>alpha0</strong> – (float) the initial stepsize</p></li>
+<li><p><strong>derphi0</strong> – (Tensor) directional derivative, per segment</p></li>
+<li><p><strong>fval0</strong> – (Tensor) func(0), the value of the function at the origin</p></li>
+<li><p><strong>alpha0</strong> – (Tensor) the initial stepsize, per segment</p></li>
+<li><p><strong>searching</strong> – (Tensor) which segments take part in the search</p></li>
 <li><p><strong>sigma_increase</strong> – (float) initial stepsize
 [must be in (0,1) and &gt;=sigma_decrease]</p></li>
 <li><p><strong>sigma_decrease</strong> – (float) initial stepsize
@@ -567,8 +575,11 @@ ops are parallelized.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>stepsize - accepted stepsize
-f_val - final function value</p>
+<dd class="field-even"><p>stepsize - accepted stepsize, per segment
+f_val - final function value, per segment
+n_evals - number of calls to f
+status - per segment, one of the _LS_ codes
+trial_is_accepted - whether the last trial evaluated the accepted steps</p>
 </dd>
 </dl>
 <dl>
@@ -606,22 +617,29 @@ stepsize, factor^2 is used</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmol.optimization.lbfgs_armijo.LBFGS_Armijo">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.optimization.lbfgs_armijo.</span></span><span class="sig-name descname"><span class="pre">LBFGS_Armijo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minstep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/lbfgs_armijo.html#LBFGS_Armijo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.lbfgs_armijo.LBFGS_Armijo" title="Link to this definition">#</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.optimization.lbfgs_armijo.</span></span><span class="sig-name descname"><span class="pre">LBFGS_Armijo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minstep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/lbfgs_armijo.html#LBFGS_Armijo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.lbfgs_armijo.LBFGS_Armijo" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Optimizer</span></code></p>
 <p>Implements L-BFGS algorithm with Armijo line search.
 All scaling and parameters taken directly from Rosetta</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>lr</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – learning rate (default: 1)</p></li>
-<li><p><strong>max_iter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – maximal number of iterations (default: 200)</p></li>
-<li><p><strong>rtol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – relative tolerance (default: 1e-6)</p></li>
-<li><p><strong>atol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – absolute tolerance (default: 0)</p></li>
-<li><p><strong>gradtol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – an absolute tolerance on max_i <a href="#id1"><span class="problematic" id="id2">|df/dx_i|</span></a> (default: 1)</p></li>
-<li><p><strong>history_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – update history size (default: 128).</p></li>
+<li><p><strong>lr</strong> (<em>float</em>) – learning rate (default: 1)</p></li>
+<li><p><strong>max_iter</strong> (<em>int</em>) – maximal number of iterations (default: 200)</p></li>
+<li><p><strong>rtol</strong> (<em>float</em>) – relative tolerance (default: 1e-6)</p></li>
+<li><p><strong>atol</strong> (<em>float</em>) – absolute tolerance (default: 0)</p></li>
+<li><p><strong>gradtol</strong> (<em>float</em>) – an absolute tolerance on max_i <a href="#id1"><span class="problematic" id="id2">|df/dx_i|</span></a> (default: 1)</p></li>
+<li><p><strong>history_size</strong> (<em>int</em>) – update history size (default: 128).</p></li>
+<li><p><strong>segment_ids</strong> (<a class="reference internal" href="types.html#tmol.types.torch.Tensor" title="tmol.types.torch.Tensor"><em>Tensor</em></a>) – the segment (e.g. pose) each parameter element
+belongs to; each segment is minimized independently (default: one)</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.optimization.lbfgs_armijo.LBFGS_Armijo.supports_segments">
+<span class="sig-name descname"><span class="pre">supports_segments</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#tmol.optimization.lbfgs_armijo.LBFGS_Armijo.supports_segments" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="tmol.optimization.lbfgs_armijo.LBFGS_Armijo.step">
 <span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">closure</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/lbfgs_armijo.html#LBFGS_Armijo.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.lbfgs_armijo.LBFGS_Armijo.step" title="Link to this definition">#</a></dt>
@@ -746,8 +764,9 @@ registered hooks while the latter silently ignores them.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.minimizers.run_kin_min"><code class="docutils literal notranslate"><span class="pre">run_kin_min()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.minimizers.run_cart_min"><code class="docutils literal notranslate"><span class="pre">run_cart_min()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.lbfgs_armijo.lbfgs_two_loop"><code class="docutils literal notranslate"><span class="pre">lbfgs_two_loop()</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.lbfgs_armijo.armijo_linesearch"><code class="docutils literal notranslate"><span class="pre">armijo_linesearch()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.lbfgs_armijo.armijo_linesearch_segmented"><code class="docutils literal notranslate"><span class="pre">armijo_linesearch_segmented()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.lbfgs_armijo.LBFGS_Armijo"><code class="docutils literal notranslate"><span class="pre">LBFGS_Armijo</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.lbfgs_armijo.LBFGS_Armijo.supports_segments"><code class="docutils literal notranslate"><span class="pre">LBFGS_Armijo.supports_segments</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.lbfgs_armijo.LBFGS_Armijo.step"><code class="docutils literal notranslate"><span class="pre">LBFGS_Armijo.step()</span></code></a></li>
 </ul>
 </li>

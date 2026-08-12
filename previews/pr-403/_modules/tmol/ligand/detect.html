@@ -473,8 +473,6 @@
 <span class="n">SKIP_RESIDUES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;HOH&quot;</span><span class="p">,</span> <span class="s2">&quot;WAT&quot;</span><span class="p">,</span> <span class="s2">&quot;DOD&quot;</span><span class="p">,</span> <span class="s2">&quot;VRT&quot;</span><span class="p">})</span>
 
 
-<div class="viewcode-block" id="NonStandardResidueInfo">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.NonStandardResidueInfo">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NonStandardResidueInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Detected non-standard residue requiring preparation.</span>
@@ -518,8 +516,7 @@
     <span class="n">skip_protonation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">original_single_bonds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="c1"># source atom-array index per mol2 heavy atom (SMILES-via-mol2 path only)</span>
-    <span class="n">source_atom_order</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span></div>
-
+    <span class="n">source_atom_order</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <span class="nd">@functools</span><span class="o">.</span><span class="n">cache</span>

@@ -457,7 +457,7 @@
 
 
 <div class="viewcode-block" id="constrain_all_ca">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.constraint.utility.constrain_all_ca">[docs]</a>
+<a class="viewcode-back" href="../../../../api/top_level.html#tmol.score.constraint.utility.constrain_all_ca">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">constrain_all_ca</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a pose with 0.5 Å coordinate restraints on every protein CA.</span>
 
@@ -471,12 +471,14 @@
     <span class="n">constraint_set</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">constraint_set</span>
 
     <span class="n">cnstr_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">cnstr_params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">cnstr_params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">pose_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">block_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">is_real_block</span><span class="p">(</span><span class="n">pose_ind</span><span class="p">,</span> <span class="n">block_ind</span><span class="p">):</span>
                 <span class="n">block_type</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="n">pose_ind</span><span class="p">,</span> <span class="n">block_ind</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;CA&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">:</span>
+                    <span class="k">continue</span>
 
                 <span class="n">ca_ind</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="s2">&quot;CA&quot;</span><span class="p">]</span>
                 <span class="n">ca_params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>

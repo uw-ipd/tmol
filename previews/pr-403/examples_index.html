@@ -413,6 +413,7 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorial/06_fast_relax.html">FastRelax</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial/07_ligand_and_params.html">Ligands and parameter files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial/08_nucleic_acids.html">Working with DNA and RNA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/recipe_index.html">TMol recipe index</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial/rosetta_crosswalk.html">Rosetta-to-TMol crosswalk</a></li>
 </ul>
 </div>
@@ -478,6 +479,9 @@ viewers, selectable structures and atom subsets, result tables, plots, and
 exercises. For shorter, reusable recipes, see <a class="reference internal" href="workflows/index.html"><span class="doc">Workflows</span></a>.
 Start with the first two examples; later notebooks assume their <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code>
 and GPU-batching vocabulary.</p>
+<p>The <a class="reference internal" href="tutorial/recipe_index.html"><span class="doc">PR 399 recipe audit</span></a> maps historical
+how-to cells to maintained tutorials and API pages, and records obsolete,
+defective, TODO-only, and unsupported examples that should not be copied.</p>
 <p>Readers coming from Rosetta or PyRosetta can consult the
 <a class="reference internal" href="tutorial/rosetta_crosswalk.html"><span class="doc">Rosetta-to-TMol crosswalk</span></a> alongside the
 examples. The crosswalk distinguishes genuine API parallels from capabilities
@@ -486,7 +490,7 @@ that tmol does not currently implement.</p>
   <a class="example-card" href="tutorial/01_working_with_tmol.html">
     <img src="_static/tutorials/01_working_with_tmol.svg" alt="1UBQ with residues 1 through 10 highlighted">
     <span class="example-card-title">1. Working with TMol</span>
-    <span class="example-card-description">CIF input, PoseStack concepts, AtomWorks selections, and interactive visualization.</span>
+    <span class="example-card-description">CIF and PDB input, preparation choices, PoseStack concepts, export, and visualization.</span>
   </a>
   <a class="example-card" href="tutorial/02_gpu_batching.html">
     <img src="_static/tutorials/02_gpu_batching.svg" alt="1UBQ, 1R21, and 1BL8 arranged as one heterogeneous structure batch">
@@ -506,7 +510,7 @@ that tmol does not currently implement.</p>
   <a class="example-card" href="tutorial/05_minimization_constraints_kinematics.html">
     <img src="_static/tutorials/05_minimization_constraints_kinematics.svg" alt="Restrained eight-residue 1UBQ minimization system">
     <span class="example-card-title">5. Minimization and kinematics</span>
-    <span class="example-card-description">Cartesian and torsional minimization, constraints, MoveMaps, and FoldForests.</span>
+    <span class="example-card-description">Cartesian and torsional minimization, low-level constraints, MoveMaps, and explicit FoldForests.</span>
   </a>
   <a class="example-card" href="tutorial/06_fast_relax.html">
     <img src="_static/tutorials/06_fast_relax.svg" alt="Six-residue 1UBQ system beside its two-stage pack-minimize schedule">

@@ -598,7 +598,7 @@
     <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
     <span class="n">packer_pallete</span><span class="p">:</span> <span class="n">PackerPalette</span><span class="p">,</span>
     <span class="n">move_map</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">MoveMap</span><span class="p">,</span> <span class="n">CartesianMoveMap</span><span class="p">],</span>
-    <span class="n">fold_forest</span><span class="p">:</span> <span class="n">FoldForest</span><span class="p">,</span>
+    <span class="n">fold_forest</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">FoldForest</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">task_operations</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">num_repeats</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
@@ -615,14 +615,17 @@
 <span class="sd">    followed by an accept-to-best check.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        pose_stack: The input poses to relax.</span>
+<span class="sd">        pose_stack: The input poses to relax. Packing always uses float32</span>
+<span class="sd">            coordinates, while minimization and the returned pose preserve the</span>
+<span class="sd">            input coordinate dtype.</span>
 <span class="sd">        sfxn: Score function used for packing and minimization. If you wish</span>
 <span class="sd">            to use constraints during relax, then the weight on the &quot;constraint&quot;</span>
 <span class="sd">            score type must already have a non-zero value.</span>
 <span class="sd">        packer_pallete: Palette defining the residue types available to the</span>
 <span class="sd">            packer.</span>
 <span class="sd">        move_map: Specifies which DOFs are free to move during minimization.</span>
-<span class="sd">        fold_forest: Fold forest defining the kinematic connectivity.</span>
+<span class="sd">        fold_forest: Fold forest defining the kinematic connectivity. Required</span>
+<span class="sd">            by kinematic minimizers and optional for Cartesian minimization.</span>
 <span class="sd">        task_operations: List of callables that configure a PackerTask.  Each</span>
 <span class="sd">            callable receives a PackerTask and modifies it in place (e.g. to</span>
 <span class="sd">            restrict to repacking or add chi samplers).  If None, a default</span>
@@ -794,6 +797,12 @@
     <span class="n">min_fn</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">,</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform one FastRelax packing/minimization step.</span>
+
+<span class="sd">    Packing is performed with float32 coordinates. The packed coordinates are</span>
+<span class="sd">    converted back to the input dtype before minimization.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">input_pose_dtype</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span>
 
     <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
@@ -811,7 +820,9 @@
     <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span><span class="p">()</span>
     <span class="n">end_time1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-    <span class="n">packed_pose_stack</span> <span class="o">=</span> <span class="n">pack_rotamers</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span>
+    <span class="n">packed_pose_stack</span> <span class="o">=</span> <span class="n">pack_rotamers</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">input_pose_dtype</span><span class="p">)</span>
 
     <span class="n">sfxn</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">fa_ljrep</span><span class="p">,</span> <span class="n">fa_rep_min_weight</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
@@ -887,6 +898,83 @@
         <span class="k">return</span> <span class="n">new_best_pose_stack</span><span class="p">,</span> <span class="n">new_best_pose_score</span>
     <span class="k">else</span><span class="p">:</span>  <span class="c1"># no change</span>
         <span class="k">return</span> <span class="n">best_pose_stack</span><span class="p">,</span> <span class="n">best_pose_score</span></div>
+
+
+
+<div class="viewcode-block" id="kin_fast_relax">
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.relax.fast_relax.kin_fast_relax">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">kin_fast_relax</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
+    <span class="n">packer_pallete</span><span class="p">:</span> <span class="n">PackerPalette</span><span class="p">,</span>
+    <span class="n">move_map</span><span class="p">:</span> <span class="n">MoveMap</span><span class="p">,</span>
+    <span class="n">fold_forest</span><span class="p">:</span> <span class="n">FoldForest</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">task_operations</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">num_repeats</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">ramp_constraints</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">schedule</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">min_fn</span><span class="o">=</span><span class="n">_default_kin_min_fn</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run FastRelax with kinematic (torsion-space) minimization.</span>
+
+<span class="sd">    This convenience wrapper selects :func:`_default_kin_min_fn` while</span>
+<span class="sd">    preserving all schedules, task operations, score-weight restoration, and</span>
+<span class="sd">    precision behavior documented by :func:`fast_relax`. A custom compatible</span>
+<span class="sd">    ``min_fn`` may be supplied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">fast_relax</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="p">,</span>
+        <span class="n">sfxn</span><span class="p">,</span>
+        <span class="n">packer_pallete</span><span class="p">,</span>
+        <span class="n">move_map</span><span class="p">,</span>
+        <span class="n">fold_forest</span><span class="p">,</span>
+        <span class="n">task_operations</span><span class="o">=</span><span class="n">task_operations</span><span class="p">,</span>
+        <span class="n">num_repeats</span><span class="o">=</span><span class="n">num_repeats</span><span class="p">,</span>
+        <span class="n">ramp_constraints</span><span class="o">=</span><span class="n">ramp_constraints</span><span class="p">,</span>
+        <span class="n">schedule</span><span class="o">=</span><span class="n">schedule</span><span class="p">,</span>
+        <span class="n">min_fn</span><span class="o">=</span><span class="n">min_fn</span> <span class="ow">or</span> <span class="n">_default_kin_min_fn</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="cartesian_fast_relax">
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.relax.fast_relax.cartesian_fast_relax">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cartesian_fast_relax</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
+    <span class="n">packer_pallete</span><span class="p">:</span> <span class="n">PackerPalette</span><span class="p">,</span>
+    <span class="n">move_map</span><span class="p">:</span> <span class="n">CartesianMoveMap</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">task_operations</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">num_repeats</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">ramp_constraints</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">schedule</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">min_fn</span><span class="o">=</span><span class="n">_default_cart_min_fn</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run FastRelax with Cartesian coordinate-space minimization.</span>
+
+<span class="sd">    The fold forest is omitted because Cartesian minimization does not use it.</span>
+<span class="sd">    This otherwise preserves all schedules, task operations, score-weight</span>
+<span class="sd">    restoration, and precision behavior documented by :func:`fast_relax`. A</span>
+<span class="sd">    custom compatible ``min_fn`` may be supplied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">fast_relax</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="p">,</span>
+        <span class="n">sfxn</span><span class="p">,</span>
+        <span class="n">packer_pallete</span><span class="p">,</span>
+        <span class="n">move_map</span><span class="p">,</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">task_operations</span><span class="o">=</span><span class="n">task_operations</span><span class="p">,</span>
+        <span class="n">num_repeats</span><span class="o">=</span><span class="n">num_repeats</span><span class="p">,</span>
+        <span class="n">ramp_constraints</span><span class="o">=</span><span class="n">ramp_constraints</span><span class="p">,</span>
+        <span class="n">schedule</span><span class="o">=</span><span class="n">schedule</span><span class="p">,</span>
+        <span class="n">min_fn</span><span class="o">=</span><span class="n">min_fn</span> <span class="ow">or</span> <span class="n">_default_cart_min_fn</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 </pre></div>
 

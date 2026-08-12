@@ -1,0 +1,833 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>TMol recipe index &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=c9b21c7c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../_static/documentation_options.js?v=5df2d9e8"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'tutorial/recipe_index';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-403';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Rosetta-to-TMol crosswalk" href="rosetta_crosswalk.html" />
+    <link rel="prev" title="Working with DNA and RNA" href="08_nucleic_acids.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.47" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="01_working_with_tmol.html">Working with TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_gpu_batching.html">GPU Batching with TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_scoring_and_analysis.html">Scoring and Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_packing_and_mutation_scan.html">Packing and a Small Mutation Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_minimization_constraints_kinematics.html">Minimization, constraints, and kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06_fast_relax.html">FastRelax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07_ligand_and_params.html">Ligands and parameter files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08_nucleic_acids.html">Working with DNA and RNA</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">TMol recipe index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rosetta_crosswalk.html">Rosetta-to-TMol crosswalk</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../examples_index.html" class="nav-link">Examples</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">TMol recipe index</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="tmol-recipe-index">
+<h1>TMol recipe index<a class="headerlink" href="#tmol-recipe-index" title="Link to this heading">#</a></h1>
+<p>This index audits the implemented examples in the historical
+<a class="reference external" href="https://github.com/uw-ipd/tmol/pull/399">PR #399</a> notebook
+(<code class="docutils literal notranslate"><span class="pre">tmol_how_to_guide.ipynb</span></code>, revision <code class="docutils literal notranslate"><span class="pre">b45ba1c48</span></code>) against the maintained
+tutorials and API. It is a migration map, not an endorsement of every old
+cell. The numbered tutorials are the maintained learning path; API pages are
+the concise reference.</p>
+<section id="fundamentals-input-and-output">
+<h2>Fundamentals, input, and output<a class="headerlink" href="#fundamentals-input-and-output" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>PR 399 recipe</p></th>
+<th class="head"><p>Maintained location</p></th>
+<th class="head"><p>Status and notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Default <code class="docutils literal notranslate"><span class="pre">ParameterDatabase</span></code></p></td>
+<td><p><a class="reference internal" href="01_working_with_tmol.html"><span class="std std-doc">01 — Working with TMol</span></a>, <a class="reference internal" href="../api/database.html"><span class="std std-doc">database API</span></a></p></td>
+<td><p>Supported.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Default <code class="docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code> and <code class="docutils literal notranslate"><span class="pre">CanonicalOrdering</span></code></p></td>
+<td><p><a class="reference internal" href="01_working_with_tmol.html"><span class="std std-doc">01 — Working with TMol</span></a>, <a class="reference internal" href="../api/io.html"><span class="std std-doc">I/O API</span></a></p></td>
+<td><p>Supported. Most users receive these through a build context rather than constructing them manually.</p></td>
+</tr>
+<tr class="row-even"><td><p>Pose from PDB</p></td>
+<td><p><a class="reference internal" href="01_working_with_tmol.html"><span class="std std-doc">01 — Working with TMol</span></a>, <a class="reference internal" href="../api/io.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">tmol.io</span></code></span></a></p></td>
+<td><p>Supported by the direct <code class="docutils literal notranslate"><span class="pre">tmol.pose_stack_from_pdb()</span></code> path. Prefer CIF/Biotite when richer metadata or ligand bonds matter.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Residue-range PDB input</p></td>
+<td><p><a class="reference internal" href="01_working_with_tmol.html"><span class="std std-doc">01 — Working with TMol</span></a></p></td>
+<td><p>Supported. <code class="docutils literal notranslate"><span class="pre">residue_start</span></code>/<code class="docutils literal notranslate"><span class="pre">residue_end</span></code> are zero-based, half-open positions in parsed residue order, not author residue numbers. <code class="docutils literal notranslate"><span class="pre">res_not_connected</span></code> distinguishes an internal cut from a true terminus.</p></td>
+</tr>
+<tr class="row-even"><td><p>Pose from Biotite or mmCIF</p></td>
+<td><p><a class="reference internal" href="01_working_with_tmol.html"><span class="std std-doc">01 — Working with TMol</span></a>, <a class="reference internal" href="../api/io.html"><span class="std std-doc">I/O API</span></a></p></td>
+<td><p>Supported and preferred for general structure input.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Pose from OpenFold tensors and differentiable missing-atom construction</p></td>
+<td><p><a class="reference internal" href="01_working_with_tmol.html"><span class="std std-doc">01 — Working with TMol</span></a>, <a class="reference internal" href="../api/io.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">pose_stack_from_openfold</span></code></span></a></p></td>
+<td><p>Supported for canonical proteins. The API consumes <code class="docutils literal notranslate"><span class="pre">aatype</span></code>, final <code class="docutils literal notranslate"><span class="pre">positions</span></code>, and <code class="docutils literal notranslate"><span class="pre">chain_index</span></code>; gradients can flow from built atoms to supplied coordinates. No separate tutorial 09 is included because the repository has no checked-in, non-binary OpenFold prediction fixture suitable for a fully executable end-to-end notebook.</p></td>
+</tr>
+<tr class="row-even"><td><p>Input with missing residues or chain gaps</p></td>
+<td><p><a class="reference internal" href="01_working_with_tmol.html"><span class="std std-doc">01 — Working with TMol</span></a>, <a class="reference internal" href="05_minimization_constraints_kinematics.html"><span class="std std-doc">05 — Minimization, constraints, and kinematics</span></a></p></td>
+<td><p>Supported. Preserve disconnection semantics; do not silently turn an internal gap into a chemical terminus.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Concatenate heterogeneous poses or copy one pose into a batch</p></td>
+<td><p><a class="reference internal" href="02_gpu_batching.html"><span class="std std-doc">02 — GPU batching</span></a></p></td>
+<td><p>Supported with <code class="docutils literal notranslate"><span class="pre">PoseStackBuilder.from_poses()</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p>Write one pose, a multi-model PDB, or separate per-pose PDBs</p></td>
+<td><p><a class="reference internal" href="01_working_with_tmol.html"><span class="std std-doc">01 — Working with TMol</span></a>, <a class="reference internal" href="../api/io.html"><span class="std std-doc">I/O API</span></a></p></td>
+<td><p>Supported. PDB is a compatibility format and is not a lossless replacement for CIF plus authoritative ligand chemistry.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="kinematics-and-minimization">
+<h2>Kinematics and minimization<a class="headerlink" href="#kinematics-and-minimization" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>PR 399 recipe</p></th>
+<th class="head"><p>Maintained location</p></th>
+<th class="head"><p>Status and notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Automatic N→C, multi-chain, and gap-aware forest</p></td>
+<td><p><a class="reference internal" href="05_minimization_constraints_kinematics.html"><span class="std std-doc">05 — Minimization, constraints, and kinematics</span></a></p></td>
+<td><p>Supported by <code class="docutils literal notranslate"><span class="pre">FoldForest.reasonable_fold_forest()</span></code>. It follows polymer connectivity and intentionally ignores non-polymer connections such as disulfides.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Explicit <code class="docutils literal notranslate"><span class="pre">FoldForest.from_edges()</span></code></p></td>
+<td><p><a class="reference internal" href="05_minimization_constraints_kinematics.html"><span class="std std-doc">05 — Minimization, constraints, and kinematics</span></a></p></td>
+<td><p>Supported. Current edges have four fields: <code class="docutils literal notranslate"><span class="pre">(edge_type,</span> <span class="pre">start_block,</span> <span class="pre">end_block,</span> <span class="pre">jump_index)</span></code>. The PR 399 three-field examples are stale.</p></td>
+</tr>
+<tr class="row-even"><td><p>Per-residue-root (“dandelion”) forest</p></td>
+<td><p><a class="reference internal" href="05_minimization_constraints_kinematics.html"><span class="std std-doc">05 — Minimization, constraints, and kinematics</span></a></p></td>
+<td><p>Supported low-level construction for NN-like per-residue frames. Validate one root edge per real block and sentinel padding.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Enable all or selected named torsions</p></td>
+<td><p><a class="reference internal" href="05_minimization_constraints_kinematics.html"><span class="std std-doc">05 — Minimization, constraints, and kinematics</span></a></p></td>
+<td><p>Supported with <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p>Cartesian and kinematic minimization</p></td>
+<td><p><a class="reference internal" href="05_minimization_constraints_kinematics.html"><span class="std std-doc">05 — Minimization, constraints, and kinematics</span></a>, <a class="reference internal" href="06_fast_relax.html"><span class="std std-doc">06 — FastRelax</span></a></p></td>
+<td><p>Supported through the top-level <code class="docutils literal notranslate"><span class="pre">tmol.run_cart_min()</span></code> and <code class="docutils literal notranslate"><span class="pre">tmol.run_kin_min()</span></code> convenience APIs. Cartesian coordinates and kinematic DOFs are different models; compare them only with explicit masks, weights, and convergence criteria.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Cartesian and kinematic FastRelax</p></td>
+<td><p><a class="reference internal" href="06_fast_relax.html"><span class="std std-doc">06 — FastRelax</span></a></p></td>
+<td><p>Supported as a tensor-native subset, not exact Rosetta protocol parity.</p></td>
+</tr>
+<tr class="row-even"><td><p>Batched relax</p></td>
+<td><p><a class="reference internal" href="06_fast_relax.html"><span class="std std-doc">06 — FastRelax</span></a></p></td>
+<td><p>Supported; the larger demonstration is GPU-only while the small local smoke path runs on CPU.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="scoring-and-constraints">
+<h2>Scoring and constraints<a class="headerlink" href="#scoring-and-constraints" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>PR 399 recipe</p></th>
+<th class="head"><p>Maintained location</p></th>
+<th class="head"><p>Status and notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Default, empty, and focused score functions</p></td>
+<td><p><a class="reference internal" href="03_scoring_and_analysis.html"><span class="std std-doc">03 — Scoring and analysis</span></a></p></td>
+<td><p>Supported.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Activate and deactivate score terms</p></td>
+<td><p><a class="reference internal" href="03_scoring_and_analysis.html"><span class="std std-doc">03 — Scoring and analysis</span></a></p></td>
+<td><p>Supported. A zero weight removes an energy-term implementation only when none of that implementation’s sibling score types remain active.</p></td>
+</tr>
+<tr class="row-even"><td><p>Whole-pose scoring and coordinate backpropagation</p></td>
+<td><p><a class="reference internal" href="03_scoring_and_analysis.html"><span class="std std-doc">03 — Scoring and analysis</span></a></p></td>
+<td><p>Supported.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Weighted and unweighted block-pair tensors</p></td>
+<td><p><a class="reference internal" href="03_scoring_and_analysis.html"><span class="std std-doc">03 — Scoring and analysis</span></a></p></td>
+<td><p>Supported. The matrix uses directed accounting; combine both orientations for an unordered off-diagonal pair.</p></td>
+</tr>
+<tr class="row-even"><td><p>Differentiable interface/block-pair reweighting</p></td>
+<td><p><a class="reference internal" href="03_scoring_and_analysis.html"><span class="std std-doc">03 — Scoring and analysis</span></a></p></td>
+<td><p>Supported. Apply an explicit tensor of analytical weights to the block-pair result before summing and backpropagating.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Low-level harmonic distance constraint</p></td>
+<td><p><a class="reference internal" href="05_minimization_constraints_kinematics.html"><span class="std std-doc">05 — Minimization, constraints, and kinematics</span></a></p></td>
+<td><p>Supported with <code class="docutils literal notranslate"><span class="pre">ConstraintSet</span></code> and <code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm.harmonic</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p>Propagate one constraint definition across a pose batch</p></td>
+<td><p><a class="reference internal" href="05_minimization_constraints_kinematics.html"><span class="std std-doc">05 — Minimization, constraints, and kinematics</span></a></p></td>
+<td><p>Supported with <code class="docutils literal notranslate"><span class="pre">add_constraints_to_all_poses()</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Cα and declared-main-chain coordinate restraints</p></td>
+<td><p><a class="reference internal" href="05_minimization_constraints_kinematics.html"><span class="std std-doc">05 — Minimization, constraints, and kinematics</span></a></p></td>
+<td><p>Supported. <code class="docutils literal notranslate"><span class="pre">constrain_all_ca()</span></code> is protein/Cα-specific; <code class="docutils literal notranslate"><span class="pre">create_mainchain_coordinate_constraints()</span></code> follows each block type’s main-chain declaration.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="packing-design-and-preparation">
+<h2>Packing, design, and preparation<a class="headerlink" href="#packing-design-and-preparation" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>PR 399 recipe</p></th>
+<th class="head"><p>Maintained location</p></th>
+<th class="head"><p>Status and notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Construct and reuse a Dunbrack sampler</p></td>
+<td><p><a class="reference internal" href="04_packing_and_mutation_scan.html"><span class="std std-doc">04 — Packing and mutation scan</span></a></p></td>
+<td><p>Supported.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fixed-sequence repacking</p></td>
+<td><p><a class="reference internal" href="04_packing_and_mutation_scan.html"><span class="std std-doc">04 — Packing and mutation scan</span></a></p></td>
+<td><p>Supported. <code class="docutils literal notranslate"><span class="pre">IncludeCurrentSampler</span></code> deliberately retains the input conformation as a candidate.</p></td>
+</tr>
+<tr class="row-even"><td><p>Optimize hydroxyl/proton chis</p></td>
+<td><p><a class="reference internal" href="01_working_with_tmol.html"><span class="std std-doc">01 — Working with TMol</span></a>, <a class="reference internal" href="04_packing_and_mutation_scan.html"><span class="std std-doc">04 — Packing and mutation scan</span></a></p></td>
+<td><p>Supported through normal preparation (<code class="docutils literal notranslate"><span class="pre">no_optH=False</span></code>) or an explicitly configured <code class="docutils literal notranslate"><span class="pre">OptHSampler</span></code>. PR 399 constructed <code class="docutils literal notranslate"><span class="pre">optH_task</span></code> but accidentally passed <code class="docutils literal notranslate"><span class="pre">task</span></code>; that cell did not test the intended operation.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Build supported missing side chains during input</p></td>
+<td><p><a class="reference internal" href="01_working_with_tmol.html"><span class="std std-doc">01 — Working with TMol</span></a></p></td>
+<td><p>Supported by structure conversion when sufficient chemistry and anchors are present.</p></td>
+</tr>
+<tr class="row-even"><td><p>Extra χ sampling</p></td>
+<td><p><a class="reference internal" href="04_packing_and_mutation_scan.html"><span class="std std-doc">04 — Packing and mutation scan</span></a></p></td>
+<td><p>Supported. TMol χ indices are zero-based (<code class="docutils literal notranslate"><span class="pre">0</span></code> for χ1, <code class="docutils literal notranslate"><span class="pre">1</span></code> for χ2); the PR 399 <code class="docutils literal notranslate"><span class="pre">1</span></code>/<code class="docutils literal notranslate"><span class="pre">2</span></code> calls were off by one.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Regional design and small mutation scans</p></td>
+<td><p><a class="reference internal" href="04_packing_and_mutation_scan.html"><span class="std std-doc">04 — Packing and mutation scan</span></a></p></td>
+<td><p>Supported through explicit low-level task masks. TMol has no built-in Rosetta resfile, selector, or mutation-scan protocol layer.</p></td>
+</tr>
+<tr class="row-even"><td><p>Ligand parameter preparation and injection</p></td>
+<td><p><a class="reference internal" href="07_ligand_and_params.html"><span class="std std-doc">07 — Ligands and parameter files</span></a>, <a class="reference internal" href="../user_guide/ligands.html"><span class="std std-doc">ligand guide</span></a></p></td>
+<td><p>Supported from authoritative CIF/MOL2 chemistry. The Rosetta <code class="docutils literal notranslate"><span class="pre">.params</span></code> writer is syntactic and experimental, not a validated Rosetta parameterization workflow.</p></td>
+</tr>
+<tr class="row-odd"><td><p>DNA/RNA chi packing</p></td>
+<td><p><a class="reference internal" href="08_nucleic_acids.html"><span class="std std-doc">08 — DNA and RNA</span></a></p></td>
+<td><p>Supported for the documented local primitives. Sugar-pucker sampling and full RosettaDNA/RNA protocols are not implemented.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="rejected-obsolete-defective-or-unsupported-pr-399-items">
+<h2>Rejected, obsolete, defective, or unsupported PR 399 items<a class="headerlink" href="#rejected-obsolete-defective-or-unsupported-pr-399-items" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>Obsolete setup:</strong> the <code class="docutils literal notranslate"><span class="pre">0.1.36</span></code> wheel and <code class="docutils literal notranslate"><span class="pre">TMOL_USE_JIT=1</span></code> setup no longer
+describe the supported installation/runtime path. The tutorials use the
+current wheel compatibility checks and repository fixtures.</p></li>
+<li><p><strong>Defective OptH example:</strong> it configured <code class="docutils literal notranslate"><span class="pre">optH_task</span></code> but passed the unrelated
+<code class="docutils literal notranslate"><span class="pre">task</span></code> to <code class="docutils literal notranslate"><span class="pre">pack_rotamers()</span></code>.</p></li>
+<li><p><strong>Defective extra-chi example:</strong> it treated χ indices as one-based; TMol uses
+zero-based indices.</p></li>
+<li><p><strong>Defective PR Cartesian wrapper:</strong> the historical implementation selected
+the kinematic minimizer as its fallback. The current
+<code class="docutils literal notranslate"><span class="pre">tmol.cartesian_fast_relax()</span></code> wrapper uses the Cartesian minimizer and is
+demonstrated in tutorial 06.</p></li>
+<li><p><strong>Defective toy restraint system:</strong> constraining every Cα pair creates
+(O(N^2)) restraints and obscures the scientific restraint being imposed.
+Tutorial 05 instead demonstrates one interpretable distance restraint,
+batch propagation, and coordinate-restraint utilities.</p></li>
+<li><p><strong>Defective custom-cartbonded assertion:</strong> arbitrarily doubling one PRO
+spring constant does not guarantee a larger total score for an arbitrary
+structure. Custom parameter databases are an advanced parameterization task,
+not a monotonic-score recipe.</p></li>
+<li><p><strong>TODO-only stubs:</strong> alternate block-type loading, custom databases and
+canonical orderings, database subsetting, custom residue/scoring parameter
+creation, sequence-to-pose construction, mmCIF output, rotamer-set output,
+rigid-body perturbation, direct dihedral assignment, custom score databases,
+soft-rep score creation, custom <code class="docutils literal notranslate"><span class="pre">PackerPalette</span></code>, and separate output stubs
+contained no implemented recipe to preserve.</p></li>
+<li><p><strong>Currently unsupported stubs:</strong> idealization from PDB, idealization from a
+dandelion forest, backbone-only idealization, and an end-to-end
+sequence/output protocol are not presented as supported APIs.</p></li>
+<li><p><strong>OpenFold tutorial boundary:</strong> tensor input itself is supported and indexed
+above, but there is no checked-in prediction fixture that supports a
+standalone, fully executable prediction-to-refinement notebook without
+adding a fragile binary or network download. The maintained coverage stays
+in tutorial 01, tutorial 05, and the I/O API.</p></li>
+</ul>
+<p>Readers translating Rosetta workflows should also keep the
+<a class="reference internal" href="rosetta_crosswalk.html"><span class="std std-doc">Rosetta-to-TMol crosswalk</span></a> open alongside this index.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="08_nucleic_acids.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Working with DNA and RNA</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="rosetta_crosswalk.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Rosetta-to-TMol crosswalk</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fundamentals-input-and-output">Fundamentals, input, and output</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kinematics-and-minimization">Kinematics and minimization</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scoring-and-constraints">Scoring and constraints</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#packing-design-and-preparation">Packing, design, and preparation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rejected-obsolete-defective-or-unsupported-pr-399-items">Rejected, obsolete, defective, or unsupported PR 399 items</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/tutorial/recipe_index.md.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

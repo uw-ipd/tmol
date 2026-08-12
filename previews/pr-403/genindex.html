@@ -587,14 +587,14 @@
 </li>
       <li><a href="api/ligand.html#tmol.ligand.structure_to_smiles.apply_geometry_bond_corrections">apply_geometry_bond_corrections() (in module tmol.ligand.structure_to_smiles)</a>
 </li>
-      <li><a href="api/optimization.html#tmol.optimization.lbfgs_armijo.armijo_linesearch">armijo_linesearch() (in module tmol.optimization.lbfgs_armijo)</a>
+      <li><a href="api/optimization.html#tmol.optimization.lbfgs_armijo.armijo_linesearch_segmented">armijo_linesearch_segmented() (in module tmol.optimization.lbfgs_armijo)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/chemical.html#tmol.chemical.restypes.BondType.AROMATIC">AROMATIC (tmol.chemical.restypes.BondType attribute)</a>
 </li>
       <li><a href="api/io.html#tmol.io.canonical_form.CanonicalForm.as_dict">as_dict() (tmol.io.canonical_form.CanonicalForm method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/pack.html#tmol.pack.rotamer.chi_sampler.assign_chi_dofs_from_samples">assign_chi_dofs_from_samples() (in module tmol.pack.rotamer.chi_sampler)</a>
 </li>
       <li><a href="api/chemical.html#tmol.chemical.restypes.RefinedResidueType.at_to_icoor_ind">at_to_icoor_ind (tmol.chemical.restypes.RefinedResidueType attribute)</a>
@@ -643,12 +643,6 @@
         <li><a href="api/ligand.html#tmol.ligand.RawResidueType.atom_aliases">(tmol.ligand.RawResidueType attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/ligand.html#id14">atom_array (tmol.ligand.detect.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo.atom_array">[1]</a>
-
-      <ul>
-        <li><a href="api/ligand.html#id5">(tmol.ligand.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo.atom_array">[1]</a>
-</li>
-      </ul></li>
       <li><a href="api/io.html#tmol.io.canonical_form.CanonicalForm.atom_b_factor">atom_b_factor (tmol.io.canonical_form.CanonicalForm attribute)</a>
 
       <ul>
@@ -683,14 +677,10 @@
         <li><a href="api/ligand.html#tmol.ligand.RawResidueType.atom_name">(tmol.ligand.RawResidueType method)</a>
 </li>
       </ul></li>
-      <li><a href="api/ligand.html#id11">atom_names (tmol.ligand.detect.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo.atom_names">[1]</a>
+      <li><a href="api/ligand.html#tmol.ligand.fragmentation.LigandFragmentBlockMapping.atom_names">atom_names (tmol.ligand.fragmentation.LigandFragmentBlockMapping attribute)</a>
 
       <ul>
-        <li><a href="api/ligand.html#tmol.ligand.fragmentation.LigandFragmentBlockMapping.atom_names">(tmol.ligand.fragmentation.LigandFragmentBlockMapping attribute)</a>
-</li>
         <li><a href="api/ligand.html#tmol.ligand.LigandFragmentBlockMapping.atom_names">(tmol.ligand.LigandFragmentBlockMapping attribute)</a>
-</li>
-        <li><a href="api/ligand.html#id2">(tmol.ligand.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo.atom_names">[1]</a>
 </li>
       </ul></li>
       <li><a href="api/chemical.html#tmol.chemical.restypes.RefinedResidueType.atom_names_set">atom_names_set (tmol.chemical.restypes.RefinedResidueType attribute)</a>
@@ -1001,6 +991,8 @@
 </li>
       <li><a href="api/score_terms.html#tmol.score.cartbonded.cartbonded_energy_term.CartBondedEnergyTerm">CartBondedEnergyTerm (class in tmol.score.cartbonded.cartbonded_energy_term)</a>
 </li>
+      <li><a href="api/relax.html#tmol.relax.fast_relax.cartesian_fast_relax">cartesian_fast_relax() (in module tmol.relax.fast_relax)</a>
+</li>
       <li><a href="api/kinematics.html#tmol.kinematics.move_map.CartesianMoveMap">CartesianMoveMap (class in tmol.kinematics.move_map)</a>
 </li>
       <li><a href="api/optimization.html#tmol.optimization.sfxn_modules.CartesianSfxnNetwork">CartesianSfxnNetwork (class in tmol.optimization.sfxn_modules)</a>
@@ -1013,12 +1005,6 @@
 </li>
       <li><a href="api/types.html#tmol.types.tensor.cat">cat() (in module tmol.types.tensor)</a>
 </li>
-      <li><a href="api/ligand.html#id10">ccd_type (tmol.ligand.detect.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo.ccd_type">[1]</a>
-
-      <ul>
-        <li><a href="api/ligand.html#id1">(tmol.ligand.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo.ccd_type">[1]</a>
-</li>
-      </ul></li>
       <li><a href="api/io.html#tmol.io.canonical_form.CanonicalForm.chain_id">chain_id (tmol.io.canonical_form.CanonicalForm attribute)</a>
 
       <ul>
@@ -1198,10 +1184,6 @@
       <li><a href="api/io.html#tmol.io.canonical_form.CanonicalForm.coords">coords (tmol.io.canonical_form.CanonicalForm attribute)</a>
 
       <ul>
-        <li><a href="api/ligand.html#id13">(tmol.ligand.detect.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo.coords">[1]</a>
-</li>
-        <li><a href="api/ligand.html#id4">(tmol.ligand.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo.coords">[1]</a>
-</li>
         <li><a href="api/pack.html#tmol.pack.rotamer.rotamer_set.RotamerSet.coords">(tmol.pack.rotamer.rotamer_set.RotamerSet attribute)</a>
 </li>
         <li><a href="api/pose.html#tmol.pose.pose_stack.PoseStack.coords">(tmol.pose.pose_stack.PoseStack attribute)</a>
@@ -1223,12 +1205,6 @@
 </li>
       <li><a href="api/database.html#tmol.database.scoring.elec.CountPairReps">CountPairReps (class in tmol.database.scoring.elec)</a>
 </li>
-      <li><a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo.covalently_linked">covalently_linked (tmol.ligand.detect.NonStandardResidueInfo attribute)</a>
-
-      <ul>
-        <li><a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo.covalently_linked">(tmol.ligand.NonStandardResidueInfo attribute)</a>
-</li>
-      </ul></li>
       <li><a href="api/database.html#tmol.database.scoring.genbonded.GenBondedDatabase.coverage">coverage (tmol.database.scoring.genbonded.GenBondedDatabase attribute)</a>
 </li>
       <li><a href="api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.cpu">cpu() (tmol.pose.packed_block_types.PackedBlockTypes method)</a>
@@ -1541,14 +1517,6 @@
         <li><a href="api/database.html#tmol.database.chemical.ChemicalDatabase.element_types">(tmol.database.chemical.ChemicalDatabase attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/ligand.html#id12">elements (tmol.ligand.detect.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo.elements">[1]</a>
-
-      <ul>
-        <li><a href="api/ligand.html#id3">(tmol.ligand.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo.elements">[1]</a>
-</li>
-      </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/kinematics.html#tmol.kinematics.datatypes.BTGenerationalSegScanPathSegs.empty">empty() (tmol.kinematics.datatypes.BTGenerationalSegScanPathSegs class method)</a>
 
       <ul>
@@ -1557,6 +1525,8 @@
         <li><a href="api/types.html#tmol.types.tensor.TensorGroup.empty">(tmol.types.tensor.TensorGroup class method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/pack.html#tmol.pack.datatypes.PackerEnergyTables.energy1b">energy1b (tmol.pack.datatypes.PackerEnergyTables attribute)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.datatypes.PackerEnergyTables.energy2b">energy2b (tmol.pack.datatypes.PackerEnergyTables attribute)</a>
@@ -2181,6 +2151,8 @@
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.datatypes.KinematicModuleData.keep_atom_fixed">keep_atom_fixed (tmol.kinematics.datatypes.KinematicModuleData attribute)</a>
 </li>
+      <li><a href="api/relax.html#tmol.relax.fast_relax.kin_fast_relax">kin_fast_relax() (in module tmol.relax.fast_relax)</a>
+</li>
       <li><a href="api/kinematics.html#tmol.kinematics.datatypes.KinDOF">KinDOF (class in tmol.kinematics.datatypes)</a>
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.datatypes.KinematicModuleData">KinematicModuleData (class in tmol.kinematics.datatypes)</a>
@@ -2782,10 +2754,10 @@
       </ul></li>
       <li><a href="api/score.html#tmol.score.score_types.ScoreType.na_torsion_well">na_torsion_well (tmol.score.score_types.ScoreType attribute)</a>
 </li>
-      <li><a href="api/pack.html#tmol.pack.rotamer.na_chi_sampler.NaChiRotamerSampler">NaChiRotamerSampler (class in tmol.pack.rotamer.na_chi_sampler)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pack.html#tmol.pack.rotamer.na_chi_sampler.NaChiRotamerSampler">NaChiRotamerSampler (class in tmol.pack.rotamer.na_chi_sampler)</a>
+</li>
       <li><a href="api/database.html#tmol.database.chemical.Atom.name">name (tmol.database.chemical.Atom attribute)</a>
 
       <ul>
@@ -2912,12 +2884,6 @@
         <li><a href="api/ligand.html#tmol.ligand.detect.nonstandard_residue_info_from_smiles_via_mol2">(in module tmol.ligand.detect)</a>
 </li>
       </ul></li>
-      <li><a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo">NonStandardResidueInfo (class in tmol.ligand)</a>
-
-      <ul>
-        <li><a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo">(class in tmol.ligand.detect)</a>
-</li>
-      </ul></li>
       <li><a href="api/chemical.html#tmol.chemical.ideal_coords.normalize">normalize() (in module tmol.chemical.ideal_coords)</a>
 </li>
       <li><a href="api/database.html#tmol.database.chemical.normalize_bond_tuples">normalize_bond_tuples() (in module tmol.database.chemical)</a>
@@ -2952,10 +2918,10 @@
 </li>
       <li><a href="api/types.html#tmol.types.tensor.TensorGroup.ones">ones() (tmol.types.tensor.TensorGroup class method)</a>
 </li>
-      <li><a href="api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSamplerPackedBlockTypeCache.opth_sample_for_bt">opth_sample_for_bt (tmol.pack.rotamer.opth_sampler.OptHSamplerPackedBlockTypeCache attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSamplerPackedBlockTypeCache.opth_sample_for_bt">opth_sample_for_bt (tmol.pack.rotamer.opth_sampler.OptHSamplerPackedBlockTypeCache attribute)</a>
+</li>
       <li><a href="api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSampler">OptHSampler (class in tmol.pack.rotamer.opth_sampler)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.opth_sampler.OptHSamplerPackedBlockTypeCache">OptHSamplerPackedBlockTypeCache (class in tmol.pack.rotamer.opth_sampler)</a>
@@ -2974,12 +2940,6 @@
 </li>
       <li><a href="api/chemical.html#tmol.chemical.restypes.RefinedResidueType.ordered_torsions">ordered_torsions (tmol.chemical.restypes.RefinedResidueType attribute)</a>
 </li>
-      <li><a href="api/ligand.html#id17">original_single_bonds (tmol.ligand.detect.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo.original_single_bonds">[1]</a>
-
-      <ul>
-        <li><a href="api/ligand.html#id8">(tmol.ligand.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo.original_single_bonds">[1]</a>
-</li>
-      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -3048,13 +3008,9 @@
 </li>
       <li><a href="api/utility.html#tmol.utility.units.parse_dihedral_angle">parse_dihedral_angle() (in module tmol.utility.units)</a>
 </li>
-      <li><a href="api/ligand.html#id15">partial_charges (tmol.ligand.detect.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo.partial_charges">[1]</a>
+      <li><a href="api/ligand.html#tmol.ligand.LigandPreparation.partial_charges">partial_charges (tmol.ligand.LigandPreparation attribute)</a>
 
       <ul>
-        <li><a href="api/ligand.html#tmol.ligand.LigandPreparation.partial_charges">(tmol.ligand.LigandPreparation attribute)</a>
-</li>
-        <li><a href="api/ligand.html#id6">(tmol.ligand.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo.partial_charges">[1]</a>
-</li>
         <li><a href="api/ligand.html#tmol.ligand.registry.LigandPreparation.partial_charges">(tmol.ligand.registry.LigandPreparation attribute)</a>
 </li>
       </ul></li>
@@ -3114,14 +3070,14 @@
       </ul></li>
       <li><a href="api/score_terms.html#tmol.score.na_torsion.params.polymer_index">polymer_index() (in module tmol.score.na_torsion.params)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/database.html#tmol.database.chemical.PolymerProperties.polymer_type">polymer_type (tmol.database.chemical.PolymerProperties attribute)</a>
 
       <ul>
         <li><a href="api/database.html#tmol.database.chemical.PolymerPropertiesVariant.polymer_type">(tmol.database.chemical.PolymerPropertiesVariant attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/pose.html#tmol.pose.packed_block_types.PackedBlockTypes.polymeric_conn_inds">polymeric_conn_inds (tmol.pose.packed_block_types.PackedBlockTypes attribute)</a>
 </li>
       <li><a href="api/database.html#tmol.database.chemical.PolymerProperties">PolymerProperties (class in tmol.database.chemical)</a>
@@ -3374,6 +3330,8 @@
 </li>
       <li><a href="api/database.html#tmol.database.chemical.VariantType.remove_atoms">remove_atoms (tmol.database.chemical.VariantType attribute)</a>
 </li>
+      <li><a href="api/score.html#tmol.score.score_function.ScoreFunction.remove_term_for_score_type">remove_term_for_score_type() (tmol.score.score_function.ScoreFunction method)</a>
+</li>
       <li><a href="api/score.html#tmol.score.energy_term.EnergyTerm.render_block_pair_scoring_module">render_block_pair_scoring_module() (tmol.score.energy_term.EnergyTerm method)</a>
 
       <ul>
@@ -3410,12 +3368,6 @@
 
       <ul>
         <li><a href="api/database.html#tmol.database.scoring.rama.RamaMappingParams.res_middle">(tmol.database.scoring.rama.RamaMappingParams attribute)</a>
-</li>
-      </ul></li>
-      <li><a href="api/ligand.html#id9">res_name (tmol.ligand.detect.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo.res_name">[1]</a>
-
-      <ul>
-        <li><a href="api/ligand.html#id0">(tmol.ligand.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo.res_name">[1]</a>
 </li>
       </ul></li>
       <li><a href="api/io.html#tmol.io.canonical_form.CanonicalForm.res_not_connected">res_not_connected (tmol.io.canonical_form.CanonicalForm attribute)</a>
@@ -3736,12 +3688,12 @@
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.move_map.MoveMap.set_move_named_torsion_for_blocks">set_move_named_torsion_for_blocks() (tmol.kinematics.move_map.MoveMap method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/kinematics.html#tmol.kinematics.move_map.MoveMap.set_move_sc_tor_for_blocks">set_move_sc_tor_for_blocks() (tmol.kinematics.move_map.MoveMap method)</a>
 </li>
       <li><a href="api/score.html#tmol.score.score_function.ScoreFunction.set_option">set_option() (tmol.score.score_function.ScoreFunction method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/score.html#tmol.score.energy_term.EnergyTerm.set_options">set_options() (tmol.score.energy_term.EnergyTerm method)</a>
 
       <ul>
@@ -3860,20 +3812,8 @@
 </li>
       <li><a href="api/types.html#tmol.types.shape.Dim.size">size (tmol.types.shape.Dim attribute)</a>
 </li>
-      <li><a href="api/ligand.html#id16">skip_protonation (tmol.ligand.detect.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo.skip_protonation">[1]</a>
-
-      <ul>
-        <li><a href="api/ligand.html#id7">(tmol.ligand.NonStandardResidueInfo attribute)</a>, <a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo.skip_protonation">[1]</a>
-</li>
-      </ul></li>
       <li><a href="api/database.html#tmol.database.chemical.IcoorVariant.source">source (tmol.database.chemical.IcoorVariant attribute)</a>
 </li>
-      <li><a href="api/ligand.html#tmol.ligand.detect.NonStandardResidueInfo.source_atom_order">source_atom_order (tmol.ligand.detect.NonStandardResidueInfo attribute)</a>
-
-      <ul>
-        <li><a href="api/ligand.html#tmol.ligand.NonStandardResidueInfo.source_atom_order">(tmol.ligand.NonStandardResidueInfo attribute)</a>
-</li>
-      </ul></li>
       <li><a href="api/score.html#tmol.score.chemical_database.AcceptorHybridization.sp2">sp2 (tmol.score.chemical_database.AcceptorHybridization attribute)</a>
 </li>
       <li><a href="api/score.html#tmol.score.chemical_database.AcceptorHybridization.sp3">sp3 (tmol.score.chemical_database.AcceptorHybridization attribute)</a>
@@ -3899,6 +3839,8 @@
       <li><a href="api/database.html#tmol.database.scoring.na_torsion.NaTorsionDatabase.sugar_means">sugar_means (tmol.database.scoring.na_torsion.NaTorsionDatabase attribute)</a>
 </li>
       <li><a href="api/score_terms.html#tmol.score.na_torsion.params.sugar_ring_atoms">sugar_ring_atoms() (in module tmol.score.na_torsion.params)</a>
+</li>
+      <li><a href="api/optimization.html#tmol.optimization.lbfgs_armijo.LBFGS_Armijo.supports_segments">supports_segments (tmol.optimization.lbfgs_armijo.LBFGS_Armijo attribute)</a>
 </li>
       <li><a href="api/io.html#tmol.io.switchable_view">switchable_view() (in module tmol.io)</a>
 
@@ -4278,8 +4220,6 @@
         <li><a href="api/optimization.html#module-tmol.optimization.lbfgs_armijo">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     tmol.optimization.minimizers
 
@@ -4287,6 +4227,8 @@
         <li><a href="api/optimization.html#module-tmol.optimization.minimizers">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     tmol.optimization.sfxn_modules
 
@@ -4591,6 +4533,8 @@
       <li><a href="api/pose.html#tmol.pose.constraint_set.ConstraintSet.to">to() (tmol.pose.constraint_set.ConstraintSet method)</a>
 
       <ul>
+        <li><a href="api/pose.html#tmol.pose.pose_stack.PoseStack.to">(tmol.pose.pose_stack.PoseStack method)</a>
+</li>
         <li><a href="api/types.html#tmol.types.tensor.TensorGroup.to">(tmol.types.tensor.TensorGroup method)</a>
 </li>
       </ul></li>

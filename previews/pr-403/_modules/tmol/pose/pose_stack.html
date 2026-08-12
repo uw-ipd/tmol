@@ -447,7 +447,7 @@
   <h1>Source code for tmol.pose.pose_stack</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical.restypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
@@ -537,7 +537,10 @@
     <span class="c1"># coordinates are held as [n-poses x max-n-atoms x 3]</span>
     <span class="c1"># where the offset for each residue are held in the</span>
     <span class="c1"># block_coord_offset tensor [n-poses x max-n-blocks]</span>
-    <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">],</span>
+    <span class="p">]</span>
 
     <span class="n">block_coord_offset</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:]</span>
     <span class="n">block_coord_offset64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:]</span>
@@ -739,6 +742,35 @@
                 <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragmented_ligand_mapping</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
             <span class="p">),</span>
         <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PoseStack.to">
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.pose.pose_stack.PoseStack.to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PoseStack&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return this pose with coordinates converted to ``dtype``.</span>
+
+<span class="sd">        Only ``coords`` is converted; chemical, connectivity, PDB, ligand, and</span>
+<span class="sd">        constraint metadata are preserved. ``torch.float32`` and</span>
+<span class="sd">        ``torch.float64`` are supported because tmol packing operates in single</span>
+<span class="sd">        precision while minimization may use either precision. If the</span>
+<span class="sd">        coordinates already have the requested dtype, this object is returned</span>
+<span class="sd">        unchanged.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dtype: Coordinate dtype, either ``torch.float32`` or</span>
+<span class="sd">                ``torch.float64``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError: If ``dtype`` is not a supported coordinate dtype.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;PoseStack coordinates support only torch.float32 and &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;torch.float64; received </span><span class="si">{</span><span class="n">dtype</span><span class="si">!r}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">dtype</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="PoseStack.expand_coords">

@@ -468,8 +468,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.biotite_util</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_all_residue_positions</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
-
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
@@ -596,7 +594,7 @@
 
 
 <div class="viewcode-block" id="pose_stack_from_biotite">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_biotite.pose_stack_from_biotite">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.io.pose_stack_from_biotite.pose_stack_from_biotite">[docs]</a>
 <span class="nd">@validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_biotite</span><span class="p">(</span>
     <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
@@ -746,6 +744,10 @@
         <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">no_optH</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">needs_packing</span><span class="p">:</span>
+        <span class="c1"># Keep this local so pose_stack_from_biotite can be imported from</span>
+        <span class="c1"># tmol.__init__ without creating an import cycle.</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+
         <span class="n">db</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span>
         <span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">torch_device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
         <span class="n">dunbrack_sampler</span> <span class="o">=</span> <span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>

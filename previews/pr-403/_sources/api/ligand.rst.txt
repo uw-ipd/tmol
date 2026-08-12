@@ -3,6 +3,7 @@ Ligand API
 
 .. automodule:: tmol.ligand
    :members:
+   :exclude-members: NonStandardResidueInfo
    :undoc-members:
    :show-inheritance:
 
@@ -11,11 +12,13 @@ Preparation and chemical input
 
 .. automodule:: tmol.ligand.preparation
    :members:
+   :exclude-members: NonStandardResidueInfo
    :undoc-members:
    :show-inheritance:
 
 .. automodule:: tmol.ligand.detect
    :members:
+   :exclude-members: NonStandardResidueInfo
    :undoc-members:
    :show-inheritance:
 
