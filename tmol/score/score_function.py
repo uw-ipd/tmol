@@ -62,11 +62,25 @@ class ScoreFunction:
         self.term_options = {}
 
     def set_weight(self, st: ScoreType, weight: float):
-        """Set the weight for a score type, activating its energy term."""
-        if not self.score_type_covered_by_contained_term(st):
+        """Set a score-type weight and update the active energy terms.
+
+        A non-zero weight activates the energy term responsible for ``st``.
+        Setting the last non-zero score type supplied by an energy term to zero
+        removes that term. Repeated calls update the existing term rather than
+        adding duplicate term objects.
+        """
+        if self._weights[st.value] == weight:
+            return
+
+        if weight != 0 and not self.score_type_covered_by_contained_term(st):
             self.retrieve_term_for_score_type(st)
-        if weight == 0 and self.term_for_st_has_no_other_non_zero_weights(st):
-            self.remove_term_for_score_type(st)  # TO DO!
+        elif (
+            weight == 0
+            and self.score_type_covered_by_contained_term(st)
+            and self.term_for_st_has_no_other_non_zero_weights(st)
+        ):
+            self.remove_term_for_score_type(st)
+
         self._weights[st.value] = weight
         self._weights_tensor_out_of_date = True
 
@@ -75,12 +89,22 @@ class ScoreFunction:
         return self._weights[st.value]
 
     def score_type_covered_by_contained_term(self, st: ScoreType):
-        for term in self._all_terms:
-            if st in term.score_types():
-                return True
-        return False
+        """Return whether an active term provides ``st``.
+
+        This consults the authoritative score-type-to-term mapping rather than
+        the lazily rebuilt, sorted term cache.
+        """
+        return self._term_for_st[st.value] is not None
 
     def retrieve_term_for_score_type(self, st: ScoreType):
+        """Create and activate the energy term responsible for ``st``.
+
+        If a sibling score type has already activated the same term, this is a
+        no-op.
+        """
+        if self.score_type_covered_by_contained_term(st):
+            return
+
         term = ScoreTermFactory.create_term_for_score_type(
             st, self._param_db, self._device
         )
@@ -100,20 +124,53 @@ class ScoreFunction:
         else:
             self._multi_body_terms_unordered.append(term)
             self._multi_body_terms_out_of_date = True
+        self._weights_tensor_out_of_date = True
 
     def term_for_st_has_no_other_non_zero_weights(self, st: ScoreType):
+        """Return whether ``st`` is the term's only possibly non-zero weight."""
         term = self._term_for_st[st.value]
+        if term is None:
+            return True
         for st2 in term.score_types():
             if st2 == st:
                 continue
             if self._weights[st2.value] != 0:
-                return True
-        return False
+                return False
+        return True
+
+    def remove_term_for_score_type(self, st: ScoreType):
+        """Remove the active energy term responsible for ``st``.
+
+        All score types emitted by the removed term are reset to zero, and all
+        sorted-term and weight caches are invalidated. Removing an inactive
+        score type is a no-op.
+        """
+        term = self._term_for_st[st.value]
+        if term is None:
+            return
+
+        self._all_terms_unordered.remove(term)
+        self._all_terms_out_of_date = True
+
+        if term.n_bodies() == 1:
+            self._one_body_terms_unordered.remove(term)
+            self._one_body_terms_out_of_date = True
+        elif term.n_bodies() == 2:
+            self._two_body_terms_unordered.remove(term)
+            self._two_body_terms_out_of_date = True
+        else:
+            self._multi_body_terms_unordered.remove(term)
+            self._multi_body_terms_out_of_date = True
+
+        for term_st in term.score_types():
+            self._term_for_st[term_st.value] = None
+            self._weights[term_st.value] = 0
+        self._weights_tensor_out_of_date = True
 
     def all_terms(self):
         """Grant read access to the list of terms.
 
-        Do not modify this list directly
+        Do not modify this list directly.
         """
         if self._all_terms_out_of_date:
             self._all_terms, self._all_score_types = self.get_sorted_terms(
@@ -124,6 +181,13 @@ class ScoreFunction:
         return self._all_terms
 
     def all_score_types(self):
+        """Return score types emitted by the currently active terms.
+
+        Score types are ordered by their position in :class:`ScoreType`, which
+        is also the order used by :meth:`weights_tensor` and rendered scoring
+        modules. A returned score type may have weight zero when a sibling
+        score type keeps their shared energy term active.
+        """
         if self._all_terms_out_of_date:
             self._all_terms, self._all_score_types = self.get_sorted_terms(
                 self._all_terms_unordered
@@ -133,6 +197,7 @@ class ScoreFunction:
         return self._all_score_types
 
     def one_body_terms(self):
+        """Return active one-body energy terms in score-type order."""
         if self._one_body_terms_out_of_date:
             self._one_body_terms, _ = self.get_sorted_terms(
                 self._one_body_terms_unordered
@@ -142,6 +207,7 @@ class ScoreFunction:
         return self._one_body_terms
 
     def two_body_terms(self):
+        """Return active two-body energy terms in score-type order."""
         if self._two_body_terms_out_of_date:
             self._two_body_terms, _ = self.get_sorted_terms(
                 self._two_body_terms_unordered
@@ -151,6 +217,7 @@ class ScoreFunction:
         return self._two_body_terms
 
     def multi_body_terms(self):
+        """Return active energy terms involving more than two bodies."""
         if self._multi_body_terms_out_of_date:
             self._multi_body_terms, _ = self.get_sorted_terms(
                 self._multi_body_terms_unordered
@@ -204,6 +271,7 @@ class ScoreFunction:
         return RotamerScoringModule(self.weights_tensor(), term_modules)
 
     def pre_work_initialization(self, pose_stack: PoseStack):
+        """Prepare all active terms for rendering against ``pose_stack``."""
         # set_options must be first, since some of the logic that follows it
         # may depend on the options
         for energy_term in self.all_terms():
@@ -234,6 +302,7 @@ class ScoreFunction:
         self.term_options = options
 
     def weights_tensor(self):
+        """Return active score-type weights in :meth:`all_score_types` order."""
         if self._weights_tensor_out_of_date:
             self._weights_tensor = torch.tensor(
                 [

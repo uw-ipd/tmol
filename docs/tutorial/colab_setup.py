@@ -76,7 +76,6 @@ def setup_colab(fixtures: list[str]) -> None:
         )
 
     runtime_packages = [
-        "atomworks>=2.2",
         "itables>=2.0",
         "openbabel-wheel==3.1.1.22",
         "py3Dmol>=2.4,<3",

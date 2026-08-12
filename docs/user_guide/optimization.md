@@ -93,34 +93,33 @@ the optimization variables.
 
 ## Relax
 
-`tmol.relax.fast_relax.fast_relax()` combines repacking and minimization over a
-schedule of score-function weights. It is the highest-level refinement
-primitive in the package:
+`cartesian_fast_relax()` and `kin_fast_relax()` combine repacking and
+minimization over a schedule of score-function weights. They are the
+highest-level refinement primitives in the package:
 
 ```python
-from tmol.kinematics.fold_forest import FoldForest
-from tmol.kinematics.move_map import CartesianMoveMap
-from tmol.pack.packer_task import PackerPalette
-from tmol.relax.fast_relax import fast_relax
+from tmol import CartesianMoveMap, PackerPalette, cartesian_fast_relax
 
 palette = PackerPalette()
 move_map = CartesianMoveMap()  # coord_mask=None allows all atom coordinates
-fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
 
-relaxed_pose_stack = fast_relax(
+relaxed_pose_stack = cartesian_fast_relax(
     pose_stack,
     sfxn,
     palette,
     move_map,
-    fold_forest,
 )
 ```
 
-The default FastRelax minimizer is Cartesian, so it reads
-`CartesianMoveMap.coord_mask` and ignores the fold forest. The fold forest is
-still a required argument because the same protocol can run a custom
-kinematic `min_fn`; in that case pass a full `MoveMap` and have `min_fn` call
-`run_kin_min()` with the supplied fold forest and move map.
+`cartesian_fast_relax()` reads `CartesianMoveMap.coord_mask` and does not
+require a fold forest. `kin_fast_relax()` requires a full `MoveMap` and
+`FoldForest` and selects kinematic minimization. The lower-level `fast_relax()`
+defaults to Cartesian minimization, accepts an optional fold forest, and can
+run a custom compatible `min_fn`.
+
+Packing always runs in float32. If the input pose has float64 coordinates,
+FastRelax restores float64 after every packing stage and uses that precision
+for minimization and the returned pose.
 
 ## Related examples
 

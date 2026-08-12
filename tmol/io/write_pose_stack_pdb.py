@@ -50,7 +50,10 @@ def atom_records_from_pose_stack(
         pose_stack.packed_block_types,
         pose_stack.chain_id64,
         pose_stack.block_type_ind64,
-        pose_stack.coords,
+        # The record-construction kernels use the historical float32 contract.
+        # PDB stores coordinates to three decimal places, so convert a
+        # float64 minimization result here without mutating the PoseStack.
+        pose_stack.coords.to(torch.float32),
         pose_stack.block_coord_offset,
         pose_stack.pdb_info.residue_labels,
         pose_stack.pdb_info.residue_insertion_codes,

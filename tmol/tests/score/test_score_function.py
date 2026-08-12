@@ -17,6 +17,75 @@ from tmol import (
 )
 
 
+def _assert_active_score_data_aligned(sfxn):
+    score_types_from_terms = [
+        st for term in sfxn.all_terms() for st in term.score_types()
+    ]
+    assert sfxn.all_score_types() == score_types_from_terms
+    expected_weights = torch.stack(
+        [sfxn.get_weight(st) for st in score_types_from_terms]
+    )
+    torch.testing.assert_close(sfxn.weights_tensor(), expected_weights)
+
+
+def test_repeated_score_type_activation_does_not_duplicate_terms(
+    default_database, torch_device
+):
+    sfxn = ScoreFunction(default_database, torch_device)
+
+    sfxn.set_weight(ScoreType.ref, 1.0)
+    term = sfxn.all_terms()[0]
+    sfxn.set_weight(ScoreType.ref, 1.0)
+    sfxn.set_weight(ScoreType.ref, 2.0)
+
+    assert sfxn.all_terms() == [term]
+    assert sfxn.all_score_types() == [ScoreType.ref]
+    torch.testing.assert_close(
+        sfxn.weights_tensor(),
+        torch.tensor([2.0], dtype=torch.float32, device=torch_device),
+    )
+
+
+def test_zero_weight_removes_single_score_energy_term(default_database, torch_device):
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.ref, 1.0)
+    assert len(sfxn.all_terms()) == 1
+
+    sfxn.set_weight(ScoreType.ref, 0.0)
+
+    assert sfxn.all_terms() == []
+    assert sfxn.all_score_types() == []
+    assert sfxn.weights_tensor().numel() == 0
+
+
+def test_shared_energy_term_lifetime_and_weight_alignment(
+    default_database, torch_device
+):
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.5)
+    shared_term = sfxn.all_terms()[0]
+
+    assert len(sfxn.all_terms()) == 1
+    _assert_active_score_data_aligned(sfxn)
+
+    sfxn.set_weight(ScoreType.fa_ljatr, 0.0)
+    assert sfxn.all_terms() == [shared_term]
+    assert ScoreType.fa_ljatr in sfxn.all_score_types()
+    assert ScoreType.fa_ljrep in sfxn.all_score_types()
+    _assert_active_score_data_aligned(sfxn)
+
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.0)
+    assert sfxn.all_terms() == []
+    assert sfxn.all_score_types() == []
+    assert sfxn.weights_tensor().numel() == 0
+
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.75)
+    assert len(sfxn.all_terms()) == 1
+    assert ScoreType.fa_ljrep in sfxn.all_score_types()
+    _assert_active_score_data_aligned(sfxn)
+
+
 def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
     pose_stack100 = PoseStackBuilder.from_poses([pose_stack1] * 100, torch_device)

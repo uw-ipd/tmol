@@ -7,6 +7,10 @@ exercises. For shorter, reusable recipes, see :doc:`Workflows <workflows/index>`
 Start with the first two examples; later notebooks assume their ``PoseStack``
 and GPU-batching vocabulary.
 
+The :doc:`PR 399 recipe audit <tutorial/recipe_index>` maps historical
+how-to cells to maintained tutorials and API pages, and records obsolete,
+defective, TODO-only, and unsupported examples that should not be copied.
+
 Readers coming from Rosetta or PyRosetta can consult the
 :doc:`Rosetta-to-TMol crosswalk <tutorial/rosetta_crosswalk>` alongside the
 examples. The crosswalk distinguishes genuine API parallels from capabilities
@@ -18,7 +22,7 @@ that tmol does not currently implement.
      <a class="example-card" href="tutorial/01_working_with_tmol.html">
        <img src="_static/tutorials/01_working_with_tmol.svg" alt="1UBQ with residues 1 through 10 highlighted">
        <span class="example-card-title">1. Working with TMol</span>
-       <span class="example-card-description">CIF input, PoseStack concepts, AtomWorks selections, and interactive visualization.</span>
+       <span class="example-card-description">CIF and PDB input, preparation choices, PoseStack concepts, export, and visualization.</span>
      </a>
      <a class="example-card" href="tutorial/02_gpu_batching.html">
        <img src="_static/tutorials/02_gpu_batching.svg" alt="1UBQ, 1R21, and 1BL8 arranged as one heterogeneous structure batch">
@@ -38,7 +42,7 @@ that tmol does not currently implement.
      <a class="example-card" href="tutorial/05_minimization_constraints_kinematics.html">
        <img src="_static/tutorials/05_minimization_constraints_kinematics.svg" alt="Restrained eight-residue 1UBQ minimization system">
        <span class="example-card-title">5. Minimization and kinematics</span>
-       <span class="example-card-description">Cartesian and torsional minimization, constraints, MoveMaps, and FoldForests.</span>
+       <span class="example-card-description">Cartesian and torsional minimization, low-level constraints, MoveMaps, and explicit FoldForests.</span>
      </a>
      <a class="example-card" href="tutorial/06_fast_relax.html">
        <img src="_static/tutorials/06_fast_relax.svg" alt="Six-residue 1UBQ system beside its two-stage pack-minimize schedule">
@@ -69,4 +73,5 @@ that tmol does not currently implement.
    tutorial/06_fast_relax
    tutorial/07_ligand_and_params
    tutorial/08_nucleic_acids
+   tutorial/recipe_index
    tutorial/rosetta_crosswalk

@@ -149,7 +149,7 @@ def fast_relax(
     sfxn: ScoreFunction,
     packer_pallete: PackerPalette,
     move_map: Union[MoveMap, CartesianMoveMap],
-    fold_forest: FoldForest,
+    fold_forest: Optional[FoldForest] = None,
     *,
     task_operations=None,
     num_repeats=2,
@@ -166,14 +166,17 @@ def fast_relax(
     followed by an accept-to-best check.
 
     Args:
-        pose_stack: The input poses to relax.
+        pose_stack: The input poses to relax. Packing always uses float32
+            coordinates, while minimization and the returned pose preserve the
+            input coordinate dtype.
         sfxn: Score function used for packing and minimization. If you wish
             to use constraints during relax, then the weight on the "constraint"
             score type must already have a non-zero value.
         packer_pallete: Palette defining the residue types available to the
             packer.
         move_map: Specifies which DOFs are free to move during minimization.
-        fold_forest: Fold forest defining the kinematic connectivity.
+        fold_forest: Fold forest defining the kinematic connectivity. Required
+            by kinematic minimizers and optional for Cartesian minimization.
         task_operations: List of callables that configure a PackerTask.  Each
             callable receives a PackerTask and modifies it in place (e.g. to
             restrict to repacking or add chi samplers).  If None, a default
@@ -342,6 +345,12 @@ def relax_pack_min_step(
     min_fn,
     verbose,
 ):
+    """Perform one FastRelax packing/minimization step.
+
+    Packing is performed with float32 coordinates. The packed coordinates are
+    converted back to the input dtype before minimization.
+    """
+    input_pose_dtype = pose_stack.coords.dtype
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -359,7 +368,9 @@ def relax_pack_min_step(
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time1 = time.perf_counter()
-    packed_pose_stack = pack_rotamers(pose_stack, sfxn, task, verbose)
+    packed_pose_stack = pack_rotamers(
+        pose_stack.to(torch.float32), sfxn, task, verbose
+    ).to(input_pose_dtype)
 
     sfxn.set_weight(ScoreType.fa_ljrep, fa_rep_min_weight)
     if verbose:
@@ -432,3 +443,74 @@ def accept_best(
         return new_best_pose_stack, new_best_pose_score
     else:  # no change
         return best_pose_stack, best_pose_score
+
+
+def kin_fast_relax(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    packer_pallete: PackerPalette,
+    move_map: MoveMap,
+    fold_forest: FoldForest,
+    *,
+    task_operations=None,
+    num_repeats=2,
+    ramp_constraints: Optional[bool] = None,
+    schedule=None,
+    min_fn=_default_kin_min_fn,
+    verbose: bool = False,
+) -> PoseStack:
+    """Run FastRelax with kinematic (torsion-space) minimization.
+
+    This convenience wrapper selects :func:`_default_kin_min_fn` while
+    preserving all schedules, task operations, score-weight restoration, and
+    precision behavior documented by :func:`fast_relax`. A custom compatible
+    ``min_fn`` may be supplied.
+    """
+    return fast_relax(
+        pose_stack,
+        sfxn,
+        packer_pallete,
+        move_map,
+        fold_forest,
+        task_operations=task_operations,
+        num_repeats=num_repeats,
+        ramp_constraints=ramp_constraints,
+        schedule=schedule,
+        min_fn=min_fn or _default_kin_min_fn,
+        verbose=verbose,
+    )
+
+
+def cartesian_fast_relax(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    packer_pallete: PackerPalette,
+    move_map: CartesianMoveMap,
+    *,
+    task_operations=None,
+    num_repeats=2,
+    ramp_constraints: Optional[bool] = None,
+    schedule=None,
+    min_fn=_default_cart_min_fn,
+    verbose: bool = False,
+) -> PoseStack:
+    """Run FastRelax with Cartesian coordinate-space minimization.
+
+    The fold forest is omitted because Cartesian minimization does not use it.
+    This otherwise preserves all schedules, task operations, score-weight
+    restoration, and precision behavior documented by :func:`fast_relax`. A
+    custom compatible ``min_fn`` may be supplied.
+    """
+    return fast_relax(
+        pose_stack,
+        sfxn,
+        packer_pallete,
+        move_map,
+        None,
+        task_operations=task_operations,
+        num_repeats=num_repeats,
+        ramp_constraints=ramp_constraints,
+        schedule=schedule,
+        min_fn=min_fn or _default_cart_min_fn,
+        verbose=verbose,
+    )

@@ -110,7 +110,7 @@ nbsphinx_execute = "never"
 # the ``$3Dmol`` global that the tmol viewers use, leaving an empty grey box.
 # ITables, the only other interactive output, loads itself as an ES module and
 # does not use RequireJS, so we disable it and load 3Dmol directly with a plain
-# script tag, exactly as the AtomWorks selection docs do.
+# script tag.
 nbsphinx_requirejs_path = ""
 nbsphinx_thumbnails = {
     "tutorial/01_working_with_tmol": "_static/tutorials/01_working_with_tmol.svg",
