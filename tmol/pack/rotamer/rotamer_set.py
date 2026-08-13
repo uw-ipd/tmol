@@ -1,4 +1,5 @@
 import attr
+import numpy
 import torch
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.torch import Tensor
@@ -51,3 +52,39 @@ class RotamerSet(ValidateAttrs):
     @property
     def n_rotamers_total(self):
         return self.block_ind_for_rot.shape[0]
+
+    def write_pdb(self, pbt) -> str:
+        from io import StringIO
+        from tmol.io.pdb_parsing import atom_record_dtype, to_pdb_lines
+
+        n_atoms_total = self.coords.shape[0]
+        atom_records = numpy.empty((n_atoms_total,), dtype=atom_record_dtype)
+        n_rots = self.block_type_ind_for_rot.shape[0]
+
+        for i in range(n_rots):
+            i_offset = self.coord_offset_for_rot[i]
+            block_type_ind = self.block_type_ind_for_rot[i]
+            n_atoms_for_block_type = pbt.n_atoms[block_type_ind]
+            for j in range(n_atoms_for_block_type):
+                atom_records[i_offset + j]["modeli"] = i
+                atom_records[i_offset + j]["chaini"] = 0
+                atom_records[i_offset + j]["resi"] = self.block_ind_for_rot[i] + 1
+                atom_records[i_offset + j]["atomi"] = j + 1
+                atom_records[i_offset + j]["model"] = f"M{i:05d}"
+                atom_records[i_offset + j]["chain"] = "A"
+                atom_records[i_offset + j]["resn"] = pbt.active_block_types[
+                    block_type_ind
+                ].name3
+                atom_records[i_offset + j]["atomn"] = (
+                    pbt.active_block_types[block_type_ind].atoms[j].name
+                )
+                atom_records[i_offset + j]["x"] = self.coords[i_offset + j, 0].item()
+                atom_records[i_offset + j]["y"] = self.coords[i_offset + j, 1].item()
+                atom_records[i_offset + j]["z"] = self.coords[i_offset + j, 2].item()
+                atom_records[i_offset + j]["insert"] = ""
+                atom_records[i_offset + j]["occupancy"] = 1.0
+                atom_records[i_offset + j]["b"] = 0.0
+
+        buf = StringIO()
+        buf.writelines(to_pdb_lines(atom_records))
+        return buf.getvalue()
