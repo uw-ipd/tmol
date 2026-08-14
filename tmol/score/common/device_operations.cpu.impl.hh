@@ -143,7 +143,7 @@ struct DeviceOperations<tmol::Device::CPU> {
     int count_seg = 0;
     for (int i = 0; i < n; ++i) {
       T i_val = src[i];
-      if (i == seg_start_inds[count_seg]) {
+      if (count_seg < n_segs && i == seg_start_inds[count_seg]) {
         last_val = identity;
         count_seg++;
       }

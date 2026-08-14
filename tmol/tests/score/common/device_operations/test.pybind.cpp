@@ -35,14 +35,12 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "test_segmented_scan_inclusive",
       &CPU::test_segmented_scan_inclusive,
       "src"_a,
-      "padded_seg_starts"_a,
-      "n_segs"_a);
+      "seg_starts"_a);
   m.def(
       "test_segmented_scan_exclusive",
       &CPU::test_segmented_scan_exclusive,
       "src"_a,
-      "padded_seg_starts"_a,
-      "n_segs"_a);
+      "seg_starts"_a);
 
 #ifdef WITH_CUDA
   using CUDA = DevOpsTests<Device::CUDA>;
@@ -76,14 +74,12 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "test_segmented_scan_inclusive",
       &CUDA::test_segmented_scan_inclusive,
       "src"_a,
-      "padded_seg_starts"_a,
-      "n_segs"_a);
+      "seg_starts"_a);
   m.def(
       "test_segmented_scan_exclusive",
       &CUDA::test_segmented_scan_exclusive,
       "src"_a,
-      "padded_seg_starts"_a,
-      "n_segs"_a);
+      "seg_starts"_a);
 #endif
 }
 }  // namespace tmol

@@ -146,32 +146,38 @@ auto DevOpsTests<D>::test_load_balancing_search(
 
 template <tmol::Device D>
 auto DevOpsTests<D>::test_segmented_scan_inclusive(
-    TView<int32_t, 1, D> src,
-    TView<int32_t, 1, D> padded_seg_starts,
-    int n_segs) -> TPack<int32_t, 1, D> {
+    TView<int32_t, 1, D> src, TView<int32_t, 1, D> seg_starts)
+    -> TPack<int32_t, 1, D> {
   ContextManager mgr;
+#ifdef __NVCC__
   return DO<D>::template segmented_scan<mgpu::scan_type_inc, launch_t>(
+#else
+  return DO<D>::template segmented_scan<mgpu::scan_type_inc>(
+#endif
       mgr,
       src.data(),
-      padded_seg_starts.data(),
+      seg_starts.data(),
       src.size(0),
-      n_segs,
+      seg_starts.size(0),
       mgpu::plus_t<int32_t>(),
       0);
 }
 
 template <tmol::Device D>
 auto DevOpsTests<D>::test_segmented_scan_exclusive(
-    TView<int32_t, 1, D> src,
-    TView<int32_t, 1, D> padded_seg_starts,
-    int n_segs) -> TPack<int32_t, 1, D> {
+    TView<int32_t, 1, D> src, TView<int32_t, 1, D> seg_starts)
+    -> TPack<int32_t, 1, D> {
   ContextManager mgr;
+#ifdef __NVCC__
   return DO<D>::template segmented_scan<mgpu::scan_type_exc, launch_t>(
+#else
+  return DO<D>::template segmented_scan<mgpu::scan_type_exc>(
+#endif
       mgr,
       src.data(),
-      padded_seg_starts.data(),
+      seg_starts.data(),
       src.size(0),
-      n_segs,
+      seg_starts.size(0),
       mgpu::plus_t<int32_t>(),
       0);
 }

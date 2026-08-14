@@ -47,19 +47,13 @@ struct DevOpsTests {
       TView<int32_t, 1, D> exc_scan_offsets, int n_work_units_total)
       -> TPack<int32_t, 1, D>;
 
-  // padded_seg_starts has n_segs+1 entries: the real segment start indices
-  // followed by a sentinel equal to n (length of src), which guards against
-  // the out-of-bounds read that occurs when count_seg reaches n_segs inside
-  // segmented_scan.
   static auto test_segmented_scan_inclusive(
-      TView<int32_t, 1, D> src,
-      TView<int32_t, 1, D> padded_seg_starts,
-      int n_segs) -> TPack<int32_t, 1, D>;
+      TView<int32_t, 1, D> src, TView<int32_t, 1, D> seg_starts)
+      -> TPack<int32_t, 1, D>;
 
   static auto test_segmented_scan_exclusive(
-      TView<int32_t, 1, D> src,
-      TView<int32_t, 1, D> padded_seg_starts,
-      int n_segs) -> TPack<int32_t, 1, D>;
+      TView<int32_t, 1, D> src, TView<int32_t, 1, D> seg_starts)
+      -> TPack<int32_t, 1, D>;
 };
 
 }  // namespace device_operations

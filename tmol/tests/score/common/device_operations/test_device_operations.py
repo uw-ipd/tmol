@@ -240,13 +240,9 @@ def test_load_balancing_search_large(ext, torch_device):
 def test_segmented_scan_inclusive(ext, torch_device):
     # Three segments of length 2 each; inclusive prefix sum within each.
     # seg0: [1,2] -> [1,3],  seg1: [3,4] -> [3,7],  seg2: [5,6] -> [5,11].
-    # padded_seg_starts appends sentinel n=6 to guard the impl's read past
-    # the last valid segment-start entry.
     src = torch.tensor([1, 2, 3, 4, 5, 6], dtype=torch.int32, device=torch_device)
-    padded_seg_starts = torch.tensor(
-        [0, 2, 4, 6], dtype=torch.int32, device=torch_device
-    )
-    result = ext.test_segmented_scan_inclusive(src, padded_seg_starts, 3)
+    seg_starts = torch.tensor([0, 2, 4], dtype=torch.int32, device=torch_device)
+    result = ext.test_segmented_scan_inclusive(src, seg_starts)
     expected = torch.tensor([1, 3, 3, 7, 5, 11], dtype=torch.int32)
     assert torch.equal(result.cpu(), expected)
 
@@ -259,10 +255,7 @@ def test_segmented_scan_inclusive_large(ext, torch_device):
     n = n_segs * seg_len
     src = torch.ones(n, dtype=torch.int32, device=torch_device)
     seg_starts = torch.arange(0, n, seg_len, dtype=torch.int32, device=torch_device)
-    padded_seg_starts = torch.cat(
-        [seg_starts, torch.tensor([n], dtype=torch.int32, device=torch_device)]
-    )
-    result = ext.test_segmented_scan_inclusive(src, padded_seg_starts, n_segs)
+    result = ext.test_segmented_scan_inclusive(src, seg_starts)
     expected = torch.arange(1, seg_len + 1, dtype=torch.int32).repeat(n_segs)
     assert torch.equal(result.cpu(), expected)
 
@@ -276,10 +269,8 @@ def test_segmented_scan_exclusive(ext, torch_device):
     # Same segments as above; exclusive prefix sum (identity=0) within each.
     # seg0: [1,2] -> [0,1],  seg1: [3,4] -> [0,3],  seg2: [5,6] -> [0,5].
     src = torch.tensor([1, 2, 3, 4, 5, 6], dtype=torch.int32, device=torch_device)
-    padded_seg_starts = torch.tensor(
-        [0, 2, 4, 6], dtype=torch.int32, device=torch_device
-    )
-    result = ext.test_segmented_scan_exclusive(src, padded_seg_starts, 3)
+    seg_starts = torch.tensor([0, 2, 4], dtype=torch.int32, device=torch_device)
+    result = ext.test_segmented_scan_exclusive(src, seg_starts)
     expected = torch.tensor([0, 1, 0, 3, 0, 5], dtype=torch.int32)
     assert torch.equal(result.cpu(), expected)
 
@@ -292,9 +283,6 @@ def test_segmented_scan_exclusive_large(ext, torch_device):
     n = n_segs * seg_len
     src = torch.ones(n, dtype=torch.int32, device=torch_device)
     seg_starts = torch.arange(0, n, seg_len, dtype=torch.int32, device=torch_device)
-    padded_seg_starts = torch.cat(
-        [seg_starts, torch.tensor([n], dtype=torch.int32, device=torch_device)]
-    )
-    result = ext.test_segmented_scan_exclusive(src, padded_seg_starts, n_segs)
+    result = ext.test_segmented_scan_exclusive(src, seg_starts)
     expected = torch.arange(0, seg_len, dtype=torch.int32).repeat(n_segs)
     assert torch.equal(result.cpu(), expected)
