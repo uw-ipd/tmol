@@ -10,6 +10,7 @@ from tmol.io.canonical_ordering import (
 from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
 
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR
 
 
 def get_add_two_fill_shape(x):
@@ -104,7 +105,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     res_ins = add_two_res(res_ins_10, "")
     ch_lab = add_two_res(ch_lab_10, "")
     occ = add_two_res(occ_10, 1.0)
-    bf = add_two_res(bf_10, 0.0)
+    bf = add_two_res(bf_10, DEFAULT_ATOM_B_FACTOR)
     at_is_pres_10 = not_any_nancoord(coords_10)
     at_is_pres = not_any_nancoord(coords)
 
@@ -132,7 +133,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     res_ins_lj_gold = add_two_res_at_end(res_ins_10, "")
     ch_lab_lj_gold = add_two_res_at_end(ch_lab_10, "")
     occ_lj_gold = add_two_res_at_end(occ_10, 1.0)
-    bf_lj_gold = add_two_res_at_end(bf_10, 0.0)
+    bf_lj_gold = add_two_res_at_end(bf_10, DEFAULT_ATOM_B_FACTOR)
 
     numpy.testing.assert_equal(ch_id_lj_gold, ch_id.cpu().numpy())
     numpy.testing.assert_equal(can_rts_lj_gold, can_rts.cpu().numpy())
