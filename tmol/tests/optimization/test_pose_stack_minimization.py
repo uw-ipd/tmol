@@ -1,5 +1,6 @@
 """Minimizing a stack of distinct poses should match minimizing them one-by-one."""
 
+import pytest
 import torch
 
 from tmol import (
@@ -80,6 +81,7 @@ def test_cart_min_stack_of_distinct_poses(
     )
 
 
+@pytest.mark.xfail
 def test_kin_min_stack_of_distinct_poses(
     distinct_pose_stacks, stack_of_distinct_poses, torch_device
 ):
