@@ -2,7 +2,6 @@ import numpy
 import torch
 
 from tmol.io.pdb_parsing import atom_record_dtype
-from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.types.array import NDArray
@@ -81,8 +80,8 @@ def atom_records_from_coords(
     residue_labels: Optional[NDArray[int][:, :]],
     residue_insertion_codes: Optional[NDArray[object][:, :]],
     chain_labels: Optional[NDArray[object][:, :]],
-    atom_occupancy: Optional[NDArray[numpy.float32][:, :]],
-    atom_b_factor: Optional[NDArray[numpy.float32][:, :]],
+    atom_occupancy: NDArray[numpy.float32][:, :],
+    atom_b_factor: NDArray[numpy.float32][:, :],
 ) -> NDArray[atom_record_dtype][:]:
     """Create a numpy array holding the atom records needed to write a
     PDB file from the coordinates and block types of a stack of structures,
@@ -274,15 +273,7 @@ def atom_records_from_coords(
         if residue_insertion_codes is not None
         else " "
     )
-    results["occupancy"] = (
-        atom_occupancy[atom_is_real]
-        if atom_occupancy is not None
-        else DEFAULT_ATOM_OCCUPANCY
-    )
-    results["b"] = (
-        atom_b_factor[atom_is_real]
-        if atom_b_factor is not None
-        else DEFAULT_ATOM_B_FACTOR
-    )
+    results["occupancy"] = atom_occupancy[atom_is_real]
+    results["b"] = atom_b_factor[atom_is_real]
 
     return results
