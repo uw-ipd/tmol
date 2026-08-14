@@ -183,7 +183,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
     auto LBS = LBS_t.view;
 
     // The return tensor
-    auto dst_scan_t = TPack<T, 1, tmol::Device::CUDA>::empty({scanBuffer});
+    auto dst_scan_t = TPack<T, 1, tmol::Device::CUDA>::empty({n});
     auto dst_scan = dst_scan_t.view;
 
     tmol::kinematics::kernel_segscan<launch_t, scan_type>(

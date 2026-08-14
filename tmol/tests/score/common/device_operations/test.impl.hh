@@ -149,11 +149,7 @@ auto DevOpsTests<D>::test_segmented_scan_inclusive(
     TView<int32_t, 1, D> src, TView<int32_t, 1, D> seg_starts)
     -> TPack<int32_t, 1, D> {
   ContextManager mgr;
-#ifdef __NVCC__
-  return DO<D>::template segmented_scan<mgpu::scan_type_inc, launch_t>(
-#else
   return DO<D>::template segmented_scan<mgpu::scan_type_inc>(
-#endif
       mgr,
       src.data(),
       seg_starts.data(),
@@ -168,11 +164,7 @@ auto DevOpsTests<D>::test_segmented_scan_exclusive(
     TView<int32_t, 1, D> src, TView<int32_t, 1, D> seg_starts)
     -> TPack<int32_t, 1, D> {
   ContextManager mgr;
-#ifdef __NVCC__
-  return DO<D>::template segmented_scan<mgpu::scan_type_exc, launch_t>(
-#else
   return DO<D>::template segmented_scan<mgpu::scan_type_exc>(
-#endif
       mgr,
       src.data(),
       seg_starts.data(),
