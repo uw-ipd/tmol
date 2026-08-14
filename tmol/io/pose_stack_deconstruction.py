@@ -57,46 +57,33 @@ def canonical_form_from_pose_stack(
     ]
 
     expanded_coords, real_expanded_pose_ats = pose_stack.expand_coords()
-    if (
-        pose_stack.pdb_info.atom_occupancy is not None
-        or pose_stack.pdb_info.atom_b_factor is not None
-    ):
-        real_expanded_pose_ats = real_expanded_pose_ats.cpu().numpy()
-        real_atoms = pose_stack.real_atoms.cpu().numpy()
+    real_atoms = pose_stack.real_atoms.cpu().numpy()
 
-        nz_pose_ind_for_real_atom_np = nz_pose_ind_for_real_atom.cpu().numpy()
-        nz_res_ind_for_real_atom_np = nz_res_ind_for_real_atom.cpu().numpy()
-        real_canonical_atom_inds_for_bt_np = (
-            real_canonical_atom_inds_for_bt.cpu().numpy()
-        )
+    nz_pose_ind_for_real_atom_np = nz_pose_ind_for_real_atom.cpu().numpy()
+    nz_res_ind_for_real_atom_np = nz_res_ind_for_real_atom.cpu().numpy()
+    real_canonical_atom_inds_for_bt_np = real_canonical_atom_inds_for_bt.cpu().numpy()
 
-    if pose_stack.pdb_info.atom_b_factor is not None:
-        expanded_b_factor = numpy.full(
-            (n_poses, max_n_res, max_n_canonical_atoms),
-            DEFAULT_ATOM_B_FACTOR,
-            dtype=numpy.float32,
-        )
-        expanded_b_factor[
-            nz_pose_ind_for_real_atom_np,
-            nz_res_ind_for_real_atom_np,
-            real_canonical_atom_inds_for_bt_np,
-        ] = pose_stack.pdb_info.atom_b_factor[real_atoms]
-    else:
-        expanded_b_factor = None
+    expanded_b_factor = numpy.full(
+        (n_poses, max_n_res, max_n_canonical_atoms),
+        DEFAULT_ATOM_B_FACTOR,
+        dtype=numpy.float32,
+    )
+    expanded_b_factor[
+        nz_pose_ind_for_real_atom_np,
+        nz_res_ind_for_real_atom_np,
+        real_canonical_atom_inds_for_bt_np,
+    ] = pose_stack.pdb_info.atom_b_factor[real_atoms]
 
-    if pose_stack.pdb_info.atom_occupancy is not None:
-        expanded_occupancy = numpy.full(
-            (n_poses, max_n_res, max_n_canonical_atoms),
-            DEFAULT_ATOM_OCCUPANCY,
-            dtype=numpy.float32,
-        )
-        expanded_occupancy[
-            nz_pose_ind_for_real_atom_np,
-            nz_res_ind_for_real_atom_np,
-            real_canonical_atom_inds_for_bt_np,
-        ] = pose_stack.pdb_info.atom_occupancy[real_atoms]
-    else:
-        expanded_occupancy = None
+    expanded_occupancy = numpy.full(
+        (n_poses, max_n_res, max_n_canonical_atoms),
+        DEFAULT_ATOM_OCCUPANCY,
+        dtype=numpy.float32,
+    )
+    expanded_occupancy[
+        nz_pose_ind_for_real_atom_np,
+        nz_res_ind_for_real_atom_np,
+        real_canonical_atom_inds_for_bt_np,
+    ] = pose_stack.pdb_info.atom_occupancy[real_atoms]
 
     cf_coords = torch.full(
         (n_poses, max_n_res, max_n_canonical_atoms, 3),

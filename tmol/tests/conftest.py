@@ -67,6 +67,8 @@ from .pose import (  # noqa: F401
     stack_of_two_six_res_ubqs,
     stack_of_two_six_res_ubqs_no_term,
     jagged_stack_of_465_res_ubqs,
+    distinct_pose_stacks,
+    stack_of_distinct_poses,
 )
 
 

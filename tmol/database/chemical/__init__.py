@@ -187,6 +187,9 @@ class RawResidueType:
     hydrogens_regenerated: bool = False
     # True only for blocks produced by user-defined ligand fragmentation.
     is_ligand_fragment: bool = False
+    # One-letter sequence code; unique only within a backbone type ...
+    #   "a" is both DA and RA.
+    one_letter_code: Optional[str] = None
 
     def atom_name(self, index):
         return self.atoms[index].name

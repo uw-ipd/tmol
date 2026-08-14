@@ -1,7 +1,7 @@
 """Correctness of the ``context=`` reuse path in ``pose_stack_from_biotite``.
 
 Scoring many structures that share one ligand can build the expensive,
-structure-independent ``BiotitePoseBuildContext`` once and reuse it, recomputing
+structure-independent ``PoseBuildContext`` once and reuse it, recomputing
 only the per-structure canonical form. These tests check that reusing a context
 reproduces the ``prepare_ligands=True`` result and is stable across repeats.
 """

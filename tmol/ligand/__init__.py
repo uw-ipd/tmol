@@ -23,6 +23,7 @@ from tmol.ligand.preparation import (
     prepare_ligand_from_mol2,
     prepare_ligand_from_smiles,
     prepare_ligands,
+    prepare_ligands_from_smiles,
     prepare_single_ligand,
 )
 from tmol.ligand.registry import LigandPreparation
@@ -46,6 +47,7 @@ __all__ = [
     "prepare_ligand_from_mol2",
     "prepare_ligand_from_smiles",
     "prepare_ligands",
+    "prepare_ligands_from_smiles",
     "prepare_single_ligand",
     "recombine_fragmented_ligands",
     "write_params_from_mol2",

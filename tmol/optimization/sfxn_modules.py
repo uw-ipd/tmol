@@ -33,12 +33,22 @@ class CartesianSfxnNetwork(torch.nn.Module):
 
         # Precompute flat integer indices for the boolean mask
         # Flat integer is faster than bool mask
-        #   (since i think torch does nonzero each time under the hood)
+        #   (since torch does nonzero each time under the hood)
         self._coord_flat_idx = (
             self.coord_mask.reshape(-1).nonzero(as_tuple=False).squeeze(-1)
         )
 
         self.masked_coords = torch.nn.Parameter(self.full_coords[self.coord_mask])
+
+        # pose each element of masked_coords belongs to, for per-pose minimization
+        pose_for_atom = torch.arange(
+            self.full_coords.shape[0], dtype=torch.int64, device=self.full_coords.device
+        ).unsqueeze(1)
+        pose_for_atom = pose_for_atom.expand(self.coord_mask.shape).reshape(-1)
+        self.segment_ids = pose_for_atom[self._coord_flat_idx].repeat_interleave(
+            self.full_coords.shape[-1]
+        )
+
         self.count = 0
 
     def forward(self):
@@ -120,6 +130,16 @@ class KinForestSfxnNetwork(torch.nn.Module):
         )
 
         self.masked_dofs = torch.nn.Parameter(self.full_dofs[self.dof_mask])
+
+        # pose each element of masked_dofs belongs to, for per-pose minimization.
+        # kmd.forest.id is the index into the flattened (pose, atom) coords; the
+        # root node's id of -1 never survives the dof mask.
+        n_atoms_per_pose = pose_stack.coords.shape[1]
+        pose_for_node = torch.div(self.id, n_atoms_per_pose, rounding_mode="floor")
+        pose_for_dof = pose_for_node.unsqueeze(1).expand(raw_dofs.shape).reshape(-1)
+        self.segment_ids = pose_for_dof[self._dof_flat_idx].to(torch.int64)
+        assert bool((self.segment_ids >= 0).all()), "root node dofs cannot be minimized"
+
         self.count = 0
 
     def forward(self):

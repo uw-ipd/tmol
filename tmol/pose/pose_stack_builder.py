@@ -15,10 +15,19 @@ from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 
 from tmol.chemical.restypes import (
     RefinedResidueType,
+    ResidueTypeSet,
     three2one,
 )
+from tmol.database import ParameterDatabase
 
+from tmol.io.canonical_ordering import CanonicalOrdering, default_packed_block_types
+from tmol.pose.build_context import PoseBuildContext
 from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.sequence import (
+    resolve_block_type_names,
+    smiles_in_tokens,
+    tokenize_sequences,
+)
 from tmol.pose.pdb_info import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.constraint_set import ConstraintSet
@@ -31,6 +40,7 @@ from tmol.utility.tensor.common_operations import (
     stretch2,
 )
 from tmol.types.functional import validate_args
+from tmol.utility.device import resolve_device
 
 
 class PoseStackBuilder:
@@ -123,288 +133,95 @@ class PoseStackBuilder:
         )
 
     @classmethod
-    @validate_args
-    def pose_stack_from_monomer_polymer_sequences(
+    def from_sequences(
         cls,
-        packed_block_types: PackedBlockTypes,
-        sequences,  # List[List[str]], -- too slow to type check
+        seqs,  # str | Sequence[str]
+        packed_block_types: Optional[PackedBlockTypes] = None,
+        device: Optional[torch.device] = None,
+        param_db=None,
+        termini: bool = True,
+        context: Optional[PoseBuildContext] = None,
+        return_context: bool = False,
     ):
-        cls._annotate_pbt_w_canonical_aa1lc_lookup(packed_block_types)
-        cls._annotate_pbt_w_polymeric_down_up_bondsep_dist(packed_block_types)
+        """Construct a PoseStack with zero coordinates from sequence strings.
 
-        pbt = packed_block_types
-        device = pbt.device
-        n_poses = len(sequences)
-
-        n_res = numpy.array([len(x) for x in sequences], dtype=numpy.int32)
-        max_n_res = numpy.amax(n_res).item()
-
-        (
-            real_res,
-            n_res,
-            block_type_ind,
-            block_type_ind64,
-        ) = cls._block_type_indices_from_sequences(
-            pbt, n_poses, n_res, max_n_res, sequences
-        )
-        assert real_res.device == device
-        assert n_res.device == device
-        assert block_type_ind.device == device
-        assert block_type_ind64.device == device
-
-        # inter residue connections:
-        # 1) we will just say that there's an up chemical bond at residue i to
-        # every down connection at residue i+1 and vice versa for each real
-        # residue on each pose, except the first and last residues. This will
-        # give us the inter_residue_connections tensor
-        #
-        # 2) if we know the down-to-up chemical bond separation for each block type
-        # then we can use scan to compute the number of chemical bonds separating
-        # every pair of residues, this will give us the inter_block_bondsep tensor
-
-        # with flake8 and black working against each other, if you want to give
-        # a variable a descriptive name, you often have to assign it to a temporary
-        # in the line where you assign it from a function with a descriptive name
-        # and then assign it to the variable you really want in a second step.
-        # what a waste!
-        irc64, chain_id = cls._inter_residue_connections_for_polymeric_monomers(
-            pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
-        )
-        inter_residue_connections64 = irc64
-
-        inter_block_bondsep64 = cls._find_inter_block_separation_for_polymeric_monomers(
-            pbt, n_poses, max_n_res, real_res, block_type_ind64
-        )
-
-        n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
-        n_atoms[real_res] = pbt.n_atoms[block_type_ind64[real_res]]
-        block_coord_offset = exclusive_cumsum2d(n_atoms)
-
-        max_n_atoms = torch.max(torch.sum(n_atoms, dim=1)).item()
-
-        chain_labels = numpy.full(block_type_ind64.shape, "", dtype=object)
-        real_res_np = real_res.cpu().numpy()
-        chain_labels[real_res_np] = "A"
-
-        residue_labels = numpy.full(block_type_ind64.shape, -1, dtype=numpy.int32)
-        arange1 = numpy.expand_dims(
-            numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0
-        ).repeat(n_poses, axis=0)
-        residue_labels[real_res_np] = arange1[real_res_np]
-        residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
-        atom_occupancy = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32
-        )
-        atom_b_factor = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32
-        )
-
-        pdb_info = PDBInfo(
-            residue_labels=residue_labels,
-            residue_insertion_codes=residue_insertion_codes,
-            chain_labels=chain_labels,
-            atom_occupancy=atom_occupancy,
-            atom_b_factor=atom_b_factor,
-        )
-
-        return PoseStack(
-            packed_block_types=packed_block_types,
-            coords=torch.zeros(
-                (n_poses, max_n_atoms, 3), dtype=torch.float32, device=device
-            ),
-            block_coord_offset=block_coord_offset,
-            block_coord_offset64=block_coord_offset.to(torch.int64),
-            inter_residue_connections=inter_residue_connections64.to(torch.int32),
-            inter_residue_connections64=inter_residue_connections64,
-            inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
-            inter_block_bondsep64=inter_block_bondsep64,
-            block_type_ind=block_type_ind64.to(torch.int32),
-            block_type_ind64=block_type_ind64,
-            chain_id=chain_id,
-            chain_id64=chain_id.to(torch.int64),
-            pdb_info=pdb_info,
-            constraint_set=None,
-            device=device,
-        )
-
-    @classmethod
-    @validate_args
-    def pose_stack_from_monomer_sequences_w_extrapolymeric_conns(
-        cls,
-        packed_block_types: PackedBlockTypes,
-        sequences,  # List[List[str]], -- too slow to type check
-    ):
-        """Construct a PoseStack given a list of sequences where the disulfide
-        connectivity is known. E.g. If there is a disulfide pair between residues
-        5 and 20 and another disulfide pair between residues 9 and 15, then
-        the sequence would be given as:
-
-        AAAA[CYD--dslf-first]AAA[CYD--dslf-second]AAA ...
-        AA[CYD--dslf-second]AAAA[CYD--dslf-first]AAA
-
-        where the string following the double dash, designates 1) the name of
-        the inter-residue connection (for CYD, this is "dslf") and then 2) after
-        the single dash, a unique identifier so that which pair of residues are
-        forming that connection. In this case the two disulfides have the labels
-        "first" and "second," but any unique label would suffice.
-
+        See tmol.pose.sequence for the grammar. Returns
+        (PoseStack, PoseBuildContext) when return_context is set; the context
+        carries the database extended with any ligands the sequence names.
         """
-        cls._annotate_pbt_w_canonical_aa1lc_lookup(packed_block_types)
-        cls._annotate_pbt_w_polymeric_down_up_bondsep_dist(packed_block_types)
+        device = resolve_device(device if device is not None else torch.device("cpu"))
+        if context is not None and param_db is not None:
+            raise ValueError("pass either context= or param_db=, not both")
 
-        pbt = packed_block_types
-        device = pbt.device
-        n_poses = len(sequences)
+        tokens, chain_lengths = tokenize_sequences(seqs)
 
-        n_res = numpy.array([len(x) for x in sequences], dtype=numpy.int32)
-        max_n_res = numpy.amax(n_res).item()
+        if context is not None:
+            if context.packed_block_types.device.type != device.type:
+                raise ValueError(
+                    f"context was built for device "
+                    f"{context.packed_block_types.device} but device is {device}"
+                )
+            param_db = context.parameter_database
+            restype_set = context.restype_set
+            ligand_names = context.ligand_names
+            canonical_ordering = context.canonical_ordering
+        else:
+            smiles = smiles_in_tokens(tokens)
+            if smiles:
+                # Deferred: slow import
+                from tmol.ligand import prepare_ligands_from_smiles
 
-        trimmed_sequences, expoly_connections = cls._find_connections_in_sequences(
-            pbt, sequences
+                param_db, ligand_names = prepare_ligands_from_smiles(
+                    smiles, param_db=param_db
+                )
+            else:
+                param_db = param_db or ParameterDatabase.get_default()
+                ligand_names = {}
+            restype_set = ResidueTypeSet.from_database(param_db.chemical)
+            canonical_ordering = None
+
+        names, chain_lengths = resolve_block_type_names(
+            tokens, chain_lengths, restype_set, ligand_names, termini
         )
 
-        (
-            real_res,
-            n_res,
-            block_type_ind,
-            block_type_ind64,
-        ) = cls._block_type_indices_from_sequences(
-            pbt, n_poses, n_res, max_n_res, trimmed_sequences
-        )
-        assert real_res.device == device
-        assert n_res.device == device
-        assert block_type_ind.device == device
-        assert block_type_ind64.device == device
+        if packed_block_types is None:
+            if restype_set.chem_db is ParameterDatabase.get_default().chemical:
+                packed_block_types = default_packed_block_types(device)
+            else:
+                packed_block_types = PackedBlockTypes.from_restype_list(
+                    restype_set.chem_db, restype_set, restype_set.residue_types, device
+                )
 
-        # inter residue connections:
-        #
-        # 1) First, make sure that the connections provided in the input sequence
-        # actually are present on those residue types.
-        #
-        # 2) a. We will then say that there's an "up" chemical bond at residue i to
-        # every "down" connection at residue i+1 and vice versa for each real
-        # residue on each pose, except the first and last residues. This will
-        # give us the inter_residue_connections tensor. b. Then we will add
-        # to this set of inter-residue connections the ones given to us
-        # in the connection-annotated sequence.
-        #
-        # 3) Then, we will construct a graph representing the edge weights
-        # between all pairs of connection points. a) Intra-residue connection
-        # distances are read out of the PBT object (after an initial annotation)
-        # b) the inter-residue connections will then be added from the inter-residue
-        # connections noted in the inter_residue_connections64 tensor.
-        #
-        # 4) Finally, we invoke all-pairs-shortest-path and then read out the
-        # intra-block bond separations
+        pose_stack = cls.from_block_type_names(packed_block_types, names, chain_lengths)
+        if not return_context:
+            return pose_stack
 
-        # 1
-        resolved_expoly_connections = cls._find_connection_pairs_for_residue_subset(
-            pbt, sequences, block_type_ind64, expoly_connections
-        )
-
-        # 2a
-        irc64, chain_id = cls._inter_residue_connections_for_polymeric_monomers(
-            pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
-        )
-        inter_residue_connections64 = irc64
-
-        # 2b add in non-polymeric connections (such as disulfides)
-        cls._incorporate_extra_connections_into_inter_res_conn_set(
-            resolved_expoly_connections, inter_residue_connections64
-        )
-
-        # 3a
-        (
-            pconn_matrix,
-            pconn_offsets,
-            block_n_conn,
-            pose_n_pconn,
-        ) = cls._take_real_conn_conn_intrablock_pairs(pbt, block_type_ind64, real_res)
-
-        # 3b
-        cls._incorporate_inter_residue_connections_into_connectivity_graph(
-            inter_residue_connections64, pconn_offsets, pconn_matrix
-        )
-
-        # 4
-        ibb64 = cls._calculate_interblock_bondsep_from_connectivity_graph(
-            pbt, block_n_conn, pose_n_pconn, pconn_matrix
-        )
-        inter_block_bondsep64 = ibb64
-
-        n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
-        n_atoms[real_res] = pbt.n_atoms[block_type_ind64[real_res]]
-        block_coord_offset = exclusive_cumsum2d(n_atoms)
-
-        max_n_atoms = torch.max(torch.sum(n_atoms, dim=1)).item()
-
-        chain_labels = numpy.full(block_type_ind64.shape, "", dtype=object)
-        real_res_np = real_res.cpu().numpy()
-        chain_labels[real_res_np] = "A"
-
-        residue_labels = numpy.full(block_type_ind64.shape, -1, dtype=numpy.int32)
-        arange1 = numpy.expand_dims(
-            numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0
-        ).repeat(n_poses, axis=0)
-        residue_labels[real_res_np] = arange1[real_res_np]
-        residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
-        atom_occupancy = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32
-        )
-        atom_b_factor = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32
-        )
-
-        pdb_info = PDBInfo(
-            residue_labels=residue_labels,
-            residue_insertion_codes=residue_insertion_codes,
-            chain_labels=chain_labels,
-            atom_occupancy=atom_occupancy,
-            atom_b_factor=atom_b_factor,
-        )
-
-        return PoseStack(
+        if canonical_ordering is None:
+            canonical_ordering = CanonicalOrdering.from_chemdb(param_db.chemical)
+        return pose_stack, PoseBuildContext(
+            canonical_ordering=canonical_ordering,
             packed_block_types=packed_block_types,
-            coords=torch.zeros(
-                (n_poses, max_n_atoms, 3), dtype=torch.float32, device=device
-            ),
-            block_coord_offset=block_coord_offset,
-            block_coord_offset64=block_coord_offset.to(torch.int64),
-            inter_residue_connections=inter_residue_connections64.to(torch.int32),
-            inter_residue_connections64=inter_residue_connections64,
-            inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
-            inter_block_bondsep64=inter_block_bondsep64,
-            block_type_ind=block_type_ind64.to(torch.int32),
-            block_type_ind64=block_type_ind64,
-            chain_id=chain_id,
-            chain_id64=chain_id.to(torch.int64),
-            pdb_info=pdb_info,
-            constraint_set=None,
-            device=device,
+            parameter_database=param_db,
+            restype_set=restype_set,
+            ligand_names=ligand_names,
         )
 
     @classmethod
     @validate_args
-    def pose_stack_from_sequences(
+    def from_block_type_names(
         cls,
         packed_block_types: PackedBlockTypes,
         sequences,  # List[List[str]]
         chain_lengths,  # List[List[int]]
     ):
-        """Construct a PoseStack given a list of sequences where the disulfide
-        connectivity is known. E.g. If there is a disulfide pair between
-        residues 5 and 20 and another disulfide pair between residues 9 and 15,
-        then the sequence would be given as:
+        """Construct a zero-coordinate PoseStack from per-pose block type names.
+
+        A name may carry a non-polymeric connection as "NAME--conn-label", where
+        "conn" is the name of an inter-residue connection on that block type and
+        "label" pairs up the two partners. E.g. a pose with two disulfides:
 
         AAAA[CYD--dslf-first]AAA[CYD--dslf-second]AAA ...
         AA[CYD--dslf-second]AAAA[CYD--dslf-first]AAA
-
-        where the string following the double dash, designates 1) the name of the
-        inter-residue connection (for CYD, this is "dslf") and then 2) after the
-        single dash, a unique identifier so that which pair of residues are forming
-        that connection. In this case the two disulfides have the labels "first"
-        and "second," but any unique label would suffice.
-
         """
         cls._annotate_pbt_w_canonical_aa1lc_lookup(packed_block_types)
         cls._annotate_pbt_w_polymeric_down_up_bondsep_dist(packed_block_types)
@@ -485,10 +302,11 @@ class PoseStackBuilder:
         )
 
         # 4
-        ibb64 = cls._calculate_interblock_bondsep_from_connectivity_graph(
-            pbt, block_n_conn, pose_n_pconn, pconn_matrix
+        inter_block_bondsep64 = (
+            cls._calculate_interblock_bondsep_from_connectivity_graph(
+                pbt, block_n_conn, pose_n_pconn, pconn_matrix
+            )
         )
-        inter_block_bondsep64 = ibb64
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
         n_atoms[real_res] = pbt.n_atoms[block_type_ind64[real_res]]
@@ -505,17 +323,17 @@ class PoseStackBuilder:
         chain_labels[real_res_np] = chain_ind_to_label[
             chain_id.cpu().numpy()[real_res_np]
         ]
-        residue_labels = numpy.full(block_type_ind64.shape, -1, dtype=numpy.int32)
+        residue_labels = numpy.full(block_type_ind64.shape, -1, dtype=int)
         arange1 = numpy.expand_dims(
-            numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0
+            numpy.arange(max_n_res, dtype=int) + 1, axis=0
         ).repeat(n_poses, axis=0)
         residue_labels[real_res_np] = arange1[real_res_np]
         residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
         atom_occupancy = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32
+            (n_poses, max_n_atoms), DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32
         )
         atom_b_factor = numpy.full(
-            block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32
+            (n_poses, max_n_atoms), DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32
         )
 
         pdb_info = PDBInfo(
@@ -544,62 +362,6 @@ class PoseStackBuilder:
             pdb_info=pdb_info,
             constraint_set=None,
             device=device,
-        )
-
-    @classmethod
-    @validate_args
-    def rebuild_with_new_packed_block_types(
-        cls, ps: PoseStack, packed_block_types: PackedBlockTypes
-    ):  # -> "PoseStack"
-        """Create a new PoseStack object replacing the existing PackedBlockTypes
-        object with a new one, and then rebuilding the other data members that
-        depend on it.
-        """
-        # The input packed_block_types must contain the block types of
-        # the PoseStack's existing set of in-use residue types (but not necessarily
-        # all of the block types that its PackedBlockTypes object holds)
-
-        for i in range(ps.n_poses):
-            for j in range(ps.max_n_blocks):
-                if ps.is_real_block(i, j):
-                    bt = ps.block_type(i, j)
-                    assert numpy.all(packed_block_types.inds_for_restypes([bt]) != -1)
-
-        coords = ps.coords.clone()
-
-        block_type_ind = torch.full_like(
-            ps.block_type_ind, -1, device=torch.device("cpu")
-        )
-        # this could be more efficient if we mapped orig_block_type to new_block_type
-        for i in range(ps.n_poses):
-            for j in range(ps.max_n_blocks):
-                orig_bt_ind = ps.block_type_ind64[i, j]
-                if orig_bt_ind >= 0:
-                    bt = ps.packed_block_types.active_block_types[orig_bt_ind]
-                    block_type_ind[i, j] = packed_block_types.inds_for_restypes(
-                        [bt]
-                    ).item()
-        block_type_ind = block_type_ind.to(ps.device)
-
-        def i64(t):
-            return t.to(torch.int64)
-
-        return PoseStack(
-            packed_block_types=packed_block_types,
-            coords=coords,
-            block_coord_offset=ps.block_coord_offset,
-            block_coord_offset64=ps.block_coord_offset64,
-            inter_residue_connections=ps.inter_residue_connections,
-            inter_residue_connections64=ps.inter_residue_connections64,
-            inter_block_bondsep=ps.inter_block_bondsep,
-            inter_block_bondsep64=ps.inter_block_bondsep64,
-            block_type_ind=block_type_ind,
-            block_type_ind64=i64(block_type_ind),
-            chain_id=ps.chain_id,
-            chain_id64=i64(ps.chain_id),
-            pdb_info=ps.pdb_info,
-            constraint_set=ps.constraint_set,
-            device=ps.device,
         )
 
     ################# HELPER FUNCTIONS FOR CONSTRUCTION ###############
@@ -1427,6 +1189,8 @@ class PoseStackBuilder:
         expoly_connections: List[List[Tuple[int, int, int, int]]],
         inter_residue_connections64: Tensor[torch.int64][:, :, :, 2],
     ):
+        if not any(expoly_connections):
+            return
         device = inter_residue_connections64.device
         # a:
         expoly_conn_pose_ind = torch.tensor(

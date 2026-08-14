@@ -56,6 +56,7 @@ def run_min(
     optimizer_cls=LBFGS_Armijo,
     optimizer_kwargs=None,
     verbose=False,
+    per_pose=True,
 ):
     """Run minimization on any sfxn module (Cartesian or KinForest).
 
@@ -71,6 +72,10 @@ def run_min(
         optimizer_kwargs: Dict of keyword arguments passed to the optimizer
             constructor.
         verbose: Print timing information.
+        per_pose: Give each pose its own inverse-Hessian estimate and
+            convergence test, so that minimizing a stack matches minimizing
+            its poses one at a time. Ignored by optimizers that do not
+            support it.
 
     Returns:
         A new PoseStack with optimized coordinates.
@@ -82,13 +87,22 @@ def run_min(
         torch.cuda.synchronize()
     start_time = time.perf_counter()
 
+    segment_ids = getattr(sfxn_module, "segment_ids", None)
+    segmented = (
+        per_pose
+        and segment_ids is not None
+        and getattr(optimizer_cls, "supports_segments", False)
+    )
+    if segmented:
+        optimizer_kwargs = dict(optimizer_kwargs, segment_ids=segment_ids)
+
     optimizer = optimizer_cls(sfxn_module.parameters(), **optimizer_kwargs)
 
     def closure():
         optimizer.zero_grad()
-        E = sfxn_module().sum()
-        E.backward()
-        return E
+        E = sfxn_module()
+        E.sum().backward()
+        return E if segmented else E.sum()
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()

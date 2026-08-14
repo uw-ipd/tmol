@@ -5,7 +5,7 @@ from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
 from typing import Optional
 from tmol.types.functional import validate_args
-from tmol.pose.pdb_info import PDBInfo
+from tmol.pose.pdb_info import PDBInfo, DEFAULT_ATOM_OCCUPANCY, DEFAULT_ATOM_B_FACTOR
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.io.canonical_ordering import CanonicalOrdering
@@ -302,25 +302,23 @@ def pose_stack_from_canonical_form(
     if atom_occupancy is not None or atom_b_factor is not None:
         real_block_atoms = real_block_atoms.cpu().numpy()
         pose_at_is_real = pose_at_is_real.cpu().numpy()
+    atom_occupancy_pose_layout = numpy.full(
+        pose_stack_coords.shape[:2], DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32
+    )
     if atom_occupancy is not None:
-        atom_occupancy_pose_layout = numpy.full(
-            pose_stack_coords.shape[:2], 1.0, dtype=numpy.float32
-        )
         atom_occupancy_pose_layout[pose_at_is_real] = atom_occupancy[real_block_atoms]
-        atom_occupancy = atom_occupancy_pose_layout
+    atom_b_factor_pose_layout = numpy.full(
+        pose_stack_coords.shape[:2], DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32
+    )
     if atom_b_factor is not None:
-        atom_b_factor_pose_layout = numpy.full(
-            pose_stack_coords.shape[:2], 0.0, dtype=numpy.float32
-        )
         atom_b_factor_pose_layout[pose_at_is_real] = atom_b_factor[real_block_atoms]
-        atom_b_factor = atom_b_factor_pose_layout
 
     pdb_info = PDBInfo(
         residue_labels=res_labels,
         residue_insertion_codes=res_ins_codes,
         chain_labels=chain_labels,
-        atom_occupancy=atom_occupancy,
-        atom_b_factor=atom_b_factor,
+        atom_occupancy=atom_occupancy_pose_layout,
+        atom_b_factor=atom_b_factor_pose_layout,
     )
 
     block_coord_offset64 = i64(block_coord_offset)

@@ -4,6 +4,7 @@ This module contains the concrete preparation pipeline implementation.
 `tmol.ligand.__init__` re-exports the public API from here.
 """
 
+import itertools
 import logging
 from typing import Optional
 
@@ -772,6 +773,51 @@ def prepare_ligand_from_smiles(
     )
     prep = prepare_single_ligand(lig, sample_proton_chi=sample_proton_chi)
     return _inject_single(prep, param_db, strict_atom_types)
+
+
+def unused_ligand_name(taken) -> str:
+    """First "LGn" name not already present in ``taken``."""
+    for i in itertools.count(1):
+        name = f"LG{i}"
+        if name not in taken:
+            return name
+
+
+def prepare_ligands_from_smiles(
+    smiles,
+    *,
+    param_db: Optional[ParameterDatabase] = None,
+    ph: float = 7.4,
+    strict_atom_types: bool = False,
+    protonate: bool = True,
+    sample_proton_chi: bool = True,
+    seed: int | None = None,
+) -> tuple[ParameterDatabase, dict]:
+    """Prepare one residue type per SMILES, naming them LG1, LG2, ...
+
+    Returns the extended database and a {smiles: residue name} mapping.
+    """
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
+    taken = {residue.name for residue in param_db.chemical.residues}
+    names = {}
+    for smi in smiles:
+        if smi in names:
+            continue
+        name = unused_ligand_name(taken)
+        taken.add(name)
+        param_db, _ = prepare_ligand_from_smiles(
+            smi,
+            param_db=param_db,
+            ph=ph,
+            strict_atom_types=strict_atom_types,
+            res_name=name,
+            protonate=protonate,
+            sample_proton_chi=sample_proton_chi,
+            seed=seed,
+        )
+        names[smi] = name
+    return param_db, names
 
 
 def prepare_ligand_from_mol2(
