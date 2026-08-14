@@ -42,8 +42,6 @@ from tmol.score.hbond.hbond_energy_term import (
     HBondEnergyTerm,
 )
 
-from tmol.io.pdb_parsing import parse_pdb
-
 
 def test_chi_atom_table_orders_double_digit_chis_numerically():
     restype = SimpleNamespace(
@@ -1076,13 +1074,14 @@ def test_write_rotamers_pdb(default_database, ubq_pdb, torch_device, dun_sampler
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
     pbt = poses.packed_block_types
 
-    atom_records = parse_pdb(rotamer_set.write_pdb(pbt))
+    atom_array = rotamer_set.to_atom_array(pbt)
+    model_annotation = atom_array.get_annotation("model")
 
     n_rots = rotamer_set.n_rotamers_total
-    assert atom_records["modeli"].nunique() == n_rots
+    assert len(numpy.unique(model_annotation)) == n_rots
 
     for i in range(n_rots):
-        n_atoms_in_model = (atom_records["modeli"] == i).sum()
+        n_atoms_in_model = numpy.sum(model_annotation == i)
         n_atoms_expected = pbt.n_atoms[rotamer_set.block_type_ind_for_rot[i]].item()
         assert n_atoms_in_model == n_atoms_expected
 
@@ -1104,11 +1103,17 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
     pbt = poses.packed_block_types
 
-    pdb_str = rotamer_set.write_pdb(pbt)
+    atom_array = rotamer_set.to_atom_array(pbt)
 
     # uncomment if rotgen changes
-    # with open("tmol/tests/pack/rotamer/gold_repack_1ubq_rotamers.pdb", "w") as fid:
-    #     fid.write(pdb_str)
+    # import biotite.structure.io.pdb as pdb_io
+    # model_annotation = atom_array.get_annotation("model")
+    # pdb_file = pdb_io.PDBFile()
+    # for model_idx in numpy.unique(model_annotation):
+    #     pdb_file.set_structure(
+    #         atom_array[model_annotation == model_idx], model=int(model_idx) + 1
+    #     )
+    # pdb_file.write("tmol/tests/pack/rotamer/gold_repack_1ubq_rotamers.pdb")
 
     def parse_atom_coords(text):
         coords = []
@@ -1121,9 +1126,8 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
 
     with open("tmol/tests/pack/rotamer/gold_repack_1ubq_rotamers.pdb") as fid:
         gold_coords = parse_atom_coords(fid.read())
-    test_coords = parse_atom_coords(pdb_str)
-    assert gold_coords.shape == test_coords.shape
-    numpy.testing.assert_allclose(test_coords, gold_coords, atol=1e-3)
+    assert gold_coords.shape == atom_array.coord.shape
+    numpy.testing.assert_allclose(atom_array.coord, gold_coords, atol=1e-3)
 
 
 def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
