@@ -5,8 +5,6 @@
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
 
-#include <tmol/score/common/simple_dispatch.hh>
-
 #include "apsp.hh"
 
 namespace tmol {

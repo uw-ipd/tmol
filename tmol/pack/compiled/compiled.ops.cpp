@@ -10,7 +10,6 @@
 #include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
-#include <tmol/score/common/forall_dispatch.hh>
 #include <tmol/score/common/device_operations.hh>
 
 #include "annealer.hh"

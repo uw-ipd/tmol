@@ -128,12 +128,7 @@ struct DeviceOperations<tmol::Device::CPU> {
   // than, e.g., a boolean tensor indicating the start of each segment.
   // The identity value (e.g. 0) must be given because pre-initialization is not
   // always possible. seg_starts_inds must be sorted in ascending order.
-  template <
-      mgpu::scan_type_t scan_type,
-      typename launch_t,
-      typename T,
-      typename Int,
-      typename OP>
+  template <mgpu::scan_type_t scan_type, typename T, typename Int, typename OP>
   static auto segmented_scan(
       ContextManager&,
       T* src,
@@ -148,7 +143,7 @@ struct DeviceOperations<tmol::Device::CPU> {
     int count_seg = 0;
     for (int i = 0; i < n; ++i) {
       T i_val = src[i];
-      if (i == seg_start_inds[count_seg]) {
+      if (count_seg < n_segs && i == seg_start_inds[count_seg]) {
         last_val = identity;
         count_seg++;
       }

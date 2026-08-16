@@ -7,7 +7,6 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/device_operations.hh>
-#include <tmol/score/common/forall_dispatch.hh>
 
 #include <pybind11/pybind11.h>
 
