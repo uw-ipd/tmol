@@ -1,4 +1,5 @@
 import attr
+import numpy
 import torch
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.torch import Tensor
@@ -51,3 +52,38 @@ class RotamerSet(ValidateAttrs):
     @property
     def n_rotamers_total(self):
         return self.block_ind_for_rot.shape[0]
+
+    def to_atom_array(self, pbt):
+        import biotite.structure as struc
+        from tmol.io.pose_stack_from_biotite import get_element_from_atom_name
+
+        n_rots = self.n_rotamers_total
+        coords = self.coords.cpu().numpy()
+
+        atoms = []
+        model_ids = []
+
+        for i in range(n_rots):
+            i_offset = int(self.coord_offset_for_rot[i])
+            block_type_ind = int(self.block_type_ind_for_rot[i])
+            n_atoms = int(pbt.n_atoms[block_type_ind])
+            bt = pbt.active_block_types[block_type_ind]
+            res_id = int(self.block_ind_for_rot[i]) + 1
+
+            for j in range(n_atoms):
+                atom_name = bt.atoms[j].name
+                atoms.append(
+                    struc.Atom(
+                        coords[i_offset + j],
+                        chain_id="A",
+                        res_id=res_id,
+                        res_name=bt.name3,
+                        atom_name=atom_name,
+                        element=get_element_from_atom_name(atom_name),
+                    )
+                )
+                model_ids.append(i)
+
+        atom_array = struc.array(atoms)
+        atom_array.set_annotation("model", numpy.array(model_ids, dtype=numpy.int32))
+        return atom_array
