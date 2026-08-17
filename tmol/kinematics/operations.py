@@ -1,7 +1,7 @@
 import torch
 
-from tmol.types.functional import validate_args
-from tmol.types.torch import Tensor
+from tmol.types import validate_args
+from tmol.types import Tensor
 
 from .datatypes import KinForest, KinDOF
 

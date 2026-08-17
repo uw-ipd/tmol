@@ -5,19 +5,19 @@ import torch
 import pandas
 
 from tmol.database import ParameterDatabase
-from tmol.database.scoring.hbond import HBondDatabase
+from tmol.database.scoring import HBondDatabase
 
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PackedBlockTypes
 
-from tmol.score.hbond.params import HBondParamResolver
-from tmol.score.common.stack_condense import arg_tile_subset_indices
-from tmol.score.chemical_database import AtomTypeParamResolver
-from tmol.score.bond_dependent_term import BondDependentTerm
+from tmol.score.hbond import HBondParamResolver
+from tmol.score.common import arg_tile_subset_indices
+from tmol.score import AtomTypeParamResolver
+from tmol.score import BondDependentTerm
 
-from tmol.types.attrs import ValidateAttrs
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
+from tmol.types import ValidateAttrs
+from tmol.types import NDArray
+from tmol.types import Tensor
 
 
 @numba.jit(nopython=True)

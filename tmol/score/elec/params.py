@@ -4,14 +4,14 @@ import cattr
 import numpy
 import torch
 
-from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
-from tmol.types.attrs import ValidateAttrs
-from tmol.types.functional import validate_args
+from tmol.types import Tensor
+from tmol.types import TensorGroup
+from tmol.types import ValidateAttrs
+from tmol.types import validate_args
 
-from tmol.database.scoring.elec import ElecDatabase
+from tmol.database.scoring import ElecDatabase
 
-from tmol.chemical.restypes import RefinedResidueType
+from tmol.chemical import RefinedResidueType
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

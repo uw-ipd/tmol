@@ -1,7 +1,7 @@
 import torch
 
-# from tmol.score.hbond.potentials.compiled import hbond_pose_scores
-from tmol.score.common.convert_float64 import convert_float64
+# from tmol.score.hbond.potentials import hbond_pose_scores
+from tmol.score.common import convert_float64
 
 
 class TermScoringModule(torch.nn.Module):

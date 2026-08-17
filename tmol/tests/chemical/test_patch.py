@@ -4,9 +4,9 @@ import yaml
 from attrs import evolve
 
 from tmol.io import pose_stack_from_pdb
-from tmol.chemical.ideal_coords import normalize
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+from tmol.chemical import normalize
+from tmol.chemical import RefinedResidueType
+from tmol.database import PatchedChemicalDatabase
 
 from tmol.database.chemical import VariantType, RawResidueType, normalize_bond_tuples
 

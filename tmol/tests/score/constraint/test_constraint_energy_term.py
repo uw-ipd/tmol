@@ -6,9 +6,9 @@ import pytest
 import sys
 import types
 
-from tmol.pose.constraint_set import ConstraintSet
-from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.pose import ConstraintSet
+from tmol.score.constraint import ConstraintEnergyTerm
+from tmol.tests.score.common import EnergyTermTestBase
 from tmol import pose_stack_from_pdb, ScoreFunction, ScoreType
 
 

@@ -4,17 +4,17 @@ import attr
 
 from typing import Tuple
 
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d
+from tmol.types import Tensor
+from tmol.types import validate_args
+from tmol.utility.tensor import exclusive_cumsum1d
 
 from tmol.database import ParameterDatabase
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.pack.packer_task import SetPackerTask
-from tmol.pack.rotamer.chi_sampler import ChiSampler
-from tmol.score.na_torsion.params import (
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
+from tmol.pack import SetPackerTask
+from tmol.pack.rotamer import ChiSampler
+from tmol.score.na_torsion import (
     NaTorsionParams,
     N_PUCKER,
     POLYMER_IND,
@@ -22,7 +22,7 @@ from tmol.score.na_torsion.params import (
     block_type_params,
     polymer_index,
 )
-from tmol.score.na_torsion.potentials import pucker_weights
+from tmol.score.na_torsion import pucker_weights
 
 # k in chi = mean + k * sdev_chi, by extra-chi sample level, mirroring Rosetta's
 # expansion of its fitted chi gaussians

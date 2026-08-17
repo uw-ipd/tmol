@@ -1,9 +1,9 @@
 import torch
 
-from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
+from tmol.chemical import MAX_SIG_BOND_SEPARATION
 from tmol.io import pose_stack_from_pdb
 
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.pose import PoseStackBuilder
 
 
 def test_concatenate_pose_stacks_ctor(ubq_pdb, default_database, torch_device):

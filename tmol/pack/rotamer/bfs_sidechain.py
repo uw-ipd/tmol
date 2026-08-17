@@ -3,8 +3,8 @@ import numba
 
 from typing import List
 
-from tmol.types.functional import validate_args
-from tmol.chemical.restypes import RefinedResidueType
+from tmol.types import validate_args
+from tmol.chemical import RefinedResidueType
 
 
 @numba.jit(nopython=True)

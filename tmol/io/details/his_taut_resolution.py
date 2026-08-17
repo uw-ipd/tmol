@@ -2,10 +2,10 @@ import torch
 import toolz.functoolz
 
 from typing import Tuple
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
-from tmol.io.canonical_ordering import CanonicalOrdering, HisSpecialCaseIndices
-from tmol.utility.auto_number import AutoNumber
+from tmol.types import Tensor
+from tmol.types import validate_args
+from tmol.io import CanonicalOrdering, HisSpecialCaseIndices
+from tmol.utility import AutoNumber
 
 # Special case variant-type handling for HIS
 # The I/O code knows that spcase variant 0 for HIS is HIS-E,
@@ -41,7 +41,7 @@ def resolve_his_tautomerization(
 ]:
     if canonical_ordering.his_inds.his_co_aa_ind == -1:
         return (torch.zeros_like(res_types), res_type_variants, coords, atom_is_present)
-    from tmol.io.details.compiled.compiled import resolve_his_taut
+    from tmol.io.details.compiled import resolve_his_taut
 
     his_inds = canonical_ordering.his_inds
 

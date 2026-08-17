@@ -6,9 +6,9 @@ import attr
 import numpy
 import torch
 
-from tmol.numeric.dihedrals import coord_dihedrals
-from tmol.pose.pose_stack import PoseStack
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.numeric import coord_dihedrals
+from tmol.io import create_pose_stack_from_sequences
+from tmol.pose import PoseStack
 
 # Backbone torsion values to 'build extended'
 #    beta strand for protein
@@ -48,7 +48,7 @@ def extended_pose_stack_from_sequences(
 
     See tmol.pose.sequence for the sequence grammar.
     """
-    pose_stack, build_context = PoseStackBuilder.from_sequences(
+    pose_stack, build_context = create_pose_stack_from_sequences(
         seqs,
         device=device,
         param_db=param_db,
@@ -258,9 +258,9 @@ def _controlling_kfo_node(pose_stack, kmd, kfo_for_atom, pose, block, tor_ind):
 
 def _apply_torsion_deltas(pose_stack, requests, deltas, fold_forest=None):
     from tmol.kinematics.compiled import inverse_kin
-    from tmol.kinematics.datatypes import BondDOFTypes, NodeType
-    from tmol.kinematics.fold_forest import FoldForest
-    from tmol.kinematics.script_modules import PoseStackKinematicsModule
+    from tmol.kinematics import BondDOFTypes, NodeType
+    from tmol.kinematics import FoldForest
+    from tmol.kinematics import PoseStackKinematicsModule
 
     if fold_forest is None:
         fold_forest = FoldForest.reasonable_fold_forest(pose_stack)

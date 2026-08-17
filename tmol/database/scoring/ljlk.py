@@ -5,7 +5,7 @@ import cattr
 
 from typing import Tuple, List
 
-from tmol.utility.units import Angle
+from tmol.utility import Angle
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

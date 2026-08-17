@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from tmol.tests.ligand.equivalence import EquivalenceResult
+    from tmol.tests.ligand import EquivalenceResult
 
 
 @dataclass(frozen=True)
@@ -238,7 +238,7 @@ def reference_bond_keys(
     table in :mod:`tmol.ligand.params_io`, so a reference and a generated
     preparation can be compared on the same vocabulary.
     """
-    from tmol.ligand.params_io import _BOND_TOK_TO_TYPE
+    from tmol.ligand import _BOND_TOK_TO_TYPE
 
     keys: set[tuple[frozenset[str], str, bool]] = set()
     for pair, order, ring in ref.bond_types:
@@ -391,6 +391,6 @@ def compare_semantic(
     so the parity harness has a single import surface for all comparison modes;
     no new isomorphism logic is introduced here.
     """
-    from tmol.tests.ligand.equivalence import compare_ligand_preparations
+    from tmol.tests.ligand import compare_ligand_preparations
 
     return compare_ligand_preparations(generated, reference, **kwargs)  # type: ignore[arg-type]

@@ -8,11 +8,11 @@ from ..hbond.hbond_dependent_term import HBondDependentTerm
 from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver
 from tmol.database import ParameterDatabase
 
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.common.stack_condense import arg_tile_subset_indices
-from tmol.score.common.convert_float64 import convert_float64
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
+from tmol.score.common import arg_tile_subset_indices
+from tmol.score.common import convert_float64
 
 
 class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
@@ -236,7 +236,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         super(LKBallEnergyTerm, self).setup_poses(pose_stack)
 
     def pose_score_lk_ball(self, *args):
-        from tmol.score.lk_ball.potentials.compiled import (
+        from tmol.score.lk_ball.potentials import (
             lk_ball_pose_score,
             gen_pose_waters,
         )
@@ -298,7 +298,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         return lk_ball_pose_score(*args)
 
     def rotamer_score_lk_ball(self, *args):
-        from tmol.score.lk_ball.potentials.compiled import (
+        from tmol.score.lk_ball.potentials import (
             lk_ball_rotamer_score,
             gen_pose_waters,
         )

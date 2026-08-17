@@ -1,7 +1,7 @@
 import torch
 from typing import List, Tuple, Union, Optional
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
+from tmol.types import Tensor
+from tmol.types import validate_args
 
 
 @validate_args

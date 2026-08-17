@@ -3,7 +3,7 @@ import tmol.score.terms  # noqa: F401, F403 -- force factory registration of sco
 
 from typing import Dict
 from tmol.database import ParameterDatabase
-from tmol.score.score_types import ScoreType
+from tmol.score import ScoreType
 
 
 class ScoreTermFactory:

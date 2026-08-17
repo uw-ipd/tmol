@@ -3,14 +3,14 @@ import attr
 
 from typing import Tuple
 
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
+from tmol.types import Tensor
+from tmol.types import validate_args
 
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.pack.packer_task import SetPackerTask
-from tmol.pack.rotamer.chi_sampler import ChiSampler
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
+from tmol.pack import SetPackerTask
+from tmol.pack.rotamer import ChiSampler
 
 
 @attr.s(auto_attribs=True, frozen=True)

@@ -2,8 +2,8 @@ import numpy
 import attr
 import enum
 
-from tmol.types.array import NDArray
-from tmol.pose.pose_stack import PoseStack
+from tmol.types import NDArray
+from tmol.pose import PoseStack
 
 
 class EdgeType(enum.IntEnum):

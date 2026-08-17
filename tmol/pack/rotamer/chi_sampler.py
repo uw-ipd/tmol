@@ -3,15 +3,15 @@ import attr
 
 from typing import Tuple
 
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
+from tmol.types import Tensor
+from tmol.types import validate_args
 
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.kinematics.datatypes import KinForest
-from tmol.pack.rotamer.conformer_sampler import ConformerSampler
+from tmol.utility.tensor import exclusive_cumsum1d, stretch
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
+from tmol.kinematics import KinForest
+from tmol.pack.rotamer import ConformerSampler
 
 
 @attr.s(auto_attribs=True)
@@ -394,7 +394,7 @@ def assign_chi_dofs_from_samples(
     )
 
     # precomputed correction: phi_c = chi_intended - correction => chi_measured = chi_intended
-    from tmol.pack.rotamer.build_rotamers import _build_chi_phi_c_corrections
+    from tmol.pack.rotamer import _build_chi_phi_c_corrections
 
     corrections_np = _build_chi_phi_c_corrections(pbt)[
         block_type_ind_for_rot_atom, chi_idx_for_real_atom

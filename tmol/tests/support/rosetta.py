@@ -8,7 +8,7 @@ import pytest
 def pyrosetta():
     "Import and initialize pyrosetta."
     try:
-        from tmol.support.rosetta.init import pyrosetta
+        from tmol.support.rosetta import pyrosetta
 
         return pyrosetta
     except ImportError:

@@ -1,10 +1,10 @@
 import torch
 import numpy
-from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
+from tmol.types import Tensor
+from tmol.types import NDArray
 from typing import Union, Optional
 
-from tmol.types.functional import validate_args
+from tmol.types import validate_args
 
 ##################################################################
 # For operations on stacked systems, we have to deal with the fact

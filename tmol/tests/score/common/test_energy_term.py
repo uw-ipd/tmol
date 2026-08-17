@@ -8,16 +8,16 @@ import torch
 import yaml
 
 from tmol.io import pose_stack_from_pdb
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     canonical_form_from_atom_records,
     default_canonical_ordering,
     default_packed_block_types,
     select_atom_records_res_subset,
 )
-from tmol.io.pdb_parsing import parse_pdb
-from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.score.ref.ref_energy_term import RefEnergyTerm
+from tmol.io import parse_pdb
+from tmol.io import pose_stack_from_canonical_form
+from tmol.pose import PoseStackBuilder
+from tmol.score.ref import RefEnergyTerm
 
 
 # monkeypatch function to give more sane output from torch gradcheck

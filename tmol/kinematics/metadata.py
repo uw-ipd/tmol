@@ -6,14 +6,14 @@ import attr
 import torch
 import pandas
 
-from tmol.types.attrs import ConvertAttrs
+from tmol.types import ConvertAttrs
 
-from tmol.types.tensor import TensorGroup
-from tmol.types.torch import Tensor
+from tmol.types import TensorGroup
+from tmol.types import Tensor
 
-from tmol.utility.categorical import vals_to_name_cat, names_to_val_cat
+from tmol.utility import vals_to_name_cat, names_to_val_cat
 
-from tmol.kinematics.datatypes import NodeType, KinDOF, KinForest
+from tmol.kinematics import NodeType, KinDOF, KinForest
 
 
 class DOFTypes(enum.IntEnum):

@@ -4,8 +4,8 @@ import pytest
 import typing
 from typing import Union, Tuple, List
 
-from tmol.types.functional import validate_args, convert_args
-from tmol.types.array import NDArray
+from tmol.types import validate_args, convert_args
+from tmol.types import NDArray
 
 
 def f(*args, **kwargs):

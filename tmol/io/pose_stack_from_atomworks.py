@@ -3,13 +3,13 @@ import torch
 import numpy
 import toolz
 
-from tmol.types.functional import validate_args
-from tmol.chemical.restypes import ResidueTypeSet
+from tmol.types import validate_args
+from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
-from tmol.io.canonical_form import CanonicalForm
-from tmol.io.canonical_ordering import CanonicalOrdering
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.io import CanonicalForm
+from tmol.io import CanonicalOrdering
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
 
 # ---------------------------------------------------------------------------
 # Atomworks UNIFIED_ATOM37_ENCODING constants (protein subset).
@@ -105,7 +105,7 @@ def pose_stack_from_atomworks(
     ValueError
         If any ``residue_type`` value is outside 1..20 (protein-only).
     """
-    from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
+    from tmol.io import pose_stack_from_canonical_form
 
     cf = canonical_form_from_atomworks(coords, residue_type, chain_iid)
 
@@ -231,7 +231,7 @@ def atomworks_from_pose_stack(
     chain_iid : Tensor[int64], shape [n_poses, max_n_res]
         Chain identifiers.
     """
-    from tmol.io.pose_stack_deconstruction import canonical_form_from_pose_stack
+    from tmol.io import canonical_form_from_pose_stack
 
     co = canonical_ordering_for_atomworks()
     cf = canonical_form_from_pose_stack(co, pose_stack)

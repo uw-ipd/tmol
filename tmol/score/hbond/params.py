@@ -6,12 +6,12 @@ import torch
 
 import toolz
 
-from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
-from tmol.types.attrs import ValidateAttrs, ConvertAttrs
-from tmol.types.functional import validate_args
+from tmol.types import Tensor
+from tmol.types import TensorGroup
+from tmol.types import ValidateAttrs, ConvertAttrs
+from tmol.types import validate_args
 
-from tmol.database.scoring.hbond import HBondDatabase
+from tmol.database.scoring import HBondDatabase
 from tmol.database.chemical import ChemicalDatabase
 
 from ..chemical_database import AcceptorHybridization

@@ -7,7 +7,7 @@ import torch
 import yaml
 import attr
 import cattr
-from tmol.database.scoring.dunbrack_libraries import (
+from tmol.database.scoring import (
     DunbrackRotamerLibrary,
     RotamericDataForAA,
     RotamericAADunbrackLibrary,

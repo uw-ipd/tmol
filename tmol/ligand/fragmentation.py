@@ -15,7 +15,7 @@ from typing import Mapping, Sequence
 import biotite.structure as struc
 import numpy as np
 
-from tmol.chemical.ideal_coords import build_coords_from_icoors
+from tmol.chemical import build_coords_from_icoors
 from tmol.database.chemical import Connection, Icoor, RawResidueType
 from tmol.ligand.registry import LigandPreparation
 
@@ -788,7 +788,7 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
     import attr
     import torch
 
-    from tmol.pose.pose_stack_builder import PoseStackBuilder
+    from tmol.pose import PoseStackBuilder
 
     pbt = pose_stack.packed_block_types
     inter_residue_connections64 = pose_stack.inter_residue_connections64.clone()

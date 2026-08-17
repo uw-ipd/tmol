@@ -4,17 +4,17 @@ import torch
 
 from typing import Tuple, Mapping
 
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
+from tmol.types import NDArray
+from tmol.types import Tensor
+from tmol.types import validate_args
 
-from tmol.numeric.dihedrals import coord_dihedrals
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.numeric import coord_dihedrals
+from tmol.database import PatchedChemicalDatabase
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PackedBlockTypes
 
-from tmol.pack.rotamer.chi_sampler import ChiSampler
-from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms_jit
+from tmol.pack.rotamer import ChiSampler
+from tmol.pack.rotamer import bfs_sidechain_atoms_jit
 
 # what atoms should we copy over?
 # everything north of "first sidechain atom"?

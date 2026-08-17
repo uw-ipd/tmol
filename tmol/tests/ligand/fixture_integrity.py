@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from tmol.tests.ligand.params_reference import ReferenceParams, parse_reference_params
+from tmol.tests.ligand import ReferenceParams, parse_reference_params
 
 
 class FixtureMismatch(ValueError):

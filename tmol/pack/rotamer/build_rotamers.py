@@ -5,27 +5,27 @@ import torch
 
 from typing import List, Tuple
 
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
+from tmol.types import NDArray
+from tmol.types import Tensor
+from tmol.types import validate_args
 
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
+from tmol.utility.tensor import exclusive_cumsum1d, stretch
 from tmol.database.chemical import ChemicalDatabase
-from tmol.kinematics.datatypes import KinForest, NodeType
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.kinematics import KinForest, NodeType
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
 
-from tmol.pack.rotamer.rotamer_set import RotamerSet
-from tmol.pack.packer_task import SetPackerTask
-from tmol.pack.rotamer.chi_sampler import ChiSampler
-from tmol.numeric.dihedrals import coord_dihedrals
+from tmol.pack.rotamer import RotamerSet
+from tmol.pack import SetPackerTask
+from tmol.pack.rotamer import ChiSampler
+from tmol.numeric import coord_dihedrals
 
-from tmol.pack.rotamer.single_residue_kinforest import (
+from tmol.pack.rotamer import (
     construct_single_residue_kinforest,
     coalesce_single_residue_kinforests,
 )
-from tmol.pack.rotamer.mainchain_fingerprint import (
+from tmol.pack.rotamer import (
     annotate_residue_type_with_sampler_fingerprints,
     find_unique_fingerprints,
 )
@@ -708,7 +708,7 @@ def calculate_rotamer_coords(
     gens: NDArray[numpy.int32][:],
     rot_dofs_kto: Tensor[torch.float32][:, 9],
 ):
-    from tmol.kinematics.compiled.compiled_ops import forward_only_op
+    from tmol.kinematics.compiled import forward_only_op
 
     def _p(t):
         return torch.nn.Parameter(t, requires_grad=False)

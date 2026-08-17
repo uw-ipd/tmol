@@ -2,28 +2,28 @@ import attrs
 import torch
 import math
 
-from tmol.pose.constraint_set import ConstraintSet
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
+from tmol.pose import ConstraintSet
+from tmol.pose import PoseStackBuilder
+from tmol.score import ScoreFunction
+from tmol.score import ScoreType
 
-from tmol.pack.compiled.compiled import build_interaction_graph
-from tmol.pack.packer_task import PackerTask, PackerPalette, SetPackerTask
-from tmol.pack.rotamer.build_rotamers import build_rotamers
-from tmol.pack.rotamer.fixed_aa_chi_sampler import (
+from tmol.pack.compiled import build_interaction_graph
+from tmol.pack import PackerTask, PackerPalette, SetPackerTask
+from tmol.pack.rotamer import build_rotamers
+from tmol.pack.rotamer import (
     FixedAAChiSampler,
 )
-from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
-from tmol.pack.rotamer.opth_sampler import OptHSampler
-from tmol.pack.datatypes import PackerEnergyTables
-from tmol.pack.simulated_annealing import run_simulated_annealing
-from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
+from tmol.pack.rotamer import IncludeCurrentSampler
+from tmol.pack.rotamer import OptHSampler
+from tmol.pack import PackerEnergyTables
+from tmol.pack import run_simulated_annealing
+from tmol.pack import impose_top_rotamer_assignments
 
 from tmol.io import pose_stack_from_pdb
 
-from tmol.pack.pack_rotamers import pack_rotamers
+from tmol.pack import pack_rotamers
 
-from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
+from tmol.score.constraint import ConstraintEnergyTerm
 
 
 def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
@@ -247,7 +247,7 @@ def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
 
     # NHQ flip rotamers must have chi either matching the input (~0 deg)
     # or flipped by ~180 deg.
-    from tmol.numeric.dihedrals import coord_dihedrals as _cd
+    from tmol.numeric import coord_dihedrals as _cd
 
     for i in range(task.allowed_bt_block_type.shape[0]):
         pose_i = task.allowed_bt_pose[i].item()

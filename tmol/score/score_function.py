@@ -3,16 +3,16 @@ import yaml
 import logging
 
 from typing import Dict, Sequence
-from tmol.types.torch import Tensor
+from tmol.types import Tensor
 
 from tmol.database import ParameterDatabase
-from tmol.score.score_types import ScoreType
+from tmol.score import ScoreType
 
 # force registration of the terms with the ScoreTermFactory
 from tmol.score.terms import *  # noqa: F401, F403
-from tmol.score.terms.score_term_factory import ScoreTermFactory
+from tmol.score.terms import ScoreTermFactory
 
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose import PoseStack
 
 logger = logging.getLogger(__name__)
 

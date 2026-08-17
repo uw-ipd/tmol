@@ -5,12 +5,12 @@ from ..bond_dependent_term import BondDependentTerm
 from .params import LJLKTypeParams, LJLKGlobalParams
 
 from tmol.database import ParameterDatabase
-from tmol.score.common.stack_condense import tile_subset_indices
-from tmol.score.ljlk.params import LJLKParamResolver
+from tmol.score.common import tile_subset_indices
+from tmol.score.ljlk import LJLKParamResolver
 
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
 
 
 class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
@@ -114,12 +114,12 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(LJLKEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores
+        from tmol.score.ljlk.potentials import ljlk_pose_scores
 
         return ljlk_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.ljlk.potentials.compiled import ljlk_rotamer_scores
+        from tmol.score.ljlk.potentials import ljlk_rotamer_scores
 
         return ljlk_rotamer_scores
 

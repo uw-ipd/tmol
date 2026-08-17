@@ -13,7 +13,7 @@ import numpy as np
 from rdkit import Chem
 
 from tmol.database import ParameterDatabase
-from tmol.io.canonical_ordering import CanonicalOrdering
+from tmol.io import CanonicalOrdering
 from tmol.ligand.atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand.detect import (
     NonStandardResidueInfo,
@@ -29,9 +29,7 @@ from tmol.ligand.registry import (
 )
 from tmol.ligand.mol3d import authoritative_charges_by_index
 from tmol.ligand.residue_builder import build_residue_type
-from tmol.ligand.structure_to_smiles import (
-    ligand_smiles_from_atom_array,
-)
+from tmol.ligand.structure_to_smiles import ligand_smiles_from_atom_array
 from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
 
 logger = logging.getLogger(__name__)

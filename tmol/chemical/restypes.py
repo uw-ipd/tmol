@@ -14,12 +14,12 @@ import scipy.sparse.csgraph as csgraph
 
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import RawResidueType
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+from tmol.database import PatchedChemicalDatabase
 
-from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
-from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
-from tmol.chemical.ideal_coords import build_coords_from_icoors
-from tmol.chemical.all_bonds import bonds_and_bond_ranges
+from tmol.chemical import MAX_SIG_BOND_SEPARATION
+from tmol.chemical import MAX_PATHS_FROM_CONNECTION
+from tmol.chemical import build_coords_from_icoors
+from tmol.chemical import bonds_and_bond_ranges
 
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)

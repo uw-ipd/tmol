@@ -6,12 +6,12 @@ import pandas
 
 from typing import Sequence
 
-from tmol.types.torch import Tensor
+from tmol.types import Tensor
 
-from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.utility.tensor.common_operations import join_tensors_and_report_real_entries
+from tmol.chemical import MAX_PATHS_FROM_CONNECTION
+from tmol.database import PatchedChemicalDatabase
+from tmol.chemical import RefinedResidueType, ResidueTypeSet
+from tmol.utility.tensor import join_tensors_and_report_real_entries
 
 
 def residue_types_from_residues(residues):

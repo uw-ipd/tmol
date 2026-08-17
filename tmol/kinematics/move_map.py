@@ -2,10 +2,10 @@ import torch
 import attrs
 
 from typing import Optional, Union
-from tmol.types.torch import Tensor
+from tmol.types import Tensor
 
-from tmol.pose.pose_stack import PoseStack
-from tmol.kinematics.datatypes import (
+from tmol.pose import PoseStack
+from tmol.kinematics import (
     KinematicModuleData,
     n_movable_bond_dof_types,
     n_movable_jump_dof_types,
@@ -442,7 +442,7 @@ class MinimizerMap:
         kmd: KinematicModuleData,
         mm: MoveMap,
     ):
-        from tmol.kinematics.compiled.compiled_ops import minimizer_map_from_movemap
+        from tmol.kinematics.compiled import minimizer_map_from_movemap
 
         pbt = pose_stack.packed_block_types
 

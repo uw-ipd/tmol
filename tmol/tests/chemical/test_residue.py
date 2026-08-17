@@ -2,8 +2,8 @@ import attr
 import cattr
 import numpy
 
-from tmol.chemical.ideal_coords import normalize, build_ideal_coords
-from tmol.chemical.restypes import (
+from tmol.chemical import normalize, build_ideal_coords
+from tmol.chemical import (
     RefinedResidueType,
     ResidueTypeSet,
 )

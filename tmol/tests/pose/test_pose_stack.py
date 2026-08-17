@@ -1,7 +1,7 @@
 import numpy
 import torch
 from tmol.io import pose_stack_from_pdb
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.pose import PoseStackBuilder
 
 
 def test_n_poses(ubq_40_60_pose_stack):

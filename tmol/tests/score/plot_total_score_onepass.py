@@ -1,6 +1,6 @@
 import seaborn
 
-from tmol.tests.benchmark_plot import BenchmarkPlot
+from tmol.tests import BenchmarkPlot
 
 
 class TotalScoreOnepass(BenchmarkPlot):

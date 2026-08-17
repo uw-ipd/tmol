@@ -8,8 +8,8 @@ import attr
 import cattr
 
 
-from tmol.numeric.bspline import BSplineInterpolation
-from tmol.database.scoring.rama import RamaDatabase, RamaTables
+from tmol.numeric import BSplineInterpolation
+from tmol.database.scoring import RamaDatabase, RamaTables
 
 # A conversion script from rosetta BB probability tables to
 # tmol probability tables.  tmol stores tables which contain

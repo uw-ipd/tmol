@@ -3,10 +3,10 @@ import torch
 import numba
 
 from typing import Optional
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
-from tmol.io.canonical_ordering import CanonicalOrdering
+from tmol.types import NDArray
+from tmol.types import Tensor
+from tmol.types import validate_args
+from tmol.io import CanonicalOrdering
 
 
 @validate_args

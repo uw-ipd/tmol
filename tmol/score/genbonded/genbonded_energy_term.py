@@ -25,20 +25,20 @@ import numpy
 
 from typing import List
 
-from tmol.score.atom_type_dependent_term import AtomTypeDependentTerm
+from tmol.score import AtomTypeDependentTerm
 
 from tmol.database import ParameterDatabase
 
-from tmol.score.genbonded.potentials.compiled import (
+from tmol.score.genbonded.potentials import (
     genbonded_pose_scores,
     genbonded_rotamer_scores,
 )
 
-from tmol.chemical.restypes import BondType, RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.chemical import BondType, RefinedResidueType
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
 
-from tmol.score.common.hash_util import (
+from tmol.score.common import (
     make_hashtable_keys_values,
     add_to_hashtable,
 )

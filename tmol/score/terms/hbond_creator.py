@@ -1,5 +1,5 @@
-from tmol.score.terms.term_creator import TermCreator, score_term_creator
-from tmol.score.score_types import ScoreType
+from tmol.score.terms import TermCreator, score_term_creator
+from tmol.score import ScoreType
 from tmol.database import ParameterDatabase
 import torch
 

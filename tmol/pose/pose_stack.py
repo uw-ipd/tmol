@@ -2,14 +2,14 @@ import attr
 import torch
 from typing import Optional, TYPE_CHECKING
 
-from tmol.types.torch import Tensor
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.pdb_info import PDBInfo
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.constraint_set import ConstraintSet
+from tmol.types import Tensor
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PDBInfo
+from tmol.pose import PackedBlockTypes
+from tmol.pose import ConstraintSet
 
 if TYPE_CHECKING:
-    from tmol.ligand.fragmentation import FragmentedLigandPoseMapping
+    from tmol.ligand import FragmentedLigandPoseMapping
 
 
 @attr.s(auto_attribs=True)

@@ -2,8 +2,8 @@ import numpy
 import pytest
 import torch
 
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pose.util import (
+from tmol.io import create_pose_stack_from_sequences
+from tmol.pose import (
     EXTENDED_BACKBONE_TORSIONS,
     extended_pose_stack_from_sequences,
     get_named_torsions,
@@ -205,7 +205,7 @@ def test_set_named_torsions_undefined_torsion_raises(torch_device):
 
 def c_to_n_fold_forest(pose_stack):
     """Fold forest rooting each single-chain pose at its last residue."""
-    from tmol.kinematics.fold_forest import EdgeType, FoldForest
+    from tmol.kinematics import EdgeType, FoldForest
 
     n_poses = pose_stack.n_poses
     edges = numpy.full((n_poses, 2, 4), -1, dtype=int)
@@ -307,7 +307,7 @@ RNA_GOLD_TORSION_NAMES = {
 )
 def test_get_torsion_names(seq, gold, torch_device):
     # names come from the block type, so the zero-coordinate builder suffices
-    pose_stack = PoseStackBuilder.from_sequences(seq, device=torch_device)
+    pose_stack = create_pose_stack_from_sequences(seq, device=torch_device)
 
     got = {
         name: get_torsion_names(pose_stack, 0, block)
@@ -317,12 +317,12 @@ def test_get_torsion_names(seq, gold, torch_device):
 
 
 def test_get_torsion_names_non_polymer(torch_device):
-    pose_stack = PoseStackBuilder.from_sequences("A[HOH]", device=torch_device)
+    pose_stack = create_pose_stack_from_sequences("A[HOH]", device=torch_device)
     assert get_torsion_names(pose_stack, 0, 0) == []
 
 
 def test_get_torsion_names_rejects_absent_block(torch_device):
-    pose_stack = PoseStackBuilder.from_sequences(["AAA", "AA"], device=torch_device)
+    pose_stack = create_pose_stack_from_sequences(["AAA", "AA"], device=torch_device)
     with pytest.raises(ValueError, match="not a real block"):
         get_torsion_names(pose_stack, 1, 2)
 

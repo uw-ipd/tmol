@@ -9,18 +9,18 @@ import math
 from dataclasses import dataclass
 from typing import Optional
 
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+from tmol.database import PatchedChemicalDatabase
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import (
     AtomType,
     RawResidueType,
 )
-from tmol.database.scoring.cartbonded import (
+from tmol.database.scoring import (
     AngleGroup,
     CartRes,
     LengthGroup,
 )
-from tmol.io.canonical_ordering import CanonicalOrdering
+from tmol.io import CanonicalOrdering
 from tmol.ligand.chemistry_tables import get_hbond_properties
 
 logger = logging.getLogger(__name__)

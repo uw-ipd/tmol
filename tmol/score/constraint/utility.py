@@ -1,14 +1,14 @@
 import torch
 import attrs
 
-from tmol.types.torch import Tensor
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.types import Tensor
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
 
 
 def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
-    from tmol.pose.constraint_set import ConstraintSet
-    from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
+    from tmol.pose import ConstraintSet
+    from tmol.score.constraint import ConstraintEnergyTerm
 
     constraint_set = pose_stack.constraint_set
 
@@ -110,8 +110,8 @@ def _annotate_mainchain_atom_indices(packed_block_types: PackedBlockTypes) -> No
 
 
 def create_mainchain_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
-    from tmol.pose.constraint_set import ConstraintSet
-    from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
+    from tmol.pose import ConstraintSet
+    from tmol.score.constraint import ConstraintEnergyTerm
 
     pbt = pose_stack.packed_block_types
     _annotate_mainchain_atom_indices(pbt)

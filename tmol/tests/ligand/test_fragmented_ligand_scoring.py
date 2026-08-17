@@ -11,8 +11,8 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.ligand.fragmentation import FRAGMENT_ID_ANNOTATION
-from tmol.ligand.params_file import load_params_file
+from tmol.ligand import FRAGMENT_ID_ANNOTATION
+from tmol.ligand import load_params_file
 
 DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 TARGET = "ace"
@@ -120,7 +120,7 @@ def _annotate_at_cuts(structure, preparation, cuts):
 
 def _build(structure, params_path, torch_device, *, fragmented):
     from tmol.database import ParameterDatabase
-    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_biotite
 
     pose, context = pose_stack_from_biotite(
         structure,
@@ -175,8 +175,8 @@ def test_fragment_definition_connections_icoors_and_mapping(torch_device):
 def test_fragmented_ligand_export_restores_original_residue(torch_device):
     import attr
 
-    from tmol.io.pose_stack_from_biotite import biotite_from_pose_stack
-    from tmol.io.write_pose_stack_pdb import atom_records_from_pose_stack
+    from tmol.io import biotite_from_pose_stack
+    from tmol.io import atom_records_from_pose_stack
     from tmol.ligand import recombine_fragmented_ligands
 
     structure, params_path, preparation = _load_fixture()
@@ -215,7 +215,7 @@ def test_fragmented_ligand_export_restores_original_residue(torch_device):
 
 
 def test_fragmentation_uses_ligand_already_in_parameter_database(torch_device):
-    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_biotite
 
     structure, params_path, preparation = _load_fixture()
     _, whole_context, _ = _build(structure, params_path, torch_device, fragmented=False)
@@ -239,7 +239,7 @@ def test_fragmentation_uses_ligand_already_in_parameter_database(torch_device):
 
 
 def test_fragment_interactions_validate_inputs(torch_device):
-    from tmol.score.score_utils import calculate_fragment_interactions
+    from tmol.score import calculate_fragment_interactions
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -262,7 +262,7 @@ def test_fragment_interactions_validate_inputs(torch_device):
 
 
 def test_duplicate_ligand_names_require_same_fragment_layout():
-    from tmol.ligand.preparation import LigandPreparationError, prepare_ligands
+    from tmol.ligand import LigandPreparationError, prepare_ligands
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -280,7 +280,7 @@ def test_duplicate_ligand_names_require_same_fragment_layout():
 
 
 def test_prepare_ligands_rejects_too_small_fragment():
-    from tmol.ligand.preparation import LigandPreparationError, prepare_ligands
+    from tmol.ligand import LigandPreparationError, prepare_ligands
 
     structure, params_path, _ = _load_fixture("egfr")
     annotated = structure.copy()
@@ -302,7 +302,7 @@ def test_prepare_ligands_rejects_too_small_fragment():
 
 
 def test_prepare_ligands_rejects_unassigned_fragment_atoms_public_path():
-    from tmol.ligand.preparation import LigandPreparationError, prepare_ligands
+    from tmol.ligand import LigandPreparationError, prepare_ligands
 
     structure, params_path, _ = _load_fixture("egfr")
     annotated = structure.copy()
@@ -325,7 +325,7 @@ def test_prepare_ligands_rejects_unassigned_fragment_atoms_public_path():
 
 
 def test_fragment_validation_rejects_unsupported_layouts():
-    from tmol.ligand.fragmentation import (
+    from tmol.ligand import (
         _fragment_atom_tree,
         _validate_bonded_cut_layout,
         _validate_scoring_cut_layout,
@@ -353,7 +353,7 @@ def test_fragment_validation_rejects_unsupported_layouts():
 
 
 def test_fragment_mapping_is_stable_for_atom_array_stack(torch_device):
-    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_biotite
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -385,7 +385,7 @@ def test_fragment_mapping_is_stable_for_atom_array_stack(torch_device):
 def test_fragmented_ligand_minimize_and_pack_e2e():
     from tmol import run_cart_min
     from tmol.score import beta2016_score_function
-    from tmol.score.score_utils import (
+    from tmol.score import (
         build_coord_mask_for_mask_and_interacting_atoms,
         calculate_block_pair_ddg,
         calculate_fragment_interactions,
@@ -447,7 +447,7 @@ def test_fragmented_ligand_minimize_and_pack_e2e():
 )
 def test_fragmented_ligand_ddg_and_total_pose_parity(target, fragmentation):
     from tmol.score import beta2016_score_function
-    from tmol.score.score_utils import (
+    from tmol.score import (
         calculate_block_pair_ddg,
         calculate_fragment_interactions,
     )

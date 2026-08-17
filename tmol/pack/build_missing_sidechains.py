@@ -1,13 +1,13 @@
 import torch
 
-from tmol.types.torch import Tensor
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.score_function import ScoreFunction
-from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pack.rotamer.na_chi_sampler import NaChiRotamerSampler
-from tmol.pack.pack_rotamers import pack_rotamers
+from tmol.types import Tensor
+from tmol.pose import PoseStack
+from tmol.score import ScoreFunction
+from tmol.pack import PackerTask, PackerPalette
+from tmol.pack.rotamer.dunbrack import DunbrackChiSampler
+from tmol.pack.rotamer import FixedAAChiSampler
+from tmol.pack.rotamer import NaChiRotamerSampler
+from tmol.pack import pack_rotamers
 
 
 def build_missing_sidechains(
@@ -56,7 +56,7 @@ def build_missing_sidechains(
         PoseStack with missing sidechains built and (by default) hydrogens
         placed and optimized.
     """
-    from tmol.pack.rotamer.opth_sampler import OptHSampler
+    from tmol.pack.rotamer import OptHSampler
 
     assert block_has_missing_atoms.device == pose_stack.device
 

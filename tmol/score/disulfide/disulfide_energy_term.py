@@ -4,10 +4,10 @@ import numpy
 from ..energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
-from tmol.score.disulfide.params import DisulfideGlobalParams
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.score.disulfide import DisulfideGlobalParams
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
 
 
 class DisulfideEnergyTerm(EnergyTerm):
@@ -71,12 +71,12 @@ class DisulfideEnergyTerm(EnergyTerm):
         super(DisulfideEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        from tmol.score.disulfide.potentials.compiled import disulfide_pose_scores
+        from tmol.score.disulfide.potentials import disulfide_pose_scores
 
         return disulfide_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.disulfide.potentials.compiled import disulfide_rotamer_scores
+        from tmol.score.disulfide.potentials import disulfide_rotamer_scores
 
         return disulfide_rotamer_scores
 

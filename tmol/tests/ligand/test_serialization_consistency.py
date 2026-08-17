@@ -6,7 +6,7 @@ from dataclasses import replace
 
 import pytest
 
-from tmol.tests.ligand.parity_manifest import load_parity_manifest
+from tmol.tests.ligand import load_parity_manifest
 from tmol.tests.ligand._parity_helpers import (
     prepare_seed_entry,
     proton_chi_by_axis_from_prep,
@@ -15,7 +15,7 @@ from tmol.tests.ligand._parity_helpers import (
     write_both_formats,
 )
 from tmol.ligand import params_file
-from tmol.tests.ligand.params_reference import (
+from tmol.tests.ligand import (
     compare_params_strict,
     generated_fields_from_preparation,
     parse_reference_params,

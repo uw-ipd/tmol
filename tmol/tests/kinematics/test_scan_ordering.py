@@ -3,8 +3,8 @@ import numpy
 import scipy.sparse as sparse
 import scipy.sparse.csgraph as csgraph
 
-from tmol.kinematics.datatypes import KinForest
-from tmol.kinematics.scan_ordering import get_scans
+from tmol.kinematics import KinForest
+from tmol.kinematics import get_scans
 
 
 def kinforest_from_roots_and_bonds(roots, bonds):

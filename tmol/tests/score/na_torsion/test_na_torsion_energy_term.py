@@ -4,12 +4,12 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.io import pose_stack_from_pdb
-from tmol.score.na_torsion.na_torsion_energy_term import (
+from tmol.score.na_torsion import (
     NaTorsionEnergyTerm,
     na_torsion_subterms,
 )
-from tmol.score.na_torsion.params import polymer_index
-from tmol.score.na_torsion.potentials import wrap_degrees
+from tmol.score.na_torsion import polymer_index
+from tmol.score.na_torsion import wrap_degrees
 
 
 def _term_and_pose(pdb, torch_device):
@@ -77,7 +77,7 @@ def test_stacked_poses_scale_linearly(n_poses, fixture, request, torch_device):
     Guards the uaid resolution, whose reshapes have to keep pose and block as
     separate dimensions; collapsing them still broadcasts at a single pose.
     """
-    from tmol.pose.pose_stack_builder import PoseStackBuilder
+    from tmol.pose import PoseStackBuilder
 
     term, ps1 = _term_and_pose(request.getfixturevalue(fixture), torch_device)
     one = term.render_whole_pose_scoring_module(ps1)(ps1.coords)
@@ -126,11 +126,11 @@ def test_rotamer_energies_match_the_pose_energies(protein_dna_pdb, torch_device)
     """The include-current rotamer of each DNA block must reproduce that
     block's pose energy, including the backbone torsions that reach into the
     neighboring nucleotide's background coordinates."""
-    from tmol.pack.packer_task import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer.build_rotamers import build_rotamers
-    from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
-    from tmol.score.score_function import ScoreFunction
-    from tmol.score.score_types import ScoreType
+    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
+    from tmol.pack.rotamer import build_rotamers
+    from tmol.pack.rotamer import IncludeCurrentSampler
+    from tmol.score import ScoreFunction
+    from tmol.score import ScoreType
 
     ps = pose_stack_from_pdb(protein_dna_pdb, torch_device)
     sfxn = ScoreFunction(ParameterDatabase.get_default(), torch_device)

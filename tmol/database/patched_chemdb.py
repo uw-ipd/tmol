@@ -10,7 +10,7 @@ from tmol.database.chemical import (
     Icoor,
 )
 
-from tmol.extern.pysmiles.read_smiles import read_smiles
+from tmol.extern.pysmiles import read_smiles
 
 import attr
 import copy

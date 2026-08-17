@@ -14,7 +14,7 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io.pose_stack_from_biotite import (
+from tmol.io import (
     build_context_from_biotite,
     pose_stack_from_biotite,
 )

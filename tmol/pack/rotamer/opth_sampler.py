@@ -5,21 +5,21 @@ import attr
 
 from typing import Tuple
 
-from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
-from tmol.types.functional import validate_args
+from tmol.types import Tensor
+from tmol.types import NDArray
+from tmol.types import validate_args
 
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.kinematics.datatypes import KinForest
-from tmol.pack.rotamer.conformer_sampler import ConformerSampler
-from tmol.pack.rotamer.single_residue_kinforest import (
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
+from tmol.kinematics import KinForest
+from tmol.pack.rotamer import ConformerSampler
+from tmol.pack.rotamer import (
     construct_single_residue_kinforest,
 )
-from tmol.pack.rotamer.na_chi_sampler import na_proton_chi_roots
-from tmol.numeric.dihedrals import coord_dihedrals
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d
+from tmol.pack.rotamer import na_proton_chi_roots
+from tmol.numeric import coord_dihedrals
+from tmol.utility.tensor import exclusive_cumsum1d
 
 # Residue categories that get NHQ flip treatment (requires flip_NHQ=True)
 _NQ_FLIP_BASES = frozenset(("ASN", "GLN"))
@@ -137,7 +137,7 @@ def _opth_fill_dofs(
     3. Write the corrected chi torsion into DOF column 3 for
        the chi-defining atom of each flip / proton-chi rotamer.
     """
-    from tmol.pack.rotamer.build_rotamers import _build_chi_phi_c_corrections
+    from tmol.pack.rotamer import _build_chi_phi_c_corrections
 
     pbt = pose_stack.packed_block_types
     dev = conf_dofs_kto.device

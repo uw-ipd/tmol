@@ -3,11 +3,11 @@ import cattr
 
 import torch
 
-from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
-from tmol.types.functional import validate_args
+from tmol.types import Tensor
+from tmol.types import TensorGroup
+from tmol.types import validate_args
 
-from tmol.database.scoring.disulfide import DisulfideDatabase
+from tmol.database.scoring import DisulfideDatabase
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

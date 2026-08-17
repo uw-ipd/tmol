@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import numpy as np
 from rdkit import Chem
 
-from tmol.ligand.atom_typing import (
+from tmol.ligand import (
     AtomTypeAssignment,
     HYB_AROMATIC,
     HYB_SP2,
@@ -23,8 +23,8 @@ from tmol.ligand.atom_typing import (
     _get_hyb,
     sanitize_tolerant,
 )
-from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
-from tmol.ligand.residue_builder import build_residue_type
+from tmol.ligand import ligand_atom_array_to_rdkit_mol
+from tmol.ligand import build_residue_type
 
 
 def test_get_hyb_distinguishes_ar_vs_aro_subtypes() -> None:

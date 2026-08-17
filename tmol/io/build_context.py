@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
-from tmol.chemical.restypes import ResidueTypeSet
+from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io.canonical_ordering import CanonicalOrdering
-from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose import PackedBlockTypes
 
 
 @dataclass(frozen=True)

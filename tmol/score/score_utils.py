@@ -2,11 +2,11 @@ import torch
 from dataclasses import dataclass
 
 from tmol import run_cart_min
-from tmol.pack.pack_rotamers import pack_rotamers
-from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+from tmol.pack import pack_rotamers
+from tmol.pack import PackerTask, PackerPalette
+from tmol.pack.rotamer import IncludeCurrentSampler
+from tmol.pack.rotamer import FixedAAChiSampler
+from tmol.pack.rotamer.dunbrack import (
     create_dunbrack_sampler_from_database,
 )
 

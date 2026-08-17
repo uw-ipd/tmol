@@ -1,8 +1,8 @@
 import attr
 import numpy
 import torch
-from tmol.types.attrs import ValidateAttrs
-from tmol.types.torch import Tensor
+from tmol.types import ValidateAttrs
+from tmol.types import Tensor
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -55,7 +55,7 @@ class RotamerSet(ValidateAttrs):
 
     def to_atom_array(self, pbt):
         import biotite.structure as struc
-        from tmol.io.pose_stack_from_biotite import get_element_from_atom_name
+        from tmol.io import get_element_from_atom_name
 
         n_rots = self.n_rotamers_total
         coords = self.coords.cpu().numpy()

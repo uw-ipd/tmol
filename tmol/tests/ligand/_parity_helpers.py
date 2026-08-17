@@ -13,14 +13,14 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from tmol.ligand import params_file, params_io, prepare_single_ligand
-from tmol.ligand.detect import nonstandard_residue_info_from_smiles_via_mol2
-from tmol.tests.ligand.params_reference import (
+from tmol.ligand import nonstandard_residue_info_from_smiles_via_mol2
+from tmol.tests.ligand import (
     StrictComparison,
     compare_params_strict,
     generated_fields_from_preparation,
     parse_reference_params,
 )
-from tmol.ligand.registry import LigandPreparation
+from tmol.ligand import LigandPreparation
 
 
 def prepare_seed_entry(entry) -> LigandPreparation:
@@ -62,7 +62,7 @@ def chi_axes_equivalent(prep, ref, *, view=None) -> bool:
     :func:`compare_semantic`, then compare the resulting axis sets. Returns
     ``False`` if no isomorphism exists (e.g. a mutated reference graph).
     """
-    from tmol.tests.ligand.equivalence import _heavy_atom_name_mapping
+    from tmol.tests.ligand import _heavy_atom_name_mapping
 
     if view is None:
         view = reference_view_from_params(ref)
@@ -124,7 +124,7 @@ def reference_view_from_params(ref) -> SimpleNamespace:
     ``residue_type.atoms`` / ``residue_type.bonds``, ``partial_charges``, and an
     empty ``cartbonded_params`` (cartbonded is skipped for the semantic check).
     """
-    from tmol.ligand.params_io import _BOND_TOK_TO_TYPE
+    from tmol.ligand import _BOND_TOK_TO_TYPE
 
     atoms = [SimpleNamespace(name=n, atom_type=t) for n, t, _q in ref.atoms]
     bonds = []

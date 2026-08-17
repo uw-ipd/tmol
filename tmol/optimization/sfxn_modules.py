@@ -1,10 +1,10 @@
 import torch
 import attrs
 
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.score_function import ScoreFunction
-from tmol.kinematics.datatypes import NodeType, BondDOFTypes, JumpDOFTypes
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
+from tmol.pose import PoseStack
+from tmol.score import ScoreFunction
+from tmol.kinematics import NodeType, BondDOFTypes, JumpDOFTypes
+from tmol.kinematics import PoseStackKinematicsModule
 
 from tmol.kinematics.compiled import inverse_kin
 

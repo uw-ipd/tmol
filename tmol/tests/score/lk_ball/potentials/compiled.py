@@ -4,11 +4,11 @@ import attr
 import cattr
 import torch
 
-from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
+from tmol.types import Tensor
+from tmol.types import TensorGroup
 
-from tmol.score.ljlk.params import LJLKParamResolver
-from tmol.score.chemical_database import AtomTypeParamResolver
+from tmol.score.ljlk import LJLKParamResolver
+from tmol.score import AtomTypeParamResolver
 
 from tmol._load_ext import load_module
 

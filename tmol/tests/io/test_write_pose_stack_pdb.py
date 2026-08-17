@@ -3,20 +3,20 @@ import torch
 import os
 
 from tmol.io import pose_stack_from_pdb
-from tmol.io.write_pose_stack_pdb import (
+from tmol.io import (
     write_pose_stack_pdb,
     atom_records_from_pose_stack,
 )
 
-# from tmol.chemical.restypes import find_simple_polymeric_connections
-from tmol.io.pdb_parsing import to_pdb
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.io.canonical_ordering import (
+# from tmol.chemical import find_simple_polymeric_connections
+from tmol.io import to_pdb
+from tmol.pose import PoseStackBuilder
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
 )
-from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
+from tmol.io import pose_stack_from_canonical_form
 
 
 def test_atom_records_from_pose_stack_1(ubq_pdb, torch_device):

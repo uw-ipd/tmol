@@ -8,39 +8,29 @@ import pandas
 
 from typing import List, Tuple, Optional
 
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
+from tmol.types import NDArray
+from tmol.types import Tensor
 
-from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
+from tmol.chemical import MAX_SIG_BOND_SEPARATION
 
-from tmol.chemical.restypes import (
+from tmol.chemical import (
     RefinedResidueType,
-    ResidueTypeSet,
     three2one,
 )
-from tmol.database import ParameterDatabase
 
-from tmol.io.canonical_ordering import CanonicalOrdering, default_packed_block_types
-from tmol.pose.build_context import PoseBuildContext
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.sequence import (
-    resolve_block_type_names,
-    smiles_in_tokens,
-    tokenize_sequences,
-)
-from tmol.pose.pdb_info import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.pose.pose_stack import PoseStack
-from tmol.pose.constraint_set import ConstraintSet
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose import PoseStack
+from tmol.pose import ConstraintSet
 
-from tmol.utility.tensor.common_operations import (
+from tmol.utility.tensor import (
     exclusive_cumsum1d,
     exclusive_cumsum2d,
     exclusive_cumsum2d_and_totals,
     stretch,
     stretch2,
 )
-from tmol.types.functional import validate_args
-from tmol.utility.device import resolve_device
+from tmol.types import validate_args
 
 
 class PoseStackBuilder:
@@ -130,80 +120,6 @@ class PoseStackBuilder:
             pdb_info=pdb_info,
             constraint_set=constraint_set,
             device=device,
-        )
-
-    @classmethod
-    def from_sequences(
-        cls,
-        seqs,  # str | Sequence[str]
-        packed_block_types: Optional[PackedBlockTypes] = None,
-        device: Optional[torch.device] = None,
-        param_db=None,
-        termini: bool = True,
-        context: Optional[PoseBuildContext] = None,
-        return_context: bool = False,
-    ):
-        """Construct a PoseStack with zero coordinates from sequence strings.
-
-        See tmol.pose.sequence for the grammar. Returns
-        (PoseStack, PoseBuildContext) when return_context is set; the context
-        carries the database extended with any ligands the sequence names.
-        """
-        device = resolve_device(device if device is not None else torch.device("cpu"))
-        if context is not None and param_db is not None:
-            raise ValueError("pass either context= or param_db=, not both")
-
-        tokens, chain_lengths = tokenize_sequences(seqs)
-
-        if context is not None:
-            if context.packed_block_types.device.type != device.type:
-                raise ValueError(
-                    f"context was built for device "
-                    f"{context.packed_block_types.device} but device is {device}"
-                )
-            param_db = context.parameter_database
-            restype_set = context.restype_set
-            ligand_names = context.ligand_names
-            canonical_ordering = context.canonical_ordering
-        else:
-            smiles = smiles_in_tokens(tokens)
-            if smiles:
-                # Deferred: slow import
-                from tmol.ligand import prepare_ligands_from_smiles
-
-                param_db, ligand_names = prepare_ligands_from_smiles(
-                    smiles, param_db=param_db
-                )
-            else:
-                param_db = param_db or ParameterDatabase.get_default()
-                ligand_names = {}
-            restype_set = ResidueTypeSet.from_database(param_db.chemical)
-            canonical_ordering = None
-
-        names, chain_lengths = resolve_block_type_names(
-            tokens, chain_lengths, restype_set, ligand_names, termini
-        )
-
-        if packed_block_types is None:
-            if restype_set.chem_db is ParameterDatabase.get_default().chemical:
-                packed_block_types = default_packed_block_types(device)
-            else:
-                packed_block_types = PackedBlockTypes.from_restype_list(
-                    restype_set.chem_db, restype_set, restype_set.residue_types, device
-                )
-
-        pose_stack = cls.from_block_type_names(packed_block_types, names, chain_lengths)
-        if not return_context:
-            return pose_stack
-
-        if canonical_ordering is None:
-            canonical_ordering = CanonicalOrdering.from_chemdb(param_db.chemical)
-        return pose_stack, PoseBuildContext(
-            canonical_ordering=canonical_ordering,
-            packed_block_types=packed_block_types,
-            parameter_database=param_db,
-            restype_set=restype_set,
-            ligand_names=ligand_names,
         )
 
     @classmethod
@@ -1343,7 +1259,7 @@ class PoseStackBuilder:
     @classmethod
     @validate_args
     def _shortest_paths_for_connectivity_graph(cls, pconn_matrix):
-        from tmol.pose.compiled.apsp_ops import stacked_apsp
+        from tmol.pose.compiled import stacked_apsp
 
         stacked_apsp(pconn_matrix, MAX_SIG_BOND_SEPARATION)
 

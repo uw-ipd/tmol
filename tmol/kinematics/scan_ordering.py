@@ -8,12 +8,12 @@ from numba import jit
 import scipy.sparse as sparse
 import scipy.sparse.csgraph as csgraph
 
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
-from tmol.types.attrs import ValidateAttrs
-from tmol.types.functional import validate_args
+from tmol.types import NDArray
+from tmol.types import Tensor
+from tmol.types import ValidateAttrs
+from tmol.types import validate_args
 
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose import PoseStack
 
 from .datatypes import (
     NodeType,
@@ -336,7 +336,7 @@ def construct_kin_module_data_for_pose(
     pose_stack: PoseStack,
     fold_forest_edges: Tensor[torch.int32][:, :, 4],
 ):
-    from tmol.kinematics.compiled.compiled_ops import (
+    from tmol.kinematics.compiled import (
         calculate_ff_edge_delays,
         get_children,
         get_block_parent_connectivity_from_toposort,

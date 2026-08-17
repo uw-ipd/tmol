@@ -1,14 +1,14 @@
 import torch
 import numpy
 
-from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
+from tmol.types import Tensor
+from tmol.types import NDArray
 from typing import Optional
-from tmol.types.functional import validate_args
-from tmol.pose.pdb_info import PDBInfo, DEFAULT_ATOM_OCCUPANCY, DEFAULT_ATOM_B_FACTOR
-from tmol.pose.pose_stack import PoseStack
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.io.canonical_ordering import CanonicalOrdering
+from tmol.types import validate_args
+from tmol.pose import PDBInfo, DEFAULT_ATOM_OCCUPANCY, DEFAULT_ATOM_B_FACTOR
+from tmol.pose import PoseStack
+from tmol.pose import PackedBlockTypes
+from tmol.io import CanonicalOrdering
 
 
 @validate_args
@@ -142,14 +142,14 @@ def pose_stack_from_canonical_form(
             exception will be thrown when these missing atoms are encountered.
     """
 
-    from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
-    from tmol.io.details.disulfide_search import find_disulfides
-    from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
-    from tmol.io.details.select_from_canonical import (
+    from tmol.io.details import left_justify_canonical_form
+    from tmol.io.details import find_disulfides
+    from tmol.io.details import resolve_his_tautomerization
+    from tmol.io.details import (
         assign_block_types,
         take_block_type_atoms_from_canonical,
     )
-    from tmol.io.details.build_missing_leaf_atoms import build_missing_leaf_atoms
+    from tmol.io.details import build_missing_leaf_atoms
 
     assert chain_id.device == res_types.device
     assert chain_id.device == coords.device

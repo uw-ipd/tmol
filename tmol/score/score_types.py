@@ -1,4 +1,4 @@
-from tmol.utility.auto_number import AutoNumber
+from tmol.utility import AutoNumber
 
 
 class ScoreType(AutoNumber):

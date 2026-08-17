@@ -1,25 +1,25 @@
 import numpy
 import torch
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
 )
-from tmol.io.details.disulfide_search import find_disulfides
-from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
-from tmol.io.details.select_from_canonical import (
+from tmol.io.details import find_disulfides
+from tmol.io.details import resolve_his_tautomerization
+from tmol.io.details import (
     assign_block_types,
     take_block_type_atoms_from_canonical,
 )
-from tmol.io.details.build_missing_leaf_atoms import (
+from tmol.io.details import (
     _annotate_packed_block_types_atom_is_leaf_atom,
     build_missing_leaf_atoms,
 )
 
 
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
-from tmol.tests.autograd import gradcheck
-from tmol.tests.kinematics.test_script_modules import coord_weights_for_device
+from tmol.optimization import LBFGS_Armijo
+from tmol.tests import gradcheck
+from tmol.tests.kinematics import coord_weights_for_device
 
 
 def not_any_nancoord(coords):

@@ -15,16 +15,16 @@ import pytest
 import torch
 
 from tmol.tests.data import data_path
-from tmol.io.pose_stack_from_biotite import canonical_ordering_for_biotite
+from tmol.io import canonical_ordering_for_biotite
 from tmol.ligand import prepare_ligands
-from tmol.ligand.preparation import _prepare_ligand_via_smiles
-from tmol.ligand.detect import (
+from tmol.ligand import _prepare_ligand_via_smiles
+from tmol.ligand import (
     _residue_names_with_cross_residue_bonds,
     detect_nonstandard_residues,
 )
-from tmol.ligand.dimorphite_dl import protonate_mol_variants
-from tmol.ligand.params_io import read_params_file, write_params_file
-from tmol.ligand.registry import inject_ligand_preparations
+from tmol.ligand import protonate_mol_variants
+from tmol.ligand import read_params_file, write_params_file
+from tmol.ligand import inject_ligand_preparations
 
 PLI_CIF_INPUT_DIR = data_path("protein_ligand_test", "cif_inputs")
 PLI_DATA_DIR = data_path("protein_ligand_test")
@@ -141,7 +141,7 @@ def test_prepare_ligands_missing_ligand_atom_fails(
     import numpy
 
     from tmol.database import ParameterDatabase
-    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_biotite
 
     bt = cif_184l_with_i4b.copy()
     ligand_atoms = numpy.nonzero(bt.res_name == "I4B")[0]
@@ -175,9 +175,9 @@ def test_ddg_from_cif_complex_with_onthefly_ligand_prep(
     ligand-extended parameter database returned in the build context, otherwise
     the freshly minted ligand block type has no scoring parameters.
     """
-    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_biotite
     from tmol.score import beta2016_score_function
-    from tmol.score.score_utils import calculate_block_pair_ddg
+    from tmol.score import calculate_block_pair_ddg
 
     pose_stack, context = pose_stack_from_biotite(
         cif_1a25_with_pse,
@@ -266,7 +266,7 @@ class TestParamsRoundtrip:
 
 def test_collect_new_atom_types_strict_mode_errors(default_database) -> None:
     """Strict atom typing raises on an unknown element mapping."""
-    from tmol.ligand.registry import collect_new_atom_types
+    from tmol.ligand import collect_new_atom_types
 
     residue = SimpleNamespace(
         name="UNK",

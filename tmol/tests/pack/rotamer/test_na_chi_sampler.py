@@ -3,16 +3,16 @@
 import torch
 import pytest
 
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
 )
-from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-from tmol.pack.packer_task import PackerTask, SetPackerTask, PackerPalette
-from tmol.pack.rotamer.build_rotamers import build_rotamers
-from tmol.pack.rotamer.na_chi_sampler import NaChiRotamerSampler
-from tmol.score.na_torsion.params import BASE_FOR_NAME3, SYN_MEAN, SYN_RANGE
+from tmol.io import pose_stack_from_canonical_form
+from tmol.pack import PackerTask, SetPackerTask, PackerPalette
+from tmol.pack.rotamer import build_rotamers
+from tmol.pack.rotamer import NaChiRotamerSampler
+from tmol.score.na_torsion import BASE_FOR_NAME3, SYN_MEAN, SYN_RANGE
 
 
 def _pose_stack(pdb_lines, torch_device):

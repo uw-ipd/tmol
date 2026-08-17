@@ -2,19 +2,19 @@ import torch
 import numpy
 import pytest
 
-from tmol.relax.fast_relax import _default_cart_min_fn, fast_relax
+from tmol.relax import _default_cart_min_fn, fast_relax
 import time
 
-from tmol.pose.pose_stack import PoseStack
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
+from tmol.pose import PoseStack
+from tmol.pose import PoseStackBuilder
+from tmol.score import ScoreFunction
+from tmol.score import ScoreType
 
-from tmol.pack.packer_task import PackerPalette
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
-from tmol.kinematics.move_map import CartesianMoveMap, MoveMap
-from tmol.kinematics.fold_forest import EdgeType, FoldForest
+from tmol.pack import PackerPalette
+from tmol.pack.rotamer import FixedAAChiSampler
+from tmol.pack.rotamer import IncludeCurrentSampler
+from tmol.kinematics import CartesianMoveMap, MoveMap
+from tmol.kinematics import EdgeType, FoldForest
 
 from tmol.io import pose_stack_from_pdb
 
@@ -241,8 +241,8 @@ def test_fast_relax_pertuz(
 def test_fast_relax_for_different_shapes(
     ubq_pdb, erbb2_and_pertuzumab_pdb, default_database, dun_sampler, torch_device
 ):
-    # if torch_device == torch.device("cpu"):
-    #    pytest.skip("CUDA only test")
+    if torch_device == torch.device("cpu"):
+        pytest.skip("CUDA only test")
 
     res_not_connected = torch.zeros((1, 40, 2), dtype=torch.bool, device=torch_device)
     res_not_connected[0, 0, 0] = True

@@ -2,9 +2,9 @@ import attr
 import numpy
 import torch
 
-from tmol.database.scoring.na_torsion import NaTorsionDatabase
-from tmol.types.torch import Tensor
-from tmol.types.attrs import ValidateAttrs
+from tmol.database.scoring import NaTorsionDatabase
+from tmol.types import Tensor
+from tmol.types import ValidateAttrs
 
 # torsions this term reads, by chemical-layer name; order fixes tensor layout
 BACKBONE_TORSIONS = ("alpha", "beta", "gamma", "delta", "epsilon", "zeta")

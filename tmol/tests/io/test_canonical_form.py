@@ -1,7 +1,7 @@
 import numpy
 import pandas
 import torch
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     CanonicalOrdering,
@@ -9,7 +9,7 @@ from tmol.io.canonical_ordering import (
     canonical_form_from_atom_records,
     select_atom_records_res_subset,
 )
-from tmol.io.pdb_parsing import parse_pdb
+from tmol.io import parse_pdb
 
 
 def test_create_canonical_ordering_smoke(default_database):

@@ -7,7 +7,7 @@ import toolz
 
 
 import math
-from tmol.numeric.interpolation.cubic_hermite_polynomial import (
+from tmol.numeric.interpolation import (
     interpolate_t,
     interpolate_dt,
     interpolate,

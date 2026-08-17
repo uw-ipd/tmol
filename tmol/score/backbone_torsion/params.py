@@ -6,14 +6,14 @@ import torch
 
 import toolz.functoolz
 
-from tmol.types.torch import Tensor
-from tmol.types.attrs import ValidateAttrs, ConvertAttrs
-from tmol.types.functional import validate_args
+from tmol.types import Tensor
+from tmol.types import ValidateAttrs, ConvertAttrs
+from tmol.types import validate_args
 
-from tmol.numeric.bspline import BSplineInterpolation
+from tmol.numeric import BSplineInterpolation
 
-from tmol.database.scoring.rama import RamaDatabase
-from tmol.database.scoring.omega_bbdep import OmegaBBDepDatabase
+from tmol.database.scoring import RamaDatabase
+from tmol.database.scoring import OmegaBBDepDatabase
 
 
 # the rama database packed into a single tensor

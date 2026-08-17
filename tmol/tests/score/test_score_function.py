@@ -3,10 +3,10 @@ import numpy
 import os
 
 from tmol.score import _non_memoized_beta2016
-from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
-from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.score import ScoreFunction
+from tmol.score import ScoreType
+from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose import PoseStackBuilder
 from tmol import (
     pose_stack_from_pdb,
     beta2016_score_function,
@@ -354,8 +354,8 @@ def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
 
 
 def test_score_function_one_body_terms_getter():
-    from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
-    from tmol.score.ref.ref_energy_term import RefEnergyTerm
+    from tmol.score.dunbrack import DunbrackEnergyTerm
+    from tmol.score.ref import RefEnergyTerm
 
     device = torch.device("cpu")
     sfxn = _non_memoized_beta2016(device)
@@ -375,19 +375,19 @@ def test_score_function_one_body_terms_getter():
 
 
 def test_score_function_two_body_terms_getter():
-    from tmol.score.backbone_torsion.bb_torsion_energy_term import (
+    from tmol.score.backbone_torsion import (
         BackboneTorsionEnergyTerm,
     )
-    from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
-    from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
-    from tmol.score.na_torsion.na_torsion_energy_term import (
+    from tmol.score.cartbonded import CartBondedEnergyTerm
+    from tmol.score.disulfide import DisulfideEnergyTerm
+    from tmol.score.na_torsion import (
         NaTorsionEnergyTerm,
     )
-    from tmol.score.elec.elec_energy_term import ElecEnergyTerm
-    from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
-    from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
-    from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
-    from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
+    from tmol.score.elec import ElecEnergyTerm
+    from tmol.score.genbonded import GenBondedEnergyTerm
+    from tmol.score.hbond import HBondEnergyTerm
+    from tmol.score.ljlk import LJLKEnergyTerm
+    from tmol.score.lk_ball import LKBallEnergyTerm
 
     device = torch.device("cpu")
     sfxn = _non_memoized_beta2016(device)
@@ -417,21 +417,21 @@ def test_score_function_two_body_terms_getter():
 
 
 def test_score_function_all_terms_getter():
-    from tmol.score.backbone_torsion.bb_torsion_energy_term import (
+    from tmol.score.backbone_torsion import (
         BackboneTorsionEnergyTerm,
     )
-    from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
-    from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
-    from tmol.score.na_torsion.na_torsion_energy_term import (
+    from tmol.score.cartbonded import CartBondedEnergyTerm
+    from tmol.score.disulfide import DisulfideEnergyTerm
+    from tmol.score.na_torsion import (
         NaTorsionEnergyTerm,
     )
-    from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
-    from tmol.score.elec.elec_energy_term import ElecEnergyTerm
-    from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
-    from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
-    from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
-    from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
-    from tmol.score.ref.ref_energy_term import RefEnergyTerm
+    from tmol.score.dunbrack import DunbrackEnergyTerm
+    from tmol.score.elec import ElecEnergyTerm
+    from tmol.score.genbonded import GenBondedEnergyTerm
+    from tmol.score.hbond import HBondEnergyTerm
+    from tmol.score.ljlk import LJLKEnergyTerm
+    from tmol.score.lk_ball import LKBallEnergyTerm
+    from tmol.score.ref import RefEnergyTerm
 
     device = torch.device("cpu")
     sfxn = _non_memoized_beta2016(device)

@@ -1,10 +1,10 @@
 import torch
 import attrs
 
-from tmol.database.scoring.cartbonded import CartBondedDatabase
-from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.database.scoring import CartBondedDatabase
+from tmol.score.cartbonded import CartBondedEnergyTerm
+from tmol.pose import PackedBlockTypes
+from tmol.tests.score.common import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device: torch.device):

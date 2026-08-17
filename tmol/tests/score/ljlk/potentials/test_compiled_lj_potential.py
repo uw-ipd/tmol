@@ -4,9 +4,9 @@ from pytest import approx
 import torch
 import numpy
 
-from tmol.tests.autograd import gradcheck
+from tmol.tests import gradcheck
 
-from tmol.score.ljlk.params import LJLKParamResolver
+from tmol.score.ljlk import LJLKParamResolver
 
 
 @pytest.fixture

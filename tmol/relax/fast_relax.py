@@ -3,18 +3,18 @@ import torch
 import time
 import warnings
 
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.score_function import ScoreFunction
+from tmol.pose import PoseStack
+from tmol.score import ScoreFunction
 from typing import Optional, Union
 
-from tmol.kinematics.move_map import CartesianMoveMap, MoveMap
-from tmol.kinematics.fold_forest import FoldForest
-from tmol.pack.pack_rotamers import pack_rotamers
-from tmol.pack.packer_task import PackerPalette, PackerTask
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
-from tmol.score.score_types import ScoreType
-from tmol.optimization.minimizers import run_cart_min, run_kin_min
+from tmol.kinematics import CartesianMoveMap, MoveMap
+from tmol.kinematics import FoldForest
+from tmol.pack import pack_rotamers
+from tmol.pack import PackerPalette, PackerTask
+from tmol.pack.rotamer import FixedAAChiSampler
+from tmol.pack.rotamer import IncludeCurrentSampler
+from tmol.score import ScoreType
+from tmol.optimization import run_cart_min, run_kin_min
 
 # Default schedule from Jack Maguire's tuned MonomerRelax2019.txt.
 # Each entry specifies fa_rep scale fractions for the packing and minimization
@@ -276,7 +276,7 @@ def fast_relax(
         # 3. includes the current rotamer
 
         torch_device = pose_stack.device
-        from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+        from tmol.pack.rotamer.dunbrack import (
             create_dunbrack_sampler_from_database,
         )
         import tmol.database

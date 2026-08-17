@@ -12,13 +12,13 @@ import pytest
 import torch
 
 from tmol import beta2016_score_function
-from tmol.score.score_types import ScoreType
-from tmol.io.canonical_ordering import (
+from tmol.score import ScoreType
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
 )
-from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
+from tmol.io import pose_stack_from_canonical_form
 
 # terms that must be non-zero on a nucleic-acid-only pose
 NA_ACTIVE_TERMS = (

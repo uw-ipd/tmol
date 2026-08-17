@@ -1,12 +1,12 @@
 import time
 import torch
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose import PoseStack
 
-from tmol.kinematics.fold_forest import FoldForest
-from tmol.kinematics.move_map import MoveMap, MinimizerMap
-from tmol.score.score_function import ScoreFunction
+from tmol.kinematics import FoldForest
+from tmol.kinematics import MoveMap, MinimizerMap
+from tmol.score import ScoreFunction
 
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
+from tmol.optimization import LBFGS_Armijo
 
 
 def build_kinforest_network(
@@ -17,8 +17,8 @@ def build_kinforest_network(
     verbose=False,
     kin_dtype=torch.float32,
 ):
-    from tmol.kinematics.script_modules import PoseStackKinematicsModule
-    from tmol.optimization.sfxn_modules import KinForestSfxnNetwork
+    from tmol.kinematics import PoseStackKinematicsModule
+    from tmol.optimization import KinForestSfxnNetwork
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -163,7 +163,7 @@ def run_cart_min(
 
     Builds a CartesianSfxnNetwork and delegates to run_min().
     """
-    from tmol.optimization.sfxn_modules import CartesianSfxnNetwork
+    from tmol.optimization import CartesianSfxnNetwork
 
     cart_network = CartesianSfxnNetwork(sfxn, pose_stack, coord_mask)
 

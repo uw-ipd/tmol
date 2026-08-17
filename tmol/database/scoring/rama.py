@@ -3,7 +3,7 @@ import torch
 
 from typing import Tuple
 
-from tmol.types.torch import Tensor
+from tmol.types import Tensor
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

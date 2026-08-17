@@ -2,8 +2,8 @@ import torch
 import attr
 
 from typing import Optional, Tuple
-from tmol.types.torch import Tensor
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d
+from tmol.types import Tensor
+from tmol.utility.tensor import exclusive_cumsum1d
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)

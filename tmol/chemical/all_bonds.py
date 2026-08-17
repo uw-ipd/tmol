@@ -2,7 +2,7 @@ import numpy
 import numba
 
 from typing import Tuple
-from tmol.types.array import NDArray
+from tmol.types import NDArray
 
 
 @numba.jit(nopython=True)

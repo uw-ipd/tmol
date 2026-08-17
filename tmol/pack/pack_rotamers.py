@@ -1,14 +1,14 @@
 import torch
 import time
 
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.score_function import ScoreFunction
+from tmol.pose import PoseStack
+from tmol.score import ScoreFunction
 
-from tmol.pack.packer_task import PackerTask, SetPackerTask
-from tmol.pack.rotamer.build_rotamers import build_rotamers
-from tmol.pack.datatypes import PackerEnergyTables
-from tmol.pack.simulated_annealing import run_simulated_annealing
-from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
+from tmol.pack import PackerTask, SetPackerTask
+from tmol.pack.rotamer import build_rotamers
+from tmol.pack import PackerEnergyTables
+from tmol.pack import run_simulated_annealing
+from tmol.pack import impose_top_rotamer_assignments
 
 
 def pack_rotamers(
@@ -77,7 +77,7 @@ def pack_rotamers(
 
 
 def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=False):
-    from tmol.pack.compiled.compiled import build_interaction_graph
+    from tmol.pack.compiled import build_interaction_graph
 
     pbt = pose_stack.packed_block_types
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)

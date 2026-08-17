@@ -5,12 +5,12 @@ import logging
 
 from collections import defaultdict
 from typing import Optional, Tuple
-from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
-from tmol.types.functional import validate_args
-from tmol.io.canonical_ordering import CanonicalOrdering
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.types import Tensor
+from tmol.types import NDArray
+from tmol.types import validate_args
+from tmol.io import CanonicalOrdering
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStackBuilder
 
 logger = logging.getLogger(__name__)
 

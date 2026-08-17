@@ -25,8 +25,8 @@ from tmol.database.chemical import (
     Torsion,
     UnresolvedAtom,
 )
-from tmol.database.scoring.cartbonded import CartRes
-from tmol.database.scoring.elec import PartialCharges
+from tmol.database.scoring import CartRes
+from tmol.database.scoring import PartialCharges
 from tmol.ligand.params_file import TMOL_FORMAT_VERSION
 
 if TYPE_CHECKING:

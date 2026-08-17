@@ -4,13 +4,13 @@ import attr
 import pandas
 from collections import defaultdict
 
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
+from tmol.types import Tensor
+from tmol.types import validate_args
 from tmol.database import ParameterDatabase
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from tmol.chemical.restypes import ResidueTypeSet
-from tmol.utility.device import resolve_device
+from tmol.pose import PackedBlockTypes
+from tmol.database import PatchedChemicalDatabase
+from tmol.chemical import ResidueTypeSet
+from tmol.utility import resolve_device
 from typing import List, Mapping, Optional, Tuple, Union
 from .canonical_form import CanonicalForm
 from .pdb_parsing import parse_pdb

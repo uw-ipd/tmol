@@ -5,18 +5,18 @@ import biotite
 import biotite.structure
 import logging
 
-from tmol.types.functional import validate_args
-from tmol.chemical.restypes import ResidueTypeSet
+from tmol.types import validate_args
+from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
-from tmol.io.canonical_form import CanonicalForm
-from tmol.io.canonical_ordering import CanonicalOrdering
-from tmol.io.pose_stack_deconstruction import canonical_form_from_pose_stack
-from tmol.pose.build_context import PoseBuildContext
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.utility.biotite_util import get_all_residue_positions
-from tmol.utility.device import resolve_device
+from tmol.io import CanonicalForm
+from tmol.io import CanonicalOrdering
+from tmol.io import canonical_form_from_pose_stack
+from tmol.io import PoseBuildContext
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
+from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.utility import get_all_residue_positions
+from tmol.utility import resolve_device
 
 from tmol import beta2016_score_function
 
@@ -190,10 +190,10 @@ def pose_stack_from_biotite(
     """
     torch_device = resolve_device(torch_device)
 
-    from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-    from tmol.pack.build_missing_sidechains import build_missing_sidechains
-    from tmol.pack.rotamer.na_chi_sampler import NaChiRotamerSampler
-    from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+    from tmol.io import pose_stack_from_canonical_form
+    from tmol.pack import build_missing_sidechains
+    from tmol.pack.rotamer import NaChiRotamerSampler
+    from tmol.pack.rotamer.dunbrack import (
         create_dunbrack_sampler_from_database,
     )
 
@@ -229,7 +229,7 @@ def pose_stack_from_biotite(
 
     fragment_mapping = None
     if context.fragment_definitions:
-        from tmol.ligand.fragmentation import expand_fragmented_ligands
+        from tmol.ligand import expand_fragmented_ligands
 
         biotite_structure, fragment_mapping = expand_fragmented_ligands(
             biotite_structure, context.fragment_definitions
@@ -254,7 +254,7 @@ def pose_stack_from_biotite(
 
     pose_stack, opt_return_vals = result
     if fragment_mapping is not None:
-        from tmol.ligand.fragmentation import apply_fragment_connections
+        from tmol.ligand import apply_fragment_connections
 
         pose_stack = apply_fragment_connections(pose_stack, fragment_mapping)
         fragment_mapping = pose_stack.fragmented_ligand_mapping
@@ -437,7 +437,7 @@ def biotite_from_pose_stack(
     structure = biotite_from_canonical_form(cf, co=co)
     mapping = getattr(pose_stack, "fragmented_ligand_mapping", None)
     if merge_fragments and mapping is not None:
-        from tmol.ligand.fragmentation import recombine_fragmented_ligands
+        from tmol.ligand import recombine_fragmented_ligands
 
         structure = recombine_fragmented_ligands(structure, mapping)
     return structure

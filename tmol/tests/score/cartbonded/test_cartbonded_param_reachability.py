@@ -6,7 +6,7 @@ resolution rules so a stranded param is a test failure rather than a zero.
 """
 
 from tmol.database import ParameterDatabase
-from tmol.score.cartbonded.cartbonded_energy_term import CROSS_RES_PREFIX
+from tmol.score.cartbonded import CROSS_RES_PREFIX
 
 GROUPS = [
     ("length_parameters", 2),

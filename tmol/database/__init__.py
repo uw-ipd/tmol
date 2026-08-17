@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 import os
 import attr
 from typing import List, Optional, Mapping
 
 from .chemical import AtomType, ChemicalDatabase, RawResidueType
+from .patched_chemdb import PatchedChemicalDatabase
 from .scoring import ScoringDatabase
 from .scoring.elec import PartialCharges
 from .scoring.cartbonded import CartRes
-
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 
 @attr.s(frozen=True)

@@ -2,15 +2,15 @@ import torch
 import numpy
 
 from functools import partial
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     canonical_form_from_pdb,
     default_packed_block_types,
     default_canonical_ordering,
 )
-from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
+from tmol.io.details import left_justify_canonical_form
 
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR
+from tmol.pose import PoseStackBuilder
+from tmol.pose import DEFAULT_ATOM_B_FACTOR
 
 
 def get_add_two_fill_shape(x):

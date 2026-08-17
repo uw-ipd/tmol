@@ -18,7 +18,7 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import RWMol
 
-from tmol.io.canonical_ordering import CanonicalOrdering
+from tmol.io import CanonicalOrdering
 from tmol.ligand.mol2_names import apply_disambiguated_mol2_names
 
 logger = logging.getLogger(__name__)
@@ -255,10 +255,7 @@ def nonstandard_residue_info_from_mol2(
     files). Preserves Tripos aromatic flags, atom-type subtypes, and per-atom
     partial charges, avoiding lossy rdkit<->biotite round-trips.
     """
-    from tmol.ligand.openbabel_compat import (
-        OpenBabelUnavailableError,
-        obabel_read_mol2,
-    )
+    from tmol.ligand.openbabel_compat import OpenBabelUnavailableError, obabel_read_mol2
 
     path = Path(mol2_path)
     mol2_text = path.read_text()

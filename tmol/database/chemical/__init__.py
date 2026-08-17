@@ -1,5 +1,5 @@
 from typing import Tuple, Optional, NewType
-from tmol.utility.units import BondAngle, DihedralAngle
+from tmol.utility import BondAngle, DihedralAngle
 
 import attr
 import cattr

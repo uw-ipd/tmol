@@ -92,9 +92,9 @@ def _ligand_block_mask(pose_stack, torch_device: torch.device) -> torch.Tensor:
 
 def _weighted_ddg_from_fixtures(target: str, torch_device: torch.device) -> float:
     from tmol.database import ParameterDatabase
-    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_biotite
     from tmol.score import beta2016_score_function
-    from tmol.score.score_utils import calculate_block_pair_ddg
+    from tmol.score import calculate_block_pair_ddg
 
     tmol_path = PLI_DATA_DIR / f"{target}.xtal-lig.mmff94.tmol"
     structure = _load_complex_cif(target)

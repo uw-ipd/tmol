@@ -8,17 +8,17 @@ import torch
 import toolz.functoolz
 import itertools
 
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
-from tmol.types.attrs import ValidateAttrs, ConvertAttrs
-from tmol.types.functional import validate_args
+from tmol.types import NDArray
+from tmol.types import Tensor
+from tmol.types import TensorGroup
+from tmol.types import ValidateAttrs, ConvertAttrs
+from tmol.types import validate_args
 
-from tmol.numeric.bspline import BSplineInterpolation
+from tmol.numeric import BSplineInterpolation
 
-from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
+from tmol.database.scoring import DunbrackRotamerLibrary
 
-from tmol.utility.tensor.common_operations import (
+from tmol.utility.tensor import (
     exclusive_cumsum1d,
     # print_row_numbered_tensor,
     nplus1d_tensor_from_list,

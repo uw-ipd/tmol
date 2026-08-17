@@ -1,11 +1,11 @@
 import torch
 import numpy
 
-from tmol.types.torch import Tensor
-from tmol.pose.pdb_info import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.pose.pose_stack import PoseStack
-from tmol.pack.rotamer.build_rotamers import RotamerSet
-from tmol.utility.cumsum import exclusive_cumsum2d_w_totals
+from tmol.types import Tensor
+from tmol.pose import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose import PoseStack
+from tmol.pack.rotamer import RotamerSet
+from tmol.utility import exclusive_cumsum2d_w_totals
 
 
 def impose_top_rotamer_assignments(

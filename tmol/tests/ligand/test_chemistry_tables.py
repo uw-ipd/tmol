@@ -1,7 +1,7 @@
 """Tests that ligand chemistry tables are derived from the chemical database."""
 
 from tmol.database import ParameterDatabase
-from tmol.ligand.chemistry_tables import (
+from tmol.ligand import (
     get_hbond_properties,
     get_polar_classes,
     get_sp2_atom_types,

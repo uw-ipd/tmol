@@ -1,7 +1,7 @@
 import attr
 import numpy
 
-from tmol.types.array import NDArray
+from tmol.types import NDArray
 
 DEFAULT_ATOM_OCCUPANCY = 1.0
 # fpd: B factors of 0 are badly behaved in crystal refinement/MR/etc., 30 is a very reasonable "average"

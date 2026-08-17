@@ -2,10 +2,10 @@
 import torch
 import attr
 
-from tmol.types.torch import Tensor
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.pack.rotamer.conformer_sampler import ConformerSampler
+from tmol.types import Tensor
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
+from tmol.pack.rotamer import ConformerSampler
 
 # Architecture is borrowed from Rosetta3:
 # PackerTask: a class holding data describing how the
@@ -138,7 +138,7 @@ class PackerPalette:
         other sampler are left to that sampler exclusively.
         Future versions of PackerPalette have the option to override this method.
         """
-        from tmol.pack.rotamer.fallback_sampler import FallbackSampler
+        from tmol.pack.rotamer import FallbackSampler
 
         return [FallbackSampler()]
 

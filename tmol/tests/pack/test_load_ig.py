@@ -3,12 +3,12 @@ import torch
 import pickle
 import pytest
 
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pack.datatypes import PackerEnergyTables
-from tmol.pack.simulated_annealing import run_simulated_annealing
-from tmol.pack.compiled.compiled import build_interaction_graph
-from tmol.pack.rotamer.build_rotamers import RotamerSet
-from tmol.utility.cumsum import exclusive_cumsum1d
+from tmol.pose import PoseStackBuilder
+from tmol.pack import PackerEnergyTables
+from tmol.pack import run_simulated_annealing
+from tmol.pack.compiled import build_interaction_graph
+from tmol.pack.rotamer import RotamerSet
+from tmol.utility import exclusive_cumsum1d
 from tmol.io import pose_stack_from_pdb
 
 

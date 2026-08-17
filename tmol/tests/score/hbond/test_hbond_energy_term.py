@@ -2,11 +2,11 @@ import numpy
 import torch
 
 from tmol.io import pose_stack_from_pdb
-from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
-from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
+from tmol.score.hbond import HBondEnergyTerm
+from tmol.score import ScoreFunction
+from tmol.score import ScoreType
 
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.tests.score.common import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device):

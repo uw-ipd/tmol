@@ -2,11 +2,11 @@ import numpy
 import torch
 import attr
 
-from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
-from tmol.types.functional import validate_args
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.chemical.restypes import RefinedResidueType
+from tmol.types import Tensor
+from tmol.types import NDArray
+from tmol.types import validate_args
+from tmol.pose import PackedBlockTypes
+from tmol.chemical import RefinedResidueType
 
 
 @validate_args
@@ -203,7 +203,7 @@ def _actually_build_leaf_coords(
     )
     pose_like_coords[pose_at_is_real] = block_coords[real_block_atoms]
 
-    from tmol.io.details.compiled.compiled import gen_pose_leaf_atoms
+    from tmol.io.details.compiled import gen_pose_leaf_atoms
 
     return gen_pose_leaf_atoms(
         pose_like_coords,

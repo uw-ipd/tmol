@@ -3,16 +3,16 @@ import torch
 
 import attr
 
-from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
+from tmol.types import Tensor
+from tmol.types import NDArray
 
-from tmol.score.energy_term import EnergyTerm
+from tmol.score import EnergyTerm
 from .params import BackboneTorsionParamResolver
 from tmol.database import ParameterDatabase
 
-from tmol.chemical.restypes import RefinedResidueType, uaid_t
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.chemical import RefinedResidueType, uaid_t
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -181,14 +181,14 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         super(BackboneTorsionEnergyTerm, self).setup_poses(pose_stack)
 
     def get_pose_score_term_function(self):
-        from tmol.score.backbone_torsion.potentials.compiled import (
+        from tmol.score.backbone_torsion.potentials import (
             backbone_torsion_pose_score,
         )
 
         return backbone_torsion_pose_score
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.backbone_torsion.potentials.compiled import (
+        from tmol.score.backbone_torsion.potentials import (
             backbone_torsion_rotamer_score,
         )
 

@@ -1,12 +1,12 @@
 import torch
 import numpy
-from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
+from tmol.types import Tensor
+from tmol.types import NDArray
 from typing import Optional
-from tmol.score.common.stack_condense import (
+from tmol.score.common import (
     condense_torch_inds,
 )
-from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 
 
 def left_justify_canonical_form(
