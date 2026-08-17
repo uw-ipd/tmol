@@ -126,28 +126,21 @@ def test_view_rejects_invalid_highlight_masks(monkeypatch, mask, error):
         visualize.view(_atom_array(), highlighted=mask, show_hover=False)
 
 
-def test_switchable_view_escapes_payload_and_uses_unique_ids(monkeypatch):
-    monkeypatch.setitem(
-        sys.modules,
-        "py3Dmol",
-        SimpleNamespace(view=lambda **kwargs: _Viewer()),
-    )
+def test_switchable_view_switches_one_viewer_and_escapes_payload():
     unsafe = "</script><img src=x onerror=alert(1)>"
     first = visualize.switchable_view({"before": "ATOM\n"}, notes={"before": unsafe})
     second = visualize.switchable_view({"before": "ATOM\n"})
 
     assert unsafe not in first.data
-    assert "&lt;/script&gt;" in first.data
+    assert r"\u003c/script\u003e" in first.data
+    assert first.data.count("$3Dmol.createViewer") == 1
+    assert "button.onclick" in first.data
+    assert "viewer.setView(camera)" in first.data
     first_match = re.search(r'id="(tmol-switch-[a-f0-9]+)"', first.data)
     second_match = re.search(r'id="(tmol-switch-[a-f0-9]+)"', second.data)
     assert first_match is not None
     assert second_match is not None
-    first_id = first_match.group(1)
-    second_id = second_match.group(1)
-    assert first_id != second_id
-    assert "mock-py3dmol-viewer" in first.data
-    assert "visibility:visible" in first.data
-    assert "window.dispatchEvent(new Event('resize'))" in first.data
+    assert first_match.group(1) != second_match.group(1)
 
 
 def test_selection_gallery_uses_one_switchable_viewer_and_escapes_payload():
@@ -170,12 +163,52 @@ def test_selection_gallery_uses_one_switchable_viewer_and_escapes_payload():
     assert '"serials": [1, 2, 3]' in first.data
     assert first.data.count("$3Dmol.createViewer") == 1
     assert "viewer.zoomTo(selection, 400)" in first.data
-    assert 'button.addEventListener("click"' in first.data
+    assert "button.onclick" in first.data
     first_match = re.search(r'id="(tmol-selection-[a-f0-9]+)"', first.data)
     second_match = re.search(r'id="(tmol-selection-[a-f0-9]+)"', second.data)
     assert first_match is not None
     assert second_match is not None
     assert first_match.group(1) != second_match.group(1)
+
+
+@pytest.mark.parametrize(
+    "widget",
+    [
+        lambda: visualize.switchable_view({"before": "ATOM\n"}),
+        lambda: visualize.selection_gallery(
+            _atom_array(), {"all": numpy.array([True, True, True])}
+        ),
+    ],
+)
+def test_widgets_load_3dmol_directly_like_atomworks(widget):
+    """3Dmol is a UMD bundle; with RequireJS disabled a plain include suffices."""
+    data = widget().data
+    assert f'<script src="{visualize.VIEWER_SOURCE}"></script>' in data
+    assert data.count(visualize.VIEWER_SOURCE) == 1
+    # No AMD workaround and no async promise loader remain.
+    assert "window.define" not in data
+    assert "tmolViewerPromise" not in data
+    # A missing global degrades to a visible message rather than a silent box.
+    assert 'typeof $3Dmol === "undefined"' in data
+
+
+def test_selection_gallery_rejects_unsafe_highlight_colors():
+    with pytest.raises(ValueError, match="hex color"):
+        visualize.selection_gallery(
+            _atom_array(),
+            {"all": numpy.array([True, True, True])},
+            highlight_color="red;} body {display:none",
+        )
+
+
+def test_selection_gallery_recolors_carbon_like_3dmol_carbon_schemes():
+    data = visualize.selection_gallery(
+        _atom_array(),
+        {"all": numpy.array([True, True, True])},
+        highlight_color="#ffa500",
+    ).data
+    assert "$3Dmol.elementColors.defaultColors, {C: 16753920}" in data
+    assert "cartoon: {color: highlightColor}" in data
 
 
 def test_query_selection_uses_mask_method_when_available():

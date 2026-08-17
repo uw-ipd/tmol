@@ -18,8 +18,6 @@ from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.utility.biotite_util import get_all_residue_positions
 from tmol.utility.device import resolve_device
 
-from tmol import beta2016_score_function
-
 logger = logging.getLogger(__name__)
 
 
@@ -267,6 +265,10 @@ def pose_stack_from_biotite(
         torch.any(block_has_missing_atoms) or not no_optH
     )
     if needs_packing:
+        # Keep this local so pose_stack_from_biotite can be imported from
+        # tmol.__init__ without creating an import cycle.
+        from tmol.score import beta2016_score_function
+
         db = context.parameter_database
         sfxn = beta2016_score_function(torch_device, param_db=db)
         dunbrack_sampler = create_dunbrack_sampler_from_database(db, torch_device)

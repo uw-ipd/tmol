@@ -1,0 +1,136 @@
+name: Docs
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  DOCS_BASE_URL: https://uw-ipd.github.io/tmol
+  SIF: /home/bench/git_ci_apptainer/tmol.sif
+  SLURM_PARTITION: gpu-train
+  SLURM_GRES: gpu:1
+  SLURM_CPUS_PER_TASK: 16
+  SLURM_MEM: 128G
+  SLURM_TIME: 03:00:00
+  SLURM_EXCLUDE: g2548
+  SRUN_GPU_MAX_ATTEMPTS: 5
+  SRUN_GPU_RETRY_SLEEP: 10
+
+jobs:
+  docs:
+    name: build docs
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: .github/ci/restore_source_timestamps.sh
+      - run: .github/ci/setup_ci_venv.sh
+
+      - name: Configure docs version
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "TMOL_DOCS_VERSION_MATCH=previews-pr-${{ github.event.number }}" >> "$GITHUB_ENV"
+          fi
+          echo "TMOL_DOCS_BASE_URL=${DOCS_BASE_URL}" >> "$GITHUB_ENV"
+
+      - name: Execute tutorials and build docs
+        env:
+          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
+        run: |
+          rm -f "$GPU_ALLOC_SENTINEL"
+          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
+          .github/ci/exec_gpu_apptainer.sh .github/ci/run_docs_gpu_work.sh
+          SCRIPT
+
+      - name: Upload rendered docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: tmol-docs-html
+          path: docs/_build/html
+          if-no-files-found: error
+
+      - name: Summarize PR docs artifact
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Rendered docs artifact: tmol-docs-html" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Checkout gh-pages
+        if: >
+          github.event_name == 'push' ||
+          (github.event_name == 'pull_request' &&
+           github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/checkout@v5
+        with:
+          ref: gh-pages
+          path: gh-pages
+          fetch-depth: 0
+
+      - name: Stage production docs
+        if: github.event_name == 'push'
+        run: |
+          VERSION=$(python - <<'PY'
+          import tomllib
+          from pathlib import Path
+          print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])
+          PY
+          )
+          VERSION_DIR="v${VERSION}"
+          mkdir -p "gh-pages/${VERSION_DIR}" gh-pages/latest
+          rm -f gh-pages/CNAME
+          rsync -av --delete docs/_build/html/ "gh-pages/${VERSION_DIR}/"
+          rsync -av --delete docs/_build/html/ gh-pages/latest/
+          python .github/scripts/update_docs_switcher.py \
+            --pages-dir gh-pages \
+            --base-url "${DOCS_BASE_URL}" \
+            --current-version-dir "${VERSION_DIR}" \
+            --current-display-name "${VERSION_DIR}"
+          echo "TMOL_DOCS_PUBLISH_DIR=gh-pages" >> "$GITHUB_ENV"
+          echo "Deployed docs target: ${DOCS_BASE_URL}/latest/" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Stage PR preview docs
+        if: >
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          PREVIEW_DIR="previews/pr-${{ github.event.number }}"
+          mkdir -p "gh-pages/${PREVIEW_DIR}"
+          rm -f gh-pages/CNAME
+          rsync -av --delete docs/_build/html/ "gh-pages/${PREVIEW_DIR}/"
+          python .github/scripts/update_docs_switcher.py \
+            --pages-dir gh-pages \
+            --base-url "${DOCS_BASE_URL}" \
+            --current-version-dir "${PREVIEW_DIR}" \
+            --current-display-name "PR #${{ github.event.number }}"
+          echo "TMOL_DOCS_PUBLISH_DIR=gh-pages" >> "$GITHUB_ENV"
+          echo "Docs preview: ${DOCS_BASE_URL}/${PREVIEW_DIR}/" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish docs to gh-pages
+        if: env.TMOL_DOCS_PUBLISH_DIR == 'gh-pages'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: gh-pages
+          keep_files: false
+          force_orphan: false
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com

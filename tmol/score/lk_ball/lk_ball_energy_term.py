@@ -16,6 +16,8 @@ from tmol.score.common.convert_float64 import convert_float64
 
 
 class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
+    """Directional LK-ball solvation and water-bridge interaction term."""
+
     tile_size: int = HBondDependentTerm.tile_size
     ljlk_global_params: LJLKGlobalParams
     ljlk_param_resolver: LJLKParamResolver

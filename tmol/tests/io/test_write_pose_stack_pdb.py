@@ -31,6 +31,20 @@ def test_atom_records_from_pose_stack_1(ubq_pdb, torch_device):
     assert len(pdb_atom_lines) == len(starting_ubq_pdb_atom_lines)
 
 
+def test_atom_records_from_float64_pose_stack(ubq_pdb, torch_device):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5).to(
+        torch.float64
+    )
+
+    records = atom_records_from_pose_stack(pose_stack)
+
+    assert pose_stack.coords.dtype == torch.float64
+    assert records.shape[0] > 0
+    assert numpy.isfinite(records["x"]).all()
+    assert numpy.isfinite(records["y"]).all()
+    assert numpy.isfinite(records["z"]).all()
+
+
 def test_atom_records_from_pose_stack_2(ubq_pdb, torch_device):
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)

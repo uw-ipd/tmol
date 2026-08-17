@@ -22,6 +22,8 @@ class HiddenPrints:
 
 
 class ConstraintEnergyTerm(EnergyTerm):
+    """Evaluate geometric constraints stored on a pose's ``ConstraintSet``."""
+
     device: torch.device  # = attr.ib()
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
@@ -50,6 +52,11 @@ class ConstraintEnergyTerm(EnergyTerm):
 
     @classmethod
     def harmonic(cls, atoms, params):
+        """Evaluate a harmonic distance constraint.
+
+        ``params[:, 0]`` is the target distance and ``params[:, 1]`` is the
+        standard deviation.
+        """
         # params[:, 0] == mean (target value)
         # params[:, 1] == standard deviation
         atoms1 = atoms[:, 0]
@@ -59,6 +66,11 @@ class ConstraintEnergyTerm(EnergyTerm):
 
     @classmethod
     def harmonic_coordinate(cls, atoms, params):
+        """Evaluate a harmonic restraint to a fixed Cartesian coordinate.
+
+        ``params[:, 0]`` is an offset distance, ``params[:, 1:4]`` is the
+        target coordinate, and ``params[:, 4]`` is the standard deviation.
+        """
         # params[:, 0]   == distance to target coordinate
         # params[:, 1:4] == target coordinate
         # params[:, 4]   == standard deviation
@@ -69,6 +81,11 @@ class ConstraintEnergyTerm(EnergyTerm):
 
     @classmethod
     def bounded(cls, atoms, params):
+        """Evaluate a flat-bottom bounded distance constraint.
+
+        Parameters are the lower bound, upper bound, standard deviation, and
+        linear-tail switch value.
+        """
         lb = params[:, 0]
         ub = params[:, 1]
         sd = params[:, 2]
@@ -96,6 +113,11 @@ class ConstraintEnergyTerm(EnergyTerm):
 
     @classmethod
     def circularharmonic(cls, atoms, params):
+        """Evaluate a periodic harmonic torsion constraint.
+
+        Parameters are the target angle, standard deviation, and additive
+        offset.
+        """
         # params[:, 0] == mean (target value)
         # params[:, 1] == standard deviation
         # params[:, 2] == constant that's added to the score regardless

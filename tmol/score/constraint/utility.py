@@ -7,18 +7,26 @@ from tmol.pose.pose_stack import PoseStack
 
 
 def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
+    """Return a pose with 0.5 Å coordinate restraints on every protein CA.
+
+    Existing constraints are retained. Use
+    :func:`create_mainchain_coordinate_constraints` for mixed polymers or to
+    restrain every residue type's declared main-chain atoms.
+    """
     from tmol.pose.constraint_set import ConstraintSet
     from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
 
     constraint_set = pose_stack.constraint_set
 
     cnstr_atoms = torch.full((0, 1, 3), 0, dtype=torch.int32, device=pose_stack.device)
-    cnstr_params = torch.full((0, 4), 0, dtype=torch.float32, device=pose_stack.device)
+    cnstr_params = torch.full((0, 5), 0, dtype=torch.float32, device=pose_stack.device)
 
     for pose_ind in range(pose_stack.n_poses):
         for block_ind in range(pose_stack.max_n_blocks):
             if pose_stack.is_real_block(pose_ind, block_ind):
                 block_type = pose_stack.block_type(pose_ind, block_ind)
+                if "CA" not in block_type.atom_to_idx:
+                    continue
 
                 ca_ind = block_type.atom_to_idx["CA"]
                 ca_params = torch.full(
@@ -110,6 +118,11 @@ def _annotate_mainchain_atom_indices(packed_block_types: PackedBlockTypes) -> No
 
 
 def create_mainchain_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
+    """Return a pose with 0.5 Å restraints on all declared main-chain atoms.
+
+    Target coordinates are copied from ``pose_stack``. Existing constraints
+    are retained, and the input pose is not modified.
+    """
     from tmol.pose.constraint_set import ConstraintSet
     from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
 
@@ -120,7 +133,6 @@ def create_mainchain_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
 
     is_real_bt = pose_stack.block_type_ind64 >= 0
     real_bt = pose_stack.block_type_ind64[is_real_bt]
-    # n_mainchain_ats_for_bt = pbt.mainchain_atom_indices.n_mainchain_atoms[real_bt]
     block_ind_for_mc_atom = (
         torch.arange(pose_stack.max_n_blocks, device=pbt.device)
         .unsqueeze(0)
@@ -149,19 +161,14 @@ def create_mainchain_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
     ]
     atom_ind_for_real_mc_at = local_atom_ind_for_real_mc_at + atom_offset_for_real_mc_at
 
-    # cnstr_atoms = torch.full((n_mc_ats, 1, 3), 0, dtype=torch.int32, device=pose_stack.device)
     cnstr_params = torch.full(
         (n_mc_ats, 5), 0, dtype=torch.float32, device=pose_stack.device
     )
 
-    print("pose_ind_for_real_mc_at", pose_ind_for_real_mc_at.shape)
-    print("block_for_real_mc_at", block_for_real_mc_at.shape)
-    print("local_atom_ind_for_real_mc_at", local_atom_ind_for_real_mc_at.shape)
     cnstr_atoms = torch.stack(
         [pose_ind_for_real_mc_at, block_for_real_mc_at, local_atom_ind_for_real_mc_at],
         dim=-1,
     ).unsqueeze(1)
-    print("constr_atoms", cnstr_atoms.shape)
     cnstr_params[:, 1:4] = pose_stack.coords[
         pose_ind_for_real_mc_at, atom_ind_for_real_mc_at
     ]

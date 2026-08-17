@@ -1,8 +1,16 @@
 import torch
 import numpy
 import pytest
+import importlib
 
-from tmol.relax.fast_relax import _default_cart_min_fn, fast_relax
+from tmol.relax.fast_relax import (
+    _default_cart_min_fn,
+    _default_kin_min_fn,
+    cartesian_fast_relax,
+    fast_relax,
+    kin_fast_relax,
+    relax_pack_min_step,
+)
 import time
 
 from tmol.pose.pose_stack import PoseStack
@@ -17,6 +25,9 @@ from tmol.kinematics.move_map import CartesianMoveMap, MoveMap
 from tmol.kinematics.fold_forest import EdgeType, FoldForest
 
 from tmol.io import pose_stack_from_pdb
+from tmol.score.constraint.utility import constrain_all_ca
+
+fast_relax_module = importlib.import_module("tmol.relax.fast_relax")
 
 
 def get_relax_sfxn(default_database, torch_device):
@@ -45,6 +56,94 @@ def get_relax_sfxn(default_database, torch_device):
     sfxn.set_weight(ScoreType.disulfide, 1.0)
 
     return sfxn
+
+
+def test_pose_stack_coordinate_dtype_conversion_preserves_metadata(
+    ubq_pdb, torch_device
+):
+    pose_stack = constrain_all_ca(
+        pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=4)
+    )
+
+    converted = pose_stack.to(torch.float64)
+
+    assert converted is not pose_stack
+    assert converted.coords.dtype == torch.float64
+    assert pose_stack.coords.dtype == torch.float32
+    assert converted.packed_block_types is pose_stack.packed_block_types
+    assert converted.block_coord_offset is pose_stack.block_coord_offset
+    assert converted.pdb_info is pose_stack.pdb_info
+    assert converted.constraint_set is pose_stack.constraint_set
+    assert converted.to(torch.float64) is converted
+
+    with pytest.raises(TypeError, match="torch.float32 and torch.float64"):
+        pose_stack.to(torch.float16)
+
+
+def test_float64_pack_min_step_packs_in_float32_and_minimizes_in_float64(
+    ubq_pdb, torch_device, monkeypatch
+):
+    pose_stack = pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_start=0, residue_end=4
+    ).to(torch.float64)
+    observed_dtypes = []
+
+    def fake_pack_rotamers(packed_pose, sfxn, task, verbose):
+        observed_dtypes.append(("pack", packed_pose.coords.dtype))
+        return packed_pose
+
+    def fake_min_fn(min_pose, sfxn, **kwargs):
+        observed_dtypes.append(("min", min_pose.coords.dtype))
+        return min_pose
+
+    class RecordingScoreFunction:
+        def set_weight(self, score_type, weight):
+            pass
+
+    monkeypatch.setattr(fast_relax_module, "pack_rotamers", fake_pack_rotamers)
+    result = relax_pack_min_step(
+        pose_stack=pose_stack,
+        sfxn=RecordingScoreFunction(),
+        fold_forest=None,
+        move_map=CartesianMoveMap(),
+        packer_pallete=PackerPalette(),
+        fa_rep_pack_weight=0.1,
+        fa_rep_min_weight=0.2,
+        cst_weight=0.0,
+        task_operations=[],
+        min_fn=fake_min_fn,
+        verbose=False,
+    )
+
+    assert observed_dtypes == [
+        ("pack", torch.float32),
+        ("min", torch.float64),
+    ]
+    assert result.coords.dtype == torch.float64
+
+
+def test_fast_relax_wrappers_select_the_correct_minimizer(monkeypatch):
+    calls = []
+    result = object()
+
+    def fake_fast_relax(*args, **kwargs):
+        calls.append((args, kwargs))
+        return result
+
+    monkeypatch.setattr(fast_relax_module, "fast_relax", fake_fast_relax)
+    common = [object(), object(), object()]
+    move_map = object()
+    fold_forest = object()
+
+    assert kin_fast_relax(*common, move_map, fold_forest, min_fn=None) is result
+    kin_args, kin_kwargs = calls[-1]
+    assert kin_args[4] is fold_forest
+    assert kin_kwargs["min_fn"] is _default_kin_min_fn
+
+    assert cartesian_fast_relax(*common, move_map, min_fn=None) is result
+    cart_args, cart_kwargs = calls[-1]
+    assert cart_args[4] is None
+    assert cart_kwargs["min_fn"] is _default_cart_min_fn
 
 
 @pytest.mark.parametrize("n_poses", [1])

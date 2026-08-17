@@ -50,6 +50,8 @@ def _empty_dunbrack_attrs() -> "DunbrackBlockAttrs":
 
 
 class DunbrackEnergyTerm(EnergyTerm):
+    """Backbone-dependent amino-acid rotamer probability and deviation term."""
+
     device: torch.device  # = attr.ib()
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):

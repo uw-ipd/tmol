@@ -11,6 +11,8 @@ from tmol.pose.pose_stack import PoseStack
 
 
 class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
+    """Full-atom distance-dependent electrostatic interaction term."""
+
     param_resolver: ElecParamResolver
     global_params: ElecGlobalParams
 

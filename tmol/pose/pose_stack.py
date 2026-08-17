@@ -1,6 +1,6 @@
 import attr
 import torch
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Union
 
 from tmol.types.torch import Tensor
 from tmol.chemical.restypes import RefinedResidueType
@@ -88,7 +88,10 @@ class PoseStack:
     # coordinates are held as [n-poses x max-n-atoms x 3]
     # where the offset for each residue are held in the
     # block_coord_offset tensor [n-poses x max-n-blocks]
-    coords: Tensor[torch.float32][:, :, 3]
+    coords: Union[
+        Tensor[torch.float32][:, :, 3],
+        Tensor[torch.float64][:, :, 3],
+    ]
 
     block_coord_offset: Tensor[torch.int32][:, :]
     block_coord_offset64: Tensor[torch.int64][:, :]
@@ -285,6 +288,32 @@ class PoseStack:
                 else self.fragmented_ligand_mapping.split(index)
             ),
         )
+
+    def to(self, dtype: torch.dtype) -> "PoseStack":
+        """Return this pose with coordinates converted to ``dtype``.
+
+        Only ``coords`` is converted; chemical, connectivity, PDB, ligand, and
+        constraint metadata are preserved. ``torch.float32`` and
+        ``torch.float64`` are supported because tmol packing operates in single
+        precision while minimization may use either precision. If the
+        coordinates already have the requested dtype, this object is returned
+        unchanged.
+
+        Args:
+            dtype: Coordinate dtype, either ``torch.float32`` or
+                ``torch.float64``.
+
+        Raises:
+            TypeError: If ``dtype`` is not a supported coordinate dtype.
+        """
+        if dtype not in (torch.float32, torch.float64):
+            raise TypeError(
+                "PoseStack coordinates support only torch.float32 and "
+                f"torch.float64; received {dtype!r}"
+            )
+        if self.coords.dtype == dtype:
+            return self
+        return attr.evolve(self, coords=self.coords.to(dtype=dtype))
 
     def expand_coords(self):
         """Load the coordinates into a 4D tensor:
