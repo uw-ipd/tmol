@@ -7,8 +7,10 @@ from .._atom_type_dependent_term import AtomTypeDependentTerm
 from tmol.database import ParameterDatabase
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 
 
 class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):

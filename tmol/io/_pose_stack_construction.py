@@ -1,13 +1,19 @@
 import torch
 import numpy
 
-from tmol.types import Tensor
-from tmol.types import NDArray
+from tmol.types import (
+    Tensor,
+    NDArray,
+    validate_args,
+)
 from typing import Optional
-from tmol.types import validate_args
-from tmol.pose import PDBInfo, DEFAULT_ATOM_OCCUPANCY, DEFAULT_ATOM_B_FACTOR
-from tmol.pose import PoseStack
-from tmol.pose import PackedBlockTypes
+from tmol.pose import (
+    PDBInfo,
+    DEFAULT_ATOM_OCCUPANCY,
+    DEFAULT_ATOM_B_FACTOR,
+    PoseStack,
+    PackedBlockTypes,
+)
 from tmol.io import CanonicalOrdering
 
 

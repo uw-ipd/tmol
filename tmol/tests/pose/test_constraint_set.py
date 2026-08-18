@@ -1,10 +1,12 @@
 import attr
 import torch
 
-from tmol.pose import ConstraintSet
+from tmol.pose import (
+    ConstraintSet,
+    PoseStackBuilder,
+)
 from tmol.score.constraint import ConstraintEnergyTerm
 
-from tmol.pose import PoseStackBuilder
 from tmol.io import pose_stack_from_pdb
 
 

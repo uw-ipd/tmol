@@ -1,8 +1,10 @@
 import torch
 from typing import Optional, Union
 
-from tmol.types import validate_args
-from tmol.types import Tensor
+from tmol.types import (
+    validate_args,
+    Tensor,
+)
 from tmol.pose import PoseStack
 from tmol.io._visualize import (
     pose_stack_to_pdb_string,

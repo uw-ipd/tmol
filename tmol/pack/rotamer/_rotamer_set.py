@@ -1,8 +1,10 @@
 import attr
 import numpy
 import torch
-from tmol.types import ValidateAttrs
-from tmol.types import Tensor
+from tmol.types import (
+    ValidateAttrs,
+    Tensor,
+)
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

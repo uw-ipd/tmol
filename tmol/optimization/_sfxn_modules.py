@@ -3,9 +3,12 @@ import attrs
 
 from tmol.pose import PoseStack
 from tmol.score import ScoreFunction
-from tmol.kinematics import NodeType, BondDOFTypes, JumpDOFTypes
-from tmol.kinematics import PoseStackKinematicsModule
-
+from tmol.kinematics import (
+    NodeType,
+    BondDOFTypes,
+    JumpDOFTypes,
+    PoseStackKinematicsModule,
+)
 from tmol.kinematics.compiled import inverse_kin
 
 

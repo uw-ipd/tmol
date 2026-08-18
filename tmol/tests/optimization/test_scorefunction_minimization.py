@@ -3,14 +3,20 @@ import pytest
 
 from tmol.io import pose_stack_from_pdb
 from tmol.pose import PoseStackBuilder
-from tmol.optimization import LBFGS_Armijo
-from tmol.score import ScoreFunction
-from tmol.score import ScoreType
-from tmol.score import beta2016_score_function
-from tmol.kinematics import FoldForest
-from tmol.kinematics import PoseStackKinematicsModule
-
-from tmol.optimization import CartesianSfxnNetwork, KinForestSfxnNetwork
+from tmol.optimization import (
+    LBFGS_Armijo,
+    CartesianSfxnNetwork,
+    KinForestSfxnNetwork,
+)
+from tmol.score import (
+    ScoreFunction,
+    ScoreType,
+    beta2016_score_function,
+)
+from tmol.kinematics import (
+    FoldForest,
+    PoseStackKinematicsModule,
+)
 
 
 def test_cart_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):

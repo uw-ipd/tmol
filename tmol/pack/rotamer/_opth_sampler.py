@@ -5,19 +5,22 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import Tensor
-from tmol.types import NDArray
-from tmol.types import validate_args
-
-from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
-from tmol.kinematics import KinForest
-from tmol.pack.rotamer import ConformerSampler
-from tmol.pack.rotamer import (
-    construct_single_residue_kinforest,
+from tmol.types import (
+    Tensor,
+    NDArray,
+    validate_args,
 )
-from tmol.pack.rotamer import na_proton_chi_roots
+from tmol.chemical import RefinedResidueType
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
+from tmol.kinematics import KinForest
+from tmol.pack.rotamer import (
+    ConformerSampler,
+    construct_single_residue_kinforest,
+    na_proton_chi_roots,
+)
 from tmol.numeric import coord_dihedrals
 from tmol.utility.tensor import exclusive_cumsum1d
 

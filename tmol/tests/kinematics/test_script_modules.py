@@ -16,10 +16,12 @@ from tmol.io import (
 )
 from tmol.types import Tensor
 
-from tmol.kinematics import FoldForest, EdgeType
-
-from tmol.kinematics import PoseStackKinematicsModule
-from tmol.kinematics import inverseKin
+from tmol.kinematics import (
+    FoldForest,
+    EdgeType,
+    PoseStackKinematicsModule,
+    inverseKin,
+)
 
 from tmol.tests import requires_cuda
 

@@ -28,60 +28,59 @@ with contextlib.suppress(Exception):
 
 from tmol.chemical import one2three, three2one
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_pdb
 from tmol.io import (
+    pose_stack_from_pdb,
     pose_stack_to_pdb_string,
     selection_gallery,
     switchable_view,
     view,
-)
-from tmol.io import (
     CanonicalOrdering,
     canonical_form_from_pdb,
     default_canonical_ordering,
     default_packed_block_types,
-)
-from tmol.io import (
     pose_stack_from_canonical_form,
-)
-from tmol.io import (
     canonical_form_from_openfold,
     canonical_ordering_for_openfold,
     packed_block_types_for_openfold,
     pose_stack_from_openfold,
-)
-from tmol.io import (
     canonical_form_from_rosettafold2,
     canonical_ordering_for_rosettafold2,
     packed_block_types_for_rosettafold2,
     pose_stack_from_rosettafold2,
-)
-from tmol.io import (
     atom_records_from_pose_stack,
     write_pose_stack_pdb,
+    extended_pose_stack_from_sequences,
 )
-from tmol.kinematics import KinematicModuleData
-from tmol.kinematics import EdgeType, FoldForest
-from tmol.kinematics import CartesianMoveMap, MoveMap
+from tmol.kinematics import (
+    KinematicModuleData,
+    EdgeType,
+    FoldForest,
+    CartesianMoveMap,
+    MoveMap,
+    set_named_torsions,
+)
 from tmol.optimization import (
     build_kinforest_network,
     run_cart_min,
     run_kin_min,
     run_min,
 )
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
-from tmol.pose import ConstraintSet
-from tmol.io import extended_pose_stack_from_sequences
-from tmol.pose import get_named_torsions, get_torsion_names
-from tmol.kinematics import set_named_torsions
-from tmol.score import beta2016_score_function
-from tmol.score import ScoreFunction
-from tmol.score import ScoreType
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+    ConstraintSet,
+    get_named_torsions,
+    get_torsion_names,
+)
+from tmol.score import (
+    beta2016_score_function,
+    ScoreFunction,
+    ScoreType,
+)
 from tmol.score.constraint import (
     ConstraintEnergyTerm,
+    create_mainchain_coordinate_constraints,
 )
-from tmol.score.constraint import create_mainchain_coordinate_constraints
 from tmol.relax import fast_relax
 
 try:

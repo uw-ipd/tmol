@@ -1,9 +1,11 @@
 import torch
 import attr
 
-from tmol.types import Tensor
-from tmol.types import TensorGroup
-from tmol.types import ConvertAttrs
+from tmol.types import (
+    Tensor,
+    TensorGroup,
+    ConvertAttrs,
+)
 
 
 @attr.s(auto_attribs=True, frozen=True)

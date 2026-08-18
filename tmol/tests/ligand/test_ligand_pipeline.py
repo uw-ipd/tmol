@@ -16,15 +16,16 @@ import torch
 
 from tmol.tests.data import data_path
 from tmol.io import canonical_ordering_for_biotite
-from tmol.ligand import prepare_ligands
-from tmol.ligand import _prepare_ligand_via_smiles
 from tmol.ligand import (
+    prepare_ligands,
+    _prepare_ligand_via_smiles,
     _residue_names_with_cross_residue_bonds,
     detect_nonstandard_residues,
+    protonate_mol_variants,
+    read_params_file,
+    write_params_file,
+    inject_ligand_preparations,
 )
-from tmol.ligand import protonate_mol_variants
-from tmol.ligand import read_params_file, write_params_file
-from tmol.ligand import inject_ligand_preparations
 
 PLI_CIF_INPUT_DIR = data_path("protein_ligand_test", "cif_inputs")
 PLI_DATA_DIR = data_path("protein_ligand_test")

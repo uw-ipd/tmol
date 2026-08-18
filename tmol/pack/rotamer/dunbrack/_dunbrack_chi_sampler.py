@@ -4,10 +4,11 @@ import numpy
 
 from typing import Tuple
 
-from tmol.types import Tensor
-from tmol.types import NDArray
-from tmol.types import validate_args
-
+from tmol.types import (
+    Tensor,
+    NDArray,
+    validate_args,
+)
 from tmol.score.dunbrack import DunbrackParamResolver
 
 from tmol.pack.rotamer import ChiSampler  # noqa F401
@@ -17,8 +18,10 @@ from tmol.database import ParameterDatabase
 # from tmol.pack.rotamer.dunbrack import _compiled  # noqa F401
 from tmol.pack import SetPackerTask
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

@@ -4,9 +4,8 @@ from tmol.kinematics import (
     mark_polymeric_bonds_in_foldforest_edges,
     bfs_proper_forest,
     validate_fold_forest,
+    EdgeType,
 )
-
-from tmol.kinematics import EdgeType
 
 
 def test_mark_polymeric_bonds_in_foldforest_edges_1():

@@ -1,7 +1,9 @@
 import torch
 import numpy
-from tmol.types import Tensor
-from tmol.types import NDArray
+from tmol.types import (
+    Tensor,
+    NDArray,
+)
 from typing import Optional
 from tmol.score.common import (
     condense_torch_inds,

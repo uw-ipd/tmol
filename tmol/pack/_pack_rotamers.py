@@ -4,11 +4,14 @@ import time
 from tmol.pose import PoseStack
 from tmol.score import ScoreFunction
 
-from tmol.pack import PackerTask, SetPackerTask
+from tmol.pack import (
+    PackerTask,
+    SetPackerTask,
+    PackerEnergyTables,
+    run_simulated_annealing,
+    impose_top_rotamer_assignments,
+)
 from tmol.pack.rotamer import build_rotamers
-from tmol.pack import PackerEnergyTables
-from tmol.pack import run_simulated_annealing
-from tmol.pack import impose_top_rotamer_assignments
 
 
 def pack_rotamers(

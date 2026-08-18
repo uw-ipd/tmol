@@ -6,8 +6,10 @@ import tmol.pack.rotamer.dunbrack._compiled  # noqa F401
 from tmol.chemical import RefinedResidueType, ResidueTypeSet
 from tmol.io import pose_stack_from_pdb
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStackBuilder
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStackBuilder,
+)
 from tmol.score.dunbrack import DunbrackParamResolver
 from tmol.pack.rotamer.dunbrack import (
     create_dunbrack_sampler_from_database,

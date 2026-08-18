@@ -6,11 +6,13 @@ import torch
 
 import toolz
 
-from tmol.types import Tensor
-from tmol.types import TensorGroup
-from tmol.types import ValidateAttrs, ConvertAttrs
-from tmol.types import validate_args
-
+from tmol.types import (
+    Tensor,
+    TensorGroup,
+    ValidateAttrs,
+    ConvertAttrs,
+    validate_args,
+)
 from tmol.database.scoring import HBondDatabase
 from tmol.database.chemical import ChemicalDatabase
 

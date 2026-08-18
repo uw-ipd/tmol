@@ -2,8 +2,10 @@ import torch
 import attrs
 
 from tmol.types import Tensor
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 
 
 def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:

@@ -5,30 +5,29 @@ import torch
 
 from typing import List, Tuple
 
-from tmol.types import NDArray
-from tmol.types import Tensor
-from tmol.types import validate_args
-
+from tmol.types import (
+    NDArray,
+    Tensor,
+    validate_args,
+)
 from tmol.utility.tensor import exclusive_cumsum1d, stretch
 from tmol.database.chemical import ChemicalDatabase
 from tmol.kinematics import KinForest, NodeType
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
-
-from tmol.pack.rotamer import RotamerSet
-from tmol.pack import SetPackerTask
-from tmol.pack.rotamer import ChiSampler
-from tmol.numeric import coord_dihedrals
-
-from tmol.pack.rotamer import (
-    construct_single_residue_kinforest,
-    coalesce_single_residue_kinforests,
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
 )
 from tmol.pack.rotamer import (
+    RotamerSet,
+    ChiSampler,
+    construct_single_residue_kinforest,
+    coalesce_single_residue_kinforests,
     annotate_residue_type_with_sampler_fingerprints,
     find_unique_fingerprints,
 )
+from tmol.pack import SetPackerTask
+from tmol.numeric import coord_dihedrals
 
 
 def _build_chi4_atom_table(pbt):

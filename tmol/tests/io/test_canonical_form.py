@@ -8,8 +8,8 @@ from tmol.io import (
     canonical_form_from_pdb,
     canonical_form_from_atom_records,
     select_atom_records_res_subset,
+    parse_pdb,
 )
-from tmol.io import parse_pdb
 
 
 def test_create_canonical_ordering_smoke(default_database):

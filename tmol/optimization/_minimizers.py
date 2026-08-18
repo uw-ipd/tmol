@@ -2,8 +2,11 @@ import time
 import torch
 from tmol.pose import PoseStack
 
-from tmol.kinematics import FoldForest
-from tmol.kinematics import MoveMap, MinimizerMap
+from tmol.kinematics import (
+    FoldForest,
+    MoveMap,
+    MinimizerMap,
+)
 from tmol.score import ScoreFunction
 
 from tmol.optimization import LBFGS_Armijo

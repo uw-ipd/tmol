@@ -4,8 +4,10 @@ import pickle
 import pytest
 
 from tmol.pose import PoseStackBuilder
-from tmol.pack import PackerEnergyTables
-from tmol.pack import run_simulated_annealing
+from tmol.pack import (
+    PackerEnergyTables,
+    run_simulated_annealing,
+)
 from tmol.pack.compiled import build_interaction_graph
 from tmol.pack.rotamer import RotamerSet
 from tmol.utility import exclusive_cumsum1d

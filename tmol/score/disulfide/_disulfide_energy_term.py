@@ -6,8 +6,10 @@ from .._energy_term import EnergyTerm
 from tmol.database import ParameterDatabase
 from tmol.score.disulfide import DisulfideGlobalParams
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 
 
 class DisulfideEnergyTerm(EnergyTerm):

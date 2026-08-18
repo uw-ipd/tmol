@@ -3,8 +3,10 @@ import numpy
 import cattr
 
 from tmol.chemical import RefinedResidueType, ResidueTypeSet
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStackBuilder
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStackBuilder,
+)
 from tmol.pack import PackerTask, PackerPalette, SetPackerTask
 from tmol.pack.rotamer import IncludeCurrentSampler
 

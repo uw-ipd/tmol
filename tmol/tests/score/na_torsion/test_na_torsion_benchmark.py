@@ -5,8 +5,10 @@ from tmol.tests import zero_padded_counts
 
 from tmol.io import pose_stack_from_pdb
 from tmol.pose import PoseStackBuilder
-from tmol.score import beta2016_score_function
-from tmol.score import ScoreFunction
+from tmol.score import (
+    beta2016_score_function,
+    ScoreFunction,
+)
 from tmol.score.na_torsion import NaTorsionEnergyTerm
 
 

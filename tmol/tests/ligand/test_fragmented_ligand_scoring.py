@@ -11,8 +11,10 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.ligand import FRAGMENT_ID_ANNOTATION
-from tmol.ligand import load_params_file
+from tmol.ligand import (
+    FRAGMENT_ID_ANNOTATION,
+    load_params_file,
+)
 
 DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 TARGET = "ace"

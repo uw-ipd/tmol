@@ -1,8 +1,9 @@
 import torch
 
-from tmol.types import validate_args
-from tmol.types import Tensor
-
+from tmol.types import (
+    validate_args,
+    Tensor,
+)
 from ._datatypes import KinForest, KinDOF
 
 CoordArray = Tensor[torch.double][:, 3]

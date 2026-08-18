@@ -1,17 +1,17 @@
 import pytest
 import torch
 
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStackBuilder
-
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStackBuilder,
+)
 from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_pdb,
+    pose_stack_from_canonical_form,
 )
-
-from tmol.io import pose_stack_from_pdb
-from tmol.io import pose_stack_from_canonical_form
 
 
 @pytest.fixture

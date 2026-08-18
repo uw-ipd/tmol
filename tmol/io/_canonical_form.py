@@ -3,8 +3,10 @@ import torch
 import numpy
 from typing import Optional
 
-from tmol.types import Tensor
-from tmol.types import NDArray
+from tmol.types import (
+    Tensor,
+    NDArray,
+)
 
 
 @attr.s(auto_attribs=True, frozen=False, slots=True)

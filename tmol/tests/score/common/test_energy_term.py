@@ -7,15 +7,15 @@ import pandas
 import torch
 import yaml
 
-from tmol.io import pose_stack_from_pdb
 from tmol.io import (
+    pose_stack_from_pdb,
     canonical_form_from_atom_records,
     default_canonical_ordering,
     default_packed_block_types,
     select_atom_records_res_subset,
+    parse_pdb,
+    pose_stack_from_canonical_form,
 )
-from tmol.io import parse_pdb
-from tmol.io import pose_stack_from_canonical_form
 from tmol.pose import PoseStackBuilder
 from tmol.score.ref import RefEnergyTerm
 

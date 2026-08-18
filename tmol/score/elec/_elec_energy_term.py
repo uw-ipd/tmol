@@ -6,8 +6,10 @@ from .._bond_dependent_term import BondDependentTerm
 from tmol.database import ParameterDatabase
 from tmol.score.elec import ElecParamResolver, ElecGlobalParams
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 
 
 class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):

@@ -3,16 +3,19 @@ import torch
 
 import attr
 
-from tmol.types import Tensor
-from tmol.types import NDArray
-
+from tmol.types import (
+    Tensor,
+    NDArray,
+)
 from tmol.score import EnergyTerm
 from ._params import BackboneTorsionParamResolver
 from tmol.database import ParameterDatabase
 
 from tmol.chemical import RefinedResidueType, uaid_t
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)

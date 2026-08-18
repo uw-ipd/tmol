@@ -1,14 +1,17 @@
 import torch
 import numpy
 
-from tmol.pose import PoseStack
-from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.pose import PackedBlockTypes
+from tmol.pose import (
+    PoseStack,
+    DEFAULT_ATOM_B_FACTOR,
+    DEFAULT_ATOM_OCCUPANCY,
+    PackedBlockTypes,
+)
 from tmol.io import (
     CanonicalOrdering,
+    CanonicalForm,
+    chain_inds_for_pose_stack,
 )
-from tmol.io import CanonicalForm
-from tmol.io import chain_inds_for_pose_stack
 from tmol.io.details import (
     _annotate_packed_block_types_w_canonical_res_order,
 )

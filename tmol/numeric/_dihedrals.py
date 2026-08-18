@@ -1,7 +1,9 @@
 import torch
 
-from tmol.types import validate_args
-from tmol.types import Tensor
+from tmol.types import (
+    validate_args,
+    Tensor,
+)
 
 Coord64Array = Tensor[torch.double][:, 3]
 Angles = Tensor[float][:]

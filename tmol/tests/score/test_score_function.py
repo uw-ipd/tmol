@@ -2,11 +2,16 @@ import torch
 import numpy
 import os
 
-from tmol.score import _non_memoized_beta2016
-from tmol.score import ScoreFunction
-from tmol.score import ScoreType
-from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.pose import PoseStackBuilder
+from tmol.score import (
+    _non_memoized_beta2016,
+    ScoreFunction,
+    ScoreType,
+)
+from tmol.pose import (
+    DEFAULT_ATOM_B_FACTOR,
+    DEFAULT_ATOM_OCCUPANCY,
+    PoseStackBuilder,
+)
 from tmol import (
     pose_stack_from_pdb,
     beta2016_score_function,

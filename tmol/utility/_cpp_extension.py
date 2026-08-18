@@ -3,6 +3,11 @@ import pathlib
 import warnings
 from functools import wraps
 
+from .._cuda_env import (  # noqa: F401
+    get_cccl_include as _get_cccl_include,
+    setup as _cuda_env_setup,
+)
+
 
 # Avoid importing from parent package (..) to prevent circular import issues
 # when this module is imported during package initialization.
@@ -12,14 +17,11 @@ def _tmol_include_paths():
     return [os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))]
 
 
-from .._cuda_env import get_cccl_include as _get_cccl_include  # noqa: E402
-
 # ---------------------------------------------------------------------------
 # Auto-configure CUDA for pip-installed toolkit BEFORE torch reads CUDA_HOME.
 # This must happen before `import torch.utils.cpp_extension` because PyTorch
 # evaluates CUDA_HOME at module-load time.
 # ---------------------------------------------------------------------------
-from .._cuda_env import setup as _cuda_env_setup  # noqa: E402
 from ..extern import include_paths as extern_include_paths  # noqa: E402
 
 _cuda_env_setup()

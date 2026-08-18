@@ -7,9 +7,10 @@ from ._chemical_database import AtomTypeParamResolver
 from tmol.chemical import RefinedResidueType
 from tmol.score import EnergyTerm
 
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
-
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 from tmol.types import NDArray
 
 from collections import OrderedDict

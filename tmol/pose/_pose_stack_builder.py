@@ -8,21 +8,25 @@ import pandas
 
 from typing import List, Tuple, Optional
 
-from tmol.types import NDArray
-from tmol.types import Tensor
-
-from tmol.chemical import MAX_SIG_BOND_SEPARATION
-
+from tmol.types import (
+    NDArray,
+    Tensor,
+    validate_args,
+)
 from tmol.chemical import (
+    MAX_SIG_BOND_SEPARATION,
     RefinedResidueType,
     three2one,
 )
 
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.pose import PoseStack
-from tmol.pose import ConstraintSet
-
+from tmol.pose import (
+    PackedBlockTypes,
+    PDBInfo,
+    DEFAULT_ATOM_B_FACTOR,
+    DEFAULT_ATOM_OCCUPANCY,
+    PoseStack,
+    ConstraintSet,
+)
 from tmol.utility.tensor import (
     exclusive_cumsum1d,
     exclusive_cumsum2d,
@@ -30,7 +34,6 @@ from tmol.utility.tensor import (
     stretch,
     stretch2,
 )
-from tmol.types import validate_args
 
 
 class PoseStackBuilder:

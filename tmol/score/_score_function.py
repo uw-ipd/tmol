@@ -11,7 +11,6 @@ from tmol.score import ScoreType
 # force registration of the terms with the ScoreTermFactory
 from tmol.score.terms import *  # noqa: F401, F403
 from tmol.score.terms import ScoreTermFactory
-
 from tmol.pose import PoseStack
 
 logger = logging.getLogger(__name__)

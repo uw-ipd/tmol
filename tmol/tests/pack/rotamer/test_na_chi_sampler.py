@@ -7,11 +7,13 @@ from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_canonical_form,
 )
-from tmol.io import pose_stack_from_canonical_form
 from tmol.pack import PackerTask, SetPackerTask, PackerPalette
-from tmol.pack.rotamer import build_rotamers
-from tmol.pack.rotamer import NaChiRotamerSampler
+from tmol.pack.rotamer import (
+    build_rotamers,
+    NaChiRotamerSampler,
+)
 from tmol.score.na_torsion import BASE_FOR_NAME3, SYN_MEAN, SYN_RANGE
 
 

@@ -3,14 +3,11 @@ import numpy
 
 from tmol.io import (
     canonical_form_from_pose_stack,
-)
-from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_canonical_form,
 )
-
-from tmol.io import pose_stack_from_canonical_form
 
 
 def not_any_nancoord(coords):

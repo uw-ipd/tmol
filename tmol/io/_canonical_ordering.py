@@ -4,11 +4,15 @@ import attr
 import pandas
 from collections import defaultdict
 
-from tmol.types import Tensor
-from tmol.types import validate_args
-from tmol.database import ParameterDatabase
+from tmol.types import (
+    Tensor,
+    validate_args,
+)
+from tmol.database import (
+    ParameterDatabase,
+    PatchedChemicalDatabase,
+)
 from tmol.pose import PackedBlockTypes
-from tmol.database import PatchedChemicalDatabase
 from tmol.chemical import ResidueTypeSet
 from tmol.utility import resolve_device
 from typing import List, Mapping, Optional, Tuple, Union

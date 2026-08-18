@@ -8,8 +8,8 @@ from tmol.io import (
     _paramdb_for_rosettafold2,
     canonical_ordering_for_rosettafold2,
     packed_block_types_for_rosettafold2,
+    CanonicalForm,
 )
-from tmol.io import CanonicalForm
 
 # from tmol.io import pose_stack_from_rosettafold2
 

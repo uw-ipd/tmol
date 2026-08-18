@@ -2,21 +2,19 @@ import numpy
 import torch
 import os
 
-from tmol.io import pose_stack_from_pdb
 from tmol.io import (
+    pose_stack_from_pdb,
     write_pose_stack_pdb,
     atom_records_from_pose_stack,
-)
-
-# from tmol.chemical import find_simple_polymeric_connections
-from tmol.io import to_pdb
-from tmol.pose import PoseStackBuilder
-from tmol.io import (
+    to_pdb,
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_canonical_form,
 )
-from tmol.io import pose_stack_from_canonical_form
+
+# from tmol.chemical import find_simple_polymeric_connections
+from tmol.pose import PoseStackBuilder
 
 
 def test_atom_records_from_pose_stack_1(ubq_pdb, torch_device):

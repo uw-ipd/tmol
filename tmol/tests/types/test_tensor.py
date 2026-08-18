@@ -5,11 +5,13 @@ import torch
 
 import attr
 
-from tmol.types import TensorGroup
+from tmol.types import (
+    TensorGroup,
+    NDArray,
+    Tensor,
+    like_kwargs,
+)
 import tmol.types._tensor as tensor
-from tmol.types import NDArray
-from tmol.types import Tensor, like_kwargs
-
 from tmol.tests import requires_cuda
 
 

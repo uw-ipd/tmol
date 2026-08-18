@@ -20,9 +20,11 @@ from typing import Optional
 
 import numpy as np
 import torch
-from rdkit import Chem
+from rdkit import (
+    Chem,
+    RDLogger,
+)
 from rdkit.Chem import AllChem
-from rdkit import RDLogger
 
 RDLogger.DisableLog("rdApp.*")
 

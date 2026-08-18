@@ -1,14 +1,14 @@
 import numpy
 
 from tmol.pose import PoseStackBuilder
-from tmol.io import pose_stack_from_pdb
-from tmol.io import chain_inds_for_pose_stack
 from tmol.io import (
+    pose_stack_from_pdb,
+    chain_inds_for_pose_stack,
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_canonical_form,
 )
-from tmol.io import pose_stack_from_canonical_form
 
 
 def test_deduce_chains_for_monomer(ubq_pdb, torch_device):

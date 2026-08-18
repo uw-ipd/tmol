@@ -3,10 +3,11 @@ import cattr
 
 import torch
 
-from tmol.types import Tensor
-from tmol.types import TensorGroup
-from tmol.types import validate_args
-
+from tmol.types import (
+    Tensor,
+    TensorGroup,
+    validate_args,
+)
 from tmol.database.scoring import DisulfideDatabase
 
 

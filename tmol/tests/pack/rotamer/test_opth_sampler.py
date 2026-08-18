@@ -7,12 +7,12 @@ from tmol.pose import PoseStackBuilder
 
 # from tmol.score import ScoreFunction
 from tmol.pack import PackerTask, PackerPalette, SetPackerTask
-from tmol.pack.rotamer import build_rotamers
 from tmol.pack.rotamer import (
+    build_rotamers,
     FixedAAChiSampler,
+    IncludeCurrentSampler,
+    OptHSampler,
 )
-from tmol.pack.rotamer import IncludeCurrentSampler
-from tmol.pack.rotamer import OptHSampler
 from tmol.io import pose_stack_from_pdb
 
 

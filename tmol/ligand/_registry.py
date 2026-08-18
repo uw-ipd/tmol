@@ -9,8 +9,10 @@ import math
 from dataclasses import dataclass
 from typing import Optional
 
-from tmol.database import PatchedChemicalDatabase
-from tmol.database import ParameterDatabase
+from tmol.database import (
+    PatchedChemicalDatabase,
+    ParameterDatabase,
+)
 from tmol.database.chemical import (
     AtomType,
     RawResidueType,

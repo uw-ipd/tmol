@@ -3,9 +3,10 @@ import torch
 
 from tmol.io import pose_stack_from_pdb
 from tmol.score.hbond import HBondEnergyTerm
-from tmol.score import ScoreFunction
-from tmol.score import ScoreType
-
+from tmol.score import (
+    ScoreFunction,
+    ScoreType,
+)
 from tmol.tests.score.common import EnergyTermTestBase
 
 

@@ -10,11 +10,12 @@ import numpy
 
 from tmol.database.chemical import ChemicalDatabase
 
-from tmol.types import Tensor
-from tmol.types import TensorGroup
-from tmol.types import NDArray
-from tmol.types import ValidateAttrs
-
+from tmol.types import (
+    Tensor,
+    TensorGroup,
+    NDArray,
+    ValidateAttrs,
+)
 
 from enum import IntEnum
 

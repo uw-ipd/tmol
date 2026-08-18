@@ -5,17 +5,25 @@ import pytest
 from tmol.relax import _default_cart_min_fn, fast_relax
 import time
 
-from tmol.pose import PoseStack
-from tmol.pose import PoseStackBuilder
-from tmol.score import ScoreFunction
-from tmol.score import ScoreType
-
+from tmol.pose import (
+    PoseStack,
+    PoseStackBuilder,
+)
+from tmol.score import (
+    ScoreFunction,
+    ScoreType,
+)
 from tmol.pack import PackerPalette
-from tmol.pack.rotamer import FixedAAChiSampler
-from tmol.pack.rotamer import IncludeCurrentSampler
-from tmol.kinematics import CartesianMoveMap, MoveMap
-from tmol.kinematics import EdgeType, FoldForest
-
+from tmol.pack.rotamer import (
+    FixedAAChiSampler,
+    IncludeCurrentSampler,
+)
+from tmol.kinematics import (
+    CartesianMoveMap,
+    MoveMap,
+    EdgeType,
+    FoldForest,
+)
 from tmol.io import pose_stack_from_pdb
 
 

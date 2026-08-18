@@ -17,8 +17,8 @@ from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_canonical_form,
 )
-from tmol.io import pose_stack_from_canonical_form
 
 # terms that must be non-zero on a nucleic-acid-only pose
 NA_ACTIVE_TERMS = (

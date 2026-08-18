@@ -2,16 +2,17 @@ import attr
 import numpy
 import torch
 
-from tmol.types import validate_args
-from tmol.types import NDArray
-from tmol.types import Tensor
-
-from tmol.kinematics import NodeType, KinForest
+from tmol.types import (
+    validate_args,
+    NDArray,
+    Tensor,
+)
 from tmol.kinematics import (
+    NodeType,
+    KinForest,
     KinForestScanOrdering,
     annotate_block_type_with_residue_kinforest_data,
 )
-
 from tmol.chemical import RefinedResidueType
 from tmol.pose import PackedBlockTypes
 

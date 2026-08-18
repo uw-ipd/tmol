@@ -3,12 +3,13 @@ import numpy
 import torch
 import attrs
 
-from tmol.types import Tensor
-from tmol.types import TensorGroup
-from tmol.types import NDArray
-
-from tmol.types import ConvertAttrs
-from tmol.types import convert_args
+from tmol.types import (
+    Tensor,
+    TensorGroup,
+    NDArray,
+    ConvertAttrs,
+    convert_args,
+)
 
 
 class NodeType(enum.IntEnum):

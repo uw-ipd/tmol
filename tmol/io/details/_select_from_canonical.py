@@ -5,12 +5,16 @@ import logging
 
 from collections import defaultdict
 from typing import Optional, Tuple
-from tmol.types import Tensor
-from tmol.types import NDArray
-from tmol.types import validate_args
+from tmol.types import (
+    Tensor,
+    NDArray,
+    validate_args,
+)
 from tmol.io import CanonicalOrdering
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStackBuilder
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStackBuilder,
+)
 
 logger = logging.getLogger(__name__)
 

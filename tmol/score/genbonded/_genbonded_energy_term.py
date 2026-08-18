@@ -35,9 +35,10 @@ from tmol.score.genbonded.potentials import (
 )
 
 from tmol.chemical import BondType, RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
-
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 from tmol.score.common import (
     make_hashtable_keys_values,
     add_to_hashtable,

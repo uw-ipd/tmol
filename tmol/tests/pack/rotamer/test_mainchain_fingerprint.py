@@ -6,19 +6,17 @@ from tmol.chemical import ResidueTypeSet
 from tmol.pose import PackedBlockTypes
 from tmol.pack.rotamer import (
     construct_single_residue_kinforest,
-)
-from tmol.pack.rotamer import (
     create_non_sidechain_fingerprint,
     create_mainchain_fingerprint,
     AtomFingerprint,
     annotate_residue_type_with_sampler_fingerprints,
     find_unique_fingerprints,
+    bfs_sidechain_atoms,
+    FixedAAChiSampler,
 )
-from tmol.pack.rotamer import bfs_sidechain_atoms
 from tmol.pack.rotamer.dunbrack import (
     create_dunbrack_sampler_from_database,
 )
-from tmol.pack.rotamer import FixedAAChiSampler
 
 
 def test_create_non_sidechain_fingerprint(default_database):

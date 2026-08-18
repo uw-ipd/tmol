@@ -3,11 +3,16 @@ import torch
 from tmol.types import Tensor
 from tmol.pose import PoseStack
 from tmol.score import ScoreFunction
-from tmol.pack import PackerTask, PackerPalette
+from tmol.pack import (
+    PackerTask,
+    PackerPalette,
+    pack_rotamers,
+)
 from tmol.pack.rotamer.dunbrack import DunbrackChiSampler
-from tmol.pack.rotamer import FixedAAChiSampler
-from tmol.pack.rotamer import NaChiRotamerSampler
-from tmol.pack import pack_rotamers
+from tmol.pack.rotamer import (
+    FixedAAChiSampler,
+    NaChiRotamerSampler,
+)
 
 
 def build_missing_sidechains(

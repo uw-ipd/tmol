@@ -9,8 +9,10 @@ from tmol.score.common import tile_subset_indices
 from tmol.score.ljlk import LJLKParamResolver
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 
 
 class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):

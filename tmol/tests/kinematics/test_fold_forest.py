@@ -3,8 +3,12 @@ import torch
 
 from tmol.io import pose_stack_from_pdb
 from tmol.pose import PoseStackBuilder
-from tmol.kinematics import validate_fold_forest
-from tmol.kinematics import FoldForest, EdgeType, _build_pose_fold_forest
+from tmol.kinematics import (
+    validate_fold_forest,
+    FoldForest,
+    EdgeType,
+    _build_pose_fold_forest,
+)
 
 
 def _real_edges(fold_forest, pose_idx):

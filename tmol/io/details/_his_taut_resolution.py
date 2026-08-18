@@ -2,8 +2,10 @@ import torch
 import toolz.functoolz
 
 from typing import Tuple
-from tmol.types import Tensor
-from tmol.types import validate_args
+from tmol.types import (
+    Tensor,
+    validate_args,
+)
 from tmol.io import CanonicalOrdering, HisSpecialCaseIndices
 from tmol.utility import AutoNumber
 

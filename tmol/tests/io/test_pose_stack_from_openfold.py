@@ -1,8 +1,8 @@
 import os
 import torch
 
-from tmol.io import CanonicalForm
 from tmol.io import (
+    CanonicalForm,
     pose_stack_from_openfold,
     canonical_form_from_openfold,
     _paramdb_for_openfold,

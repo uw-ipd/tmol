@@ -12,12 +12,15 @@ from tmol.pose import PackedBlockTypes
 
 from tmol.score.hbond import HBondParamResolver
 from tmol.score.common import arg_tile_subset_indices
-from tmol.score import AtomTypeParamResolver
-from tmol.score import BondDependentTerm
-
-from tmol.types import ValidateAttrs
-from tmol.types import NDArray
-from tmol.types import Tensor
+from tmol.score import (
+    AtomTypeParamResolver,
+    BondDependentTerm,
+)
+from tmol.types import (
+    ValidateAttrs,
+    NDArray,
+    Tensor,
+)
 
 
 @numba.jit(nopython=True)

@@ -8,9 +8,12 @@ from typing import Sequence
 
 from tmol.types import Tensor
 
-from tmol.chemical import MAX_PATHS_FROM_CONNECTION
+from tmol.chemical import (
+    MAX_PATHS_FROM_CONNECTION,
+    RefinedResidueType,
+    ResidueTypeSet,
+)
 from tmol.database import PatchedChemicalDatabase
-from tmol.chemical import RefinedResidueType, ResidueTypeSet
 from tmol.utility.tensor import join_tensors_and_report_real_entries
 
 

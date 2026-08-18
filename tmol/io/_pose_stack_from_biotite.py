@@ -8,16 +8,22 @@ import logging
 from tmol.types import validate_args
 from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
-from tmol.io import CanonicalForm
-from tmol.io import CanonicalOrdering
-from tmol.io import canonical_form_from_pose_stack
-from tmol.io import PoseBuildContext
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
-from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.utility import get_all_residue_positions
-from tmol.utility import resolve_device
-
+from tmol.io import (
+    CanonicalForm,
+    CanonicalOrdering,
+    canonical_form_from_pose_stack,
+    PoseBuildContext,
+)
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+    DEFAULT_ATOM_B_FACTOR,
+    DEFAULT_ATOM_OCCUPANCY,
+)
+from tmol.utility import (
+    get_all_residue_positions,
+    resolve_device,
+)
 from tmol.score import beta2016_score_function
 
 logger = logging.getLogger(__name__)

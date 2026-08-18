@@ -4,9 +4,11 @@ from typing import Optional, TYPE_CHECKING
 
 from tmol.types import Tensor
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PDBInfo
-from tmol.pose import PackedBlockTypes
-from tmol.pose import ConstraintSet
+from tmol.pose import (
+    PDBInfo,
+    PackedBlockTypes,
+    ConstraintSet,
+)
 
 if TYPE_CHECKING:
     from tmol.pose._split_block_mapping import SplitBlockMapping

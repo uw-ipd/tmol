@@ -2,12 +2,18 @@ import numpy
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.chemical import MAX_SIG_BOND_SEPARATION
-from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
-from tmol.score import EnergyTerm
-from tmol.score import IndexedBonds
+from tmol.chemical import (
+    MAX_SIG_BOND_SEPARATION,
+    RefinedResidueType,
+)
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
+from tmol.score import (
+    EnergyTerm,
+    IndexedBonds,
+)
 
 
 # @attr.s(auto_attribs=True)

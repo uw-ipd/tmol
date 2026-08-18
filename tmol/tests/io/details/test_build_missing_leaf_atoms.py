@@ -5,17 +5,14 @@ from tmol.io import (
     default_packed_block_types,
     canonical_form_from_pdb,
 )
-from tmol.io.details import find_disulfides
-from tmol.io.details import resolve_his_tautomerization
 from tmol.io.details import (
+    find_disulfides,
+    resolve_his_tautomerization,
     assign_block_types,
     take_block_type_atoms_from_canonical,
-)
-from tmol.io.details import (
     _annotate_packed_block_types_atom_is_leaf_atom,
     build_missing_leaf_atoms,
 )
-
 
 from tmol.optimization import LBFGS_Armijo
 from tmol.tests import gradcheck

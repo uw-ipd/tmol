@@ -2,11 +2,15 @@ import numpy
 import torch
 
 from tmol.io import atom_record_dtype
-from tmol.pose import PoseStack
-from tmol.pose import PackedBlockTypes
-from tmol.types import NDArray
-from tmol.types import Tensor
-from tmol.types import validate_args
+from tmol.pose import (
+    PoseStack,
+    PackedBlockTypes,
+)
+from tmol.types import (
+    NDArray,
+    Tensor,
+    validate_args,
+)
 from typing import Optional
 
 

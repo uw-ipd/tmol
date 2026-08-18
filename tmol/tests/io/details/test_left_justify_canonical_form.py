@@ -9,8 +9,10 @@ from tmol.io import (
 )
 from tmol.io.details import left_justify_canonical_form
 
-from tmol.pose import PoseStackBuilder
-from tmol.pose import DEFAULT_ATOM_B_FACTOR
+from tmol.pose import (
+    PoseStackBuilder,
+    DEFAULT_ATOM_B_FACTOR,
+)
 
 
 def get_add_two_fill_shape(x):

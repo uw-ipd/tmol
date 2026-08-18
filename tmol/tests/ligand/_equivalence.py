@@ -8,8 +8,11 @@ normalization rules.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
-from typing import Any, Iterable
+from typing import (
+    Callable,
+    Any,
+    Iterable,
+)
 
 
 def _identity_name(name: str) -> str:

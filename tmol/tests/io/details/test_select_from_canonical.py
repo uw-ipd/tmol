@@ -15,17 +15,19 @@ from tmol.io import (
     default_packed_block_types,
     CanonicalOrdering,
 )
-from tmol.io.details import left_justify_canonical_form
-from tmol.io.details import find_disulfides
-from tmol.io.details import resolve_his_tautomerization
 from tmol.io.details import (
+    left_justify_canonical_form,
+    find_disulfides,
+    resolve_his_tautomerization,
     assign_block_types,
     take_block_type_atoms_from_canonical,
     _annotate_packed_block_types_w_canonical_res_order,
     CanonicalOrderingAnnotation,
 )
-from tmol.pose import PoseStackBuilder
-from tmol.pose import PackedBlockTypes
+from tmol.pose import (
+    PoseStackBuilder,
+    PackedBlockTypes,
+)
 from tmol.tests.io.details.test_left_justify_canonical_form import add_two_res_at_gap
 
 

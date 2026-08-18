@@ -11,8 +11,8 @@ from tmol.tests.ligand import (
     FixtureMismatch,
     read_mol2_summary,
     require_paired_fixture,
+    parse_reference_params,
 )
-from tmol.tests.ligand import parse_reference_params
 
 _GROUND_TRUTH = data_path("ligand_ground_truth")
 _ORPHAN_MOL2 = _GROUND_TRUTH / "ref1.mol2"

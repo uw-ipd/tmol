@@ -40,8 +40,10 @@ import yaml
 
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import RawResidueType, normalize_bond_tuples
-from tmol.database.scoring import CartRes
-from tmol.database.scoring import PartialCharges
+from tmol.database.scoring import (
+    CartRes,
+    PartialCharges,
+)
 
 logger = logging.getLogger(__name__)
 

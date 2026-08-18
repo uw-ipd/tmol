@@ -2,8 +2,12 @@ import torch
 import numpy
 
 from tmol.types import Tensor
-from tmol.pose import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.pose import PoseStack
+from tmol.pose import (
+    PDBInfo,
+    DEFAULT_ATOM_B_FACTOR,
+    DEFAULT_ATOM_OCCUPANCY,
+    PoseStack,
+)
 from tmol.pack.rotamer import RotamerSet
 from tmol.utility import exclusive_cumsum2d_w_totals
 

@@ -4,9 +4,10 @@ import attr
 import cattr
 import torch
 
-from tmol.types import Tensor
-from tmol.types import TensorGroup
-
+from tmol.types import (
+    Tensor,
+    TensorGroup,
+)
 from tmol.score.ljlk import LJLKParamResolver
 from tmol.score import AtomTypeParamResolver
 

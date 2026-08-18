@@ -16,8 +16,11 @@ from dataclasses import replace
 
 import pytest
 
-from tmol.tests.ligand import compare_semantic, parse_reference_params
-from tmol.tests.ligand import load_parity_manifest
+from tmol.tests.ligand import (
+    compare_semantic,
+    parse_reference_params,
+    load_parity_manifest,
+)
 from tmol.tests.ligand._parity_helpers import (
     chi_axes_equivalent,
     prepare_seed_entry,

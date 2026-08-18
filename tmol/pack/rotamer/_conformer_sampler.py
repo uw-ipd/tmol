@@ -3,12 +3,15 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import Tensor
-from tmol.types import validate_args
-
+from tmol.types import (
+    Tensor,
+    validate_args,
+)
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 from tmol.kinematics import KinForest
 
 

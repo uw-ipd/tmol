@@ -8,11 +8,12 @@ from numba import jit
 import scipy.sparse as sparse
 import scipy.sparse.csgraph as csgraph
 
-from tmol.types import NDArray
-from tmol.types import Tensor
-from tmol.types import ValidateAttrs
-from tmol.types import validate_args
-
+from tmol.types import (
+    NDArray,
+    Tensor,
+    ValidateAttrs,
+    validate_args,
+)
 from tmol.pose import PoseStack
 
 from ._datatypes import (

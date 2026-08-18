@@ -6,7 +6,12 @@ from dataclasses import replace
 
 import pytest
 
-from tmol.tests.ligand import load_parity_manifest
+from tmol.tests.ligand import (
+    load_parity_manifest,
+    compare_params_strict,
+    generated_fields_from_preparation,
+    parse_reference_params,
+)
 from tmol.tests.ligand._parity_helpers import (
     prepare_seed_entry,
     proton_chi_by_axis_from_prep,
@@ -15,11 +20,6 @@ from tmol.tests.ligand._parity_helpers import (
     write_both_formats,
 )
 from tmol.ligand import _params_file as params_file
-from tmol.tests.ligand import (
-    compare_params_strict,
-    generated_fields_from_preparation,
-    parse_reference_params,
-)
 
 _SEED = load_parity_manifest()
 

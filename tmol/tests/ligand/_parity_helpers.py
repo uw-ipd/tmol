@@ -16,15 +16,15 @@ from tmol.ligand import (
     _params_file as params_file,
     _params_io as params_io,
     prepare_single_ligand,
+    nonstandard_residue_info_from_smiles_via_mol2,
+    LigandPreparation,
 )
-from tmol.ligand import nonstandard_residue_info_from_smiles_via_mol2
 from tmol.tests.ligand import (
     StrictComparison,
     compare_params_strict,
     generated_fields_from_preparation,
     parse_reference_params,
 )
-from tmol.ligand import LigandPreparation
 
 
 def prepare_seed_entry(entry) -> LigandPreparation:

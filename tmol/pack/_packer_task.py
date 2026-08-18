@@ -5,8 +5,10 @@ import torch
 import attr
 
 from tmol.types import Tensor
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

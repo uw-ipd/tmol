@@ -6,10 +6,11 @@ from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_canonical_form,
+    parse_pdb,
+    to_pdb,
+    atom_records_from_pose_stack,
 )
-from tmol.io import pose_stack_from_canonical_form
-from tmol.io import parse_pdb, to_pdb
-from tmol.io import atom_records_from_pose_stack
 
 DNA_NAME3S = ("DA", "DC", "DG", "DT")
 # RNA is the one case where the name3 and the block type name differ

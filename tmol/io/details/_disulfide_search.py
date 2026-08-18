@@ -3,9 +3,11 @@ import torch
 import numba
 
 from typing import Optional
-from tmol.types import NDArray
-from tmol.types import Tensor
-from tmol.types import validate_args
+from tmol.types import (
+    NDArray,
+    Tensor,
+    validate_args,
+)
 from tmol.io import CanonicalOrdering
 
 

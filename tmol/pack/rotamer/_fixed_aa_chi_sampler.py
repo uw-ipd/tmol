@@ -3,15 +3,20 @@ from __future__ import annotations
 import torch
 import attr
 
-from typing import Tuple
+from typing import (
+    Tuple,
+    TYPE_CHECKING,
+)
 
-from tmol.types import Tensor
-from tmol.types import validate_args
-
+from tmol.types import (
+    Tensor,
+    validate_args,
+)
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
-from typing import TYPE_CHECKING
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 
 if TYPE_CHECKING:
     from tmol.pack._packer_task import SetPackerTask  # noqa: F401

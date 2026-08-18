@@ -7,9 +7,9 @@ from tmol.io import pose_stack_from_pdb
 from tmol.score.na_torsion import (
     NaTorsionEnergyTerm,
     na_torsion_subterms,
+    polymer_index,
+    wrap_degrees,
 )
-from tmol.score.na_torsion import polymer_index
-from tmol.score.na_torsion import wrap_degrees
 
 
 def _term_and_pose(pdb, torch_device):

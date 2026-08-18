@@ -9,10 +9,14 @@ from ..ljlk._params import LJLKGlobalParams, LJLKParamResolver
 from tmol.database import ParameterDatabase
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
-from tmol.score.common import arg_tile_subset_indices
-from tmol.score.common import convert_float64
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
+from tmol.score.common import (
+    arg_tile_subset_indices,
+    convert_float64,
+)
 
 
 class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):

@@ -9,8 +9,10 @@ from tmol.score import AtomTypeDependentTerm
 from tmol.database import ParameterDatabase
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 from tmol.score.common import make_hashtable_keys_values, add_to_hashtable
 
 debug = False

@@ -2,9 +2,11 @@ import numpy
 import torch
 import attr
 
-from tmol.types import Tensor
-from tmol.types import NDArray
-from tmol.types import validate_args
+from tmol.types import (
+    Tensor,
+    NDArray,
+    validate_args,
+)
 from tmol.pose import PackedBlockTypes
 from tmol.chemical import RefinedResidueType
 

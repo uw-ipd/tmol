@@ -8,12 +8,14 @@ import torch
 import toolz.functoolz
 import itertools
 
-from tmol.types import NDArray
-from tmol.types import Tensor
-from tmol.types import TensorGroup
-from tmol.types import ValidateAttrs, ConvertAttrs
-from tmol.types import validate_args
-
+from tmol.types import (
+    NDArray,
+    Tensor,
+    TensorGroup,
+    ValidateAttrs,
+    ConvertAttrs,
+    validate_args,
+)
 from tmol.numeric import BSplineInterpolation
 
 from tmol.database.scoring import DunbrackRotamerLibrary

@@ -6,10 +6,11 @@ import attr
 import torch
 import pandas
 
-from tmol.types import ConvertAttrs
-
-from tmol.types import TensorGroup
-from tmol.types import Tensor
+from tmol.types import (
+    ConvertAttrs,
+    TensorGroup,
+    Tensor,
+)
 
 from tmol.utility import vals_to_name_cat, names_to_val_cat
 

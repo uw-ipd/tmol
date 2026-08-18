@@ -6,10 +6,14 @@ import toolz
 from tmol.types import validate_args
 from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
-from tmol.io import CanonicalForm
-from tmol.io import CanonicalOrdering
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.io import (
+    CanonicalForm,
+    CanonicalOrdering,
+)
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
 
 # ---------------------------------------------------------------------------
 # Atomworks UNIFIED_ATOM37_ENCODING constants (protein subset).
