@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import torch
 import attr
 
@@ -9,7 +11,10 @@ from tmol.types import validate_args
 from tmol.chemical import RefinedResidueType
 from tmol.pose import PackedBlockTypes
 from tmol.pose import PoseStack
-from tmol.pack import SetPackerTask
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tmol.pack.packer_task import SetPackerTask  # noqa: F401
 from tmol.pack.rotamer import ChiSampler
 
 
@@ -69,7 +74,7 @@ class FixedAAChiSampler(ChiSampler):
 
     @validate_args
     def sample_chi_for_poses(
-        self, poses: PoseStack, task: "SetPackerTask"
+        self, poses: PoseStack, task
     ) -> Tuple[
         Tensor[torch.int32][:],  # n_rots_for_rt
         Tensor[torch.int32][:],  # rt_for_rotamer

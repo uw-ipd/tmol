@@ -128,7 +128,9 @@ class NaTorsionParams(ValidateAttrs):
     bin_blend_sdev: float
 
     @classmethod
-    def from_database(cls, database: NaTorsionDatabase, device: torch.device):
+    def from_database(
+        cls, database: NaTorsionDatabase, device: torch.device
+    ):  # noqa: C901
         def t(v, dtype=torch.float32):
             return torch.tensor(v, dtype=dtype, device=device)
 

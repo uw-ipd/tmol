@@ -184,7 +184,7 @@ class CanonicalOrdering:
         }
 
     @classmethod
-    def from_chemdb(cls, chemdb: PatchedChemicalDatabase):
+    def from_chemdb(cls, chemdb: PatchedChemicalDatabase):  # noqa: C901
         restypes = ordered_set(rt.io_equiv_class for rt in chemdb.residues)
         ordered_restypes = restypes.ordered_vals
 
@@ -519,7 +519,7 @@ def select_atom_records_res_subset(
     return atom_records.iloc[begin:end]
 
 
-def canonical_form_from_atom_records(
+def canonical_form_from_atom_records(  # noqa: C901
     canonical_ordering: CanonicalOrdering,
     atom_records: pandas.DataFrame,
     device: torch.device,

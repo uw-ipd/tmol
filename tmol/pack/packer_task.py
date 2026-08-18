@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # import numpy
 import torch
 import attr
@@ -5,7 +7,10 @@ import attr
 from tmol.types import Tensor
 from tmol.pose import PackedBlockTypes
 from tmol.pose import PoseStack
-from tmol.pack.rotamer import ConformerSampler
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tmol.pack.rotamer.conformer_sampler import ConformerSampler
 
 # Architecture is borrowed from Rosetta3:
 # PackerTask: a class holding data describing how the

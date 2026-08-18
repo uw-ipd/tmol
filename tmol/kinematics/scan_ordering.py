@@ -666,7 +666,7 @@ def _record_scan_path_segments(
             gen_scan_path_segments[gen_to_build_atom[k_atom_ind]].append(path)
 
 
-def _annotate_block_type_for_in_and_out_pair(
+def _annotate_block_type_for_in_and_out_pair(  # noqa: C901
     i,
     i_conn_atom,
     j,
@@ -1111,7 +1111,7 @@ def annotate_block_type_with_residue_kinforest_data(bt):
 
 
 # TO DO: jit this!
-def _annotate_block_type_with_gen_scan_path_segs(bt):
+def _annotate_block_type_with_gen_scan_path_segs(bt):  # noqa: C901
     if hasattr(bt, "gen_seg_scan_path_segs"):
         return
     n_conn = len(bt.connections)

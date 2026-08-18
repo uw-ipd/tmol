@@ -47,7 +47,7 @@ def _mol_coords(mol: Chem.Mol) -> np.ndarray:
     return coords
 
 
-def _find_nbr_atom(
+def _find_nbr_atom(  # noqa: C901
     mol: Chem.Mol, coords: np.ndarray, skip_indices: set[int] | None = None
 ) -> int:
     """Find the neighbor atom (root) for the atom tree.
@@ -147,7 +147,7 @@ def _pick_neighbor(
     return candidates[0]
 
 
-def _build_atom_tree(
+def _build_atom_tree(  # noqa: C901
     mol: Chem.Mol, root_idx: int
 ) -> tuple[list[int], dict[int, int], dict[int, tuple[int, int]]]:
     """Build an atom tree via simple BFS from the root.
@@ -427,7 +427,7 @@ def _is_planar_resonance_bond(
     return sum(1 for nbr in other_neighbors if nbr.GetAtomicNum() == 7) >= 2
 
 
-def build_residue_type(
+def build_residue_type(  # noqa: C901
     mol: Chem.Mol,
     res_name: str,
     atom_types: list[AtomTypeAssignment],

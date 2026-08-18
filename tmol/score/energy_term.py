@@ -1,12 +1,18 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from tmol.chemical import RefinedResidueType
 from tmol.pose import PackedBlockTypes
 from tmol.pose import PoseStack
-from tmol.pack.rotamer import RotamerSet
 from tmol.score.common import (
     TermWholePoseScoringModule,
     TermBlockPairScoringModule,
     TermRotamerScoringModule,
 )
+
+if TYPE_CHECKING:
+    from tmol.pack.rotamer import RotamerSet
 
 
 class EnergyTerm:

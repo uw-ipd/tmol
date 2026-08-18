@@ -72,12 +72,9 @@ from tmol.optimization import (
 from tmol.pose import PackedBlockTypes
 from tmol.pose import PoseStack
 from tmol.pose import ConstraintSet
-from tmol.pose import (
-    extended_pose_stack_from_sequences,
-    get_named_torsions,
-    get_torsion_names,
-    set_named_torsions,
-)
+from tmol.io import extended_pose_stack_from_sequences
+from tmol.pose import get_named_torsions, get_torsion_names
+from tmol.kinematics import set_named_torsions
 from tmol.score import beta2016_score_function
 from tmol.score import ScoreFunction
 from tmol.score import ScoreType

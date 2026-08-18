@@ -224,7 +224,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             setattr(block_type, "cartbonded_annotations", {})
         block_type.cartbonded_annotations[self.hash] = cb_block_ann
 
-    def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+    def setup_packed_block_types(
+        self, packed_block_types: PackedBlockTypes
+    ):  # noqa: C901
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
         if not hasattr(packed_block_types, "cartbonded_is_fragment"):

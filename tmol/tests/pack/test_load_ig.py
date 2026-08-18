@@ -123,7 +123,7 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(ig, pdb_fname, 
     return pose_stack, rotamer_set, _d(energy1b), _d(inds), _d(energies)
 
 
-def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
+def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(  # noqa: C901
     ig, pdb_fname, device
 ):
     pose_stack = pose_stack_from_pdb(pdb_fname, device)

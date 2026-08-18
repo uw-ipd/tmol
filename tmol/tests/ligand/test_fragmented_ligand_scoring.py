@@ -133,14 +133,14 @@ def _build(structure, params_path, torch_device, *, fragmented):
         return_context=True,
     )
     if fragmented:
-        return pose, context, pose.fragmented_ligand_mapping
+        return pose, context, pose.split_block_mapping
     return pose, context, None
 
 
 def _fragment_block_mask(pose, mapping):
     mask = torch.zeros_like(pose.block_type_ind, dtype=torch.bool)
-    for record in mapping.blocks:
-        mask[record.pose_index, record.block_index] = True
+    for entry in mapping.entries:
+        mask[entry.pose_ind, entry.block_ind] = True
     return mask
 
 
@@ -149,9 +149,40 @@ def test_fragment_definition_connections_icoors_and_mapping(torch_device):
     annotated = _annotate_at_bridge(structure, preparation)
     pose, _, mapping = _build(annotated, params_path, torch_device, fragmented=True)
 
-    assert [record.fragment_name for record in mapping.blocks] == ["LG1.1", "LG1.2"]
-    assert len(mapping.connection_pairs) == 1
-    block_a, conn_a, block_b, conn_b = mapping.connection_pairs[0]
+    pbt = pose.packed_block_types
+    frag_names = sorted(
+        pbt.active_block_types[int(pose.block_type_ind[0, e.block_ind])].name
+        for e in mapping.entries
+        if e.pose_ind == 0
+    )
+    assert frag_names == ["LG1.1", "LG1.2"]
+    # Find the cut-bond connection between the two fragment blocks.
+    # After apply_fragment_connections the connection is encoded in inter_residue_connections.
+    block_a, block_b = sorted(e.block_ind for e in mapping.entries if e.pose_ind == 0)
+    # block_a connects to block_b via connection 0 (the first cut-bond connection)
+    block_a_conn = pose.inter_residue_connections[0, block_a]
+    connected = [
+        (int(block_a_conn[c, 0]), c)
+        for c in range(block_a_conn.shape[0])
+        if int(block_a_conn[c, 0]) == block_b
+    ]
+    assert len(connected) == 1
+    conn_a = (
+        pbt.active_block_types[int(pose.block_type_ind[0, block_a])]
+        .connections[connected[0][1]]
+        .name
+    )
+    block_b_conn = pose.inter_residue_connections[0, block_b]
+    connected_b = [
+        (int(block_b_conn[c, 0]), c)
+        for c in range(block_b_conn.shape[0])
+        if int(block_b_conn[c, 0]) == block_a
+    ]
+    conn_b = (
+        pbt.active_block_types[int(pose.block_type_ind[0, block_b])]
+        .connections[connected_b[0][1]]
+        .name
+    )
     assert tuple(pose.inter_residue_connections[0, block_a, 0].tolist()) == (
         block_b,
         0,
@@ -185,31 +216,44 @@ def test_fragmented_ligand_export_restores_original_residue(torch_device):
         annotated, params_path, torch_device, fragmented=True
     )
     pose = attr.evolve(pose, coords=pose.coords.clone())
-    assert pose.fragmented_ligand_mapping == mapping
+    assert pose.split_block_mapping is mapping
 
     split = biotite_from_pose_stack(
         pose, context.canonical_ordering, merge_fragments=False
     )
-    restored = recombine_fragmented_ligands(split, mapping)
+    restored = recombine_fragmented_ligands(split, pose)
     merged = biotite_from_pose_stack(pose, context.canonical_ordering)
 
     np.testing.assert_array_equal(merged.res_name, restored.res_name)
     np.testing.assert_array_equal(merged.res_id, restored.res_id)
     assert not np.any(np.char.startswith(merged.res_name, f"{LIGAND_NAME}."))
+    pbt = pose.packed_block_types
+    expected_frag_res_ids = {
+        (
+            int(pose.pdb_info.residue_labels[e.pose_ind, e.block_ind]),
+            pbt.active_block_types[
+                int(pose.block_type_ind[e.pose_ind, e.block_ind])
+            ].name,
+        )
+        for e in mapping.entries
+        if e.pose_ind == 0
+    }
     assert {
         (int(res_id), str(res_name))
         for res_id, res_name in zip(split.res_id, split.res_name)
         if str(res_name).startswith(f"{LIGAND_NAME}.")
-    } == {
-        (record.pose_residue_label, record.fragment_name) for record in mapping.blocks
-    }
+    } == expected_frag_res_ids
 
     split_records = atom_records_from_pose_stack(pose, merge_fragments=False)
     merged_records = atom_records_from_pose_stack(pose)
-    fragment_residue_labels = {record.pose_residue_label for record in mapping.blocks}
+    fragment_residue_labels = {
+        int(pose.pdb_info.residue_labels[e.pose_ind, e.block_ind])
+        for e in mapping.entries
+        if e.pose_ind == 0
+    }
     assert fragment_residue_labels <= set(split_records["resi"])
     assert fragment_residue_labels.isdisjoint(set(merged_records["resi"]))
-    assert {record.residue_label for record in mapping.blocks} <= set(
+    assert {e.orig_residue_label for e in mapping.entries if e.pose_ind == 0} <= set(
         merged_records["resi"]
     )
 
@@ -230,12 +274,13 @@ def test_fragmentation_uses_ligand_already_in_parameter_database(torch_device):
         sample_proton_chi=False,
     )
 
-    assert [
-        record.fragment_name for record in pose.fragmented_ligand_mapping.blocks
-    ] == [
-        "LG1.1",
-        "LG1.2",
-    ]
+    pbt = pose.packed_block_types
+    frag_names = sorted(
+        pbt.active_block_types[int(pose.block_type_ind[e.pose_ind, e.block_ind])].name
+        for e in pose.split_block_mapping.entries
+        if e.pose_ind == 0
+    )
+    assert frag_names == ["LG1.1", "LG1.2"]
 
 
 def test_fragment_interactions_validate_inputs(torch_device):
@@ -365,21 +410,22 @@ def test_fragment_mapping_is_stable_for_atom_array_stack(torch_device):
         context=context,
         no_optH=True,
     )
-    mapping = pose.fragmented_ligand_mapping
+    mapping = pose.split_block_mapping
     assert pose.n_poses == 2
-    assert len(mapping.blocks) == 4
-    for fragment_id in (1, 2):
-        block_indices = {
-            record.block_index
-            for record in mapping.blocks
-            if record.fragment_id == fragment_id
+    assert len(mapping.entries) == 4  # 2 poses × 2 fragments
+    # Each distinct fragment block index appears in both poses
+    pose0_block_inds = {e.block_ind for e in mapping.entries if e.pose_ind == 0}
+    assert len(pose0_block_inds) == 2
+    for block_ind in pose0_block_inds:
+        assert {e.pose_ind for e in mapping.entries if e.block_ind == block_ind} == {
+            0,
+            1,
         }
-        assert len(block_indices) == 1
-    assert pose.clone().fragmented_ligand_mapping == mapping
-    split_mapping = pose.split(1).fragmented_ligand_mapping
-    assert len(split_mapping.blocks) == 2
-    assert {record.pose_index for record in split_mapping.blocks} == {0}
-    assert {record.fragment_id for record in split_mapping.blocks} == {1, 2}
+    assert pose.clone().split_block_mapping is mapping
+    split_mapping = pose.split(1).split_block_mapping
+    assert len(split_mapping.entries) == 2
+    assert {e.pose_ind for e in split_mapping.entries} == {0}
+    assert len({e.block_ind for e in split_mapping.entries}) == 2
 
 
 def test_fragmented_ligand_minimize_and_pack_e2e():
@@ -421,7 +467,7 @@ def test_fragmented_ligand_minimize_and_pack_e2e():
         return_pose_stack=True,
     )
     assert torch.isfinite(packed_ddg).all()
-    assert packed.fragmented_ligand_mapping == mapping
+    assert packed.split_block_mapping is not None
 
     packed_fragment_mask = _fragment_block_mask(packed, mapping)
     packed_partner = ~packed_fragment_mask & (packed.block_type_ind >= 0)
@@ -466,15 +512,31 @@ def test_fragmented_ligand_ddg_and_total_pose_parity(target, fragmentation):
         annotated, params_path, torch_device, fragmented=True
     )
     if fragmentation == "multi":
-        assert len(mapping.blocks) >= 3
+        pose0_entries = [e for e in mapping.entries if e.pose_ind == 0]
+        assert len(pose0_entries) >= 3
+        pbt_frag = fragmented.packed_block_types
         atom_by_name = {atom.name: atom for atom in preparation.residue_type.atoms}
         assert (
             min(
                 sum(
-                    not atom_by_name[name].atom_type.upper().startswith("H")
-                    for name in record.atom_names
+                    not atom_by_name[
+                        pbt_frag.active_block_types[
+                            int(fragmented.block_type_ind[0, e.block_ind])
+                        ]
+                        .atoms[i]
+                        .name
+                    ]
+                    .atom_type.upper()
+                    .startswith("H")
+                    for i in range(
+                        int(
+                            pbt_frag.n_atoms[
+                                int(fragmented.block_type_ind[0, e.block_ind])
+                            ]
+                        )
+                    )
                 )
-                for record in mapping.blocks
+                for e in pose0_entries
             )
             == 3
         )
@@ -590,13 +652,13 @@ def test_fragmented_ligand_ddg_and_total_pose_parity(target, fragmentation):
             atom.name: whole_gradient[0, whole_offset + atom_index]
             for atom_index, atom in enumerate(whole_bt.atoms)
         }
-        for record in mapping.blocks:
-            if record.pose_index != 0:
+        for entry in mapping.entries:
+            if entry.pose_ind != 0:
                 continue
             fragment_bt = fragmented.packed_block_types.active_block_types[
-                int(fragmented.block_type_ind[0, record.block_index])
+                int(fragmented.block_type_ind[0, entry.block_ind])
             ]
-            fragment_offset = int(fragmented.block_coord_offset[0, record.block_index])
+            fragment_offset = int(fragmented.block_coord_offset[0, entry.block_ind])
             for atom_index, atom in enumerate(fragment_bt.atoms):
                 torch.testing.assert_close(
                     fragment_gradient[0, fragment_offset + atom_index],

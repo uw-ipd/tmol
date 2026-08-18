@@ -19,7 +19,7 @@ from tmol.io.details import (
 
 from tmol.optimization import LBFGS_Armijo
 from tmol.tests import gradcheck
-from tmol.tests.kinematics import coord_weights_for_device
+from tmol.tests.kinematics.test_script_modules import coord_weights_for_device
 
 
 def not_any_nancoord(coords):

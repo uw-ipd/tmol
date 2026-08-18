@@ -458,7 +458,7 @@ def _validate_patch_icoors(patch, added_ats_and_conns):
 # returns:
 #    newreses - list of new residues produced by the patch (currently only support for 1)
 #    newmarked - updated list of modified atoms in new residue
-def do_patch(res, variant, resgraph, patchgraph, marked):
+def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
     atoms_match = (
         lambda x, y: ("element" not in y)
         or ("element" not in x)

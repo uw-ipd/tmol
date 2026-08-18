@@ -57,16 +57,21 @@ def atom_records_from_pose_stack(
         pose_stack.pdb_info.atom_occupancy,
         pose_stack.pdb_info.atom_b_factor,
     )
-    mapping = getattr(pose_stack, "fragmented_ligand_mapping", None)
-    if merge_fragments and mapping is not None:
-        for fragment in mapping.blocks:
-            fragment_atoms = (records["modeli"] == fragment.pose_index) & (
-                records["resi"] == fragment.pose_residue_label
+    sbm = getattr(pose_stack, "split_block_mapping", None)
+    if merge_fragments and sbm is not None and sbm.entries:
+        pbt = pose_stack.packed_block_types
+        for entry in sbm.entries:
+            pose_res_label = int(
+                pose_stack.pdb_info.residue_labels[entry.pose_ind, entry.block_ind]
             )
-            records["resn"][fragment_atoms] = fragment.ligand_name
-            records["resi"][fragment_atoms] = fragment.residue_label
-            records["chain"][fragment_atoms] = fragment.chain_label
-            records["insert"][fragment_atoms] = fragment.insertion_code
+            orig_name = pbt.active_block_types[entry.orig_block_type_ind].name
+            fragment_atoms = (records["modeli"] == entry.pose_ind) & (
+                records["resi"] == pose_res_label
+            )
+            records["resn"][fragment_atoms] = orig_name
+            records["resi"][fragment_atoms] = entry.orig_residue_label
+            records["chain"][fragment_atoms] = entry.orig_chain_label
+            records["insert"][fragment_atoms] = entry.orig_ins_code
     return records
 
 

@@ -96,7 +96,7 @@ def create_rotameric_aa_dunbrack_library(aa3, lines, nchi_for_aa, rotamer_alias)
     return RotamericAADunbrackLibrary(aa3, data_for_aa)
 
 
-def create_semi_rotameric_aa_dunbrack_library(
+def create_semi_rotameric_aa_dunbrack_library(  # noqa: C901
     aa3,
     nchi,
     bb_rotamer_lines,

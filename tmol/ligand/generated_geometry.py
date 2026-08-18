@@ -33,7 +33,7 @@ def _is_sp2(atom) -> bool:
     return any(b.GetBondType() in _SP2_BONDS for b in atom.GetBonds())
 
 
-def planarize_conjugated_nh2(mol: Chem.Mol) -> list[str]:
+def planarize_conjugated_nh2(mol: Chem.Mol) -> list[str]:  # noqa: C901
     """Make -NH2 groups conjugated to an sp2 center planar.
 
     Correct proton geomoetry around amine N bound to sp2 heavy atoms.

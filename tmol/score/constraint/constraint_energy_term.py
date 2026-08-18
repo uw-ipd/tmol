@@ -44,7 +44,7 @@ class ConstraintEnergyTerm(EnergyTerm):
 
     @classmethod
     def get_torsion_angle_test(cls, tensor):
-        from tmol.score.constraint.potentials import get_torsion_angle
+        from tmol.score.constraint.potentials.compiled import get_torsion_angle
 
         return get_torsion_angle(tensor)
 
@@ -99,7 +99,7 @@ class ConstraintEnergyTerm(EnergyTerm):
         # params[:, 0] == mean (target value)
         # params[:, 1] == standard deviation
         # params[:, 2] == constant that's added to the score regardless
-        from tmol.score.constraint.potentials import get_torsion_angle
+        from tmol.score.constraint.potentials.compiled import get_torsion_angle
 
         x0 = params[:, 0]  # The desired angle
         sd = params[:, 1]
@@ -139,7 +139,7 @@ class ConstraintEnergyTerm(EnergyTerm):
             pose_stack.get_constraint_set(),
         ]
 
-    def constraint_pose_scores(
+    def constraint_pose_scores(  # noqa: C901
         self,
         coords,
         rot_coord_offset,  # rot coord offset

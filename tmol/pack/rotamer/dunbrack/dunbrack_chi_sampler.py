@@ -86,7 +86,7 @@ class DunbrackChiSampler(ChiSampler):
         return "DunbrackChiSampler"
 
     @validate_args
-    def annotate_residue_type(self, restype: RefinedResidueType):
+    def annotate_residue_type(self, restype: RefinedResidueType):  # noqa: C901
         """TEMP TEMP TEMP: assume the dihedrals we care about are phi and psi"""
         if hasattr(restype, "dun_sampler_cache"):
             return

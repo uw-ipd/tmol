@@ -1,33 +1,12 @@
-_LAZY_ATTRS: dict[str, tuple[str, str]] = {
-    "attached_H_for_don": ("hbond_dependent_term", "attached_H_for_don"),
-    "HBondBlockTypeParams": ("hbond_dependent_term", "HBondBlockTypeParams"),
-    "HBondPackedBlockTypesParams": (
-        "hbond_dependent_term",
-        "HBondPackedBlockTypesParams",
-    ),
-    "HBondDependentTerm": ("hbond_dependent_term", "HBondDependentTerm"),
-    "HBondEnergyTerm": ("hbond_energy_term", "HBondEnergyTerm"),
-    "HBondPolyParams": ("params", "HBondPolyParams"),
-    "HBondPairParams": ("params", "HBondPairParams"),
-    "HBondParamResolver": ("params", "HBondParamResolver"),
-    "CompactedHBondDatabase": ("params", "CompactedHBondDatabase"),
-}
-
-
-def __getattr__(name: str):
-    if name in _LAZY_ATTRS:
-        import importlib
-
-        mod_leaf, attr = _LAZY_ATTRS[name]
-        mod = importlib.import_module(f".{mod_leaf}", package=__name__)
-        # Re-cache every name from this module so that Python's import
-        # machinery (which sets globals()[mod_leaf] = MODULE as a side-effect)
-        # does not overwrite previously resolved function/class references.
-        for _n, (_m, _a) in _LAZY_ATTRS.items():
-            if _m == mod_leaf:
-                try:
-                    globals()[_n] = getattr(mod, _a)
-                except AttributeError:
-                    pass
-        return globals()[name]
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+from .params import (  # noqa: F401
+    CompactedHBondDatabase,
+    HBondPairParams,
+    HBondParamResolver,
+    HBondPolyParams,
+)  # noqa: F401
+from .hbond_dependent_term import (  # noqa: F401
+    HBondBlockTypeParams,
+    HBondDependentTerm,
+    attached_H_for_don,
+)  # noqa: F401
+from .hbond_energy_term import HBondEnergyTerm  # noqa: F401

@@ -4,7 +4,7 @@ import torch
 from .fold_forest import FoldForest
 from .check_fold_forest import validate_fold_forest
 
-from tmol import PoseStack
+from tmol.pose import PoseStack
 
 from tmol.kinematics import (
     construct_kin_module_data_for_pose,

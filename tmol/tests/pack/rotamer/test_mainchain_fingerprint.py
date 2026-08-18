@@ -136,7 +136,7 @@ def test_annotate_rt_w_mainchain_fingerprint(default_database):
     assert mc_fingerprint.fingerprint == fingerprint_gold
 
 
-def test_merge_fingerprints(default_database):
+def test_merge_fingerprints(default_database):  # noqa: C901
     torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
 

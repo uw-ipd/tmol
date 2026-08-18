@@ -103,7 +103,7 @@ class MCFingerprints:
 
 
 @validate_args
-def create_non_sidechain_fingerprint(
+def create_non_sidechain_fingerprint(  # noqa: C901
     rt: RefinedResidueType,
     parents: NDArray[numpy.int32][:],
     sc_atoms: NDArray[numpy.int32][:],
@@ -375,7 +375,7 @@ def find_max_length_fp_among_res_samplers(
     return (n_fps_for_rt, max_sampler_for_rt, max_fp_for_rt, fp_to_ind)
 
 
-def find_unique_fingerprints(
+def find_unique_fingerprints(  # noqa: C901
     pbt: PackedBlockTypes,
 ):
     sampler_types = set()

@@ -43,7 +43,7 @@ class ConstraintSet:
         )
 
     @classmethod
-    def concatenate(
+    def concatenate(  # noqa: C901
         cls,
         constraint_sets: Tuple[Optional["ConstraintSet"], ...],
         from_multiple_pose_stacks: bool = True,
@@ -275,7 +275,9 @@ class ConstraintSet:
             atom_indices = atom_indices[:, :, 1:3]
         return self.add_constraints(fn, atom_indices, params)
 
-    def add_constraints(self, fn, atom_indices, params=None) -> "ConstraintSet":
+    def add_constraints(
+        self, fn, atom_indices, params=None
+    ) -> "ConstraintSet":  # noqa: C901
         """
         Create a new ConstraintSet that includes all the old constraints plus the new ones.
 

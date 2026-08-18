@@ -1,82 +1,47 @@
+from .cartbonded import (  # noqa: F401
+    AngleGroup,
+    CartRes,
+    HxlTorsionGroup,
+    ImproperGroup,
+    LengthGroup,
+    TorsionGroup,
+)  # noqa: F401
+from .disulfide import DisulfideGlobalParameters  # noqa: F401
+from .dunbrack_libraries import (  # noqa: F401
+    DunMappingParams,
+    RotamericAADunbrackLibrary,
+    RotamericDataForAA,
+)  # noqa: F401
+from .elec import CountPairReps, GlobalParams, PartialCharges  # noqa: F401
+from .genbonded import GenBondedImproperEntry, GenBondedTorsionEntry  # noqa: F401
+from .hbond import (  # noqa: F401
+    AcceptorAtomType,
+    AcceptorTypeParam,
+    DonorAtomType,
+    DonorTypeParam,
+    HBondDatabaseRaw,
+    PairParameters,
+    PolynomialParameters,
+)  # noqa: F401
+from .ljlk import LJLKAtomTypeParameters, LJLKGlobalParameters  # noqa: F401
+from .na_torsion import NaTorsionGlobalParams, NaTorsionWells  # noqa: F401
+from .omega_bbdep import OmegaBBDepMappingParams, OmegaBBDepTables  # noqa: F401
+from .rama import RamaMappingParams, RamaTables  # noqa: F401
+
 import os
 import attr
 
-from .cartbonded import CartBondedDatabase
-from .genbonded import GenBondedDatabase
-from .disulfide import DisulfideDatabase
-from .na_torsion import NaTorsionDatabase
-from .dunbrack_libraries import DunbrackRotamerLibrary
-from .elec import ElecDatabase
-from .hbond import HBondDatabase
-from .ljlk import LJLKDatabase
-from .omega_bbdep import OmegaBBDepDatabase
-from .rama import RamaDatabase
-from .ref import RefDatabase
-
-_LAZY_ATTRS: dict[str, tuple[str, str]] = {
-    "LengthGroup": ("cartbonded", "LengthGroup"),
-    "AngleGroup": ("cartbonded", "AngleGroup"),
-    "TorsionGroup": ("cartbonded", "TorsionGroup"),
-    "ImproperGroup": ("cartbonded", "ImproperGroup"),
-    "HxlTorsionGroup": ("cartbonded", "HxlTorsionGroup"),
-    "CartRes": ("cartbonded", "CartRes"),
-    "DisulfideGlobalParameters": ("disulfide", "DisulfideGlobalParameters"),
-    "RotamericDataForAA": ("dunbrack_libraries", "RotamericDataForAA"),
-    "RotamericAADunbrackLibrary": ("dunbrack_libraries", "RotamericAADunbrackLibrary"),
-    "SemiRotamericAADunbrackLibrary": (
-        "dunbrack_libraries",
-        "SemiRotamericAADunbrackLibrary",
-    ),
-    "DunMappingParams": ("dunbrack_libraries", "DunMappingParams"),
-    "GlobalParams": ("elec", "GlobalParams"),
-    "CountPairReps": ("elec", "CountPairReps"),
-    "PartialCharges": ("elec", "PartialCharges"),
-    "GenBondedTorsionEntry": ("genbonded", "GenBondedTorsionEntry"),
-    "GenBondedImproperEntry": ("genbonded", "GenBondedImproperEntry"),
-    "DonorAtomType": ("hbond", "DonorAtomType"),
-    "AcceptorAtomType": ("hbond", "AcceptorAtomType"),
-    "DonorTypeParam": ("hbond", "DonorTypeParam"),
-    "AcceptorTypeParam": ("hbond", "AcceptorTypeParam"),
-    "PolynomialParameters": ("hbond", "PolynomialParameters"),
-    "PairParameters": ("hbond", "PairParameters"),
-    "HBondDatabaseRaw": ("hbond", "HBondDatabaseRaw"),
-    "LJLKGlobalParameters": ("ljlk", "LJLKGlobalParameters"),
-    "LJLKAtomTypeParameters": ("ljlk", "LJLKAtomTypeParameters"),
-    "NaTorsionGlobalParams": ("na_torsion", "NaTorsionGlobalParams"),
-    "NaTorsionWells": ("na_torsion", "NaTorsionWells"),
-    "OmegaBBDepMappingParams": ("omega_bbdep", "OmegaBBDepMappingParams"),
-    "OmegaBBDepTables": ("omega_bbdep", "OmegaBBDepTables"),
-    "RamaMappingParams": ("rama", "RamaMappingParams"),
-    "RamaTables": ("rama", "RamaTables"),
-    "CartBondedDatabase": ("cartbonded", "CartBondedDatabase"),
-    "DisulfideDatabase": ("disulfide", "DisulfideDatabase"),
-    "DunbrackRotamerLibrary": ("dunbrack_libraries", "DunbrackRotamerLibrary"),
-    "ElecDatabase": ("elec", "ElecDatabase"),
-    "HBondDatabase": ("hbond", "HBondDatabase"),
-    "LJLKDatabase": ("ljlk", "LJLKDatabase"),
-    "NaTorsionDatabase": ("na_torsion", "NaTorsionDatabase"),
-    "OmegaBBDepDatabase": ("omega_bbdep", "OmegaBBDepDatabase"),
-    "RamaDatabase": ("rama", "RamaDatabase"),
-}
-
-
-def __getattr__(name: str):
-    if name in _LAZY_ATTRS:
-        import importlib
-
-        mod_leaf, attr = _LAZY_ATTRS[name]
-        mod = importlib.import_module(f".{mod_leaf}", package=__name__)
-        # Re-cache every name from this module so that Python's import
-        # machinery (which sets globals()[mod_leaf] = MODULE as a side-effect)
-        # does not overwrite previously resolved function/class references.
-        for _n, (_m, _a) in _LAZY_ATTRS.items():
-            if _m == mod_leaf:
-                try:
-                    globals()[_n] = getattr(mod, _a)
-                except AttributeError:
-                    pass
-        return globals()[name]
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+from .cartbonded import CartBondedDatabase  # noqa: F401
+from .genbonded import GenBondedDatabase  # noqa: F401
+from .disulfide import DisulfideDatabase  # noqa: F401
+from .na_torsion import NaTorsionDatabase  # noqa: F401
+from .dunbrack_libraries import DunbrackRotamerLibrary  # noqa: F401
+from .elec import ElecDatabase  # noqa: F401
+from .hbond import HBondDatabase  # noqa: F401
+from .ljlk import LJLKDatabase  # noqa: F401
+from .omega_bbdep import OmegaBBDepDatabase  # noqa: F401
+from .rama import RamaDatabase  # noqa: F401
+from .ref import RefDatabase  # noqa: F401
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

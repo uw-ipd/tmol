@@ -329,7 +329,7 @@ def polymer_of(resname, atoms):
     return "rna" if ribose else "dna"
 
 
-def observations(codes, pdb_dir, max_b=None, verbose=False):
+def observations(codes, pdb_dir, max_b=None, verbose=False):  # noqa: C901
     """Collect per-nucleotide torsions from every structure in the list."""
     obs, n_struct, n_skipped = [], 0, 0
     for code in codes:
@@ -387,7 +387,7 @@ def circular_mean(values):
     return (median + offset) % 360.0
 
 
-def sugar_means(obs, bases):
+def sugar_means(obs, bases):  # noqa: C901
     """mean_sugar_torsion[base][pucker][slot]; only chi is base-dependent."""
     # bucket non-terminal observations by pucker
     by_pucker = defaultdict(lambda: [[] for _ in range(N_SUGAR)])
@@ -438,7 +438,7 @@ def sugar_means(obs, bases):
     return table, counts
 
 
-def backbone_means(obs):
+def backbone_means(obs):  # noqa: C901
     """mean_backbone_torsion[tor][bin]; tor 1-6, delta (4) unused."""
     table = numpy.zeros((7, 4))
     counts = numpy.zeros((7, 4), dtype=int)

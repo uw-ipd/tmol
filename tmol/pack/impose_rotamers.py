@@ -286,6 +286,6 @@ def impose_top_rotamer_assignments(
         pdb_info=new_pdb_info,
         constraint_set=orig_pose_stack.constraint_set,
         device=device,
-        fragmented_ligand_mapping=orig_pose_stack.fragmented_ligand_mapping,
+        split_block_mapping=orig_pose_stack.split_block_mapping,
     )
     return new_pose_stack

@@ -2,14 +2,13 @@ import numpy
 import pytest
 import torch
 
-from tmol.io import create_pose_stack_from_sequences
-from tmol.pose import (
-    EXTENDED_BACKBONE_TORSIONS,
+from tmol.io import (
+    create_pose_stack_from_sequences,
     extended_pose_stack_from_sequences,
-    get_named_torsions,
-    get_torsion_names,
-    set_named_torsions,
+    EXTENDED_BACKBONE_TORSIONS,
 )
+from tmol.pose import get_named_torsions, get_torsion_names
+from tmol.kinematics import set_named_torsions
 
 LIGAND_SMILES = "CCO"
 

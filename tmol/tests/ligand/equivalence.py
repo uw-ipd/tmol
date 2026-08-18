@@ -107,7 +107,7 @@ def _heavy_graph(
     return nodes, adj, labels
 
 
-def _heavy_atom_name_mapping(
+def _heavy_atom_name_mapping(  # noqa: C901
     generated_rt: Any,
     reference_rt: Any,
 ) -> dict[str, str] | None:

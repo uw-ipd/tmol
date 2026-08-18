@@ -1167,7 +1167,9 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
         )
 
 
-def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
+def test_score_lots_of_rotamers(
+    default_database, ubq_pdb, torch_device, dun_sampler
+):  # noqa: C901
     n_poses = 2
 
     p = no_termini_pose_stack_from_pdb(

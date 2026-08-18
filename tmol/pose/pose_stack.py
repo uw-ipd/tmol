@@ -9,7 +9,7 @@ from tmol.pose import PackedBlockTypes
 from tmol.pose import ConstraintSet
 
 if TYPE_CHECKING:
-    from tmol.ligand import FragmentedLigandPoseMapping
+    from tmol.pose.split_block_mapping import SplitBlockMapping
 
 
 @attr.s(auto_attribs=True)
@@ -109,7 +109,7 @@ class PoseStack:
     constraint_set: Optional[ConstraintSet]
 
     device: torch.device
-    fragmented_ligand_mapping: Optional["FragmentedLigandPoseMapping"] = None
+    split_block_mapping: Optional["SplitBlockMapping"] = None
 
     #################### INIT #####################
 
@@ -240,7 +240,7 @@ class PoseStack:
             pdb_info=self.pdb_info,
             constraint_set=new_constraint_set,
             device=self.device,
-            fragmented_ligand_mapping=self.fragmented_ligand_mapping,
+            split_block_mapping=self.split_block_mapping,
         )
 
     def split(self, index) -> "PoseStack":
@@ -279,10 +279,10 @@ class PoseStack:
                 else self.constraint_set.split(index)
             ),
             device=self.device,
-            fragmented_ligand_mapping=(
+            split_block_mapping=(
                 None
-                if self.fragmented_ligand_mapping is None
-                else self.fragmented_ligand_mapping.split(index)
+                if self.split_block_mapping is None
+                else self.split_block_mapping.split(index)
             ),
         )
 

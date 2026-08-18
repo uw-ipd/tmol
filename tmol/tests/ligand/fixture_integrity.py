@@ -53,7 +53,7 @@ def _element_of(sybyl_type: str) -> str:
     return sybyl_type.split(".", 1)[0]
 
 
-def read_mol2_summary(path: str | Path) -> Mol2Summary:
+def read_mol2_summary(path: str | Path) -> Mol2Summary:  # noqa: C901
     """Read structural counts and names from a single-molecule mol2 file.
 
     Args:
@@ -148,7 +148,7 @@ def _charge_model_failure(
     return None
 
 
-def require_paired_fixture(
+def require_paired_fixture(  # noqa: C901
     mol2_path: str | Path,
     reference: ReferenceParams | str | Path,
     *,

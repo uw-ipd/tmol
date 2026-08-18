@@ -307,7 +307,7 @@ class GenBondedDatabase:
 
         return best_entry
 
-    def find_improper_params(
+    def find_improper_params(  # noqa: C901
         self, center: str, n1: str, n2: str, n3: str
     ) -> Optional[GenBondedImproperEntry]:
         """Return the best-matching improper entry for (center, n1, n2, n3).

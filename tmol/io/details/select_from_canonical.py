@@ -395,7 +395,7 @@ def determine_chain_ending_status(
 
 
 @validate_args
-def select_best_block_type_candidate(
+def select_best_block_type_candidate(  # noqa: C901
     canonical_ordering: CanonicalOrdering,
     pbt: PackedBlockTypes,
     atom_is_present: Tensor[torch.bool][:, :, :],

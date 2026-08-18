@@ -128,7 +128,7 @@ def _write_rosetta_params_file(
     logger.info("Wrote params file for %s to %s", restype.name, path)
 
 
-def read_params_file(path: str | Path) -> RawResidueType:
+def read_params_file(path: str | Path) -> RawResidueType:  # noqa: C901
     """Read a Rosetta .params file into a RawResidueType.
 
     Parses ATOM, BOND, ICOOR_INTERNAL, and NBR_ATOM records. Other
@@ -270,7 +270,7 @@ def _radians_to_deg_str(val: float) -> str:
     return f"{math.degrees(val):.6f} deg"
 
 
-def _unstructure_residue(rt: RawResidueType) -> dict[str, Any]:
+def _unstructure_residue(rt: RawResidueType) -> dict[str, Any]:  # noqa: C901
     """Unstructure a RawResidueType to a YAML-friendly dict.
 
     Output matches the compact style Frank uses for ligand ``.tmol`` files:

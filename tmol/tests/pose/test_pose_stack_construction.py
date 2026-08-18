@@ -696,7 +696,9 @@ def interblock_dslf_pair_correction(ibb, res_bound_to_next, p, i, j):
         ibb[p, i, j + 1, 2, 0] = 5
 
 
-def test_from_block_type_names_smoke(fresh_default_packed_block_types, torch_device):
+def test_from_block_type_names_smoke(
+    fresh_default_packed_block_types, torch_device
+):  # noqa: C901
     pbt = fresh_default_packed_block_types
     n_poses, max_n_res, max_n_conn = 2, 8, 3
     sequences = [

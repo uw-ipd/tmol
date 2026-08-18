@@ -197,7 +197,7 @@ def _aromatic_atom_set(restype) -> set[str]:
     return aromatic_atoms
 
 
-def _source_subtype_from_atom_type(element: str, atom_type: str) -> str:
+def _source_subtype_from_atom_type(element: str, atom_type: str) -> str:  # noqa: C901
     """Best-effort source subtype hint for atom typing compatibility.
 
     The PLI reference `.tmol` files do not carry original mol2 subtype tags.

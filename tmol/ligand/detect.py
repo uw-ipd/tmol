@@ -643,7 +643,7 @@ def _is_polymer_linking_ccd_type(ccd_type: Optional[str]) -> bool:
     return "LINKING" in ccd_type or "SACCHARIDE" in ccd_type
 
 
-def _residue_names_with_cross_residue_bonds(
+def _residue_names_with_cross_residue_bonds(  # noqa: C901
     atom_array: struc.AtomArray,
     spatial_cutoff: float = 1.8,
 ) -> frozenset[str]:

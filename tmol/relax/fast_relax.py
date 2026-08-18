@@ -144,7 +144,7 @@ def _default_cart_min_fn(pose_stack, sfxn, *, fold_forest, move_map, verbose):
     )
 
 
-def fast_relax(
+def fast_relax(  # noqa: C901
     pose_stack: PoseStack,
     sfxn: ScoreFunction,
     packer_pallete: PackerPalette,

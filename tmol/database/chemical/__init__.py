@@ -21,7 +21,7 @@ def _parse_acceptor_hybridization(v, t):
 cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridization)
 
 
-def normalize_bond_tuples(raw):
+def normalize_bond_tuples(raw):  # noqa: C901
     """Normalize legacy 2-field bond entries to include bond order.
 
     Historically, some YAML snippets used ``[atom1, atom2]`` for bonds.

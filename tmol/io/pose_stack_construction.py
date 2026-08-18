@@ -12,7 +12,7 @@ from tmol.io import CanonicalOrdering
 
 
 @validate_args
-def pose_stack_from_canonical_form(
+def pose_stack_from_canonical_form(  # noqa: C901
     canonical_ordering: CanonicalOrdering,
     pbt: PackedBlockTypes,
     chain_id: Tensor[torch.int32][:, :],

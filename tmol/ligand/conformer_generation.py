@@ -202,7 +202,7 @@ def _mmff_bonds_angles(rd: Chem.Mol, props):
     return bonds, angles, ()
 
 
-def _fallback_bonds_angles(rd: Chem.Mol, elements):
+def _fallback_bonds_angles(rd: Chem.Mol, elements):  # noqa: C901
     """MMFF-free ideals: covalent-radius bonds, hybridization angles. Degree-5
     centers get explicit trigonal-bipyramidal constraints (most electronegative
     substituents axial, by apicophilicity) and are frozen during the cleanup min.
@@ -243,7 +243,7 @@ def _fallback_bonds_angles(rd: Chem.Mol, elements):
     return bonds, angles, tuple(sorted(frozen))
 
 
-def _planar_systems(rd: Chem.Mol, bonds):
+def _planar_systems(rd: Chem.Mol, bonds):  # noqa: C901
     """Fused planar atom sets: joined by an aromatic bond or a small (<=7) all-sp2
     ring. Returns (components, components extended with first-shell neighbors)."""
     n = rd.GetNumAtoms()

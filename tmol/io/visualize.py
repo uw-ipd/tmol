@@ -190,7 +190,7 @@ def _add_hover_labels(viewer) -> None:
     viewer.setHoverable({}, True, hover_in, hover_out)
 
 
-def view(
+def view(  # noqa: C901
     model: StructureInput,
     *,
     width: int = 720,

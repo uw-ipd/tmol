@@ -75,7 +75,7 @@ def print_header() -> None:
     _log_info("molecules. J Cheminform 11:14. doi:10.1186/s13321-019-0336-9.\n")
 
 
-def main(params: dict[str, Any] | None = None) -> list[str] | None:
+def main(params: dict[str, Any] | None = None) -> list[str] | None:  # noqa: C901
     """Entry point when the script is called from the command line.
 
     Args:
@@ -425,7 +425,7 @@ class LoadSMIFile:
         """Return the next SMILES record (Python 3 iterator protocol)."""
         return self.next()
 
-    def next(self) -> dict[str, Any]:
+    def next(self) -> dict[str, Any]:  # noqa: C901
         """Read and process the next line from the SMILES file.
 
         Converts the raw SMILES to a canonical, neutralised form with
@@ -515,7 +515,7 @@ class Protonate:
         """Return the next protonated SMILES (Python 3 iterator protocol)."""
         return self.next()
 
-    def next(self) -> str:
+    def next(self) -> str:  # noqa: C901
         """Return the next protonated SMILES string.
 
         Handles multi-site protonation by expanding combinations and
@@ -973,7 +973,7 @@ class TestFuncs:
     """Built-in self-tests for all 38 protonation groups."""
 
     @staticmethod
-    def test() -> None:
+    def test() -> None:  # noqa: C901
         """Run the full test suite for all ionisable groups."""
         # fmt: off
         smis = [
@@ -1290,7 +1290,7 @@ class TestFuncs:
         )
 
 
-def protonate_mol_variants(
+def protonate_mol_variants(  # noqa: C901
     mol: Chem.rdchem.Mol,
     min_ph: float = 6.4,
     max_ph: float = 8.4,

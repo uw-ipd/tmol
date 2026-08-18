@@ -386,7 +386,7 @@ def _icoor_at_is_inter_res(bt, icoor_at_name):
     return icoor_at_name not in bt.atom_to_idx
 
 
-def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
+def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):  # noqa: C901
     if hasattr(bt, "leaf_atom_icoor_ann"):
         return
 

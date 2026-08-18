@@ -45,7 +45,7 @@ def mark_polymeric_bonds_in_foldforest_edges(
 
 
 @numba.jit(nopython=True)
-def bfs_proper_forest(
+def bfs_proper_forest(  # noqa: C901
     roots: NDArray[numpy.int64][:, :],
     n_blocks: NDArray[numpy.int64][:],
     connections: NDArray[numpy.int64][:, :, :],
@@ -138,7 +138,7 @@ def ensure_jumps_numbered_and_distinct(
 
 
 @numba.jit(nopython=True)
-def validate_fold_forest_jit(
+def validate_fold_forest_jit(  # noqa: C901
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):

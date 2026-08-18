@@ -279,7 +279,7 @@ def _is_ring_planar(
     return min_eval <= threshold
 
 
-def _assign_missing_hybridization(
+def _assign_missing_hybridization(  # noqa: C901
     mol: Chem.Mol, hyb_by_idx: dict[int, int], atms_aro: set[int]
 ) -> None:
     """Port Rosetta assign_hybridization_if_missing for hyb==0 cases."""
@@ -378,7 +378,7 @@ def _assign_missing_hybridization(
         hyb_by_idx[idx] = HYB_SP2 if imp < 10.0 else HYB_SP3
 
 
-def _is_rosetta_aromatic_ring(
+def _is_rosetta_aromatic_ring(  # noqa: C901
     mol: Chem.Mol, ring: tuple[int, ...], hyb_by_idx: dict[int, int]
 ) -> bool:
     """Mirror Rosetta `classify_ring_type` aromatic eligibility."""
@@ -423,7 +423,7 @@ def _is_rosetta_aromatic_ring(
     return is_aro
 
 
-def _build_rosetta_typing_state(mol: Chem.Mol) -> RosettaTypingState:
+def _build_rosetta_typing_state(mol: Chem.Mol) -> RosettaTypingState:  # noqa: C901
     """Construct Rosetta-like typing state consumed by all classifiers."""
     from tmol.ligand.rdkit_mol import source_subtype
 
@@ -671,7 +671,7 @@ def _classify_H(
     return "HG"
 
 
-def _classify_C(
+def _classify_C(  # noqa: C901
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
     """Classify carbon atom type using Rosetta-like rules.
@@ -734,7 +734,7 @@ def _classify_C(
     return prefix
 
 
-def _classify_N_hetero(
+def _classify_N_hetero(  # noqa: C901
     atom: Chem.Atom,
     hyb: int,
     nC: int,
@@ -838,7 +838,7 @@ def _n_sp2_context_flags(
     return is_amide, is_guanidinium, nCaro
 
 
-def _classify_N_sp2(
+def _classify_N_sp2(  # noqa: C901
     atom: Chem.Atom, nC: int, nH: int, state: RosettaTypingState | None = None
 ) -> str:
     """Classify sp2 nitrogen connected only to C/H."""
@@ -875,7 +875,7 @@ def _classify_N_sp2(
     return "NG21" if nH == 1 else "NG22"
 
 
-def _classify_N(
+def _classify_N(  # noqa: C901
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
     """Classify nitrogen atom type using Rosetta-like rules.
@@ -935,7 +935,7 @@ def _classify_N(
     return "NG2"
 
 
-def _classify_O_no_carbon(
+def _classify_O_no_carbon(  # noqa: C901
     atom: Chem.Atom,
     hyb: int,
     nH: int,
@@ -968,7 +968,7 @@ def _classify_O_no_carbon(
     return "OG2"
 
 
-def _classify_O_sp2(
+def _classify_O_sp2(  # noqa: C901
     atom: Chem.Atom, nC: int, state: RosettaTypingState | None = None
 ) -> str:
     """Classify sp2 oxygen bonded to at least one carbon."""
@@ -1008,7 +1008,7 @@ def _classify_O_sp2(
     return "OG2"
 
 
-def _classify_O(
+def _classify_O(  # noqa: C901
     atom: Chem.Atom, mol: Chem.Mol, state: RosettaTypingState | None = None
 ) -> str:
     """Classify oxygen atom type using Rosetta-like rules.

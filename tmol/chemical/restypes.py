@@ -420,7 +420,7 @@ class RefinedResidueType(RawResidueType):
     atom_paths_from_conn: numpy.ndarray = attr.ib()
 
     @atom_paths_from_conn.default
-    def _setup_atom_paths_from_conn(self):
+    def _setup_atom_paths_from_conn(self):  # noqa: C901
         n_conns = len(self.connections)
 
         atom_paths = numpy.full(

@@ -75,7 +75,7 @@ def _is_hydrogen(name: str) -> bool:
     return str(name).startswith("H")
 
 
-def parse_reference_params(path: str | Path) -> ReferenceParams:
+def parse_reference_params(path: str | Path) -> ReferenceParams:  # noqa: C901
     """Parse a Rosetta ``.params`` file into a :class:`ReferenceParams`.
 
     Args:

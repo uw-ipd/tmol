@@ -18,7 +18,7 @@ from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.utility import get_all_residue_positions
 from tmol.utility import resolve_device
 
-from tmol import beta2016_score_function
+from tmol.score import beta2016_score_function
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +119,7 @@ def build_context_from_biotite(
 
 
 @validate_args
-def pose_stack_from_biotite(
+def pose_stack_from_biotite(  # noqa: C901
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     torch_device: torch.device,
     param_db: ParameterDatabase | None = None,
@@ -186,7 +186,7 @@ def pose_stack_from_biotite(
         ``(PoseStack, PoseBuildContext)`` when return_context is True.
         ``(PoseStack, dict)`` when optional return values were requested via kwargs.
         Fragmented poses expose their block mapping as
-        ``pose_stack.fragmented_ligand_mapping``.
+        ``pose_stack.split_block_mapping``.
     """
     torch_device = resolve_device(torch_device)
 
@@ -257,7 +257,7 @@ def pose_stack_from_biotite(
         from tmol.ligand import apply_fragment_connections
 
         pose_stack = apply_fragment_connections(pose_stack, fragment_mapping)
-        fragment_mapping = pose_stack.fragmented_ligand_mapping
+        fragment_mapping = pose_stack.split_block_mapping
     block_has_missing_atoms = opt_return_vals["block_has_missing_atoms"]
 
     if block_has_missing_atoms is not None and torch.any(block_has_missing_atoms):
@@ -287,7 +287,7 @@ def pose_stack_from_biotite(
         )
 
     if fragment_mapping is not None:
-        pose_stack.fragmented_ligand_mapping = fragment_mapping
+        pose_stack.split_block_mapping = fragment_mapping
     _assert_no_nan_coords(pose_stack)
 
     # This code tries to faithfully return what the caller expects based on the optional
@@ -435,11 +435,11 @@ def biotite_from_pose_stack(
         co = canonical_ordering_for_biotite()
     cf = canonical_form_from_pose_stack(co, pose_stack)
     structure = biotite_from_canonical_form(cf, co=co)
-    mapping = getattr(pose_stack, "fragmented_ligand_mapping", None)
-    if merge_fragments and mapping is not None:
+    sbm = getattr(pose_stack, "split_block_mapping", None)
+    if merge_fragments and sbm is not None and sbm.entries:
         from tmol.ligand import recombine_fragmented_ligands
 
-        structure = recombine_fragmented_ligands(structure, mapping)
+        structure = recombine_fragmented_ligands(structure, pose_stack)
     return structure
 
 
@@ -477,7 +477,7 @@ def _res_names_for_structure(
     return biotite_structure.res_name
 
 
-def _filter_supported_atoms_and_connectivity(
+def _filter_supported_atoms_and_connectivity(  # noqa: C901
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     co: CanonicalOrdering,
 ):
@@ -972,7 +972,7 @@ def get_element_from_atom_name(atom_name: str) -> str:
 
 
 @validate_args
-def biotite_from_canonical_form(
+def biotite_from_canonical_form(  # noqa: C901
     cf: CanonicalForm,
     co: CanonicalOrdering | None = None,
 ) -> biotite.structure.AtomArray | biotite.structure.AtomArrayStack:

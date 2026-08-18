@@ -81,7 +81,9 @@ class AtomTypeDependentTerm(EnergyTerm):
         setattr(block_type, "atom_wildcard_ids", wildcard_ids)
         setattr(block_type, "atom_cross_ids", cross_ids)
 
-    def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+    def setup_packed_block_types(
+        self, packed_block_types: PackedBlockTypes
+    ):  # noqa: C901
         super(AtomTypeDependentTerm, self).setup_packed_block_types(packed_block_types)
 
         if hasattr(packed_block_types, "atom_types"):
