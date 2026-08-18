@@ -1,4 +1,4 @@
-from .geom import (  # noqa: F401
+from ._geom import (  # noqa: F401
     cos_interior_angle_V,
     cos_interior_angle_V_dV,
     dihedral_angle_V,

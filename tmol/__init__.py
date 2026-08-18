@@ -11,7 +11,7 @@ def include_paths():
     """C++/CUDA include paths for tmol components.
 
     Defined before other imports because JIT extension loading
-    (tmol.utility.cpp_extension) imports this during module init.
+    (tmol.utility._cpp_extension) imports this during module init.
     """
 
     import os.path

@@ -12,7 +12,11 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from types import SimpleNamespace
 
-from tmol.ligand import params_file, params_io, prepare_single_ligand
+from tmol.ligand import (
+    _params_file as params_file,
+    _params_io as params_io,
+    prepare_single_ligand,
+)
 from tmol.ligand import nonstandard_residue_info_from_smiles_via_mol2
 from tmol.tests.ligand import (
     StrictComparison,
@@ -120,7 +124,7 @@ def reference_view_from_params(ref) -> SimpleNamespace:
     """Build a ``LigandPreparation``-like view from a parsed ``.params``.
 
     Suitable as the *reference* argument to
-    :func:`tmol.tests.ligand.equivalence.compare_ligand_preparations`: it exposes
+    :func:`tmol.tests.ligand._equivalence.compare_ligand_preparations`: it exposes
     ``residue_type.atoms`` / ``residue_type.bonds``, ``partial_charges``, and an
     empty ``cartbonded_params`` (cartbonded is skipped for the semantic check).
     """

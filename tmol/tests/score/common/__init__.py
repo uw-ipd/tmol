@@ -1,4 +1,4 @@
-from .uaid_util import resolve_uaids  # noqa: F401
+from ._uaid_util import resolve_uaids  # noqa: F401
 from .test_energy_term import (  # noqa: F401 - shared test utilities
     DummyEnergyTerm,
     EnergyTermBaseTester,

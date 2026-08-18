@@ -2,7 +2,7 @@ import cattr
 import numpy
 import torch
 
-import tmol.pack.rotamer.dunbrack.compiled  # noqa F401
+import tmol.pack.rotamer.dunbrack._compiled  # noqa F401
 from tmol.chemical import RefinedResidueType, ResidueTypeSet
 from tmol.io import pose_stack_from_pdb
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask

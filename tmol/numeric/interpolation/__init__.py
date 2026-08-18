@@ -1,4 +1,4 @@
-from .cubic_hermite_polynomial import (  # noqa: F401
+from ._cubic_hermite_polynomial import (  # noqa: F401
     interpolate,
     interpolate_dt,
     interpolate_dx,

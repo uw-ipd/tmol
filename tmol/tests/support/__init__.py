@@ -1,4 +1,4 @@
-from .rosetta import (  # noqa: F401
+from ._rosetta import (  # noqa: F401
     pyrosetta,
     pyrosetta_available,
     requires_pyrosetta,

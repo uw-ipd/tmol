@@ -1,4 +1,4 @@
-from .compiled_ops import (  # noqa: F401
+from ._compiled_ops import (  # noqa: F401
     forward_kin_op,
     forward_only_op,
     get_kfo_indices_for_atoms,

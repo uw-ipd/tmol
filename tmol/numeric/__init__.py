@@ -1,2 +1,2 @@
-from .bspline import BSplineInterpolation  # noqa: F401
-from .dihedrals import Angles, Coord64Array, coord_dihedrals  # noqa: F401
+from ._bspline import BSplineInterpolation  # noqa: F401
+from ._dihedrals import Angles, Coord64Array, coord_dihedrals  # noqa: F401

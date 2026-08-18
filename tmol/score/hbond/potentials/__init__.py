@@ -1,4 +1,4 @@
-from .compiled import (  # noqa: F401
+from ._compiled import (  # noqa: F401
     gen_hbond_bases,
     hbond_pose_scores,
     hbond_rotamer_scores,

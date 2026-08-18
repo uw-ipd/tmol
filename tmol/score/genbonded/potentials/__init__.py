@@ -1,1 +1,1 @@
-from .compiled import genbonded_pose_scores, genbonded_rotamer_scores  # noqa: F401
+from ._compiled import genbonded_pose_scores, genbonded_rotamer_scores  # noqa: F401

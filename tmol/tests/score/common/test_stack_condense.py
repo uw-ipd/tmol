@@ -2,7 +2,7 @@ import pytest
 import torch
 import numpy
 
-import tmol.score.common.stack_condense as sc
+import tmol.score.common._stack_condense as sc
 
 
 def test_condense_numpy_inds():

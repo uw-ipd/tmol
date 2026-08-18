@@ -1,6 +1,6 @@
 """Direct coverage of the Rosetta atom-type classifier across diverse chemistry.
 
-:func:`tmol.ligand.atom_typing.assign_tmol_atom_types` is the self-contained
+:func:`tmol.ligand._atom_typing.assign_tmol_atom_types` is the self-contained
 typing entry point used by the ligand pipeline. It prepares the molecule,
 builds the Rosetta typing state, and routes every atom through the element
 classifiers plus the polar-carbon, amide, ring-nitrogen and conjugated-bond

@@ -29,7 +29,7 @@ real = (
 @pytest.fixture(scope="session")
 def cubic_hermite_polynomial():
     """Compile within fixture to prevent hypothesis runtime warnings."""
-    import tmol.score.common.cubic_hermite_polynomial as cubic_hermite_polynomial
+    import tmol.score.common._cubic_hermite_polynomial as cubic_hermite_polynomial
 
     return cubic_hermite_polynomial
 

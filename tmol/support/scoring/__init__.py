@@ -1,11 +1,11 @@
-from .hbond_param_import import (  # noqa: F401
+from ._hbond_param_import import (  # noqa: F401
     RawParams,
     RosettaHBParams,
     attrs_for_dtypes,
     basetype_for_dtype,
     table_schema,
 )  # noqa: F401
-from .na_torsion_param_import import (  # noqa: F401
+from ._na_torsion_param_import import (  # noqa: F401
     BASE1,
     BASE_ORDER,
     BIN_BLEND_SDEV,
@@ -59,10 +59,10 @@ from .na_torsion_param_import import (  # noqa: F401
     validate,
     well_tables,
 )  # noqa: F401
-from .rewrite_dunbrack_binary import (  # noqa: F401
+from ._rewrite_dunbrack_binary import (  # noqa: F401
     rotamer_aliases,
     strip_comments,
     create_dunbrack_rotamer_library,
 )  # noqa: F401
-from .rewrite_omega_bbdep_binary import create_omega_db, parse_all_tables  # noqa: F401
-from .rewrite_rama_binary import create_rama_database, parse_paa  # noqa: F401
+from ._rewrite_omega_bbdep_binary import create_omega_db, parse_all_tables  # noqa: F401
+from ._rewrite_rama_binary import create_rama_database, parse_paa  # noqa: F401

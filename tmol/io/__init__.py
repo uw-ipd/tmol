@@ -4,16 +4,16 @@ from typing import Optional, Union
 from tmol.types import validate_args
 from tmol.types import Tensor
 from tmol.pose import PoseStack
-from tmol.io.visualize import (
+from tmol.io._visualize import (
     pose_stack_to_pdb_string,
     selection_gallery,
     switchable_view,
     view,
 )
 
-from .build_context import PoseBuildContext  # noqa: F401
-from .canonical_form import CanonicalForm  # noqa: F401
-from .canonical_ordering import (  # noqa: F401
+from ._build_context import PoseBuildContext  # noqa: F401
+from ._canonical_form import CanonicalForm  # noqa: F401
+from ._canonical_ordering import (  # noqa: F401
     ordered_set,
     CysSpecialCaseIndices,
     HisSpecialCaseIndices,
@@ -24,18 +24,18 @@ from .canonical_ordering import (  # noqa: F401
     select_atom_records_res_subset,
     canonical_form_from_atom_records,
 )
-from .chain_deduction import (  # noqa: F401
+from ._chain_deduction import (  # noqa: F401
     chain_inds_for_pose_stack,
     annotate_pbt_w_valid_connection_masks,
 )  # noqa: F401
-from .create_pose_stack_from_sequences import (  # noqa: F401
+from ._create_pose_stack_from_sequences import (  # noqa: F401
     create_pose_stack_from_sequences,
     extended_pose_stack_from_sequences,
     EXTENDED_BACKBONE_TORSIONS,
 )
-from .extern import fetch_pdb  # noqa: F401
-from .generic import to_cdjson, pack_cdjson  # noqa: F401
-from .pdb_parsing import (  # noqa: F401
+from ._extern import fetch_pdb  # noqa: F401
+from ._generic import to_cdjson, pack_cdjson  # noqa: F401
+from ._pdb_parsing import (  # noqa: F401
     atom_record_dtype,
     parse_pdb,
     parse_atom_lines,
@@ -44,12 +44,12 @@ from .pdb_parsing import (  # noqa: F401
     to_pdb_lines,
     to_atom_lines,
 )
-from .pose_stack_construction import pose_stack_from_canonical_form  # noqa: F401
-from .pose_stack_deconstruction import (  # noqa: F401
+from ._pose_stack_construction import pose_stack_from_canonical_form  # noqa: F401
+from ._pose_stack_deconstruction import (  # noqa: F401
     canonical_form_from_pose_stack,
     determine_res_not_connected_from_pose_stack,
 )
-from .pose_stack_from_atomworks import (  # noqa: F401
+from ._pose_stack_from_atomworks import (  # noqa: F401
     ATOMWORKS_NAME3S,
     ATOMWORKS_ATOM37_NAMES,
     pose_stack_from_atomworks,
@@ -61,7 +61,7 @@ from .pose_stack_from_atomworks import (  # noqa: F401
     _ATOMWORKS_MIN_PROTEIN_IDX,
     _paramdb_for_atomworks,
 )
-from .pose_stack_from_biotite import (  # noqa: F401
+from ._pose_stack_from_biotite import (  # noqa: F401
     build_context_from_biotite,
     pose_stack_from_biotite,
     biotite_from_pose_stack,
@@ -71,21 +71,21 @@ from .pose_stack_from_biotite import (  # noqa: F401
     get_element_from_atom_name,
     biotite_from_canonical_form,
 )
-from .pose_stack_from_openfold import (  # noqa: F401
+from ._pose_stack_from_openfold import (  # noqa: F401
     pose_stack_from_openfold,
     canonical_form_from_openfold,
     canonical_ordering_for_openfold,
     packed_block_types_for_openfold,
     _paramdb_for_openfold,
 )
-from .pose_stack_from_rosettafold2 import (  # noqa: F401
+from ._pose_stack_from_rosettafold2 import (  # noqa: F401
     pose_stack_from_rosettafold2,
     canonical_form_from_rosettafold2,
     canonical_ordering_for_rosettafold2,
     packed_block_types_for_rosettafold2,
     _paramdb_for_rosettafold2,
 )
-from .write_pose_stack_pdb import (  # noqa: F401
+from ._write_pose_stack_pdb import (  # noqa: F401
     write_pose_stack_pdb,
     atom_records_from_pose_stack,
     atom_records_from_coords,

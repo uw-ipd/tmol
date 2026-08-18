@@ -172,7 +172,7 @@ class TestStructureToSmiles:
         return arr
 
     def test_mol_to_smiles_returns_none_on_failure(self, monkeypatch) -> None:
-        import tmol.ligand.structure_to_smiles as mod
+        import tmol.ligand._structure_to_smiles as mod
 
         def _boom(*a, **k):
             raise RuntimeError("boom")
@@ -181,7 +181,7 @@ class TestStructureToSmiles:
         assert mod._mol_to_smiles(Chem.MolFromSmiles("CCO")) is None
 
     def test_smiles_from_atom_array_raises_when_no_smiles(self, monkeypatch) -> None:
-        import tmol.ligand.structure_to_smiles as mod
+        import tmol.ligand._structure_to_smiles as mod
 
         # Bonds are present, but SMILES generation yields nothing.
         monkeypatch.setattr(mod, "_mol_to_smiles", lambda *a, **k: None)

@@ -6,7 +6,7 @@ import torch
 import attr
 
 from tmol.types import TensorGroup
-import tmol.types.tensor as tensor
+import tmol.types._tensor as tensor
 from tmol.types import NDArray
 from tmol.types import Tensor, like_kwargs
 

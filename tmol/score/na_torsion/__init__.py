@@ -1,4 +1,4 @@
-from .params import (  # noqa: F401
+from ._params import (  # noqa: F401
     BACKBONE_TORSIONS,
     BASES,
     BASE_FOR_NAME3,
@@ -23,13 +23,13 @@ from .params import (  # noqa: F401
     polymer_index,
     sugar_ring_atoms,
 )  # noqa: F401
-from .na_torsion_energy_term import (  # noqa: F401
+from ._na_torsion_energy_term import (  # noqa: F401
     NaTorsionEnergyTerm,
     SUGAR_SLOTS,
     eval_na_torsion_for_pose,
     na_torsion_subterms,
 )  # noqa: F401
-from .potentials import (  # noqa: F401
+from ._potentials import (  # noqa: F401
     RAD,
     bi_bii_weight,
     blended_devsq,

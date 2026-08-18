@@ -1,4 +1,4 @@
-from .atom_typing import (  # noqa: F401
+from ._atom_typing import (  # noqa: F401
     AtomTypeAssignment,
     ELEMENT_SYMBOLS,
     HYB_AMIDE,
@@ -19,6 +19,7 @@ from .atom_typing import (  # noqa: F401
     _classify_P,
     _classify_S,
     _correct_amide_bond_orders,
+    _correct_conjugated_single_bond_orders,
     _correct_ring_nitrogen,
     _get_hyb,
     _has_sp2_oxygen_neighbor,
@@ -29,13 +30,13 @@ from .atom_typing import (  # noqa: F401
     sanitize_tolerant,
     should_kekulize_for_typing,
 )  # noqa: F401
-from .chemistry_tables import (  # noqa: F401
+from ._chemistry_tables import (  # noqa: F401
     get_hbond_properties,
     get_polar_classes,
     get_sp2_atom_types,
 )  # noqa: F401
-from .chi_topology import MAX_CONFS, build_chi_topology  # noqa: F401
-from .conformer_generation import (  # noqa: F401
+from ._chi_topology import MAX_CONFS, build_chi_topology  # noqa: F401
+from ._conformer_generation import (  # noqa: F401
     CHIRAL_MARGIN,
     N_RESTART,
     REFINE_ITERS,
@@ -48,7 +49,7 @@ from .conformer_generation import (  # noqa: F401
     W_PLANE,
     generate_conformer,
 )  # noqa: F401
-from .detect import (  # noqa: F401
+from ._detect import (  # noqa: F401
     NonStandardResidueInfo,
     SKIP_RESIDUES,
     _METAL_SYMBOLS,
@@ -60,13 +61,15 @@ from .detect import (  # noqa: F401
     _normalize_radical_oxygens,
     _rdkit_bond_to_biotite_type,
     _strip_metals,
+    _residue_names_with_cross_residue_bonds,
+    _source_subtype_from_mol2_atom_type,
     detect_nonstandard_residues,
     get_chem_comp_type,
     nonstandard_residue_info_from_mol2,
     nonstandard_residue_info_from_mol2_block,
     nonstandard_residue_info_from_smiles_via_mol2,
 )  # noqa: F401
-from .dimorphite_dl import (  # noqa: F401
+from ._dimorphite_dl import (  # noqa: F401
     ArgParseFuncs,
     LoadSMIFile,
     MyParser,
@@ -79,7 +82,7 @@ from .dimorphite_dl import (  # noqa: F401
     print_header,
     protonate_mol_variants,
 )  # noqa: F401
-from .fragmentation import (  # noqa: F401
+from ._fragmentation import (  # noqa: F401
     FRAGMENT_ID_ANNOTATION,
     FragmentConnection,
     FragmentedLigandPoseMapping,
@@ -96,17 +99,17 @@ from .fragmentation import (  # noqa: F401
     recombine_fragmented_ligands,
     unsplit_pose_stack,
 )  # noqa: F401
-from .generated_geometry import (  # noqa: F401
+from ._generated_geometry import (  # noqa: F401
     correct_generated_geometry,
     logger,
     planarize_conjugated_nh2,
 )  # noqa: F401
-from .mol2_names import (  # noqa: F401
+from ._mol2_names import (  # noqa: F401
     apply_disambiguated_mol2_names,
     disambiguate_mol2_atom_name,
 )  # noqa: F401
-from .mol3d import authoritative_charges_by_index  # noqa: F401
-from .openbabel_compat import (  # noqa: F401
+from ._mol3d import authoritative_charges_by_index  # noqa: F401
+from ._openbabel_compat import (  # noqa: F401
     OpenBabelUnavailableError,
     _import_openbabel,
     _obmol_to_rdkit_mol,
@@ -117,20 +120,23 @@ from .openbabel_compat import (  # noqa: F401
     obabel_smiles_to_mol2_block,
     strip_nontetrahedral_stereo,
 )  # noqa: F401
-from .params_file import (  # noqa: F401
+from ._params_file import (  # noqa: F401
     TMOL_FORMAT_VERSION,
+    inject_params_file,
     inject_params_files,
     load_params_file,
 )  # noqa: F401
-from .params_io import (  # noqa: F401
+from ._params_io import (  # noqa: F401
     _BOND_TOK_TO_TYPE,
     read_params_file,
     write_params_file,
+    write_params_from_mol2,
 )  # noqa: F401
-from .preparation import (  # noqa: F401
+from ._preparation import (  # noqa: F401
     LigandPreparationError,
     _ligand_info_from_cif,
     _prepare_ligand_via_smiles,
+    _residue_covers_cif_heavy_atoms,
     prepare_ligand_from_cif,
     prepare_ligand_from_mol2,
     prepare_ligand_from_smiles,
@@ -139,17 +145,19 @@ from .preparation import (  # noqa: F401
     prepare_single_ligand,
     unused_ligand_name,
 )  # noqa: F401
-from .rdkit_mol import (  # noqa: F401
+from ._rdkit_mol import (  # noqa: F401
     ligand_atom_array_to_rdkit_mol,
     normalize_cumulated_azide,
     source_carried_kekule,
     source_has_aromatic_annotations,
     source_subtype,
 )  # noqa: F401
-from .registry import (  # noqa: F401
+from ._registry import (  # noqa: F401
+    LigandPreparation,
     _build_cartbonded_params,
     collect_new_atom_types,
     inject_ligand_preparations,
     rebuild_canonical_ordering,
 )  # noqa: F401
-from .residue_builder import build_residue_type  # noqa: F401
+from ._residue_builder import build_residue_type  # noqa: F401
+from ._structure_to_smiles import ligand_smiles_from_atom_array  # noqa: F401

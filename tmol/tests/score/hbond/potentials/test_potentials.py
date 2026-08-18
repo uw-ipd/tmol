@@ -44,7 +44,7 @@ def _pair_params(acceptor_hybridization, donor_weight, acceptor_weight):
 @pytest.fixture
 def compiled(scope="session"):
     """Move compilation to test fixture to report compilation errors as test failure."""
-    import tmol.tests.score.hbond.potentials.compiled as compiled
+    import tmol.tests.score.hbond.potentials._compiled as compiled
 
     return compiled
 

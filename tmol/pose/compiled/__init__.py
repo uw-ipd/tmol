@@ -1,1 +1,1 @@
-from .apsp_ops import stacked_apsp  # noqa: F401
+from ._apsp_ops import stacked_apsp  # noqa: F401

@@ -1,4 +1,4 @@
-from .params import (  # noqa: F401
+from ._params import (  # noqa: F401
     DunbrackParamResolver,
     DunbrackParams,
     DunbrackScratch,
@@ -6,4 +6,4 @@ from .params import (  # noqa: F401
     ScoringDunbrackDatabaseAux,
     ScoringDunbrackDatabaseView,
 )  # noqa: F401
-from .dunbrack_energy_term import DunbrackBlockAttrs, DunbrackEnergyTerm  # noqa: F401
+from ._dunbrack_energy_term import DunbrackBlockAttrs, DunbrackEnergyTerm  # noqa: F401

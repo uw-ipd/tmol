@@ -554,7 +554,7 @@ def test_ligand_atom_array_allows_passthrough_unknown_bond_type(monkeypatch) -> 
             return len(self.element)
 
     monkeypatch.setattr(
-        "tmol.ligand.rdkit_mol.to_mol",
+        "tmol.ligand._rdkit_mol.to_mol",
         lambda _aa: Chem.MolFromSmiles("CCC"),
     )
     ligand_info = SimpleNamespace(res_name="LG1", atom_array=_FakeAtomArray())

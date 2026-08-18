@@ -1,6 +1,6 @@
-from .all_bonds import bonds_and_bond_ranges  # noqa: F401
-from .constants import MAX_PATHS_FROM_CONNECTION, MAX_SIG_BOND_SEPARATION  # noqa: F401
-from .ideal_coords import (  # noqa: F401
+from ._all_bonds import bonds_and_bond_ranges  # noqa: F401
+from ._constants import MAX_PATHS_FROM_CONNECTION, MAX_SIG_BOND_SEPARATION  # noqa: F401
+from ._ideal_coords import (  # noqa: F401
     build_coords_from_icoors,
     build_ideal_coords,
     eye4,
@@ -10,7 +10,7 @@ from .ideal_coords import (  # noqa: F401
     rot_z,
     trans_z,
 )  # noqa: F401
-from .restypes import (  # noqa: F401
+from ._restypes import (  # noqa: F401
     AtomIndex,
     BOND_TYPE_FROM_STR,
     BondCount,

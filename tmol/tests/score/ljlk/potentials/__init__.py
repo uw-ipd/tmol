@@ -1,4 +1,4 @@
-from .compiled import (  # noqa: F401
+from ._compiled import (  # noqa: F401
     LJScore,
     LKScore,
     f_desolv_V,

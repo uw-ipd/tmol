@@ -14,7 +14,7 @@ from tmol.tests.ligand._parity_helpers import (
     roundtrip_overlapping_fields,
     write_both_formats,
 )
-from tmol.ligand import params_file
+from tmol.ligand import _params_file as params_file
 from tmol.tests.ligand import (
     compare_params_strict,
     generated_fields_from_preparation,

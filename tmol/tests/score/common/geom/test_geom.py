@@ -13,7 +13,7 @@ from tmol.tests import gradcheck, VectorizedOp
 
 @pytest.fixture(scope="session")
 def geom():
-    import tmol.tests.score.common.geom.geom as geom
+    import tmol.tests.score.common.geom._geom as geom
 
     return geom
 

@@ -10,17 +10,17 @@ from tmol.utility import resolve_device
 from typing import Optional, TYPE_CHECKING
 
 # Import in topological order: dependencies before dependents.
-from .score_types import ScoreType  # noqa: F401
-from .bonded_atom import IndexedBonds  # noqa: F401
-from .chemical_database import (  # noqa: F401
+from ._score_types import ScoreType  # noqa: F401
+from ._bonded_atom import IndexedBonds  # noqa: F401
+from ._chemical_database import (  # noqa: F401
     AcceptorHybridization,
     AtomTypeParamResolver,
     AtomTypeParams,
 )  # noqa: F401
-from .energy_term import EnergyTerm  # noqa: F401
-from .atom_type_dependent_term import AtomTypeDependentTerm  # noqa: F401
-from .bond_dependent_term import BondDependentTerm  # noqa: F401
-from .score_utils import (  # noqa: F401
+from ._energy_term import EnergyTerm  # noqa: F401
+from ._atom_type_dependent_term import AtomTypeDependentTerm  # noqa: F401
+from ._bond_dependent_term import BondDependentTerm  # noqa: F401
+from ._score_utils import (  # noqa: F401
     FragmentInteractionScores,
     build_sidechain_coord_mask,
     build_coord_mask_for_mask_and_nearby_blocks,
@@ -32,7 +32,7 @@ from .score_utils import (  # noqa: F401
     res_mask_to_coord_mask,
     residue_mask_from_chain,
 )
-from .score_function import (  # noqa: F401
+from ._score_function import (  # noqa: F401
     BlockPairScoringModule,
     RotamerScoringModule,
     SFXN_FORMAT_VERSION,

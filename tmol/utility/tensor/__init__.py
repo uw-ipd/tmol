@@ -1,4 +1,4 @@
-from .common_operations import (  # noqa: F401
+from ._common_operations import (  # noqa: F401
     cat_differently_sized_tensors,
     exclusive_cumsum1d,
     exclusive_cumsum2d,

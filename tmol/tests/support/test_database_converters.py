@@ -3,11 +3,11 @@ import yaml
 import numpy
 import torch
 
-from .rosetta import requires_rosetta_database
+from ._rosetta import requires_rosetta_database
 
 from tmol.support.scoring import RosettaHBParams
-import tmol.support.scoring.rewrite_rama_binary as rewrite_rama_binary
-import tmol.support.scoring.rewrite_omega_bbdep_binary as rewrite_omega_bbdep_binary
+import tmol.support.scoring._rewrite_rama_binary as rewrite_rama_binary
+import tmol.support.scoring._rewrite_omega_bbdep_binary as rewrite_omega_bbdep_binary
 from tmol.support.scoring import create_dunbrack_rotamer_library
 
 

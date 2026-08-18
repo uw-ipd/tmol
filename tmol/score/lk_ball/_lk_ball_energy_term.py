@@ -1,0 +1,369 @@
+import numpy
+import torch
+
+from ._params import LKBallBlockTypeParams, LKBallPackedBlockTypesParams
+
+from .._atom_type_dependent_term import AtomTypeDependentTerm
+from ..hbond._hbond_dependent_term import HBondDependentTerm
+from ..ljlk._params import LJLKGlobalParams, LJLKParamResolver
+from tmol.database import ParameterDatabase
+
+from tmol.chemical import RefinedResidueType
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
+from tmol.score.common import arg_tile_subset_indices
+from tmol.score.common import convert_float64
+
+
+class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
+    tile_size: int = HBondDependentTerm.tile_size
+    ljlk_global_params: LJLKGlobalParams
+    ljlk_param_resolver: LJLKParamResolver
+
+    def __init__(self, param_db: ParameterDatabase, device: torch.device):
+        super(LKBallEnergyTerm, self).__init__(param_db=param_db, device=device)
+
+        self.ljlk_param_resolver = LJLKParamResolver.from_database(
+            param_db.chemical, param_db.scoring.ljlk, device=device
+        )
+        self.tile_size = LKBallEnergyTerm.tile_size
+
+        # Precompute the stacked lk-ball global-parameter tensors
+        # These depend only on static values from ljlk_param_resolver globals,
+        #   so they can be built once rather than on every forward
+        gp = self.ljlk_param_resolver.global_params
+        self._lk_ball_global_params = torch.stack(
+            tuple(
+                t.to(torch.float)
+                for t in (
+                    gp.lj_hbond_dis,
+                    gp.lj_hbond_OH_donor_dis,
+                    gp.lj_hbond_hdis,
+                    gp.lkb_water_dist,
+                    gp.max_dis,
+                )
+            ),
+            dim=1,
+        )
+        self._lk_ball_water_gen_global_params = torch.stack(
+            tuple(
+                t.to(torch.float)
+                for t in (
+                    gp.lkb_water_dist,
+                    gp.lkb_water_angle_sp2,
+                    gp.lkb_water_angle_sp3,
+                    gp.lkb_water_angle_ring,
+                )
+            ),
+            dim=1,
+        )
+
+    @classmethod
+    def class_name(cls):
+        return "LKBall"
+
+    @classmethod
+    def score_types(cls):
+        import tmol.score.terms._lk_ball_creator
+
+        return tmol.score.terms._lk_ball_creator.LKBallTermCreator.score_types()
+
+    def n_bodies(self):
+        return 2
+
+    def setup_block_type(self, block_type: RefinedResidueType):
+        super(LKBallEnergyTerm, self).setup_block_type(block_type)
+        if hasattr(block_type, "lk_ball_params"):
+            return
+
+        # we are going to order the data needed for score evaluation around the
+        # idea that, first, we will bin all the atoms into groups of "tile_size"
+        # and examine tile_size atoms from one residue against tile_size atoms
+        # of another residue.
+        # within each tile, the data is further structured as follows:
+        # polar atoms -- i.e. those with attached waters -- are going to be listed
+        # first and all remaining heavy atoms will be listed second.
+        # Each tile will list the number of polar atoms (heavy atoms with waters
+        # attached) and the number of "occluder" atoms (heavy atoms with waters
+        # attached and heavy atoms without waters attached) and then
+        # the tile indices of those atoms (in a single array with the first
+        # n_polar atoms representing the heavy atoms with attached waters).
+        # The lk-ball properties needed to evaluate the energy will be stored
+        # also in polars-before-non-polars order.
+
+        hbbt_params = block_type.hbbt_params
+        n_tiles = hbbt_params.tile_donH_inds.shape[0]
+
+        atom_is_polar = numpy.full((block_type.n_atoms,), False, dtype=bool)
+        atom_is_polar[hbbt_params.don_hvy_inds] = True
+        atom_is_polar[hbbt_params.acc_inds] = True
+        polar_inds = numpy.nonzero(atom_is_polar)[0].astype(numpy.int32)
+
+        tile_size = LKBallEnergyTerm.tile_size
+        tiled_polar_orig_inds, tile_n_polar = arg_tile_subset_indices(
+            polar_inds, tile_size, block_type.n_atoms - 1
+        )
+        tiled_polar_orig_inds = tiled_polar_orig_inds.reshape(n_tiles, tile_size)
+
+        is_tiled_polar = tiled_polar_orig_inds != -1
+        tiled_polars = numpy.full((n_tiles, tile_size), -1, dtype=numpy.int32)
+        tiled_polars[is_tiled_polar] = polar_inds
+
+        # ASSUMPTION! either h or hvy; change when VRTS are added!
+        # Grace: lk parameters for VRTs should not affect score even if included,
+        # it would just be slightly inefficient
+        atom_is_heavy = numpy.invert(hbbt_params.is_hydrogen == 1)
+
+        # "apolar" here means "does not build waters"; e.g. proline's N would be
+        # considered apolar.
+        atom_is_heavy_apolar = numpy.logical_and(
+            atom_is_heavy, numpy.invert(atom_is_polar)
+        )
+        heavy_apolar_inds = numpy.nonzero(atom_is_heavy_apolar)[0].astype(numpy.int32)
+
+        tiled_heavy_apolar_orig_inds, tile_n_apolar = arg_tile_subset_indices(
+            heavy_apolar_inds, tile_size, block_type.n_atoms - 1
+        )
+        tiled_heavy_apolar_orig_inds = tiled_heavy_apolar_orig_inds.reshape(
+            n_tiles, tile_size
+        )
+        is_tiled_heavy_apolar = tiled_heavy_apolar_orig_inds != -1
+        tiled_heavy_apolar = numpy.full((n_tiles, tile_size), -1, dtype=numpy.int32)
+        tiled_heavy_apolar[is_tiled_heavy_apolar] = heavy_apolar_inds
+
+        # now lets combine the heavy polar indices and the heavy non-polar indices
+        tiled_pols_and_occs = numpy.copy(tiled_polars)
+        tile_n_occ = numpy.copy(tile_n_polar)
+        for i in range(n_tiles):
+            tile_n_occ[i] = tile_n_polar[i] + tile_n_apolar[i]
+            r = slice(tile_n_polar[i], tile_n_occ[i])
+            tiled_pols_and_occs[i, r] = tiled_heavy_apolar[i, : tile_n_apolar[i]]
+        is_pol_or_occ = tiled_pols_and_occs != -1
+
+        # ok, now let's collect the properties of the atoms in this block
+        # needed for LKBallTypeParams (see properties/params.hh)
+        assert hasattr(block_type, "atom_types")
+        at = block_type.atom_types
+        type_params = self.ljlk_param_resolver.type_params.to(torch.device("cpu"))
+        bt_lj_radius = type_params.lj_radius[at].numpy()
+        bt_lk_dgfree = type_params.lk_dgfree[at].numpy()
+        bt_lk_lambda = type_params.lk_lambda[at].numpy()
+        bt_lk_volume = type_params.lk_volume[at].numpy()
+        bt_is_donor = type_params.is_donor[at].numpy()
+        bt_is_hydroxyl = type_params.is_hydroxyl[at].numpy()
+        bt_is_polarh = type_params.is_polarh[at].numpy()
+        bt_is_acceptor = type_params.is_acceptor[at].numpy()
+        bt_is_carbon_lk = type_params.is_carbon_lk[at].numpy()
+
+        bt_lk_ball_at_params = numpy.stack(
+            (
+                bt_lj_radius,
+                bt_lk_dgfree,
+                bt_lk_lambda,
+                bt_lk_volume,
+                bt_is_donor,
+                bt_is_hydroxyl,
+                bt_is_polarh,
+                bt_is_acceptor,
+                bt_is_carbon_lk,
+            ),
+            axis=1,
+        )
+        tiled_bt_lk_ball_at_params = numpy.zeros(
+            (n_tiles, tile_size, 9), dtype=numpy.float32
+        )
+        tiled_bt_lk_ball_at_params[is_pol_or_occ] = bt_lk_ball_at_params[
+            tiled_pols_and_occs[is_pol_or_occ]
+        ]
+
+        # The kernel expects tile_pol_occ_inds to contain tile-local atom
+        # indices (0..tile_size-1) — it reconstructs the full block-atom
+        # index as `pol_start + pol_tile_ind`. Until here we have been
+        # tracking full block-atom indices so the per-atom params lookup
+        # above works; now convert to tile-local for the output tensor.
+        tile_pol_occ_inds = numpy.where(
+            tiled_pols_and_occs != -1,
+            tiled_pols_and_occs % tile_size,
+            -1,
+        ).astype(numpy.int32)
+
+        bt_lk_ball_params = LKBallBlockTypeParams(
+            tile_n_polar_atoms=tile_n_polar,
+            tile_n_occluder_atoms=tile_n_occ,
+            tile_pol_occ_inds=tile_pol_occ_inds,
+            tile_lk_ball_params=tiled_bt_lk_ball_at_params,
+        )
+        setattr(block_type, "lk_ball_params", bt_lk_ball_params)
+
+    def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+        super(LKBallEnergyTerm, self).setup_packed_block_types(packed_block_types)
+        if hasattr(packed_block_types, "lk_ball_params"):
+            return
+        n_types = packed_block_types.n_types
+        n_tiles = packed_block_types.hbpbt_params.tile_donH_inds.shape[1]
+        tile_size = LKBallEnergyTerm.tile_size
+
+        tile_n_polar_atoms = numpy.full((n_types, n_tiles), 0, dtype=numpy.int32)
+        tile_n_occluder_atoms = numpy.full((n_types, n_tiles), 0, dtype=numpy.int32)
+        tile_pol_occ_inds = numpy.full(
+            (n_types, n_tiles, tile_size), -1, dtype=numpy.int32
+        )
+        tile_lk_ball_params = numpy.full(
+            (n_types, n_tiles, tile_size, 9), 0, dtype=numpy.float32
+        )
+
+        for i, bt in enumerate(packed_block_types.active_block_types):
+            i_lkbp = bt.lk_ball_params
+            i_n_tiles = i_lkbp.tile_n_polar_atoms.shape[0]
+
+            tile_n_polar_atoms[i, :i_n_tiles] = i_lkbp.tile_n_polar_atoms
+            tile_n_occluder_atoms[i, :i_n_tiles] = i_lkbp.tile_n_occluder_atoms
+            tile_pol_occ_inds[i, :i_n_tiles] = i_lkbp.tile_pol_occ_inds
+            tile_lk_ball_params[i, :i_n_tiles] = i_lkbp.tile_lk_ball_params
+
+        def _t(t):
+            return torch.tensor(t, device=packed_block_types.device)
+
+        lk_ball_params = LKBallPackedBlockTypesParams(
+            tile_n_polar_atoms=_t(tile_n_polar_atoms),
+            tile_n_occluder_atoms=_t(tile_n_occluder_atoms),
+            tile_pol_occ_inds=_t(tile_pol_occ_inds),
+            tile_lk_ball_params=_t(tile_lk_ball_params),
+        )
+        setattr(packed_block_types, "lk_ball_params", lk_ball_params)
+
+    def setup_poses(self, pose_stack: PoseStack):
+        super(LKBallEnergyTerm, self).setup_poses(pose_stack)
+
+    def pose_score_lk_ball(self, *args):
+        from tmol.score.lk_ball.potentials import (
+            lk_ball_pose_score,
+            gen_pose_waters,
+        )
+
+        common_args = args[:-2]
+        pose_stack = args[-2]
+        block_pair_scoring = args[-1]
+
+        args = [
+            *common_args,
+            pose_stack.inter_residue_connections,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.n_all_bonds,
+            pose_stack.packed_block_types.all_bonds,
+            pose_stack.packed_block_types.atom_all_bond_ranges,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
+            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_donH_hvy_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_which_donH_of_donH_hvy,
+            pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_n_attached_H,
+            pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            self._lk_ball_water_gen_global_params,
+            self.ljlk_param_resolver.global_params.lkb_water_tors_sp2,
+            self.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
+            self.ljlk_param_resolver.global_params.lkb_water_tors_ring,
+        ]
+        if common_args[0].dtype == torch.float64:
+            convert_float64(args)
+
+        water_coords = gen_pose_waters(*args)
+
+        args = [
+            *common_args,
+            pose_stack.inter_residue_connections,
+            pose_stack.min_block_bondsep,
+            pose_stack.inter_block_bondsep,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.lk_ball_params.tile_n_polar_atoms,
+            pose_stack.packed_block_types.lk_ball_params.tile_n_occluder_atoms,
+            pose_stack.packed_block_types.lk_ball_params.tile_pol_occ_inds,
+            pose_stack.packed_block_types.lk_ball_params.tile_lk_ball_params,
+            pose_stack.packed_block_types.bond_separation,
+            self._lk_ball_global_params,
+            # max_dis as host scalar for detect-neighbors call
+            float(self.ljlk_param_resolver.global_params.max_dis.item()),
+            water_coords,
+            block_pair_scoring,
+        ]
+        if common_args[0].dtype == torch.float64:
+            convert_float64(args)
+
+        return lk_ball_pose_score(*args)
+
+    def rotamer_score_lk_ball(self, *args):
+        from tmol.score.lk_ball.potentials import (
+            lk_ball_rotamer_score,
+            gen_pose_waters,
+        )
+
+        common_args = args[:-2]
+        pose_stack = args[-2]
+        block_pair_scoring = args[-1]
+
+        args = [
+            *common_args,
+            pose_stack.inter_residue_connections,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.n_all_bonds,
+            pose_stack.packed_block_types.all_bonds,
+            pose_stack.packed_block_types.atom_all_bond_ranges,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
+            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_donH_hvy_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_which_donH_of_donH_hvy,
+            pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_n_attached_H,
+            pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            self._lk_ball_water_gen_global_params,
+            self.ljlk_param_resolver.global_params.lkb_water_tors_sp2,
+            self.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
+            self.ljlk_param_resolver.global_params.lkb_water_tors_ring,
+        ]
+        if common_args[0].dtype == torch.float64:
+            convert_float64(args)
+
+        water_coords = gen_pose_waters(*args)
+
+        args = [
+            *common_args,
+            pose_stack.inter_residue_connections,
+            pose_stack.min_block_bondsep,
+            pose_stack.inter_block_bondsep,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.lk_ball_params.tile_n_polar_atoms,
+            pose_stack.packed_block_types.lk_ball_params.tile_n_occluder_atoms,
+            pose_stack.packed_block_types.lk_ball_params.tile_pol_occ_inds,
+            pose_stack.packed_block_types.lk_ball_params.tile_lk_ball_params,
+            pose_stack.packed_block_types.bond_separation,
+            self._lk_ball_global_params,
+            # max_dis as host scalar for detect-neighbors call
+            float(self.ljlk_param_resolver.global_params.max_dis.item()),
+            water_coords,
+            block_pair_scoring,
+        ]
+        if common_args[0].dtype == torch.float64:
+            convert_float64(args)
+
+        return lk_ball_rotamer_score(*args)
+
+    def get_pose_score_term_function(self):
+        return self.pose_score_lk_ball
+
+    def get_rotamer_score_term_function(self):
+        return self.rotamer_score_lk_ball
+
+    def get_score_term_attributes(self, pose_stack):
+        return [pose_stack]

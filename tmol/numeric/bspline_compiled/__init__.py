@@ -1,4 +1,4 @@
-from .compiled import (  # noqa: F401
+from ._compiled import (  # noqa: F401
     computeCoeffs2,
     computeCoeffs3,
     computeCoeffs4,

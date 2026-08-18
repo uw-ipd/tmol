@@ -24,7 +24,7 @@ def atype_params(default_database):
 
 
 def test_build_acc_waters():
-    from .compiled import BuildAcceptorWater
+    from ._compiled import BuildAcceptorWater
 
     tensor = torch.DoubleTensor
 
@@ -52,7 +52,7 @@ def test_build_acc_waters():
 
 
 def test_build_don_water():
-    from .compiled import BuildDonorWater
+    from ._compiled import BuildDonorWater
 
     tensor = torch.DoubleTensor
 
@@ -75,7 +75,7 @@ def test_build_don_water():
 
 
 def test_lk_fraction():
-    from .compiled import LKFraction, BuildAcceptorWater
+    from ._compiled import LKFraction, BuildAcceptorWater
 
     tensor = torch.DoubleTensor
     coords_I = dict(  # noqa
@@ -109,7 +109,7 @@ def test_lk_fraction():
 
 
 def test_lk_bridge_fraction():
-    from .compiled import LKBridgeFraction, BuildAcceptorWater
+    from ._compiled import LKBridgeFraction, BuildAcceptorWater
 
     tensor = torch.DoubleTensor
 
@@ -169,7 +169,7 @@ def test_lk_bridge_fraction_overlapping_waters():
     # clamped to 1. The forward V() must apply the same clamp that the
     # analytic dV() assumes; otherwise the water-frame derivative is dropped
     # for strongly-bridged acceptors/donors (up to ~0.16 kcal/mol/A on 1ubq).
-    from .compiled import LKBridgeFraction
+    from ._compiled import LKBridgeFraction
 
     tensor = torch.DoubleTensor
 
@@ -211,7 +211,7 @@ def lkball_score_and_gradcheck(
     at_i,
     at_j,
 ):
-    from .compiled import LKBallScore, LKFraction, LKBridgeFraction
+    from ._compiled import LKBallScore, LKFraction, LKBridgeFraction
 
     aidx_j = ljlk_params.atom_type_index.get_loc(at_j)
 
@@ -257,7 +257,7 @@ def lkball_score_and_gradcheck(
 
 
 def test_lk_ball_donor_donor_spotcheck(ljlk_params, atype_params):
-    from .compiled import BuildDonorWater
+    from ._compiled import BuildDonorWater
 
     dist = ljlk_params.global_params.lkb_water_dist
 
@@ -321,7 +321,7 @@ def test_lk_ball_donor_donor_spotcheck(ljlk_params, atype_params):
 
 
 def test_lk_ball_sp2_nonpolar_spotcheck(ljlk_params, atype_params):
-    from .compiled import BuildAcceptorWater
+    from ._compiled import BuildAcceptorWater
 
     tensor = torch.DoubleTensor
     coords = tensor(
@@ -374,7 +374,7 @@ def test_lk_ball_sp2_nonpolar_spotcheck(ljlk_params, atype_params):
 
 
 def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
-    from .compiled import BuildAcceptorWater, BuildDonorWater
+    from ._compiled import BuildAcceptorWater, BuildDonorWater
 
     tensor = torch.DoubleTensor
 

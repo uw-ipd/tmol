@@ -1,4 +1,4 @@
-from .util import LazyContentsMapping, LazyFileMapping  # noqa: F401
+from ._util import LazyContentsMapping, LazyFileMapping  # noqa: F401
 
 import pytest
 import os

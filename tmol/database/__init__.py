@@ -5,10 +5,10 @@ import attr
 from typing import List, Optional, Mapping
 
 from .chemical import AtomType, ChemicalDatabase, RawResidueType  # noqa: F401
-from .patched_chemdb import PatchedChemicalDatabase  # noqa: F401
+from ._patched_chemdb import PatchedChemicalDatabase  # noqa: F401
 from .scoring import ScoringDatabase  # noqa: F401
-from .scoring.elec import PartialCharges  # noqa: F401
-from .scoring.cartbonded import CartRes  # noqa: F401
+from .scoring._elec import PartialCharges  # noqa: F401
+from .scoring._cartbonded import CartRes  # noqa: F401
 
 
 @attr.s(frozen=True)

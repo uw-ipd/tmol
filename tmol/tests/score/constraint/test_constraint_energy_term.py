@@ -144,7 +144,7 @@ def test_get_torsion_angle(torch_device):
 
 
 def _circularharmonic_from_angles(monkeypatch, angles, x0, sd=0.5, offset=1.25):
-    module_name = "tmol.score.constraint.potentials.compiled"
+    module_name = "tmol.score.constraint.potentials._compiled"
     compiled = types.ModuleType(module_name)
 
     def get_torsion_angle(atoms):
