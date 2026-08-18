@@ -30,7 +30,7 @@ from ._chain_deduction import (  # noqa: F401
     chain_inds_for_pose_stack,
     annotate_pbt_w_valid_connection_masks,
 )  # noqa: F401
-from ._create_pose_stack_from_sequences import (  # noqa: F401
+from ._pose_stack_from_sequence import (  # noqa: F401
     create_pose_stack_from_sequences,
     extended_pose_stack_from_sequences,
     EXTENDED_BACKBONE_TORSIONS,
