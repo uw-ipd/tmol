@@ -2,6 +2,7 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/extension.h>
 
+#include <tmol/score/elec/potentials/potentials.hh>
 #include <tmol/score/ljlk/potentials/lj.hh>
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 #include <tmol/score/ljlk/potentials/params.pybind.hh>
@@ -110,6 +111,19 @@ void bind_potentials(pybind11::module& m) {
       "i"_a,
       "j"_a,
       "global"_a);
+
+  m.def(
+      "elec_V",
+      &tmol::score::elec::potentials::elec<Real>,
+      "dist"_a,
+      "charge_i"_a,
+      "charge_j"_a,
+      "bonded_path_length"_a,
+      "D"_a,
+      "D0"_a,
+      "S"_a,
+      "min_dis"_a,
+      "max_dis"_a);
 }  // namespace potentials
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) { bind_potentials<double>(m); }

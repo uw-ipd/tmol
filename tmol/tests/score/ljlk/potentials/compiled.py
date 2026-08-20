@@ -13,6 +13,7 @@ lj_score_V = _compiled.lj_score_V
 lj_score_V_dV = _compiled.lj_score_V_dV
 lk_isotropic_score_V = _compiled.lk_isotropic_score_V
 lk_isotropic_score_V_dV = _compiled.lk_isotropic_score_V_dV
+elec_V = _compiled.elec_V
 lj_sigma = _compiled.lj_sigma
 vdw_V = _compiled.vdw_V
 vdw_V_dV = _compiled.vdw_V_dV
