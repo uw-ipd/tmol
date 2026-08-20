@@ -3,12 +3,14 @@ import torch
 import pickle
 import pytest
 
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pack.datatypes import PackerEnergyTables
-from tmol.pack.simulated_annealing import run_simulated_annealing
-from tmol.pack.compiled.compiled import build_interaction_graph
-from tmol.pack.rotamer.build_rotamers import RotamerSet
-from tmol.utility.cumsum import exclusive_cumsum1d
+from tmol.pose import PoseStackBuilder
+from tmol.pack import (
+    PackerEnergyTables,
+    run_simulated_annealing,
+)
+from tmol.pack.compiled import build_interaction_graph
+from tmol.pack.rotamer import RotamerSet
+from tmol.utility import exclusive_cumsum1d
 from tmol.io import pose_stack_from_pdb
 
 
@@ -123,7 +125,7 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(ig, pdb_fname, 
     return pose_stack, rotamer_set, _d(energy1b), _d(inds), _d(energies)
 
 
-def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
+def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(  # noqa: C901
     ig, pdb_fname, device
 ):
     pose_stack = pose_stack_from_pdb(pdb_fname, device)

@@ -1,7 +1,7 @@
 import pytest
 import os
 
-from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
+from tmol.database.scoring import DunbrackRotamerLibrary
 
 
 @pytest.mark.benchmark(group="dun_load", min_rounds=1)

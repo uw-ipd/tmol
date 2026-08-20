@@ -1,8 +1,8 @@
 import torch
 import biotite.structure as struc
 
-from tmol.score.score_utils import build_coord_mask_for_mask_and_nearby_blocks
-from tmol.io.pose_stack_from_biotite import (
+from tmol.score import build_coord_mask_for_mask_and_nearby_blocks
+from tmol.io import (
     pose_stack_from_biotite,
     biotite_from_pose_stack,
 )

@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from tmol.optimization.lbfgs_armijo import lbfgs_two_loop
-from tmol.tests.torch import requires_cuda
+from tmol.optimization import lbfgs_two_loop
+from tmol.tests import requires_cuda
 
 
 def _golden_two_loop(grad, dirs, stps):

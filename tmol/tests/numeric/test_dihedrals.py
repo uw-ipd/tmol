@@ -2,8 +2,8 @@ from toolz.curried import compose, map
 import numpy
 import torch
 
-from tmol.numeric.dihedrals import coord_dihedrals
-from tmol.utility.units import parse_angle
+from tmol.numeric import coord_dihedrals
+from tmol.utility import parse_angle
 
 
 def test_coord_dihedrals():

@@ -1,7 +1,7 @@
 import os
 from glob import glob
 
-from tmol.tests.data.util import LazyContentsMapping
+from tmol.tests.data import LazyContentsMapping
 
 data = LazyContentsMapping.from_list(
     glob(os.path.dirname(__file__) + "/*.pdb"),

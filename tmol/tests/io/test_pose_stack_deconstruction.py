@@ -1,16 +1,13 @@
 import torch
 import numpy
 
-from tmol.io.pose_stack_deconstruction import (
+from tmol.io import (
     canonical_form_from_pose_stack,
-)
-from tmol.io.canonical_ordering import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_canonical_form,
 )
-
-from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
 def not_any_nancoord(coords):

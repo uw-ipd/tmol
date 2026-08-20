@@ -3,7 +3,7 @@ import unittest
 
 class testShape(unittest.TestCase):
     def test(self):
-        from tmol.types.shape import Shape
+        from tmol.types import Shape
 
         s = Shape.spec
 

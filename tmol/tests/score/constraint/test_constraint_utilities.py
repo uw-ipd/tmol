@@ -7,8 +7,8 @@ from tmol import (
     # default_packed_block_types,
     # pose_stack_from_canonical_form,
 )
-from tmol.score.constraint.utility import create_mainchain_coordinate_constraints
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.score.constraint import create_mainchain_coordinate_constraints
+from tmol.pose import PoseStackBuilder
 
 
 def test_create_mainchain_coordinate_constraints(

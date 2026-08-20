@@ -26,7 +26,7 @@ GROUND_TRUTH = DATA / "ligand_test" / "ligand_ground_truth"
 # --------------------------------------------------------------------------- #
 class TestDetectHelpers:
     def test_strip_metals_removes_metal_atoms(self) -> None:
-        from tmol.ligand.detect import _strip_metals
+        from tmol.ligand import _strip_metals
 
         mol = Chem.MolFromSmiles("[Fe]")
         assert mol.GetNumAtoms() == 1
@@ -34,13 +34,13 @@ class TestDetectHelpers:
         assert stripped.GetNumAtoms() == 0
 
     def test_strip_metals_no_op_without_metals(self) -> None:
-        from tmol.ligand.detect import _strip_metals
+        from tmol.ligand import _strip_metals
 
         mol = Chem.MolFromSmiles("CCO")
         assert _strip_metals(mol).GetNumAtoms() == mol.GetNumAtoms()
 
     def test_rdkit_bond_to_biotite_type_orders(self) -> None:
-        from tmol.ligand.detect import _rdkit_bond_to_biotite_type
+        from tmol.ligand import _rdkit_bond_to_biotite_type
 
         benzene = Chem.MolFromSmiles("c1ccccc1")
         aromatic_bond = benzene.GetBondWithIdx(0)
@@ -58,7 +58,7 @@ class TestDetectHelpers:
         assert _rdkit_bond_to_biotite_type(triple) == int(struc.BondType.TRIPLE)
 
     def test_rdkit_bond_to_biotite_type_quadruple_and_fallback(self) -> None:
-        from tmol.ligand.detect import _rdkit_bond_to_biotite_type
+        from tmol.ligand import _rdkit_bond_to_biotite_type
 
         rw = Chem.RWMol()
         rw.AddAtom(Chem.Atom(6))
@@ -75,7 +75,7 @@ class TestDetectHelpers:
         assert _rdkit_bond_to_biotite_type(dative) == int(struc.BondType.SINGLE)
 
     def test_infer_res_name_from_mol2(self) -> None:
-        from tmol.ligand.detect import _infer_res_name_from_mol2
+        from tmol.ligand import _infer_res_name_from_mol2
 
         mol = Chem.MolFromSmiles("CC")
         # No Tripos substructure name -> fallback used.
@@ -84,14 +84,14 @@ class TestDetectHelpers:
         assert _infer_res_name_from_mol2(mol, "FALL") == "LIG"
 
     def test_source_subtype_from_mol2_atom_type(self) -> None:
-        from tmol.ligand.detect import _source_subtype_from_mol2_atom_type
+        from tmol.ligand import _source_subtype_from_mol2_atom_type
 
         assert _source_subtype_from_mol2_atom_type("C.ar") == "ar"
         assert _source_subtype_from_mol2_atom_type("C") == "?"
         assert _source_subtype_from_mol2_atom_type("") == "?"
 
     def test_mol2_charge_model_from_text(self) -> None:
-        from tmol.ligand.detect import _mol2_charge_model_from_text
+        from tmol.ligand import _mol2_charge_model_from_text
 
         good = (
             "@<TRIPOS>MOLECULE\n"
@@ -111,7 +111,7 @@ class TestDetectHelpers:
         assert _mol2_charge_model_from_text("nothing here\n") == ""
 
     def test_mol2_single_bond_ids(self) -> None:
-        from tmol.ligand.detect import _mol2_single_bond_ids
+        from tmol.ligand import _mol2_single_bond_ids
 
         text = (
             "@<TRIPOS>BOND\n"
@@ -127,14 +127,14 @@ class TestDetectHelpers:
         assert len(bonds) == 1
 
     def test_charge_model_is_authoritative(self) -> None:
-        from tmol.ligand.detect import _charge_model_is_authoritative
+        from tmol.ligand import _charge_model_is_authoritative
 
         assert _charge_model_is_authoritative("MMFF94") is True
         assert _charge_model_is_authoritative("GASTEIGER") is False
         assert _charge_model_is_authoritative("") is False
 
     def test_normalize_radical_oxygens(self) -> None:
-        from tmol.ligand.detect import _normalize_radical_oxygens
+        from tmol.ligand import _normalize_radical_oxygens
 
         # Bare radical oxygen on a carboxyl carbon -> becomes [O-].
         fixed = _normalize_radical_oxygens("CC(=O)[O]")
@@ -148,7 +148,7 @@ class TestDetectHelpers:
         assert _normalize_radical_oxygens("not a smiles!!!") == "not a smiles!!!"
 
     def test_dimorphite_protonate_smiles(self) -> None:
-        from tmol.ligand.detect import _dimorphite_protonate_smiles
+        from tmol.ligand import _dimorphite_protonate_smiles
 
         # Carboxylic acid deprotonates near physiological pH.
         out = _dimorphite_protonate_smiles("CC(=O)O", ph=7.4)
@@ -172,7 +172,7 @@ class TestStructureToSmiles:
         return arr
 
     def test_mol_to_smiles_returns_none_on_failure(self, monkeypatch) -> None:
-        import tmol.ligand.structure_to_smiles as mod
+        import tmol.ligand._structure_to_smiles as mod
 
         def _boom(*a, **k):
             raise RuntimeError("boom")
@@ -181,7 +181,7 @@ class TestStructureToSmiles:
         assert mod._mol_to_smiles(Chem.MolFromSmiles("CCO")) is None
 
     def test_smiles_from_atom_array_raises_when_no_smiles(self, monkeypatch) -> None:
-        import tmol.ligand.structure_to_smiles as mod
+        import tmol.ligand._structure_to_smiles as mod
 
         # Bonds are present, but SMILES generation yields nothing.
         monkeypatch.setattr(mod, "_mol_to_smiles", lambda *a, **k: None)
@@ -194,7 +194,7 @@ class TestStructureToSmiles:
 # --------------------------------------------------------------------------- #
 class TestAuthoritativeCharges:
     def test_maps_by_index(self) -> None:
-        from tmol.ligand.mol3d import authoritative_charges_by_index
+        from tmol.ligand import authoritative_charges_by_index
 
         mol = Chem.MolFromSmiles("CCO")
         names = ["C1", "C2", "O1"]
@@ -203,21 +203,21 @@ class TestAuthoritativeCharges:
         assert by_index == {0: 0.1, 1: -0.1, 2: -0.3}
 
     def test_raises_without_charges(self) -> None:
-        from tmol.ligand.mol3d import authoritative_charges_by_index
+        from tmol.ligand import authoritative_charges_by_index
 
         mol = Chem.MolFromSmiles("CCO")
         with pytest.raises(ValueError, match="no authoritative partial charges"):
             authoritative_charges_by_index(["C1", "C2", "O1"], None, mol)
 
     def test_raises_on_count_mismatch(self) -> None:
-        from tmol.ligand.mol3d import authoritative_charges_by_index
+        from tmol.ligand import authoritative_charges_by_index
 
         mol = Chem.MolFromSmiles("CCO")
         with pytest.raises(ValueError, match="atom-count mismatch"):
             authoritative_charges_by_index(["C1", "C2"], {"C1": 0.0}, mol)
 
     def test_raises_on_missing_atom(self) -> None:
-        from tmol.ligand.mol3d import authoritative_charges_by_index
+        from tmol.ligand import authoritative_charges_by_index
 
         mol = Chem.MolFromSmiles("CCO")
         with pytest.raises(ValueError, match="missing for atoms"):
@@ -231,7 +231,7 @@ class TestAuthoritativeCharges:
 # --------------------------------------------------------------------------- #
 class TestEquivalenceElementFromName:
     def test_infer_element_from_name(self) -> None:
-        from tmol.tests.ligand.equivalence import _infer_element_from_name
+        from tmol.tests.ligand import _infer_element_from_name
 
         assert _infer_element_from_name("CB") == "C"
         assert _infer_element_from_name("CA") == "Ca"
@@ -246,7 +246,7 @@ class TestEquivalenceElementFromName:
 # --------------------------------------------------------------------------- #
 class TestLigandAtomArrayToRdkitMol:
     def _info(self, arr):
-        from tmol.ligand.detect import NonStandardResidueInfo
+        from tmol.ligand import NonStandardResidueInfo
 
         return NonStandardResidueInfo(
             res_name="LG1",
@@ -265,7 +265,7 @@ class TestLigandAtomArrayToRdkitMol:
         return arr
 
     def test_empty_array_raises(self) -> None:
-        from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
+        from tmol.ligand import ligand_atom_array_to_rdkit_mol
 
         arr = struc.AtomArray(0)
         arr.coord = np.zeros((0, 3), dtype=np.float32)
@@ -275,14 +275,14 @@ class TestLigandAtomArrayToRdkitMol:
             ligand_atom_array_to_rdkit_mol(self._info(arr))
 
     def test_no_bonds_raises(self) -> None:
-        from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
+        from tmol.ligand import ligand_atom_array_to_rdkit_mol
 
         arr = self._carbon_array(2)
         with pytest.raises(ValueError, match="bond inference is unsupported"):
             ligand_atom_array_to_rdkit_mol(self._info(arr))
 
     def test_topology_only_any_bonds_raises(self) -> None:
-        from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
+        from tmol.ligand import ligand_atom_array_to_rdkit_mol
 
         arr = self._carbon_array(2)
         # BondType.ANY marks bonds whose order was perceived from geometry
@@ -299,7 +299,7 @@ class TestLigandAtomArrayToRdkitMol:
 # --------------------------------------------------------------------------- #
 class TestPreparationHelpers:
     def test_prepare_single_ligand_requires_protonation_and_charges(self) -> None:
-        from tmol.ligand.preparation import (
+        from tmol.ligand import (
             _ligand_info_from_cif,
             prepare_single_ligand,
         )
@@ -311,7 +311,7 @@ class TestPreparationHelpers:
             prepare_single_ligand(info)
 
     def test_residue_covers_cif_heavy_atoms_empty_is_true(self) -> None:
-        from tmol.ligand.preparation import _residue_covers_cif_heavy_atoms
+        from tmol.ligand import _residue_covers_cif_heavy_atoms
 
         # Empty CIF heavy-atom set short-circuits to True without inspecting prep.
         assert _residue_covers_cif_heavy_atoms(object(), set()) is True
@@ -322,7 +322,7 @@ class TestPreparationHelpers:
 # --------------------------------------------------------------------------- #
 class TestParamsIo:
     def test_read_rosetta_params_file(self) -> None:
-        from tmol.ligand.params_io import read_params_file
+        from tmol.ligand import read_params_file
 
         params = sorted((GROUND_TRUTH / "params").glob("*.params"))
         assert params, "expected ground-truth .params fixtures"
@@ -331,7 +331,7 @@ class TestParamsIo:
         assert len(rt.bonds) > 0
 
     def test_write_params_file_rejects_unknown_format(self) -> None:
-        from tmol.ligand.params_io import write_params_file
+        from tmol.ligand import write_params_file
 
         with pytest.raises(ValueError, match="unknown params format"):
             write_params_file(object(), "/tmp/ignored.out", format="bogus")

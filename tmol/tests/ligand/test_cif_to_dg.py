@@ -136,7 +136,7 @@ def _canonical(smiles: str) -> str | None:
 @pytest.mark.parametrize("variant", _VARIANTS)
 def test_cif_smiles_matches_reference(stem: str, variant: str) -> None:
     """SMILES derivation reproduces the reference for both CIF variants."""
-    from tmol.ligand.structure_to_smiles import ligand_smiles_from_atom_array
+    from tmol.ligand import ligand_smiles_from_atom_array
 
     code, expected = _LIGANDS[stem]
     arr = _load_ligand_array(stem, variant)
@@ -197,7 +197,7 @@ def test_cif_ligand_pose_scores_finite(variant: str, torch_device) -> None:
     import torch
 
     from tmol.database import ParameterDatabase
-    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_biotite
     from tmol.score import beta2016_score_function
 
     arr = _load_ligand_array("vww", variant)
@@ -248,7 +248,7 @@ def test_smiles_hard_fail_without_bond_table() -> None:
     """
     import numpy as np
 
-    from tmol.ligand.structure_to_smiles import ligand_smiles_from_atom_array
+    from tmol.ligand import ligand_smiles_from_atom_array
 
     arr = _load_ligand_array("vww", "bonds_absent", include_bonds=False)
     arr.res_name = np.array(["LIG"] * len(arr), dtype=arr.res_name.dtype)

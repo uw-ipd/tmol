@@ -2,7 +2,7 @@ import numpy
 import torch
 from types import SimpleNamespace
 
-from tmol.pack.rotamer.build_rotamers import (
+from tmol.pack.rotamer import (
     _build_chi4_atom_table,
     annotate_restype,
     annotate_packed_block_types,
@@ -16,29 +16,25 @@ from tmol.pack.rotamer.build_rotamers import (
     merge_conformer_samples,
     calculate_rotamer_coords,
     get_rotamer_origin_data,
-)
-from tmol.pack.rotamer.chi_sampler import (
     create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler,
-)
-
-from tmol.pack.rotamer.fixed_aa_chi_sampler import (
     FixedAAChiSampler,
 )
 
-
 from tmol.io import pose_stack_from_pdb
 
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pack.packer_task import PackerTask, PackerPalette, SetPackerTask
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStackBuilder,
+)
+from tmol.pack import PackerTask, PackerPalette, SetPackerTask
 
-from tmol.kinematics.compiled.compiled_ops import forward_only_op
+from tmol.kinematics.compiled import forward_only_op
 
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
+from tmol.utility.tensor import exclusive_cumsum1d, stretch
 
 from tmol.tests.data import no_termini_pose_stack_from_pdb
 
-from tmol.score.hbond.hbond_energy_term import (
+from tmol.score.hbond import (
     HBondEnergyTerm,
 )
 
@@ -1167,7 +1163,9 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
         )
 
 
-def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
+def test_score_lots_of_rotamers(
+    default_database, ubq_pdb, torch_device, dun_sampler
+):  # noqa: C901
     n_poses = 2
 
     p = no_termini_pose_stack_from_pdb(

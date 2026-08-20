@@ -13,7 +13,7 @@ import biotite.structure as struc
 import numpy
 import pytest
 
-from tmol.io import visualize
+from tmol.io import _visualize as visualize
 
 
 def _atom_array() -> struc.AtomArray:
