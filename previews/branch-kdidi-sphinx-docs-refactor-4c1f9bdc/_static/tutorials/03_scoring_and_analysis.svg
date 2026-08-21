@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 315" role="img" aria-labelledby="title description">
+<title id="title">Scoring — 1UBQ residues 1–30 with the analyzed pair highlighted</title>
+<desc id="description">Static molecular render generated from 1UBQ.cif used by this tutorial.</desc>
+<metadata>Generated from tutorial fixtures: 1UBQ.cif</metadata>
+<rect width="560" height="315" rx="24" fill="#111a2d"/>
+<rect x="10" y="10" width="540" height="295" rx="18" fill="none" stroke="#263a5e" stroke-width="2"/>
+<polyline points="278.7,217.1 283.3,186.9 262.4,167.0 263.0,136.7 260.1,128.3 250.6,94.5 258.0,83.7 243.5,54.0 270.5,42.0 267.7,43.2 292.3,71.2 284.2,95.4 302.9,127.1 303.9,150.5 305.8,182.2 309.8,211.0 288.5,228.0 271.3,250.1 238.0,245.1 245.4,273.0 261.7,258.6 247.1,250.1 240.5,218.8 263.1,230.8 286.5,240.9 278.6,211.1 281.8,196.0 312.5,217.3 322.0,209.6 311.8,176.7" fill="none" stroke="#54c7ec" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<circle cx="260.1" cy="128.3" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="302.9" cy="127.1" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<polyline points="260.1,128.3 302.9,127.1" fill="none" stroke="#ffd166" stroke-width="3" stroke-dasharray="8 6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+</svg>
