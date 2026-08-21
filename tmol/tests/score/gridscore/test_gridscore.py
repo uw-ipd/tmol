@@ -38,16 +38,16 @@ def test_grid_geometry_index_conventions():
     geometry = compute_grid_geometry(ligand_coords)
 
     assert geometry.max_radius == 8.0
-    assert geometry.dims == (52, 52, 52)
+    assert geometry.dims == (96, 96, 96)
     torch.testing.assert_close(
         geometry.ligand_com, torch.tensor([0.0, 1.0, 2.0], dtype=torch.float64)
     )
     torch.testing.assert_close(
-        geometry.origin, torch.tensor([-13.0, -12.0, -11.0], dtype=torch.float64)
+        geometry.origin, torch.tensor([-12.0, -11.0, -10.0], dtype=torch.float64)
     )
     torch.testing.assert_close(
         geometry.cartesian_from_zero_based_index((3, 4, 5)),
-        torch.tensor([-11.5, -10.0, -8.5], dtype=torch.float64),
+        torch.tensor([-11.25, -10.0, -8.75], dtype=torch.float64),
     )
     torch.testing.assert_close(
         geometry.cartesian_from_one_based_index((4, 5, 6)),
@@ -61,10 +61,10 @@ def test_grid_geometry_index_conventions():
     )
 
     floored = compute_grid_geometry(torch.zeros((2, 3), dtype=torch.float64))
-    assert floored.max_radius == 7.5
-    assert floored.dims == (50, 50, 50)
+    assert floored.max_radius == 6.0
+    assert floored.dims == (80, 80, 80)
     torch.testing.assert_close(
-        floored.origin, torch.full((3,), -12.5, dtype=torch.float64)
+        floored.origin, torch.full((3,), -10.0, dtype=torch.float64)
     )
 
 
@@ -330,7 +330,7 @@ def test_cdk2_grid_matches_independent_pair_sums(tmp_path):
     )
     expected_geometry = compute_grid_geometry(ligand_coords)
     assert grids.geometry.dims == expected_geometry.dims
-    assert grids.geometry.voxel_spacing == 0.5
+    assert grids.geometry.voxel_spacing == 0.25
     torch.testing.assert_close(grids.geometry.origin, expected_geometry.origin)
 
     # This oracle deliberately resolves every atom type by name and calls the
@@ -505,10 +505,11 @@ def test_grid_interface_characterization_against_t1(target):
     assert torch.isfinite(grid_score).all()
     assert torch.isfinite(absolute_error).all()
     assert torch.isfinite(relative_error).all()
-    # Measurement-derived per-term regression bound (F11). Observed max-abs across
-    # cdk2+ache: fa_atr 0.022, fa_rep 0.253, fa_sol 0.022, fa_elec 0.042 REU; the
-    # bounds below (~2x) guard against catastrophic regressions while accepting the
-    # 0.5 A-grid + tricubic approximation error (fa_rep is the stiff outlier).
+    # Measurement-derived per-term regression bound (F11). The original 0.5 A
+    # characterization observed max-abs across cdk2+ache of fa_atr 0.022, fa_rep
+    # 0.253, fa_sol 0.022, and fa_elec 0.042 REU. These bounds are retained for
+    # the finer 0.25 A grid, whose interpolation error should be smaller
+    # (fa_rep remains the stiff outlier).
     bound = torch.tensor([0.05, 0.50, 0.05, 0.10], dtype=torch.float64)
     assert torch.all(absolute_error <= bound), (
         f"{target} grid-vs-T1 per-term abs error {absolute_error.tolist()} "
