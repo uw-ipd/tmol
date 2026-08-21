@@ -1,0 +1,1383 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.score._score_utils &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c9b21c7c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/_score_utils';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-413';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.47" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../score.html" class="nav-link">tmol.score</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score._score_utils</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.score._score_utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FragmentInteractionScores</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Per-fragment interactions with an explicitly selected partner."""</span>
+
+    <span class="n">scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">mapping</span><span class="p">:</span> <span class="nb">tuple</span>
+
+
+<div class="viewcode-block" id="calculate_fragment_interactions">
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.score.calculate_fragment_interactions">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_fragment_interactions</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="n">pose_stack</span><span class="p">,</span>
+    <span class="n">partner_mask</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">sfxn</span><span class="p">,</span>
+    <span class="n">mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return each ligand fragment's interaction with ``partner_mask``.</span>
+
+<span class="sd">    The connected multi-block pose is scored once. Fragment-fragment entries</span>
+<span class="sd">    remain in the block-pair matrix and are not silently assigned to either</span>
+<span class="sd">    fragment.</span>
+
+<span class="sd">    ``sfxn`` is required and must be built from the same ligand-extended</span>
+<span class="sd">    parameter database used to construct ``pose_stack``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        :class:`FragmentInteractionScores`. ``scores`` has shape</span>
+<span class="sd">        ``[n_terms, n_poses, n_fragments]`` or ``[n_poses, n_fragments]`` when</span>
+<span class="sd">        ``sum_terms`` is true.</span>
+<span class="sd">    """</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._split_block_mapping</span><span class="w"> </span><span class="kn">import</span> <span class="n">SplitBlockMapping</span>
+
+    <span class="k">if</span> <span class="n">mapping</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sbm</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="s2">"split_block_mapping"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">SplitBlockMapping</span><span class="p">):</span>
+        <span class="n">sbm</span> <span class="o">=</span> <span class="n">mapping</span>
+        <span class="n">mapping</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># use new path</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sbm</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># use legacy path with the provided FragmentedLigandPoseMapping</span>
+
+    <span class="k">if</span> <span class="n">sbm</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">mapping</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No split-block mapping was supplied or attached to the pose"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"partner_mask must have shape [n_poses, max_n_blocks]; got "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">partner_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"partner_mask must be a boolean tensor"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"partner_mask must be on the same device as pose_stack"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sfxn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"sfxn is required and must use the ligand-extended parameter database"</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Use split_block_mapping when no explicit mapping was provided.</span>
+    <span class="c1"># Fragment block indices are the same across all poses (topology is canonical),</span>
+    <span class="c1"># so pose-0 entries define the column layout for every pose.</span>
+    <span class="k">if</span> <span class="n">sbm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pose0_entries</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">sbm</span><span class="o">.</span><span class="n">entries</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">pose_ind</span> <span class="o">==</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">block_ind</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pose0_entries</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"split_block_mapping has no entries for pose 0"</span><span class="p">)</span>
+        <span class="n">expected_block_inds</span> <span class="o">=</span> <span class="p">{</span><span class="n">e</span><span class="o">.</span><span class="n">block_ind</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">pose0_entries</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">pose_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">):</span>
+            <span class="n">pose_block_inds</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">e</span><span class="o">.</span><span class="n">block_ind</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">sbm</span><span class="o">.</span><span class="n">entries</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">pose_ind</span> <span class="o">==</span> <span class="n">pose_index</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">pose_block_inds</span> <span class="o">!=</span> <span class="n">expected_block_inds</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"Fragment mappings must use identical block topology in every pose"</span>
+                <span class="p">)</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">sbm</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">partner_mask</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">pose_ind</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">block_ind</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"partner_mask must not include ligand fragment blocks"</span><span class="p">)</span>
+
+        <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+        <span class="n">block_pair_scores</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">block_pair_scores</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pose0_entries</span><span class="p">)),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">block_pair_scores</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">block_pair_scores</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">frag_idx</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pose0_entries</span><span class="p">):</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">block_ind</span>
+            <span class="n">result</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">frag_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">block_pair_scores</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">b</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
+                <span class="n">block_pair_scores</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">b</span><span class="p">]</span> <span class="o">*</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                <span class="n">dim</span><span class="o">=</span><span class="mi">2</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">sum_terms</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">FragmentInteractionScores</span><span class="p">(</span><span class="n">scores</span><span class="o">=</span><span class="n">result</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">pose0_entries</span><span class="p">))</span>
+
+    <span class="c1"># Legacy path: explicit FragmentedLigandPoseMapping passed as mapping=</span>
+    <span class="n">fragment_records</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+        <span class="nb">sorted</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">record</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">blocks</span> <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">pose_index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">record</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">expected_columns</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">pose_residue_label</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="p">)</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">fragment_records</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">pose_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">):</span>
+        <span class="n">pose_columns</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">pose_residue_label</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">blocks</span>
+            <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">pose_index</span> <span class="o">==</span> <span class="n">pose_index</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">pose_columns</span> <span class="o">!=</span> <span class="n">expected_columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Fragment mappings must use identical block topology in every pose"</span>
+            <span class="p">)</span>
+    <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">partner_mask</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">pose_index</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"partner_mask must not include ligand fragment blocks"</span><span class="p">)</span>
+    <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+    <span class="n">block_pair_scores</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">block_pair_scores</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">fragment_records</span><span class="p">)),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">block_pair_scores</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">block_pair_scores</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">fragment_index</span><span class="p">,</span> <span class="n">record</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fragment_records</span><span class="p">):</span>
+        <span class="n">block_index</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">block_index</span>
+        <span class="n">result</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">fragment_index</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">block_pair_scores</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">block_index</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
+            <span class="n">block_pair_scores</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">block_index</span><span class="p">]</span> <span class="o">*</span> <span class="n">partner_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">2</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">sum_terms</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">FragmentInteractionScores</span><span class="p">(</span><span class="n">scores</span><span class="o">=</span><span class="n">result</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="n">fragment_records</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">residue_mask_from_chain</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Build a boolean block-level mask selecting residues belonging to a given</span>
+<span class="sd">    chain, identified by its PDB chain label string.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: The pose stack. Must have a ``pdb_info`` attribute with</span>
+<span class="sd">            ``chain_labels`` (``NDArray[object][n_poses, max_n_blocks]``).</span>
+<span class="sd">        chain_id: A string chain identifier (e.g. ``"A"``, ``"B"``).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Boolean tensor of shape ``[n_poses, n_blocks]`` with ``True`` for</span>
+<span class="sd">        residues whose PDB chain label matches ``chain_id``.</span>
+<span class="sd">    """</span>
+    <span class="n">chain_labels</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span>
+    <span class="p">)</span>  <span class="c1"># NDArray[object][n_poses, max_n_blocks]</span>
+    <span class="n">mask_np</span> <span class="o">=</span> <span class="n">chain_labels</span> <span class="o">==</span> <span class="n">chain_id</span>  <span class="c1"># [n_poses, max_n_blocks]</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mask_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mask</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_block_pair_ddg</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">,</span>
+    <span class="n">mask</span><span class="p">,</span>
+    <span class="n">mask2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">sfxn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">sum_terms</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">minimize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">pack</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">database</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">return_pose_stack</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Calculate DDG score between two subsets of blocks within each pose, defined by 2 masks.</span>
+<span class="sd">    If only one mask is provided, it will use the inverse of the first mask for the second.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: The pose stack to score</span>
+<span class="sd">        mask: Boolean tensor of shape [n_poses, n_blocks]. True values indicate masked indices.</span>
+<span class="sd">        mask2: Boolean tensor of shape [n_poses, n_blocks]. If not provided, it will use the inverse</span>
+<span class="sd">            of the first mask as the second mask.</span>
+<span class="sd">        sfxn: Optional score function to use. If not provided, will default to beta2016</span>
+<span class="sd">        sum_terms: If True, sum all score terms into a single score per pose. If False,</span>
+<span class="sd">            return per-term scores.</span>
+<span class="sd">        minimize: If True (default), run cartesian minimization on the masked atoms before</span>
+<span class="sd">            computing the DDG score.</span>
+<span class="sd">        pack: If True, pack (repack) rotamers of residues in the mask and residues adjacent</span>
+<span class="sd">            to the mask (computed via ``compute_block_adjacency``) before the minimization step.</span>
+<span class="sd">        return_pose_stack: If True, also return the (possibly packed/minimized) pose stack</span>
+<span class="sd">            that was actually scored, as ``(ddg_scores, pose_stack)``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor of shape [n_poses] or [n_terms, n_poses] containing the ddg score for each pose,</span>
+<span class="sd">        separated by terms if requested. If ``return_pose_stack`` is True, returns a tuple</span>
+<span class="sd">        ``(ddg_scores, pose_stack)``.</span>
+<span class="sd">    """</span>
+    <span class="n">torch_device</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+
+    <span class="k">if</span> <span class="n">sfxn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+
+        <span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">pack</span><span class="p">:</span>
+        <span class="c1"># Compute block-level centroids and furthest-atom distances.</span>
+        <span class="n">block_centroids</span><span class="p">,</span> <span class="n">block_furthest_dist</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">compute_block_centroids_and_furthest_dist</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Compute adjacency matrix: blocks i and j are adjacent when the</span>
+        <span class="c1"># distance between their centroids is less than the sum of their</span>
+        <span class="c1"># furthest-atom distances plus a constant (default 5.0 A).</span>
+        <span class="n">adjacency</span> <span class="o">=</span> <span class="n">compute_block_adjacency</span><span class="p">(</span>
+            <span class="n">block_centroids</span><span class="p">,</span> <span class="n">block_furthest_dist</span>
+        <span class="p">)</span>  <span class="c1"># [n_poses, n_blocks, n_blocks]</span>
+
+        <span class="c1"># Find blocks adjacent to any masked block.</span>
+        <span class="c1"># adjacency[i, j, k] True -&gt; block j (masked) and block k are adjacent.</span>
+        <span class="c1"># nearby_mask[i, k] = any masked block j is adjacent to block k.</span>
+        <span class="n">nearby_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">adjacency</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># [n_poses, n_blocks]</span>
+
+        <span class="c1"># Combine: pack residues in the original mask AND adjacent residues.</span>
+        <span class="n">pack_mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">|</span> <span class="n">nearby_mask</span>  <span class="c1"># [n_poses, n_blocks]</span>
+
+        <span class="c1"># Build a PackerTask restricted to repacking only the selected residues.</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span><span class="p">,</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">PackerPalette</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">IncludeCurrentSampler</span><span class="p">,</span> <span class="n">FixedAAChiSampler</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_dunbrack_sampler_from_database</span>
+
+        <span class="n">palette</span> <span class="o">=</span> <span class="n">PackerPalette</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">database</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">database</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sfxn</span><span class="p">,</span> <span class="s2">"_param_db"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">dun_sampler</span> <span class="o">=</span> <span class="n">create_dunbrack_sampler_from_database</span><span class="p">(</span><span class="n">database</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">task</span> <span class="o">=</span> <span class="n">PackerTask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">palette</span><span class="p">)</span>
+        <span class="n">fixed_sampler</span> <span class="o">=</span> <span class="n">FixedAAChiSampler</span><span class="p">()</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">dun_sampler</span><span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">fixed_sampler</span><span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">add_conformer_sampler</span><span class="p">(</span><span class="n">IncludeCurrentSampler</span><span class="p">())</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>
+
+        <span class="c1"># Disable packing for blocks that are not in the pack_mask.</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">disable_packing_by_block_mask</span><span class="p">(</span><span class="o">~</span><span class="n">pack_mask</span><span class="p">)</span>
+
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pack_rotamers</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">minimize</span><span class="p">:</span>
+        <span class="n">coord_mask</span> <span class="o">=</span> <span class="n">build_coord_mask_for_mask_and_interacting_atoms</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span>
+
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">run_cart_min</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">coord_mask</span><span class="p">)</span>
+
+    <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+    <span class="n">block_pair_scores</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># block_pair_scores shape: [n_terms, n_poses, n_blocks, n_blocks]</span>
+    <span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">n_blocks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">block_pair_scores</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># mask shape: [n_poses, n_blocks]</span>
+    <span class="c1"># Use mask2 if provided, otherwise use ~mask for the second set of indices</span>
+    <span class="n">other_mask</span> <span class="o">=</span> <span class="n">mask2</span> <span class="k">if</span> <span class="n">mask2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="o">~</span><span class="n">mask</span>
+
+    <span class="c1"># Create masks for both sides of the diagonal for each pose</span>
+    <span class="c1"># Side 1: i is in mask, j is in other_mask</span>
+    <span class="n">mask_i</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># Shape: [n_poses, n_blocks, 1]</span>
+    <span class="n">other_j</span> <span class="o">=</span> <span class="n">other_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Shape: [n_poses, 1, n_blocks]</span>
+    <span class="n">cross_mask_1</span> <span class="o">=</span> <span class="n">mask_i</span> <span class="o">&amp;</span> <span class="n">other_j</span>
+
+    <span class="c1"># Side 2: i is in other_mask, j is in mask</span>
+    <span class="n">other_i</span> <span class="o">=</span> <span class="n">other_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># Shape: [n_poses, n_blocks, 1]</span>
+    <span class="n">mask_j</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Shape: [n_poses, 1, n_blocks]</span>
+    <span class="n">cross_mask_2</span> <span class="o">=</span> <span class="n">other_i</span> <span class="o">&amp;</span> <span class="n">mask_j</span>
+
+    <span class="c1"># Combine both sides</span>
+    <span class="n">cross_mask</span> <span class="o">=</span> <span class="n">cross_mask_1</span> <span class="o">|</span> <span class="n">cross_mask_2</span>  <span class="c1"># Shape: [n_poses, n_blocks, n_blocks]</span>
+
+    <span class="c1"># Expand mask to cover each score term</span>
+    <span class="n">cross_mask</span> <span class="o">=</span> <span class="n">cross_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_terms</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Apply mask and sum all of the block pair energies</span>
+    <span class="n">ddg_scores</span> <span class="o">=</span> <span class="n">block_pair_scores</span><span class="p">[</span><span class="n">cross_mask</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_terms</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">sum_terms</span><span class="p">:</span>
+        <span class="n">ddg_scores</span> <span class="o">=</span> <span class="n">ddg_scores</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_pose_stack</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ddg_scores</span><span class="p">,</span> <span class="n">pose_stack</span>
+
+    <span class="k">return</span> <span class="n">ddg_scores</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">res_mask_to_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Convert a block-level (residue) boolean mask to an atom-level coordinate mask.</span>
+
+<span class="sd">    For each pose, atoms belonging to blocks where the mask is True are marked as True</span>
+<span class="sd">    in the output. The output mask can be used as a ``coord_mask`` argument to</span>
+<span class="sd">    functions like ``run_cart_min``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: The pose stack. Must have attributes ``coords``, ``max_n_blocks``,</span>
+<span class="sd">            ``max_n_block_atoms``, ``block_coord_offset64``, and ``real_atoms``.</span>
+<span class="sd">        mask: Boolean tensor of shape ``[n_poses, n_blocks]``. ``True`` at</span>
+<span class="sd">            ``mask[i, j]`` indicates that all atoms of block ``j`` in pose ``i``</span>
+<span class="sd">            should be marked.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Boolean tensor of shape ``[n_poses, max_n_atoms_per_pose]``, where</span>
+<span class="sd">        ``max_n_atoms_per_pose = pose_stack.coords.shape[1]``.</span>
+<span class="sd">    """</span>
+    <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">n_blocks</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span>
+    <span class="n">max_n_block_atoms</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_block_atoms</span>
+
+    <span class="c1"># Expand the block mask to per-atom indices</span>
+    <span class="n">block_coord_offset64</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span>  <span class="c1"># [n_poses, n_blocks]</span>
+
+    <span class="c1"># For each block, we need to know which flat coord indices are real atoms.</span>
+    <span class="c1"># block_coord_offset64[i, j] is the starting flat index of block j in pose i.</span>
+    <span class="c1"># The k-th atom (0 &lt;= k &lt; max_n_block_atoms) of block j has flat index</span>
+    <span class="c1">#   flat_idx[i, j, k] = block_coord_offset64[i, j] + k</span>
+    <span class="c1">#</span>
+    <span class="c1"># Not every k corresponds to a real atom (due to padding); we only mark</span>
+    <span class="c1"># those where real_expanded_pose_ats[i, j, k] is True.</span>
+
+    <span class="c1"># atom_local_idx[k] = k</span>
+    <span class="n">atom_local_idx</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_block_atoms</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">n_blocks</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># flat_atom_idx[i, j, k] = block_coord_offset64[i, j] + k</span>
+    <span class="n">flat_atom_idx</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">block_coord_offset64</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">atom_local_idx</span>
+    <span class="p">)</span>  <span class="c1"># [n_poses, n_blocks, max_n_block_atoms]</span>
+
+    <span class="c1"># Keep an auxiliary index for scatter: [n_poses, -1]  (in case of binning we need 2D)</span>
+    <span class="n">flat_atom_idx_flat</span> <span class="o">=</span> <span class="n">flat_atom_idx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Real-atom expanded mask: [n_poses, n_blocks, max_n_block_atoms]</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">real_expanded_pose_ats</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">expand_coords</span><span class="p">()</span>
+
+    <span class="c1"># Block mask expanded to atom granularity: [n_poses, n_blocks, max_n_block_atoms]</span>
+    <span class="n">block_mask_expanded</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_n_block_atoms</span><span class="p">)</span>
+
+    <span class="c1"># Atom is masked if its block is masked AND it is a real atom</span>
+    <span class="n">atom_is_masked</span> <span class="o">=</span> <span class="n">block_mask_expanded</span> <span class="o">&amp;</span> <span class="n">real_expanded_pose_ats</span>
+
+    <span class="c1"># Flatten for scatter</span>
+    <span class="n">atom_is_masked_flat</span> <span class="o">=</span> <span class="n">atom_is_masked</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># [n_poses, ...]</span>
+
+    <span class="c1"># Build output coord_mask</span>
+    <span class="n">coord_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Guard against out-of-range flat indices (padding in expanded view can exceed max_n_atoms)</span>
+    <span class="n">valid_flat_idx</span> <span class="o">=</span> <span class="n">flat_atom_idx_flat</span> <span class="o">&lt;</span> <span class="n">max_n_atoms</span>
+
+    <span class="n">atom_is_masked_flat_safe</span> <span class="o">=</span> <span class="n">atom_is_masked_flat</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">atom_is_masked_flat_safe</span><span class="p">[</span><span class="o">~</span><span class="n">valid_flat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">flat_atom_idx_flat_safe</span> <span class="o">=</span> <span class="n">flat_atom_idx_flat</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">flat_atom_idx_flat_safe</span><span class="p">[</span><span class="o">~</span><span class="n">valid_flat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">coord_mask</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">flat_atom_idx_flat_safe</span><span class="p">,</span> <span class="n">atom_is_masked_flat_safe</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">coord_mask</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">build_sidechain_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Build a coord_mask that selects only atoms belonging to sidechains.</span>
+
+<span class="sd">    For polymeric residues, sidechain atoms are defined as real atoms that are</span>
+<span class="sd">    NOT mainchain atoms. For non-polymeric residues, all real atoms are</span>
+<span class="sd">    considered sidechain atoms. The output mask can be used as a ``coord_mask``</span>
+<span class="sd">    argument to functions like ``run_cart_min``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: The pose stack. Must have attributes ``coords``,</span>
+<span class="sd">            ``max_n_blocks``, ``max_n_block_atoms``, ``block_coord_offset64``,</span>
+<span class="sd">            ``real_atoms``, ``block_type_ind64``, and ``packed_block_types``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Boolean tensor of shape ``[n_poses, max_n_atoms_per_pose]``, where</span>
+<span class="sd">        ``max_n_atoms_per_pose = pose_stack.coords.shape[1]``. True at</span>
+<span class="sd">        ``coord_mask[i, j]`` indicates that atom ``j`` of pose ``i`` is a</span>
+<span class="sd">        sidechain atom.</span>
+<span class="sd">    """</span>
+    <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">n_blocks</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span>
+    <span class="n">max_n_block_atoms</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_block_atoms</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+
+    <span class="c1"># Expand coords to get real atom mask [n_poses, n_blocks, max_n_block_atoms]</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">real_expanded_pose_ats</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">expand_coords</span><span class="p">()</span>
+
+    <span class="c1"># block_coord_offset64[i, j] = starting flat coord index of block j in pose i</span>
+    <span class="n">block_coord_offset64</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span>  <span class="c1"># [n_poses, n_blocks]</span>
+
+    <span class="c1"># atom_local_idx[i, j, k] = k  (atom index within block)</span>
+    <span class="n">atom_local_idx</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_block_atoms</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">n_blocks</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># flat_atom_idx[i, j, k] = block_coord_offset64[i, j] + k</span>
+    <span class="n">flat_atom_idx</span> <span class="o">=</span> <span class="n">block_coord_offset64</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">atom_local_idx</span>
+    <span class="n">flat_atom_idx_flat</span> <span class="o">=</span> <span class="n">flat_atom_idx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Build expanded sidechain mask [n_poses, n_blocks, max_n_block_atoms]</span>
+    <span class="n">block_type_ind64</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span>  <span class="c1"># [n_poses, n_blocks]</span>
+
+    <span class="n">is_sidechain_expanded</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">n_blocks</span><span class="p">,</span> <span class="n">max_n_block_atoms</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">bt_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">):</span>
+        <span class="n">rt</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">bt_idx</span><span class="p">]</span>
+        <span class="n">mc_atoms</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">mainchain_atoms</span> <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Get positions of this block type in the pose stack</span>
+        <span class="n">bt_positions</span> <span class="o">=</span> <span class="n">block_type_ind64</span> <span class="o">==</span> <span class="n">bt_idx</span>  <span class="c1"># [n_poses, n_blocks]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">bt_positions</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Create mask for real atoms of this block type</span>
+        <span class="n">bt_real_atoms</span> <span class="o">=</span> <span class="n">real_expanded_pose_ats</span> <span class="o">&amp;</span> <span class="n">bt_positions</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+            <span class="mi">2</span>
+        <span class="p">)</span>  <span class="c1"># [n_poses, n_blocks, max_n_block_atoms]</span>
+
+        <span class="k">if</span> <span class="n">mc_atoms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_atoms</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Get mainchain atom indices</span>
+            <span class="n">mc_atom_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">mc_atoms</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="c1"># Create mask for mainchain atoms</span>
+            <span class="n">mc_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="n">max_n_block_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="n">mc_mask</span><span class="p">[</span><span class="n">mc_atom_indices</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="c1"># Sidechain = real atoms that are NOT mainchain</span>
+            <span class="n">is_sidechain_expanded</span><span class="p">[</span><span class="n">bt_positions</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt_real_atoms</span><span class="p">[</span><span class="n">bt_positions</span><span class="p">]</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">mc_mask</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Non-polymeric: all real atoms are sidechain</span>
+            <span class="n">is_sidechain_expanded</span><span class="p">[</span><span class="n">bt_positions</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt_real_atoms</span><span class="p">[</span><span class="n">bt_positions</span><span class="p">]</span>
+
+    <span class="c1"># Flatten sidechain mask for scatter operation</span>
+    <span class="n">is_sidechain_flat</span> <span class="o">=</span> <span class="n">is_sidechain_expanded</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Build output coord_mask</span>
+    <span class="n">coord_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Guard against out-of-range flat indices (padding can exceed max_n_atoms)</span>
+    <span class="n">valid_flat_idx</span> <span class="o">=</span> <span class="n">flat_atom_idx_flat</span> <span class="o">&lt;</span> <span class="n">max_n_atoms</span>
+    <span class="n">is_sidechain_flat_safe</span> <span class="o">=</span> <span class="n">is_sidechain_flat</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">is_sidechain_flat_safe</span><span class="p">[</span><span class="o">~</span><span class="n">valid_flat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">flat_atom_idx_flat_safe</span> <span class="o">=</span> <span class="n">flat_atom_idx_flat</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">flat_atom_idx_flat_safe</span><span class="p">[</span><span class="o">~</span><span class="n">valid_flat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">coord_mask</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">flat_atom_idx_flat_safe</span><span class="p">,</span> <span class="n">is_sidechain_flat_safe</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">coord_mask</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_block_centroids_and_furthest_dist</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""For each block in a pose stack, compute the average coordinate (centroid)</span>
+<span class="sd">    of all of its atoms, as well as the distance of the furthest atom from this</span>
+<span class="sd">    average.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: A PoseStack object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        block_centroids: Tensor of shape [n_poses, n_blocks, 3] containing</span>
+<span class="sd">            the average coordinate (centroid) of all real atoms in each block.</span>
+<span class="sd">            Padding blocks and blocks with no atoms will have NaN centroids.</span>
+<span class="sd">        block_furthest_dist: Tensor of shape [n_poses, n_blocks] containing</span>
+<span class="sd">            the distance of the furthest atom from the centroid for each block.</span>
+<span class="sd">            Padding blocks and blocks with no atoms will have NaN values.</span>
+<span class="sd">    """</span>
+    <span class="c1"># Expand coords to [n_poses, n_blocks, max_n_block_atoms, 3]</span>
+    <span class="n">expanded_coords</span><span class="p">,</span> <span class="n">real_expanded_pose_ats</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">expand_coords</span><span class="p">()</span>
+
+    <span class="c1"># Count real atoms per block: [n_poses, n_blocks, 1]</span>
+    <span class="n">n_real_atoms</span> <span class="o">=</span> <span class="n">real_expanded_pose_ats</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Compute sum of coordinates for real atoms in each block</span>
+    <span class="n">masked_coords</span> <span class="o">=</span> <span class="n">expanded_coords</span> <span class="o">*</span> <span class="n">real_expanded_pose_ats</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+    <span class="n">coord_sum</span> <span class="o">=</span> <span class="n">masked_coords</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># [n_poses, n_blocks, 3]</span>
+
+    <span class="c1"># Average (centroid) for each block; avoid division by zero for padding blocks</span>
+    <span class="n">has_atoms</span> <span class="o">=</span> <span class="n">n_real_atoms</span> <span class="o">&gt;</span> <span class="mi">0</span>  <span class="c1"># [n_poses, n_blocks, 1]</span>
+    <span class="n">block_centroids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">has_atoms</span><span class="p">,</span>
+        <span class="n">coord_sum</span> <span class="o">/</span> <span class="n">n_real_atoms</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Compute distances from each atom to its block centroid</span>
+    <span class="n">center_coords</span> <span class="o">=</span> <span class="n">expanded_coords</span> <span class="o">-</span> <span class="n">block_centroids</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">atom_dists</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">center_coords</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="p">)</span>  <span class="c1"># [n_poses, n_blocks, max_n_block_atoms]</span>
+
+    <span class="c1"># Max distance per block (zero out padding atoms first)</span>
+    <span class="n">atom_dists_masked</span> <span class="o">=</span> <span class="n">atom_dists</span> <span class="o">*</span> <span class="n">real_expanded_pose_ats</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+    <span class="n">block_max_dist</span> <span class="o">=</span> <span class="n">atom_dists_masked</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># [n_poses, n_blocks]</span>
+
+    <span class="c1"># Set padding blocks to NaN</span>
+    <span class="n">is_real_block</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># [n_poses, n_blocks]</span>
+    <span class="n">block_furthest_dist</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">is_real_block</span> <span class="o">&amp;</span> <span class="n">has_atoms</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="n">block_max_dist</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Also set centroids for padding blocks to NaN</span>
+    <span class="n">block_centroids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">is_real_block</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="n">block_centroids</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">block_centroids</span><span class="p">,</span> <span class="n">block_furthest_dist</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">build_coord_mask_for_mask_and_interacting_atoms</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+
+    <span class="c1"># Build coord_mask: True for atoms in masked blocks and sidechain atoms within 5.0 Angstroms.</span>
+    <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">n_blocks</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span>
+    <span class="n">max_n_block_atoms</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_block_atoms</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+
+    <span class="c1"># Expand coords to [n_poses, n_blocks, max_n_block_atoms, 3]</span>
+    <span class="n">expanded_coords</span><span class="p">,</span> <span class="n">real_expanded_pose_ats</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">expand_coords</span><span class="p">()</span>
+
+    <span class="c1"># Get number of atoms per block [n_poses, n_blocks]</span>
+    <span class="c1"># n_ats_per_block = pose_stack.n_ats_per_block</span>
+
+    <span class="c1"># Create atom-level mask for atoms in masked blocks</span>
+    <span class="c1"># block_atom_mask[i, j, k] = True if block j is masked for pose i and atom k is real</span>
+    <span class="n">block_mask_expanded</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
+        <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_n_block_atoms</span>
+    <span class="p">)</span>  <span class="c1"># [n_poses, n_blocks, max_n_block_atoms]</span>
+    <span class="n">atom_in_masked_block</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">block_mask_expanded</span> <span class="o">&amp;</span> <span class="n">real_expanded_pose_ats</span>
+    <span class="p">)</span>  <span class="c1"># [n_poses, n_blocks, max_n_block_atoms]</span>
+
+    <span class="c1"># Flatten to per-atom mask [n_poses, n_blocks * max_n_block_atoms]</span>
+    <span class="n">atom_in_masked_block_flat</span> <span class="o">=</span> <span class="n">atom_in_masked_block</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Create a mask for real atoms in the pose [n_poses, max_n_atoms]</span>
+    <span class="n">real_atoms</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">real_atoms</span>
+
+    <span class="c1"># Map expanded atom indices to flat coords indices</span>
+    <span class="c1"># For each pose, the atoms are laid out contiguously in coords</span>
+    <span class="c1"># We need to figure out which flat index each (block, atom_in_block) pair maps to</span>
+    <span class="n">block_coord_offset64</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span>  <span class="c1"># [n_poses, n_blocks]</span>
+
+    <span class="c1"># Create flat indices for all atoms in expanded view</span>
+    <span class="c1"># atom_local_idx[i, j, k] = k (atom index within block)</span>
+    <span class="n">atom_local_idx</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_block_atoms</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">n_blocks</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># flat_atom_idx[i, j, k] = block_coord_offset64[i, j] + k</span>
+    <span class="n">flat_atom_idx</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">block_coord_offset64</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">atom_local_idx</span>
+    <span class="p">)</span>  <span class="c1"># [n_poses, n_blocks, max_n_block_atoms]</span>
+    <span class="n">flat_atom_idx_flat</span> <span class="o">=</span> <span class="n">flat_atom_idx</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">n_poses</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="p">)</span>  <span class="c1"># [n_poses, n_blocks * max_n_block_atoms]</span>
+
+    <span class="c1"># Create coord_mask initialized to False</span>
+    <span class="n">coord_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Set True for atoms in masked blocks</span>
+    <span class="c1"># Use scatter to set the appropriate indices</span>
+    <span class="c1"># Only include valid flat indices (some may exceed max_n_atoms</span>
+    <span class="c1"># due to padding in the expanded block view).</span>
+    <span class="n">valid_flat_idx</span> <span class="o">=</span> <span class="n">flat_atom_idx_flat</span> <span class="o">&lt;</span> <span class="n">max_n_atoms</span>
+    <span class="c1"># Keep 2D shape; for invalid positions set src to False (no-op) and index to 0 (safe dummy)</span>
+    <span class="n">atom_in_masked_block_flat_safe</span> <span class="o">=</span> <span class="n">atom_in_masked_block_flat</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">atom_in_masked_block_flat_safe</span><span class="p">[</span><span class="o">~</span><span class="n">valid_flat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">flat_atom_idx_flat_safe</span> <span class="o">=</span> <span class="n">flat_atom_idx_flat</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">flat_atom_idx_flat_safe</span><span class="p">[</span><span class="o">~</span><span class="n">valid_flat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coord_mask</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">flat_atom_idx_flat_safe</span><span class="p">,</span> <span class="n">atom_in_masked_block_flat_safe</span><span class="p">)</span>
+
+    <span class="c1"># Build sidechain atom mask: True for atoms that are sidechain atoms</span>
+    <span class="c1"># An atom is a sidechain atom if it's real and NOT a mainchain atom</span>
+    <span class="c1"># For non-polymeric residues, all atoms are considered sidechain</span>
+    <span class="n">block_type_ind64</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span>  <span class="c1"># [n_poses, n_blocks]</span>
+
+    <span class="c1"># Create expanded sidechain mask [n_poses, n_blocks, max_n_block_atoms]</span>
+    <span class="n">is_sidechain_expanded</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">n_blocks</span><span class="p">,</span> <span class="n">max_n_block_atoms</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">bt_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">):</span>
+        <span class="n">rt</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">bt_idx</span><span class="p">]</span>
+        <span class="n">mc_atoms</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">mainchain_atoms</span> <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Get positions of this block type in pose_stack</span>
+        <span class="n">bt_positions</span> <span class="o">=</span> <span class="n">block_type_ind64</span> <span class="o">==</span> <span class="n">bt_idx</span>  <span class="c1"># [n_poses, n_blocks]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">bt_positions</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Create mask for real atoms of this block type</span>
+        <span class="n">bt_real_atoms</span> <span class="o">=</span> <span class="n">real_expanded_pose_ats</span> <span class="o">&amp;</span> <span class="n">bt_positions</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+            <span class="mi">2</span>
+        <span class="p">)</span>  <span class="c1"># [n_poses, n_blocks, max_n_block_atoms]</span>
+
+        <span class="k">if</span> <span class="n">mc_atoms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_atoms</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Get mainchain atom indices</span>
+            <span class="n">mc_atom_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">mc_atoms</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="c1"># Create mask for mainchain atoms</span>
+            <span class="n">mc_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="n">max_n_block_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="n">mc_mask</span><span class="p">[</span><span class="n">mc_atom_indices</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="c1"># Sidechain = real atoms that are NOT mainchain</span>
+            <span class="n">is_sidechain_expanded</span><span class="p">[</span><span class="n">bt_positions</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt_real_atoms</span><span class="p">[</span><span class="n">bt_positions</span><span class="p">]</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">mc_mask</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Non-polymeric: all real atoms are sidechain</span>
+            <span class="n">is_sidechain_expanded</span><span class="p">[</span><span class="n">bt_positions</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt_real_atoms</span><span class="p">[</span><span class="n">bt_positions</span><span class="p">]</span>
+
+    <span class="c1"># Now find atoms within 5.0 Angstroms of any masked atom</span>
+    <span class="c1"># Get coordinates of masked atoms and all real atoms</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span>  <span class="c1"># [n_poses, max_n_atoms, 3]</span>
+
+    <span class="c1"># Create a per-pose distance computation</span>
+    <span class="c1"># For each pose, compute distance from each real atom to nearest masked atom</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_poses</span><span class="p">):</span>
+        <span class="c1"># Get masked atom indices for this pose (flat indices into coords)</span>
+        <span class="n">masked_flat_idx</span> <span class="o">=</span> <span class="n">flat_atom_idx_flat</span><span class="p">[</span>
+            <span class="n">p</span><span class="p">,</span> <span class="n">atom_in_masked_block_flat</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+        <span class="p">]</span>  <span class="c1"># [n_masked_atoms]</span>
+
+        <span class="k">if</span> <span class="n">masked_flat_idx</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Get masked atom coordinates [n_masked_atoms, 3]</span>
+        <span class="n">masked_atom_coords</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">masked_flat_idx</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># [n_masked_atoms, 3]</span>
+
+        <span class="c1"># Get all real atom coordinates for this pose [n_real_atoms, 3]</span>
+        <span class="n">real_atom_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">real_atoms</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span>
+            <span class="mi">0</span>
+        <span class="p">]</span>  <span class="c1"># [n_real_atoms]</span>
+        <span class="n">all_real_coords</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">real_atom_indices</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># [n_real_atoms, 3]</span>
+
+        <span class="c1"># Compute pairwise distances [n_real_atoms, n_masked_atoms]</span>
+        <span class="c1"># Using broadcasting: all_real_coords[:, None, :] - masked_atom_coords[None, :, :]</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">all_real_coords</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">masked_atom_coords</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+            <span class="mi">0</span>
+        <span class="p">)</span>  <span class="c1"># [n_real_atoms, n_masked_atoms, 3]</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">diff</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>  <span class="c1"># [n_real_atoms, n_masked_atoms]</span>
+
+        <span class="c1"># Find atoms within 5.0 Angstroms of any masked atom.</span>
+        <span class="n">min_distances</span> <span class="o">=</span> <span class="n">distances</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># [n_real_atoms]</span>
+        <span class="n">nearby_atoms</span> <span class="o">=</span> <span class="n">min_distances</span> <span class="o">&lt;=</span> <span class="mf">5.0</span>  <span class="c1"># [n_real_atoms]</span>
+
+        <span class="c1"># For nearby atoms NOT in the original mask, only include sidechain atoms</span>
+        <span class="c1"># First, get the expanded sidechain mask for this pose, flattened</span>
+        <span class="n">is_sidechain_flat</span> <span class="o">=</span> <span class="n">is_sidechain_expanded</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span>
+        <span class="p">)</span>  <span class="c1"># [n_blocks * max_n_block_atoms]</span>
+
+        <span class="c1"># Create a per-atom sidechain mask for flat atom indices</span>
+        <span class="c1"># Some flat indices may exceed max_n_atoms due to padding in expanded view</span>
+        <span class="n">is_sidechain_per_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">valid_flat_idx_p</span> <span class="o">=</span> <span class="n">flat_atom_idx_flat</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">max_n_atoms</span>
+        <span class="n">flat_atom_idx_flat_p_safe</span> <span class="o">=</span> <span class="n">flat_atom_idx_flat</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="n">valid_flat_idx_p</span><span class="p">]</span>
+        <span class="n">is_sidechain_flat_safe</span> <span class="o">=</span> <span class="n">is_sidechain_flat</span><span class="p">[</span><span class="n">valid_flat_idx_p</span><span class="p">]</span>
+        <span class="n">is_sidechain_per_atom</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span>
+            <span class="mi">0</span><span class="p">,</span> <span class="n">flat_atom_idx_flat_p_safe</span><span class="p">,</span> <span class="n">is_sidechain_flat_safe</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Check which nearby atoms are sidechain atoms</span>
+        <span class="n">nearby_is_sidechain</span> <span class="o">=</span> <span class="n">is_sidechain_per_atom</span><span class="p">[</span><span class="n">real_atom_indices</span><span class="p">[</span><span class="n">nearby_atoms</span><span class="p">]]</span>
+
+        <span class="c1"># Determine which nearby atoms to include:</span>
+        <span class="c1"># - Atoms in masked blocks are always included (already in coord_mask)</span>
+        <span class="c1"># - Atoms NOT in masked blocks are only included if they are sidechain atoms</span>
+        <span class="n">atoms_in_masked_blocks</span> <span class="o">=</span> <span class="n">coord_mask</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">real_atom_indices</span><span class="p">[</span><span class="n">nearby_atoms</span><span class="p">]]</span>
+        <span class="n">atoms_to_add</span> <span class="o">=</span> <span class="n">nearby_atoms</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">atoms_to_add</span><span class="p">[</span><span class="n">nearby_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">atoms_in_masked_blocks</span> <span class="o">|</span> <span class="n">nearby_is_sidechain</span>
+
+        <span class="c1"># Update coord_mask for this pose</span>
+        <span class="n">coord_mask</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">real_atom_indices</span><span class="p">[</span><span class="n">atoms_to_add</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">coord_mask</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">build_coord_mask_for_mask_and_nearby_blocks</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Build a coord mask starting from a per-block mask, extending to</span>
+<span class="sd">    sidechain atoms of blocks whose centroid is within dynamic range of</span>
+<span class="sd">    any masked block centroid.</span>
+
+<span class="sd">    All atoms from blocks in ``mask`` are unconditionally included.</span>
+<span class="sd">    Additionally, sidechain atoms from any *unmasked* block are included</span>
+<span class="sd">    if the distance between its centroid and the centroid of **any** masked</span>
+<span class="sd">    block is **less than the sum of their respective furthest-atom-from-centroid</span>
+<span class="sd">    distances**.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pose_stack: The pose stack. Must have attributes ``coords``,</span>
+<span class="sd">            ``max_n_blocks``, ``max_n_block_atoms``, ``block_coord_offset64``,</span>
+<span class="sd">            ``real_atoms``, ``block_type_ind64``, ``block_type_ind``, and</span>
+<span class="sd">            ``packed_block_types``.</span>
+<span class="sd">        mask: Boolean tensor of shape ``[n_poses, n_blocks]``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Boolean tensor of shape ``[n_poses, max_n_atoms]`` suitable for</span>
+<span class="sd">        use as a ``coord_mask`` argument to ``run_cart_min``.</span>
+<span class="sd">    """</span>
+    <span class="c1"># n_poses, max_n_atoms, _ = pose_stack.coords.shape</span>
+    <span class="c1"># n_blocks = pose_stack.max_n_blocks</span>
+    <span class="c1"># max_n_block_atoms = pose_stack.max_n_block_atoms</span>
+
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="c1"># 1.  All atoms from the masked blocks themselves.</span>
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="n">coord_mask</span> <span class="o">=</span> <span class="n">res_mask_to_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="c1"># 2.  Per-atom sidechain mask.</span>
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="n">sidechain_mask</span> <span class="o">=</span> <span class="n">build_sidechain_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>  <span class="c1"># [n_poses, max_n_atoms]</span>
+
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="c1"># 3.  Block centroids and furthest-atom-from-centroid distances.</span>
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="n">block_centroids</span><span class="p">,</span> <span class="n">block_furthest_dist</span> <span class="o">=</span> <span class="n">compute_block_centroids_and_furthest_dist</span><span class="p">(</span>
+        <span class="n">pose_stack</span>
+    <span class="p">)</span>
+
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="c1"># 4.  Block-block adjacency matrix.</span>
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="n">adjacency</span> <span class="o">=</span> <span class="n">compute_block_adjacency</span><span class="p">(</span>
+        <span class="n">block_centroids</span><span class="p">,</span> <span class="n">block_furthest_dist</span>
+    <span class="p">)</span>  <span class="c1"># [n_poses, n_blocks, n_blocks]</span>
+
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="c1"># 5.  Find unmasked blocks adjacent to any masked block.</span>
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="c1"># adjacency[mask] -&gt; [n_poses, n_masked, n_blocks]</span>
+    <span class="c1"># any masked block adjacent to block j means block j should contribute sidechains</span>
+    <span class="c1"># Expand mask for broadcasting: mask[:, :, None] &amp; adjacency</span>
+    <span class="n">nearby_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">adjacency</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># [n_poses, n_blocks]</span>
+
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="c1"># 6.  Sidechain atoms from nearby blocks.</span>
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="c1"># all atoms from nearby blocks</span>
+    <span class="n">coord_mask_nearby</span> <span class="o">=</span> <span class="n">res_mask_to_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">nearby_mask</span><span class="p">)</span>
+    <span class="c1"># keep only the sidechain atoms among those</span>
+    <span class="n">sidechain_nearby_mask</span> <span class="o">=</span> <span class="n">coord_mask_nearby</span> <span class="o">&amp;</span> <span class="n">sidechain_mask</span>
+
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="c1"># 7.  Combine: all atoms from original masked blocks + sidechain</span>
+    <span class="c1">#     atoms from nearby blocks.  Avoid double-counting the masked</span>
+    <span class="c1">#     blocks themselves (their full atoms are already in coord_mask).</span>
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="n">coord_mask</span> <span class="o">=</span> <span class="n">coord_mask</span> <span class="o">|</span> <span class="n">sidechain_nearby_mask</span>
+
+    <span class="k">return</span> <span class="n">coord_mask</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_block_adjacency</span><span class="p">(</span><span class="n">block_centroids</span><span class="p">,</span> <span class="n">block_furthest_dist</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="mf">5.0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Compute a boolean block-level adjacency matrix.</span>
+
+<span class="sd">    Two blocks *i* and *j* (in the same pose) are considered adjacent when</span>
+<span class="sd">    the distance between their centroids is **less than the sum of their</span>
+<span class="sd">    furthest-atom-from-centroid distances plus a constant**.</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \\|\\mathbf{c}_i - \\mathbf{c}_j\\|</span>
+<span class="sd">        &lt; d_i + d_j + \\text{constant}</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        block_centroids: Tensor of shape ``[n_poses, n_blocks, 3]``</span>
+<span class="sd">            containing the centroid coordinate of each block (e.g. as</span>
+<span class="sd">            returned by :func:`compute_block_centroids_and_furthest_dist`).</span>
+<span class="sd">        block_furthest_dist: Tensor of shape ``[n_poses, n_blocks]``</span>
+<span class="sd">            containing the distance of the atom furthest from the centroid</span>
+<span class="sd">            for each block.</span>
+<span class="sd">        constant: A scalar added to the sum of furthest distances.  Default</span>
+<span class="sd">            is ``5.0``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Boolean tensor of shape ``[n_poses, n_blocks, n_blocks]`` where</span>
+<span class="sd">        ``adjacency[p, i, j]`` is ``True`` when the two blocks *i* and *j*</span>
+<span class="sd">        in pose *p* are adjacent.</span>
+
+<span class="sd">        The diagonal is always ``False`` (a block is not adjacent to itself).</span>
+<span class="sd">        Padding / NaN-containing blocks are treated as not adjacent to any</span>
+<span class="sd">        block.</span>
+<span class="sd">    """</span>
+    <span class="n">n_poses</span><span class="p">,</span> <span class="n">n_blocks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">block_centroids</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># Pairwise centroid distance [n_poses, n_blocks, n_blocks]</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">block_centroids</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">block_centroids</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">centroid_dists</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">diff</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">3</span><span class="p">))</span>
+
+    <span class="c1"># Sum of furthest distances [n_poses, n_blocks, n_blocks]</span>
+    <span class="n">dist_sum</span> <span class="o">=</span> <span class="n">block_furthest_dist</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">block_furthest_dist</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Adjacent if centroid distance &lt; furthest distance sum + constant</span>
+    <span class="n">adjacency</span> <span class="o">=</span> <span class="n">centroid_dists</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">dist_sum</span> <span class="o">+</span> <span class="n">constant</span><span class="p">)</span>
+
+    <span class="c1"># Exclude self (diagonal)</span>
+    <span class="n">adjacency</span> <span class="o">=</span> <span class="n">adjacency</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span>
+        <span class="n">n_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">block_centroids</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Exclude NaN blocks (padding / zero-atom blocks)</span>
+    <span class="n">has_nan</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">block_furthest_dist</span><span class="p">)</span>  <span class="c1"># [n_poses, n_blocks]</span>
+    <span class="n">adjacency</span> <span class="o">=</span> <span class="n">adjacency</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">has_nan</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">has_nan</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">adjacency</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

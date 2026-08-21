@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 315" role="img" aria-labelledby="title description">
+<title id="title">Working with TMol — 1UBQ residues 1–10 highlighted</title>
+<desc id="description">Static molecular render generated from 1UBQ.cif used by this tutorial.</desc>
+<metadata>Generated from tutorial fixtures: 1UBQ.cif</metadata>
+<rect width="560" height="315" rx="24" fill="#111a2d"/>
+<rect x="10" y="10" width="540" height="295" rx="18" fill="none" stroke="#263a5e" stroke-width="2"/>
+<polyline points="312.7,218.2 317.4,187.4 296.1,167.2 296.7,136.4 293.8,127.8 284.2,93.4 291.7,82.4 276.9,52.2 304.4,40.0 301.5,41.3 326.5,69.7 318.3,94.3 337.3,126.6 338.3,150.4 340.2,182.6 344.3,211.9 322.7,229.2 305.2,251.8 271.3,246.6 278.9,275.0 295.4,260.3 280.5,251.7 273.8,219.9 296.8,232.1 320.6,242.4 312.5,212.0 315.9,196.7 347.1,218.4 356.7,210.5 346.3,177.1 364.3,183.0 391.9,200.7 390.2,175.2 378.7,146.1 383.8,157.2 351.7,147.3 345.0,168.9 319.9,183.2 302.1,172.8 298.3,140.1 286.9,144.4 253.6,135.6 249.6,143.2 221.0,126.8 209.6,134.2 178.4,121.0 168.1,107.4 176.2,137.2 201.2,145.4 221.6,176.0 226.2,201.7 257.3,223.5 249.8,253.7 233.5,244.8 250.0,247.6 248.1,222.7 230.1,238.9 205.9,235.0 199.1,201.2 201.6,203.2 228.4,188.9 240.1,192.0 269.3,187.2 273.9,155.9 250.6,146.6 255.9,124.6 252.1,130.6 249.9,105.4 270.1,111.8 258.7,93.7 279.7,99.7 267.3,103.5 290.8,100.0 290.8,112.6 289.7,86.0 277.9,51.9" fill="none" stroke="#54c7ec" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<circle cx="312.7" cy="218.2" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="317.4" cy="187.4" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="296.1" cy="167.2" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="296.7" cy="136.4" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="293.8" cy="127.8" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="284.2" cy="93.4" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="291.7" cy="82.4" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="276.9" cy="52.2" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="304.4" cy="40.0" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+<circle cx="301.5" cy="41.3" r="7" fill="#ff4d6d" stroke="#fff3f5" stroke-width="1.5" opacity="1.0"/>
+</svg>

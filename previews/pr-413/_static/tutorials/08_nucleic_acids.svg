@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 315" role="img" aria-labelledby="title description">
+<title id="title">Nucleic acids — homeodomain–DNA and theophylline aptamer</title>
+<desc id="description">Static molecular render generated from 1HDD.cif, 1EHT.cif used by this tutorial.</desc>
+<metadata>Generated from tutorial fixtures: 1HDD.cif, 1EHT.cif</metadata>
+<rect width="560" height="315" rx="24" fill="#111a2d"/>
+<rect x="10" y="10" width="540" height="295" rx="18" fill="none" stroke="#263a5e" stroke-width="2"/>
+<polyline points="272.0,171.7 268.3,180.9 261.9,194.4 244.4,196.6 227.5,189.4 211.5,179.2 197.1,161.3 191.0,147.6 190.8,139.6 191.0,145.3 193.0,156.8 185.7,171.0 176.8,185.9 159.2,188.1 142.0,183.2 124.8,171.0 109.8,156.1 101.9,143.4 100.0,136.2 102.7,134.5 101.3,146.1" fill="none" stroke="#ff7b89" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="86.9,181.4 98.8,185.4 114.3,190.9 128.6,186.7 140.4,174.8 144.6,157.6 143.4,142.5 137.9,129.9 137.9,131.0 142.3,141.8 150.5,159.3 160.7,178.0 178.8,191.3 196.0,194.9 211.9,189.7 222.0,176.5 230.3,161.5 228.0,148.4 223.5,141.3 224.6,146.2 234.0,159.4" fill="none" stroke="#75d7e8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="176.0,199.2 182.4,202.3 185.0,192.2 189.5,193.4 199.5,191.2 201.1,186.3 210.8,188.8 216.0,180.6 214.5,182.7 203.5,182.1 200.8,172.2 205.6,168.5 199.3,170.7 190.2,167.8 192.1,157.6 195.1,156.5 185.4,158.9 178.8,151.4 182.6,143.0 179.8,144.0 170.1,146.6 165.5,145.6 157.1,150.4 159.9,161.5 155.0,165.9 154.1,176.5 161.3,179.3 168.3,174.4 166.4,178.4 169.1,188.5 178.5,188.3 183.1,185.0 181.6,194.4 187.6,201.5 196.1,196.5 197.0,194.2 194.3,203.6 186.6,198.0 175.6,198.2 167.2,190.2 163.2,187.6 171.9,184.8 173.1,178.4 162.3,173.7 163.0,170.7 172.7,167.7 167.9,159.6 158.9,156.3 165.8,155.7 172.0,150.3 162.9,141.8 160.5,141.4 169.7,138.6 169.7,131.8 159.3,126.0 162.3,126.0 171.8,123.9" fill="none" stroke="#54c7ec" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="92.3,191.4 82.8,194.4 75.4,187.4 67.0,182.2 56.7,174.9 52.6,165.6 42.8,163.0 36.0,153.1 36.6,150.2 47.7,151.8 48.1,148.5 41.7,138.4 47.7,137.1 57.2,139.5 52.2,131.8 48.9,124.1 59.5,125.9 63.8,126.1 57.1,115.9 61.3,111.4 72.0,115.6 76.8,123.1 86.2,128.0 86.1,134.9 92.4,135.2 97.0,144.2 90.6,141.4 81.7,137.9 84.0,147.5 84.2,152.5 74.4,145.4 68.7,147.5 72.7,158.7 68.9,159.6 59.6,152.1 56.9,156.0 62.1,166.7 68.6,167.9 79.7,172.0 85.9,164.5 91.2,168.9 81.3,167.8 78.0,156.8 87.8,155.4 86.8,159.3 75.8,153.9 78.9,144.2 87.5,146.8 80.8,149.4 72.5,140.4 79.4,133.5 83.5,138.3 73.1,136.8 68.7,126.2 77.7,123.8 75.2,126.7 66.6,116.8" fill="none" stroke="#77d6a5" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="454.5,86.0 446.7,83.5 460.1,96.6 474.2,127.0 476.8,159.0 465.8,189.6 438.5,211.3 410.0,216.6 387.0,231.6 342.5,212.4 323.7,173.0 312.0,136.6 320.4,105.9 339.4,83.4 341.9,85.8 348.7,124.1 382.2,158.7 419.5,170.5 427.8,163.9 422.5,144.4 404.4,128.3 382.8,130.4 412.5,134.4 372.2,139.0 359.7,133.3 336.2,146.3 346.3,180.8 389.1,178.7 398.0,201.2 438.7,225.4 477.1,215.4 507.5,212.6 524.0,181.7" fill="none" stroke="#ff7b89" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="423.9,218.3 417.9,211.7" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="417.9,211.7 411.9,214.2" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="417.9,211.7 418.3,203.3" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="411.9,214.2 412.3,222.1" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="411.9,214.2 405.7,208.4" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="405.7,208.4 399.7,211.1" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="405.7,208.4 405.9,199.9" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="405.9,199.9 411.8,197.5" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="405.9,199.9 400.5,192.4" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="411.8,197.5 418.3,203.3" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="411.8,197.5 410.1,188.4" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="418.3,203.3 423.8,201.5" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="410.1,188.4 403.3,185.9" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="403.3,185.9 400.5,192.4" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1.0"/>
+<circle cx="423.9" cy="218.3" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="417.9" cy="211.7" r="4.2" fill="#5ca9ff" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="411.9" cy="214.2" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="412.3" cy="222.1" r="4.2" fill="#ff6577" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="405.7" cy="208.4" r="4.2" fill="#5ca9ff" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="399.7" cy="211.1" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="405.9" cy="199.9" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="411.8" cy="197.5" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="418.3" cy="203.3" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="423.8" cy="201.5" r="4.2" fill="#ff6577" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="410.1" cy="188.4" r="4.2" fill="#5ca9ff" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="403.3" cy="185.9" r="4.2" fill="#f5c45d" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+<circle cx="400.5" cy="192.4" r="4.2" fill="#5ca9ff" stroke="#111a2d" stroke-width="1.5" opacity="1.0"/>
+</svg>
