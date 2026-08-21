@@ -1,0 +1,1206 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.database._patched_chemdb &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c9b21c7c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/database/_patched_chemdb';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.47';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.47" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../database.html" class="nav-link">tmol.database</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.database._patched_chemdb</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.database._patched_chemdb</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Element</span><span class="p">,</span>
+    <span class="n">AtomType</span><span class="p">,</span>
+    <span class="n">RawResidueType</span><span class="p">,</span>
+    <span class="n">VariantType</span><span class="p">,</span>
+    <span class="n">ChemicalDatabase</span><span class="p">,</span>
+    <span class="n">Icoor</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.extern.pysmiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_smiles</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">networkx.algorithms.isomorphism</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">iso</span>
+
+
+<span class="c1"># build a graph from a restype</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RestypeGraphBuilder</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atomtypedict</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atomtypedict</span> <span class="o">=</span> <span class="n">atomtypedict</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_raw_res</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+            <span class="n">mol</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">atomtypedict</span><span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">atom_type</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">bonds</span><span class="p">:</span>
+            <span class="n">mol</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">connections</span><span class="p">:</span>
+            <span class="n">mol</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="s2">"{"</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">"}"</span><span class="p">)</span>
+            <span class="n">mol</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">atom</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mol</span>
+
+
+<span class="c1"># remove all atom references from a raw restype</span>
+<span class="c1"># delete atoms, bonds, torsions, connections, and mainchain entries involving atom</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">remove_atom</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">atom</span><span class="p">):</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">atoms</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">atom</span><span class="p">)</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">bonds</span> <span class="k">if</span> <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">atom</span> <span class="ow">and</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">atom</span><span class="p">)</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">torsions</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+        <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">torsions</span> <span class="k">if</span> <span class="n">atom</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">atom</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">atom</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">atom</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">atom</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">torsions</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+        <span class="n">x</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">torsions</span>
+        <span class="k">if</span> <span class="n">atom</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">connection</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">connections</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">connections</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">atom</span><span class="p">)</span>
+
+    <span class="c1"># atom_downstream_of_conn indexes every mainchain atom, so a patch that drops</span>
+    <span class="c1"># one (e.g. the DNA 5' terminus dropping P) must drop it here too</span>
+    <span class="n">mainchain</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">mainchain_atoms</span>
+    <span class="k">if</span> <span class="n">mainchain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mainchain</span><span class="p">:</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">properties</span><span class="p">,</span>
+            <span class="n">polymer</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="p">,</span>
+                <span class="n">mainchain_atoms</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">mainchain</span> <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="n">atom</span><span class="p">),</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">modify_atom</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">atom</span><span class="p">):</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">atom</span><span class="o">.</span><span class="n">name</span> <span class="k">else</span> <span class="n">atom</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span>
+
+
+<span class="c1"># update icoors corresponding to a patch definition</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_icoor</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">patch</span><span class="p">,</span> <span class="n">atoms_remove</span><span class="p">,</span> <span class="n">namemap</span><span class="p">):</span>
+    <span class="n">new_icoor</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">target_i</span> <span class="ow">in</span> <span class="n">patch</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">target_i</span><span class="o">.</span><span class="n">source</span><span class="p">:</span>
+            <span class="n">source_name_i</span> <span class="o">=</span> <span class="n">namemap</span><span class="p">[</span><span class="n">target_i</span><span class="o">.</span><span class="n">source</span><span class="p">]</span>
+            <span class="n">source_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">source_name_i</span><span class="p">]</span>
+            <span class="n">source_i</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="n">source_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">source_i</span> <span class="o">=</span> <span class="n">Icoor</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">phi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">grand_parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">great_grand_parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># map p, gp, ggp names</span>
+        <span class="n">p_i</span> <span class="o">=</span> <span class="n">source_i</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">parent</span> <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">parent</span>
+        <span class="k">if</span> <span class="n">p_i</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">:</span>
+            <span class="n">p_i</span> <span class="o">=</span> <span class="n">namemap</span><span class="p">[</span><span class="n">p_i</span><span class="p">]</span>
+        <span class="n">gp_i</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">source_i</span><span class="o">.</span><span class="n">grand_parent</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">grand_parent</span>
+            <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">grand_parent</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">gp_i</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">:</span>
+            <span class="n">gp_i</span> <span class="o">=</span> <span class="n">namemap</span><span class="p">[</span><span class="n">gp_i</span><span class="p">]</span>
+        <span class="n">ggp_i</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">source_i</span><span class="o">.</span><span class="n">great_grand_parent</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">great_grand_parent</span>
+            <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">great_grand_parent</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">ggp_i</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">:</span>
+            <span class="n">ggp_i</span> <span class="o">=</span> <span class="n">namemap</span><span class="p">[</span><span class="n">ggp_i</span><span class="p">]</span>
+
+        <span class="n">icoor_i</span> <span class="o">=</span> <span class="n">Icoor</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">target_i</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">phi</span><span class="o">=</span><span class="n">source_i</span><span class="o">.</span><span class="n">phi</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">phi</span> <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">phi</span><span class="p">,</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">source_i</span><span class="o">.</span><span class="n">theta</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">theta</span> <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
+            <span class="n">d</span><span class="o">=</span><span class="n">source_i</span><span class="o">.</span><span class="n">d</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">d</span> <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">d</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">p_i</span><span class="p">,</span>
+            <span class="n">grand_parent</span><span class="o">=</span><span class="n">gp_i</span><span class="p">,</span>
+            <span class="n">great_grand_parent</span><span class="o">=</span><span class="n">ggp_i</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">new_icoor</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">icoor_i</span><span class="p">)</span>
+
+    <span class="c1"># create final icoor list</span>
+    <span class="n">remove</span> <span class="o">=</span> <span class="p">[</span><span class="n">namemap</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atoms_remove</span><span class="p">]</span>
+    <span class="n">icoor</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">remove</span><span class="p">),</span> <span class="o">*</span><span class="n">new_icoor</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">icoor</span>
+
+
+<span class="c1"># get a list of atoms modified by a patch</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_modified_atoms</span><span class="p">(</span><span class="n">patch</span><span class="p">):</span>
+    <span class="n">added</span><span class="p">,</span> <span class="n">modded</span><span class="p">,</span> <span class="n">deleted</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">:</span>
+        <span class="n">deleted</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">:</span>
+        <span class="n">added</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">modify_atoms</span><span class="p">:</span>
+        <span class="n">modded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_connections</span><span class="p">:</span>
+        <span class="n">modded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">atom</span><span class="p">)</span>
+        <span class="n">added</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="c1"># modded finds all atoms whose CONNECTIVITY or COORDINATES have changed</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_bonds</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"&lt;"</span> <span class="ow">and</span> <span class="n">i</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"&gt;"</span> <span class="ow">and</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">modded</span><span class="p">:</span>
+            <span class="n">modded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">j</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"&lt;"</span> <span class="ow">and</span> <span class="n">j</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"&gt;"</span> <span class="ow">and</span> <span class="n">j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">modded</span><span class="p">:</span>
+            <span class="n">modded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">icoors</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"&lt;"</span> <span class="ow">and</span> <span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"&gt;"</span> <span class="ow">and</span> <span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">modded</span><span class="p">:</span>
+            <span class="n">modded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">added</span><span class="p">,</span> <span class="n">modded</span><span class="p">,</span> <span class="n">deleted</span>
+
+
+<span class="c1"># validate raw residues</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_raw_residue</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+    <span class="n">allatoms</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">atoms</span><span class="p">])</span>
+    <span class="n">allconns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">connections</span><span class="p">])</span>
+
+    <span class="n">_validate_raw_residue_atoms</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">allatoms</span><span class="p">)</span>
+    <span class="n">_validate_raw_residue_bonds</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">allatoms</span><span class="p">)</span>
+    <span class="n">_validate_raw_residue_torsions</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">allatoms</span><span class="p">,</span> <span class="n">allconns</span><span class="p">)</span>
+    <span class="n">_validate_raw_residue_connections</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">allatoms</span><span class="p">)</span>
+    <span class="n">_validate_raw_residue_icoors</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">allatoms</span><span class="p">,</span> <span class="n">allconns</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_raw_residue_atoms</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">allatoms</span><span class="p">):</span>
+    <span class="c1"># No duplicate atom names</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">allatoms</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">atoms</span><span class="p">):</span>
+        <span class="n">duplicated</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">at</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">atoms</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">at</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">duplicated</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">at2</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">atoms</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="p">:]):</span>
+                <span class="k">if</span> <span class="n">at</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">at2</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                    <span class="n">duplicated</span><span class="p">[</span><span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">"Bad raw residue: </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Error: duplicated_atom_name; atoms may appear only once</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Offending atoms:</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span><span class="sa">f</span><span class="s1">'    "</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">" appears </span><span class="si">{</span><span class="n">duplicated</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s1"> times'</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">duplicated</span><span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_raw_residue_bonds</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">allatoms</span><span class="p">):</span>
+    <span class="c1"># illegal bonds</span>
+    <span class="n">bad_bonds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">bonds</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allatoms</span><span class="p">:</span>
+            <span class="n">bad_bonds</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allatoms</span><span class="p">:</span>
+            <span class="n">bad_bonds</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad_bonds</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">"Bad raw residue: </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Error: illegal_bond; must be between declared atoms</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"Offending atoms:</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="sa">f</span><span class="s1">'    Undeclared atom "</span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">" in bond ("</span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">", "</span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s1">")'</span>
+                        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">bad_bonds</span>
+                    <span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_raw_residue_torsions</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">allatoms</span><span class="p">,</span> <span class="n">allconns</span><span class="p">):</span>
+    <span class="n">bad_torsions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">torsions</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">a_i</span> <span class="ow">in</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">i</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">i</span><span class="o">.</span><span class="n">d</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">a_i</span><span class="o">.</span><span class="n">atom</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">a_i</span><span class="o">.</span><span class="n">connection</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">a_i</span><span class="o">.</span><span class="n">connection</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allconns</span><span class="p">:</span>
+                    <span class="n">bad_torsions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">"connection"</span><span class="p">,</span> <span class="n">a_i</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">a_i</span><span class="o">.</span><span class="n">atom</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allatoms</span><span class="p">:</span>
+                    <span class="n">bad_torsions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">"atom"</span><span class="p">,</span> <span class="n">a_i</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad_torsions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">str_ua</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">atom</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">atom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span><span class="o">.</span><span class="n">connection</span>
+
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">"Bad raw residue: </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Error: illegal_torsion; Torsion atoms must be either "</span><span class="p">,</span>
+                <span class="s2">"previously-declared connections or previously-declared atoms</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s1">'Offending atom</span><span class="si">{</span><span class="s2">"s"</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">bad_torsions</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">""</span><span class="si">}</span><span class="s1">:</span><span class="se">\n</span><span class="s1">'</span><span class="p">,</span>
+                <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="sa">f</span><span class="s1">'    atom "</span><span class="si">{</span><span class="n">str_ua</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="si">}</span><span class="s1">" of'</span>
+                        <span class="sa">f</span><span class="s2">" (</span><span class="si">{</span><span class="n">str_ua</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">a</span><span class="p">)</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">str_ua</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">b</span><span class="p">)</span><span class="si">}</span><span class="s2">,"</span>
+                        <span class="sa">f</span><span class="s2">" </span><span class="si">{</span><span class="n">str_ua</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">c</span><span class="p">)</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">str_ua</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">d</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
+                        <span class="sa">f</span><span class="s2">" is not a declared </span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+                        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">bad_torsions</span>
+                    <span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_raw_residue_connections</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">allatoms</span><span class="p">):</span>
+    <span class="n">bad_conns</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">connections</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">i</span><span class="o">.</span><span class="n">atom</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allatoms</span><span class="p">:</span>
+            <span class="n">bad_conns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad_conns</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">"Bad raw residue: </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Error: illegal_connection; connection atom must be previously declared</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s1">'Offending connection</span><span class="si">{</span><span class="s2">"s"</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">bad_conns</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">""</span><span class="si">}</span><span class="s1">:</span><span class="se">\n</span><span class="s1">'</span><span class="p">,</span>
+                <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="sa">f</span><span class="s1">'    connection "</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">" with undeclared atom "</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">atom</span><span class="si">}</span><span class="s1">"'</span>
+                        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">bad_conns</span>
+                    <span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_raw_residue_icoors</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">allatoms</span><span class="p">,</span> <span class="n">allconns</span><span class="p">):</span>
+    <span class="n">bad_icoors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">icoors</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allatoms</span> <span class="ow">and</span> <span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allconns</span><span class="p">:</span>
+            <span class="n">bad_icoors</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">anc</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"parent"</span><span class="p">,</span> <span class="s2">"grand_parent"</span><span class="p">,</span> <span class="s2">"great_grand_parent"</span><span class="p">):</span>
+            <span class="n">a_i</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">anc</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">a_i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allatoms</span> <span class="ow">and</span> <span class="n">a_i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allconns</span><span class="p">:</span>
+                <span class="n">bad_icoors</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">anc</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad_icoors</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">"Bad raw residue: </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Error: illegal_icoor; must reference previoulsy-declared atoms or connections only.</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s1">'Offending icoor</span><span class="si">{</span><span class="s2">"s"</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">bad_icoors</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">""</span><span class="si">}</span><span class="se">\n</span><span class="s1">'</span><span class="p">,</span>
+                <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="sa">f</span><span class="s1">'    icoor for </span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1"> atom "</span><span class="si">{</span><span class="nb">getattr</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="si">}</span><span class="s1">" undeclared'</span>
+                        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">bad_icoors</span>
+                    <span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_patch</span><span class="p">(</span><span class="n">patch</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Validate a given patch object or raise a RuntimeException"""</span>
+    <span class="n">addedatoms</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">])</span>
+    <span class="n">added_ats_and_conns</span> <span class="o">=</span> <span class="n">addedatoms</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_connections</span><span class="p">]))</span>
+
+    <span class="n">_validate_patch_fields</span><span class="p">(</span><span class="n">patch</span><span class="p">)</span>
+    <span class="n">_validate_patch_atom_references</span><span class="p">(</span>
+        <span class="n">patch</span><span class="p">,</span> <span class="s2">"remove_atoms"</span><span class="p">,</span> <span class="s2">"remove_nonreference_atom"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+    <span class="p">)</span>
+    <span class="n">_validate_patch_atom_references</span><span class="p">(</span>
+        <span class="n">patch</span><span class="p">,</span> <span class="s2">"modify_atoms"</span><span class="p">,</span> <span class="s2">"modify_nonreference_atom"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span>
+    <span class="p">)</span>
+    <span class="n">_validate_patch_atom_aliases</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">addedatoms</span><span class="p">)</span>
+    <span class="n">_validate_patch_bonds</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">added_ats_and_conns</span><span class="p">)</span>
+    <span class="n">_validate_patch_icoors</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">added_ats_and_conns</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_patch_fields</span><span class="p">(</span><span class="n">patch</span><span class="p">):</span>
+    <span class="c1"># make sure all fields are defined</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">required_attrs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">"name"</span><span class="p">,</span>
+        <span class="s2">"display_name"</span><span class="p">,</span>
+        <span class="s2">"pattern"</span><span class="p">,</span>
+        <span class="s2">"remove_atoms"</span><span class="p">,</span>
+        <span class="s2">"add_atoms"</span><span class="p">,</span>
+        <span class="s2">"add_atom_aliases"</span><span class="p">,</span>
+        <span class="s2">"modify_atoms"</span><span class="p">,</span>
+        <span class="s2">"add_connections"</span><span class="p">,</span>
+        <span class="s2">"add_bonds"</span><span class="p">,</span>
+        <span class="s2">"icoors"</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">attribute</span> <span class="ow">in</span> <span class="n">required_attrs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">missing</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">"Bad patch: </span><span class="si">{</span><span class="n">patch</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Error: Undefined field"</span><span class="p">,</span>
+                <span class="p">(</span><span class="s2">"s: "</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">": "</span><span class="p">),</span>
+                <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_patch_atom_references</span><span class="p">(</span>
+    <span class="n">patch</span><span class="p">,</span> <span class="n">atom_list_attribute_name</span><span class="p">,</span> <span class="n">error_name</span><span class="p">,</span> <span class="n">get_atom_name</span>
+<span class="p">):</span>
+    <span class="n">bad_atom_inds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">atom_list</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">atom_list_attribute_name</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">atom_list</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">get_atom_name</span><span class="p">(</span><span class="n">atom_list</span><span class="p">[</span><span class="n">i</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"&lt;"</span>
+            <span class="ow">or</span> <span class="n">get_atom_name</span><span class="p">(</span><span class="n">atom_list</span><span class="p">[</span><span class="n">i</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"&gt;"</span>
+        <span class="p">):</span>
+            <span class="n">bad_atom_inds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad_atom_inds</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">"Bad patch: </span><span class="si">{</span><span class="n">patch</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"Error: </span><span class="si">{</span><span class="n">error_name</span><span class="si">}</span><span class="s2">; "</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s1">'atoms listed with "</span><span class="si">{</span><span class="n">atom_list_attribute_name</span><span class="si">}</span><span class="s1">" must begin with "&lt;" and end with "&gt;".</span><span class="se">\n</span><span class="s1">'</span><span class="p">,</span>
+                <span class="s2">"Offending atoms: "</span><span class="p">,</span>
+                <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">get_atom_name</span><span class="p">(</span><span class="n">atom_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">bad_atom_inds</span><span class="p">]),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_patch_atom_aliases</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">addedatoms</span><span class="p">):</span>
+    <span class="c1"># make sure that aliases are for new atoms</span>
+    <span class="n">bad_aliases</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_atom_aliases</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">addedatoms</span><span class="p">:</span>
+            <span class="n">bad_aliases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad_aliases</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">"Bad patch </span><span class="si">{</span><span class="n">patch</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Error: illegal_add_alias. "</span>
+                <span class="s2">"Added atom alias must refer to newly added atoms. "</span>
+                <span class="s2">"Bad add_atom_aliases from: "</span><span class="p">,</span>
+                <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s1">'"</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">" --&gt; "</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">alt_name</span><span class="si">}</span><span class="s1">"'</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">bad_aliases</span><span class="p">]),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_patch_bonds</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">added_ats_and_conns</span><span class="p">):</span>
+    <span class="c1"># make sure all bonds are references or added atoms</span>
+    <span class="n">bad_bonds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_bonds</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"&lt;"</span> <span class="ow">or</span> <span class="n">i</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"&gt;"</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_ats_and_conns</span><span class="p">):</span>
+            <span class="n">bad_bonds</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad_bonds</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">"Bad patch </span><span class="si">{</span><span class="n">patch</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Error: illegal bond; "</span>
+                <span class="s2">"first atom in each bond must be either atom reference "</span><span class="p">,</span>
+                <span class="s1">'(start with "&lt;" and end with "&gt;") or an added atom.</span><span class="se">\n</span><span class="s1">'</span><span class="p">,</span>
+                <span class="s2">"Offending bonds: "</span><span class="p">,</span>
+                <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s1">'("</span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">" "</span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">")'</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">bad_bonds</span><span class="p">]),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_patch_icoors</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">added_ats_and_conns</span><span class="p">):</span>
+    <span class="c1"># make sure all icoors are references or added atoms</span>
+    <span class="n">bad_icoors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">icoors</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"&lt;"</span> <span class="ow">or</span> <span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"&gt;"</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_ats_and_conns</span>
+        <span class="p">):</span>
+            <span class="n">bad_icoors</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">"name"</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">anc</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"source"</span><span class="p">,</span> <span class="s2">"parent"</span><span class="p">,</span> <span class="s2">"grand_parent"</span><span class="p">,</span> <span class="s2">"great_grand_parent"</span><span class="p">):</span>
+            <span class="n">a_i</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">anc</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">a_i</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># ok for source to be None, ok for p, gp, ggp to be None if source is given</span>
+                <span class="k">if</span> <span class="n">anc</span> <span class="o">!=</span> <span class="s2">"source"</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">"source"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">bad_icoors</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">anc</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">a_i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"&lt;"</span> <span class="ow">or</span> <span class="n">a_i</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"&gt;"</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">a_i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added_ats_and_conns</span><span class="p">):</span>
+                <span class="n">bad_icoors</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">anc</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad_icoors</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">added_ats_and_conns_list</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">added_ats_and_conns</span><span class="p">)</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">"Bad patch </span><span class="si">{</span><span class="n">patch</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"Error: illegal_icoor; "</span><span class="p">,</span>
+                <span class="s2">"icoor atoms must be for either atom reference "</span><span class="p">,</span>
+                <span class="s1">'(start with "&lt;" and end with "&gt;") or an added atom / connection,</span><span class="se">\n</span><span class="s1">'</span>
+                <span class="s1">'and ancestor atoms may only be omitted (i.e. "None") if the "source" atom is provided</span><span class="se">\n</span><span class="s1">'</span>
+                <span class="s2">"Offending icoors:</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+                <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="sa">f</span><span class="s1">'    Icoor for </span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1"> with atom reference "</span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">" of "</span><span class="si">{</span><span class="nb">getattr</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="si">}</span><span class="s1">"'</span>
+                        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">bad_icoors</span>
+                    <span class="p">]</span>
+                <span class="p">),</span>
+                <span class="s2">"</span><span class="se">\n</span><span class="s2">Where the added atom / connection list is: "</span><span class="p">,</span>
+                <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s1">'"</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">"'</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">added_ats_and_conns_list</span><span class="p">]),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+
+<span class="c1"># apply a patch to a rawresidue</span>
+<span class="c1">#    res, resgraph - base residue, graph</span>
+<span class="c1">#    variant, patchgraph - patch variant, patch graph</span>
+<span class="c1">#    marked - atoms modified in the base residue</span>
+<span class="c1"># returns:</span>
+<span class="c1">#    newreses - list of new residues produced by the patch (currently only support for 1)</span>
+<span class="c1">#    newmarked - updated list of modified atoms in new residue</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">do_patch</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">marked</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
+    <span class="n">atoms_match</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">(</span><span class="s2">"element"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">y</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="p">(</span><span class="s2">"element"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">x</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span> <span class="o">==</span> <span class="n">y</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">gm</span> <span class="o">=</span> <span class="n">iso</span><span class="o">.</span><span class="n">GraphMatcher</span><span class="p">(</span><span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">node_match</span><span class="o">=</span><span class="n">atoms_match</span><span class="p">)</span>
+
+    <span class="n">added</span><span class="p">,</span> <span class="n">modded</span><span class="p">,</span> <span class="n">deleted</span> <span class="o">=</span> <span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">modded</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s2">"Patch "</span> <span class="o">+</span> <span class="n">variant</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">" does not modify any atoms!"</span>
+    <span class="p">)</span>
+
+    <span class="c1"># find patchsets that are unique w.r.t. list of modded atoms</span>
+    <span class="n">mod_unique</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">namemaps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">subgraph_x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gm</span><span class="o">.</span><span class="n">subgraph_monomorphisms_iter</span><span class="p">()):</span>
+        <span class="n">namemap</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"&lt;"</span> <span class="o">+</span> <span class="n">patchgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"&gt;"</span><span class="p">:</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">subgraph_x</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">mod_i</span> <span class="o">=</span> <span class="p">[</span><span class="n">namemap</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">modded</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">mod_i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mod_unique</span><span class="p">:</span>
+            <span class="n">mod_unique</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mod_i</span><span class="p">)</span>
+            <span class="n">namemaps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">namemap</span><span class="p">)</span>
+
+    <span class="c1"># fd: this could be supported in the future, with a few issues to work out</span>
+    <span class="c1">#    -if the patch adds atoms, we need to figure out how to ensure unique names</span>
+    <span class="c1">#    -need a patch naming scheme if a patch applied twice</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">mod_unique</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"Patch </span><span class="si">{</span><span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> applies to residue </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> multiple times, "</span>
+        <span class="sa">f</span><span class="s2">"matching the atom sets </span><span class="si">{</span><span class="n">mod_unique</span><span class="si">}</span><span class="s2">. Narrow the pattern, or scope the "</span>
+        <span class="sa">f</span><span class="s2">"patch with applies_to."</span>
+    <span class="p">)</span>
+
+    <span class="c1"># apply patches</span>
+    <span class="n">newreses</span><span class="p">,</span> <span class="n">newmarked</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">namemap</span> <span class="ow">in</span> <span class="n">namemaps</span><span class="p">:</span>
+        <span class="n">newmark</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">marked</span><span class="p">)</span>
+        <span class="n">modded</span> <span class="o">=</span> <span class="p">[</span><span class="n">namemaps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">modded</span><span class="p">]</span>
+        <span class="n">deleted</span> <span class="o">=</span> <span class="p">[</span><span class="n">namemaps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">deleted</span><span class="p">]</span>
+
+        <span class="c1"># -1. Add atoms bonded to deleted atoms to modded set</span>
+        <span class="c1">#     needs to be done after name map</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">bonds</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">deleted</span> <span class="ow">and</span> <span class="n">j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">deleted</span><span class="p">:</span>
+                <span class="n">modded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">deleted</span> <span class="ow">and</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">deleted</span><span class="p">:</span>
+                <span class="n">modded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="c1"># 0. check if we've already modified any of these atoms</span>
+        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">modded</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">newmark</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="n">newres</span> <span class="o">=</span> <span class="n">RawResidueType</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">":"</span> <span class="o">+</span> <span class="n">variant</span><span class="o">.</span><span class="n">display_name</span><span class="p">,</span>
+            <span class="n">base_name</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span>
+            <span class="n">name3</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">name3</span><span class="p">,</span>
+            <span class="n">io_equiv_class</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">io_equiv_class</span><span class="p">,</span>
+            <span class="n">atoms</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span>
+            <span class="n">atom_aliases</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">atom_aliases</span><span class="p">,</span>
+            <span class="n">bonds</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">bonds</span><span class="p">,</span>
+            <span class="n">connections</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">connections</span><span class="p">,</span>
+            <span class="n">torsions</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">torsions</span><span class="p">,</span>
+            <span class="n">icoors</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span>
+            <span class="n">properties</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">properties</span><span class="p">,</span>
+            <span class="n">chi_samples</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">,</span>
+            <span class="n">default_jump_connection_atom</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">default_jump_connection_atom</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 1. remove atoms</span>
+        <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">:</span>
+            <span class="n">atom</span> <span class="o">=</span> <span class="n">namemap</span><span class="p">[</span><span class="n">atom</span><span class="p">]</span>
+            <span class="n">newres</span> <span class="o">=</span> <span class="n">remove_atom</span><span class="p">(</span><span class="n">newres</span><span class="p">,</span> <span class="n">atom</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">modify_atoms</span><span class="p">:</span>
+            <span class="n">atom</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">atom</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">namemap</span><span class="p">[</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">])</span>
+            <span class="n">newres</span> <span class="o">=</span> <span class="n">modify_atom</span><span class="p">(</span><span class="n">newres</span><span class="p">,</span> <span class="n">atom</span><span class="p">)</span>
+
+        <span class="c1"># 2. add atoms</span>
+        <span class="n">newres</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="o">*</span><span class="n">variant</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">)</span>
+
+        <span class="c1"># 2b. add atom alias</span>
+        <span class="n">newres</span><span class="o">.</span><span class="n">atom_aliases</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">atom_aliases</span><span class="p">,</span> <span class="o">*</span><span class="n">variant</span><span class="o">.</span><span class="n">add_atom_aliases</span><span class="p">)</span>
+
+        <span class="c1"># 3. add connections</span>
+        <span class="n">newconnections</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">add_connections</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">.</span><span class="n">atom</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="n">namemap</span><span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">atom</span><span class="p">])</span>
+            <span class="n">newconnections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">newres</span><span class="o">.</span><span class="n">connections</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">connections</span><span class="p">,</span> <span class="o">*</span><span class="n">newconnections</span><span class="p">)</span>
+
+        <span class="c1"># 4. add bonds</span>
+        <span class="n">newbonds</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">add_bonds</span><span class="p">:</span>
+            <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">btype</span> <span class="o">=</span> <span class="n">bond</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bond</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">bond</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">is_ring</span> <span class="o">=</span> <span class="n">bond</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bond</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="k">else</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">namemap</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">:</span>
+                <span class="n">j</span> <span class="o">=</span> <span class="n">namemap</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">newbonds</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">btype</span><span class="p">,</span> <span class="n">is_ring</span><span class="p">))</span>
+        <span class="n">newres</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">bonds</span><span class="p">,</span> <span class="o">*</span><span class="n">newbonds</span><span class="p">)</span>
+
+        <span class="c1"># 5. update icoors</span>
+        <span class="n">newres</span><span class="o">.</span><span class="n">icoors</span> <span class="o">=</span> <span class="n">update_icoor</span><span class="p">(</span>
+            <span class="n">newres</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">,</span> <span class="n">namemap</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 5b. add torsions and the chi samples that name them</span>
+        <span class="n">newtorsions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">torsion</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">add_torsions</span><span class="p">:</span>
+            <span class="n">ats</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">x</span><span class="p">:</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="n">namemap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">atom</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">atom</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">a</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">"b"</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">b</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">"c"</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">c</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">"d"</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">d</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">}</span>
+            <span class="n">newtorsions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">torsion</span><span class="p">,</span> <span class="o">**</span><span class="n">ats</span><span class="p">))</span>
+        <span class="n">newres</span><span class="o">.</span><span class="n">torsions</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">torsions</span><span class="p">,</span> <span class="o">*</span><span class="n">newtorsions</span><span class="p">)</span>
+        <span class="n">newres</span><span class="o">.</span><span class="n">chi_samples</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">,</span> <span class="o">*</span><span class="n">variant</span><span class="o">.</span><span class="n">add_chi_samples</span><span class="p">)</span>
+
+        <span class="c1"># 6. update modified atoms</span>
+        <span class="c1"># a) directly modified/added</span>
+        <span class="n">newmark</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">modded</span><span class="p">)</span>
+        <span class="n">newmark</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">added</span><span class="p">)</span>
+
+        <span class="c1"># b) bonded to deleted atoms</span>
+
+        <span class="c1"># c) removed atoms</span>
+        <span class="n">newmark</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">deleted</span><span class="p">,</span> <span class="n">newmark</span><span class="p">))</span>
+
+        <span class="n">newreses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newres</span><span class="p">)</span>
+        <span class="n">newmarked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newmark</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">newreses</span><span class="p">,</span> <span class="n">newmarked</span>
+
+
+<span class="c1"># takes a ChemicalDatabase containing Tuple[RawResidueType] and Tuple[VariantType]</span>
+<span class="c1"># applies all patches to all residues types</span>
+<span class="c1"># returns PatchedChemicalDatabase containing only Tuple[RawResidueType]</span>
+<div class="viewcode-block" id="PatchedChemicalDatabase">
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.PatchedChemicalDatabase">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PatchedChemicalDatabase</span><span class="p">:</span>
+    <span class="n">element_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Element</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">atom_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AtomType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">residues</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">RawResidueType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">variants</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">VariantType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+<div class="viewcode-block" id="PatchedChemicalDatabase.from_chem_db">
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.PatchedChemicalDatabase.from_chem_db">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_chem_db</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">):</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">RestypeGraphBuilder</span><span class="p">({</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">atom_types</span><span class="p">})</span>
+
+        <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">variants</span><span class="p">:</span>
+            <span class="n">validate_patch</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
+            <span class="n">validate_raw_residue</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+        <span class="n">patched_residues</span><span class="p">,</span> <span class="n">patched_residues_names</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># resolve against the unpatched residue</span>
+            <span class="c1">#   BY DESIGN ... a patch can never be made conditional on another</span>
+            <span class="c1">#   patch having been applied</span>
+            <span class="n">variants</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">variants</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">applies_to</span><span class="o">.</span><span class="n">matches</span><span class="p">(</span><span class="n">res</span><span class="p">)]</span>
+
+            <span class="n">resvariants</span><span class="p">,</span> <span class="n">resvariantnames</span><span class="p">,</span> <span class="n">marked_atoms</span> <span class="o">=</span> <span class="p">[</span><span class="n">res</span><span class="p">],</span> <span class="p">[</span><span class="s2">""</span><span class="p">],</span> <span class="p">[[]]</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+                <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="c1"># newly added variants, variant names, marked atoms</span>
+                <span class="n">rv_new</span><span class="p">,</span> <span class="n">rvn_new</span><span class="p">,</span> <span class="n">ma_new</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">res_i</span><span class="p">,</span> <span class="n">name_i</span><span class="p">,</span> <span class="n">mark_i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                    <span class="n">resvariants</span><span class="p">,</span> <span class="n">resvariantnames</span><span class="p">,</span> <span class="n">marked_atoms</span>
+                <span class="p">):</span>
+                    <span class="n">resgraph</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">from_raw_res</span><span class="p">(</span><span class="n">res_i</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">variants</span><span class="p">:</span>
+                        <span class="n">newtag</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">name_i</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+                        <span class="n">newtag</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">newtag</span> <span class="ow">in</span> <span class="n">resvariantnames</span> <span class="ow">or</span> <span class="n">newtag</span> <span class="ow">in</span> <span class="n">rvn_new</span><span class="p">:</span>
+                            <span class="k">continue</span>  <span class="c1"># we already made this variant</span>
+
+                        <span class="n">patchgraph</span> <span class="o">=</span> <span class="n">read_smiles</span><span class="p">(</span>
+                            <span class="n">variant</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span>
+                            <span class="n">explicit_hydrogen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">do_fill_valence</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">patched_reses</span><span class="p">,</span> <span class="n">mark_i_new</span> <span class="o">=</span> <span class="n">do_patch</span><span class="p">(</span>
+                            <span class="n">res_i</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">mark_i</span>
+                        <span class="p">)</span>
+
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">patched_reses</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">rv_new</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">patched_reses</span><span class="p">)</span>
+                            <span class="n">rvn_new</span><span class="o">.</span><span class="n">extend</span><span class="p">((</span><span class="n">newtag</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">patched_reses</span><span class="p">))</span>
+                            <span class="n">ma_new</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">mark_i_new</span><span class="p">)</span>
+                            <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># added new residues</span>
+
+                <span class="n">resvariants</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rv_new</span><span class="p">)</span>
+                <span class="n">resvariantnames</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rvn_new</span><span class="p">)</span>
+                <span class="n">marked_atoms</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">ma_new</span><span class="p">)</span>
+            <span class="n">patched_residues</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">resvariants</span><span class="p">)</span>
+            <span class="n">patched_residues_names</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">resvariantnames</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">patched_residues</span><span class="p">:</span>
+            <span class="n">validate_raw_residue</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">element_types</span><span class="o">=</span><span class="n">chemdb</span><span class="o">.</span><span class="n">element_types</span><span class="p">,</span>
+            <span class="n">atom_types</span><span class="o">=</span><span class="n">chemdb</span><span class="o">.</span><span class="n">atom_types</span><span class="p">,</span>
+            <span class="n">residues</span><span class="o">=</span><span class="n">patched_residues</span><span class="p">,</span>
+            <span class="n">variants</span><span class="o">=</span><span class="n">chemdb</span><span class="o">.</span><span class="n">variants</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

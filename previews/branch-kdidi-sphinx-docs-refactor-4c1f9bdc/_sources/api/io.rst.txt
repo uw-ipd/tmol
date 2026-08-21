@@ -8,5 +8,6 @@ mmCIF structures, including nucleic acids and ligands.
 
 .. automodule:: tmol.io
    :members:
+   :imported-members:
    :undoc-members:
    :show-inheritance:

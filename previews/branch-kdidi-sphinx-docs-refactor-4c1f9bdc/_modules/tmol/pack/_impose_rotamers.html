@@ -1,0 +1,819 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.pack._impose_rotamers &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c9b21c7c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pack/_impose_rotamers';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.47';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.47" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack._impose_rotamers</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.pack._impose_rotamers</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PDBInfo</span><span class="p">,</span>
+    <span class="n">DEFAULT_ATOM_B_FACTOR</span><span class="p">,</span>
+    <span class="n">DEFAULT_ATOM_OCCUPANCY</span><span class="p">,</span>
+    <span class="n">PoseStack</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">RotamerSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum2d_w_totals</span>
+
+
+<div class="viewcode-block" id="impose_top_rotamer_assignments">
+<a class="viewcode-back" href="../../../api/pack.html#tmol.pack.impose_top_rotamer_assignments">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">impose_top_rotamer_assignments</span><span class="p">(</span>
+    <span class="n">orig_pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">rotamer_set</span><span class="p">:</span> <span class="n">RotamerSet</span><span class="p">,</span>
+    <span class="n">rotamer_for_nonmolten_block</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
+    <span class="n">n_molten_blocks_per_pose</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+    <span class="n">bc_rot_offset_for_molten_block</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
+    <span class="n">bc_rot_to_orig_rot</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+    <span class="n">bc_assignment</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Impose the lowest-energy rotamer assignemnt to each pose in the original PoseStack."""</span>
+
+    <span class="c1"># Going through PoseStack's data members; what will be new, what will be unchanged</span>
+    <span class="c1">#</span>
+    <span class="c1"># -- packed_block_types: unchanged</span>
+    <span class="c1">#</span>
+    <span class="c1"># -- coords: new -- the whole point!</span>
+    <span class="c1">#</span>
+    <span class="c1"># -- block_coords_offsets: has to be updated because the number of atoms per residue may have</span>
+    <span class="c1">#    changed</span>
+    <span class="c1">#</span>
+    <span class="c1"># -- inter_residue_connections: unchanged; the packer cannot change inter-block connections</span>
+    <span class="c1">#</span>
+    <span class="c1"># -- inter_block_bondsep: unchanged</span>
+    <span class="c1">#</span>
+    <span class="c1"># -- block_type_ind: new as the block types may have changed</span>
+
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">device</span>
+    <span class="n">n_poses</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">n_poses</span>
+    <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span>
+    <span class="n">max_n_atoms_per_block</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">max_n_atoms</span>
+    <span class="n">max_n_molten_blocks</span> <span class="o">=</span> <span class="n">bc_assignment</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">bc_assignment</span> <span class="o">=</span> <span class="n">bc_assignment</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="c1"># n_assignments = bc_assignment.shape[1]</span>
+    <span class="c1"># print("bc_assignment", bc_assignment.shape, bc_assignment.dtype)</span>
+
+    <span class="c1"># map from the subset of blocks and bump-checked rotamer</span>
+    <span class="c1"># to an assignment in the original rotamer-set indexing</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">is_nonmolten_block</span> <span class="o">=</span> <span class="n">rotamer_for_nonmolten_block</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">assignment</span><span class="p">[</span><span class="n">is_nonmolten_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">rotamer_for_nonmolten_block</span><span class="p">[</span><span class="n">is_nonmolten_block</span><span class="p">]</span>
+
+    <span class="n">is_real_block</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">is_molten_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+        <span class="n">rotamer_for_nonmolten_block</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">is_real_block</span>
+    <span class="p">)</span>
+    <span class="c1"># print("is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1)", is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1).shape)</span>
+    <span class="c1"># print("bc_assignment[is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1)]", bc_assignment[is_molten_block.unsqueeze(1).expand(-1, n_assignments, -1)].shape)</span>
+    <span class="c1"># print("assignment[is_molten_block, :]", assignment[is_molten_block, :].shape)</span>
+
+    <span class="n">molten_block_arange</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_molten_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">is_real_molten_block</span> <span class="o">=</span> <span class="n">molten_block_arange</span> <span class="o">&lt;</span> <span class="n">n_molten_blocks_per_pose</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">bc_assignment_global</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">bc_assignment</span><span class="p">[</span><span class="n">is_real_molten_block</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">bc_rot_offset_for_molten_block</span><span class="p">[</span><span class="n">is_real_molten_block</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">assignment</span><span class="p">[</span><span class="n">is_molten_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">bc_rot_to_orig_rot</span><span class="p">[</span><span class="n">bc_assignment_global</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># print("assignment", assignment.shape)</span>
+    <span class="c1"># print("assignment", assignment)</span>
+
+    <span class="c1"># lets figure out how many atoms per pose</span>
+    <span class="n">new_block_type_ind64</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="c1"># new_rot_for_block64 = (</span>
+    <span class="c1">#     assignment[:, 0, :].to(torch.int64) + rotamer_set.rot_offset_for_block</span>
+    <span class="c1"># )</span>
+    <span class="n">new_rot_for_block64</span> <span class="o">=</span> <span class="n">assignment</span>
+
+    <span class="n">is_real_block</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="n">new_block_type_ind64</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">block_type_ind_for_rot</span><span class="p">[</span>
+        <span class="n">new_rot_for_block64</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span>
+    <span class="p">]</span>
+    <span class="n">blocks_with_changed_types</span> <span class="o">=</span> <span class="n">new_block_type_ind64</span> <span class="o">!=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span>
+    <span class="n">any_block_types_changed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">blocks_with_changed_types</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+    <span class="n">new_n_atoms_per_block32</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">new_n_atoms_per_block32</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span>
+        <span class="n">new_block_type_ind64</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span>
+    <span class="p">]</span>
+    <span class="n">new_n_atoms_per_block64</span> <span class="o">=</span> <span class="n">new_n_atoms_per_block32</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">any_block_types_changed</span><span class="p">:</span>
+        <span class="c1"># get the per-pose offset for each block w/ exclusive cumsum on n-atoms-per-block</span>
+        <span class="n">new_n_atoms_offset32</span><span class="p">,</span> <span class="n">new_n_pose_atoms</span> <span class="o">=</span> <span class="n">exclusive_cumsum2d_w_totals</span><span class="p">(</span>
+            <span class="n">new_n_atoms_per_block32</span>
+        <span class="p">)</span>
+        <span class="n">new_n_atoms_offset64</span> <span class="o">=</span> <span class="n">new_n_atoms_offset32</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">new_max_n_pose_atoms</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">new_n_pose_atoms</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">new_n_atoms_offset32</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span>
+        <span class="n">new_n_atoms_offset64</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span>
+        <span class="n">new_max_n_pose_atoms</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">max_n_pose_atoms</span>
+
+    <span class="c1"># okay, now lets preprare the indices for our copy operation</span>
+    <span class="c1"># let's think about it like this: we have a 3D tensor with i, j, k indices representing</span>
+    <span class="c1"># pose-ind, block-ind, and atom-ind.</span>
+    <span class="c1"># For the dst indices, we add a per-pose offset i * new_max_n_pose_atoms</span>
+    <span class="c1"># and we add a block-offset from new_n_atoms_offset64[j].</span>
+    <span class="c1"># For the src indices, we take the rotamer assigned to pose-i-residue-j,</span>
+    <span class="c1"># and that rotamer gives us the offset into the rotamer_set.coords tensor.</span>
+    <span class="n">max_n_atoms_arange64</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+        <span class="n">max_n_atoms_per_block</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">max_n_atoms_arange64</span> <span class="o">=</span> <span class="n">max_n_atoms_arange64</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
+        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span>
+    <span class="p">)</span>
+
+    <span class="n">pose_for_atom64</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">pose_for_atom64</span> <span class="o">=</span> <span class="n">pose_for_atom64</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
+        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span>
+    <span class="p">)</span>
+
+    <span class="n">pose_offset_for_atom64</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> <span class="o">*</span> <span class="n">new_max_n_pose_atoms</span>
+    <span class="p">)</span>
+    <span class="n">pose_offset_for_atom64</span> <span class="o">=</span> <span class="n">pose_offset_for_atom64</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
+        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span>
+    <span class="p">)</span>
+
+    <span class="n">block_for_atom64</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">pose_coords1d_offset_for_atom64</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">new_n_atoms_offset64</span><span class="p">[</span><span class="n">pose_for_atom64</span><span class="p">,</span> <span class="n">block_for_atom64</span><span class="p">]</span> <span class="o">+</span> <span class="n">pose_offset_for_atom64</span>
+    <span class="p">)</span>
+
+    <span class="n">new_n_atoms_for_atoms_block64</span> <span class="o">=</span> <span class="n">new_n_atoms_per_block64</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
+        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span>
+    <span class="p">)</span>
+    <span class="n">is_pose_atom_real</span> <span class="o">=</span> <span class="n">max_n_atoms_arange64</span> <span class="o">&lt;</span> <span class="n">new_n_atoms_for_atoms_block64</span>
+
+    <span class="n">dst_inds</span> <span class="o">=</span> <span class="p">(</span><span class="n">pose_coords1d_offset_for_atom64</span> <span class="o">+</span> <span class="n">max_n_atoms_arange64</span><span class="p">)[</span>
+        <span class="n">is_pose_atom_real</span>
+    <span class="p">]</span>
+
+    <span class="n">rot_coord_offset_for_block32</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">rot_coord_offset_for_block32</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">coord_offset_for_rot</span><span class="p">[</span>
+        <span class="n">new_rot_for_block64</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span>
+    <span class="p">]</span>
+    <span class="n">rot_coord_offset_for_block64</span> <span class="o">=</span> <span class="n">rot_coord_offset_for_block32</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">rot_coord_offset_for_atom64</span> <span class="o">=</span> <span class="n">rot_coord_offset_for_block64</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
+        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_atoms_per_block</span>
+    <span class="p">)</span>
+    <span class="n">src_inds</span> <span class="o">=</span> <span class="p">(</span><span class="n">rot_coord_offset_for_atom64</span> <span class="o">+</span> <span class="n">max_n_atoms_arange64</span><span class="p">)[</span><span class="n">is_pose_atom_real</span><span class="p">]</span>
+
+    <span class="c1"># now lets copy the coordinates</span>
+    <span class="n">new_coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span> <span class="o">*</span> <span class="n">new_max_n_pose_atoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">new_coords</span><span class="p">[</span><span class="n">dst_inds</span><span class="p">]</span> <span class="o">=</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">src_inds</span><span class="p">]</span>
+    <span class="n">new_coords</span> <span class="o">=</span> <span class="n">new_coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">new_max_n_pose_atoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="c1"># Now let's create a new PDBInfo object for the new PoseStack</span>
+    <span class="c1"># We can mostly copy from the original PoseStack's PDBInfo,</span>
+    <span class="c1"># but where block-types have changed, we have to be careful with</span>
+    <span class="c1"># the occupancies and b-factors</span>
+    <span class="k">if</span> <span class="n">any_block_types_changed</span><span class="p">:</span>
+        <span class="c1"># need to make new atom_occupancy and atom_b_factor arrays</span>
+        <span class="n">orig_pdb_info</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span>
+        <span class="n">new_atom_occupancy</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">new_max_n_pose_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span>
+        <span class="p">)</span>
+        <span class="n">new_atom_b_factor</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">new_max_n_pose_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span>
+        <span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">real_expanded_pose_ats</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">expand_coords</span><span class="p">()</span>
+        <span class="n">real_expanded_pose_ats</span> <span class="o">=</span> <span class="n">real_expanded_pose_ats</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">orig_real_atoms</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">real_atoms</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">expanded_b_factor</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span>
+            <span class="n">DEFAULT_ATOM_B_FACTOR</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">expanded_occupancy</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span>
+            <span class="n">DEFAULT_ATOM_OCCUPANCY</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">new_expanded_b_factor</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span>
+            <span class="n">DEFAULT_ATOM_B_FACTOR</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">new_expanded_occupancy</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span>
+            <span class="n">DEFAULT_ATOM_OCCUPANCY</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># keep all the b-factors for blocks that did not change block type</span>
+        <span class="n">blocks_w_unchanged_types</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">blocks_with_changed_types</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">expanded_b_factor</span><span class="p">[</span><span class="n">real_expanded_pose_ats</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig_pdb_info</span><span class="o">.</span><span class="n">atom_b_factor</span><span class="p">[</span>
+            <span class="n">orig_real_atoms</span>
+        <span class="p">]</span>
+        <span class="n">expanded_occupancy</span><span class="p">[</span><span class="n">real_expanded_pose_ats</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig_pdb_info</span><span class="o">.</span><span class="n">atom_occupancy</span><span class="p">[</span>
+            <span class="n">orig_real_atoms</span>
+        <span class="p">]</span>
+        <span class="n">new_expanded_b_factor</span><span class="p">[</span><span class="n">blocks_w_unchanged_types</span><span class="p">]</span> <span class="o">=</span> <span class="n">expanded_b_factor</span><span class="p">[</span>
+            <span class="n">blocks_w_unchanged_types</span>
+        <span class="p">]</span>
+        <span class="n">new_expanded_occupancy</span><span class="p">[</span><span class="n">blocks_w_unchanged_types</span><span class="p">]</span> <span class="o">=</span> <span class="n">expanded_occupancy</span><span class="p">[</span>
+            <span class="n">blocks_w_unchanged_types</span>
+        <span class="p">]</span>
+        <span class="c1"># TO DO: now handle blocks that did change type?</span>
+        <span class="c1"># PUNT!</span>
+
+        <span class="n">is_real_atom_new</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">is_real_atom_new</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">atom_is_real</span><span class="p">[</span>
+            <span class="n">new_block_type_ind64</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span>
+        <span class="p">]</span>
+        <span class="n">nz_is_real_pose_ind_new</span><span class="p">,</span> <span class="n">nz_is_real_block_ind_new</span><span class="p">,</span> <span class="n">nz_is_real_atom_ind_new</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">is_real_atom_new</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># new_atom_b_factor[is_real_atom]</span>
+        <span class="n">new_pose_at_is_real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+            <span class="n">new_max_n_pose_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">new_n_pose_atoms</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">new_pose_at_is_real</span> <span class="o">=</span> <span class="n">new_pose_at_is_real</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="n">new_atom_b_factor</span><span class="p">[</span><span class="n">new_pose_at_is_real</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_expanded_b_factor</span><span class="p">[</span>
+            <span class="n">nz_is_real_pose_ind_new</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+            <span class="n">nz_is_real_block_ind_new</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+            <span class="n">nz_is_real_atom_ind_new</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+        <span class="p">]</span>
+        <span class="n">new_atom_occupancy</span><span class="p">[</span><span class="n">new_pose_at_is_real</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_expanded_occupancy</span><span class="p">[</span>
+            <span class="n">nz_is_real_pose_ind_new</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+            <span class="n">nz_is_real_block_ind_new</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+            <span class="n">nz_is_real_atom_ind_new</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+        <span class="p">]</span>
+        <span class="n">new_pdb_info</span> <span class="o">=</span> <span class="n">PDBInfo</span><span class="p">(</span>
+            <span class="n">residue_labels</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">,</span>
+            <span class="n">residue_insertion_codes</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_insertion_codes</span><span class="p">,</span>
+            <span class="n">chain_labels</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">,</span>
+            <span class="n">atom_occupancy</span><span class="o">=</span><span class="n">new_atom_occupancy</span><span class="p">,</span>
+            <span class="n">atom_b_factor</span><span class="o">=</span><span class="n">new_atom_b_factor</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">new_pdb_info</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span>
+
+    <span class="c1"># now construct the new PoseStack</span>
+    <span class="n">new_pose_stack</span> <span class="o">=</span> <span class="n">PoseStack</span><span class="p">(</span>
+        <span class="n">packed_block_types</span><span class="o">=</span><span class="n">pbt</span><span class="p">,</span>
+        <span class="n">coords</span><span class="o">=</span><span class="n">new_coords</span><span class="p">,</span>
+        <span class="n">block_coord_offset</span><span class="o">=</span><span class="n">new_n_atoms_offset32</span><span class="p">,</span>
+        <span class="n">block_coord_offset64</span><span class="o">=</span><span class="n">new_n_atoms_offset64</span><span class="p">,</span>
+        <span class="n">inter_residue_connections</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
+        <span class="n">inter_residue_connections64</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections64</span><span class="p">,</span>
+        <span class="n">inter_block_bondsep</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="p">,</span>
+        <span class="n">inter_block_bondsep64</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep64</span><span class="p">,</span>
+        <span class="n">block_type_ind</span><span class="o">=</span><span class="n">new_block_type_ind64</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+        <span class="n">block_type_ind64</span><span class="o">=</span><span class="n">new_block_type_ind64</span><span class="p">,</span>
+        <span class="n">chain_id</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">chain_id</span><span class="p">,</span>
+        <span class="n">chain_id64</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">chain_id64</span><span class="p">,</span>
+        <span class="n">pdb_info</span><span class="o">=</span><span class="n">new_pdb_info</span><span class="p">,</span>
+        <span class="n">constraint_set</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">constraint_set</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">split_block_mapping</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">split_block_mapping</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">new_pose_stack</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

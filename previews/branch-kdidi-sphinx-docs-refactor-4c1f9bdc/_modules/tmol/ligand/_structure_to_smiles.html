@@ -1,0 +1,758 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.ligand._structure_to_smiles &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c9b21c7c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/ligand/_structure_to_smiles';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.47';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.47" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand._structure_to_smiles</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.ligand._structure_to_smiles</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Derive a ligand SMILES string from a biotite ``AtomArray``.</span>
+
+<span class="sd">This is the entry to tmol's unified ligand path: a CIF/atom-array ligand is</span>
+<span class="sd">converted to a SMILES string here, then handed to the existing</span>
+<span class="sd">SMILES -&gt; params pipeline (:func:`nonstandard_residue_info_from_smiles_via_mol2`).</span>
+
+<span class="sd">The SMILES always reflects the *input atoms as given* -- there is no residue-code</span>
+<span class="sd">/ CCD-template lookup (that risks substituting an unrelated molecule when a CIF</span>
+<span class="sd">uses a generic residue code such as ``LG1``).</span>
+
+<span class="sd">Bond orders must come from the input: the ``AtomArray`` is required to carry a</span>
+<span class="sd">bond table (e.g. a CIF with a ``_chem_comp_bond`` block, or a mol2 BOND</span>
+<span class="sd">section). We deliberately do *not* perceive bonds from 3D geometry -- a</span>
+<span class="sd">bonds-absent input (such as a plain PDB ligand) is a hard error, because guessed</span>
+<span class="sd">bond orders would silently corrupt the generated params database.</span>
+
+<span class="sd">The SMILES is built with the shared ligand builder</span>
+<span class="sd">:func:`tmol.ligand._rdkit_mol.rdkit_mol_from_ligand_atom_array` -- the same</span>
+<span class="sd">AtomArray -&gt; RDKit path the params pipeline uses -- so the derived SMILES and</span>
+<span class="sd">the prepared molecule always agree on chemistry.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._rdkit_mol</span><span class="w"> </span><span class="kn">import</span> <span class="n">rdkit_mol_from_ligand_atom_array</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_has_bonds</span><span class="p">(</span><span class="n">atom_array</span><span class="p">:</span> <span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return True if the AtomArray carries a non-empty bond table."""</span>
+    <span class="k">return</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">get_bond_count</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mol_to_smiles</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Canonical heavy-atom SMILES for a Mol, or None if it can't be produced."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RemoveHs</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+        <span class="n">smiles</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"MolToSmiles failed"</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">smiles</span> <span class="ow">or</span> <span class="kc">None</span>
+
+
+<span class="c1"># Below this, a C-O bond reads as double/delocalized rather than a hydroxyl</span>
+<span class="c1"># single bond (carboxylate ~1.25 A, C=O ~1.21, C-OH ~1.31, diol C-O ~1.41).</span>
+<span class="n">_CARBOXYL_CO_MAX</span> <span class="o">=</span> <span class="mf">1.36</span>
+<span class="c1"># Sum of the three bond angles at an sp2 (planar) carbon is 360; sp3 ~328.5.</span>
+<span class="n">_SP2_ANGLE_SUM_MIN</span> <span class="o">=</span> <span class="mf">355.0</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_sp2_angle_sum</span><span class="p">(</span><span class="n">conf</span><span class="p">,</span> <span class="n">center</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Sum of the three bond angles at ``center`` (deg); None if degenerate."""</span>
+    <span class="n">cpos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">center</span><span class="p">))</span>
+    <span class="n">vecs</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="o">-</span> <span class="n">cpos</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vecs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vecs</span><span class="p">]</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">units</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">units</span><span class="p">)):</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">units</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">units</span><span class="p">[</span><span class="n">j</span><span class="p">]),</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">total</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_infer_carboxylate_bonds</span><span class="p">(</span><span class="n">rw</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RWMol</span><span class="p">,</span> <span class="n">conf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Correct carboxylates mis-encoded as geminal diols; return #corrected.</span>
+
+<span class="sd">    A carbon bonded to exactly two terminal oxygens whose geometry is planar</span>
+<span class="sd">    with short C-O bonds is a delocalized carboxylate, not a diol. Some inputs</span>
+<span class="sd">    (CIFs with SING/SING C-O, mol2s with non-ring ``ar`` bonds) drop the double</span>
+<span class="sd">    bond, so the derived SMILES protonates both oxygens. Rewrite each such</span>
+<span class="sd">    center to ``C(=O)[O-]`` from the input geometry.</span>
+<span class="sd">    """</span>
+    <span class="n">n_fixed</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">rw</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">6</span> <span class="ow">or</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
+        <span class="n">term_os</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">nb</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">nb</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">nb</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">8</span> <span class="ow">and</span> <span class="n">nb</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">term_os</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">cpos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">c</span><span class="p">))</span>
+        <span class="n">co_dists</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">o</span><span class="p">))</span> <span class="o">-</span> <span class="n">cpos</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">term_os</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">d</span> <span class="o">&gt;</span> <span class="n">_CARBOXYL_CO_MAX</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">co_dists</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">nbrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">nb</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="k">for</span> <span class="n">nb</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()]</span>
+        <span class="n">angle_sum</span> <span class="o">=</span> <span class="n">_sp2_angle_sum</span><span class="p">(</span><span class="n">conf</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">nbrs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">angle_sum</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">angle_sum</span> <span class="o">&lt;</span> <span class="n">_SP2_ANGLE_SUM_MIN</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">oa</span><span class="p">,</span> <span class="n">ob</span> <span class="o">=</span> <span class="n">term_os</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">oa</span><span class="p">,</span> <span class="n">ob</span><span class="p">):</span>
+            <span class="n">rw</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">b_oa</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">oa</span><span class="p">)</span>
+        <span class="n">b_ob</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">ob</span><span class="p">)</span>
+        <span class="n">b_oa</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">b_ob</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">b_oa</span><span class="o">.</span><span class="n">SetBondType</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">)</span>
+        <span class="n">b_ob</span><span class="o">.</span><span class="n">SetBondType</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
+        <span class="c1"># Reset both O charges</span>
+        <span class="n">rw</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">oa</span><span class="p">)</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">rw</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">ob</span><span class="p">)</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">n_fixed</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"inferring COO- from geometry (carbon atom idx </span><span class="si">%d</span><span class="s2">)"</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">n_fixed</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_geometry_bond_corrections</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Repair input bond orders that disagree with the 3D geometry.</span>
+
+<span class="sd">    Runs each geometry-based correction rule (carboxylate only, for now) and</span>
+<span class="sd">    re-sanitizes. Returns the input unchanged when there is no conformer or no</span>
+<span class="sd">    correction applies. More rules (nitro, phosphate, sulfonate, ...) can be</span>
+<span class="sd">    added as separate ``_infer_*`` functions and dispatched here.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumConformers</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">mol</span>
+    <span class="n">rw</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RWMol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="n">conf</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span>
+    <span class="n">n_fixed</span> <span class="o">=</span> <span class="n">_infer_carboxylate_bonds</span><span class="p">(</span><span class="n">rw</span><span class="p">,</span> <span class="n">conf</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n_fixed</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">mol</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">GetMol</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"geometry bond correction failed to sanitize"</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mol</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_tag_source_atom_map</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">,</span> <span class="n">atom_array</span><span class="p">:</span> <span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Tag each heavy atom with map number = source index + 1 (rides the SMILES</span>
+<span class="sd">    through the mol2 pipeline for atom naming). No-op if counts disagree."""</span>
+    <span class="n">heavy_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">element</span><span class="p">)</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"H"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">heavy_idx</span><span class="p">):</span>
+        <span class="k">return</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()):</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="o">.</span><span class="n">SetAtomMapNum</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">heavy_idx</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ligand_smiles_from_atom_array">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.ligand_smiles_from_atom_array">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ligand_smiles_from_atom_array</span><span class="p">(</span>
+    <span class="n">atom_array</span><span class="p">:</span> <span class="n">AtomArray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">with_atom_map</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Derive a canonical SMILES for a ligand AtomArray from its bond table.</span>
+
+<span class="sd">    The SMILES is derived purely from the input atoms and their explicit bonds</span>
+<span class="sd">    (never a residue-code / CCD-template lookup, never geometry-based bond</span>
+<span class="sd">    perception). Geometry-based bond-*order* corrections are still applied for</span>
+<span class="sd">    motifs the input encodes inconsistently (carboxylates).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        atom_array: The ligand sub-array (heavy + optional hydrogen atoms).</span>
+<span class="sd">        res_name: Residue code, used only for log/error messages.</span>
+<span class="sd">        with_atom_map: Tag heavy atoms with source-index map numbers for CIF</span>
+<span class="sd">            atom naming downstream.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A canonical SMILES string.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the AtomArray carries no bond table (bond orders must be</span>
+<span class="sd">            supplied by the input; a bonds-absent ligand such as a plain PDB</span>
+<span class="sd">            cannot be prepared without guessing chemistry), or if no SMILES</span>
+<span class="sd">            could be derived from the bonds present.</span>
+<span class="sd">    """</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="n">res_name</span> <span class="ow">or</span> <span class="s2">"&lt;unknown&gt;"</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_has_bonds</span><span class="p">(</span><span class="n">atom_array</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Ligand </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> has no bond table; bond orders are required to "</span>
+            <span class="s2">"derive a SMILES. Supply an input with explicit bonds (CIF "</span>
+            <span class="s2">"_chem_comp_bond block, mol2, or SMILES) -- bond perception from 3D "</span>
+            <span class="s2">"geometry is intentionally disabled."</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Build from the explicit bonds</span>
+    <span class="c1">#  -&gt; then apply geometry bond-order corrections for common "mistakes"</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_attempt</span><span class="p">(</span><span class="n">repair_chemistry</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="n">rdkit_mol_from_ligand_atom_array</span><span class="p">(</span>
+            <span class="n">atom_array</span><span class="p">,</span>
+            <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span> <span class="ow">or</span> <span class="s2">"ligand"</span><span class="p">,</span>
+            <span class="n">repair_chemistry</span><span class="o">=</span><span class="n">repair_chemistry</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="n">apply_geometry_bond_corrections</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">with_atom_map</span><span class="p">:</span>
+            <span class="n">_tag_source_atom_map</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">atom_array</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_mol_to_smiles</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+    <span class="c1"># Pass 1: try to convert exactly</span>
+    <span class="c1"># If Pass 1 fails, make Pass 2: apply rules to recover</span>
+    <span class="n">smiles</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">smiles</span> <span class="o">=</span> <span class="n">_attempt</span><span class="p">(</span><span class="n">repair_chemistry</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">"SMILES derivation (no repair) failed for </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">smiles</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">smiles</span> <span class="o">=</span> <span class="n">_attempt</span><span class="p">(</span><span class="n">repair_chemistry</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="s2">"SMILES derivation (repair) failed for </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Could not derive a SMILES for ligand </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> from its bond table."</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">err</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">smiles</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Could not derive a SMILES for ligand </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> from its bond table."</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">smiles</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

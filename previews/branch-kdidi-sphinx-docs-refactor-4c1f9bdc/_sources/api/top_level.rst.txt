@@ -6,6 +6,5 @@ should prefer imports from packages such as :mod:`tmol.io`, :mod:`tmol.pose`,
 and :mod:`tmol.score`.
 
 .. automodule:: tmol
-   :members:
-   :undoc-members:
+   :members: include_paths
    :show-inheritance:

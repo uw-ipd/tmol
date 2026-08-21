@@ -1,0 +1,877 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.io._pose_stack_from_sequence &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c9b21c7c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/io/_pose_stack_from_sequence';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.47';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.47" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../io.html" class="nav-link">tmol.io</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._pose_stack_from_sequence</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.io._pose_stack_from_sequence</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._build_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseBuildContext</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span><span class="p">,</span> <span class="n">default_packed_block_types</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackBuilder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._sequence</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">resolve_block_type_names</span><span class="p">,</span>
+    <span class="n">smiles_in_tokens</span><span class="p">,</span>
+    <span class="n">tokenize_sequences</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
+
+
+<div class="viewcode-block" id="create_pose_stack_from_sequences">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.create_pose_stack_from_sequences">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_pose_stack_from_sequences</span><span class="p">(</span>
+    <span class="n">seqs</span><span class="p">,</span>  <span class="c1"># str | Sequence[str]</span>
+    <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PackedBlockTypes</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">param_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">termini</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PoseBuildContext</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">return_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Construct a PoseStack with zero coordinates from sequence strings.</span>
+
+<span class="sd">    See tmol.pose._sequence for the grammar. Returns</span>
+<span class="sd">    (PoseStack, PoseBuildContext) when return_context is set; the context</span>
+<span class="sd">    carries the database extended with any ligands the sequence names.</span>
+<span class="sd">    """</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span> <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"pass either context= or param_db=, not both"</span><span class="p">)</span>
+
+    <span class="n">tokens</span><span class="p">,</span> <span class="n">chain_lengths</span> <span class="o">=</span> <span class="n">tokenize_sequences</span><span class="p">(</span><span class="n">seqs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"context was built for device "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2"> but device is </span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="n">param_db</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">parameter_database</span>
+        <span class="n">restype_set</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">restype_set</span>
+        <span class="n">ligand_names</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">ligand_names</span>
+        <span class="n">canonical_ordering</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">canonical_ordering</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">smiles</span> <span class="o">=</span> <span class="n">smiles_in_tokens</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">smiles</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_ligands_from_smiles</span>
+
+            <span class="n">param_db</span><span class="p">,</span> <span class="n">ligand_names</span> <span class="o">=</span> <span class="n">prepare_ligands_from_smiles</span><span class="p">(</span>
+                <span class="n">smiles</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">param_db</span> <span class="o">=</span> <span class="n">param_db</span> <span class="ow">or</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
+            <span class="n">ligand_names</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">restype_set</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+        <span class="n">canonical_ordering</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">names</span><span class="p">,</span> <span class="n">chain_lengths</span> <span class="o">=</span> <span class="n">resolve_block_type_names</span><span class="p">(</span>
+        <span class="n">tokens</span><span class="p">,</span> <span class="n">chain_lengths</span><span class="p">,</span> <span class="n">restype_set</span><span class="p">,</span> <span class="n">ligand_names</span><span class="p">,</span> <span class="n">termini</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">packed_block_types</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">restype_set</span><span class="o">.</span><span class="n">chem_db</span> <span class="ow">is</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span><span class="o">.</span><span class="n">chemical</span><span class="p">:</span>
+            <span class="n">packed_block_types</span> <span class="o">=</span> <span class="n">default_packed_block_types</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">packed_block_types</span> <span class="o">=</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>
+                <span class="n">restype_set</span><span class="o">.</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">restype_set</span><span class="p">,</span> <span class="n">restype_set</span><span class="o">.</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">device</span>
+            <span class="p">)</span>
+
+    <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">from_block_type_names</span><span class="p">(</span>
+        <span class="n">packed_block_types</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">chain_lengths</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">return_context</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pose_stack</span>
+
+    <span class="k">if</span> <span class="n">canonical_ordering</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">canonical_ordering</span> <span class="o">=</span> <span class="n">CanonicalOrdering</span><span class="o">.</span><span class="n">from_chemdb</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">(</span>
+        <span class="n">canonical_ordering</span><span class="o">=</span><span class="n">canonical_ordering</span><span class="p">,</span>
+        <span class="n">packed_block_types</span><span class="o">=</span><span class="n">packed_block_types</span><span class="p">,</span>
+        <span class="n">parameter_database</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span>
+        <span class="n">restype_set</span><span class="o">=</span><span class="n">restype_set</span><span class="p">,</span>
+        <span class="n">ligand_names</span><span class="o">=</span><span class="n">ligand_names</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Backbone torsion values to 'build extended'</span>
+<span class="c1">#    beta strand for protein / B-form DNA / A-form RNA</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+<span class="n">EXTENDED_BACKBONE_TORSIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"alpha"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"phi"</span><span class="p">:</span> <span class="o">-</span><span class="mf">135.0</span><span class="p">,</span> <span class="s2">"psi"</span><span class="p">:</span> <span class="mf">135.0</span><span class="p">,</span> <span class="s2">"omega"</span><span class="p">:</span> <span class="mf">180.0</span><span class="p">},</span>
+    <span class="s2">"dna"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"alpha"</span><span class="p">:</span> <span class="o">-</span><span class="mf">30.0</span><span class="p">,</span>
+        <span class="s2">"beta"</span><span class="p">:</span> <span class="mf">136.0</span><span class="p">,</span>
+        <span class="s2">"gamma"</span><span class="p">:</span> <span class="mf">31.0</span><span class="p">,</span>
+        <span class="s2">"epsilon"</span><span class="p">:</span> <span class="o">-</span><span class="mf">141.0</span><span class="p">,</span>
+        <span class="s2">"zeta"</span><span class="p">:</span> <span class="o">-</span><span class="mf">161.0</span><span class="p">,</span>
+        <span class="s2">"chi1"</span><span class="p">:</span> <span class="o">-</span><span class="mf">98.0</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">"rna"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"alpha"</span><span class="p">:</span> <span class="o">-</span><span class="mf">68.0</span><span class="p">,</span>
+        <span class="s2">"beta"</span><span class="p">:</span> <span class="mf">178.0</span><span class="p">,</span>
+        <span class="s2">"gamma"</span><span class="p">:</span> <span class="mf">54.0</span><span class="p">,</span>
+        <span class="s2">"epsilon"</span><span class="p">:</span> <span class="o">-</span><span class="mf">153.0</span><span class="p">,</span>
+        <span class="s2">"zeta"</span><span class="p">:</span> <span class="o">-</span><span class="mf">71.0</span><span class="p">,</span>
+        <span class="s2">"chi1"</span><span class="p">:</span> <span class="o">-</span><span class="mf">158.0</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="extended_pose_stack_from_sequences">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.extended_pose_stack_from_sequences">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">extended_pose_stack_from_sequences</span><span class="p">(</span>
+    <span class="n">seqs</span><span class="p">,</span>  <span class="c1"># str | Sequence[str]</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">param_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">termini</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">return_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Build a PoseStack from sequences with ideal geometry and extended</span>
+<span class="sd">    backbone torsions.</span>
+
+<span class="sd">    See tmol.pose._sequence for the grammar. Returns</span>
+<span class="sd">    (PoseStack, PoseBuildContext) when return_context is set.</span>
+<span class="sd">    """</span>
+    <span class="n">pose_stack</span><span class="p">,</span> <span class="n">build_context</span> <span class="o">=</span> <span class="n">create_pose_stack_from_sequences</span><span class="p">(</span>
+        <span class="n">seqs</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span>
+        <span class="n">termini</span><span class="o">=</span><span class="n">termini</span><span class="p">,</span>
+        <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>
+        <span class="n">return_context</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">_ideal_chained_coords</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">))</span>
+    <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">_set_ideal_backbone_torsions</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+    <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">_separate_pose_stack_chains</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">build_context</span><span class="p">)</span> <span class="k">if</span> <span class="n">return_context</span> <span class="k">else</span> <span class="n">pose_stack</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Helpers used only by extended_pose_stack_from_sequences</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_set_ideal_backbone_torsions</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._util</span><span class="w"> </span><span class="kn">import</span> <span class="n">_measure_torsions</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics._pose_stack_kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">_apply_torsion_deltas</span>
+
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">requests</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">pose</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">):</span>
+            <span class="n">bt_ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">bt_ind</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">bt</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span>
+            <span class="n">targets</span> <span class="o">=</span> <span class="n">EXTENDED_BACKBONE_TORSIONS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">tor</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">torsions</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">tor</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
+                    <span class="n">requests</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">tor</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">tor</span><span class="o">.</span><span class="n">name</span><span class="p">])</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">requests</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pose_stack</span>
+
+    <span class="n">current</span> <span class="o">=</span> <span class="n">_measure_torsions</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">requests</span><span class="p">,</span> <span class="n">degrees</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">deltas</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">values</span><span class="p">))</span> <span class="o">-</span> <span class="n">current</span>
+    <span class="n">defined</span> <span class="o">=</span> <span class="o">~</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">deltas</span><span class="p">)</span>
+    <span class="n">requests</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">keep</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">requests</span><span class="p">,</span> <span class="n">defined</span><span class="p">)</span> <span class="k">if</span> <span class="n">keep</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">_apply_torsion_deltas</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">requests</span><span class="p">,</span> <span class="n">deltas</span><span class="p">[</span><span class="n">defined</span><span class="p">])</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ideal_chained_coords</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">pose</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">):</span>
+        <span class="n">placed</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">):</span>
+            <span class="n">bt_ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">bt_ind</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">bt</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span>
+            <span class="n">local</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+            <span class="n">prev</span> <span class="o">=</span> <span class="n">_bonded_predecessor</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">prev</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">placed</span><span class="p">[</span><span class="n">block</span><span class="p">]</span> <span class="o">=</span> <span class="n">local</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rot</span><span class="p">,</span> <span class="n">trans</span> <span class="o">=</span> <span class="n">_junction_transform</span><span class="p">(</span>
+                    <span class="n">pose_stack</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">bt</span><span class="p">,</span> <span class="n">local</span><span class="p">,</span> <span class="n">prev</span><span class="p">,</span> <span class="n">placed</span>
+                <span class="p">)</span>
+                <span class="n">placed</span><span class="p">[</span><span class="n">block</span><span class="p">]</span> <span class="o">=</span> <span class="n">local</span> <span class="o">@</span> <span class="n">rot</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">trans</span>
+
+        <span class="k">for</span> <span class="n">block</span><span class="p">,</span> <span class="n">block_coords</span> <span class="ow">in</span> <span class="n">placed</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">bt_ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+            <span class="n">bt</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+            <span class="n">coords</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">offset</span> <span class="p">:</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">block_coords</span><span class="p">[</span>
+                <span class="n">bt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span>
+            <span class="p">]</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_separate_pose_stack_chains</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Slide each chain along x so no two chains overlap."""</span>
+    <span class="n">separation</span> <span class="o">=</span> <span class="mf">6.0</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">pose</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">):</span>
+        <span class="n">atoms_for_chain</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">):</span>
+            <span class="n">bt_ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">bt_ind</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+            <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">])</span>
+            <span class="n">chain</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+            <span class="n">atoms_for_chain</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">n_atoms</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">atoms_for_chain</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">next_x</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">chain</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">atoms_for_chain</span><span class="p">):</span>
+            <span class="n">inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">atoms_for_chain</span><span class="p">[</span><span class="n">chain</span><span class="p">]))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">inds</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">shift</span> <span class="o">=</span> <span class="n">next_x</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+            <span class="n">coords</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">inds</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">shift</span>
+            <span class="n">next_x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="n">shift</span> <span class="o">+</span> <span class="n">separation</span>
+    <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_bonded_predecessor</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">):</span>
+    <span class="n">bt_ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+    <span class="n">bt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">bt</span><span class="o">.</span><span class="n">down_connection_ind</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">partner</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections64</span><span class="p">[</span>
+        <span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">bt</span><span class="o">.</span><span class="n">down_connection_ind</span>
+    <span class="p">]</span>
+    <span class="n">prev_block</span><span class="p">,</span> <span class="n">prev_conn</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">partner</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">partner</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">prev_block</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">prev_block</span> <span class="o">&gt;=</span> <span class="n">block</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">prev_bt_ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">prev_block</span><span class="p">])</span>
+    <span class="n">prev_bt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">prev_bt_ind</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">prev_conn</span> <span class="o">!=</span> <span class="n">prev_bt</span><span class="o">.</span><span class="n">up_connection_ind</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">prev_block</span><span class="p">,</span> <span class="n">prev_conn</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_junction_transform</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">bt</span><span class="p">,</span> <span class="n">local</span><span class="p">,</span> <span class="n">prev</span><span class="p">,</span> <span class="n">placed</span><span class="p">):</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">prev_block</span><span class="p">,</span> <span class="n">prev_conn</span> <span class="o">=</span> <span class="n">prev</span>
+    <span class="n">prev_bt</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">prev_block</span><span class="p">])]</span>
+    <span class="n">prev_coords</span> <span class="o">=</span> <span class="n">placed</span><span class="p">[</span><span class="n">prev_block</span><span class="p">]</span>
+
+    <span class="n">prev_conn_name</span> <span class="o">=</span> <span class="n">prev_bt</span><span class="o">.</span><span class="n">connections</span><span class="p">[</span><span class="n">prev_conn</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">prev_mainchain</span> <span class="o">=</span> <span class="n">prev_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">mainchain_atoms</span>
+    <span class="n">conn_atom</span> <span class="o">=</span> <span class="n">prev_bt</span><span class="o">.</span><span class="n">connections</span><span class="p">[</span><span class="n">prev_conn</span><span class="p">]</span><span class="o">.</span><span class="n">atom</span>
+    <span class="n">ref_atom</span> <span class="o">=</span> <span class="n">prev_mainchain</span><span class="p">[</span><span class="n">prev_mainchain</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">conn_atom</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">ref</span> <span class="o">=</span> <span class="n">prev_coords</span><span class="p">[</span><span class="n">prev_bt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="n">ref_atom</span><span class="p">]]</span>
+    <span class="n">anchor</span> <span class="o">=</span> <span class="n">prev_coords</span><span class="p">[</span><span class="n">prev_bt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="n">conn_atom</span><span class="p">]]</span>
+    <span class="n">hinge</span> <span class="o">=</span> <span class="n">prev_coords</span><span class="p">[</span><span class="n">prev_bt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="n">prev_conn_name</span><span class="p">]]</span>
+
+    <span class="n">mainchain</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">mainchain_atoms</span>
+    <span class="n">src</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">local</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">connections</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">down_connection_ind</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">]],</span>
+            <span class="n">local</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="n">mainchain</span><span class="p">[</span><span class="mi">0</span><span class="p">]]],</span>
+            <span class="n">local</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="n">mainchain</span><span class="p">[</span><span class="mi">1</span><span class="p">]]],</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">src</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">angle</span> <span class="o">=</span> <span class="n">_angle</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">torsion</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">_junction_torsion_value</span><span class="p">(</span><span class="n">prev_bt</span><span class="p">,</span> <span class="n">prev_conn</span><span class="p">))</span>
+
+    <span class="n">dst</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">anchor</span><span class="p">,</span> <span class="n">hinge</span><span class="p">,</span> <span class="n">_place_atom</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">anchor</span><span class="p">,</span> <span class="n">hinge</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">torsion</span><span class="p">)]</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_rigid_transform</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_junction_torsion_value</span><span class="p">(</span><span class="n">prev_bt</span><span class="p">,</span> <span class="n">prev_conn</span><span class="p">):</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">EXTENDED_BACKBONE_TORSIONS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="n">prev_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span><span class="p">,</span> <span class="p">{}</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">tor</span> <span class="ow">in</span> <span class="n">prev_bt</span><span class="o">.</span><span class="n">torsions</span><span class="p">:</span>
+        <span class="n">uaids</span> <span class="o">=</span> <span class="n">prev_bt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">tor</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">spans</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">uaids</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="ow">and</span> <span class="n">uaids</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="ow">and</span> <span class="n">uaids</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">prev_conn</span>
+            <span class="ow">and</span> <span class="n">uaids</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">prev_conn</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">spans</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">targets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tor</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="mf">180.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mf">180.0</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_angle</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+    <span class="n">ba</span> <span class="o">=</span> <span class="n">a</span> <span class="o">-</span> <span class="n">b</span>
+    <span class="n">bc</span> <span class="o">=</span> <span class="n">c</span> <span class="o">-</span> <span class="n">b</span>
+    <span class="n">cos</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ba</span><span class="p">,</span> <span class="n">bc</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ba</span><span class="p">)</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">bc</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">cos</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_place_atom</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">torsion</span><span class="p">):</span>
+    <span class="n">bc</span> <span class="o">=</span> <span class="n">c</span> <span class="o">-</span> <span class="n">b</span>
+    <span class="n">bc</span> <span class="o">/=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">bc</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">bc</span><span class="p">,</span> <span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">/=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">bc</span><span class="p">)</span>
+    <span class="n">d2</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="o">-</span><span class="n">dist</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span>
+            <span class="n">dist</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">torsion</span><span class="p">),</span>
+            <span class="n">dist</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torsion</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">c</span> <span class="o">+</span> <span class="n">d2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">bc</span> <span class="o">+</span> <span class="n">d2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">m</span> <span class="o">+</span> <span class="n">d2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rigid_transform</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">):</span>
+    <span class="n">src_center</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">dst_center</span> <span class="o">=</span> <span class="n">dst</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="p">(</span><span class="n">src</span> <span class="o">-</span> <span class="n">src_center</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">dst</span> <span class="o">-</span> <span class="n">dst_center</span><span class="p">)</span>
+    <span class="n">u</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">vt</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">u</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+    <span class="n">rot</span> <span class="o">=</span> <span class="n">vt</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">numpy</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">d</span><span class="p">])</span> <span class="o">@</span> <span class="n">u</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">return</span> <span class="n">rot</span><span class="p">,</span> <span class="n">dst_center</span> <span class="o">-</span> <span class="n">rot</span> <span class="o">@</span> <span class="n">src_center</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

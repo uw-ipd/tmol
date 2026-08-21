@@ -496,35 +496,201 @@ Start with <a class="reference internal" href="api/pose.html"><span class="doc">
 <li class="toctree-l2"><a class="reference internal" href="api/top_level.html#tmol.include_paths"><code class="docutils literal notranslate"><span class="pre">include_paths()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="api/chemical.html">Chemical Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/chemical.html">Chemical Types</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.BondType"><code class="docutils literal notranslate"><span class="pre">BondType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.RefinedResidueType"><code class="docutils literal notranslate"><span class="pre">RefinedResidueType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.ResidueTypeSet"><code class="docutils literal notranslate"><span class="pre">ResidueTypeSet</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.bonds_and_bond_ranges"><code class="docutils literal notranslate"><span class="pre">bonds_and_bond_ranges()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.build_coords_from_icoors"><code class="docutils literal notranslate"><span class="pre">build_coords_from_icoors()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.build_ideal_coords"><code class="docutils literal notranslate"><span class="pre">build_ideal_coords()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.frame_from_coords"><code class="docutils literal notranslate"><span class="pre">frame_from_coords()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.one2three"><code class="docutils literal notranslate"><span class="pre">one2three()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.three2one"><code class="docutils literal notranslate"><span class="pre">three2one()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="api/database.html">Parameter Database</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/database.html#tmol.database.AtomType"><code class="docutils literal notranslate"><span class="pre">AtomType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/database.html#tmol.database.ChemicalDatabase"><code class="docutils literal notranslate"><span class="pre">ChemicalDatabase</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/database.html#tmol.database.ParameterDatabase"><code class="docutils literal notranslate"><span class="pre">ParameterDatabase</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/database.html#tmol.database.PatchedChemicalDatabase"><code class="docutils literal notranslate"><span class="pre">PatchedChemicalDatabase</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/database.html#tmol.database.RawResidueType"><code class="docutils literal notranslate"><span class="pre">RawResidueType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/database.html#tmol.database.ScoringDatabase"><code class="docutils literal notranslate"><span class="pre">ScoringDatabase</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/database.html#tmol.database.inject_residue_params"><code class="docutils literal notranslate"><span class="pre">inject_residue_params()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/io.html">Input and Output</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.CanonicalForm"><code class="docutils literal notranslate"><span class="pre">CanonicalForm</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.CanonicalOrdering"><code class="docutils literal notranslate"><span class="pre">CanonicalOrdering</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.PoseBuildContext"><code class="docutils literal notranslate"><span class="pre">PoseBuildContext</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.atom_records_from_coords"><code class="docutils literal notranslate"><span class="pre">atom_records_from_coords()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.atom_records_from_pose_stack"><code class="docutils literal notranslate"><span class="pre">atom_records_from_pose_stack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.atomworks_from_pose_stack"><code class="docutils literal notranslate"><span class="pre">atomworks_from_pose_stack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.biotite_from_canonical_form"><code class="docutils literal notranslate"><span class="pre">biotite_from_canonical_form()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.biotite_from_pose_stack"><code class="docutils literal notranslate"><span class="pre">biotite_from_pose_stack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.build_context_from_biotite"><code class="docutils literal notranslate"><span class="pre">build_context_from_biotite()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.canonical_form_from_atomworks"><code class="docutils literal notranslate"><span class="pre">canonical_form_from_atomworks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.canonical_form_from_biotite"><code class="docutils literal notranslate"><span class="pre">canonical_form_from_biotite()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.canonical_form_from_pdb"><code class="docutils literal notranslate"><span class="pre">canonical_form_from_pdb()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.canonical_form_from_pose_stack"><code class="docutils literal notranslate"><span class="pre">canonical_form_from_pose_stack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.canonical_ordering_for_atomworks"><code class="docutils literal notranslate"><span class="pre">canonical_ordering_for_atomworks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.canonical_ordering_for_biotite"><code class="docutils literal notranslate"><span class="pre">canonical_ordering_for_biotite()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.canonical_ordering_for_openfold"><code class="docutils literal notranslate"><span class="pre">canonical_ordering_for_openfold()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.canonical_ordering_for_rosettafold2"><code class="docutils literal notranslate"><span class="pre">canonical_ordering_for_rosettafold2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.create_pose_stack_from_sequences"><code class="docutils literal notranslate"><span class="pre">create_pose_stack_from_sequences()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.default_canonical_ordering"><code class="docutils literal notranslate"><span class="pre">default_canonical_ordering()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.default_packed_block_types"><code class="docutils literal notranslate"><span class="pre">default_packed_block_types()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.extended_pose_stack_from_sequences"><code class="docutils literal notranslate"><span class="pre">extended_pose_stack_from_sequences()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.fetch_pdb"><code class="docutils literal notranslate"><span class="pre">fetch_pdb()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.packed_block_types_for_atomworks"><code class="docutils literal notranslate"><span class="pre">packed_block_types_for_atomworks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.packed_block_types_for_biotite"><code class="docutils literal notranslate"><span class="pre">packed_block_types_for_biotite()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.packed_block_types_for_openfold"><code class="docutils literal notranslate"><span class="pre">packed_block_types_for_openfold()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.packed_block_types_for_rosettafold2"><code class="docutils literal notranslate"><span class="pre">packed_block_types_for_rosettafold2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.pose_stack_from_atomworks"><code class="docutils literal notranslate"><span class="pre">pose_stack_from_atomworks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.pose_stack_from_biotite"><code class="docutils literal notranslate"><span class="pre">pose_stack_from_biotite()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.pose_stack_from_openfold"><code class="docutils literal notranslate"><span class="pre">pose_stack_from_openfold()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.pose_stack_from_pdb"><code class="docutils literal notranslate"><span class="pre">pose_stack_from_pdb()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.pose_stack_from_rosettafold2"><code class="docutils literal notranslate"><span class="pre">pose_stack_from_rosettafold2()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.pose_stack_to_pdb_string"><code class="docutils literal notranslate"><span class="pre">pose_stack_to_pdb_string()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.selection_gallery"><code class="docutils literal notranslate"><span class="pre">selection_gallery()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.switchable_view"><code class="docutils literal notranslate"><span class="pre">switchable_view()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.to_atom_lines"><code class="docutils literal notranslate"><span class="pre">to_atom_lines()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.to_pdb"><code class="docutils literal notranslate"><span class="pre">to_pdb()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.to_pdb_lines"><code class="docutils literal notranslate"><span class="pre">to_pdb_lines()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.view"><code class="docutils literal notranslate"><span class="pre">view()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/io.html#tmol.io.write_pose_stack_pdb"><code class="docutils literal notranslate"><span class="pre">write_pose_stack_pdb()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="api/kinematics.html">Kinematics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/ligand.html">Ligands</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/numeric.html">Numerical Utilities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/kinematics.html">Kinematics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.BondDOF"><code class="docutils literal notranslate"><span class="pre">BondDOF</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.BondDOFTypes"><code class="docutils literal notranslate"><span class="pre">BondDOFTypes</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.CartesianMoveMap"><code class="docutils literal notranslate"><span class="pre">CartesianMoveMap</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.CoordArray"><code class="docutils literal notranslate"><span class="pre">CoordArray</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.DOFMetadata"><code class="docutils literal notranslate"><span class="pre">DOFMetadata</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.DOFTypes"><code class="docutils literal notranslate"><span class="pre">DOFTypes</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.EdgeType"><code class="docutils literal notranslate"><span class="pre">EdgeType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.FoldForest"><code class="docutils literal notranslate"><span class="pre">FoldForest</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.JumpDOF"><code class="docutils literal notranslate"><span class="pre">JumpDOF</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.JumpDOFTypes"><code class="docutils literal notranslate"><span class="pre">JumpDOFTypes</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.KinDOF"><code class="docutils literal notranslate"><span class="pre">KinDOF</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.KinForest"><code class="docutils literal notranslate"><span class="pre">KinForest</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.KinForestScanData"><code class="docutils literal notranslate"><span class="pre">KinForestScanData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.KinematicModuleData"><code class="docutils literal notranslate"><span class="pre">KinematicModuleData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.MinimizerMap"><code class="docutils literal notranslate"><span class="pre">MinimizerMap</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.MoveMap"><code class="docutils literal notranslate"><span class="pre">MoveMap</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.NodeType"><code class="docutils literal notranslate"><span class="pre">NodeType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.PoseStackKinematicsModule"><code class="docutils literal notranslate"><span class="pre">PoseStackKinematicsModule</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.construct_kin_module_data_for_pose"><code class="docutils literal notranslate"><span class="pre">construct_kin_module_data_for_pose()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.inverseKin"><code class="docutils literal notranslate"><span class="pre">inverseKin()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.set_named_torsions"><code class="docutils literal notranslate"><span class="pre">set_named_torsions()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/kinematics.html#tmol.kinematics.validate_fold_forest"><code class="docutils literal notranslate"><span class="pre">validate_fold_forest()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/ligand.html">Ligands</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.FragmentConnection"><code class="docutils literal notranslate"><span class="pre">FragmentConnection</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.LigandFragmentDefinition"><code class="docutils literal notranslate"><span class="pre">LigandFragmentDefinition</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.LigandPreparation"><code class="docutils literal notranslate"><span class="pre">LigandPreparation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.LigandPreparationError"><code class="docutils literal notranslate"><span class="pre">LigandPreparationError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.OpenBabelUnavailableError"><code class="docutils literal notranslate"><span class="pre">OpenBabelUnavailableError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.apply_fragment_connections"><code class="docutils literal notranslate"><span class="pre">apply_fragment_connections()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.build_split_block_mapping"><code class="docutils literal notranslate"><span class="pre">build_split_block_mapping()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.detect_nonstandard_residues"><code class="docutils literal notranslate"><span class="pre">detect_nonstandard_residues()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.expand_fragmented_ligands"><code class="docutils literal notranslate"><span class="pre">expand_fragmented_ligands()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.fragment_ids_from_atom_array"><code class="docutils literal notranslate"><span class="pre">fragment_ids_from_atom_array()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.get_chem_comp_type"><code class="docutils literal notranslate"><span class="pre">get_chem_comp_type()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.inject_ligand_preparations"><code class="docutils literal notranslate"><span class="pre">inject_ligand_preparations()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.inject_params_file"><code class="docutils literal notranslate"><span class="pre">inject_params_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.inject_params_files"><code class="docutils literal notranslate"><span class="pre">inject_params_files()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.ligand_smiles_from_atom_array"><code class="docutils literal notranslate"><span class="pre">ligand_smiles_from_atom_array()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.load_params_file"><code class="docutils literal notranslate"><span class="pre">load_params_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.nonstandard_residue_info_from_mol2"><code class="docutils literal notranslate"><span class="pre">nonstandard_residue_info_from_mol2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.nonstandard_residue_info_from_mol2_block"><code class="docutils literal notranslate"><span class="pre">nonstandard_residue_info_from_mol2_block()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.nonstandard_residue_info_from_smiles_via_mol2"><code class="docutils literal notranslate"><span class="pre">nonstandard_residue_info_from_smiles_via_mol2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.prepare_ligand_from_cif"><code class="docutils literal notranslate"><span class="pre">prepare_ligand_from_cif()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.prepare_ligand_from_mol2"><code class="docutils literal notranslate"><span class="pre">prepare_ligand_from_mol2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.prepare_ligand_from_smiles"><code class="docutils literal notranslate"><span class="pre">prepare_ligand_from_smiles()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.prepare_ligands"><code class="docutils literal notranslate"><span class="pre">prepare_ligands()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.prepare_ligands_from_smiles"><code class="docutils literal notranslate"><span class="pre">prepare_ligands_from_smiles()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.prepare_single_ligand"><code class="docutils literal notranslate"><span class="pre">prepare_single_ligand()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.read_params_file"><code class="docutils literal notranslate"><span class="pre">read_params_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.recombine_fragmented_ligands"><code class="docutils literal notranslate"><span class="pre">recombine_fragmented_ligands()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.unsplit_pose_stack"><code class="docutils literal notranslate"><span class="pre">unsplit_pose_stack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.write_params_file"><code class="docutils literal notranslate"><span class="pre">write_params_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.write_params_from_mol2"><code class="docutils literal notranslate"><span class="pre">write_params_from_mol2()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/numeric.html">Numerical Utilities</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/numeric.html#tmol.numeric.Angles"><code class="docutils literal notranslate"><span class="pre">Angles</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/numeric.html#tmol.numeric.BSplineInterpolation"><code class="docutils literal notranslate"><span class="pre">BSplineInterpolation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/numeric.html#tmol.numeric.Coord64Array"><code class="docutils literal notranslate"><span class="pre">Coord64Array</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/numeric.html#tmol.numeric.coord_dihedrals"><code class="docutils literal notranslate"><span class="pre">coord_dihedrals()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/optimization.html">Optimization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/optimization.html#tmol.optimization.CartesianSfxnNetwork"><code class="docutils literal notranslate"><span class="pre">CartesianSfxnNetwork</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/optimization.html#tmol.optimization.KinForestSfxnNetwork"><code class="docutils literal notranslate"><span class="pre">KinForestSfxnNetwork</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/optimization.html#tmol.optimization.build_kinforest_network"><code class="docutils literal notranslate"><span class="pre">build_kinforest_network()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/optimization.html#tmol.optimization.run_cart_min"><code class="docutils literal notranslate"><span class="pre">run_cart_min()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/optimization.html#tmol.optimization.run_kin_min"><code class="docutils literal notranslate"><span class="pre">run_kin_min()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/optimization.html#tmol.optimization.run_min"><code class="docutils literal notranslate"><span class="pre">run_min()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="api/pack.html">Packing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/pack.html#tmol.pack.PackerEnergyTables"><code class="docutils literal notranslate"><span class="pre">PackerEnergyTables</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pack.html#tmol.pack.PackerPalette"><code class="docutils literal notranslate"><span class="pre">PackerPalette</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pack.html#tmol.pack.PackerPalleteAnnotation"><code class="docutils literal notranslate"><span class="pre">PackerPalleteAnnotation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pack.html#tmol.pack.PackerTask"><code class="docutils literal notranslate"><span class="pre">PackerTask</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pack.html#tmol.pack.SetPackerTask"><code class="docutils literal notranslate"><span class="pre">SetPackerTask</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pack.html#tmol.pack.build_missing_sidechains"><code class="docutils literal notranslate"><span class="pre">build_missing_sidechains()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pack.html#tmol.pack.impose_top_rotamer_assignments"><code class="docutils literal notranslate"><span class="pre">impose_top_rotamer_assignments()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pack.html#tmol.pack.pack_rotamers"><code class="docutils literal notranslate"><span class="pre">pack_rotamers()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pack.html#tmol.pack.set_compare"><code class="docutils literal notranslate"><span class="pre">set_compare()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/pack.html#module-tmol.pack.rotamer">Rotamer sampling</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="api/pose.html">Pose</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/relax.html">Relax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/pose.html">Pose</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.ConstraintSet"><code class="docutils literal notranslate"><span class="pre">ConstraintSet</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.PackedBlockTypes"><code class="docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.PoseStack"><code class="docutils literal notranslate"><span class="pre">PoseStack</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.PoseStackBuilder"><code class="docutils literal notranslate"><span class="pre">PoseStackBuilder</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.SeqToken"><code class="docutils literal notranslate"><span class="pre">SeqToken</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.SplitBlockEntry"><code class="docutils literal notranslate"><span class="pre">SplitBlockEntry</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.SplitBlockMapping"><code class="docutils literal notranslate"><span class="pre">SplitBlockMapping</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.get_named_torsions"><code class="docutils literal notranslate"><span class="pre">get_named_torsions()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.get_torsion_names"><code class="docutils literal notranslate"><span class="pre">get_torsion_names()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.resolve_block_type_names"><code class="docutils literal notranslate"><span class="pre">resolve_block_type_names()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.smiles_in_tokens"><code class="docutils literal notranslate"><span class="pre">smiles_in_tokens()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.tokenize_sequences"><code class="docutils literal notranslate"><span class="pre">tokenize_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/relax.html">Relax</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/relax.html#tmol.relax.accept_best"><code class="docutils literal notranslate"><span class="pre">accept_best()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/relax.html#tmol.relax.fast_relax"><code class="docutils literal notranslate"><span class="pre">fast_relax()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/relax.html#tmol.relax.relax_pack_min_step"><code class="docutils literal notranslate"><span class="pre">relax_pack_min_step()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="api/score.html">Scoring</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.AcceptorHybridization"><code class="docutils literal notranslate"><span class="pre">AcceptorHybridization</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.AtomTypeParamResolver"><code class="docutils literal notranslate"><span class="pre">AtomTypeParamResolver</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.AtomTypeParams"><code class="docutils literal notranslate"><span class="pre">AtomTypeParams</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.BlockPairScoringModule"><code class="docutils literal notranslate"><span class="pre">BlockPairScoringModule</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.FragmentInteractionScores"><code class="docutils literal notranslate"><span class="pre">FragmentInteractionScores</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.IndexedBonds"><code class="docutils literal notranslate"><span class="pre">IndexedBonds</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.RotamerScoringModule"><code class="docutils literal notranslate"><span class="pre">RotamerScoringModule</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.ScoreFunction"><code class="docutils literal notranslate"><span class="pre">ScoreFunction</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.ScoreType"><code class="docutils literal notranslate"><span class="pre">ScoreType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.WholePoseScoringModule"><code class="docutils literal notranslate"><span class="pre">WholePoseScoringModule</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.beta2016_score_function"><code class="docutils literal notranslate"><span class="pre">beta2016_score_function()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/analysis.html">Analysis Operations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.ops.build_coord_mask_for_mask_and_interacting_atoms"><code class="docutils literal notranslate"><span class="pre">build_coord_mask_for_mask_and_interacting_atoms()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.ops.build_coord_mask_for_mask_and_nearby_blocks"><code class="docutils literal notranslate"><span class="pre">build_coord_mask_for_mask_and_nearby_blocks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.ops.build_sidechain_coord_mask"><code class="docutils literal notranslate"><span class="pre">build_sidechain_coord_mask()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.ops.calculate_block_pair_ddg"><code class="docutils literal notranslate"><span class="pre">calculate_block_pair_ddg()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.ops.compute_block_adjacency"><code class="docutils literal notranslate"><span class="pre">compute_block_adjacency()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.ops.compute_block_centroids_and_furthest_dist"><code class="docutils literal notranslate"><span class="pre">compute_block_centroids_and_furthest_dist()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.ops.res_mask_to_coord_mask"><code class="docutils literal notranslate"><span class="pre">res_mask_to_coord_mask()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.ops.residue_mask_from_chain"><code class="docutils literal notranslate"><span class="pre">residue_mask_from_chain()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.score.calculate_fragment_interactions"><code class="docutils literal notranslate"><span class="pre">calculate_fragment_interactions()</span></code></a></li>
 </ul>
 </li>
@@ -536,10 +702,52 @@ Start with <a class="reference internal" href="api/pose.html"><span class="doc">
 <li class="toctree-l2"><a class="reference internal" href="api/score_terms.html#constraints">Constraints</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="api/types.html">Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/types.html">Types</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.Casting"><code class="docutils literal notranslate"><span class="pre">Casting</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.ConvertAttrs"><code class="docutils literal notranslate"><span class="pre">ConvertAttrs</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.Dim"><code class="docutils literal notranslate"><span class="pre">Dim</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.NDArray"><code class="docutils literal notranslate"><span class="pre">NDArray</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.Shape"><code class="docutils literal notranslate"><span class="pre">Shape</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.SubscriptableType"><code class="docutils literal notranslate"><span class="pre">SubscriptableType</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.TensorGroup"><code class="docutils literal notranslate"><span class="pre">TensorGroup</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.ValidateAttrs"><code class="docutils literal notranslate"><span class="pre">ValidateAttrs</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.cat"><code class="docutils literal notranslate"><span class="pre">cat()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.constructor_convert"><code class="docutils literal notranslate"><span class="pre">constructor_convert()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.convert_args"><code class="docutils literal notranslate"><span class="pre">convert_args()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.get_converter"><code class="docutils literal notranslate"><span class="pre">get_converter()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.get_validator"><code class="docutils literal notranslate"><span class="pre">get_validator()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.like_kwargs"><code class="docutils literal notranslate"><span class="pre">like_kwargs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.register_converter"><code class="docutils literal notranslate"><span class="pre">register_converter()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.register_validator"><code class="docutils literal notranslate"><span class="pre">register_validator()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.torch_dtype"><code class="docutils literal notranslate"><span class="pre">torch_dtype()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.union_convert"><code class="docutils literal notranslate"><span class="pre">union_convert()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.validate_args"><code class="docutils literal notranslate"><span class="pre">validate_args()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.validate_convert"><code class="docutils literal notranslate"><span class="pre">validate_convert()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#tmol.types.validate_isinstance"><code class="docutils literal notranslate"><span class="pre">validate_isinstance()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="api/utility.html">Utilities</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.unique_val"><code class="docutils literal notranslate"><span class="pre">unique_val()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.AttrMapping"><code class="docutils literal notranslate"><span class="pre">AttrMapping</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.AttrMutableMapping"><code class="docutils literal notranslate"><span class="pre">AttrMutableMapping</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.AutoNumber"><code class="docutils literal notranslate"><span class="pre">AutoNumber</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.LoggerMixin"><code class="docutils literal notranslate"><span class="pre">LoggerMixin</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.bind_to_args"><code class="docutils literal notranslate"><span class="pre">bind_to_args()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.classlogger_for"><code class="docutils literal notranslate"><span class="pre">classlogger_for()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.exclusive_cumsum"><code class="docutils literal notranslate"><span class="pre">exclusive_cumsum()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.exclusive_cumsum1d"><code class="docutils literal notranslate"><span class="pre">exclusive_cumsum1d()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.exclusive_cumsum2d"><code class="docutils literal notranslate"><span class="pre">exclusive_cumsum2d()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.exclusive_cumsum2d_w_totals"><code class="docutils literal notranslate"><span class="pre">exclusive_cumsum2d_w_totals()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.get_all_residue_positions"><code class="docutils literal notranslate"><span class="pre">get_all_residue_positions()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.get_all_segment_positions"><code class="docutils literal notranslate"><span class="pre">get_all_segment_positions()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.ignore_unused_kwargs"><code class="docutils literal notranslate"><span class="pre">ignore_unused_kwargs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.just_one"><code class="docutils literal notranslate"><span class="pre">just_one()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.logger_for_class"><code class="docutils literal notranslate"><span class="pre">logger_for_class()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.nvtx_range"><code class="docutils literal notranslate"><span class="pre">nvtx_range()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.qualified_name"><code class="docutils literal notranslate"><span class="pre">qualified_name()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.resolve_device"><code class="docutils literal notranslate"><span class="pre">resolve_device()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.u"><code class="docutils literal notranslate"><span class="pre">u()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.unique_val"><code class="docutils literal notranslate"><span class="pre">unique_val()</span></code></a></li>
 </ul>
 </li>
 </ul>

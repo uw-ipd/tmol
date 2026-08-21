@@ -1,0 +1,1245 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.ligand._detect &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c9b21c7c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/ligand/_detect';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.47';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.47" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand._detect</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.ligand._detect</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Detection of non-standard residues in biotite AtomArrays.</span>
+
+<span class="sd">Identifies residues that are not represented in tmol's ChemicalDatabase</span>
+<span class="sd">and classifies them using Biotite's built-in Chemical Component Dictionary</span>
+<span class="sd">(CCD) as either true ligands (non-polymer) or modified amino acids /</span>
+<span class="sd">nucleotides (polymer-linked).</span>
+<span class="sd">"""</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure.info.ccd</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ccd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rdkit.Chem</span><span class="w"> </span><span class="kn">import</span> <span class="n">RWMol</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._mol2_names</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_disambiguated_mol2_names</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">SKIP_RESIDUES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"HOH"</span><span class="p">,</span> <span class="s2">"WAT"</span><span class="p">,</span> <span class="s2">"DOD"</span><span class="p">,</span> <span class="s2">"VRT"</span><span class="p">})</span>
+
+
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NonStandardResidueInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Detected non-standard residue requiring preparation.</span>
+
+<span class="sd">    Any residue not in tmol's standard database is represented here,</span>
+<span class="sd">    regardless of whether it is a true ligand, modified amino acid,</span>
+<span class="sd">    or modified nucleotide.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        res_name: Three-letter residue code (e.g. "ATP", "NAG").</span>
+<span class="sd">        ccd_type: CCD chemical component type string, or "UNKNOWN" if the</span>
+<span class="sd">            residue is not in the CCD.  Informational only.</span>
+<span class="sd">        atom_names: Atom names for one representative instance.</span>
+<span class="sd">        elements: Element symbols for each atom.</span>
+<span class="sd">        coords: Cartesian coordinates of shape (n_atoms, 3).</span>
+<span class="sd">        atom_array: The sub-AtomArray (with bonds if available).</span>
+<span class="sd">        partial_charges: Authoritative ``{atom_name: charge}`` map (OpenBabel</span>
+<span class="sd">            MMFF94 charges). Set only on the mol2 / SMILES-via-mol2 reader path,</span>
+<span class="sd">            where ``prepare_single_ligand`` consumes them directly. ``None`` for</span>
+<span class="sd">            raw CIF/atom-array detections (the unified path re-derives charges</span>
+<span class="sd">            from the SMILES).</span>
+<span class="sd">        skip_protonation: If True, Dimorphite-DL protonation is skipped and</span>
+<span class="sd">            explicit hydrogens from the input (mol2) are preserved. Paired with</span>
+<span class="sd">            ``partial_charges`` on the mol2 / SMILES-via-mol2 path.</span>
+<span class="sd">        original_single_bonds: Optional set of ``frozenset({name_a, name_b})``</span>
+<span class="sd">            pairs that the source mol2 records as literal single (order ``'1'``)</span>
+<span class="sd">            bonds, keyed by disambiguated atom name. ``build_chi_topology`` uses</span>
+<span class="sd">            these to honor the mol2 bond order (Rosetta-faithful) instead of</span>
+<span class="sd">            RDKit's post-kekulization order. Only set on the mol2 / SMILES-via-</span>
+<span class="sd">            mol2 paths; ``None`` elsewhere.</span>
+<span class="sd">    """</span>
+
+    <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">ccd_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">atom_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">elements</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">hash</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">hash</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">covalently_linked</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">partial_charges</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">skip_protonation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">original_single_bonds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># source atom-array index per mol2 heavy atom (SMILES-via-mol2 path only)</span>
+    <span class="n">source_atom_order</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="nd">@functools</span><span class="o">.</span><span class="n">cache</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_chem_comp_type_dict</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Build a dict mapping CCD component IDs to their chemical type."""</span>
+    <span class="n">ccd_data</span> <span class="o">=</span> <span class="n">ccd</span><span class="o">.</span><span class="n">get_ccd</span><span class="p">()</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">ccd_data</span><span class="p">[</span><span class="s2">"chem_comp"</span><span class="p">][</span><span class="s2">"id"</span><span class="p">]</span><span class="o">.</span><span class="n">as_array</span><span class="p">())</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">ccd_data</span><span class="p">[</span><span class="s2">"chem_comp"</span><span class="p">][</span><span class="s2">"type"</span><span class="p">]</span><span class="o">.</span><span class="n">as_array</span><span class="p">())</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">types</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="get_chem_comp_type">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.get_chem_comp_type">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_chem_comp_type</span><span class="p">(</span><span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Look up the CCD chemical component type for a residue name.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        res_name: Three-letter residue code.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The CCD type string (e.g. "NON-POLYMER", "L-PEPTIDE LINKING"),</span>
+<span class="sd">        or None if the code is not found in the CCD.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">_chem_comp_type_dict</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span></div>
+
+
+
+<span class="n">_METAL_SYMBOLS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">"Fe"</span><span class="p">,</span>
+        <span class="s2">"Zn"</span><span class="p">,</span>
+        <span class="s2">"Cu"</span><span class="p">,</span>
+        <span class="s2">"Mn"</span><span class="p">,</span>
+        <span class="s2">"Co"</span><span class="p">,</span>
+        <span class="s2">"Ni"</span><span class="p">,</span>
+        <span class="s2">"Mg"</span><span class="p">,</span>
+        <span class="s2">"Ca"</span><span class="p">,</span>
+        <span class="s2">"Na"</span><span class="p">,</span>
+        <span class="s2">"K"</span><span class="p">,</span>
+        <span class="s2">"Cr"</span><span class="p">,</span>
+        <span class="s2">"Mo"</span><span class="p">,</span>
+        <span class="s2">"W"</span><span class="p">,</span>
+        <span class="s2">"V"</span><span class="p">,</span>
+        <span class="s2">"Pt"</span><span class="p">,</span>
+        <span class="s2">"Pd"</span><span class="p">,</span>
+        <span class="s2">"Ru"</span><span class="p">,</span>
+        <span class="s2">"Rh"</span><span class="p">,</span>
+        <span class="s2">"Ir"</span><span class="p">,</span>
+        <span class="s2">"Os"</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_strip_metals</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Remove metal atoms from an RDKit Mol.</span>
+
+<span class="sd">    OpenBabel downstream cannot parse CCD coordination-bond SMILES, and</span>
+<span class="sd">    metals are dropped during ligand preparation anyway.</span>
+<span class="sd">    """</span>
+    <span class="n">metals</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_METAL_SYMBOLS</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">metals</span><span class="p">:</span>
+        <span class="n">em</span> <span class="o">=</span> <span class="n">RWMol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">metals</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="n">em</span><span class="o">.</span><span class="n">RemoveAtom</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">em</span><span class="o">.</span><span class="n">GetMol</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">mol</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rdkit_bond_to_biotite_type</span><span class="p">(</span><span class="n">bond</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Bond</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Map an RDKit bond to a Biotite ``BondType`` integer."""</span>
+    <span class="k">if</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">():</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC</span><span class="p">)</span>
+    <span class="n">btype</span> <span class="o">=</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">btype</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">btype</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">btype</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">TRIPLE</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">TRIPLE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">btype</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">QUADRUPLE</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">QUADRUPLE</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_infer_res_name_from_mol2</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">,</span> <span class="n">fallback</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Best-effort residue-name extraction from a Mol2-loaded RDKit Mol."""</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s2">"_TriposSubstName"</span><span class="p">):</span>
+            <span class="n">subst</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="s2">"_TriposSubstName"</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">subst</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">subst</span>
+    <span class="k">return</span> <span class="n">fallback</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_source_subtype_from_mol2_atom_type</span><span class="p">(</span><span class="n">mol2_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the subtype suffix from Tripos atom type (e.g. ``C.ar`` -&gt; ``ar``)."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">mol2_type</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"?"</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">mol2_type</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"?"</span>
+    <span class="k">return</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">"?"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mol2_charge_model_from_text</span><span class="p">(</span><span class="n">mol2_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the Tripos charge model from mol2 text (e.g. ``GASTEIGER``)."""</span>
+    <span class="n">in_molecule</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">lines_after_molecule</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">mol2_text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="n">stripped</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"@&lt;TRIPOS&gt;MOLECULE"</span><span class="p">):</span>
+            <span class="n">in_molecule</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">lines_after_molecule</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">in_molecule</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"@&lt;TRIPOS&gt;"</span><span class="p">):</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">stripped</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">lines_after_molecule</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1"># TRIPOS MOLECULE block order: mol_name, counts, mol_type,</span>
+        <span class="c1"># charge_type, [status_bits], [comment]. The charge type is the</span>
+        <span class="c1"># 4th non-blank line (optional status/comment follow it).</span>
+        <span class="k">if</span> <span class="n">lines_after_molecule</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">stripped</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="k">return</span> <span class="s2">""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mol2_single_bond_ids</span><span class="p">(</span><span class="n">mol2_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Return the set of single (order ``'1'``) bonds from a mol2 BOND section.</span>
+
+<span class="sd">    Each bond is returned as a ``frozenset`` of its two 1-based TRIPOS atom</span>
+<span class="sd">    ids. Only bonds whose TRIPOS ``bond_type`` is literally ``'1'`` are</span>
+<span class="sd">    included — aromatic (``ar``), amide (``am``), double (``2``), etc. are</span>
+<span class="sd">    excluded.</span>
+
+<span class="sd">    RDKit's sanitize/kekulize step promotes some mol2 single bonds (e.g. a</span>
+<span class="sd">    ``C.ar``-``N.pl3`` written as ``1``) to AROMATIC/DOUBLE, which then makes</span>
+<span class="sd">    :func:`tmol.ligand._chi_topology.build_chi_topology` skip them as</span>
+<span class="sd">    ``border &gt; 1``. Rosetta's ``mol2genparams`` reads the literal mol2 order</span>
+<span class="sd">    instead, so honoring the source ``'1'`` here restores parity. Returns an</span>
+<span class="sd">    empty set if no BOND section is present.</span>
+<span class="sd">    """</span>
+    <span class="n">single_bonds</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">in_bond</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">mol2_text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="n">stripped</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"@&lt;TRIPOS&gt;"</span><span class="p">):</span>
+            <span class="n">in_bond</span> <span class="o">=</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"@&lt;TRIPOS&gt;BOND"</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">in_bond</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">stripped</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">tokens</span> <span class="o">=</span> <span class="n">stripped</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="c1"># TRIPOS BOND line: bond_id atom1 atom2 bond_type [status_bits]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span> <span class="ow">or</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"1"</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">single_bonds</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">frozenset</span><span class="p">((</span><span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">single_bonds</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_charge_model_is_authoritative</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""True only when a Tripos charge model is a trusted force-field model.</span>
+
+<span class="sd">    PLI fixtures and legacy mol2s use Gasteiger; MMFF94/AM1-BCC/etc. are OK.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s2">"GASTEIGER"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+
+<div class="viewcode-block" id="nonstandard_residue_info_from_mol2">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.nonstandard_residue_info_from_mol2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">nonstandard_residue_info_from_mol2</span><span class="p">(</span>
+    <span class="n">mol2_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Construct ``NonStandardResidueInfo`` from a ligand Mol2 file.</span>
+
+<span class="sd">    Low-level reader retained for the DUD-80 SMILES-&gt;params parity harness</span>
+<span class="sd">    (it reads both the OpenBabel-generated and Rosetta ground-truth mol2</span>
+<span class="sd">    files). Preserves Tripos aromatic flags, atom-type subtypes, and per-atom</span>
+<span class="sd">    partial charges, avoiding lossy rdkit&lt;-&gt;biotite round-trips.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._openbabel_compat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">OpenBabelUnavailableError</span><span class="p">,</span>
+        <span class="n">obabel_read_mol2</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">)</span>
+    <span class="n">mol2_text</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromMol2File</span><span class="p">(</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
+        <span class="n">sanitize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">removeHs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">cleanupSubstructures</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">mol</span> <span class="o">=</span> <span class="n">obabel_read_mol2</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">OpenBabelUnavailableError</span><span class="p">:</span>
+            <span class="n">mol</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Could not parse Mol2 file: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> "</span>
+                <span class="s2">"(RDKit MolFromMol2File failed; OpenBabel fallback also "</span>
+                <span class="s2">"failed or is not installed)"</span>
+            <span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Used OpenBabel fallback to parse mol2 </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_nonstandard_residue_info_from_mol2_mol</span><span class="p">(</span>
+        <span class="n">mol</span><span class="p">,</span>
+        <span class="n">_mol2_charge_model_from_text</span><span class="p">(</span><span class="n">mol2_text</span><span class="p">),</span>
+        <span class="n">res_name</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
+        <span class="n">single_bond_ids</span><span class="o">=</span><span class="n">_mol2_single_bond_ids</span><span class="p">(</span><span class="n">mol2_text</span><span class="p">),</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="nonstandard_residue_info_from_mol2_block">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.nonstandard_residue_info_from_mol2_block">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">nonstandard_residue_info_from_mol2_block</span><span class="p">(</span>
+    <span class="n">mol2_block</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Construct ``NonStandardResidueInfo`` from an in-memory mol2 *string*.</span>
+
+<span class="sd">    In-memory analogue of :func:`nonstandard_residue_info_from_mol2` — parses a</span>
+<span class="sd">    TRIPOS mol2 block directly, with no temp-file write/read. Preferred for</span>
+<span class="sd">    high-throughput SMILES batches (see</span>
+<span class="sd">    :func:`nonstandard_residue_info_from_smiles_via_mol2`).</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._openbabel_compat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">OpenBabelUnavailableError</span><span class="p">,</span>
+        <span class="n">obabel_read_mol2_block</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromMol2Block</span><span class="p">(</span>
+        <span class="n">mol2_block</span><span class="p">,</span>
+        <span class="n">sanitize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">removeHs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">cleanupSubstructures</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">mol</span> <span class="o">=</span> <span class="n">obabel_read_mol2_block</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">OpenBabelUnavailableError</span><span class="p">:</span>
+            <span class="n">mol</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Could not parse in-memory Mol2 block (RDKit MolFromMol2Block "</span>
+                <span class="s2">"failed; OpenBabel fallback also failed or is not installed)"</span>
+            <span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Used OpenBabel fallback to parse in-memory mol2 block"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_nonstandard_residue_info_from_mol2_mol</span><span class="p">(</span>
+        <span class="n">mol</span><span class="p">,</span>
+        <span class="n">_mol2_charge_model_from_text</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">),</span>
+        <span class="n">res_name</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="s2">"&lt;mol2 block&gt;"</span><span class="p">,</span>
+        <span class="n">single_bond_ids</span><span class="o">=</span><span class="n">_mol2_single_bond_ids</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">),</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_nonstandard_residue_info_from_mol2_mol</span><span class="p">(</span>
+    <span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">,</span>
+    <span class="n">charge_model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">single_bond_ids</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Build ``NonStandardResidueInfo`` from an already-parsed mol2 RDKit mol.</span>
+
+<span class="sd">    Shared core of the file and in-memory-block mol2 entry points. ``charge_model``</span>
+<span class="sd">    is the TRIPOS ``charge_type`` (already parsed from the source) used to decide</span>
+<span class="sd">    whether the per-atom charges are authoritative; ``source`` labels the input in</span>
+<span class="sd">    error messages. ``single_bond_ids`` is the set of 1-based TRIPOS atom-id pairs</span>
+<span class="sd">    the source records as literal single bonds (see :func:`_mol2_single_bond_ids`);</span>
+<span class="sd">    these are mapped to disambiguated atom names and stored as</span>
+<span class="sd">    ``original_single_bonds`` so the CHI classifier can honor the mol2 bond order.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._atom_typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">sanitize_tolerant</span>
+
+    <span class="n">sanitize_tolerant</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumConformers</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Mol2 input has no 3D coordinates: </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">disambiguated_names</span> <span class="o">=</span> <span class="n">apply_disambiguated_mol2_names</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="n">conf</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span>
+    <span class="n">n_atoms</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span>
+
+    <span class="n">atom_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">elements</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_atoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">aromatic_flags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">source_subtypes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">has_full_partial_charges</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">partial_charges</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">disambiguated_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">atom_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">elements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">())</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">coords</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">x</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">y</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">z</span><span class="p">)]</span>
+        <span class="n">mol2_type</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">atom</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="s2">"_TriposAtomType"</span><span class="p">)</span> <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s2">"_TriposAtomType"</span><span class="p">)</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="p">)</span>
+        <span class="n">subtype</span> <span class="o">=</span> <span class="n">_source_subtype_from_mol2_atom_type</span><span class="p">(</span><span class="n">mol2_type</span><span class="p">)</span>
+        <span class="n">source_subtypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subtype</span><span class="p">)</span>
+        <span class="n">aromatic_flags</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">subtype</span> <span class="o">==</span> <span class="s2">"ar"</span> <span class="ow">or</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s2">"_TriposPartialCharge"</span><span class="p">):</span>
+            <span class="n">partial_charges</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="s2">"_TriposPartialCharge"</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">has_full_partial_charges</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">atom_array</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span> <span class="o">=</span> <span class="n">coords</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">atom_names</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"U16"</span><span class="p">)</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">element</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">elements</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"U4"</span><span class="p">)</span>
+    <span class="n">inferred_res_name</span> <span class="o">=</span> <span class="n">_infer_res_name_from_mol2</span><span class="p">(</span>
+        <span class="n">mol</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="s2">"LG1"</span> <span class="k">if</span> <span class="n">res_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">res_name</span>
+    <span class="p">)</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">inferred_res_name</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"U8"</span><span class="p">)</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">chain_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s2">"A"</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"U4"</span><span class="p">)</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">hetero</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">True</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="s2">"tmol_aromatic"</span><span class="p">,</span> <span class="n">aromatic_flags</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">))</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span>
+        <span class="s2">"tmol_source_subtype"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">source_subtypes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"U8"</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">bond_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">(</span>
+                <span class="n">bond</span><span class="o">.</span><span class="n">GetBeginAtomIdx</span><span class="p">(),</span>
+                <span class="n">bond</span><span class="o">.</span><span class="n">GetEndAtomIdx</span><span class="p">(),</span>
+                <span class="n">_rdkit_bond_to_biotite_type</span><span class="p">(</span><span class="n">bond</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">BondList</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">bond_array</span><span class="p">)</span>
+
+    <span class="n">use_input_charges</span> <span class="o">=</span> <span class="n">has_full_partial_charges</span> <span class="ow">and</span> <span class="n">_charge_model_is_authoritative</span><span class="p">(</span>
+        <span class="n">charge_model</span>
+    <span class="p">)</span>
+    <span class="n">authoritative_q</span> <span class="o">=</span> <span class="n">partial_charges</span> <span class="k">if</span> <span class="n">use_input_charges</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="c1"># Map literal mol2 single bonds (1-based TRIPOS ids) to disambiguated atom</span>
+    <span class="c1"># names. RDKit index i corresponds to TRIPOS atom id i+1 (the reader keeps</span>
+    <span class="c1"># mol2 atom order), the same correspondence used for names/coords above.</span>
+    <span class="n">original_single_bonds</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+        <span class="nb">frozenset</span><span class="p">((</span><span class="n">disambiguated_names</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">disambiguated_names</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span> <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">single_bond_ids</span><span class="p">)</span>
+        <span class="k">if</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">n_atoms</span> <span class="ow">and</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">j</span> <span class="o">&lt;=</span> <span class="n">n_atoms</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">NonStandardResidueInfo</span><span class="p">(</span>
+        <span class="n">res_name</span><span class="o">=</span><span class="n">inferred_res_name</span><span class="p">,</span>
+        <span class="n">ccd_type</span><span class="o">=</span><span class="s2">"UNKNOWN"</span><span class="p">,</span>
+        <span class="n">atom_names</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">atom_names</span><span class="p">),</span>
+        <span class="n">elements</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">elements</span><span class="p">),</span>
+        <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
+        <span class="n">atom_array</span><span class="o">=</span><span class="n">atom_array</span><span class="p">,</span>
+        <span class="n">covalently_linked</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">partial_charges</span><span class="o">=</span><span class="n">authoritative_q</span><span class="p">,</span>
+        <span class="n">skip_protonation</span><span class="o">=</span><span class="n">authoritative_q</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">original_single_bonds</span><span class="o">=</span><span class="n">original_single_bonds</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_radical_oxygens</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Restore the formal charge on bare radical oxygens (e.g. DUD ``[O]``).</span>
+
+<span class="sd">    Some source databases write anionic oxygens (carboxylate, sulfonate,</span>
+<span class="sd">    phosphate) as a bare ``[O]`` — a neutral, singly-bonded oxygen with no</span>
+<span class="sd">    hydrogen, which RDKit reads as a radical. Dimorphite cannot act on it</span>
+<span class="sd">    (its acid rules need an explicit ``-O-H``), and downstream 3D tools fill</span>
+<span class="sd">    the open valence inconsistently (OpenBabel via a PDB hop adds an H -&gt;</span>
+<span class="sd">    neutral acid; the direct SMILES read keeps a symmetric carboxylate). Convert</span>
+<span class="sd">    each such oxygen to the proper anion ``[O-]`` so the protonation state is</span>
+<span class="sd">    well-defined end to end. Returns the input unchanged if nothing matches or</span>
+<span class="sd">    the SMILES cannot be parsed.</span>
+<span class="sd">    """</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">smiles</span>
+    <span class="n">changed</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">atom</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"O"</span>
+            <span class="ow">and</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="ow">and</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetTotalNumHs</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="ow">and</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="ow">and</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNumRadicalElectrons</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="n">atom</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">atom</span><span class="o">.</span><span class="n">SetNumRadicalElectrons</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">changed</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">changed</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">smiles</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"Radical-oxygen normalization failed to sanitize SMILES </span><span class="si">%r</span><span class="s2">; "</span> <span class="s2">"using input"</span><span class="p">,</span>
+            <span class="n">smiles</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">smiles</span>
+    <span class="k">return</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_dimorphite_protonate_smiles</span><span class="p">(</span>
+    <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span> <span class="n">precision</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the SMILES pKa-protonated at ``ph`` via Dimorphite-DL.</span>
+
+<span class="sd">    Takes the first protonation variant (matching the reference ligand-prep</span>
+<span class="sd">    protocol). Falls back to the input SMILES if RDKit cannot parse it or</span>
+<span class="sd">    Dimorphite produces no variant.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._dimorphite_dl</span><span class="w"> </span><span class="kn">import</span> <span class="n">protonate_mol_variants</span>
+
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">smiles</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">variants</span> <span class="o">=</span> <span class="n">protonate_mol_variants</span><span class="p">(</span>
+            <span class="n">mol</span><span class="p">,</span>
+            <span class="n">min_ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
+            <span class="n">max_ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
+            <span class="n">pka_precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span>
+            <span class="n">max_variants</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+            <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"Dimorphite protonation failed for SMILES </span><span class="si">%r</span><span class="s2">; using input"</span><span class="p">,</span> <span class="n">smiles</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">smiles</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">variants</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">smiles</span>
+    <span class="k">return</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">variants</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="nonstandard_residue_info_from_smiles_via_mol2">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.nonstandard_residue_info_from_smiles_via_mol2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">(</span>
+    <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span>
+    <span class="n">protonate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Construct ``NonStandardResidueInfo`` from a SMILES via the mol2 route.</span>
+
+<span class="sd">    Implements the canonical ligand-prep protocol end to end:</span>
+
+<span class="sd">    0. normalize bare radical oxygens (``[O]`` -&gt; ``[O-]``) so source</span>
+<span class="sd">       carboxylate/sulfonate notation has a well-defined charge,</span>
+<span class="sd">    1. optionally pKa-protonate the SMILES with Dimorphite-DL (``protonate``),</span>
+<span class="sd">    2. generate a 3D mol2 with MMFF94 partial charges via OpenBabel (kept</span>
+<span class="sd">       in memory as a string — no temp file), then</span>
+<span class="sd">    3. read that mol2 with :func:`nonstandard_residue_info_from_mol2_block`.</span>
+
+<span class="sd">    This never builds a biotite atom-array from an RDKit embedding and never</span>
+<span class="sd">    recomputes MMFF on a reconstructed graph — the OpenBabel MMFF94 charges</span>
+<span class="sd">    flow through untouched (``skip_protonation`` / authoritative charges are</span>
+<span class="sd">    set by the mol2 reader), so fused-ring aromatics keep correct charges.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        smiles: Ligand SMILES string.</span>
+<span class="sd">        res_name: Three-letter residue name (default inferred / ``"LG1"``).</span>
+<span class="sd">        ph: Target pH for the Dimorphite protonation step.</span>
+<span class="sd">        protonate: When ``True`` (default) run Dimorphite on ``smiles`` first;</span>
+<span class="sd">            set ``False`` to pin an already-protonated SMILES verbatim.</span>
+<span class="sd">        seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is random.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        OpenBabelUnavailableError: If the ``openbabel`` package is missing</span>
+<span class="sd">            (this path requires it for the SMILES -&gt; mol2 conversion).</span>
+<span class="sd">        ValueError: If OpenBabel cannot build a charged mol2 for ``smiles``.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._openbabel_compat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">obabel_smiles_to_mol2_block</span><span class="p">,</span>
+        <span class="n">source_atom_order_from_mapped_smiles</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">smiles</span> <span class="o">=</span> <span class="n">_normalize_radical_oxygens</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+    <span class="n">prep_smiles</span> <span class="o">=</span> <span class="n">_dimorphite_protonate_smiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">ph</span><span class="p">)</span> <span class="k">if</span> <span class="n">protonate</span> <span class="k">else</span> <span class="n">smiles</span>
+    <span class="n">source_order</span> <span class="o">=</span> <span class="n">source_atom_order_from_mapped_smiles</span><span class="p">(</span><span class="n">prep_smiles</span><span class="p">)</span>
+    <span class="n">mol2_block</span> <span class="o">=</span> <span class="n">obabel_smiles_to_mol2_block</span><span class="p">(</span><span class="n">prep_smiles</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_mol2_block</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">source_atom_order</span><span class="o">=</span><span class="n">source_order</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="detect_nonstandard_residues">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.detect_nonstandard_residues">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">detect_nonstandard_residues</span><span class="p">(</span>
+    <span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">,</span>
+    <span class="n">canonical_ordering</span><span class="p">:</span> <span class="n">CanonicalOrdering</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">NonStandardResidueInfo</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Detect residues in an AtomArray that are not in tmol's database.</span>
+
+<span class="sd">    Any residue whose 3-letter code is not in the canonical ordering</span>
+<span class="sd">    is returned for preparation, regardless of whether it is a ligand,</span>
+<span class="sd">    modified amino acid, or modified nucleotide.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        atom_array: Biotite AtomArray from a CIF or PDB file.</span>
+<span class="sd">        canonical_ordering: The current tmol CanonicalOrdering, which</span>
+<span class="sd">            defines known residue types.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A list of NonStandardResidueInfo objects, one per unique unknown</span>
+<span class="sd">        residue name.</span>
+<span class="sd">    """</span>
+    <span class="n">known_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">canonical_ordering</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="p">)</span>
+    <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">NonStandardResidueInfo</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">covalently_linked_names</span> <span class="o">=</span> <span class="n">_residue_names_with_cross_residue_bonds</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
+
+    <span class="n">residue_starts</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="n">residue_starts</span><span class="p">:</span>
+        <span class="n">res_name</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">start</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">res_name</span> <span class="ow">in</span> <span class="n">known_names</span> <span class="ow">or</span> <span class="n">res_name</span> <span class="ow">in</span> <span class="n">SKIP_RESIDUES</span> <span class="ow">or</span> <span class="n">res_name</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">res_name</span><span class="p">)</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span> <span class="o">==</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">start</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="s2">"res_id"</span><span class="p">):</span>
+            <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span> <span class="o">==</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span><span class="p">[</span><span class="n">start</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="s2">"chain_id"</span><span class="p">):</span>
+            <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">chain_id</span> <span class="o">==</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[</span><span class="n">start</span><span class="p">]</span>
+
+        <span class="n">sub</span> <span class="o">=</span> <span class="n">atom_array</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+        <span class="n">ccd_type</span> <span class="o">=</span> <span class="n">get_chem_comp_type</span><span class="p">(</span><span class="n">res_name</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"UNKNOWN"</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">"Detected non-standard residue </span><span class="si">%s</span><span class="s2"> (CCD type: </span><span class="si">%s</span><span class="s2">, </span><span class="si">%d</span><span class="s2"> atoms)"</span><span class="p">,</span>
+            <span class="n">res_name</span><span class="p">,</span>
+            <span class="n">ccd_type</span><span class="p">,</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Chemistry (bond orders) and charges are intentionally *not* trusted</span>
+        <span class="c1"># from the input here: the unified path re-derives a SMILES from the</span>
+        <span class="c1"># atoms and generates OpenBabel MMFF94 charges. Detection only needs</span>
+        <span class="c1"># connectivity, atom names, and coordinates.</span>
+        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">NonStandardResidueInfo</span><span class="p">(</span>
+                <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">,</span>
+                <span class="n">ccd_type</span><span class="o">=</span><span class="n">ccd_type</span><span class="p">,</span>
+                <span class="n">atom_names</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">atom_name</span><span class="p">),</span>
+                <span class="n">elements</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">element</span><span class="p">),</span>
+                <span class="n">coords</span><span class="o">=</span><span class="n">sub</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+                <span class="n">atom_array</span><span class="o">=</span><span class="n">sub</span><span class="p">,</span>
+                <span class="n">covalently_linked</span><span class="o">=</span><span class="n">res_name</span> <span class="ow">in</span> <span class="n">covalently_linked_names</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">results</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_polymer_linking_ccd_type</span><span class="p">(</span><span class="n">ccd_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether a CCD chemical-component type denotes a polymer-linking residue.</span>
+
+<span class="sd">    Returns True for modified amino acids, nucleotides, and saccharides</span>
+<span class="sd">    (e.g. "L-PEPTIDE LINKING", "DNA LINKING", "D-SACCHARIDE"), which are</span>
+<span class="sd">    expected to be covalently attached to a chain. Returns False for</span>
+<span class="sd">    "NON-POLYMER" small-molecule ligands and for unknown residues.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ccd_type</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="s2">"LINKING"</span> <span class="ow">in</span> <span class="n">ccd_type</span> <span class="ow">or</span> <span class="s2">"SACCHARIDE"</span> <span class="ow">in</span> <span class="n">ccd_type</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_residue_names_with_cross_residue_bonds</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">,</span>
+    <span class="n">spatial_cutoff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.8</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return the set of res_names that have at least one bond to a different residue.</span>
+
+<span class="sd">    A "different residue" is identified by (chain_id, res_id, res_name) — so</span>
+<span class="sd">    distinct instances of the same residue name (e.g. two NAGs in a glycan</span>
+<span class="sd">    chain) also count as cross-residue bonds. Used to flag ligands that are</span>
+<span class="sd">    covalently attached to a polymer or to other ligand instances.</span>
+
+<span class="sd">    Detection runs two passes:</span>
+<span class="sd">    1. Explicit bonds in ``atom_array.bonds`` (if present). Authoritative for</span>
+<span class="sd">       any residue type.</span>
+<span class="sd">    2. Heavy-atom spatial proximity within ``spatial_cutoff`` Å. This catches</span>
+<span class="sd">       covalent attachments missing from the bond table for *polymer-linking*</span>
+<span class="sd">       residues (modified amino acids/nucleotides, glycans) when files lack</span>
+<span class="sd">       ``_struct_conn`` records. NON-POLYMER and unknown small-molecule ligands</span>
+<span class="sd">       are deliberately *not* flagged by proximity: tight binding-pocket</span>
+<span class="sd">       contacts, hydrogen bonds, and clashes in unminimized models routinely</span>
+<span class="sd">       fall below a covalent-bond distance and would otherwise be misread as</span>
+<span class="sd">       covalent attachments and silently discarded.</span>
+<span class="sd">    """</span>
+    <span class="n">chain_ids</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">chain_id</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="s2">"chain_id"</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">res_ids</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span>
+    <span class="n">res_names</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span>
+
+    <span class="n">linked</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_spans_residues</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether atoms ``a`` and ``b`` belong to different residues."""</span>
+        <span class="n">same_chain</span> <span class="o">=</span> <span class="n">chain_ids</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">chain_ids</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">==</span> <span class="n">chain_ids</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">same_chain</span> <span class="ow">and</span> <span class="n">res_ids</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">==</span> <span class="n">res_ids</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="ow">and</span> <span class="n">res_names</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">==</span> <span class="n">res_names</span><span class="p">[</span><span class="n">b</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">get_bond_count</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">():</span>
+            <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">_spans_residues</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+                <span class="n">linked</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">res_names</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+                <span class="n">linked</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">res_names</span><span class="p">[</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">heavy_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">element</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span> <span class="o">!=</span> <span class="s2">"H"</span>
+        <span class="k">if</span> <span class="n">heavy_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">cKDTree</span>
+
+            <span class="n">heavy_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">heavy_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">tree</span> <span class="o">=</span> <span class="n">cKDTree</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span><span class="p">[</span><span class="n">heavy_mask</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">tree</span><span class="o">.</span><span class="n">query_pairs</span><span class="p">(</span><span class="n">spatial_cutoff</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="s2">"ndarray"</span><span class="p">):</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">heavy_indices</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">b</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">heavy_indices</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">_spans_residues</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">res_names</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">_is_polymer_linking_ccd_type</span><span class="p">(</span><span class="n">get_chem_comp_type</span><span class="p">(</span><span class="n">name</span><span class="p">)):</span>
+                        <span class="n">linked</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">linked</span><span class="p">)</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

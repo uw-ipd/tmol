@@ -105,6 +105,8 @@ Nucleic-acid term
    :show-inheritance:
 
 .. automodule:: tmol.score.na_torsion
+   :members:
+   :imported-members:
    :show-inheritance:
 
 Constraints
@@ -114,4 +116,6 @@ Constraints
    :show-inheritance:
 
 .. automodule:: tmol.score.constraint
+   :members:
+   :imported-members:
    :show-inheritance:
