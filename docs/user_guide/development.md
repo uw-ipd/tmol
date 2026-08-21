@@ -1,8 +1,13 @@
 # Development
 
 This page summarizes local development, extension loading, testing, CI, and
-release workflows. It consolidates the root `DEVELOPMENT.md` and `dev/README.md`
-guidance into the docs.
+release workflows.
+
+> - **Prerequisites:** Complete the {doc}`source installation </installation>`
+>   before running the full test suite.
+> - **Related guides:** {doc}`Benchmarking </user_guide/benchmarking>` and
+>   {doc}`Contributor Guide </contributor_guide>`.
+> - **API reference:** {doc}`TMol API reference </api_reference>`.
 
 ## Local Setup
 
@@ -28,7 +33,7 @@ pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 
 ## Building Extensions
 
-tmol builds extensions with CMake through `scikit-build-core`.
+TMol builds extensions with CMake through `scikit-build-core`.
 
 ```bash
 # Production extensions
@@ -56,7 +61,7 @@ Important CMake variables:
 
 ## AOT vs JIT Extension Loading
 
-tmol can load kernels two ways:
+TMol can load kernels two ways:
 
 - AOT: pre-built shared libraries bundled in the installed wheel.
 - JIT: source files compiled on first use through `torch.utils.cpp_extension`.
@@ -127,7 +132,7 @@ in a checkout is not proof that a release has been published.
 
 ## Code Style
 
-tmol uses Black for Python formatting, Flake8 for linting, and clang-format for
+TMol uses Black for Python formatting, Flake8 for linting, and clang-format for
 C++/CUDA formatting.
 
 ```bash

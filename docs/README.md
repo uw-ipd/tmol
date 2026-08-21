@@ -1,4 +1,4 @@
-# tmol Docs
+# TMol documentation
 
 The documentation is built with Sphinx, MyST Markdown, nbsphinx, autodoc, and
 sphinx-gallery.
@@ -11,13 +11,20 @@ TMOL_DISABLE_WHEEL_FETCH=1 \
   -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 python .github/scripts/smoke_tutorial_notebooks.py --write
 docs/make
+python .github/scripts/check_api_docs.py
+python .github/scripts/check_docs_navigation.py
 ```
 
 The rendered site is written to `docs/_build/html`.
 
-API pages are authored under `docs/api/`. Gallery examples are sourced from
-`docs/examples/` and use committed thumbnails. Notebooks are executed by the
-smoke command before nbsphinx renders their saved outputs.
+Task-oriented recipes are grouped by `docs/workflows/index.md`, even when an
+existing source file remains under `docs/user_guide/`. The eight numbered
+Tutorials live under `docs/tutorial/`; the smoke command executes them before
+nbsphinx renders their saved outputs and interactive viewers.
+
+API pages are authored under `docs/api/`. Separate Sphinx-Gallery scripts are
+sourced from `docs/examples/`; their generated output is not part of the public
+navigation.
 
 GitHub Actions builds docs on pull requests, pushes to `master`, and
 `kdidi/**` integration branches. Same-repository pull requests publish under

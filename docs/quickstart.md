@@ -3,6 +3,18 @@
 TMol provides Rosetta-inspired all-atom score terms and batched molecular
 representations in PyTorch.
 
+This page is a short first-score recipe. For explanations, visualization, and
+exercises, continue with the numbered Tutorials.
+
+> - **Prerequisite:** {doc}`Install TMol </installation>`.
+> - **Deep tutorial:** {doc}`01 — Working with TMol
+>   </tutorial/01_working_with_tmol>`.
+> - **Related workflows:** {doc}`Workflow recipes </workflows/index>`.
+> - **API reference:** {doc}`Input and Output </api/io>` and
+>   {doc}`Scoring </api/score>`.
+> - **Rosetta mapping:** {doc}`Rosetta-to-TMol crosswalk
+>   </tutorial/rosetta_crosswalk>`.
+
 ## Install TMol
 
 ```bash
@@ -56,7 +68,7 @@ bond table during ligand preparation:
 
 Helpers whose historical names include `ddg` report a chosen one-complex
 interaction-score convention; they do not calculate thermodynamic binding free
-energies. See the [scoring guide](user_guide/scoring.md).
+energies. See the {doc}`scoring guide </user_guide/scoring>`.
 
 ```python
 import biotite.structure as struc
@@ -87,8 +99,13 @@ sfxn = beta2016_score_function(device, param_db=context.parameter_database)
 Use the ligand-extended `context.parameter_database` when scoring a pose that
 contains freshly prepared ligands.
 
-## Next steps
+## Choose the next path
 
-- [Working with TMol](tutorial/01_working_with_tmol.ipynb)
-- [Scoring and analysis](tutorial/03_scoring_and_analysis.ipynb)
-- [Ligands and parameter files](tutorial/07_ligand_and_params.ipynb)
+- Follow the {doc}`learning paths </learning_paths>` for the complete numbered
+  curriculum and its packing/minimization branch.
+- Use the {doc}`workflow hub </workflows/index>` for short, reusable recipes.
+- Search the {doc}`task index </tutorial/recipe_index>` when you already know
+  the operation you need.
+
+If you want to continue directly, start with
+{doc}`Tutorial 01 — Working with TMol </tutorial/01_working_with_tmol>`.

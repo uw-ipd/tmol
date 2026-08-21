@@ -1,5 +1,19 @@
 # Packing
 
+Use this compact recipe for fixed-sequence repacking. The linked tutorial
+develops local repacking and explicitly scoped mutation or design experiments.
+
+> - **Prerequisites:** A prepared `PoseStack` and a score function built from the
+>   same parameter database.
+> - **Deep tutorial:** {doc}`04 — Packing and Mutation Scan
+>   </tutorial/04_packing_and_mutation_scan>`.
+> - **Related workflows:** {doc}`Optimization </user_guide/optimization>` and
+>   {doc}`Nucleic acids </workflows/nucleic_acids>`.
+> - **API reference:** {doc}`Packing </api/pack>` and
+>   {doc}`Relax </api/relax>`.
+> - **Rosetta mapping:** {doc}`Packing, design, and mutation scans
+>   </tutorial/rosetta_crosswalk>`.
+
 Fixed-sequence repacking searches side-chain or nucleic-acid chi conformers
 without changing block identity. The usual workflow creates a `PackerTask`,
 restricts it to repacking, attaches rotamer samplers, and calls
@@ -39,14 +53,7 @@ chains while holding the ligand block fixed.
 
 `restrict_to_repacking()` intersects the task with each block's original
 identity. Mutation or design therefore needs an explicitly constructed identity
-task instead of this fixed-sequence recipe. TMol does not provide a built-in
-mutation-scan or Rosetta resfile protocol.
-
-## Related examples
-
-- The {doc}`packing example </tutorial/04_packing_and_mutation_scan>` expands
-  this recipe into local repacking and carefully scoped mutation/design
-  experiments.
-- {doc}`FastRelax </tutorial/06_fast_relax>` composes packing with minimization.
-- {doc}`Working with DNA and RNA </tutorial/08_nucleic_acids>` uses an
-  NA-specific chi sampler and explicit masks.
+task instead of this fixed-sequence recipe. {doc}`FastRelax
+</tutorial/06_fast_relax>` composes packing with minimization, while
+{doc}`08 — Working with DNA and RNA </tutorial/08_nucleic_acids>` uses an
+NA-specific chi sampler and explicit masks.

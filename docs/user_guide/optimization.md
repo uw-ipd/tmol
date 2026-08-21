@@ -1,6 +1,22 @@
 # Optimization
 
-tmol exposes hydrogen placement, missing-side-chain rebuild, Cartesian and
+This guide collects concise recipes for preparation, constraints, minimization,
+and relax. The tutorials explain coordinate choices, masks, and schedules in
+depth.
+
+> - **Prerequisites:** {doc}`Scoring </user_guide/scoring>` and, for relax,
+>   {doc}`Packing </workflows/packing>`.
+> - **Deep tutorials:** {doc}`05 — Minimization, Constraints, and Kinematics
+>   </tutorial/05_minimization_constraints_kinematics>` and
+>   {doc}`06 — FastRelax </tutorial/06_fast_relax>`.
+> - **Related workflows:** {doc}`Ligand preparation </user_guide/ligands>` and
+>   {doc}`Nucleic acids </workflows/nucleic_acids>`.
+> - **API reference:** {doc}`Optimization </api/optimization>`,
+>   {doc}`Kinematics </api/kinematics>`, and {doc}`Relax </api/relax>`.
+> - **Rosetta mapping:** {doc}`Minimization, constraints, kinematics, and
+>   FastRelax </tutorial/rosetta_crosswalk>`.
+
+TMol exposes hydrogen placement, missing-side-chain rebuild, Cartesian and
 kinematic minimization, constraints, and relax. Fixed-sequence repacking is
 covered separately in the {doc}`Packing workflow </workflows/packing>`.
 
@@ -119,11 +135,3 @@ The default minimizer is Cartesian and reads
 protocol but is not used by that minimizer. To minimize kinematic degrees of
 freedom, pass a configured `MoveMap`, a `FoldForest`, and a compatible
 kinematic `min_fn`.
-
-## Related examples
-
-- The {doc}`constraints example </tutorial/05_minimization_constraints_kinematics>`
-  compares Cartesian and kinematic degrees of freedom with explicit coordinate
-  restraints.
-- {doc}`FastRelax </tutorial/06_fast_relax>` demonstrates repack/minimize
-  schedules, score-weight ramps, and constraint ramps.

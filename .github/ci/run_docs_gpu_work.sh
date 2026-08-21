@@ -34,3 +34,6 @@ make -C docs html
 
 echo "=== verify rendered public API coverage ==="
 python .github/scripts/check_api_docs.py
+
+echo "=== verify rendered workflow navigation ==="
+python .github/scripts/check_docs_navigation.py

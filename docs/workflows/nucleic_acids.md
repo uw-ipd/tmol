@@ -1,5 +1,19 @@
 # Nucleic Acids
 
+Use this compact recipe to score canonical DNA or RNA and repack selected
+nucleic-acid blocks. The linked tutorial covers score interpretation and
+worked DNA and RNA examples.
+
+> - **Prerequisites:** {doc}`Scoring </user_guide/scoring>` and
+>   {doc}`Packing </workflows/packing>`.
+> - **Deep tutorial:** {doc}`08 — Working with DNA and RNA
+>   </tutorial/08_nucleic_acids>`.
+> - **Related workflows:** {doc}`Optimization </user_guide/optimization>` and
+>   {doc}`Ligand preparation </user_guide/ligands>`.
+> - **API reference:** {doc}`Scoring </api/score>` and
+>   {doc}`Packing </api/pack>`.
+> - **Rosetta mapping:** {doc}`DNA and RNA </tutorial/rosetta_crosswalk>`.
+
 Canonical DNA and RNA use the same `PoseStack` and score-function interfaces as
 proteins. Load a Biotite structure with the default parameter database, then
 build the score function from that same database:
@@ -51,9 +65,3 @@ function from the returned context. Generic Cartesian or kinematic minimization
 can follow packing, but its movable atoms must be selected separately; TMol does
 not provide a complete RosettaDNA specificity, RNA fragment-assembly, docking,
 or ligand-pose protocol.
-
-## Related example
-
-See {doc}`Working with DNA and RNA </tutorial/08_nucleic_acids>` for
-nucleic-acid score terms, chi candidates, a local DNA pair swap, and an RNA
-pocket repacked around a fixed ligand.

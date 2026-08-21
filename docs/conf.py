@@ -46,7 +46,7 @@ def _compiled_module_mocks() -> list[str]:
     return sorted(mocks)
 
 
-project = "tmol"
+project = "TMol"
 author = "Institute for Protein Design"
 copyright = "2018-2026, Institute for Protein Design"
 version = _project_version()
@@ -102,7 +102,7 @@ myst_enable_extensions = [
     "linkify",
     "substitution",
 ]
-myst_heading_anchors = 4
+myst_heading_anchors = 6
 
 nbsphinx_execute = "never"
 # nbsphinx loads RequireJS on every page. 3Dmol.js is a UMD bundle, so when an
@@ -155,7 +155,7 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_extra_path: list[str] = []
-html_title = "tmol documentation"
+html_title = "TMol documentation"
 html_theme_options = {
     "show_nav_level": 2,
     "collapse_navigation": False,
