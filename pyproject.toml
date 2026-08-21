@@ -106,7 +106,6 @@ docs = [
     "myst-parser>=4.0,<5",
     "nbsphinx>=0.9,<1",
     "sphinx-togglebutton>=0.3,<1",
-    "sphinx-gallery>=0.19,<1",
     "matplotlib>=3.8,<4",
     "sphinx-autodoc-typehints>=2.0,<4",
     "pypandoc-binary>=1.15,<2",

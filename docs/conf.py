@@ -51,14 +51,6 @@ author = "Institute for Protein Design"
 copyright = "2018-2026, Institute for Protein Design"
 version = _project_version()
 release = version
-docs_base_url = os.environ.get(
-    "TMOL_DOCS_BASE_URL", "https://uw-ipd.github.io/tmol"
-).rstrip("/")
-switcher_version = os.environ.get("TMOL_DOCS_VERSION_MATCH", version)
-switcher_json_url = os.environ.get(
-    "TMOL_DOCS_SWITCHER_JSON_URL",
-    f"{docs_base_url}/latest/_static/switcher.json",
-)
 
 extensions = [
     "myst_parser",
@@ -69,7 +61,6 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
-    "sphinx_gallery.gen_gallery",
 ]
 
 source_suffix = {
@@ -83,17 +74,6 @@ exclude_patterns = [
     "Thumbs.db",
     ".DS_Store",
     "README.md",
-    "examples/GALLERY_HEADER.rst",
-    "sg_execution_times.rst",
-    "auto_examples",
-    "auto_examples/*.codeobj.json",
-    "auto_examples/*.ipynb",
-    "auto_examples/*.py",
-    "auto_examples/*.zip",
-    "auto_examples/**/*.codeobj.json",
-    "auto_examples/**/*.ipynb",
-    "auto_examples/**/*.py",
-    "auto_examples/**/*.zip",
 ]
 
 myst_enable_extensions = [
@@ -154,7 +134,6 @@ intersphinx_timeout = 10
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-html_extra_path: list[str] = []
 html_title = "TMol documentation"
 html_theme_options = {
     "show_nav_level": 2,
@@ -164,13 +143,8 @@ html_theme_options = {
     "globaltoc_includehidden": True,
     "globaltoc_maxdepth": -1,
     "header_links_before_dropdown": 8,
-    "navbar_start": ["navbar-logo", "version-switcher"],
+    "navbar_start": ["navbar-logo"],
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
-    "switcher": {
-        "json_url": switcher_json_url,
-        "version_match": switcher_version,
-    },
-    "check_switcher": False,
     "icon_links": [
         {
             "name": "GitHub",
@@ -178,16 +152,4 @@ html_theme_options = {
             "icon": "fa-brands fa-github",
         },
     ],
-}
-
-sphinx_gallery_conf = {
-    "examples_dirs": "examples",
-    "gallery_dirs": "auto_examples",
-    "image_scrapers": ("matplotlib",),
-    "plot_gallery": False,
-    "capture_repr": ("_repr_html_", "__repr__"),
-    "download_all_examples": False,
-    "filename_pattern": r".*",
-    "thumbnail_size": (350, 350),
-    "ignore_pattern": r"GALLERY_HEADER\.rst",
 }

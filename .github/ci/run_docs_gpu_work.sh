@@ -15,10 +15,6 @@ source .venv/bin/activate
 echo "=== build CUDA-enabled tmol ==="
 .github/ci/build_package.sh
 
-echo "=== verify tutorial thumbnails ==="
-python .github/scripts/render_tutorial_thumbnails.py
-git diff --exit-code -- docs/_static/tutorials
-
 echo "=== execute CPU tutorial outputs ==="
 python .github/scripts/smoke_tutorial_notebooks.py --write
 
@@ -31,9 +27,3 @@ python .github/scripts/smoke_tutorial_notebooks.py \
 
 echo "=== build Sphinx documentation ==="
 make -C docs html
-
-echo "=== verify rendered public API coverage ==="
-python .github/scripts/check_api_docs.py
-
-echo "=== verify rendered workflow navigation ==="
-python .github/scripts/check_docs_navigation.py

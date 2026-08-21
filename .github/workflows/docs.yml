@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [master, aleaverfay/file_naming_refactor]
   push:
-    branches: [master, "kdidi/**"]
+    branches: [master]
   workflow_dispatch:
 
 concurrency:
@@ -44,13 +44,6 @@ jobs:
       - run: .github/ci/restore_source_timestamps.sh
       - run: .github/ci/setup_ci_venv.sh
 
-      - name: Configure docs version
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "TMOL_DOCS_VERSION_MATCH=previews-pr-${{ github.event.number }}" >> "$GITHUB_ENV"
-          fi
-          echo "TMOL_DOCS_BASE_URL=${DOCS_BASE_URL}" >> "$GITHUB_ENV"
-
       - name: Execute tutorials and build docs
         env:
           GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
@@ -67,15 +60,10 @@ jobs:
           path: docs/_build/html
           if-no-files-found: error
 
-      - name: Summarize PR docs artifact
-        if: github.event_name == 'pull_request'
-        run: |
-          echo "Rendered docs artifact: tmol-docs-html" >> "$GITHUB_STEP_SUMMARY"
-
-  preview:
-    name: publish PR preview
+  deploy:
+    name: publish docs
     if: >
-      github.event_name == 'pull_request' &&
+      github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
     needs: docs
     runs-on: ubuntu-latest
@@ -98,122 +86,21 @@ jobs:
           name: tmol-docs-html
           path: rendered-docs
 
-      - name: Stage PR preview
+      - name: Stage documentation
         env:
           PR_NUMBER: ${{ github.event.number }}
         run: |
-          PREVIEW_DIR="previews/pr-${PR_NUMBER}"
-          mkdir -p "gh-pages/${PREVIEW_DIR}"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            TARGET="previews/pr-${PR_NUMBER}"
+          else
+            TARGET="latest"
+          fi
+          mkdir -p "gh-pages/${TARGET}"
           rm -f gh-pages/CNAME
-          rsync -av --delete rendered-docs/ "gh-pages/${PREVIEW_DIR}/"
-          echo "Docs preview: ${DOCS_BASE_URL}/${PREVIEW_DIR}/" >> "$GITHUB_STEP_SUMMARY"
+          rsync -av --delete rendered-docs/ "gh-pages/${TARGET}/"
+          echo "Docs: ${DOCS_BASE_URL}/${TARGET}/" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Publish PR preview to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: gh-pages
-          keep_files: false
-          force_orphan: false
-          user_name: github-actions[bot]
-          user_email: github-actions[bot]@users.noreply.github.com
-
-  branch-preview:
-    name: publish branch preview
-    if: github.event_name == 'push' && github.ref != 'refs/heads/master'
-    needs: docs
-    runs-on: ubuntu-latest
-    concurrency:
-      group: docs-pages-publish
-      cancel-in-progress: false
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout gh-pages
-        uses: actions/checkout@v5
-        with:
-          ref: gh-pages
-          path: gh-pages
-          fetch-depth: 0
-
-      - name: Download rendered docs
-        uses: actions/download-artifact@v4
-        with:
-          name: tmol-docs-html
-          path: rendered-docs
-
-      - name: Stage branch preview
-        run: |
-          BRANCH_SLUG="${GITHUB_REF_NAME//\//-}"
-          BRANCH_HASH=$(printf '%s' "$GITHUB_REF_NAME" | sha256sum | cut -c1-8)
-          PREVIEW_DIR="previews/branch-${BRANCH_SLUG}-${BRANCH_HASH}"
-          mkdir -p "gh-pages/${PREVIEW_DIR}"
-          rm -f gh-pages/CNAME
-          rsync -av --delete rendered-docs/ "gh-pages/${PREVIEW_DIR}/"
-          echo "Docs preview: ${DOCS_BASE_URL}/${PREVIEW_DIR}/" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Publish branch preview to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: gh-pages
-          keep_files: false
-          force_orphan: false
-          user_name: github-actions[bot]
-          user_email: github-actions[bot]@users.noreply.github.com
-
-  publish:
-    name: publish docs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: docs
-    runs-on: ubuntu-latest
-    concurrency:
-      group: docs-pages-publish
-      cancel-in-progress: false
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Checkout gh-pages
-        uses: actions/checkout@v5
-        with:
-          ref: gh-pages
-          path: gh-pages
-          fetch-depth: 0
-
-      - name: Download rendered docs
-        uses: actions/download-artifact@v4
-        with:
-          name: tmol-docs-html
-          path: rendered-docs
-
-      - name: Stage production docs
-        run: |
-          VERSION=$(python - <<'PY'
-          import tomllib
-          from pathlib import Path
-          print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])
-          PY
-          )
-          VERSION_DIR="v${VERSION}"
-          mkdir -p "gh-pages/${VERSION_DIR}" gh-pages/latest
-          rm -f gh-pages/CNAME
-          rsync -av --delete rendered-docs/ "gh-pages/${VERSION_DIR}/"
-          rsync -av --delete rendered-docs/ gh-pages/latest/
-          python .github/scripts/update_docs_switcher.py \
-            --pages-dir gh-pages \
-            --base-url "${DOCS_BASE_URL}" \
-            --current-version-dir "${VERSION_DIR}" \
-            --current-display-name "${VERSION_DIR}"
-          echo "TMOL_DOCS_PUBLISH_DIR=gh-pages" >> "$GITHUB_ENV"
-          echo "Deployed docs target: ${DOCS_BASE_URL}/latest/" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Publish docs to gh-pages
+      - name: Publish to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
