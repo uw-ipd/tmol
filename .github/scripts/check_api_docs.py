@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-
 EXPECTED_ANCHORS = {
     "io": (
         "tmol.io.pose_stack_from_biotite",
