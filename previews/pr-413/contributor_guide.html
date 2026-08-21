@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Contributor Guide &#8212; tmol documentation</title>
+    <title>Contributor Guide &#8212; TMol documentation</title>
   
   
   
@@ -36,7 +36,7 @@
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=c9b21c7c" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=8f56a7f5" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -64,7 +64,6 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Development" href="user_guide/development.html" />
     <link rel="prev" title="Utilities" href="api/utility.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -136,7 +135,7 @@
   
   
   
-    <p class="title logo__title">tmol documentation</p>
+    <p class="title logo__title">TMol documentation</p>
   
 </a></div>
     
@@ -171,6 +170,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -178,8 +184,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="learning_paths.html">
+    Learning paths
   </a>
 </li>
 
@@ -193,24 +199,69 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="api_reference.html">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Core architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="datatypes.html">
+    Data model and conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="terminology.html">
+    Terminology and modeling choices
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="tutorial/recipe_index.html">
+    Task index
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="tutorial/rosetta_crosswalk.html">
+    Rosetta-to-TMol crosswalk
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
     API Reference
   </a>
 </li>
 
 
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="#">
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -307,6 +358,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -314,8 +372,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="learning_paths.html">
+    Learning paths
   </a>
 </li>
 
@@ -329,7 +387,42 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Core architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="datatypes.html">
+    Data model and conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="terminology.html">
+    Terminology and modeling choices
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/recipe_index.html">
+    Task index
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/rosetta_crosswalk.html">
+    Rosetta-to-TMol crosswalk
   </a>
 </li>
 
@@ -404,10 +497,7 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="user_guide/development.html">Development</a></li>
-</ul>
-</div>
+  <div class="bd-toc-item navbar-nav"></div>
 </nav></div>
     </div>
   
@@ -467,19 +557,27 @@
 <h1>Contributor Guide<a class="headerlink" href="#contributor-guide" title="Link to this heading">#</a></h1>
 <p>Keep changes focused and testable. Prefer existing tmol patterns over new
 abstractions unless the new abstraction removes real complexity.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Prerequisites:</strong> <a class="reference internal" href="user_guide/development.html"><span class="doc">Development setup</span></a>.</p></li>
+<li><p><strong>Documentation entry points:</strong> <a class="reference internal" href="examples_index.html"><span class="doc">Tutorials</span></a>,
+<a class="reference internal" href="workflows/index.html"><span class="doc">workflow recipes</span></a>, and
+<a class="reference internal" href="api_reference.html"><span class="doc">API reference</span></a>.</p></li>
+</ul>
+</div></blockquote>
 <section id="documentation">
 <h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading">#</a></h2>
 <p>The external docs are built with Sphinx, MyST Markdown, nbsphinx, and autodoc.
 Three documentation forms serve different purposes:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">docs/workflows/</span></code> and selected <code class="docutils literal notranslate"><span class="pre">docs/user_guide/</span></code> pages are concise,
-reusable recipes.</p></li>
-<li><p>The top-level <strong>Examples</strong> section contains the eight interactive notebooks in
-<code class="docutils literal notranslate"><span class="pre">docs/tutorial/</span></code>. They are deeper, executable demonstrations rendered by
+reusable recipes that link to deeper material rather than reproducing it.</p></li>
+<li><p>The top-level <strong>Tutorials</strong> section contains the eight interactive notebooks
+in <code class="docutils literal notranslate"><span class="pre">docs/tutorial/</span></code>. They are deeper, executable walkthroughs rendered by
 nbsphinx.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">docs/examples/</span></code> contains separate sphinx-gallery-style Python scripts. The
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/examples/</span></code> contains separate Sphinx-Gallery-style Python scripts. The
 generated <code class="docutils literal notranslate"><span class="pre">auto_examples</span></code> output is currently excluded from the published
-documentation source set; do not assume these scripts appear in the Examples
+documentation source set; do not assume these scripts appear in the Tutorials
 navigation.</p></li>
 </ul>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu<span class="w"> </span><span class="s2">"torch&gt;=2.5"</span>
@@ -515,21 +613,6 @@ include the relevant GPU tests or explain why they were not run locally.</p>
 useful module, class, and function docstrings because those docstrings become
 the reference documentation.</p>
 <p>Use Google or NumPy-style docstrings.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/development.html">Development</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#local-setup">Local Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#building-extensions">Building Extensions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#aot-vs-jit-extension-loading">AOT vs JIT Extension Loading</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#tests">Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#containers">Containers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#ci">CI</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#releasing">Releasing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user_guide/development.html#code-style">Code Style</a></li>
-</ul>
-</li>
-</ul>
-</div>
 </section>
 </section>
 
@@ -551,15 +634,6 @@ the reference documentation.</p>
         <p class="prev-next-subtitle">previous</p>
         <p class="prev-next-title">Utilities</p>
       </div>
-    </a>
-    <a class="right-next"
-       href="user_guide/development.html"
-       title="next page">
-      <div class="prev-next-info">
-        <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Development</p>
-      </div>
-      <i class="fa-solid fa-angle-right"></i>
     </a>
 </div>
                 </footer>

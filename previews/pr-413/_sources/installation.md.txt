@@ -1,7 +1,14 @@
 # Installation
 
-tmol supports Python 3.11 and newer. It depends on PyTorch and ships custom
+TMol supports Python 3.11 and newer. It depends on PyTorch and ships custom
 C++/CUDA extensions for scoring, packing, kinematics, and minimization kernels.
+
+> - **Choose a path:** Use a release wheel for the shortest supported install,
+>   or build from source when developing TMol or targeting an unavailable
+>   platform combination.
+> - **Next step:** Run the {doc}`Quickstart </quickstart>`, then choose a
+>   {doc}`learning path </learning_paths>`.
+> - **Development setup:** See {doc}`Development </user_guide/development>`.
 
 ## Pre-built Wheels
 
@@ -13,8 +20,8 @@ tmol uses two distribution channels:
 - PyPI provides source distributions for `pip install tmol`.
 - GitHub Releases provide pre-built CPU and GPU wheels.
 
-The most deterministic install path is an explicit wheel URL from the GitHub
-Releases page:
+The most deterministic install path is an explicit wheel URL from the
+[GitHub Releases page](https://github.com/uw-ipd/tmol/releases):
 
 ```bash
 pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.12-cp313-cp313-manylinux_2_28_x86_64.whl"
@@ -38,7 +45,7 @@ The simple install is:
 pip install tmol
 ```
 
-During a PyPI source-distribution build, tmol tries to fetch a matching
+During a PyPI source-distribution build, TMol tries to fetch a matching
 pre-built wheel from GitHub Releases. If no compatible wheel exists, it builds
 locally.
 
@@ -63,7 +70,7 @@ pip install -e ".[dev]"
 ```
 
 This builds C++/CUDA extensions through CMake. If no CUDA toolkit is available,
-tmol can build CPU-only extensions:
+TMol can build CPU-only extensions:
 
 ```bash
 pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
@@ -79,7 +86,7 @@ pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 
 Release wheels use `manylinux_2_28` platform tags on `x86_64` and `aarch64`.
 They require glibc 2.28 or newer. PyTorch supplies the matching CUDA shared
-libraries; tmol wheels do not bundle the PyTorch or NVIDIA runtime libraries.
+libraries; TMol wheels do not bundle the PyTorch or NVIDIA runtime libraries.
 
 If `import tmol` fails with a `GLIBCXX_* not found` error, the host
 `libstdc++` is too old for the wheel. Use one of these paths:

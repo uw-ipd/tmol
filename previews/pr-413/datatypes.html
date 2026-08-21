@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Datatypes &#8212; tmol documentation</title>
+    <title>Data model and conventions &#8212; TMol documentation</title>
   
   
   
@@ -36,7 +36,7 @@
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=c9b21c7c" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=8f56a7f5" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -64,7 +64,7 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Top-level API" href="api/top_level.html" />
+    <link rel="next" title="Terminology and modeling choices" href="terminology.html" />
     <link rel="prev" title="Architecture" href="architecture.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -136,7 +136,7 @@
   
   
   
-    <p class="title logo__title">tmol documentation</p>
+    <p class="title logo__title">TMol documentation</p>
   
 </a></div>
     
@@ -171,6 +171,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -178,8 +185,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="learning_paths.html">
+    Learning paths
   </a>
 </li>
 
@@ -193,24 +200,69 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="api_reference.html">
-    API Reference
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="contributor_guide.html">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Core architecture
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Data model and conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="terminology.html">
+    Terminology and modeling choices
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="tutorial/recipe_index.html">
+    Task index
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="tutorial/rosetta_crosswalk.html">
+    Rosetta-to-TMol crosswalk
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -307,6 +359,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -314,8 +373,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="learning_paths.html">
+    Learning paths
   </a>
 </li>
 
@@ -329,12 +388,47 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="architecture.html">
+    Core architecture
   </a>
 </li>
 
 
 <li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Data model and conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="terminology.html">
+    Terminology and modeling choices
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/recipe_index.html">
+    Task index
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/rosetta_crosswalk.html">
+    Rosetta-to-TMol crosswalk
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="api_reference.html">
     API Reference
   </a>
@@ -404,27 +498,7 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Datatypes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/top_level.html">Top-level API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/chemical.html">Chemical Types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/database.html">Parameter Database</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/io.html">Input and Output</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/kinematics.html">Kinematics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/ligand.html">Ligands</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/numeric.html">Numerical Utilities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/optimization.html">Optimization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/pack.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/pose.html">Pose</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/relax.html">Relax</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/score.html">Scoring</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/analysis.html">Analysis Operations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/score_terms.html">Score Terms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/types.html">Types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/utility.html">Utilities</a></li>
-</ul>
-</div>
+  <div class="bd-toc-item navbar-nav"></div>
 </nav></div>
     </div>
   
@@ -463,10 +537,7 @@
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    
-    <li class="breadcrumb-item"><a href="api_reference.html" class="nav-link">API Reference</a></li>
-    
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Datatypes</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Data model and conventions</span></li>
   </ul>
 </nav>
 </div>
@@ -483,14 +554,79 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="datatypes">
-<span id="id1"></span><h1>Datatypes<a class="headerlink" href="#datatypes" title="Link to this heading">#</a></h1>
-<p>TMol utilizes a combination tensor &amp; dataclass datatypes for internal data
-structures. <cite>torch.Tensor &lt;torch:torch.Tensor&gt;</cite> is generally preferred for
-representation of numeric data, with <cite>numpy.ndarray</cite> reserved for
-representation of multidimensional <cite>str</cite> or <cite>object</cite> containers. <cite>attrs
-&lt;attrs:index&gt;</cite>-based dataclasses are used for python type declarations, with
-strong preference toward a functional-object paradigm.</p>
+  <section id="data-model-and-conventions">
+<span id="datatypes"></span><h1>Data model and conventions<a class="headerlink" href="#data-model-and-conventions" title="Link to this heading">#</a></h1>
+<p>TMol combines PyTorch tensors with immutable or functionally updated Python
+data objects. These conventions make batched molecular state explicit and keep
+device placement visible to callers.</p>
+<section id="tensor-shapes">
+<h2>Tensor shapes<a class="headerlink" href="#tensor-shapes" title="Link to this heading">#</a></h2>
+<p>Numeric data is generally stored in <a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code></a> objects. Leading
+dimensions describe molecular axes such as poses, blocks, atoms, score terms,
+or rotamers. Common examples include:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Data</p></th>
+<th class="head"><p>Typical shape</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Pose coordinates</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">max_n_atoms,</span> <span class="pre">3]</span></code></p></td>
+<td><p>Cartesian coordinates with padding for heterogeneous systems.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Block types</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">max_n_blocks]</span></code></p></td>
+<td><p>Index of each block’s chemical type, with sentinel padding.</p></td>
+</tr>
+<tr class="row-even"><td><p>Whole-pose scores</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[n_poses]</span></code> or <code class="docutils literal notranslate"><span class="pre">[n_terms,</span> <span class="pre">n_poses]</span></code></p></td>
+<td><p>Weighted totals or a score-term decomposition.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Block-pair scores</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_blocks,</span> <span class="pre">n_blocks]</span></code></p></td>
+<td><p>Directed block-pair accounting for analysis and reweighting.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Boolean masks identify real atoms or selected coordinates. Integer tensors
+encode topology, block types, connections, and kinematic indices. Do not infer
+valid entries from coordinate values alone.</p>
+</section>
+<section id="device-and-dtype">
+<h2>Device and dtype<a class="headerlink" href="#device-and-dtype" title="Link to this heading">#</a></h2>
+<p>All tensors participating in one operation must use compatible devices and
+dtypes. A <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a>, its
+<a class="reference internal" href="api/pose.html#tmol.pose.PackedBlockTypes" title="tmol.pose.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></a>, rendered scoring modules, and movement
+data normally live on the same CPU or CUDA device.</p>
+<p>TMol APIs commonly accept a device-like value and normalize it through
+<a class="reference internal" href="api/utility.html#tmol.utility.resolve_device" title="tmol.utility.resolve_device"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.utility.resolve_device()</span></code></a>. Preserve the input coordinate dtype unless
+an API documents a stronger requirement; silently mixing <code class="docutils literal notranslate"><span class="pre">float32</span></code> and
+<code class="docutils literal notranslate"><span class="pre">float64</span></code> changes performance and can invalidate comparisons.</p>
+</section>
+<section id="python-data-objects">
+<h2>Python data objects<a class="headerlink" href="#python-data-objects" title="Link to this heading">#</a></h2>
+<p>TMol uses <code class="docutils literal notranslate"><span class="pre">attrs</span></code>-based classes and typed containers for structured metadata,
+database records, I/O contexts, and protocol configuration. Many of these
+objects are treated as immutable: extension operations return a new object
+instead of mutating process-global state.</p>
+<p>NumPy arrays are primarily used where third-party libraries require them or
+where multidimensional string/object data does not fit a Torch tensor. Convert
+deliberately at library boundaries and remember that moving through NumPy
+breaks PyTorch autograd.</p>
+</section>
+<section id="public-typing-helpers">
+<h2>Public typing helpers<a class="headerlink" href="#public-typing-helpers" title="Link to this heading">#</a></h2>
+<p>The <a class="reference internal" href="api/types.html#module-tmol.types" title="tmol.types"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.types</span></code></a> package provides runtime conversion, validation, tensor
+shape annotations, and <code class="docutils literal notranslate"><span class="pre">TensorGroup</span></code> helpers used throughout the codebase.
+The <a class="reference internal" href="api/utility.html#module-tmol.utility" title="tmol.utility"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.utility</span></code></a> package contains device, cumulative-sum, units, and
+other implementation helpers. Most workflow users interact with the molecular
+objects in <a class="reference internal" href="api/pose.html#module-tmol.pose" title="tmol.pose"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.pose</span></code></a>, <a class="reference internal" href="api/io.html#module-tmol.io" title="tmol.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.io</span></code></a>, and <a class="reference internal" href="api/score.html#module-tmol.score" title="tmol.score"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.score</span></code></a> instead.</p>
+<p>See <a class="reference internal" href="terminology.html"><span class="doc">Terminology and modeling choices</span></a> for the difference between poses, blocks, deposited
+atoms, and built atoms.</p>
+</section>
 </section>
 
 
@@ -513,11 +649,11 @@ strong preference toward a functional-object paradigm.</p>
       </div>
     </a>
     <a class="right-next"
-       href="api/top_level.html"
+       href="terminology.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Top-level API</p>
+        <p class="prev-next-title">Terminology and modeling choices</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -531,6 +667,21 @@ strong preference toward a functional-object paradigm.</p>
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tensor-shapes">Tensor shapes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#device-and-dtype">Device and dtype</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#python-data-objects">Python data objects</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#public-typing-helpers">Public typing helpers</a></li>
+</ul>
+  </nav></div>
 
   <div class="sidebar-secondary-item">
 

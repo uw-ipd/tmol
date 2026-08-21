@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Architecture &#8212; tmol documentation</title>
+    <title>Architecture &#8212; TMol documentation</title>
   
   
   
@@ -36,7 +36,7 @@
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=c9b21c7c" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=8f56a7f5" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -64,8 +64,8 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Datatypes" href="datatypes.html" />
-    <link rel="prev" title="API Reference" href="api_reference.html" />
+    <link rel="next" title="Data model and conventions" href="datatypes.html" />
+    <link rel="prev" title="Tutorial 08 — Working with DNA and RNA" href="tutorial/08_nucleic_acids.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.47" />
@@ -136,7 +136,7 @@
   
   
   
-    <p class="title logo__title">tmol documentation</p>
+    <p class="title logo__title">TMol documentation</p>
   
 </a></div>
     
@@ -171,6 +171,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -178,8 +185,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="learning_paths.html">
+    Learning paths
   </a>
 </li>
 
@@ -193,24 +200,69 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item current active">
-  <a class="nav-link nav-internal" href="api_reference.html">
-    API Reference
+  <a class="nav-link nav-internal" href="#">
+    Core architecture
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="contributor_guide.html">
+  <a class="nav-link nav-internal" href="datatypes.html">
+    Data model and conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="terminology.html">
+    Terminology and modeling choices
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="tutorial/recipe_index.html">
+    Task index
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="tutorial/rosetta_crosswalk.html">
+    Rosetta-to-TMol crosswalk
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -307,6 +359,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -314,8 +373,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="learning_paths.html">
+    Learning paths
   </a>
 </li>
 
@@ -329,12 +388,47 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Core architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="datatypes.html">
+    Data model and conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="terminology.html">
+    Terminology and modeling choices
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/recipe_index.html">
+    Task index
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorial/rosetta_crosswalk.html">
+    Rosetta-to-TMol crosswalk
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="api_reference.html">
     API Reference
   </a>
@@ -404,27 +498,7 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Architecture</a></li>
-<li class="toctree-l1"><a class="reference internal" href="datatypes.html">Datatypes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/top_level.html">Top-level API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/chemical.html">Chemical Types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/database.html">Parameter Database</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/io.html">Input and Output</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/kinematics.html">Kinematics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/ligand.html">Ligands</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/numeric.html">Numerical Utilities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/optimization.html">Optimization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/pack.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/pose.html">Pose</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/relax.html">Relax</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/score.html">Scoring</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/analysis.html">Analysis Operations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/score_terms.html">Score Terms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/types.html">Types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/utility.html">Utilities</a></li>
-</ul>
-</div>
+  <div class="bd-toc-item navbar-nav"></div>
 </nav></div>
     </div>
   
@@ -463,9 +537,6 @@
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    
-    <li class="breadcrumb-item"><a href="api_reference.html" class="nav-link">API Reference</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Architecture</span></li>
   </ul>
 </nav>
@@ -511,12 +582,44 @@ PDB/mmCIF files and model outputs.</p>
                     +-----------------+
 </pre></div>
 </div>
+<section id="modeling-lifecycle">
+<h2>Modeling lifecycle<a class="headerlink" href="#modeling-lifecycle" title="Link to this heading">#</a></h2>
+<p>A typical TMol application moves through four explicit stages:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>structure records or model tensors
+               |
+               v
+      I/O and chemical typing
+               |
+               v
+    PoseStack + build context
+        |              |
+        v              v
+ rendered scorers   packing / movement setup
+        |              |
+        +-------+------+
+                v
+     score, optimize, or analyze
+                |
+                v
+     Biotite structure or PDB output
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="api/database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParameterDatabase</span></code></a> supplies chemical and scoring
+definitions. I/O chooses compatible block types and constructs a
+<a class="reference internal" href="api/pose.html#tmol.pose.PackedBlockTypes" title="tmol.pose.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></a> collection on the requested device. The
+resulting <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a> owns coordinates, topology, block
+indices, and references to those packed types.</p>
+<p>Packing may return a new stack when chemical identities or atom counts change.
+Cartesian or kinematic minimization usually changes coordinates while keeping
+the same layout. That distinction determines whether an existing rendered
+scoring module can be reused.</p>
 <p><code class="docutils literal notranslate"><span class="pre">tmol.pose</span></code> and <code class="docutils literal notranslate"><span class="pre">tmol.score</span></code> meet when a
 <a class="reference internal" href="api/score.html#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScoreFunction</span></code></a> renders a scoring module for a
 <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a>, for example with
 <a class="reference internal" href="api/score.html#tmol.score.ScoreFunction.render_whole_pose_scoring_module" title="tmol.score.ScoreFunction.render_whole_pose_scoring_module"><code class="xref py py-meth docutils literal notranslate"><span class="pre">render_whole_pose_scoring_module()</span></code></a>.
 Score terms annotate <a class="reference internal" href="api/pose.html#tmol.pose.PackedBlockTypes" title="tmol.pose.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></a>
 and then render <code class="docutils literal notranslate"><span class="pre">torch.nn.Module</span></code> objects for repeated evaluation.</p>
+</section>
 <section id="scoring-overview">
 <h2>Scoring Overview<a class="headerlink" href="#scoring-overview" title="Link to this heading">#</a></h2>
 <p>Scoring is managed by rendered PyTorch modules that evaluate configured energy
@@ -534,11 +637,21 @@ polymer topology.</p>
 </pre></div>
 </div>
 <p>The score function implementation is partitioned into score term classes, each
-covering a logically distinct component of the energy function. These
-term annotates residue/block data before rendering its coordinate-dependent
+covering a logically distinct component of the energy function. Each term
+annotates residue and block data before rendering its coordinate-dependent
 module. Calls may return either the weighted total or a leading score-term axis
 when <code class="docutils literal notranslate"><span class="pre">sum_terms=False</span></code>. The complete score-type-to-term map is documented in
 <a class="reference internal" href="api/score_terms.html"><span class="doc">Score Terms</span></a>.</p>
+</section>
+<section id="where-to-continue">
+<h2>Where to continue<a class="headerlink" href="#where-to-continue" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="learning_paths.html"><span class="doc">Learning paths</span></a> gives a curriculum through the architecture.</p></li>
+<li><p><a class="reference internal" href="workflows/index.html"><span class="doc">Workflows</span></a> organizes concise recipes by modeling task.</p></li>
+<li><p><a class="reference internal" href="terminology.html"><span class="doc">Terminology and modeling choices</span></a> explains blocks, score units, deposited versus built
+atoms, and movement choices.</p></li>
+<li><p><a class="reference internal" href="api_reference.html"><span class="doc">API Reference</span></a> documents public classes and functions.</p></li>
+</ul>
 </section>
 </section>
 
@@ -553,12 +666,12 @@ when <code class="docutils literal notranslate"><span class="pre">sum_terms=Fals
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="api_reference.html"
+       href="tutorial/08_nucleic_acids.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">API Reference</p>
+        <p class="prev-next-title">Tutorial 08 — Working with DNA and RNA</p>
       </div>
     </a>
     <a class="right-next"
@@ -566,7 +679,7 @@ when <code class="docutils literal notranslate"><span class="pre">sum_terms=Fals
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Datatypes</p>
+        <p class="prev-next-title">Data model and conventions</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -589,7 +702,9 @@ when <code class="docutils literal notranslate"><span class="pre">sum_terms=Fals
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#modeling-lifecycle">Modeling lifecycle</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scoring-overview">Scoring Overview</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#where-to-continue">Where to continue</a></li>
 </ul>
   </nav></div>
 

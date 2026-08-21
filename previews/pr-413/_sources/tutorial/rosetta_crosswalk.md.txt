@@ -5,6 +5,11 @@ Rosetta and PyRosetta counterparts. It is not an API, numerical, or protocol
 parity claim: Rosetta is a broad modeling suite, whereas TMol provides batched,
 differentiable molecular primitives in PyTorch.
 
+For an executable introduction, begin with {doc}`Tutorial 01
+<01_working_with_tmol>` and {doc}`Tutorial 03 <03_scoring_and_analysis>`.
+The {doc}`task index <recipe_index>` links each concept below to a maintained
+workflow and API page.
+
 ## Molecular objects and chemical types
 
 Rosetta's central object is a `Pose`: an ordered collection of `Residue`
@@ -12,18 +17,15 @@ objects plus conformation and metadata. See
 [Working with Rosetta](https://docs.rosettacommons.org/demos/latest/tutorials/Working_With_Rosetta/working_with_rosetta)
 and the [core-concepts tutorial](https://docs.rosettacommons.org/demos/latest/tutorials/Core_Concepts/Core_Concepts).
 
-The nearest TMol object is a
-[`PoseStack`](https://github.com/uw-ipd/tmol/blob/master/tmol/pose/__init__.py):
+The nearest TMol object is a {class}`tmol.pose.PoseStack`:
 one or more molecular systems represented by padded, indexed tensors on one
 PyTorch device. A Rosetta residue corresponds most closely to a TMol **block**,
 but a one-pose `PoseStack` is not a separate `Pose`-compatible class.
 
-- A
-  [`PackedBlockTypes`](https://github.com/uw-ipd/tmol/blob/master/tmol/pose/__init__.py)
+- A {class}`tmol.pose.PackedBlockTypes`
   contains the block types available to a stack and device-resident setup data;
   it does not cache conformation energies.
-- The immutable
-  [`ParameterDatabase`](https://github.com/uw-ipd/tmol/blob/master/tmol/database/__init__.py)
+- The immutable {class}`tmol.database.ParameterDatabase`
   owns chemical definitions and scoring parameters. Extending it returns a new
   database.
 - Chemistry and connectivity are fixed for a particular `PoseStack`; coordinate
@@ -42,10 +44,10 @@ TMol has no Rosetta-style process-global flags system or silent-file archive.
 Callers construct explicit Python objects:
 
 - Input normally enters through a Biotite `AtomArray` or `AtomArrayStack`.
-  [`pose_stack_from_biotite()`](https://github.com/uw-ipd/tmol/blob/master/tmol/io/__init__.py)
+  {func}`tmol.io.pose_stack_from_biotite`
   builds a pose and an I/O context; reusing that context preserves the same
   chemical typing and canonical ordering across compatible structures.
-- [`biotite_from_pose_stack()`](https://github.com/uw-ipd/tmol/blob/master/tmol/io/__init__.py)
+- {func}`tmol.io.biotite_from_pose_stack`
   returns a Biotite structure for scientific round trips. Biotite handles
   PDB/mmCIF parsing and writing, and TMol also has a direct PDB writer.
 - Selections are explicit NumPy or Torch boolean masks over atoms, blocks, or
@@ -66,15 +68,13 @@ explain those choices; see also the
 [beta2016](https://doi.org/10.1021/acs.jctc.6b00819) and
 [REF15](https://doi.org/10.1021/acs.jctc.7b00125) papers.
 
-TMol ships
-[`beta2016_score_function()`](https://github.com/uw-ipd/tmol/blob/master/tmol/score/__init__.py),
+TMol ships {func}`tmol.score.beta2016_score_function`,
 a beta-November-2016-style all-atom preset. It does **not** implement
 `ref2015`, centroid residue types, centroid/full-atom switching, or exact
 Rosetta numerical parity. Report its weighted outputs as score units, not
 calibrated kcal/mol.
 
-Rendered
-[`ScoreFunction` modules](https://github.com/uw-ipd/tmol/blob/master/tmol/score/__init__.py)
+Rendered {class}`tmol.score.ScoreFunction` modules
 are prepared for one `PoseStack` layout and return tensors:
 
 - whole-pose scoring returns totals or weighted/unweighted values by score term;
@@ -97,8 +97,8 @@ and
 [`PackerTask.hh`](https://github.com/RosettaCommons/rosetta/blob/main/source/src/core/pack/task/PackerTask.hh)
 describe its mature TaskOperation, resfile, and mover layers.
 
-TMol provides
-[`PackerTask` and `PackerPalette`](https://github.com/uw-ipd/tmol/blob/master/tmol/pack/__init__.py),
+TMol provides {class}`tmol.pack.PackerTask` and
+{class}`tmol.pack.PackerPalette`,
 pluggable conformer samplers, per-block disabling, fixed-sequence repacking,
 and sequence design over compatible block types. The compiled annealer has CPU
 and CUDA paths. CUDA randomness uses PyTorch's CUDA generator; the current CPU
@@ -128,8 +128,7 @@ TMol exposes two differentiable paths:
   selected by a `MoveMap` over a `FoldForest`; named main-chain and side-chain
   torsions and jumps are controlled separately.
 
-The current
-[`ConstraintEnergyTerm`](https://github.com/uw-ipd/tmol/blob/master/tmol/score/constraint/__init__.py)
+The current {class}`tmol.score.constraint.ConstraintEnergyTerm`
 supports harmonic or bounded atom-pair distances, harmonic coordinate
 restraints, and circular-harmonic four-atom torsions. It does not reproduce the
 full Rosetta constraint-function catalog, text constraint parser, or ambiguous
@@ -137,8 +136,7 @@ constraint layer; in particular, it has no dedicated three-atom angle
 constraint.
 
 A Rosetta `FoldTree` roots a pose at a selected residue and represents polymer
-edges, jumps, and cutpoints. A TMol
-[`FoldForest`](https://github.com/uw-ipd/tmol/blob/master/tmol/kinematics/__init__.py)
+edges, jumps, and cutpoints. A TMol {class}`tmol.kinematics.FoldForest`
 holds one kinematic tree per pose and **always has a virtual root at the
 origin**; root jumps are distinct from ordinary jumps. Its convenience builder
 uses backbone polymer connectivity, roots separate chains, turns intra-chain
@@ -155,8 +153,7 @@ and
 describe a mature, commonly torsional protocol with extensive script, MoveMap,
 symmetry, membrane, and acceptance options.
 
-TMol's
-[`fast_relax()`](https://github.com/uw-ipd/tmol/blob/master/tmol/relax/__init__.py)
+TMol's {func}`tmol.relax.fast_relax`
 is a smaller Rosetta-inspired refinement routine. It repeats packing and
 minimization while ramping `fa_rep` and optionally constraint weights, then
 selects the best-scoring result across repeats. Its default minimizer is
@@ -180,10 +177,9 @@ TMol separates canonical database concerns:
 - `scoring/cartbonded.yaml` supplies residue-specific bonded parameters.
 
 TMol's versioned `.tmol` YAML bundles ligand additions to those three domains. A
-[`LigandPreparation`](https://github.com/uw-ipd/tmol/blob/master/tmol/ligand/__init__.py)
+{class}`tmol.ligand.LigandPreparation`
 contains the residue definition, partial charges, and cartbonded parameters,
-and the supported
-[`write_params_file()`](https://github.com/uw-ipd/tmol/blob/master/tmol/ligand/__init__.py)
+and the supported {func}`tmol.ligand.write_params_file`
 can emit either format from one preparation. The Rosetta writer emits
 `BOND_TYPE` records and writes partial charges in `ATOM` records, but the two
 outputs are not equivalent parameterizations.
@@ -220,7 +216,7 @@ preset includes `na_torsion`, `na_torsion_well`, ordinary all-atom nonbonded
 terms (including `lk_ball` and `lk_ball_iso`), and cartbonded terms. Some
 protein-only terms are expected to be zero on polymer-only NA structures.
 
-[`NaChiRotamerSampler`](https://github.com/uw-ipd/tmol/blob/master/tmol/pack/rotamer/__init__.py)
+{class}`tmol.pack.rotamer.NaChiRotamerSampler`
 samples anti glycosidic chi for DNA and anti plus eligible syn wells for RNA,
 along with configured hydroxyl proton chis. It reads sugar pucker from the input
 and does not sample pucker. Generic task masks can construct a local base
@@ -235,8 +231,7 @@ TMol does not provide low-resolution RNA scoring, motif/base-pair/suite
 classification, fragment insertion, FARNA/FARFAR/FARFAR2 generation, stepwise
 modeling, RNA threading, docking, or those mature design protocol layers.
 
-The exact DNA/RNA nonbonded OptE fit in TMol was provided by its author, but no
-dedicated publication for that exact fit was identified in the audit. Cite the
+The TMol repository does not identify a dedicated publication for its exact
+DNA/RNA nonbonded OptE fit. Cite the
 [general OptE documentation](https://docs.rosettacommons.org/docs/latest/application_documentation/utilities/opt-e-parallel-doc)
-and [TMol PR #404](https://github.com/uw-ipd/tmol/pull/404), not a nonexistent
-fit-specific paper.
+and the TMol source as appropriate rather than inferring a fit-specific paper.

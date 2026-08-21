@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Nucleic Acids &#8212; tmol documentation</title>
+    <title>Nucleic Acids &#8212; TMol documentation</title>
   
   
   
@@ -36,7 +36,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
     <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=c9b21c7c" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=8f56a7f5" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -136,7 +136,7 @@
   
   
   
-    <p class="title logo__title">tmol documentation</p>
+    <p class="title logo__title">TMol documentation</p>
   
 </a></div>
     
@@ -171,6 +171,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -178,8 +185,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="../learning_paths.html">
+    Learning paths
   </a>
 </li>
 
@@ -193,24 +200,69 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../api_reference.html">
+  <a class="nav-link nav-internal" href="../architecture.html">
+    Core architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../datatypes.html">
+    Data model and conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../terminology.html">
+    Terminology and modeling choices
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../tutorial/recipe_index.html">
+    Task index
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../tutorial/rosetta_crosswalk.html">
+    Rosetta-to-TMol crosswalk
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
     API Reference
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -307,6 +359,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -314,8 +373,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../installation.html">
-    Installation
+  <a class="nav-link nav-internal" href="../learning_paths.html">
+    Learning paths
   </a>
 </li>
 
@@ -329,7 +388,42 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../architecture.html">
+    Core architecture
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../datatypes.html">
+    Data model and conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../terminology.html">
+    Terminology and modeling choices
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../tutorial/recipe_index.html">
+    Task index
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../tutorial/rosetta_crosswalk.html">
+    Rosetta-to-TMol crosswalk
   </a>
 </li>
 
@@ -404,15 +498,27 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="structure_io.html">Structure I/O and visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Integrations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU Batching</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/scoring.html">Scoring</a></li>
 <li class="toctree-l1"><a class="reference internal" href="packing.html">Packing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Optimization</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
+<ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a></li>
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">Nucleic Acids</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/benchmarking.html">Benchmarking</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/development.html">Development</a></li>
 </ul>
 </div>
 </nav></div>
@@ -475,6 +581,21 @@
                   
   <section id="nucleic-acids">
 <h1>Nucleic Acids<a class="headerlink" href="#nucleic-acids" title="Link to this heading">#</a></h1>
+<p>Use this compact recipe to score canonical DNA or RNA and repack selected
+nucleic-acid blocks. The linked tutorial covers score interpretation and
+worked DNA and RNA examples.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Prerequisites:</strong> <a class="reference internal" href="../user_guide/scoring.html"><span class="doc">Scoring</span></a> and
+<a class="reference internal" href="packing.html"><span class="doc">Packing</span></a>.</p></li>
+<li><p><strong>Deep tutorial:</strong> <a class="reference internal" href="../tutorial/08_nucleic_acids.html"><span class="doc">08 — Working with DNA and RNA</span></a>.</p></li>
+<li><p><strong>Related workflows:</strong> <a class="reference internal" href="../user_guide/optimization.html"><span class="doc">Optimization</span></a> and
+<a class="reference internal" href="../user_guide/ligands.html"><span class="doc">Ligand preparation</span></a>.</p></li>
+<li><p><strong>API reference:</strong> <a class="reference internal" href="../api/score.html"><span class="doc">Scoring</span></a> and
+<a class="reference internal" href="../api/pack.html"><span class="doc">Packing</span></a>.</p></li>
+<li><p><strong>Rosetta mapping:</strong> <a class="reference internal" href="../tutorial/rosetta_crosswalk.html"><span class="doc">DNA and RNA</span></a>.</p></li>
+</ul>
+</div></blockquote>
 <p>Canonical DNA and RNA use the same <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> and score-function interfaces as
 proteins. Load a Biotite structure with the default parameter database, then
 build the score function from that same database:</p>
@@ -520,12 +641,6 @@ function from the returned context. Generic Cartesian or kinematic minimization
 can follow packing, but its movable atoms must be selected separately; TMol does
 not provide a complete RosettaDNA specificity, RNA fragment-assembly, docking,
 or ligand-pose protocol.</p>
-</section>
-<section id="related-example">
-<h2>Related example<a class="headerlink" href="#related-example" title="Link to this heading">#</a></h2>
-<p>See <a class="reference internal" href="../tutorial/08_nucleic_acids.html"><span class="doc">Working with DNA and RNA</span></a> for
-nucleic-acid score terms, chi candidates, a local DNA pair swap, and an RNA
-pocket repacked around a fixed ligand.</p>
 </section>
 </section>
 
@@ -577,7 +692,6 @@ pocket repacked around a fixed ligand.</p>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#repack-selected-bases">Repack selected bases</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#related-example">Related example</a></li>
 </ul>
   </nav></div>
 
