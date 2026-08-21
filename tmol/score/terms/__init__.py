@@ -12,14 +12,19 @@ from ._lk_ball_creator import LKBallTermCreator  # noqa: F401
 from ._na_torsion_creator import NaTorsionTermCreator  # noqa: F401
 from ._ref_creator import RefTermCreator  # noqa: F401
 
-from os.path import dirname, basename, isfile, join
-import glob
-
-modules = glob.glob(join(dirname(__file__), "*.py"))
-exclude = [join(dirname(__file__), f) for f in ["score_type_factory.py", "__init__.py"]]
-
 __all__ = [
-    basename(f)[:-3]
-    for f in modules
-    if isfile(f) and not f.endswith("__init__.py") and f not in exclude
+    "CartBondedTermCreator",
+    "ConstraintTermCreator",
+    "DisulfideTermCreator",
+    "DunbrackTermCreator",
+    "ElecTermCreator",
+    "GenBondedTermCreator",
+    "HBondTermCreator",
+    "LJLKTermCreator",
+    "LKBallTermCreator",
+    "NaTorsionTermCreator",
+    "RefTermCreator",
+    "ScoreTermFactory",
+    "TermCreator",
+    "score_term_creator",
 ]

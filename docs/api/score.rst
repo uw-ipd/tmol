@@ -7,5 +7,6 @@ individual :class:`tmol.score.ScoreType` weights.
 
 .. automodule:: tmol.score
    :members:
+   :imported-members:
    :undoc-members:
    :show-inheritance:

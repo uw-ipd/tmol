@@ -31,3 +31,6 @@ python .github/scripts/smoke_tutorial_notebooks.py \
 
 echo "=== build Sphinx documentation ==="
 make -C docs html
+
+echo "=== verify rendered public API coverage ==="
+python .github/scripts/check_api_docs.py

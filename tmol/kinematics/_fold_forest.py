@@ -169,13 +169,15 @@ class FoldForest:
     connected to this root by a "root jump". Such root-jump residues are defined
     by listing the residue that the root is connected to as the "end" residue;
     the "start" residue field should be left as -1. An example FoldForest for a
-    ten-residue protein might be:
+    ten-residue protein might be::
+
       (polymer, 0, 4)
       (jump   , 0, 7)
       (polymer, 7, 9)
       (polymer, 7, 6)
       (root-jump, -1, 0)
       (root-jump, -1, 5)
+
     where both residues are 0 and 5 are connected to the root.
 
     Note that in the MoveMap, the root-jumps are distinct from the non-root-jumps.
