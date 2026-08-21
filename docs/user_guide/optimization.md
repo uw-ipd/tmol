@@ -1,4 +1,4 @@
-# Optimization
+# Minimization and FastRelax
 
 This guide collects concise recipes for preparation, constraints, minimization,
 and relax. The tutorials explain coordinate choices, masks, and schedules in
@@ -77,7 +77,7 @@ pose_stack = pose_stack_from_biotite(
 )
 ```
 
-Ligand heavy atoms must be present in the input. tmol can prepare and protonate
+Ligand heavy atoms must be present in the input. TMol can prepare and protonate
 ligands, but the side-chain-rebuild sampler only handles polymer residues.
 
 ## Kinematic Minimization

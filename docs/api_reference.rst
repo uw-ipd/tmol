@@ -1,4 +1,4 @@
-API Reference
+API reference
 =============
 
 The reference groups TMol's public classes and functions by modeling task.

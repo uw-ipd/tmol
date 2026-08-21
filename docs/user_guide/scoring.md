@@ -1,4 +1,4 @@
-# Scoring
+# Scoring and analysis
 
 This guide is a concise reference for whole-pose, autograd, and block-pair
 scoring. Use the tutorial for a step-by-step analysis workflow.

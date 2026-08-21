@@ -15,7 +15,7 @@ C++/CUDA extensions for scoring, packing, kinematics, and minimization kernels.
 Pre-built wheels include ahead-of-time compiled extensions, so installing a
 wheel does not require `nvcc`.
 
-tmol uses two distribution channels:
+TMol uses two distribution channels:
 
 - PyPI provides source distributions for `pip install tmol`.
 - GitHub Releases provide pre-built CPU and GPU wheels.

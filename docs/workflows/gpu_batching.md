@@ -1,4 +1,4 @@
-# GPU Batching
+# GPU batching
 
 Use this compact recipe when an application needs to score many structures on
 one device. The linked tutorial provides the deeper walkthrough, measurements,

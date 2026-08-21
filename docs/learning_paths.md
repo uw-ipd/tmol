@@ -37,6 +37,17 @@ specialized paths that reuse the same core objects.
     <span class="workflow-node-number">06</span>
     <span>FastRelax</span>
   </a>
+  <span class="workflow-arrow" aria-hidden="true">→</span>
+  <span class="workflow-branch">
+    <a class="workflow-node" href="tutorial/07_ligand_and_params.html">
+      <span class="workflow-node-number">07</span>
+      <span>Ligands</span>
+    </a>
+    <a class="workflow-node" href="tutorial/08_nucleic_acids.html">
+      <span class="workflow-node-number">08</span>
+      <span>DNA and RNA</span>
+    </a>
+  </span>
 </nav>
 ```
 

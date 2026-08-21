@@ -12,6 +12,16 @@ corresponding Tutorials for deeper analysis.
     <span class="docs-card-title">Structure I/O and visualization</span>
     <span class="docs-card-description">Choose CIF, Biotite, PDB, or model-tensor input; preserve chemistry; inspect and export structures.</span>
   </a>
+  <a class="docs-card" href="../user_guide/integrations.html">
+    <span class="docs-card-kicker">Connect</span>
+    <span class="docs-card-title">Model and structure integrations</span>
+    <span class="docs-card-description">Convert RoseTTAFold2, OpenFold, Biotite, and AtomWorks representations into compatible PoseStacks.</span>
+  </a>
+  <a class="docs-card" href="gpu_batching.html">
+    <span class="docs-card-kicker">Scale</span>
+    <span class="docs-card-title">GPU batching</span>
+    <span class="docs-card-description">Batch compatible structures, measure CUDA work correctly, and chunk larger application workloads.</span>
+  </a>
   <a class="docs-card" href="../user_guide/scoring.html">
     <span class="docs-card-kicker">Evaluate</span>
     <span class="docs-card-title">Scoring and analysis</span>
@@ -29,7 +39,7 @@ corresponding Tutorials for deeper analysis.
   </a>
   <a class="docs-card" href="../user_guide/ligands.html">
     <span class="docs-card-kicker">Extend</span>
-    <span class="docs-card-title">Ligands and custom chemistry</span>
+    <span class="docs-card-title">Ligand preparation</span>
     <span class="docs-card-description">Prepare authoritative ligand chemistry, inject parameters, and analyze a local pocket.</span>
   </a>
   <a class="docs-card" href="nucleic_acids.html">

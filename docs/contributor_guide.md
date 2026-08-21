@@ -1,6 +1,6 @@
-# Contributor Guide
+# Contributor guide
 
-Keep changes focused and testable. Prefer existing tmol patterns over new
+Keep changes focused and testable. Prefer existing TMol patterns over new
 abstractions unless the new abstraction removes real complexity.
 
 > - **Prerequisites:** {doc}`Development setup </user_guide/development>`.

@@ -1,4 +1,4 @@
-# Integrations
+# Model and structure integrations
 
 TMol is designed to sit inside PyTorch-based structural-biology workflows. It can
 score structures loaded from standard files and convert outputs from structure

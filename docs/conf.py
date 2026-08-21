@@ -108,9 +108,8 @@ nbsphinx_epilog = r"""
 :download:`Download this notebook <{{ env.doc2path(env.docname, base=None).name }}>`
 """
 
-# Keep every executable input available without forcing readers to scroll
-# through implementation details. Outputs remain visible and interactive.
-togglebutton_selector = ".nbinput"
+# Keep setup helpers available without hiding the tutorial's modeling steps.
+togglebutton_selector = "#Setup .nbinput"
 togglebutton_hint = "Show code"
 togglebutton_hint_hide = "Hide code"
 
@@ -134,14 +133,14 @@ intersphinx_timeout = 10
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-html_title = "TMol documentation"
+html_title = "TMol"
 html_theme_options = {
     "show_nav_level": 2,
     "collapse_navigation": False,
     "navigation_depth": -1,
     "globaltoc_collapse": False,
     "globaltoc_includehidden": True,
-    "globaltoc_maxdepth": -1,
+    "globaltoc_maxdepth": 2,
     "header_links_before_dropdown": 8,
     "navbar_start": ["navbar-logo"],
     "navbar_end": ["theme-switcher", "navbar-icon-links"],

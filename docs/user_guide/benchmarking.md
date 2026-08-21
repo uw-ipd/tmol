@@ -53,7 +53,7 @@ Ancillary benchmark plots live near the tests as `plot_*.py` scripts.
 
 ## Profiling
 
-`dev/bin/profile_benchmark` wraps the legacy `nvprof` command and the tmol
+`dev/bin/profile_benchmark` wraps the legacy `nvprof` command and the TMol
 pytest CUDA-profile hook:
 
 ```bash

@@ -1,7 +1,7 @@
 # Quickstart
 
-TMol provides Rosetta-inspired all-atom score terms and batched molecular
-representations in PyTorch.
+TMol provides batched molecular representations and Rosetta-inspired all-atom
+modeling primitives in PyTorch.
 
 This page is a short first-score recipe. For explanations, visualization, and
 exercises, continue with the numbered Tutorials.
@@ -66,10 +66,6 @@ write_pose_stack_pdb(minimized, "minimized.pdb")
 For a protein-ligand complex, load mmCIF through Biotite so TMol can use its
 bond table during ligand preparation:
 
-Helpers whose historical names include `ddg` report a chosen one-complex
-interaction-score convention; they do not calculate thermodynamic binding free
-energies. See the {doc}`scoring guide </user_guide/scoring>`.
-
 ```python
 import biotite.structure as struc
 import biotite.structure.io
@@ -98,6 +94,10 @@ sfxn = beta2016_score_function(device, param_db=context.parameter_database)
 
 Use the ligand-extended `context.parameter_database` when scoring a pose that
 contains freshly prepared ligands.
+
+Helpers whose historical names include `ddg` report a chosen one-complex
+interaction-score convention; they do not calculate thermodynamic binding free
+energies. See the {doc}`scoring and analysis guide </user_guide/scoring>`.
 
 ## Choose the next path
 
