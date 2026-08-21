@@ -3,19 +3,24 @@
 Keep changes focused and testable. Prefer existing tmol patterns over new
 abstractions unless the new abstraction removes real complexity.
 
+> - **Prerequisites:** {doc}`Development setup </user_guide/development>`.
+> - **Documentation entry points:** {doc}`Tutorials </examples_index>`,
+>   {doc}`workflow recipes </workflows/index>`, and
+>   {doc}`API reference </api_reference>`.
+
 ## Documentation
 
 The external docs are built with Sphinx, MyST Markdown, nbsphinx, and autodoc.
 Three documentation forms serve different purposes:
 
 - `docs/workflows/` and selected `docs/user_guide/` pages are concise,
-  reusable recipes.
-- The top-level **Examples** section contains the eight interactive notebooks in
-  `docs/tutorial/`. They are deeper, executable demonstrations rendered by
+  reusable recipes that link to deeper material rather than reproducing it.
+- The top-level **Tutorials** section contains the eight interactive notebooks
+  in `docs/tutorial/`. They are deeper, executable walkthroughs rendered by
   nbsphinx.
-- `docs/examples/` contains separate sphinx-gallery-style Python scripts. The
+- `docs/examples/` contains separate Sphinx-Gallery-style Python scripts. The
   generated `auto_examples` output is currently excluded from the published
-  documentation source set; do not assume these scripts appear in the Examples
+  documentation source set; do not assume these scripts appear in the Tutorials
   navigation.
 
 ```bash
@@ -56,9 +61,3 @@ useful module, class, and function docstrings because those docstrings become
 the reference documentation.
 
 Use Google or NumPy-style docstrings.
-
-```{toctree}
-:maxdepth: 2
-
-user_guide/development
-```

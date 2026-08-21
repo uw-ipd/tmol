@@ -1,5 +1,19 @@
 # Scoring
 
+This guide is a concise reference for whole-pose, autograd, and block-pair
+scoring. Use the tutorial for a step-by-step analysis workflow.
+
+> - **Prerequisites:** A prepared `PoseStack`; see {doc}`Quickstart
+>   </quickstart>`.
+> - **Deep tutorial:** {doc}`03 — Scoring and Analysis
+>   </tutorial/03_scoring_and_analysis>`.
+> - **Related workflows:** {doc}`Optimization </user_guide/optimization>` and
+>   {doc}`Ligand preparation </user_guide/ligands>`.
+> - **API reference:** {doc}`Scoring </api/score>` and
+>   {doc}`Analysis </api/analysis>`.
+> - **Rosetta mapping:** {doc}`Scoring and analysis
+>   </tutorial/rosetta_crosswalk>`.
+
 The default high-level preset, `beta2016_score_function()`, is inspired by
 Rosetta's beta-November-2016 weights and term set. It does not provide
 centroid/full-atom switching, `ref2015`, or numerical parity with Rosetta.
@@ -92,12 +106,3 @@ binding free energy or delta-delta G.
 any requested minimization. Use `return_pose_stack=True` when the refined
 coordinates are part of the result, and `sum_terms=False` to inspect score
 terms separately.
-
-## Related examples
-
-- {doc}`Scoring and Analysis </tutorial/03_scoring_and_analysis>` develops
-  whole-pose, score-term, block-pair, and autograd analysis.
-- {doc}`Ligands and Parameter Files </tutorial/07_ligand_and_params>` applies
-  the fixed-coordinate and locally refined interaction-score conventions.
-- {doc}`Working with DNA and RNA </tutorial/08_nucleic_acids>` analyzes
-  protein–DNA and RNA–ligand block-pair interactions.

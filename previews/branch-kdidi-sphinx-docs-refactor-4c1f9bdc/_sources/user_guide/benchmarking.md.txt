@@ -1,5 +1,17 @@
 # Benchmarking
 
+Use this guide for implementation-regression benchmarks. For application
+throughput, follow the batching recipe and tutorial instead.
+
+> - **Prerequisites:** A development installation; see {doc}`Development
+>   </user_guide/development>`.
+> - **Deep tutorial:** {doc}`02 — GPU Batching with TMol
+>   </tutorial/02_gpu_batching>` for application measurements.
+> - **Related workflow:** {doc}`GPU batching </workflows/gpu_batching>`.
+> - **API reference:** {doc}`Pose </api/pose>` and {doc}`Scoring </api/score>`.
+> - **Rosetta mapping:** {doc}`GPU batching and external orchestration
+>   </tutorial/rosetta_crosswalk>`.
+
 Performance work happens at two different levels:
 
 - Application-level GPU batching measures a real workload over a `PoseStack`;
@@ -50,10 +62,3 @@ dev/bin/profile_benchmark tmol/tests/score -k cuda-full-lk_ball -- -o profile.nv
 
 Use it only in a CUDA environment that still provides `nvprof`; current NVIDIA
 toolkits may require a separate Nsight-based profiling workflow instead.
-
-## Related example
-
-{doc}`GPU Batching with TMol </tutorial/02_gpu_batching>` demonstrates
-application-level latency, throughput, allocator memory, heterogeneous padding,
-and chunking. Use the developer harness above when the question is whether a
-specific tmol implementation changed performance.

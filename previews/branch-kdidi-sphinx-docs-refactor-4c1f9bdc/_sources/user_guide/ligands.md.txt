@@ -1,6 +1,20 @@
 # Ligand Preparation
 
-tmol can turn a non-standard, non-polymer residue into a parameterized residue
+This guide is a focused reference for preparing, reusing, and scoring ligand
+chemistry. The linked tutorial provides a complete protein–ligand walkthrough.
+
+> - **Prerequisites:** {doc}`Integrations </user_guide/integrations>` for
+>   Biotite input and {doc}`Scoring </user_guide/scoring>`.
+> - **Deep tutorial:** {doc}`07 — Ligands and Parameter Files
+>   </tutorial/07_ligand_and_params>`.
+> - **Related workflows:** {doc}`Packing </workflows/packing>` and
+>   {doc}`Nucleic acids </workflows/nucleic_acids>`.
+> - **API reference:** {doc}`Ligands </api/ligand>`,
+>   {doc}`Input and Output </api/io>`, and {doc}`Scoring </api/score>`.
+> - **Rosetta mapping:** {doc}`Ligands and residue-parameter files
+>   </tutorial/rosetta_crosswalk>`.
+
+TMol can turn a non-standard, non-polymer residue into a parameterized residue
 type with protonated 3D coordinates, MMFF94 partial charges,
 generic-potential-style atom types used by tmol, and cartbonded parameters. The
 prepared ligand is injected into a new `ParameterDatabase` and can then be
@@ -181,13 +195,5 @@ sfxn = beta2016_score_function(device, param_db=context.parameter_database)
 
 Import supported ligand-preparation functions from `tmol.ligand`. Files whose
 names begin with an underscore are implementation details and may change
-without a compatibility alias. The package API reference lists the currently
-supported exports.
-
-## Related examples
-
-- {doc}`Ligands and Parameter Files </tutorial/07_ligand_and_params>` traces
-  authoritative chemistry, `.tmol` persistence, the experimental Rosetta
-  writer, pocket selection, and local interaction scoring.
-- {doc}`Working with DNA and RNA </tutorial/08_nucleic_acids>` prepares a ligand
-  in an RNA aptamer and repacks nearby RNA while holding the ligand fixed.
+without a compatibility alias. The {doc}`ligand API reference </api/ligand>`
+lists the currently supported exports.

@@ -1,5 +1,19 @@
 # GPU Batching
 
+Use this compact recipe when an application needs to score many structures on
+one device. The linked tutorial provides the deeper walkthrough, measurements,
+and interpretation.
+
+> - **Prerequisites:** {doc}`Quickstart </quickstart>` and a CUDA-enabled TMol
+>   installation.
+> - **Deep tutorial:** {doc}`02 — GPU Batching with TMol
+>   </tutorial/02_gpu_batching>`.
+> - **Related workflows:** {doc}`Packing </workflows/packing>` and
+>   {doc}`developer benchmarking </user_guide/benchmarking>`.
+> - **API reference:** {doc}`Pose </api/pose>` and {doc}`Scoring </api/score>`.
+> - **Rosetta mapping:** {doc}`GPU batching and external orchestration
+>   </tutorial/rosetta_crosswalk>`.
+
 TMol gets application throughput by evaluating several structures in one
 `PoseStack` on one device. Build each input pose from the same chemical
 database, combine them, and render the scorer for the resulting batch layout:
@@ -56,8 +70,3 @@ operation.
 TMol does not provide a multi-GPU scheduler. Shard independent chunks outside
 TMol, normally with one process owning one GPU. This application workflow is
 separate from the {doc}`developer benchmark harness </user_guide/benchmarking>`.
-
-## Related example
-
-See {doc}`GPU Batching with TMol </tutorial/02_gpu_batching>` for heterogeneous
-batches, synchronized timing, allocator measurements, and practical chunking.
