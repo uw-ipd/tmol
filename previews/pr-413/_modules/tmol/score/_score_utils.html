@@ -452,12 +452,15 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 
 
+<div class="viewcode-block" id="FragmentInteractionScores">
+<a class="viewcode-back" href="../../../api/score.html#tmol.score.FragmentInteractionScores">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FragmentInteractionScores</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Per-fragment interactions with an explicitly selected partner."""</span>
 
     <span class="n">scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
-    <span class="n">mapping</span><span class="p">:</span> <span class="nb">tuple</span>
+    <span class="n">mapping</span><span class="p">:</span> <span class="nb">tuple</span></div>
+
 
 
 <div class="viewcode-block" id="calculate_fragment_interactions">

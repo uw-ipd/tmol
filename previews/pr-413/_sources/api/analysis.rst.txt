@@ -7,6 +7,7 @@ is exposed from :mod:`tmol.score`.
 
 .. automodule:: tmol.ops
    :members:
+   :imported-members:
    :undoc-members:
    :show-inheritance:
 

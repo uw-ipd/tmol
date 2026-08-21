@@ -1,0 +1,1875 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.kinematics._scan_ordering &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c9b21c7c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/kinematics/_scan_ordering';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-413';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.47" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.kinematics._scan_ordering</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.kinematics._scan_ordering</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">numba</span><span class="w"> </span><span class="kn">import</span> <span class="n">jit</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.sparse.csgraph</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">csgraph</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NDArray</span><span class="p">,</span>
+    <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">ValidateAttrs</span><span class="p">,</span>
+    <span class="n">validate_args</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._datatypes</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NodeType</span><span class="p">,</span>
+    <span class="n">KinForest</span><span class="p">,</span>
+    <span class="n">KinForestScanData</span><span class="p">,</span>
+    <span class="n">KinematicModuleData</span><span class="p">,</span>
+    <span class="n">BTGenerationalSegScanPathSegs</span><span class="p">,</span>
+    <span class="n">PBTGenerationalSegScanPathSegs</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_children</span><span class="p">(</span><span class="n">parents</span><span class="p">):</span>
+    <span class="n">nelts</span> <span class="o">=</span> <span class="n">parents</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Pass 1, count number of children for each parent.</span>
+    <span class="n">n_immediate_children</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nelts</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nelts</span><span class="p">):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">parents</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">p</span> <span class="o">&lt;=</span> <span class="n">i</span><span class="p">,</span> <span class="s2">"Invalid kinematic tree ordering, parent index &gt;= child index."</span>
+        <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="n">i</span><span class="p">:</span>  <span class="c1"># root</span>
+            <span class="k">continue</span>
+        <span class="n">n_immediate_children</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># Pass 2, mark the span of each parent in the child node list.</span>
+    <span class="n">child_list</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nelts</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">child_list_span</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nelts</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="n">child_list_span</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">child_list_span</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_immediate_children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nelts</span><span class="p">):</span>
+        <span class="n">child_list_span</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">child_list_span</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">child_list_span</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">child_list_span</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">n_immediate_children</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="c1"># Pass 3, fill the child list for each parent.</span>
+    <span class="c1"># As we do this, sum total # of descendents at each node, used to</span>
+    <span class="c1">#   prioritize scan ordering in DFS</span>
+    <span class="n">n_descendents</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nelts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nelts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">parents</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="n">i</span><span class="p">:</span>  <span class="c1"># root</span>
+            <span class="k">continue</span>
+        <span class="n">n_descendents</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">+=</span> <span class="n">n_descendents</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">child_list</span><span class="p">[</span><span class="n">child_list_span</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">n_immediate_children</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+        <span class="n">n_immediate_children</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">n_descendents</span><span class="p">,</span> <span class="n">child_list_span</span><span class="p">,</span> <span class="n">child_list</span>
+
+
+<span class="c1"># jitted scan operation</span>
+<span class="c1"># inputs:</span>
+<span class="c1">#    parents - the "parents" array from the kinematic tree</span>
+<span class="c1">#              assumes proper ordering: child index &gt; parent index</span>
+<span class="c1">#    roots - the initial root nodes.  The code will efficiently support</span>
+<span class="c1">#            a graph with many disconnected components</span>
+<span class="c1"># returns:</span>
+<span class="c1">#    nodes - a 1D array with the node indices of each scan, concatenated</span>
+<span class="c1">#    scanStarts - a 1D index array in 'nodes' where each individual scan begins</span>
+<span class="c1">#    genStarts - an N x 2 array giving indices where each gen begins</span>
+<span class="c1">#         genStarts[:,0] indexes nodes</span>
+<span class="c1">#         genStarts[:,1] indexes scanStarts</span>
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_scans</span><span class="p">(</span><span class="n">parents</span><span class="p">,</span> <span class="n">roots</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Partitioning of a tree into linear subpaths.</span>
+
+<span class="sd">    The tree is stored as a list of pointers to parent indices, with an</span>
+<span class="sd">    arbitrary set of roots.  Each root implies a connected subtree.</span>
+<span class="sd">    Each index i has a parent index (p_i) "higher" in the tree (p_i &lt; i).</span>
+<span class="sd">    The tree structure is fully defined by parent pointers, an index array</span>
+<span class="sd">    (parent) of len(tree_size) where parent[i] == i for all root nodes.</span>
+
+<span class="sd">    The source tree implies a per-node child list of length &gt;= 0, defined by</span>
+<span class="sd">    all nodes for which the given node is a parent. Nodes with no children are</span>
+<span class="sd">    leaves.</span>
+
+<span class="sd">    Scan paths cuts the tree into linear paths, where each non-leaf node (i)</span>
+<span class="sd">    has a *single* child (c_i) "lower" in the tree (i &lt; c_i). The path</span>
+<span class="sd">    structure is fully defined by child pointers, an index array (subpath_child)</span>
+<span class="sd">    of subpath_child[i] == c_i (non-leaves) or subpath_child[i] = -1 (leaves).</span>
+
+<span class="sd">    The path partitioning implies "subpath roots", the set of nodes which are</span>
+<span class="sd">    *not* the subpath child of their parent (subpath_child[parent[i]] != i).</span>
+
+<span class="sd">    Each path in the tree is labeled with a depth: a path with depth</span>
+<span class="sd">    i may depend on the values computed for atoms with depths 0..i-1.</span>
+<span class="sd">    All of the paths of the same depth can be processed in a single</span>
+<span class="sd">    kernel execution with segmented scan.</span>
+<span class="sd">    """</span>
+
+    <span class="n">nelts</span> <span class="o">=</span> <span class="n">parents</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">n_descendents</span><span class="p">,</span> <span class="n">child_list_span</span><span class="p">,</span> <span class="n">child_list</span> <span class="o">=</span> <span class="n">get_children</span><span class="p">(</span><span class="n">parents</span><span class="p">)</span>
+
+    <span class="c1"># scan storage - allocate upper bound for 4-connected graph</span>
+    <span class="c1"># scan indices are emitted as a 1D array of nodes ('scans') with:</span>
+    <span class="c1">#   scanStarts: indices in 'scans' where individual scans start</span>
+    <span class="c1">#   genStarts: indices in 'scanStarts' where generations start</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">nelts</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">scanStarts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nelts</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">genStarts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nelts</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># curr idx in each array</span>
+    <span class="n">genidx</span><span class="p">,</span> <span class="n">scanidx</span><span class="p">,</span> <span class="n">nodeidx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+
+    <span class="c1"># store the active pool we are expanding</span>
+    <span class="n">activeFront</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">nelts</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">nActiveFront</span> <span class="o">=</span> <span class="n">roots</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">activeFront</span><span class="p">[:</span><span class="n">nActiveFront</span><span class="p">]</span> <span class="o">=</span> <span class="n">roots</span>
+
+    <span class="c1"># DFS traversal through forest-of-rooted-trees drawing generational scan</span>
+    <span class="c1"># paths. Each pass through the DFS search follows a set of scan paths</span>
+    <span class="c1"># beginning from the current set of roots, following nodes to the full</span>
+    <span class="c1"># depth of the scan path. At each node the scan is extended through the</span>
+    <span class="c1"># child with the most descendents and the node is added to the generation</span>
+    <span class="c1"># n+1 roots, where it will root 0-or-more scans in the n+1 generation</span>
+    <span class="c1"># passing through its additional children.</span>
+    <span class="c1">#</span>
+    <span class="c1"># In typical kinematic trees this will minimize the total number of scan</span>
+    <span class="c1"># generations by tracing a long backbone path with many short side paths.</span>
+    <span class="n">marked</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nelts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">marked</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">marked</span><span class="p">):</span>
+        <span class="n">genStarts</span><span class="p">[</span><span class="n">genidx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">nodeidx</span><span class="p">,</span> <span class="n">scanidx</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nActiveFront</span><span class="p">):</span>
+            <span class="n">currRoot</span> <span class="o">=</span> <span class="n">activeFront</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="c1"># Active front nodes are members of an existing scan passing through</span>
+            <span class="c1"># to one child (or are gen 0) and may root 1-or-more scans through</span>
+            <span class="c1"># any additional children.</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">child_list_span</span><span class="p">[</span><span class="n">currRoot</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">child_list_span</span><span class="p">[</span><span class="n">currRoot</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
+                <span class="n">expandedNode</span> <span class="o">=</span> <span class="n">child_list</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">marked</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># Child node has already been 'scanned' in a prev</span>
+                    <span class="c1"># generation and is not the first child of another scan.</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># add the node as the start of a new scan</span>
+                <span class="c1"># -&gt; numbering is w.r.t. generation (hence subtracting gen start)</span>
+                <span class="n">scanStarts</span><span class="p">[</span><span class="n">scanidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodeidx</span> <span class="o">-</span> <span class="n">genStarts</span><span class="p">[</span><span class="n">genidx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">scanidx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="c1"># Set root as start of the scan.</span>
+                <span class="n">nodes</span><span class="p">[</span><span class="n">nodeidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">currRoot</span>
+                <span class="n">nodeidx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="c1"># Extend scan path into selected child and mark it.</span>
+                    <span class="n">marked</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="n">nodes</span><span class="p">[</span><span class="n">nodeidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">expandedNode</span>
+                    <span class="n">nodeidx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">child_list_span</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                        <span class="o">==</span> <span class="n">child_list_span</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="p">):</span>
+                        <span class="c1"># At a leaf node, scan path terminates.</span>
+                        <span class="k">break</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Extend path through the child with</span>
+                        <span class="c1">#  greatest number of descendants.</span>
+                        <span class="n">nextExtension</span> <span class="o">=</span> <span class="n">child_list</span><span class="p">[</span><span class="n">child_list_span</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
+                        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                            <span class="n">child_list_span</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                            <span class="n">child_list_span</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                        <span class="p">):</span>
+                            <span class="n">candidate</span> <span class="o">=</span> <span class="n">child_list</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">n_descendents</span><span class="p">[</span><span class="n">candidate</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">n_descendents</span><span class="p">[</span><span class="n">nextExtension</span><span class="p">]:</span>
+                                <span class="n">nextExtension</span> <span class="o">=</span> <span class="n">candidate</span>
+
+                        <span class="n">expandedNode</span> <span class="o">=</span> <span class="n">nextExtension</span>
+
+        <span class="c1"># Mark any node scanned in this generation as a potential root.</span>
+        <span class="c1"># Old roots and nodes with 1 child will be filtered during expansion.</span>
+        <span class="k">if</span> <span class="n">genStarts</span><span class="p">[</span><span class="n">genidx</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">scanidx</span><span class="p">:</span>
+            <span class="n">lastgenScan0</span> <span class="o">=</span> <span class="n">genStarts</span><span class="p">[</span><span class="n">genidx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">activeFront</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">nActiveFront</span> <span class="o">=</span> <span class="n">nodeidx</span> <span class="o">-</span> <span class="n">lastgenScan0</span>
+            <span class="n">activeFront</span><span class="p">[:</span><span class="n">nActiveFront</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="n">lastgenScan0</span><span class="p">:</span><span class="n">nodeidx</span><span class="p">]</span>
+
+        <span class="c1"># next generation</span>
+        <span class="n">genidx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># Pad genStarts by 1 to make downstream code cleaner</span>
+    <span class="n">genStarts</span><span class="p">[</span><span class="n">genidx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">nodeidx</span><span class="p">,</span> <span class="n">scanidx</span><span class="p">]</span>
+    <span class="n">genidx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">nodes</span><span class="p">[:</span><span class="n">nodeidx</span><span class="p">],</span> <span class="n">scanStarts</span><span class="p">[:</span><span class="n">scanidx</span><span class="p">],</span> <span class="n">genStarts</span><span class="p">[:</span><span class="n">genidx</span><span class="p">,</span> <span class="p">:]</span>
+
+
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">KinForestScanOrdering</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Scan plans for parallel kinematic operations.</span>
+
+<span class="sd">    The KinForestScanOrdering class divides the tree into a set of paths. Along</span>
+<span class="sd">    each path is a continuous chain of atoms that either (1) require their</span>
+<span class="sd">    coordinate frames computed as a cumulative product of homogeneous</span>
+<span class="sd">    transforms for the coordinate update algorithm, or (2) require the</span>
+<span class="sd">    cumulative sum of their f1f2 vectors for the derivative calculation</span>
+<span class="sd">    algorithm. In both cases, these paths can be processed efficiently</span>
+<span class="sd">    on the GPU using an algorithm called "scan" and batches of these paths</span>
+<span class="sd">    can be processed at once in a variant called "segmented scan."</span>
+
+<span class="sd">    The same set of paths is used for both the refold algorithm and</span>
+<span class="sd">    the derivative summation; the refold algorithm starts at path</span>
+<span class="sd">    roots and multiplies homogeneous transforms towards the leaves.</span>
+<span class="sd">    The derivative summation algorithm starts at the leaves and sums</span>
+<span class="sd">    upwards towards the roots.</span>
+
+<span class="sd">    To accomplish this, the GPUKinForestReordering class reorders the atoms from</span>
+<span class="sd">    the original KinForest order ("ko") where atoms are known by their</span>
+<span class="sd">    kinforest-index ("ki") into 1) their refold order ("ro") where atoms are</span>
+<span class="sd">    known by their refold index ("ri") and 2) their deriv-sum order ("dso")</span>
+<span class="sd">    where atoms are known by their deriv-sum index.</span>
+
+<span class="sd">    Each scan operation is performed as a series of depth-based "generations",</span>
+<span class="sd">    in which the scans at generation n are *only* dependent on the results of</span>
+<span class="sd">    scans in generations [0...n-1] inclusive. In the forward-scan generations</span>
+<span class="sd">    are ordered from the kinematic root, and scan segments begin with a value</span>
+<span class="sd">    derived from the result of a generation [0...n-1] scan. In the</span>
+<span class="sd">    backward-scan generations are ordered from kinematic leaves, and scan</span>
+<span class="sd">    segments pull summation results from multiple generation [0...n-1] scans.</span>
+
+<span class="sd">    For further details on parallel segmented scan operations see:</span>
+
+<span class="sd">    * Mark Harris, "Parallel Prefix Sum with CUDA."</span>
+<span class="sd">      GPU Gems 3, Nvidia Corporation</span>
+<span class="sd">      https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html</span>
+<span class="sd">      http://developer.download.nvidia.com/</span>
+<span class="sd">      compute/cuda/2_2/sdk/website/projects/scan/doc/scan.pdf</span>
+
+<span class="sd">    * Sengupta, Shubhabrata, et al. "Scan primitives for GPU computing."</span>
+<span class="sd">      Graphics hardware. Vol. 2007. 2007.</span>
+<span class="sd">      http://www.cs.jhu.edu/~misha/ReadingSeminar/Papers/Sengupta07.pdf</span>
+
+<span class="sd">    * Sean Baxter, "moderngpu"</span>
+<span class="sd">      http://moderngpu.github.io/moderngpu</span>
+<span class="sd">    """</span>
+
+    <span class="n">kinforest_cache_key</span> <span class="o">=</span> <span class="s2">"__KinForestScanOrdering_cache__"</span>
+
+    <span class="n">forward_scan_paths</span><span class="p">:</span> <span class="n">KinForestScanData</span>
+    <span class="n">backward_scan_paths</span><span class="p">:</span> <span class="n">KinForestScanData</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">for_kinforest</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">kinforest</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Calculate and cache refold ordering over kinforest</span>
+
+<span class="sd">        KinForest data structure is frozen; so it is safe to cache the gpu scan</span>
+<span class="sd">        ordering for a single object. Store as a private property of the input</span>
+<span class="sd">        kinforest, lifetime of the cache will then be managed via the target</span>
+<span class="sd">        object.</span>
+<span class="sd">        ."""</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">kinforest</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">kinforest_cache_key</span><span class="p">):</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span>
+                <span class="n">kinforest</span><span class="p">,</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">kinforest_cache_key</span><span class="p">,</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">calculate_from_kinforest</span><span class="p">(</span><span class="n">kinforest</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">kinforest</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">kinforest_cache_key</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_from_kinforest</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">kinforest</span><span class="p">:</span> <span class="n">KinForest</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Setup for operations over KinForest.</span>
+<span class="sd">        ``device`` is inferred from kinforest tensor device.</span>
+<span class="sd">        """</span>
+
+        <span class="n">nodes</span><span class="p">,</span> <span class="n">scanStarts</span><span class="p">,</span> <span class="n">genStarts</span> <span class="o">=</span> <span class="n">get_scans</span><span class="p">(</span>
+            <span class="n">kinforest</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="n">forward_scan_paths</span> <span class="o">=</span> <span class="n">KinForestScanData</span><span class="p">(</span>
+            <span class="n">nodes</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">kinforest</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">scans</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">scanStarts</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">kinforest</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">gens</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">genStarts</span><span class="p">),</span>
+        <span class="p">)</span>  <span class="c1"># keep gens on CPU!</span>
+
+        <span class="c1"># reverse the scan paths for derivative scans</span>
+        <span class="n">nodesR</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">nodes</span><span class="p">))</span>
+
+        <span class="n">genStartsR</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">genStarts</span><span class="p">)</span>
+        <span class="n">genStartsR</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">genStarts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="n">genStartsR</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">scanStarts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">genStarts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># perhaps this can be simplified? (reversing scan indices)</span>
+        <span class="n">ngens</span> <span class="o">=</span> <span class="n">genStarts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">scanStartsR</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">scanStarts</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ngens</span><span class="p">):</span>
+            <span class="n">genstart</span> <span class="o">=</span> <span class="n">genStartsR</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">genstop</span> <span class="o">=</span> <span class="n">genStartsR</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">nodes_i</span> <span class="o">=</span> <span class="n">genStartsR</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">genStartsR</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">scan_i</span> <span class="o">=</span> <span class="n">nodes_i</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span>
+                <span class="n">numpy</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span>
+                    <span class="n">scanStarts</span><span class="p">[</span>
+                        <span class="p">(</span><span class="n">scanStarts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">genstop</span><span class="p">)</span> <span class="p">:</span> <span class="p">(</span>
+                            <span class="n">scanStarts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">genstart</span>
+                        <span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">scanStartsR</span><span class="p">[</span><span class="n">genstart</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">scanStartsR</span><span class="p">[(</span><span class="n">genstart</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="p">:</span> <span class="n">genstop</span><span class="p">]</span> <span class="o">=</span> <span class="n">scan_i</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">backward_scan_paths</span> <span class="o">=</span> <span class="n">KinForestScanData</span><span class="p">(</span>
+            <span class="n">nodes</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">nodesR</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">kinforest</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">scans</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">scanStartsR</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">kinforest</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">gens</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">genStartsR</span><span class="p">),</span>
+        <span class="p">)</span>  <span class="c1"># keep gens on CPU!</span>
+
+        <span class="k">return</span> <span class="n">KinForestScanOrdering</span><span class="p">(</span>
+            <span class="n">forward_scan_paths</span><span class="o">=</span><span class="n">forward_scan_paths</span><span class="p">,</span>
+            <span class="n">backward_scan_paths</span><span class="o">=</span><span class="n">backward_scan_paths</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="construct_kin_module_data_for_pose">
+<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.construct_kin_module_data_for_pose">[docs]</a>
+<span class="nd">@validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">construct_kin_module_data_for_pose</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">fold_forest_edges</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">],</span>
+<span class="p">):</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">calculate_ff_edge_delays</span><span class="p">,</span>
+        <span class="n">get_children</span><span class="p">,</span>
+        <span class="n">get_block_parent_connectivity_from_toposort</span><span class="p">,</span>
+        <span class="n">get_id_and_frame_xyz</span><span class="p">,</span>
+        <span class="n">get_jump_atom_indices</span><span class="p">,</span>
+        <span class="n">get_kinforest_scans_from_stencils2</span><span class="p">,</span>
+        <span class="n">get_kfo_indices_for_atoms</span><span class="p">,</span>
+        <span class="n">get_kfo_atom_parents</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">device</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">_annotate_packed_block_type_with_gen_scan_path_segs</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+    <span class="n">pbt_gssps</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">gen_seg_scan_path_segs</span>
+
+    <span class="n">ff_edges_cpu</span> <span class="o">=</span> <span class="n">fold_forest_edges</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+    <span class="n">ff_edges_device</span> <span class="o">=</span> <span class="n">fold_forest_edges</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">calculate_ff_edge_delays</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span>
+        <span class="n">ff_edges_cpu</span><span class="p">,</span>
+        <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">scan_path_seg_that_builds_output_conn</span><span class="p">,</span>
+        <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">nodes_for_gen</span><span class="p">,</span>
+        <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">scan_path_seg_starts</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="p">(</span>
+        <span class="n">dfs_order_of_ff_edges</span><span class="p">,</span>
+        <span class="n">n_ff_edges</span><span class="p">,</span>
+        <span class="n">ff_edge_parent</span><span class="p">,</span>
+        <span class="n">first_ff_edge_for_block</span><span class="p">,</span>
+        <span class="n">pose_stack_ff_parent</span><span class="p">,</span>
+        <span class="n">max_gen_depth_of_ff_edge</span><span class="p">,</span>
+        <span class="n">first_child_of_ff_edge</span><span class="p">,</span>
+        <span class="n">delay_for_edge</span><span class="p">,</span>
+        <span class="n">toposort_index_for_edge</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">result</span><span class="p">)</span>
+
+    <span class="n">pose_stack_atom_for_jump</span><span class="p">,</span> <span class="n">pose_stack_atom_for_root_jump</span> <span class="o">=</span> <span class="n">get_jump_atom_indices</span><span class="p">(</span>
+        <span class="n">ff_edges_device</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span> <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">jump_atom</span>
+    <span class="p">)</span>
+
+    <span class="n">pose_stack_block_in_and_first_out</span> <span class="o">=</span> <span class="n">get_block_parent_connectivity_from_toposort</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
+        <span class="n">pose_stack_ff_parent</span><span class="p">,</span>
+        <span class="n">dfs_order_of_ff_edges</span><span class="p">,</span>
+        <span class="n">n_ff_edges</span><span class="p">,</span>
+        <span class="n">ff_edges_device</span><span class="p">,</span>
+        <span class="n">first_ff_edge_for_block</span><span class="p">,</span>
+        <span class="n">first_child_of_ff_edge</span><span class="p">,</span>
+        <span class="n">delay_for_edge</span><span class="p">,</span>
+        <span class="n">toposort_index_for_edge</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">polymeric_conn_inds</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">block_kfo_offset</span><span class="p">,</span> <span class="n">kfo_2_orig_mapping</span><span class="p">,</span> <span class="n">atom_kfo_index</span> <span class="o">=</span> <span class="n">get_kfo_indices_for_atoms</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">atom_is_real</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">kfo_atom_parents</span><span class="p">,</span> <span class="n">kfo_atom_grandparents</span> <span class="o">=</span> <span class="n">get_kfo_atom_parents</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
+        <span class="n">pose_stack_ff_parent</span><span class="p">,</span>
+        <span class="n">pose_stack_block_in_and_first_out</span><span class="p">,</span>
+        <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">parents</span><span class="p">,</span>
+        <span class="n">kfo_2_orig_mapping</span><span class="p">,</span>
+        <span class="n">atom_kfo_index</span><span class="p">,</span>
+        <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">jump_atom</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">conn_atom</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">n_children</span><span class="p">,</span> <span class="n">child_list_span</span><span class="p">,</span> <span class="n">child_list</span><span class="p">,</span> <span class="n">is_atom_jump</span> <span class="o">=</span> <span class="n">get_children</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span>
+        <span class="n">pose_stack_block_in_and_first_out</span><span class="p">,</span>
+        <span class="n">kfo_2_orig_mapping</span><span class="p">,</span>
+        <span class="n">kfo_atom_parents</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="nb">id</span><span class="p">,</span> <span class="n">frame_x</span><span class="p">,</span> <span class="n">frame_y</span><span class="p">,</span> <span class="n">frame_z</span><span class="p">,</span> <span class="n">keep_atom_fixed</span> <span class="o">=</span> <span class="n">get_id_and_frame_xyz</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span>
+        <span class="n">kfo_2_orig_mapping</span><span class="p">,</span>
+        <span class="n">kfo_atom_parents</span><span class="p">,</span>
+        <span class="n">child_list_span</span><span class="p">,</span>
+        <span class="n">child_list</span><span class="p">,</span>
+        <span class="n">is_atom_jump</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">nodes_fw</span><span class="p">,</span> <span class="n">scans_fw</span><span class="p">,</span> <span class="n">gens_fw</span><span class="p">,</span> <span class="n">nodes_bw</span><span class="p">,</span> <span class="n">scans_bw</span><span class="p">,</span> <span class="n">gens_bw</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">get_kinforest_scans_from_stencils2</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
+            <span class="n">ff_edges_device</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">delay_for_edge</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">delay_for_edge</span><span class="p">,</span>
+            <span class="n">toposort_index_for_edge</span><span class="p">,</span>
+            <span class="n">first_ff_edge_for_block</span><span class="p">,</span>
+            <span class="n">pose_stack_ff_parent</span><span class="p">,</span>
+            <span class="n">pose_stack_block_in_and_first_out</span><span class="p">,</span>
+            <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">parents</span><span class="p">,</span>
+            <span class="n">kfo_2_orig_mapping</span><span class="p">,</span>
+            <span class="n">atom_kfo_index</span><span class="p">,</span>
+            <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">jump_atom</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">polymeric_conn_inds</span><span class="p">,</span>
+            <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">n_gens</span><span class="p">,</span>
+            <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">scan_path_seg_that_builds_output_conn</span><span class="p">,</span>
+            <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">nodes_for_gen</span><span class="p">,</span>
+            <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">n_scan_path_segs</span><span class="p">,</span>
+            <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">scan_path_seg_starts</span><span class="p">,</span>
+            <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">scan_path_seg_is_real</span><span class="p">,</span>
+            <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">scan_path_seg_is_inter_block</span><span class="p">,</span>
+            <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">scan_path_seg_lengths</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># This feels so clunky after all that slick C++</span>
+    <span class="n">is_res_real</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">is_atom_real</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">atom_is_real</span><span class="p">[</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">[</span><span class="n">is_res_real</span><span class="p">]]</span>
+
+    <span class="n">block_atom_dof_type</span> <span class="o">=</span> <span class="n">pbt_gssps</span><span class="o">.</span><span class="n">dof_type</span><span class="p">[</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">[</span><span class="n">is_res_real</span><span class="p">],</span>
+        <span class="n">pose_stack_block_in_and_first_out</span><span class="p">[</span><span class="n">is_res_real</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">]</span>
+    <span class="n">doftype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">id</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="nb">id</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">doftype</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">block_atom_dof_type</span><span class="p">[</span><span class="n">is_atom_real</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">KinematicModuleData</span><span class="p">(</span>
+        <span class="n">forest</span><span class="o">=</span><span class="n">KinForest</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+            <span class="n">doftype</span><span class="o">=</span><span class="n">doftype</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">kfo_atom_parents</span><span class="p">,</span>
+            <span class="n">frame_x</span><span class="o">=</span><span class="n">frame_x</span><span class="p">,</span>
+            <span class="n">frame_y</span><span class="o">=</span><span class="n">frame_y</span><span class="p">,</span>
+            <span class="n">frame_z</span><span class="o">=</span><span class="n">frame_z</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">scan_data_fw</span><span class="o">=</span><span class="n">KinForestScanData</span><span class="p">(</span>
+            <span class="n">nodes</span><span class="o">=</span><span class="n">nodes_fw</span><span class="p">,</span>
+            <span class="n">scans</span><span class="o">=</span><span class="n">scans_fw</span><span class="p">,</span>
+            <span class="n">gens</span><span class="o">=</span><span class="n">gens_fw</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span>
+        <span class="p">),</span>
+        <span class="n">scan_data_bw</span><span class="o">=</span><span class="n">KinForestScanData</span><span class="p">(</span>
+            <span class="n">nodes</span><span class="o">=</span><span class="n">nodes_bw</span><span class="p">,</span>
+            <span class="n">scans</span><span class="o">=</span><span class="n">scans_bw</span><span class="p">,</span>
+            <span class="n">gens</span><span class="o">=</span><span class="n">gens_bw</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span>
+        <span class="p">),</span>
+        <span class="n">block_in_and_first_out</span><span class="o">=</span><span class="n">pose_stack_block_in_and_first_out</span><span class="p">,</span>
+        <span class="n">keep_atom_fixed</span><span class="o">=</span><span class="n">keep_atom_fixed</span><span class="p">,</span>
+        <span class="n">pose_stack_atom_for_jump</span><span class="o">=</span><span class="n">pose_stack_atom_for_jump</span><span class="p">,</span>
+        <span class="n">pose_stack_atom_for_root_jump</span><span class="o">=</span><span class="n">pose_stack_atom_for_root_jump</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_handle_case_on_primary_exit_path</span><span class="p">(</span>
+    <span class="n">k_atom_ind</span><span class="p">,</span>
+    <span class="n">j_conn_atom</span><span class="p">,</span>
+    <span class="n">k_kids</span><span class="p">,</span>
+    <span class="n">gen_depth_given_first_descendant</span><span class="p">,</span>
+    <span class="n">gen_depth</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># in this case, the first_descendant for this atom</span>
+    <span class="c1"># has already been decided</span>
+    <span class="k">if</span> <span class="n">k_atom_ind</span> <span class="o">==</span> <span class="n">j_conn_atom</span><span class="p">:</span>
+        <span class="c1"># this atom's first descendent is the atom on the next residue</span>
+        <span class="c1"># to which this residue is connected</span>
+        <span class="n">gen_depth</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">gen_depth</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">k_kids</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># first_descendant is already determined for this atom</span>
+        <span class="n">gen_depth</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">gen_depth_given_first_descendant</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_handle_case_of_no_exit_scan_path_segment</span><span class="p">(</span>
+    <span class="n">bt</span><span class="p">,</span>
+    <span class="n">n_conn</span><span class="p">,</span>
+    <span class="n">i</span><span class="p">,</span>
+    <span class="n">j</span><span class="p">,</span>
+    <span class="n">k</span><span class="p">,</span>
+    <span class="n">k_kids</span><span class="p">,</span>
+    <span class="n">k_atom_ind</span><span class="p">,</span>
+    <span class="n">is_on_exit_sp_segment</span><span class="p">,</span>
+    <span class="n">first_descendant</span><span class="p">,</span>
+    <span class="n">interres_conn_scan_path_segment_rooted_by_atom</span><span class="p">,</span>
+    <span class="n">atom_rooting_scan_path_segment_for_interres_conn</span><span class="p">,</span>
+    <span class="n">gen_depth_given_first_descendant</span><span class="p">,</span>
+    <span class="n">gen_depth</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># most-common case: an atom not on the primary-exit sp seg, and that isn't</span>
+    <span class="c1"># itself a connection atom.</span>
+    <span class="c1"># First we ask: are we on one or more exit scan path segments?</span>
+    <span class="c1"># NOTE: this just chooses the first exit spseg atom it encounters</span>
+    <span class="c1"># as the first descendant and so I pause and think: if we have</span>
+    <span class="c1"># a block type with 4 inter-residue connections where the fold</span>
+    <span class="c1"># forest branches at this residue, then the algorithm for constructing</span>
+    <span class="c1"># the fewest-number-of-generations KinForest here is going</span>
+    <span class="c1"># to fail: we are treating all exit paths out of this residue</span>
+    <span class="c1"># as interchangable and we might say connection c should be</span>
+    <span class="c1"># ahead of connection c' in a case where c' has a greater gen_depth</span>
+    <span class="c1"># than c. We will still get a valid KinForest, but it will lack</span>
+    <span class="c1"># the "fewest number of generations possible" property.</span>
+    <span class="c1">#</span>
+    <span class="c1"># The case I am designing for here is: there's a jump that has</span>
+    <span class="c1"># landed at a beta-amino acid's CA atom and there are exit paths</span>
+    <span class="c1"># through the N- and C-terminal ends of the residue and if the</span>
+    <span class="c1"># primary exit path is the C-term, then the N-term exit path should</span>
+    <span class="c1"># still have priority over the side-chain path.</span>
+    <span class="c1">#</span>
+    <span class="c1">#         R</span>
+    <span class="c1">#         |</span>
+    <span class="c1"># ...     CB    C</span>
+    <span class="c1">#     \ /   \  / \</span>
+    <span class="c1">#      N      CA   ...</span>
+    <span class="c1">#</span>
+    <span class="c1"># The path starting at CB should go towards N and not towards R.</span>
+    <span class="c1"># If we are only dealing with polymeric residues that have an</span>
+    <span class="c1"># up- and a down connection and that's it (e.g. nucleic acids),</span>
+    <span class="c1"># then this algorithm will still produce optimal KinForests.</span>
+    <span class="c1"># (I have to use a beta-amino acid as an example here because if</span>
+    <span class="c1"># we consider the case of an alpha-amino acid, then the exit path</span>
+    <span class="c1"># at N is already the root of a new scan path and there's no decision</span>
+    <span class="c1"># making that has to be made.)</span>
+    <span class="c1">#</span>
+    <span class="c1"># A case that this would fail to deliver the optimally-efficient</span>
+    <span class="c1"># (fewest number of generations) KinForest would be if this R group</span>
+    <span class="c1"># also contained an inter-residue connection and there were an</span>
+    <span class="c1"># edge in the FoldForest (a "chemical edge") leaving from that</span>
+    <span class="c1"># connection to some further chain, e.g., it could be a sugar</span>
+    <span class="c1"># group attached to a beta-ASN. Now if the path (CA-&gt;CB-&gt;N) takes</span>
+    <span class="c1"># precedence over the path (CA-&gt;CB-&gt;R), then everything down-</span>
+    <span class="c1"># stream of the R would have a generation-delay one greater than</span>
+    <span class="c1"># it would otherwise. Again, a KinForest produced by this algorithm</span>
+    <span class="c1"># is still valid, it could just be slightly slower to fold through</span>
+    <span class="c1"># than it would be otherwise.</span>
+    <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">n_conn</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">kid</span> <span class="ow">in</span> <span class="n">k_kids</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">is_on_exit_sp_segment</span><span class="p">[</span><span class="n">kid</span><span class="p">]:</span>
+                <span class="n">first_descendant</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">kid</span>
+                <span class="n">is_on_exit_sp_segment</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">assert</span> <span class="n">interres_conn_scan_path_segment_rooted_by_atom</span><span class="p">[</span><span class="n">kid</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                <span class="n">kid_conn_ind</span> <span class="o">=</span> <span class="n">interres_conn_scan_path_segment_rooted_by_atom</span><span class="p">[</span><span class="n">kid</span><span class="p">]</span>
+                <span class="c1"># k_atom_ind becomes the new root of the scan path</span>
+                <span class="c1"># building to the kid_conn_ind interresidue connection</span>
+                <span class="n">interres_conn_scan_path_segment_rooted_by_atom</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">kid_conn_ind</span>
+                <span class="p">)</span>
+                <span class="n">interres_conn_scan_path_segment_rooted_by_atom</span><span class="p">[</span><span class="n">kid</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">atom_rooting_scan_path_segment_for_interres_conn</span><span class="p">[</span><span class="n">kid_conn_ind</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">k_atom_ind</span>
+                <span class="p">)</span>
+                <span class="c1"># stop now to ensure that we do not ovewrite the first_descendant</span>
+                <span class="c1"># of k_atom_ind if it should happen to have two kids that</span>
+                <span class="c1"># are on exit paths!</span>
+                <span class="k">break</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_on_exit_sp_segment</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]:</span>
+        <span class="c1"># which should be the first descendant? the one with the greatest gen depth</span>
+        <span class="n">first_descendant</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">k_kids</span><span class="p">[</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">gen_depth</span><span class="p">[</span><span class="n">kid</span><span class="p">]</span> <span class="k">for</span> <span class="n">kid</span> <span class="ow">in</span> <span class="n">k_kids</span><span class="p">]))</span>
+        <span class="p">]</span>
+    <span class="n">gen_depth</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">gen_depth_given_first_descendant</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_record_scan_path_segments</span><span class="p">(</span>
+    <span class="n">bt</span><span class="p">,</span>
+    <span class="n">bfto_2_orig</span><span class="p">,</span>
+    <span class="n">processed_node_into_scan_path_segment</span><span class="p">,</span>
+    <span class="n">i</span><span class="p">,</span>
+    <span class="n">j</span><span class="p">,</span>
+    <span class="n">i_conn_atom</span><span class="p">,</span>
+    <span class="n">n_conn</span><span class="p">,</span>
+    <span class="n">preds</span><span class="p">,</span>
+    <span class="n">gen_to_build_atom</span><span class="p">,</span>
+    <span class="n">first_descendant</span><span class="p">,</span>
+    <span class="n">is_on_exit_sp_segment</span><span class="p">,</span>
+    <span class="n">gen_scan_path_segments</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">):</span>
+        <span class="n">k_atom_ind</span> <span class="o">=</span> <span class="n">bfto_2_orig</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">processed_node_into_scan_path_segment</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]:</span>
+            <span class="c1"># we have already added this atom and its first</span>
+            <span class="c1"># descendant (and their first descendant and so on)</span>
+            <span class="c1"># to a scan path segment, so we can continue</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># if we arrive here, that means k_atom_ind is the root of a</span>
+        <span class="c1"># new scan path segment</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># we have already processed the first scan path segment</span>
+        <span class="c1"># from the entrace-point atom to the first exit-point atom</span>
+        <span class="c1"># unless we are process the "is-a-leaf-node" case</span>
+        <span class="k">assert</span> <span class="n">k_atom_ind</span> <span class="o">!=</span> <span class="n">i_conn_atom</span> <span class="ow">or</span> <span class="n">j</span> <span class="o">==</span> <span class="n">n_conn</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="c1"># put the _parent_ of this new root at the beginning of</span>
+        <span class="c1"># the scan path segment since we build the root's coordinate</span>
+        <span class="c1"># frame from its parent's coordinate frame</span>
+        <span class="k">if</span> <span class="n">k_atom_ind</span> <span class="o">!=</span> <span class="n">i_conn_atom</span><span class="p">:</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">preds</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">])</span>
+            <span class="n">focused_atom</span> <span class="o">=</span> <span class="n">k_atom_ind</span>
+
+            <span class="n">gen_to_build_atom</span><span class="p">[</span><span class="n">focused_atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">gen_to_build_atom</span><span class="p">[</span><span class="n">preds</span><span class="p">[</span><span class="n">focused_atom</span><span class="p">]]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">focused_atom</span> <span class="o">=</span> <span class="n">k_atom_ind</span>
+            <span class="n">gen_to_build_atom</span><span class="p">[</span><span class="n">focused_atom</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># now we traverse the path along each atom's first descendant</span>
+        <span class="k">while</span> <span class="n">focused_atom</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">focused_atom</span><span class="p">)</span>
+            <span class="n">processed_node_into_scan_path_segment</span><span class="p">[</span><span class="n">focused_atom</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">focused_atom</span> <span class="o">=</span> <span class="n">first_descendant</span><span class="p">[</span><span class="n">focused_atom</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">focused_atom</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">gen_to_build_atom</span><span class="p">[</span><span class="n">focused_atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">gen_to_build_atom</span><span class="p">[</span><span class="n">preds</span><span class="p">[</span><span class="n">focused_atom</span><span class="p">]]</span>
+
+        <span class="k">if</span> <span class="n">is_on_exit_sp_segment</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]:</span>
+            <span class="c1"># we will go ahead and put exit sp segs at the beginning of the</span>
+            <span class="c1"># list of scan path segs for a generation, however, there is no</span>
+            <span class="c1"># demand that we must do so.</span>
+            <span class="n">gen_scan_path_segments</span><span class="p">[</span><span class="n">gen_to_build_atom</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]]</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">gen_scan_path_segments</span><span class="p">[</span><span class="n">gen_to_build_atom</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_block_type_for_in_and_out_pair</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="n">i</span><span class="p">,</span>
+    <span class="n">i_conn_atom</span><span class="p">,</span>
+    <span class="n">j</span><span class="p">,</span>
+    <span class="n">bt</span><span class="p">,</span>
+    <span class="n">n_conn</span><span class="p">,</span>
+    <span class="n">preds</span><span class="p">,</span>
+    <span class="n">bfto_2_orig</span><span class="p">,</span>
+    <span class="n">is_conn_atom</span><span class="p">,</span>
+    <span class="n">scan_path_segment_data</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># we will generate a list of scan-path segments for each generation</span>
+    <span class="c1"># and as part of this building process, we will track which scan-</span>
+    <span class="c1"># path segments are exit paths to other blocks.</span>
+    <span class="n">gen_scan_path_segments</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">atom_rooting_scan_path_segment_for_interres_conn</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_conn</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span>
+    <span class="p">)</span>
+    <span class="n">interres_conn_scan_path_segment_rooted_by_atom</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span>
+    <span class="p">)</span>
+    <span class="n">scan_path_segment_building_interres_conn</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_conn</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span>
+    <span class="p">)</span>
+    <span class="n">gen_of_scan_path_segment_building_interres_conn</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_conn</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span>
+    <span class="p">)</span>
+
+    <span class="n">is_on_primary_exit_sp_seg</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">first_descendant</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,),</span> <span class="o">-</span><span class="mi">9999</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;=</span> <span class="n">n_conn</span><span class="p">:</span>
+        <span class="c1"># Case 1: we have a designated exit from this block type to</span>
+        <span class="c1"># the next block in the kinematic tree.</span>
+        <span class="c1">#</span>
+        <span class="c1"># Start at the j_conn_atom and work backwards toward the root,</span>
+        <span class="c1"># which marks the first scan-path segment for this block type:</span>
+        <span class="c1"># the "primary exit scan-path segment"</span>
+        <span class="n">j_conn_atom</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">bt</span><span class="o">.</span><span class="n">ordered_connection_atoms</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">n_conn</span>
+            <span class="k">else</span> <span class="n">bt</span><span class="o">.</span><span class="n">default_jump_connection_atom_index</span>
+        <span class="p">)</span>
+
+        <span class="n">is_on_primary_exit_sp_seg</span><span class="p">[</span><span class="n">i_conn_atom</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">focused_atom</span> <span class="o">=</span> <span class="n">j_conn_atom</span>
+        <span class="n">primary_exit_scan_path_segment</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">while</span> <span class="n">focused_atom</span> <span class="o">!=</span> <span class="n">i_conn_atom</span><span class="p">:</span>
+            <span class="n">is_on_primary_exit_sp_seg</span><span class="p">[</span><span class="n">focused_atom</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">primary_exit_scan_path_segment</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">focused_atom</span><span class="p">)</span>
+            <span class="n">pred</span> <span class="o">=</span> <span class="n">preds</span><span class="p">[</span><span class="n">focused_atom</span><span class="p">]</span>
+            <span class="n">first_descendant</span><span class="p">[</span><span class="n">pred</span><span class="p">]</span> <span class="o">=</span> <span class="n">focused_atom</span>
+            <span class="n">focused_atom</span> <span class="o">=</span> <span class="n">pred</span>
+        <span class="n">primary_exit_scan_path_segment</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i_conn_atom</span><span class="p">)</span>
+        <span class="n">primary_exit_scan_path_segment</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+        <span class="c1"># we need to prioritize exit scan-path segments of all stripes</span>
+        <span class="c1"># in constructing the trees</span>
+        <span class="n">is_on_exit_sp_segment</span> <span class="o">=</span> <span class="n">is_on_primary_exit_sp_seg</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_conn</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="n">i</span> <span class="ow">or</span> <span class="n">k</span> <span class="o">==</span> <span class="n">j</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># truly unnecessary; nothing changes if I remove these two lines</span>
+            <span class="n">k_conn_atom</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">ordered_connection_atoms</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="n">is_on_exit_sp_segment</span><span class="p">[</span><span class="n">k_conn_atom</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">atom_rooting_scan_path_segment_for_interres_conn</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">k_conn_atom</span>
+            <span class="n">interres_conn_scan_path_segment_rooted_by_atom</span><span class="p">[</span><span class="n">k_conn_atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">k</span>
+        <span class="n">gen_scan_path_segments</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">primary_exit_scan_path_segment</span><span class="p">)</span>
+        <span class="c1"># our first exit scan path segment: keep track of the gen/scan-path-seg indices</span>
+        <span class="c1"># for exit scan-path segments using inter-residue connections. We don't have</span>
+        <span class="c1"># to worry about scan paths that exit by jump or that dont exit.</span>
+        <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">n_conn</span><span class="p">:</span>
+            <span class="n">gen_of_scan_path_segment_building_interres_conn</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">scan_path_segment_building_interres_conn</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Case 2: A leaf node of the kinematic tree.</span>
+        <span class="c1"># we will not be exiting from any connection point.</span>
+        <span class="c1"># NOTE: this is an inter-block segment</span>
+        <span class="n">primary_exit_scan_path_segment</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">is_on_exit_sp_segment</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">pass</span>
+
+    <span class="c1"># Create a list of children for each atom.</span>
+    <span class="n">n_kids</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">atom_kids</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">preds</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">k</span> <span class="o">==</span> <span class="n">i_conn_atom</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">"bad predecesor for atom </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> in </span><span class="si">{</span><span class="n">bt</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">preds</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">continue</span>  <span class="c1"># the root</span>
+        <span class="n">n_kids</span><span class="p">[</span><span class="n">preds</span><span class="p">[</span><span class="n">k</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">atom_kids</span><span class="p">[</span><span class="n">preds</span><span class="p">[</span><span class="n">k</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+    <span class="c1"># now we label each node with its "generation depth" using a</span>
+    <span class="c1"># leaf-to-root traversal perscribed by the original DFS, taking</span>
+    <span class="c1"># into account the fact that priority must be given to</span>
+    <span class="c1"># exit scan-path segments -- that is, we must describe exit spsegs</span>
+    <span class="c1"># being the first children of their parents and the other children</span>
+    <span class="c1"># as being younger siblings.</span>
+    <span class="n">gen_depth</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">k_atom_ind</span> <span class="o">=</span> <span class="n">bfto_2_orig</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="n">k_kids</span> <span class="o">=</span> <span class="n">atom_kids</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">k_kids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="c1"># from here forward, we know that k_atom_ind has &gt; 0 children</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">gen_depth_given_first_descendant</span><span class="p">():</span>
+            <span class="c1"># First, set the first_descendant for k_atom_ind.</span>
+            <span class="c1"># Then, the logic is: we have to add one to the</span>
+            <span class="c1"># gen-depth of every child except the first descendant</span>
+            <span class="c1"># which we get "for free" since it will be built</span>
+            <span class="c1"># along the same-scan path segment as k_atom_ind</span>
+            <span class="k">return</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span>
+                        <span class="n">gen_depth</span><span class="p">[</span><span class="n">k_kid</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+                        <span class="k">if</span> <span class="n">k_kid</span> <span class="o">!=</span> <span class="n">first_descendant</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]</span>
+                        <span class="k">else</span> <span class="n">gen_depth</span><span class="p">[</span><span class="n">k_kid</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">k_kid</span> <span class="ow">in</span> <span class="n">k_kids</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_on_primary_exit_sp_seg</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]:</span>
+            <span class="n">_handle_case_on_primary_exit_path</span><span class="p">(</span>
+                <span class="n">k_atom_ind</span><span class="p">,</span>
+                <span class="n">j_conn_atom</span><span class="p">,</span>
+                <span class="n">k_kids</span><span class="p">,</span>
+                <span class="n">gen_depth_given_first_descendant</span><span class="p">,</span>
+                <span class="n">gen_depth</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">n_conn</span> <span class="o">+</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">is_conn_atom</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]:</span>
+                <span class="c1"># In this case, "the" connection (there can possibly be more than one!)</span>
+                <span class="c1"># will be the first child and the other descendants will be second children.</span>
+                <span class="c1"># We save the gen depth, but when calculating the gen depth of the</span>
+                <span class="c1"># fold-forest, if this residue is at the upstream end of an edge, then</span>
+                <span class="c1"># its depth will have to be calculated as the min gen-depth of the</span>
+                <span class="c1"># intra-residue bits and the gen-depth of the nodes downstream of it.</span>
+                <span class="c1"># TO DO: This case needs to be properly handled when calculating the</span>
+                <span class="c1"># maximum number of generations to run gen-seg-scan.</span>
+                <span class="n">gen_depth</span><span class="p">[</span><span class="n">k_atom_ind</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">gen_depth</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">k_kids</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_handle_case_of_no_exit_scan_path_segment</span><span class="p">(</span>
+                    <span class="n">bt</span><span class="p">,</span>
+                    <span class="n">n_conn</span><span class="p">,</span>
+                    <span class="n">i</span><span class="p">,</span>
+                    <span class="n">j</span><span class="p">,</span>
+                    <span class="n">k</span><span class="p">,</span>
+                    <span class="n">k_kids</span><span class="p">,</span>
+                    <span class="n">k_atom_ind</span><span class="p">,</span>
+                    <span class="n">is_on_exit_sp_segment</span><span class="p">,</span>
+                    <span class="n">first_descendant</span><span class="p">,</span>
+                    <span class="n">interres_conn_scan_path_segment_rooted_by_atom</span><span class="p">,</span>
+                    <span class="n">atom_rooting_scan_path_segment_for_interres_conn</span><span class="p">,</span>
+                    <span class="n">gen_depth_given_first_descendant</span><span class="p">,</span>
+                    <span class="n">gen_depth</span><span class="p">,</span>
+                <span class="p">)</span>
+    <span class="c1"># OKAY!</span>
+    <span class="c1"># now we have paths rooted at each node up to the root</span>
+    <span class="c1"># we need to turn these paths into scan paths</span>
+    <span class="c1"># Let's now traverse the atoms in bfs order and build the scan paths</span>
+    <span class="c1"># along the way</span>
+    <span class="n">processed_node_into_scan_path_segment</span> <span class="o">=</span> <span class="n">is_on_primary_exit_sp_seg</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">gen_to_build_atom</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">gen_to_build_atom</span><span class="p">[</span><span class="n">is_on_primary_exit_sp_seg</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">_record_scan_path_segments</span><span class="p">(</span>
+        <span class="n">bt</span><span class="p">,</span>
+        <span class="n">bfto_2_orig</span><span class="p">,</span>
+        <span class="n">processed_node_into_scan_path_segment</span><span class="p">,</span>
+        <span class="n">i</span><span class="p">,</span>
+        <span class="n">j</span><span class="p">,</span>
+        <span class="n">i_conn_atom</span><span class="p">,</span>
+        <span class="n">n_conn</span><span class="p">,</span>
+        <span class="n">preds</span><span class="p">,</span>
+        <span class="n">gen_to_build_atom</span><span class="p">,</span>
+        <span class="n">first_descendant</span><span class="p">,</span>
+        <span class="n">is_on_exit_sp_segment</span><span class="p">,</span>
+        <span class="n">gen_scan_path_segments</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Now we need to assemble the scan path segments in a compact way:</span>
+    <span class="n">ij_n_gens</span> <span class="o">=</span> <span class="n">gen_depth</span><span class="p">[</span><span class="n">i_conn_atom</span><span class="p">]</span>
+    <span class="n">ij_n_scan_path_segments</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">gen_scan_path_segments</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ij_n_gens</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span>
+    <span class="p">)</span>
+    <span class="n">ij_scan_path_segment_starts</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ij_n_scan_path_segments</span><span class="p">[</span><span class="n">k</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ij_n_gens</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">ij_scan_path_segment_lengths</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">gen_scan_path_segments</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">l</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">gen_scan_path_segments</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ij_n_gens</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ij_n_gens</span><span class="p">):</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ij_n_scan_path_segments</span><span class="p">[</span><span class="n">k</span><span class="p">]):</span>
+            <span class="n">ij_scan_path_segment_starts</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">offset</span>
+            <span class="n">offset</span> <span class="o">+=</span> <span class="n">ij_scan_path_segment_lengths</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">l</span><span class="p">]</span>
+    <span class="n">ij_scan_path_segment_is_inter_block</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ij_n_scan_path_segments</span><span class="p">[</span><span class="n">k</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ij_n_gens</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ij_n_gens</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ij_n_scan_path_segments</span><span class="p">[</span><span class="n">k</span><span class="p">]):</span>
+            <span class="n">l_first_at</span> <span class="o">=</span> <span class="n">gen_scan_path_segments</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">l</span><span class="p">][</span><span class="mi">0</span> <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="c1"># "interblock" is really asking "does this scan path segment</span>
+            <span class="c1"># exit to a different block?". This is "answered" by whether the</span>
+            <span class="c1"># last atom in the scan path segment is a connection atom.</span>
+            <span class="c1"># The SPSs that are inter-block are going to be roots of SPs</span>
+            <span class="c1"># in the forward pass, and they are likely to not be roots</span>
+            <span class="c1"># of SPs in the backward pass as long as there are edges leaving</span>
+            <span class="c1"># from the connection atoms.</span>
+            <span class="n">kl_last_atom</span> <span class="o">=</span> <span class="n">gen_scan_path_segments</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">l</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">ij_scan_path_segment_is_inter_block</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">is_conn_atom</span><span class="p">[</span><span class="n">kl_last_atom</span><span class="p">]</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">n_conn</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>  <span class="c1"># is the last atom in the path a connection atom?</span>
+                <span class="n">k</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">l</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="p">)</span>  <span class="c1"># the first scan path segment is always inter-block</span>
+            <span class="n">conn_for_path</span> <span class="o">=</span> <span class="n">interres_conn_scan_path_segment_rooted_by_atom</span><span class="p">[</span><span class="n">l_first_at</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">conn_for_path</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">gen_of_scan_path_segment_building_interres_conn</span><span class="p">[</span><span class="n">conn_for_path</span><span class="p">]</span> <span class="o">=</span> <span class="n">k</span>
+                <span class="n">scan_path_segment_building_interres_conn</span><span class="p">[</span><span class="n">conn_for_path</span><span class="p">]</span> <span class="o">=</span> <span class="n">l</span>
+
+    <span class="n">ij_n_nodes_for_gen</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">gen_scan_path_segments</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ij_n_gens</span><span class="p">)</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">n_gens</span><span class="o">=</span><span class="n">ij_n_gens</span><span class="p">,</span>
+        <span class="n">n_nodes_for_gen</span><span class="o">=</span><span class="n">ij_n_nodes_for_gen</span><span class="p">,</span>
+        <span class="n">nodes_for_gen</span><span class="o">=</span><span class="n">gen_scan_path_segments</span><span class="p">,</span>
+        <span class="n">n_scan_path_segs</span><span class="o">=</span><span class="n">ij_n_scan_path_segments</span><span class="p">,</span>
+        <span class="n">gen_building_output_conn</span><span class="o">=</span><span class="n">gen_of_scan_path_segment_building_interres_conn</span><span class="p">,</span>
+        <span class="n">scan_path_seg_building_output_conn</span><span class="o">=</span><span class="n">scan_path_segment_building_interres_conn</span><span class="p">,</span>
+        <span class="n">scan_path_seg_starts</span><span class="o">=</span><span class="n">ij_scan_path_segment_starts</span><span class="p">,</span>
+        <span class="n">scan_path_seg_is_inter_block</span><span class="o">=</span><span class="n">ij_scan_path_segment_is_inter_block</span><span class="p">,</span>
+        <span class="n">scan_path_seg_lengths</span><span class="o">=</span><span class="n">ij_scan_path_segment_lengths</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mark_kin_uaids_controlling_torsions</span><span class="p">(</span>
+    <span class="n">uaid_for_torsion</span><span class="p">,</span> <span class="n">torsion_direction</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">iconn_at</span><span class="p">,</span> <span class="n">bt</span><span class="p">,</span> <span class="n">preds</span>
+<span class="p">):</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">n_torsions</span><span class="p">):</span>
+        <span class="n">at2</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">ordered_torsions</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">at3</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">ordered_torsions</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">at2</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">at3</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># okay, both atoms live on other residues</span>
+            <span class="c1"># thus, we have to make some guesses.</span>
+            <span class="c1"># At least atom1 has to be in this residue</span>
+            <span class="c1"># so if atom1 is the connection atom for</span>
+            <span class="c1"># the input connection i, then we will reason</span>
+            <span class="c1"># atom 3 must be the partent of atom 2</span>
+            <span class="c1"># on the other residue that we do not have</span>
+            <span class="c1"># access to; otherwise, we will conclude</span>
+            <span class="c1"># that we will leave this residue through</span>
+            <span class="c1"># atom 1 and arrive at atom 2 first and</span>
+            <span class="c1"># therefore atom 2 is the parent of atom 3</span>
+            <span class="c1">#</span>
+            <span class="c1"># case 1:</span>
+            <span class="c1"># atom3</span>
+            <span class="c1">#   |</span>
+            <span class="c1">#   v</span>
+            <span class="c1"># atom2 (torsion lives in phi_c of this atom)</span>
+            <span class="c1">#   |</span>
+            <span class="c1">#   v</span>
+            <span class="c1"># atom1 (input connection atom)</span>
+            <span class="c1">#</span>
+            <span class="c1"># case 2:</span>
+            <span class="c1"># atom1 (some-non-input-connection-connection atom)</span>
+            <span class="c1">#   |</span>
+            <span class="c1">#   v</span>
+            <span class="c1"># atom2 (the input connectio atom on the downstream residue)</span>
+            <span class="c1">#   |</span>
+            <span class="c1">#   v</span>
+            <span class="c1"># atom3 (torsion lives in phi_c of this atom)</span>
+
+            <span class="n">at1</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">ordered_torsions</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">at1</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">if</span> <span class="n">at1</span> <span class="o">==</span> <span class="n">iconn_at</span><span class="p">:</span>
+                <span class="c1"># case 1</span>
+                <span class="c1"># atom 3 is the parent of atom 2</span>
+                <span class="n">uaid_for_torsion</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">ordered_torsions</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">torsion_direction</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># case 2</span>
+                <span class="c1"># atom 2 is the parent of atom 3</span>
+                <span class="n">uaid_for_torsion</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">ordered_torsions</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">torsion_direction</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># at least one of atoms 2 and 3 are in this residue</span>
+            <span class="k">if</span> <span class="n">at2</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">at3</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># but one of them is not</span>
+                <span class="n">in_res_at</span> <span class="o">=</span> <span class="n">at2</span> <span class="k">if</span> <span class="n">at2</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="n">at3</span>
+                <span class="k">if</span> <span class="n">in_res_at</span> <span class="o">==</span> <span class="n">iconn_at</span><span class="p">:</span>
+                    <span class="c1"># then atom 3 is the parent of atom 2</span>
+                    <span class="c1"># and the torsion lives in phi_c of atom 2</span>
+                    <span class="n">uaid_for_torsion</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">ordered_torsions</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">torsion_direction</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># then atom 2 is the parent of atom 3</span>
+                    <span class="c1"># and the torsion lives in phi_c of atom 3</span>
+                    <span class="n">uaid_for_torsion</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">ordered_torsions</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+                    <span class="n">torsion_direction</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># easiest case! both atoms 2 and 3 are intra-residue</span>
+                <span class="c1"># torsion lives in phi_c of the child atom</span>
+                <span class="k">assert</span> <span class="n">preds</span><span class="p">[</span><span class="n">at2</span><span class="p">]</span> <span class="o">==</span> <span class="n">at3</span> <span class="ow">or</span> <span class="n">preds</span><span class="p">[</span><span class="n">at3</span><span class="p">]</span> <span class="o">==</span> <span class="n">at2</span>
+                <span class="n">at2_is_parent</span> <span class="o">=</span> <span class="n">preds</span><span class="p">[</span><span class="n">at3</span><span class="p">]</span> <span class="o">==</span> <span class="n">at2</span>
+                <span class="n">uaid_for_torsion</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">bt</span><span class="o">.</span><span class="n">ordered_torsions</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">at2_is_parent</span>
+                    <span class="k">else</span> <span class="n">bt</span><span class="o">.</span><span class="n">ordered_torsions</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">torsion_direction</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">at2_is_parent</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_gather_scan_path_data</span><span class="p">(</span><span class="n">scan_path_segment_data</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">bt_gen_seg_scan_path_segments</span><span class="p">):</span>
+    <span class="n">ij_n_gens</span> <span class="o">=</span> <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"n_gens"</span><span class="p">]</span>
+    <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">n_gens</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">ij_n_gens</span>
+    <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">scan_path_seg_that_builds_output_conn</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"gen_building_output_conn"</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">scan_path_seg_that_builds_output_conn</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"scan_path_seg_building_output_conn"</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ij_n_gens</span><span class="p">):</span>
+        <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">n_nodes_for_gen</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">scan_path_segment_data</span><span class="p">[</span>
+            <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+        <span class="p">][</span><span class="s2">"n_nodes_for_gen"</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
+        <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">n_scan_path_segs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"n_scan_path_segs"</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">scan_path_seg_is_real</span><span class="p">[</span>
+            <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="p">:</span> <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">n_scan_path_segs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">ijk_n_scan_path_segs</span> <span class="o">=</span> <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"n_scan_path_segs"</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
+        <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">scan_path_seg_starts</span><span class="p">[</span>
+            <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="p">:</span><span class="n">ijk_n_scan_path_segs</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"scan_path_seg_starts"</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
+        <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">scan_path_seg_is_inter_block</span><span class="p">[</span>
+            <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="p">:</span><span class="n">ijk_n_scan_path_segs</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"scan_path_seg_is_inter_block"</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
+        <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">scan_path_seg_lengths</span><span class="p">[</span>
+            <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="p">:</span><span class="n">ijk_n_scan_path_segs</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"scan_path_seg_lengths"</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ijk_n_scan_path_segs</span><span class="p">):</span>
+            <span class="n">m_offset</span> <span class="o">=</span> <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"scan_path_seg_starts"</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">l</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"nodes_for_gen"</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">l</span><span class="p">])):</span>
+                <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">nodes_for_gen</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">m_offset</span> <span class="o">+</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"nodes_for_gen"</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">l</span><span class="p">][</span><span class="n">m</span><span class="p">]</span>
+                <span class="p">)</span>
+
+
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ResidueKinforestData</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Per-block-type kinforest data rooted at the default jump connection</span>
+<span class="sd">    atom (e.g. CA for amino acids, O for water).</span>
+
+<span class="sd">    Produced by annotate_block_type_with_residue_kinforest_data and consumed</span>
+<span class="sd">    by construct_single_residue_kinforest to build the rotamer kinforest</span>
+<span class="sd">    without the deprecated _KinematicBuilder.</span>
+<span class="sd">    """</span>
+
+    <span class="n">jump_atom</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># root atom index in original (TO) atom order</span>
+    <span class="n">preds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>  <span class="c1"># BFS predecessors in TO; -9999 for root</span>
+    <span class="n">bfto_2_orig</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>  <span class="c1"># BFS traversal order → TO (= KFO ordering)</span>
+    <span class="n">dof_type</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>  <span class="c1"># NodeType per atom in TO</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">annotate_block_type_with_residue_kinforest_data</span><span class="p">(</span><span class="n">bt</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Annotate a block type with the single-residue kinforest spanning tree,</span>
+<span class="sd">    rooted at its default jump connection atom (CA for amino acids, O for water).</span>
+
+<span class="sd">    Caches:</span>
+<span class="sd">      bt.residue_kinforest_data  -- ResidueKinforestData (public, used by rotamer packing)</span>
+<span class="sd">      bt._bond_graph_mst         -- scipy MST (private, reused by</span>
+<span class="sd">                                    _annotate_block_type_with_gen_scan_path_segs)</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="s2">"residue_kinforest_data"</span><span class="p">):</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_bonds_to_csgraph</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">edge_weight</span><span class="p">):</span>
+        <span class="n">weights_array</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,),</span> <span class="n">edge_weight</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">weights_array</span><span class="p">,</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])),</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="n">potential_bonds</span> <span class="o">=</span> <span class="n">_bonds_to_csgraph</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">tor_atoms</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">uaids</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">uaids</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">tor</span><span class="p">,</span> <span class="n">uaids</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">uaids</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">uaids</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tor_atoms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">tor_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tor_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tor_atoms</span><span class="p">)</span>
+
+    <span class="n">prioritized_bonds</span> <span class="o">=</span> <span class="n">_bonds_to_csgraph</span><span class="p">(</span><span class="n">tor_atoms</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.125</span><span class="p">)</span>
+    <span class="n">bond_graph</span> <span class="o">=</span> <span class="n">potential_bonds</span> <span class="o">+</span> <span class="n">prioritized_bonds</span>
+    <span class="n">bond_graph_spanning_tree</span> <span class="o">=</span> <span class="n">csgraph</span><span class="o">.</span><span class="n">minimum_spanning_tree</span><span class="p">(</span><span class="n">bond_graph</span><span class="o">.</span><span class="n">tocsr</span><span class="p">())</span>
+
+    <span class="c1"># Cache MST so _annotate_block_type_with_gen_scan_path_segs can reuse it</span>
+    <span class="c1"># without recomputing the (identical) spanning tree.</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="s2">"_bond_graph_mst"</span><span class="p">,</span> <span class="n">bond_graph_spanning_tree</span><span class="p">)</span>
+
+    <span class="n">jump_atom</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">default_jump_connection_atom_index</span>
+    <span class="n">bfto_2_orig</span><span class="p">,</span> <span class="n">preds</span> <span class="o">=</span> <span class="n">csgraph</span><span class="o">.</span><span class="n">breadth_first_order</span><span class="p">(</span>
+        <span class="n">bond_graph_spanning_tree</span><span class="p">,</span>
+        <span class="n">jump_atom</span><span class="p">,</span>
+        <span class="n">directed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">return_predecessors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">dof_type</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,),</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">bond</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">dof_type</span><span class="p">[</span><span class="n">jump_atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">jump</span>
+
+    <span class="nb">setattr</span><span class="p">(</span>
+        <span class="n">bt</span><span class="p">,</span>
+        <span class="s2">"residue_kinforest_data"</span><span class="p">,</span>
+        <span class="n">ResidueKinforestData</span><span class="p">(</span>
+            <span class="n">jump_atom</span><span class="o">=</span><span class="n">jump_atom</span><span class="p">,</span>
+            <span class="n">preds</span><span class="o">=</span><span class="n">preds</span><span class="p">,</span>
+            <span class="n">bfto_2_orig</span><span class="o">=</span><span class="n">bfto_2_orig</span><span class="p">,</span>
+            <span class="n">dof_type</span><span class="o">=</span><span class="n">dof_type</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+
+
+<span class="c1"># TO DO: jit this!</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_block_type_with_gen_scan_path_segs</span><span class="p">(</span><span class="n">bt</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="s2">"gen_seg_scan_path_segs"</span><span class="p">):</span>
+        <span class="k">return</span>
+    <span class="n">n_conn</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">connections</span><span class="p">)</span>
+
+    <span class="n">n_input_types</span> <span class="o">=</span> <span class="n">n_conn</span> <span class="o">+</span> <span class="mi">2</span>  <span class="c1"># n_conn + jump input + root "input"</span>
+    <span class="n">n_output_types</span> <span class="o">=</span> <span class="n">n_conn</span> <span class="o">+</span> <span class="mi">2</span>  <span class="c1"># n_conn + jump output + no output at all</span>
+
+    <span class="c1"># Compute (and cache) the MST and jump-rooted BFS once, reused below for</span>
+    <span class="c1"># the i &gt;= n_conn input types and by construct_single_residue_kinforest.</span>
+    <span class="n">annotate_block_type_with_residue_kinforest_data</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
+    <span class="n">bond_graph_spanning_tree</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">_bond_graph_mst</span>
+
+    <span class="c1"># As we are iterating across atoms, we need to keep track of which atoms</span>
+    <span class="c1"># are bridges to other resiudes, so write down the reverse mapping from</span>
+    <span class="c1"># atom index to the inter-residue connection index</span>
+    <span class="n">is_conn_atom</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">conn_ind_for_atom</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_conn</span><span class="p">):</span>
+        <span class="n">is_conn_atom</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">ordered_connection_atoms</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">conn_ind_for_atom</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">ordered_connection_atoms</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">i</span>
+
+    <span class="n">scan_path_segment_data</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_input_types</span><span class="p">,</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">input_conn_atom</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_input_types</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">dof_type</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">n_input_types</span><span class="p">,</span>
+            <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">NodeType</span><span class="o">.</span><span class="n">bond</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">uaid_for_torsion</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_input_types</span><span class="p">,</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_torsions</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span>
+    <span class="p">)</span>
+    <span class="n">torsion_direction</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_input_types</span><span class="p">,</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_torsions</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_input_types</span><span class="p">):</span>
+
+        <span class="n">i_conn_atom</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">bt</span><span class="o">.</span><span class="n">ordered_connection_atoms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n_conn</span>
+            <span class="k">else</span> <span class="n">bt</span><span class="o">.</span><span class="n">default_jump_connection_atom_index</span>
+        <span class="p">)</span>
+        <span class="n">input_conn_atom</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">i_conn_atom</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n_conn</span><span class="p">:</span>
+            <span class="n">bfto_2_orig</span><span class="p">,</span> <span class="n">preds</span> <span class="o">=</span> <span class="n">csgraph</span><span class="o">.</span><span class="n">breadth_first_order</span><span class="p">(</span>
+                <span class="n">bond_graph_spanning_tree</span><span class="p">,</span>
+                <span class="n">i_conn_atom</span><span class="p">,</span>
+                <span class="n">directed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">return_predecessors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Both i == n_conn and i == n_conn+1 are rooted at</span>
+            <span class="c1"># default_jump_connection_atom_index; reuse the cached BFS result.</span>
+            <span class="n">bfto_2_orig</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">residue_kinforest_data</span><span class="o">.</span><span class="n">bfto_2_orig</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">residue_kinforest_data</span><span class="o">.</span><span class="n">preds</span>
+        <span class="n">parents</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">preds</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">n_conn</span><span class="p">:</span>
+            <span class="n">dof_type</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i_conn_atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">jump</span>
+
+        <span class="n">_mark_kin_uaids_controlling_torsions</span><span class="p">(</span>
+            <span class="n">uaid_for_torsion</span><span class="p">,</span> <span class="n">torsion_direction</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i_conn_atom</span><span class="p">,</span> <span class="n">bt</span><span class="p">,</span> <span class="n">preds</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Now, the parent of the i_conn_atom comes from the previous residue, so we will</span>
+        <span class="c1"># need to fix this atom when we are hooking the blocks together. For now, leave</span>
+        <span class="c1"># it as -9999 (which is what csgraph labels it as) so that we can tell if we have</span>
+        <span class="c1"># not corrected this parent index later on.</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_output_types</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">j</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n_conn</span><span class="p">:</span>
+                <span class="c1"># we cannot enter from one inter-residue connection point and then</span>
+                <span class="c1"># leave by that same inter-residue connection point unless we are</span>
+                <span class="c1"># building a jump</span>
+                <span class="k">continue</span>
+            <span class="n">_annotate_block_type_for_in_and_out_pair</span><span class="p">(</span>
+                <span class="n">i</span><span class="p">,</span>
+                <span class="n">i_conn_atom</span><span class="p">,</span>
+                <span class="n">j</span><span class="p">,</span>
+                <span class="n">bt</span><span class="p">,</span>
+                <span class="n">n_conn</span><span class="p">,</span>
+                <span class="n">preds</span><span class="p">,</span>
+                <span class="n">bfto_2_orig</span><span class="p">,</span>
+                <span class="n">is_conn_atom</span><span class="p">,</span>
+                <span class="n">scan_path_segment_data</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># end for j</span>
+    <span class="c1"># end for i</span>
+
+    <span class="c1"># Now let's count out the maximum number of generations, scans, and nodes-per-gen</span>
+    <span class="c1"># so we can create the BTGenerationalSegScanPaths object</span>
+    <span class="n">max_n_gens</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"n_gens"</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_input_types</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_output_types</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="ow">in</span> <span class="n">scan_path_segment_data</span>
+    <span class="p">)</span>
+    <span class="n">max_n_scan_path_segments</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="nb">max</span><span class="p">(</span>
+            <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"n_scan_path_segs"</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"n_gens"</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_input_types</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_output_types</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="ow">in</span> <span class="n">scan_path_segment_data</span>
+    <span class="p">)</span>
+    <span class="n">max_n_nodes_per_gen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="nb">max</span><span class="p">(</span>
+            <span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"n_nodes_for_gen"</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">scan_path_segment_data</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)][</span><span class="s2">"n_gens"</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_input_types</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_output_types</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="ow">in</span> <span class="n">scan_path_segment_data</span>
+    <span class="p">)</span>
+    <span class="n">bt_gen_seg_scan_path_segments</span> <span class="o">=</span> <span class="n">BTGenerationalSegScanPathSegs</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+        <span class="n">n_input_types</span><span class="p">,</span>
+        <span class="n">n_output_types</span><span class="p">,</span>
+        <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
+        <span class="n">n_conn</span><span class="p">,</span>
+        <span class="n">max_n_gens</span><span class="p">,</span>
+        <span class="n">max_n_scan_path_segments</span><span class="p">,</span>
+        <span class="n">max_n_nodes_per_gen</span><span class="p">,</span>
+        <span class="n">bt</span><span class="o">.</span><span class="n">n_torsions</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">jump_atom</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">default_jump_connection_atom_index</span>
+    <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">parents</span> <span class="o">=</span> <span class="n">parents</span>
+    <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">dof_type</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">dof_type</span>
+    <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">input_conn_atom</span> <span class="o">=</span> <span class="n">input_conn_atom</span>
+    <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">uaid_for_torsion_by_inconn</span> <span class="o">=</span> <span class="n">uaid_for_torsion</span>
+    <span class="n">bt_gen_seg_scan_path_segments</span><span class="o">.</span><span class="n">torsion_direction</span> <span class="o">=</span> <span class="n">torsion_direction</span>
+    <span class="c1"># Finally, we populate the BTGenerationalSegScanPathSegs object</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_input_types</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_output_types</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">scan_path_segment_data</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">_gather_scan_path_data</span><span class="p">(</span>
+                <span class="n">scan_path_segment_data</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">bt_gen_seg_scan_path_segments</span>
+            <span class="p">)</span>
+
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="s2">"gen_seg_scan_path_segs"</span><span class="p">,</span> <span class="n">bt_gen_seg_scan_path_segments</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_packed_block_type_with_gen_scan_path_segs</span><span class="p">(</span><span class="n">pbt</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"gen_seg_scan_path_segs"</span><span class="p">):</span>
+        <span class="k">return</span>
+
+    <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
+        <span class="n">_annotate_block_type_with_gen_scan_path_segs</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
+    <span class="n">max_n_input_types</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">bt</span><span class="o">.</span><span class="n">gen_seg_scan_path_segs</span><span class="o">.</span><span class="n">n_gens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="p">)</span>
+    <span class="n">max_n_output_types</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">bt</span><span class="o">.</span><span class="n">gen_seg_scan_path_segs</span><span class="o">.</span><span class="n">n_gens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="p">)</span>
+    <span class="c1"># max_n_atoms : pbt already provides this!</span>
+    <span class="c1"># max_n_conn : pbt already provides this!</span>
+    <span class="n">max_n_gens</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">bt</span><span class="o">.</span><span class="n">gen_seg_scan_path_segs</span><span class="o">.</span><span class="n">n_nodes_for_gen</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="p">)</span>
+    <span class="n">max_n_scan_path_segs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">bt</span><span class="o">.</span><span class="n">gen_seg_scan_path_segs</span><span class="o">.</span><span class="n">scan_path_seg_starts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="p">)</span>
+    <span class="n">max_n_nodes_per_gen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">bt</span><span class="o">.</span><span class="n">gen_seg_scan_path_segs</span><span class="o">.</span><span class="n">nodes_for_gen</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="p">)</span>
+
+    <span class="n">gen_seg_scan_path_segs</span> <span class="o">=</span> <span class="n">PBTGenerationalSegScanPathSegs</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span>
+        <span class="n">max_n_input_types</span><span class="p">,</span>
+        <span class="n">max_n_output_types</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_conn</span><span class="p">,</span>
+        <span class="n">max_n_gens</span><span class="p">,</span>
+        <span class="n">max_n_scan_path_segs</span><span class="p">,</span>
+        <span class="n">max_n_nodes_per_gen</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_torsions</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">gen_seg_scan_path_segs</span><span class="o">.</span><span class="n">jump_atom</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">gen_seg_scan_path_segs</span><span class="o">.</span><span class="n">jump_atom</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">varnames</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">"parents"</span><span class="p">,</span>
+        <span class="s2">"dof_type"</span><span class="p">,</span>
+        <span class="s2">"input_conn_atom"</span><span class="p">,</span>
+        <span class="s2">"n_gens"</span><span class="p">,</span>
+        <span class="s2">"n_nodes_for_gen"</span><span class="p">,</span>
+        <span class="s2">"nodes_for_gen"</span><span class="p">,</span>
+        <span class="s2">"n_scan_path_segs"</span><span class="p">,</span>
+        <span class="s2">"scan_path_seg_starts"</span><span class="p">,</span>
+        <span class="s2">"scan_path_seg_is_real"</span><span class="p">,</span>
+        <span class="s2">"scan_path_seg_is_inter_block"</span><span class="p">,</span>
+        <span class="s2">"scan_path_seg_lengths"</span><span class="p">,</span>
+        <span class="s2">"uaid_for_torsion_by_inconn"</span><span class="p">,</span>
+        <span class="s2">"torsion_direction"</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+        <span class="n">bt_gssps</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">gen_seg_scan_path_segs</span>
+        <span class="c1"># this data member doesn't fit the same mold as the others</span>
+        <span class="n">shape_sptboc</span> <span class="o">=</span> <span class="n">bt_gssps</span><span class="o">.</span><span class="n">scan_path_seg_that_builds_output_conn</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">gen_seg_scan_path_segs</span><span class="o">.</span><span class="n">scan_path_seg_that_builds_output_conn</span><span class="p">[</span>
+            <span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">shape_sptboc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:</span> <span class="n">shape_sptboc</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">:</span> <span class="n">shape_sptboc</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="p">:</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">bt_gssps</span><span class="o">.</span><span class="n">scan_path_seg_that_builds_output_conn</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">vname</span> <span class="ow">in</span> <span class="n">varnames</span><span class="p">:</span>
+            <span class="n">dst</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">gen_seg_scan_path_segs</span><span class="p">,</span> <span class="n">vname</span><span class="p">)</span>
+            <span class="n">src</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">bt_gssps</span><span class="p">,</span> <span class="n">vname</span><span class="p">)</span>
+            <span class="n">src</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="n">src</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span> <span class="k">if</span> <span class="n">src</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">numpy</span><span class="o">.</span><span class="n">int64</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">dst</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">src</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">dst</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">src</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">dst</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span> <span class="o">=</span> <span class="n">src</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">dst</span><span class="p">[</span>
+                    <span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">src</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"unhandled shape"</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"gen_seg_scan_path_segs"</span><span class="p">,</span> <span class="n">gen_seg_scan_path_segs</span><span class="p">)</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

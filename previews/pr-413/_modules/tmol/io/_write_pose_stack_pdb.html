@@ -1,0 +1,821 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.io._write_pose_stack_pdb &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c9b21c7c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/io/_write_pose_stack_pdb';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-413';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.47" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../io.html" class="nav-link">tmol.io</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._write_pose_stack_pdb</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.io._write_pose_stack_pdb</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_record_dtype</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">PackedBlockTypes</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NDArray</span><span class="p">,</span>
+    <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">validate_args</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+
+<div class="viewcode-block" id="write_pose_stack_pdb">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.write_pose_stack_pdb">[docs]</a>
+<span class="nd">@validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_pose_stack_pdb</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">fname_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">merge_fragments</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Write a PDB-formatted file to disk given an input PoseStack.</span>
+<span class="sd">    Optionally, additional arguments may be passed to the inner function</span>
+<span class="sd">    "atom_records_from_pose_stack." Fragmented ligands use their original</span>
+<span class="sd">    residue identity by default; pass ``merge_fragments=False`` to keep</span>
+<span class="sd">    fragment residues separate.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">to_pdb</span>
+
+    <span class="n">atom_records</span> <span class="o">=</span> <span class="n">atom_records_from_pose_stack</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="p">,</span> <span class="n">merge_fragments</span><span class="o">=</span><span class="n">merge_fragments</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span>
+    <span class="n">pdbstring</span> <span class="o">=</span> <span class="n">to_pdb</span><span class="p">(</span><span class="n">atom_records</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname_out</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+        <span class="n">fid</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pdbstring</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="atom_records_from_pose_stack">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.atom_records_from_pose_stack">[docs]</a>
+<span class="nd">@validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">atom_records_from_pose_stack</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">merge_fragments</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">atom_record_dtype</span><span class="p">][:]:</span>
+<span class="w">    </span><span class="sd">"""Create a numpy array holding the atom records needed to write a</span>
+<span class="sd">    PDB file from a PoseStack.</span>
+
+<span class="sd">    Fragmented ligands use their original residue identity by default. Pass</span>
+<span class="sd">    ``merge_fragments=False`` to retain the separate fragment residue numbers.</span>
+<span class="sd">    """</span>
+
+    <span class="n">records</span> <span class="o">=</span> <span class="n">atom_records_from_coords</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">chain_id64</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_insertion_codes</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">atom_occupancy</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">atom_b_factor</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">sbm</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="s2">"split_block_mapping"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">merge_fragments</span> <span class="ow">and</span> <span class="n">sbm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">sbm</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
+        <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">sbm</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
+            <span class="n">pose_res_label</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">pose_ind</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">block_ind</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">orig_name</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">orig_block_type_ind</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">fragment_atoms</span> <span class="o">=</span> <span class="p">(</span><span class="n">records</span><span class="p">[</span><span class="s2">"modeli"</span><span class="p">]</span> <span class="o">==</span> <span class="n">entry</span><span class="o">.</span><span class="n">pose_ind</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span>
+                <span class="n">records</span><span class="p">[</span><span class="s2">"resi"</span><span class="p">]</span> <span class="o">==</span> <span class="n">pose_res_label</span>
+            <span class="p">)</span>
+            <span class="n">records</span><span class="p">[</span><span class="s2">"resn"</span><span class="p">][</span><span class="n">fragment_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">orig_name</span>
+            <span class="n">records</span><span class="p">[</span><span class="s2">"resi"</span><span class="p">][</span><span class="n">fragment_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">orig_residue_label</span>
+            <span class="n">records</span><span class="p">[</span><span class="s2">"chain"</span><span class="p">][</span><span class="n">fragment_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">orig_chain_label</span>
+            <span class="n">records</span><span class="p">[</span><span class="s2">"insert"</span><span class="p">][</span><span class="n">fragment_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">orig_ins_code</span>
+    <span class="k">return</span> <span class="n">records</span></div>
+
+
+
+<div class="viewcode-block" id="atom_records_from_coords">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.atom_records_from_coords">[docs]</a>
+<span class="nd">@validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">atom_records_from_coords</span><span class="p">(</span>
+    <span class="n">pbt</span><span class="p">:</span> <span class="s2">"PackedBlockTypes"</span><span class="p">,</span>
+    <span class="n">chain_ind_for_block</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
+    <span class="n">block_types64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
+    <span class="n">pose_like_coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">],</span>
+    <span class="n">block_coord_offset</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
+    <span class="n">residue_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="nb">int</span><span class="p">][:,</span> <span class="p">:]],</span>
+    <span class="n">residue_insertion_codes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="nb">object</span><span class="p">][:,</span> <span class="p">:]],</span>
+    <span class="n">chain_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="nb">object</span><span class="p">][:,</span> <span class="p">:]],</span>
+    <span class="n">atom_occupancy</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:],</span>
+    <span class="n">atom_b_factor</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">atom_record_dtype</span><span class="p">][:]:</span>
+<span class="w">    </span><span class="sd">"""Create a numpy array holding the atom records needed to write a</span>
+<span class="sd">    PDB file from the coordinates and block types of a stack of structures,</span>
+<span class="sd">    laid out in pose-stack form.</span>
+<span class="sd">    """</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_record_dtype</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span>
+
+    <span class="k">assert</span> <span class="n">pose_like_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">chain_ind_for_block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">pose_like_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">block_types64</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">pose_like_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">block_coord_offset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">assert</span> <span class="n">block_types64</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">block_coord_offset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">block_types64</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">chain_ind_for_block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">n_poses</span> <span class="o">=</span> <span class="n">block_coord_offset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">block_coord_offset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">max_n_pose_atoms</span> <span class="o">=</span> <span class="n">pose_like_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">is_real_block</span> <span class="o">=</span> <span class="n">block_types64</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">real_block_pose</span><span class="p">,</span> <span class="n">real_block_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">is_real_block</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">n_block_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">n_block_atoms</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">block_types64</span><span class="p">[</span><span class="n">is_real_block</span><span class="p">]]</span>
+    <span class="n">block_coord_offset64</span> <span class="o">=</span> <span class="n">block_coord_offset</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">block_for_pose_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_pose_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">block_for_pose_atom</span><span class="p">[</span>
+        <span class="n">real_block_pose</span><span class="p">,</span> <span class="n">block_coord_offset64</span><span class="p">[</span><span class="n">real_block_pose</span><span class="p">,</span> <span class="n">real_block_block</span><span class="p">]</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">block_for_pose_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">block_for_pose_atom</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">pose_for_pose_atom</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">max_n_pose_atoms</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_pose_atoms</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">n_pose_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">n_block_atoms</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">n_atoms_total</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">n_pose_atoms</span><span class="p">)</span>
+
+    <span class="c1"># so we can index just the atoms out of coords tensor, e.g.</span>
+    <span class="c1"># we need to know which atoms are real and which are padding</span>
+    <span class="n">atom_is_real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_pose_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="p">)</span> <span class="o">&lt;</span> <span class="n">n_pose_atoms</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">pose_for_real_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+        <span class="n">n_poses</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">n_pose_atoms</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">block_for_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_pose_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">block_for_atom</span><span class="p">[</span>
+        <span class="n">real_block_pose</span><span class="p">,</span> <span class="n">block_coord_offset64</span><span class="p">[</span><span class="n">real_block_pose</span><span class="p">,</span> <span class="n">real_block_block</span><span class="p">]</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">block_for_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">block_for_atom</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">block_for_real_atom</span> <span class="o">=</span> <span class="n">block_for_atom</span><span class="p">[</span><span class="n">atom_is_real</span><span class="p">]</span>
+
+    <span class="n">block_local_atom_index_for_pose_atom</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_pose_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="o">-</span> <span class="n">block_coord_offset</span><span class="p">[</span><span class="n">pose_for_pose_atom</span><span class="p">,</span> <span class="n">block_for_pose_atom</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">block_local_atom_index_for_real_atom</span> <span class="o">=</span> <span class="n">block_local_atom_index_for_pose_atom</span><span class="p">[</span>
+        <span class="n">atom_is_real</span>
+    <span class="p">]</span>
+
+    <span class="c1"># BEGIN BLOCK OF CODE FOR CREATING FROM-1 RESIDUE INDICES FROM CHAIN INDICES</span>
+    <span class="n">max_n_chains</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">chain_ind_for_block</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">global_chain_ind_for_block</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">chain_ind_for_block</span>
+        <span class="o">+</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="o">*</span> <span class="n">max_n_chains</span>
+        <span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">n_blocks_per_global_chain</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span> <span class="o">*</span> <span class="n">max_n_chains</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+
+    <span class="n">is_not_real_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">is_real_block</span><span class="p">)</span>
+    <span class="n">global_chain_ind_for_block</span><span class="p">[</span><span class="n">is_not_real_block</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="mi">0</span>  <span class="c1"># avoid index add to invalid locations</span>
+    <span class="p">)</span>
+    <span class="n">n_blocks_per_global_chain</span><span class="o">.</span><span class="n">index_add_</span><span class="p">(</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="n">global_chain_ind_for_block</span><span class="p">,</span>
+        <span class="n">is_real_block</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">n_blocks_per_chain</span> <span class="o">=</span> <span class="n">n_blocks_per_global_chain</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_chains</span><span class="p">)</span>
+
+    <span class="n">block_offset_for_chain</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_chains</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">block_offset_for_chain</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">n_blocks_per_chain</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># END BLOCK OF CODE FOR CREATING FROM-1 RESIDUE INDICES FROM CHAIN INDICES</span>
+
+    <span class="n">block_chain_local_index_for_real_atom</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">block_for_atom</span>
+        <span class="o">-</span> <span class="n">block_offset_for_chain</span><span class="p">[</span>
+            <span class="n">pose_for_pose_atom</span><span class="p">,</span> <span class="n">chain_ind_for_block</span><span class="p">[</span><span class="n">pose_for_pose_atom</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">]</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">pose_atom_offsets</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">n_pose_atoms</span><span class="p">)</span>
+
+    <span class="c1"># ok, let's move everything to the cpu/numpy from here forward</span>
+    <span class="c1"># chain_begin = chain_begin.cpu().numpy()</span>
+    <span class="n">block_types64</span> <span class="o">=</span> <span class="n">block_types64</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">pose_like_coords</span> <span class="o">=</span> <span class="n">pose_like_coords</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">block_coord_offset</span> <span class="o">=</span> <span class="n">block_coord_offset</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">is_real_block</span> <span class="o">=</span> <span class="n">is_real_block</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">n_block_atoms</span> <span class="o">=</span> <span class="n">n_block_atoms</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">n_pose_atoms</span> <span class="o">=</span> <span class="n">n_pose_atoms</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">pose_for_real_atom</span> <span class="o">=</span> <span class="n">pose_for_real_atom</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">atom_is_real</span> <span class="o">=</span> <span class="n">atom_is_real</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">block_for_atom</span> <span class="o">=</span> <span class="n">block_for_atom</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">block_for_real_atom</span> <span class="o">=</span> <span class="n">block_for_real_atom</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">block_chain_local_index_for_real_atom</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">block_chain_local_index_for_real_atom</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">block_local_atom_index_for_real_atom</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">block_local_atom_index_for_real_atom</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">pose_atom_offsets</span> <span class="o">=</span> <span class="n">pose_atom_offsets</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">chain_ind_for_block</span> <span class="o">=</span> <span class="n">chain_ind_for_block</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="n">chain_ind_for_real_atom</span> <span class="o">=</span> <span class="n">chain_ind_for_block</span><span class="p">[</span>
+        <span class="n">pose_for_real_atom</span><span class="p">,</span> <span class="n">block_for_real_atom</span>
+    <span class="p">]</span>
+
+    <span class="n">results</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_atoms_total</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">atom_record_dtype</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"record_name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_atoms_total</span><span class="p">,),</span> <span class="s2">"ATOM  "</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"modeli"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pose_for_real_atom</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"chaini"</span><span class="p">]</span> <span class="o">=</span> <span class="n">chain_ind_for_real_atom</span>
+    <span class="k">if</span> <span class="n">residue_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">results</span><span class="p">[</span><span class="s2">"resi"</span><span class="p">]</span> <span class="o">=</span> <span class="n">residue_labels</span><span class="p">[</span><span class="n">pose_for_real_atom</span><span class="p">,</span> <span class="n">block_for_real_atom</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">results</span><span class="p">[</span><span class="s2">"resi"</span><span class="p">]</span> <span class="o">=</span> <span class="n">block_chain_local_index_for_real_atom</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="n">results</span><span class="p">[</span><span class="s2">"atomi"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_atoms_total</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="o">+</span> <span class="mi">1</span>
+        <span class="o">-</span> <span class="n">pose_atom_offsets</span><span class="p">[</span><span class="n">pose_for_real_atom</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"model"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pose_for_real_atom</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">chain_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># create default chain labels as A, B, ..., Z, AA, AB, ... ZZ; max 702 chains.</span>
+        <span class="k">assert</span> <span class="n">max_n_chains</span> <span class="o">&lt;=</span> <span class="mi">26</span> <span class="o">*</span> <span class="mi">27</span>
+        <span class="n">chain_labels</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span>
+                    <span class="nb">chr</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="nb">ord</span><span class="p">(</span><span class="s2">"A"</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">26</span>
+                    <span class="k">else</span> <span class="nb">chr</span><span class="p">((</span><span class="n">i</span> <span class="o">//</span> <span class="mi">26</span><span class="p">)</span> <span class="o">+</span> <span class="nb">ord</span><span class="p">(</span><span class="s2">"A"</span><span class="p">))</span> <span class="o">+</span> <span class="nb">chr</span><span class="p">((</span><span class="n">i</span> <span class="o">%</span> <span class="mi">26</span><span class="p">)</span> <span class="o">+</span> <span class="nb">ord</span><span class="p">(</span><span class="s2">"A"</span><span class="p">))</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_n_chains</span><span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"chain"</span><span class="p">]</span> <span class="o">=</span> <span class="n">chain_labels</span><span class="p">[</span><span class="n">pose_for_real_atom</span><span class="p">,</span> <span class="n">block_for_real_atom</span><span class="p">]</span>
+
+    <span class="c1"># create lookup for atom names</span>
+    <span class="n">bt_names</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bt</span><span class="o">.</span><span class="n">name3</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">])</span>
+    <span class="n">bt_atom_names</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">at</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">):</span>
+            <span class="n">bt_atom_names</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="n">bt_for_real_atom</span> <span class="o">=</span> <span class="n">block_types64</span><span class="p">[</span><span class="n">pose_for_real_atom</span><span class="p">,</span> <span class="n">block_for_real_atom</span><span class="p">]</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"resn"</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt_names</span><span class="p">[</span><span class="n">bt_for_real_atom</span><span class="p">]</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"atomn"</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt_atom_names</span><span class="p">[</span>
+        <span class="n">bt_for_real_atom</span><span class="p">,</span> <span class="n">block_local_atom_index_for_real_atom</span>
+    <span class="p">]</span>
+    <span class="n">real_atom_coords</span> <span class="o">=</span> <span class="n">pose_like_coords</span><span class="p">[</span><span class="n">atom_is_real</span><span class="p">]</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]</span> <span class="o">=</span> <span class="n">real_atom_coords</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"y"</span><span class="p">]</span> <span class="o">=</span> <span class="n">real_atom_coords</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span> <span class="o">=</span> <span class="n">real_atom_coords</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"insert"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">residue_insertion_codes</span><span class="p">[</span><span class="n">pose_for_real_atom</span><span class="p">,</span> <span class="n">block_for_real_atom</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">residue_insertion_codes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="s2">" "</span>
+    <span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"occupancy"</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_occupancy</span><span class="p">[</span><span class="n">atom_is_real</span><span class="p">]</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">"b"</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_b_factor</span><span class="p">[</span><span class="n">atom_is_real</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">results</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

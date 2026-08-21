@@ -485,6 +485,74 @@
                   
   <section id="module-tmol.numeric">
 <span id="numerical-utilities"></span><h1>Numerical Utilities<a class="headerlink" href="#module-tmol.numeric" title="Link to this heading">#</a></h1>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.numeric.Angles">
+<span class="sig-prename descclassname"><span class="pre">tmol.numeric.</span></span><span class="sig-name descname"><span class="pre">Angles</span></span><a class="headerlink" href="#tmol.numeric.Angles" title="Link to this definition">#</a></dt>
+<dd><p>alias of <a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.numeric.BSplineInterpolation">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.numeric.</span></span><span class="sig-name descname"><span class="pre">BSplineInterpolation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coeffs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_interp_dims</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/numeric/_bspline.html#BSplineInterpolation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.numeric.BSplineInterpolation" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class for performing bspline interpolation with periodic boundary conditions.</p>
+<p>Construct an instance of this class using the <code class="docutils literal notranslate"><span class="pre">from_coordinates</span></code> function, handing
+it a (possibly stacked) table of coordinates that should be interpolated by the
+splines, the degree of the spline that should be constructed, and (optionally)
+the number of dimensions in the coordinates tensor that are “indexing dimensions”
+and not interpolation dimensions. The indexing dimensions should appear as the
+most significant dimensions and the interpolating dimensions should appear as the
+least significant dimensions.</p>
+<p>Once constructed, the <code class="docutils literal notranslate"><span class="pre">interpolate</span></code> method can be given a tensor of coordinates
+<code class="docutils literal notranslate"><span class="pre">X</span></code> (and if the original coordinate tensor had indexing dimensions, a tensor of
+indices <code class="docutils literal notranslate"><span class="pre">Y</span></code>) to produce a tensor of interpolated values.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.numeric.BSplineInterpolation.coeffs">
+<span class="sig-name descname"><span class="pre">coeffs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></em><a class="headerlink" href="#tmol.numeric.BSplineInterpolation.coeffs" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.numeric.BSplineInterpolation.n_interp_dims">
+<span class="sig-name descname"><span class="pre">n_interp_dims</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#tmol.numeric.BSplineInterpolation.n_interp_dims" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.numeric.BSplineInterpolation.from_coordinates">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_coordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/numeric/_bspline.html#BSplineInterpolation.from_coordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.numeric.BSplineInterpolation.from_coordinates" title="Link to this definition">#</a></dt>
+<dd><p>Construct a BSplineInterpolation instance from  the input coordinates
+(i.e. the data to be interpolated)</p>
+<p>This code handles splines of 2-4 dimensions</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.numeric.BSplineInterpolation.interpolate">
+<span class="sig-name descname"><span class="pre">interpolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/tmol/numeric/_bspline.html#BSplineInterpolation.interpolate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.numeric.BSplineInterpolation.interpolate" title="Link to this definition">#</a></dt>
+<dd><p>B-spline interpolation function</p>
+<p>X should be a two dimensional tensor of size [ n_points, n_dims ]
+the result will be a one dimensional tensor of size [ n_points ].</p>
+<p>n_points represents the number of points in the n-dimensional space that is
+being interpolated (n-dimensional == n_interp_dims-dimensional). The
+result returned by this is the interpolated value for each of the input points.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.numeric.Coord64Array">
+<span class="sig-prename descclassname"><span class="pre">tmol.numeric.</span></span><span class="sig-name descname"><span class="pre">Coord64Array</span></span><a class="headerlink" href="#tmol.numeric.Coord64Array" title="Link to this definition">#</a></dt>
+<dd><p>alias of <a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.numeric.coord_dihedrals">
+<span class="sig-prename descclassname"><span class="pre">tmol.numeric.</span></span><span class="sig-name descname"><span class="pre">coord_dihedrals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a><span class="p"><span class="pre">(</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a><span class="p"><span class="pre">(</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a><span class="p"><span class="pre">(</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a><span class="p"><span class="pre">(</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types._torch.Tensor"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/tmol/numeric/_dihedrals.html#coord_dihedrals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.numeric.coord_dihedrals" title="Link to this definition">#</a></dt>
+<dd><p>Dihedral angle in [-pi, pi] over the planes defined by {a, b, c} &amp; {b, c, d}.</p>
+<p>Calculate dihedral angle from four coordinate locations, using the
+“standard” torsion angle definition of two planes defined by the points
+{a, b, c} and {b, c, d}. For a four-atom bond definition, this corrosponds
+to rotation about the b-c bond.</p>
+</dd></dl>
+
 </section>
 
 
@@ -525,6 +593,27 @@
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.numeric.Angles"><code class="docutils literal notranslate"><span class="pre">Angles</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.numeric.BSplineInterpolation"><code class="docutils literal notranslate"><span class="pre">BSplineInterpolation</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.numeric.BSplineInterpolation.coeffs"><code class="docutils literal notranslate"><span class="pre">BSplineInterpolation.coeffs</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.numeric.BSplineInterpolation.n_interp_dims"><code class="docutils literal notranslate"><span class="pre">BSplineInterpolation.n_interp_dims</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.numeric.BSplineInterpolation.from_coordinates"><code class="docutils literal notranslate"><span class="pre">BSplineInterpolation.from_coordinates()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.numeric.BSplineInterpolation.interpolate"><code class="docutils literal notranslate"><span class="pre">BSplineInterpolation.interpolate()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.numeric.Coord64Array"><code class="docutils literal notranslate"><span class="pre">Coord64Array</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.numeric.coord_dihedrals"><code class="docutils literal notranslate"><span class="pre">coord_dihedrals()</span></code></a></li>
+</ul>
+  </nav></div>
 
   <div class="sidebar-secondary-item">
 

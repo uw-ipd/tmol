@@ -53,6 +53,8 @@
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../_static/togglebutton.js?v=b8b12719"></script>
     <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/analysis';</script>
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
@@ -489,6 +491,199 @@
 <a class="reference internal" href="#module-tmol.ops" title="tmol.ops"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.ops</span></code></a>. Fragment-aware accounting that depends on score-layer metadata
 is exposed from <a class="reference internal" href="score.html#module-tmol.score" title="tmol.score"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.score</span></code></a>.</p>
 <dl class="py function" id="module-tmol.ops">
+<dt class="sig sig-object py" id="tmol.ops.build_coord_mask_for_mask_and_interacting_atoms">
+<span class="sig-prename descclassname"><span class="pre">tmol.ops.</span></span><span class="sig-name descname"><span class="pre">build_coord_mask_for_mask_and_interacting_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/ops/_score_utils.html#build_coord_mask_for_mask_and_interacting_atoms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ops.build_coord_mask_for_mask_and_interacting_atoms" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.ops.build_coord_mask_for_mask_and_nearby_blocks">
+<span class="sig-prename descclassname"><span class="pre">tmol.ops.</span></span><span class="sig-name descname"><span class="pre">build_coord_mask_for_mask_and_nearby_blocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/ops/_score_utils.html#build_coord_mask_for_mask_and_nearby_blocks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ops.build_coord_mask_for_mask_and_nearby_blocks" title="Link to this definition">#</a></dt>
+<dd><p>Build a coord mask starting from a per-block mask, extending to
+sidechain atoms of blocks whose centroid is within dynamic range of
+any masked block centroid.</p>
+<p>All atoms from blocks in <code class="docutils literal notranslate"><span class="pre">mask</span></code> are unconditionally included.
+Additionally, sidechain atoms from any <em>unmasked</em> block are included
+if the distance between its centroid and the centroid of <strong>any</strong> masked
+block is <strong>less than the sum of their respective furthest-atom-from-centroid
+distances</strong>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose_stack</strong> – The pose stack. Must have attributes <code class="docutils literal notranslate"><span class="pre">coords</span></code>,
+<code class="docutils literal notranslate"><span class="pre">max_n_blocks</span></code>, <code class="docutils literal notranslate"><span class="pre">max_n_block_atoms</span></code>, <code class="docutils literal notranslate"><span class="pre">block_coord_offset64</span></code>,
+<code class="docutils literal notranslate"><span class="pre">real_atoms</span></code>, <code class="docutils literal notranslate"><span class="pre">block_type_ind64</span></code>, <code class="docutils literal notranslate"><span class="pre">block_type_ind</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">packed_block_types</span></code>.</p></li>
+<li><p><strong>mask</strong> – Boolean tensor of shape <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_blocks]</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Boolean tensor of shape <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">max_n_atoms]</span></code> suitable for
+use as a <code class="docutils literal notranslate"><span class="pre">coord_mask</span></code> argument to <code class="docutils literal notranslate"><span class="pre">run_cart_min</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.ops.build_sidechain_coord_mask">
+<span class="sig-prename descclassname"><span class="pre">tmol.ops.</span></span><span class="sig-name descname"><span class="pre">build_sidechain_coord_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/ops/_score_utils.html#build_sidechain_coord_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ops.build_sidechain_coord_mask" title="Link to this definition">#</a></dt>
+<dd><p>Build a coord_mask that selects only atoms belonging to sidechains.</p>
+<p>For polymeric residues, sidechain atoms are defined as real atoms that are
+NOT mainchain atoms. For non-polymeric residues, all real atoms are
+considered sidechain atoms. The output mask can be used as a <code class="docutils literal notranslate"><span class="pre">coord_mask</span></code>
+argument to functions like <code class="docutils literal notranslate"><span class="pre">run_cart_min</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pose_stack</strong> – The pose stack. Must have attributes <code class="docutils literal notranslate"><span class="pre">coords</span></code>,
+<code class="docutils literal notranslate"><span class="pre">max_n_blocks</span></code>, <code class="docutils literal notranslate"><span class="pre">max_n_block_atoms</span></code>, <code class="docutils literal notranslate"><span class="pre">block_coord_offset64</span></code>,
+<code class="docutils literal notranslate"><span class="pre">real_atoms</span></code>, <code class="docutils literal notranslate"><span class="pre">block_type_ind64</span></code>, and <code class="docutils literal notranslate"><span class="pre">packed_block_types</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Boolean tensor of shape <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">max_n_atoms_per_pose]</span></code>, where
+<code class="docutils literal notranslate"><span class="pre">max_n_atoms_per_pose</span> <span class="pre">=</span> <span class="pre">pose_stack.coords.shape[1]</span></code>. True at
+<code class="docutils literal notranslate"><span class="pre">coord_mask[i,</span> <span class="pre">j]</span></code> indicates that atom <code class="docutils literal notranslate"><span class="pre">j</span></code> of pose <code class="docutils literal notranslate"><span class="pre">i</span></code> is a
+sidechain atom.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.ops.calculate_block_pair_ddg">
+<span class="sig-prename descclassname"><span class="pre">tmol.ops.</span></span><span class="sig-name descname"><span class="pre">calculate_block_pair_ddg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum_terms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pack</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">database</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_pose_stack</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/ops/_score_utils.html#calculate_block_pair_ddg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ops.calculate_block_pair_ddg" title="Link to this definition">#</a></dt>
+<dd><p>Calculate DDG score between two subsets of blocks within each pose, defined by 2 masks.
+If only one mask is provided, it will use the inverse of the first mask for the second.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose_stack</strong> – The pose stack to score</p></li>
+<li><p><strong>mask</strong> – Boolean tensor of shape [n_poses, n_blocks]. True values indicate masked indices.</p></li>
+<li><p><strong>mask2</strong> – Boolean tensor of shape [n_poses, n_blocks]. If not provided, it will use the inverse
+of the first mask as the second mask.</p></li>
+<li><p><strong>sfxn</strong> – Optional score function to use. If not provided, will default to beta2016</p></li>
+<li><p><strong>sum_terms</strong> – If True, sum all score terms into a single score per pose. If False,
+return per-term scores.</p></li>
+<li><p><strong>minimize</strong> – If True (default), run cartesian minimization on the masked atoms before
+computing the DDG score.</p></li>
+<li><p><strong>pack</strong> – If True, pack (repack) rotamers of residues in the mask and residues adjacent
+to the mask (computed via <code class="docutils literal notranslate"><span class="pre">compute_block_adjacency</span></code>) before the minimization step.</p></li>
+<li><p><strong>return_pose_stack</strong> – If True, also return the (possibly packed/minimized) pose stack
+that was actually scored, as <code class="docutils literal notranslate"><span class="pre">(ddg_scores,</span> <span class="pre">pose_stack)</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor of shape [n_poses] or [n_terms, n_poses] containing the ddg score for each pose,
+separated by terms if requested. If <code class="docutils literal notranslate"><span class="pre">return_pose_stack</span></code> is True, returns a tuple
+<code class="docutils literal notranslate"><span class="pre">(ddg_scores,</span> <span class="pre">pose_stack)</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.ops.compute_block_adjacency">
+<span class="sig-prename descclassname"><span class="pre">tmol.ops.</span></span><span class="sig-name descname"><span class="pre">compute_block_adjacency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_centroids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_furthest_dist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/ops/_score_utils.html#compute_block_adjacency"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ops.compute_block_adjacency" title="Link to this definition">#</a></dt>
+<dd><p>Compute a boolean block-level adjacency matrix.</p>
+<p>Two blocks <em>i</em> and <em>j</em> (in the same pose) are considered adjacent when
+the distance between their centroids is <strong>less than the sum of their
+furthest-atom-from-centroid distances plus a constant</strong>.</p>
+<div class="math notranslate nohighlight">
+\[\|\mathbf{c}_i - \mathbf{c}_j\|
+&lt; d_i + d_j + \text{constant}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>block_centroids</strong> – Tensor of shape <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_blocks,</span> <span class="pre">3]</span></code>
+containing the centroid coordinate of each block (e.g. as
+returned by <a class="reference internal" href="#tmol.ops.compute_block_centroids_and_furthest_dist" title="tmol.ops.compute_block_centroids_and_furthest_dist"><code class="xref py py-func docutils literal notranslate"><span class="pre">compute_block_centroids_and_furthest_dist()</span></code></a>).</p></li>
+<li><p><strong>block_furthest_dist</strong> – Tensor of shape <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_blocks]</span></code>
+containing the distance of the atom furthest from the centroid
+for each block.</p></li>
+<li><p><strong>constant</strong> – A scalar added to the sum of furthest distances.  Default
+is <code class="docutils literal notranslate"><span class="pre">5.0</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>Boolean tensor of shape <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_blocks,</span> <span class="pre">n_blocks]</span></code> where
+<code class="docutils literal notranslate"><span class="pre">adjacency[p,</span> <span class="pre">i,</span> <span class="pre">j]</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code> when the two blocks <em>i</em> and <em>j</em>
+in pose <em>p</em> are adjacent.</p>
+<p>The diagonal is always <code class="docutils literal notranslate"><span class="pre">False</span></code> (a block is not adjacent to itself).
+Padding / NaN-containing blocks are treated as not adjacent to any
+block.</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.ops.compute_block_centroids_and_furthest_dist">
+<span class="sig-prename descclassname"><span class="pre">tmol.ops.</span></span><span class="sig-name descname"><span class="pre">compute_block_centroids_and_furthest_dist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/ops/_score_utils.html#compute_block_centroids_and_furthest_dist"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ops.compute_block_centroids_and_furthest_dist" title="Link to this definition">#</a></dt>
+<dd><p>For each block in a pose stack, compute the average coordinate (centroid)
+of all of its atoms, as well as the distance of the furthest atom from this
+average.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pose_stack</strong> – A PoseStack object.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tensor of shape [n_poses, n_blocks, 3] containing</dt><dd><p>the average coordinate (centroid) of all real atoms in each block.
+Padding blocks and blocks with no atoms will have NaN centroids.</p>
+</dd>
+<dt>block_furthest_dist: Tensor of shape [n_poses, n_blocks] containing</dt><dd><p>the distance of the furthest atom from the centroid for each block.
+Padding blocks and blocks with no atoms will have NaN values.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>block_centroids</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.ops.res_mask_to_coord_mask">
+<span class="sig-prename descclassname"><span class="pre">tmol.ops.</span></span><span class="sig-name descname"><span class="pre">res_mask_to_coord_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/ops/_score_utils.html#res_mask_to_coord_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ops.res_mask_to_coord_mask" title="Link to this definition">#</a></dt>
+<dd><p>Convert a block-level (residue) boolean mask to an atom-level coordinate mask.</p>
+<p>For each pose, atoms belonging to blocks where the mask is True are marked as True
+in the output. The output mask can be used as a <code class="docutils literal notranslate"><span class="pre">coord_mask</span></code> argument to
+functions like <code class="docutils literal notranslate"><span class="pre">run_cart_min</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose_stack</strong> – The pose stack. Must have attributes <code class="docutils literal notranslate"><span class="pre">coords</span></code>, <code class="docutils literal notranslate"><span class="pre">max_n_blocks</span></code>,
+<code class="docutils literal notranslate"><span class="pre">max_n_block_atoms</span></code>, <code class="docutils literal notranslate"><span class="pre">block_coord_offset64</span></code>, and <code class="docutils literal notranslate"><span class="pre">real_atoms</span></code>.</p></li>
+<li><p><strong>mask</strong> – Boolean tensor of shape <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_blocks]</span></code>. <code class="docutils literal notranslate"><span class="pre">True</span></code> at
+<code class="docutils literal notranslate"><span class="pre">mask[i,</span> <span class="pre">j]</span></code> indicates that all atoms of block <code class="docutils literal notranslate"><span class="pre">j</span></code> in pose <code class="docutils literal notranslate"><span class="pre">i</span></code>
+should be marked.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Boolean tensor of shape <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">max_n_atoms_per_pose]</span></code>, where
+<code class="docutils literal notranslate"><span class="pre">max_n_atoms_per_pose</span> <span class="pre">=</span> <span class="pre">pose_stack.coords.shape[1]</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.ops.residue_mask_from_chain">
+<span class="sig-prename descclassname"><span class="pre">tmol.ops.</span></span><span class="sig-name descname"><span class="pre">residue_mask_from_chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/ops/_score_utils.html#residue_mask_from_chain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ops.residue_mask_from_chain" title="Link to this definition">#</a></dt>
+<dd><p>Build a boolean block-level mask selecting residues belonging to a given
+chain, identified by its PDB chain label string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose_stack</strong> – The pose stack. Must have a <code class="docutils literal notranslate"><span class="pre">pdb_info</span></code> attribute with
+<code class="docutils literal notranslate"><span class="pre">chain_labels</span></code> (<code class="docutils literal notranslate"><span class="pre">NDArray[object][n_poses,</span> <span class="pre">max_n_blocks]</span></code>).</p></li>
+<li><p><strong>chain_id</strong> – A string chain identifier (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;A&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;B&quot;</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Boolean tensor of shape <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_blocks]</span></code> with <code class="docutils literal notranslate"><span class="pre">True</span></code> for
+residues whose PDB chain label matches <code class="docutils literal notranslate"><span class="pre">chain_id</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="tmol.score.calculate_fragment_interactions">
 <span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">calculate_fragment_interactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partner_mask</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum_terms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_utils.html#calculate_fragment_interactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.calculate_fragment_interactions" title="Link to this definition">#</a></dt>
 <dd><p>Return each ligand fragment’s interaction with <code class="docutils literal notranslate"><span class="pre">partner_mask</span></code>.</p>
@@ -499,7 +694,7 @@ fragment.</p>
 parameter database used to construct <code class="docutils literal notranslate"><span class="pre">pose_stack</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">FragmentInteractionScores</span></code>. <code class="docutils literal notranslate"><span class="pre">scores</span></code> has shape
+<dd class="field-odd"><p><a class="reference internal" href="score.html#tmol.score.FragmentInteractionScores" title="tmol.score.FragmentInteractionScores"><code class="xref py py-class docutils literal notranslate"><span class="pre">FragmentInteractionScores</span></code></a>. <code class="docutils literal notranslate"><span class="pre">scores</span></code> has shape
 <code class="docutils literal notranslate"><span class="pre">[n_terms,</span> <span class="pre">n_poses,</span> <span class="pre">n_fragments]</span></code> or <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_fragments]</span></code> when
 <code class="docutils literal notranslate"><span class="pre">sum_terms</span></code> is true.</p>
 </dd>
@@ -555,6 +750,14 @@ parameter database used to construct <code class="docutils literal notranslate">
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.build_coord_mask_for_mask_and_interacting_atoms"><code class="docutils literal notranslate"><span class="pre">build_coord_mask_for_mask_and_interacting_atoms()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.build_coord_mask_for_mask_and_nearby_blocks"><code class="docutils literal notranslate"><span class="pre">build_coord_mask_for_mask_and_nearby_blocks()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.build_sidechain_coord_mask"><code class="docutils literal notranslate"><span class="pre">build_sidechain_coord_mask()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.calculate_block_pair_ddg"><code class="docutils literal notranslate"><span class="pre">calculate_block_pair_ddg()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.compute_block_adjacency"><code class="docutils literal notranslate"><span class="pre">compute_block_adjacency()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.compute_block_centroids_and_furthest_dist"><code class="docutils literal notranslate"><span class="pre">compute_block_centroids_and_furthest_dist()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.res_mask_to_coord_mask"><code class="docutils literal notranslate"><span class="pre">res_mask_to_coord_mask()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.residue_mask_from_chain"><code class="docutils literal notranslate"><span class="pre">residue_mask_from_chain()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.calculate_fragment_interactions"><code class="docutils literal notranslate"><span class="pre">calculate_fragment_interactions()</span></code></a></li>
 </ul>
   </nav></div>

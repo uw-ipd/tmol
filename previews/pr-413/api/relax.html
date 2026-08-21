@@ -487,7 +487,105 @@
 <h1>Relax<a class="headerlink" href="#relax" title="Link to this heading">#</a></h1>
 <p>TMol provides a Rosetta-inspired pack/minimize schedule. Its scoring, search,
 and acceptance behavior are TMol-specific.</p>
-<span class="target" id="module-tmol.relax"></span></section>
+<dl class="py function" id="module-tmol.relax">
+<dt class="sig sig-object py" id="tmol.relax.accept_best">
+<span class="sig-prename descclassname"><span class="pre">tmol.relax.</span></span><span class="sig-name descname"><span class="pre">accept_best</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score._score_function.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_pose_score</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.13)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/relax/_fast_relax.html#accept_best"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.relax.accept_best" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.relax.fast_relax">
+<span class="sig-prename descclassname"><span class="pre">tmol.relax.</span></span><span class="sig-name descname"><span class="pre">fast_relax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score._score_function.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">packer_pallete</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pack.html#tmol.pack.PackerPalette" title="tmol.pack._packer_task.PackerPalette"><span class="pre">PackerPalette</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">move_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kinematics.html#tmol.kinematics.MoveMap" title="tmol.kinematics._move_map.MoveMap"><span class="pre">MoveMap</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="kinematics.html#tmol.kinematics.CartesianMoveMap" title="tmol.kinematics._move_map.CartesianMoveMap"><span class="pre">CartesianMoveMap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fold_forest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kinematics.html#tmol.kinematics.FoldForest" title="tmol.kinematics._fold_forest.FoldForest"><span class="pre">FoldForest</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_operations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_repeats</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ramp_constraints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/relax/_fast_relax.html#fast_relax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.relax.fast_relax" title="Link to this definition">#</a></dt>
+<dd><p>Run the FastRelax protocol: repeated rounds of rotamer packing and
+gradient minimization with a ramped fa_rep weight schedule.</p>
+<p>This implements Jack Maguire’s tuned MonomerRelax2019 protocol.  Each
+repeat consists of several pack-min steps at increasing fa_rep fractions,
+followed by an accept-to-best check.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pose_stack</strong> – The input poses to relax.</p></li>
+<li><p><strong>sfxn</strong> – Score function used for packing and minimization. If you wish
+to use constraints during relax, then the weight on the “constraint”
+score type must already have a non-zero value.</p></li>
+<li><p><strong>packer_pallete</strong> – Palette defining the residue types available to the
+packer.</p></li>
+<li><p><strong>move_map</strong> – Specifies which DOFs are free to move during minimization.</p></li>
+<li><p><strong>fold_forest</strong> – Fold forest defining the kinematic connectivity.</p></li>
+<li><p><strong>task_operations</strong> – List of callables that configure a PackerTask.  Each
+callable receives a PackerTask and modifies it in place (e.g. to
+restrict to repacking or add chi samplers).  If None, a default
+operation is created that restricts to repacking with Dunbrack
+rotamers and includes the current rotamer.</p></li>
+<li><p><strong>ramp_constraints</strong> – If True, decrease the constraing weight over the first
+half of the weight-ramping schedule from its starting value to 0.
+If False, use the starting constraint weight for the entirety
+of relax. The weight on the “constraint” term in the input sfxn
+will be restored to its starting value at the end of relax.
+Default: True. A warning message is printed if you specify
+ramp_constraints=True but the “constraint” weight is 0.</p></li>
+<li><p><strong>num_repeats</strong> – Number of times to repeat the full schedule of pack-min
+steps (default: 2).</p></li>
+<li><p><strong>schedule</strong> – <p>The fa_rep / constraint ramp schedule — a list of per-step entries
+controlling the fa_rep weight and constraints used during packing and
+minimization. Each entry is either:</p>
+<ul>
+<li><p>A <strong>float</strong>: used as the fa_rep fraction for both packing and
+minimization.  E.g. <code class="docutils literal notranslate"><span class="pre">0.559</span></code> means both stages run at
+<code class="docutils literal notranslate"><span class="pre">0.559</span> <span class="pre">*</span> <span class="pre">fa_rep_start</span></code> (specifying nothing for the constraints).</p></li>
+<li><p>A <strong>dict</strong> with keys <code class="docutils literal notranslate"><span class="pre">&quot;fa_rep_pack_frac&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;fa_rep_min_frac&quot;</span></code> and optionally <code class="docutils literal notranslate"><span class="pre">&quot;cst_frac&quot;</span></code>:
+allows different fractions for the two
+stages and an optional constraint fraction.  E.g. <code class="docutils literal notranslate"><span class="pre">{&quot;fa_rep_pack_frac&quot;:</span> <span class="pre">0.040,</span> <span class="pre">&quot;fa_rep_min_frac&quot;:</span>
+<span class="pre">0.051,</span> <span class="pre">&quot;cst_frac&quot;:</span> <span class="pre">0.5}</span></code>.</p></li>
+</ul>
+<p>Both formats may be mixed within a single list.  All fractions are
+multiplied by the starting <code class="docutils literal notranslate"><span class="pre">fa_rep</span></code> weight / <code class="docutils literal notranslate"><span class="pre">constraint</span></code> weight
+from <code class="docutils literal notranslate"><span class="pre">sfxn</span></code>.</p>
+<p>If None, <code class="docutils literal notranslate"><span class="pre">DEFAULT_RELAX_SCHEDULE</span></code> is used (the 4-step ramp from
+MonomerRelax2019).</p>
+</p></li>
+<li><p><strong>min_fn</strong> – <p>Callable used to minimize the pose at each pack-min step.
+Must have the signature:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">min_fn</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">fold_forest</span><span class="p">,</span> <span class="n">move_map</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span>
+    <span class="o">-&gt;</span> <span class="n">PoseStack</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">fold_forest</span></code> and <code class="docutils literal notranslate"><span class="pre">move_map</span></code> are passed as keyword
+arguments so that Cartesian minimizers can accept and ignore them
+via <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code>.</p>
+<p>If None, the default Cartesian minimizer is used
+(<code class="docutils literal notranslate"><span class="pre">run_cart_min</span></code> via <code class="xref py py-func docutils literal notranslate"><span class="pre">_default_cart_min_fn()</span></code>).</p>
+<p>Examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Cartesian minimization:</span>
+<span class="n">min_fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">ps</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">run_cart_min</span><span class="p">(</span><span class="n">ps</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
+
+<span class="c1"># Kinematic minimization with torch's LBFGS + strong Wolfe:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_min</span><span class="p">(</span><span class="n">ps</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">fold_forest</span><span class="p">,</span> <span class="n">move_map</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">run_kin_min</span><span class="p">(</span>
+        <span class="n">ps</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">fold_forest</span><span class="p">,</span> <span class="n">move_map</span><span class="p">,</span>
+        <span class="n">optimizer_cls</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">LBFGS</span><span class="p">,</span>
+        <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">"line_search_fn"</span><span class="p">:</span> <span class="s2">"strong_wolfe"</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</p></li>
+<li><p><strong>verbose</strong> – Print timing information for each step.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The relaxed PoseStack (best-scoring across all repeats).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.relax.relax_pack_min_step">
+<span class="sig-prename descclassname"><span class="pre">tmol.relax.</span></span><span class="sig-name descname"><span class="pre">relax_pack_min_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fold_forest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">move_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kinematics.html#tmol.kinematics.MoveMap" title="tmol.kinematics._move_map.MoveMap"><span class="pre">MoveMap</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="kinematics.html#tmol.kinematics.CartesianMoveMap" title="tmol.kinematics._move_map.CartesianMoveMap"><span class="pre">CartesianMoveMap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">packer_pallete</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fa_rep_pack_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fa_rep_min_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cst_weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_operations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/relax/_fast_relax.html#relax_pack_min_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.relax.relax_pack_min_step" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
 
 
                 </article>
@@ -527,6 +625,20 @@ and acceptance behavior are TMol-specific.</p>
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.relax.accept_best"><code class="docutils literal notranslate"><span class="pre">accept_best()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.relax.fast_relax"><code class="docutils literal notranslate"><span class="pre">fast_relax()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.relax.relax_pack_min_step"><code class="docutils literal notranslate"><span class="pre">relax_pack_min_step()</span></code></a></li>
+</ul>
+  </nav></div>
 
   <div class="sidebar-secondary-item">
 

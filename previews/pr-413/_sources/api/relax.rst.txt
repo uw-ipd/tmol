@@ -6,5 +6,6 @@ and acceptance behavior are TMol-specific.
 
 .. automodule:: tmol.relax
    :members:
+   :imported-members:
    :undoc-members:
    :show-inheritance:

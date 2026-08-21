@@ -486,7 +486,105 @@
   <section id="optimization">
 <h1>Optimization<a class="headerlink" href="#optimization" title="Link to this heading">#</a></h1>
 <p>Cartesian and kinematic minimization entry points.</p>
-<span class="target" id="module-tmol.optimization"></span></section>
+<dl class="py class" id="module-tmol.optimization">
+<dt class="sig sig-object py" id="tmol.optimization.CartesianSfxnNetwork">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">CartesianSfxnNetwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">score_function</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score._score_function.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_sfxn_modules.html#CartesianSfxnNetwork"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.CartesianSfxnNetwork" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.optimization.CartesianSfxnNetwork.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_sfxn_modules.html#CartesianSfxnNetwork.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.CartesianSfxnNetwork.forward" title="Link to this definition">#</a></dt>
+<dd><p>Define the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.optimization.CartesianSfxnNetwork.pose_stack_from_dofs">
+<span class="sig-name descname"><span class="pre">pose_stack_from_dofs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_sfxn_modules.html#CartesianSfxnNetwork.pose_stack_from_dofs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.CartesianSfxnNetwork.pose_stack_from_dofs" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.optimization.KinForestSfxnNetwork">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">KinForestSfxnNetwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">score_function</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score._score_function.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">kin_module</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kinematics.html#tmol.kinematics.PoseStackKinematicsModule" title="tmol.kinematics._script_modules.PoseStackKinematicsModule"><span class="pre">PoseStackKinematicsModule</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dof_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kin_dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">torch.float32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_sfxn_modules.html#KinForestSfxnNetwork"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.KinForestSfxnNetwork" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.optimization.KinForestSfxnNetwork.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_sfxn_modules.html#KinForestSfxnNetwork.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.KinForestSfxnNetwork.forward" title="Link to this definition">#</a></dt>
+<dd><p>Define the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.optimization.KinForestSfxnNetwork.pose_stack_from_dofs">
+<span class="sig-name descname"><span class="pre">pose_stack_from_dofs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_sfxn_modules.html#KinForestSfxnNetwork.pose_stack_from_dofs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.KinForestSfxnNetwork.pose_stack_from_dofs" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.optimization.build_kinforest_network">
+<span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">build_kinforest_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score._score_function.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kinematics.html#tmol.kinematics.FoldForest" title="tmol.kinematics._fold_forest.FoldForest"><span class="pre">FoldForest</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kinematics.html#tmol.kinematics.MoveMap" title="tmol.kinematics._move_map.MoveMap"><span class="pre">MoveMap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kin_dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">torch.float32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_minimizers.html#build_kinforest_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.build_kinforest_network" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.optimization.run_cart_min">
+<span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">run_cart_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack:</span> <span class="pre">~tmol.pose._pose_stack.PoseStack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn:</span> <span class="pre">~tmol.score._score_function.ScoreFunction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_mask=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_cls=&lt;class</span> <span class="pre">'tmol.optimization._lbfgs_armijo.LBFGS_Armijo'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose=False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_minimizers.html#run_cart_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.run_cart_min" title="Link to this definition">#</a></dt>
+<dd><p>Run minimization on a PoseStack in Cartesian coordinate space.</p>
+<p>Builds a CartesianSfxnNetwork and delegates to run_min().</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.optimization.run_kin_min">
+<span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">run_kin_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack:</span> <span class="pre">~tmol.pose._pose_stack.PoseStack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn:</span> <span class="pre">~tmol.score._score_function.ScoreFunction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff:</span> <span class="pre">~tmol.kinematics._fold_forest.FoldForest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mm:</span> <span class="pre">~tmol.kinematics._move_map.MoveMap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_cls=&lt;class</span> <span class="pre">'tmol.optimization._lbfgs_armijo.LBFGS_Armijo'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kin_dtype=torch.float32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_minimizers.html#run_kin_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.run_kin_min" title="Link to this definition">#</a></dt>
+<dd><p>Run minimization on a PoseStack in internal DOF space.</p>
+<p>Builds a KinForestSfxnNetwork and delegates to run_min().</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.optimization.run_min">
+<span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">run_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sfxn_module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_cls=&lt;class</span> <span class="pre">'tmol.optimization._lbfgs_armijo.LBFGS_Armijo'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_pose=True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_minimizers.html#run_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.run_min" title="Link to this definition">#</a></dt>
+<dd><p>Run minimization on any sfxn module (Cartesian or KinForest).</p>
+<p>The sfxn_module must be a torch.nn.Module whose forward() returns
+per-pose energies and which provides a pose_stack_from_dofs() method
+to extract the optimized PoseStack.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sfxn_module</strong> – A CartesianSfxnNetwork, KinForestSfxnNetwork, or
+any nn.Module with a compatible interface.</p></li>
+<li><p><strong>optimizer_cls</strong> – A torch.optim.Optimizer class. Must support a
+closure-based step() call (e.g. LBFGS_Armijo, torch LBFGS).</p></li>
+<li><p><strong>optimizer_kwargs</strong> – Dict of keyword arguments passed to the optimizer
+constructor.</p></li>
+<li><p><strong>verbose</strong> – Print timing information.</p></li>
+<li><p><strong>per_pose</strong> – Give each pose its own inverse-Hessian estimate and
+convergence test, so that minimizing a stack matches minimizing
+its poses one at a time. Ignored by optimizers that do not
+support it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new PoseStack with optimized coordinates.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 
 
                 </article>
@@ -526,6 +624,31 @@
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianSfxnNetwork"><code class="docutils literal notranslate"><span class="pre">CartesianSfxnNetwork</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianSfxnNetwork.forward"><code class="docutils literal notranslate"><span class="pre">CartesianSfxnNetwork.forward()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianSfxnNetwork.pose_stack_from_dofs"><code class="docutils literal notranslate"><span class="pre">CartesianSfxnNetwork.pose_stack_from_dofs()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.KinForestSfxnNetwork"><code class="docutils literal notranslate"><span class="pre">KinForestSfxnNetwork</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.KinForestSfxnNetwork.forward"><code class="docutils literal notranslate"><span class="pre">KinForestSfxnNetwork.forward()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.KinForestSfxnNetwork.pose_stack_from_dofs"><code class="docutils literal notranslate"><span class="pre">KinForestSfxnNetwork.pose_stack_from_dofs()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.build_kinforest_network"><code class="docutils literal notranslate"><span class="pre">build_kinforest_network()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.run_cart_min"><code class="docutils literal notranslate"><span class="pre">run_cart_min()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.run_kin_min"><code class="docutils literal notranslate"><span class="pre">run_kin_min()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.run_min"><code class="docutils literal notranslate"><span class="pre">run_min()</span></code></a></li>
+</ul>
+  </nav></div>
 
   <div class="sidebar-secondary-item">
 

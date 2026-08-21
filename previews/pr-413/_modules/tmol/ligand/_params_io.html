@@ -1,0 +1,1047 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.ligand._params_io &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c9b21c7c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/ligand/_params_io';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-413';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.47" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand._params_io</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.ligand._params_io</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Read and write ligand params files (Rosetta ``.params`` and tmol ``.tmol``).</span>
+
+<span class="sd">Single home for ligand params I/O. :func:`write_params_file` serializes a</span>
+<span class="sd">:class:`~tmol.ligand._registry.LigandPreparation` to either format; the Rosetta</span>
+<span class="sd">reader :func:`read_params_file` and (re-exported) tmol reader cover the inputs.</span>
+<span class="sd">"""</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cattr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Atom</span><span class="p">,</span>
+    <span class="n">ChemicalProperties</span><span class="p">,</span>
+    <span class="n">ChiSamples</span><span class="p">,</span>
+    <span class="n">Icoor</span><span class="p">,</span>
+    <span class="n">PolymerProperties</span><span class="p">,</span>
+    <span class="n">ProtonationProperties</span><span class="p">,</span>
+    <span class="n">RawResidueType</span><span class="p">,</span>
+    <span class="n">Torsion</span><span class="p">,</span>
+    <span class="n">UnresolvedAtom</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CartRes</span><span class="p">,</span>
+    <span class="n">PartialCharges</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._params_file</span><span class="w"> </span><span class="kn">import</span> <span class="n">TMOL_FORMAT_VERSION</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandPreparation</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">_BOND_TOK_TO_TYPE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"1"</span><span class="p">:</span> <span class="s2">"SINGLE"</span><span class="p">,</span>
+    <span class="s2">"2"</span><span class="p">:</span> <span class="s2">"DOUBLE"</span><span class="p">,</span>
+    <span class="s2">"3"</span><span class="p">:</span> <span class="s2">"TRIPLE"</span><span class="p">,</span>
+    <span class="s2">"4"</span><span class="p">:</span> <span class="s2">"AROMATIC"</span><span class="p">,</span>
+    <span class="s2">"SINGLE"</span><span class="p">:</span> <span class="s2">"SINGLE"</span><span class="p">,</span>
+    <span class="s2">"DOUBLE"</span><span class="p">:</span> <span class="s2">"DOUBLE"</span><span class="p">,</span>
+    <span class="s2">"TRIPLE"</span><span class="p">:</span> <span class="s2">"TRIPLE"</span><span class="p">,</span>
+    <span class="s2">"AROMATIC"</span><span class="p">:</span> <span class="s2">"AROMATIC"</span><span class="p">,</span>
+    <span class="s2">"ARO"</span><span class="p">:</span> <span class="s2">"AROMATIC"</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_chi_number</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Extract the integer N from a chi torsion name like ``chi3`` (else 0)."""</span>
+    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"chi"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">name</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span>
+    <span class="k">return</span> <span class="mi">0</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_write_rosetta_params_file</span><span class="p">(</span>
+    <span class="n">restype</span><span class="p">:</span> <span class="n">RawResidueType</span><span class="p">,</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">partial_charges</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Write a RawResidueType as a Rosetta .params file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        restype: The residue type to write.</span>
+<span class="sd">        path: Output file path.</span>
+<span class="sd">        partial_charges: Optional per-atom partial charges. Keys are atom</span>
+<span class="sd">            names matching restype.atoms[i].name.</span>
+<span class="sd">    """</span>
+    <span class="n">lines</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"NAME </span><span class="si">{</span><span class="n">restype</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"IO_STRING </span><span class="si">{</span><span class="n">restype</span><span class="o">.</span><span class="n">name3</span><span class="si">}</span><span class="s2"> Z"</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"TYPE LIGAND"</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"AA UNK"</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+        <span class="n">charge</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="n">partial_charges</span> <span class="ow">and</span> <span class="n">atom</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">partial_charges</span><span class="p">:</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="n">partial_charges</span><span class="p">[</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ATOM </span><span class="si">{</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">atom</span><span class="o">.</span><span class="n">atom_type</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> X </span><span class="si">{</span><span class="n">charge</span><span class="si">:</span><span class="s2">8.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">bonds</span><span class="p">:</span>
+        <span class="n">is_ring</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">rest</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">rest</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="n">ring_tok</span> <span class="o">=</span> <span class="s2">" RING"</span> <span class="k">if</span> <span class="n">is_ring</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"BOND_TYPE </span><span class="si">{</span><span class="n">a</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">b</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">c</span><span class="si">:</span><span class="s2">12s</span><span class="si">}{</span><span class="n">ring_tok</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">restype</span><span class="o">.</span><span class="n">default_jump_connection_atom</span><span class="p">:</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"NBR_ATOM </span><span class="si">{</span><span class="n">restype</span><span class="o">.</span><span class="n">default_jump_connection_atom</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"NBR_RADIUS 999.0"</span><span class="p">)</span>
+
+    <span class="c1"># ICOOR_INTERNAL comes BEFORE CHI / PROTON_CHI, matching Rosetta's</span>
+    <span class="c1"># mol2genparams layout (NBR_RADIUS -&gt; ICOOR_INTERNAL -&gt; CHI -&gt; PROTON_CHI).</span>
+    <span class="k">for</span> <span class="n">ic</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">icoors</span><span class="p">:</span>
+        <span class="n">phi_deg</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">ic</span><span class="o">.</span><span class="n">phi</span><span class="p">)</span>
+        <span class="n">theta_deg</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">ic</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"ICOOR_INTERNAL </span><span class="si">{</span><span class="n">ic</span><span class="o">.</span><span class="n">name</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">phi_deg</span><span class="si">:</span><span class="s2">11.6f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">theta_deg</span><span class="si">:</span><span class="s2">11.6f</span><span class="si">}</span><span class="s2"> "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ic</span><span class="o">.</span><span class="n">d</span><span class="si">:</span><span class="s2">11.6f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">ic</span><span class="o">.</span><span class="n">parent</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">ic</span><span class="o">.</span><span class="n">grand_parent</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2"> "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ic</span><span class="o">.</span><span class="n">great_grand_parent</span><span class="si">:</span><span class="s2">4s</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+
+    <span class="c1"># CHI / PROTON_CHI rotatable-bond DOFs. One CHI line per named torsion;</span>
+    <span class="c1"># PROTON_CHI lines carry the sample/expansion data for polar-hydrogen chis.</span>
+    <span class="c1"># Rosetta-only annotations (e.g. a trailing "#biaryl" comment) are NOT</span>
+    <span class="c1"># emitted — tmol keeps only the semantic content.</span>
+    <span class="n">proton_by_chi</span> <span class="o">=</span> <span class="p">{</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">:</span> <span class="n">cs</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">tor</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">torsions</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">_chi_number</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="p">)):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">_chi_number</span><span class="p">(</span><span class="n">tor</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">quad</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="p">(</span><span class="n">ua</span><span class="o">.</span><span class="n">atom</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">''</span><span class="p">)</span><span class="si">:</span><span class="s2">&gt;4s</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">ua</span> <span class="ow">in</span> <span class="p">(</span><span class="n">tor</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">tor</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">tor</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">tor</span><span class="o">.</span><span class="n">d</span><span class="p">))</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"CHI </span><span class="si">{</span><span class="n">n</span><span class="si">:</span><span class="s2">&gt;2d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">quad</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">cs</span> <span class="o">=</span> <span class="n">proton_by_chi</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tor</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">samples</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">s</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">cs</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cs</span><span class="o">.</span><span class="n">expansions</span><span class="p">:</span>
+                <span class="n">extra</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"EXTRA </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">expansions</span><span class="p">)</span><span class="si">}</span><span class="s2"> "</span> <span class="o">+</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">e</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">cs</span><span class="o">.</span><span class="n">expansions</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">extra</span> <span class="o">=</span> <span class="s2">"EXTRA 0"</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"PROTON_CHI </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> SAMPLES </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">samples</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">extra</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Wrote params file for </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">restype</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="read_params_file">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.read_params_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_params_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RawResidueType</span><span class="p">:</span>  <span class="c1"># noqa: C901</span>
+<span class="w">    </span><span class="sd">"""Read a Rosetta .params file into a RawResidueType.</span>
+
+<span class="sd">    Parses ATOM, BOND, ICOOR_INTERNAL, and NBR_ATOM records. Other</span>
+<span class="sd">    records are silently ignored.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path: Path to the .params file.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A RawResidueType populated from the params file.</span>
+<span class="sd">    """</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">"UNK"</span>
+    <span class="n">name3</span> <span class="o">=</span> <span class="s2">"UNK"</span>
+    <span class="n">atoms</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Atom</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">bonds</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">icoors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Icoor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">nbr_atom</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="n">chi_torsions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Torsion</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">chi_proton</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">ChiSamples</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">parts</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"NAME"</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">name3</span> <span class="o">=</span> <span class="n">name</span>
+
+            <span class="k">elif</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"ATOM"</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">atoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Atom</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">atom_type</span><span class="o">=</span><span class="n">parts</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+
+            <span class="k">elif</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"BOND"</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">bond_type</span> <span class="o">=</span> <span class="s2">"SINGLE"</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="p">:</span>
+                    <span class="n">bond_type</span> <span class="o">=</span> <span class="n">_BOND_TOK_TO_TYPE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="s2">"SINGLE"</span><span class="p">)</span>
+                <span class="n">bonds</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">parts</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">bond_type</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"BOND_TYPE"</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">order</span> <span class="o">=</span> <span class="n">_BOND_TOK_TO_TYPE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="s2">"SINGLE"</span><span class="p">)</span>
+                <span class="n">ring</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">5</span> <span class="ow">and</span> <span class="n">parts</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"RING"</span>
+                <span class="n">bonds</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">parts</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">order</span><span class="p">,</span> <span class="n">ring</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"CHI"</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">6</span><span class="p">:</span>
+                <span class="c1"># "CHI n a b c d [#biaryl ...]" — trailing comments ignored.</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">chi_torsions</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">Torsion</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">"chi</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                    <span class="n">a</span><span class="o">=</span><span class="n">UnresolvedAtom</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="n">parts</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                    <span class="n">b</span><span class="o">=</span><span class="n">UnresolvedAtom</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="n">parts</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+                    <span class="n">c</span><span class="o">=</span><span class="n">UnresolvedAtom</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="n">parts</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
+                    <span class="n">d</span><span class="o">=</span><span class="n">UnresolvedAtom</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="n">parts</span><span class="p">[</span><span class="mi">5</span><span class="p">]),</span>
+                <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"PROTON_CHI"</span> <span class="ow">and</span> <span class="s2">"SAMPLES"</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">:</span>
+                <span class="c1"># "PROTON_CHI n SAMPLES k v1..vk [EXTRA m e1..em]"</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">si</span> <span class="o">=</span> <span class="n">parts</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"SAMPLES"</span><span class="p">)</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="n">si</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                <span class="n">samples</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">[</span><span class="n">si</span> <span class="o">+</span> <span class="mi">2</span> <span class="p">:</span> <span class="n">si</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">k</span><span class="p">])</span>
+                <span class="n">expansions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+                <span class="k">if</span> <span class="s2">"EXTRA"</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">:</span>
+                    <span class="n">ei</span> <span class="o">=</span> <span class="n">parts</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"EXTRA"</span><span class="p">)</span>
+                    <span class="n">n_extra</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="n">ei</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                    <span class="n">expansions</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">[</span><span class="n">ei</span> <span class="o">+</span> <span class="mi">2</span> <span class="p">:</span> <span class="n">ei</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">n_extra</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="n">chi_proton</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">ChiSamples</span><span class="p">(</span>
+                    <span class="n">chi_dihedral</span><span class="o">=</span><span class="sa">f</span><span class="s2">"chi</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span> <span class="n">expansions</span><span class="o">=</span><span class="n">expansions</span>
+                <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"NBR_ATOM"</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">nbr_atom</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="k">elif</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"ICOOR_INTERNAL"</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">8</span><span class="p">:</span>
+                <span class="n">icoors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">Icoor</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="n">phi</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">2</span><span class="p">])),</span>
+                        <span class="n">theta</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">3</span><span class="p">])),</span>
+                        <span class="n">d</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
+                        <span class="n">parent</span><span class="o">=</span><span class="n">parts</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                        <span class="n">grand_parent</span><span class="o">=</span><span class="n">parts</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span>
+                        <span class="n">great_grand_parent</span><span class="o">=</span><span class="n">parts</span><span class="p">[</span><span class="mi">7</span><span class="p">],</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+    <span class="n">properties</span> <span class="o">=</span> <span class="n">ChemicalProperties</span><span class="p">(</span>
+        <span class="n">is_canonical</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">polymer</span><span class="o">=</span><span class="n">PolymerProperties</span><span class="p">(</span>
+            <span class="n">is_polymer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">polymer_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">backbone_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">mainchain_atoms</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">sidechain_chirality</span><span class="o">=</span><span class="s2">"NA"</span><span class="p">,</span>
+            <span class="n">termini_variants</span><span class="o">=</span><span class="p">(),</span>
+        <span class="p">),</span>
+        <span class="n">chemical_modifications</span><span class="o">=</span><span class="p">(),</span>
+        <span class="n">connectivity</span><span class="o">=</span><span class="p">(),</span>
+        <span class="n">protonation</span><span class="o">=</span><span class="n">ProtonationProperties</span><span class="p">(</span>
+            <span class="n">protonated_atoms</span><span class="o">=</span><span class="p">(),</span>
+            <span class="n">protonation_state</span><span class="o">=</span><span class="s2">"neutral"</span><span class="p">,</span>
+            <span class="n">pH</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">virtual</span><span class="o">=</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">RawResidueType</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">base_name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">name3</span><span class="o">=</span><span class="n">name3</span><span class="p">,</span>
+        <span class="n">io_equiv_class</span><span class="o">=</span><span class="n">name3</span><span class="p">,</span>
+        <span class="n">atoms</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">atoms</span><span class="p">),</span>
+        <span class="n">atom_aliases</span><span class="o">=</span><span class="p">(),</span>
+        <span class="n">bonds</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">bonds</span><span class="p">),</span>
+        <span class="n">connections</span><span class="o">=</span><span class="p">(),</span>
+        <span class="n">torsions</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">chi_torsions</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">chi_torsions</span><span class="p">)),</span>
+        <span class="n">icoors</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">icoors</span><span class="p">),</span>
+        <span class="n">properties</span><span class="o">=</span><span class="n">properties</span><span class="p">,</span>
+        <span class="n">chi_samples</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">chi_proton</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">chi_proton</span><span class="p">)),</span>
+        <span class="n">default_jump_connection_atom</span><span class="o">=</span><span class="n">nbr_atom</span> <span class="ow">or</span> <span class="p">(</span><span class="n">atoms</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="n">atoms</span> <span class="k">else</span> <span class="s2">""</span><span class="p">),</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="c1"># --- tmol .tmol YAML writer --------------------------------------------------</span>
+<span class="c1"># Frank's hand-curated reference `.tmol` files use a hybrid layout: a</span>
+<span class="c1"># block-style outer list (one entry per line) of flow-style entries</span>
+<span class="c1"># (`{name: C1, ...}`). The helpers + `_CompactDumper` below reproduce that</span>
+<span class="c1"># style so writer output is byte-close to the reference, which keeps regression</span>
+<span class="c1"># diffs readable and the injection-equivalence tests strict.</span>
+
+<span class="n">_OMIT_IF_EMPTY_FIELDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"torsions"</span><span class="p">,)</span>
+<span class="n">_PROPERTIES_OMIT_IF_DEFAULT</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">_POLYMER_OMIT_IF_DEFAULT</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_radians_to_deg_str</span><span class="p">(</span><span class="n">val</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Format a radian angle as a ``"&lt;deg&gt; deg"`` string (Frank's convention)."""</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">math</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> deg"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_unstructure_residue</span><span class="p">(</span><span class="n">rt</span><span class="p">:</span> <span class="n">RawResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>  <span class="c1"># noqa: C901</span>
+<span class="w">    </span><span class="sd">"""Unstructure a RawResidueType to a YAML-friendly dict.</span>
+
+<span class="sd">    Output matches the compact style Frank uses for ligand ``.tmol`` files:</span>
+<span class="sd">    flow-style atoms/bonds (one entry per line), icoor angles re-formatted as</span>
+<span class="sd">    degree strings, and optional fields with default values omitted entirely so</span>
+<span class="sd">    the output is byte-close to a hand-curated reference.</span>
+<span class="sd">    """</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
+
+    <span class="c1"># Drop empty optional collections that Frank's references omit.</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">_OMIT_IF_EMPTY_FIELDS</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">d</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">d</span><span class="p">[</span><span class="n">f</span><span class="p">]:</span>
+            <span class="k">del</span> <span class="n">d</span><span class="p">[</span><span class="n">f</span><span class="p">]</span>
+
+    <span class="c1"># Trim default polymer/protonation fields when they match the neutral</span>
+    <span class="c1"># non-polymer ligand defaults (the only setting the pipeline emits).</span>
+    <span class="n">props</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"properties"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">props</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">default</span> <span class="ow">in</span> <span class="n">_PROPERTIES_OMIT_IF_DEFAULT</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">props</span> <span class="ow">and</span> <span class="n">props</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="n">default</span><span class="p">:</span>
+                <span class="k">del</span> <span class="n">props</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="n">polymer</span> <span class="o">=</span> <span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"polymer"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">polymer</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">default</span> <span class="ow">in</span> <span class="n">_POLYMER_OMIT_IF_DEFAULT</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">polymer</span> <span class="ow">and</span> <span class="n">polymer</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="n">default</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">polymer</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">ic</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"icoors"</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ic</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"phi"</span><span class="p">),</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+            <span class="n">ic</span><span class="p">[</span><span class="s2">"phi"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_radians_to_deg_str</span><span class="p">(</span><span class="n">ic</span><span class="p">[</span><span class="s2">"phi"</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ic</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"theta"</span><span class="p">),</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+            <span class="n">ic</span><span class="p">[</span><span class="s2">"theta"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_radians_to_deg_str</span><span class="p">(</span><span class="n">ic</span><span class="p">[</span><span class="s2">"theta"</span><span class="p">])</span>
+        <span class="c1"># Round bond distances to match Frank's 6-decimal convention.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ic</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"d"</span><span class="p">),</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">rounded</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">ic</span><span class="p">[</span><span class="s2">"d"</span><span class="p">],</span> <span class="mi">6</span><span class="p">)</span>
+            <span class="n">ic</span><span class="p">[</span><span class="s2">"d"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">rounded</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># Trim ``UnresolvedAtom`` defaults inside torsion entries and emit them</span>
+    <span class="c1"># flow-style (``{atom: C3}``) — Frank's references keep only ``atom``.</span>
+    <span class="k">for</span> <span class="n">tor</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"torsions"</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="s2">"d"</span><span class="p">):</span>
+            <span class="n">ua</span> <span class="o">=</span> <span class="n">tor</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ua</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">ua</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"connection"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ua</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"connection"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ua</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"bond_sep_from_conn"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ua</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"bond_sep_from_conn"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="n">tor</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_flow_atom</span><span class="p">(</span><span class="n">ua</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">d</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_FlowList</span><span class="p">(</span><span class="nb">list</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Marker subtype: yaml dumper emits this list in flow style ([...])."""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_flow_list_representer</span><span class="p">(</span><span class="n">dumper</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">_FlowList</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Represent a list in compact flow-style YAML."""</span>
+    <span class="k">return</span> <span class="n">dumper</span><span class="o">.</span><span class="n">represent_sequence</span><span class="p">(</span><span class="s2">"tag:yaml.org,2002:seq"</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">flow_style</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_flow_dict_representer</span><span class="p">(</span><span class="n">dumper</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Represent a dict in compact flow-style YAML."""</span>
+    <span class="k">return</span> <span class="n">dumper</span><span class="o">.</span><span class="n">represent_mapping</span><span class="p">(</span><span class="s2">"tag:yaml.org,2002:map"</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">flow_style</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_CompactDumper</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">SafeDumper</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""SafeDumper variant that emits ``_FlowList`` marker lists in flow style."""</span>
+
+
+<span class="n">_CompactDumper</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="n">_FlowList</span><span class="p">,</span> <span class="n">_flow_list_representer</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_np_scalar_representer</span><span class="p">(</span><span class="n">dumper</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Represent numpy scalar types (np.str_, np.float64, ...) as native Python.</span>
+
+<span class="sd">    Residue data coming from biotite/numpy arrays carries numpy scalar types</span>
+<span class="sd">    (e.g. ``np.str_`` atom names) that PyYAML's SafeDumper cannot serialize.</span>
+<span class="sd">    Coerce each to its native Python equivalent before emission.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">dumper</span><span class="o">.</span><span class="n">represent_data</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+
+<span class="n">_CompactDumper</span><span class="o">.</span><span class="n">add_multi_representer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">generic</span><span class="p">,</span> <span class="n">_np_scalar_representer</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_flow_atom</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Mark an atom dict for flow-style emission."""</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">_FlowDict</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="n">_CompactDumper</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="n">_FlowDict</span><span class="p">,</span> <span class="n">_flow_dict_representer</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_FlowDict</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_compactify_residue</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Block-style outer list with flow-style entries (matches Frank's tmol).</span>
+
+<span class="sd">    Each atom / bond / icoor lives on its own line via the block-style outer</span>
+<span class="sd">    ``-`` marker, but its fields are emitted on a single line via the flow-style</span>
+<span class="sd">    dict / list. Mirrors Frank's hand-curated layout.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="s2">"atoms"</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">_flow_atom</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]]</span>
+    <span class="k">if</span> <span class="s2">"bonds"</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+        <span class="c1"># Sort bonds: SINGLE first (in input order), then non-SINGLE in input</span>
+        <span class="c1"># order — matches Frank's reference layout.</span>
+        <span class="n">bonds</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">"bonds"</span><span class="p">])</span>
+        <span class="n">single</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bonds</span> <span class="k">if</span> <span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="s2">"SINGLE"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"SINGLE"</span><span class="p">]</span>
+        <span class="n">other</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bonds</span> <span class="k">if</span> <span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="s2">"SINGLE"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"SINGLE"</span><span class="p">]</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">"bonds"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">_FlowList</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">single</span> <span class="o">+</span> <span class="n">other</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s2">"icoors"</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">"icoors"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">_flow_atom</span><span class="p">(</span><span class="n">ic</span><span class="p">)</span> <span class="k">for</span> <span class="n">ic</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s2">"icoors"</span><span class="p">]]</span>
+    <span class="k">return</span> <span class="n">d</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_write_tmol_params_file</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">residue_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RawResidueType</span><span class="p">],</span>
+    <span class="n">charges</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
+    <span class="n">cartbonded</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">CartRes</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Write prepared ligand data to a tmol params YAML (``.tmol``) file.</span>
+
+<span class="sd">    Output style matches Frank's reference ``.tmol`` files: flow-style atom/bond</span>
+<span class="sd">    entries (one record per line) and omitted defaults so the file is byte-close</span>
+<span class="sd">    to a hand-curated example. Supports one or more residues per file.</span>
+<span class="sd">    """</span>
+    <span class="n">charge_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">_flow_atom</span><span class="p">(</span><span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">PartialCharges</span><span class="p">(</span><span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="n">atom</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="n">charge</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">res</span><span class="p">,</span> <span class="n">cmap</span> <span class="ow">in</span> <span class="n">charges</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">atom</span><span class="p">,</span> <span class="n">charge</span> <span class="ow">in</span> <span class="n">cmap</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">]</span>
+
+    <span class="n">cartbonded_payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cartbonded</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">cb</span> <span class="o">=</span> <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">group_key</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="s2">"length_parameters"</span><span class="p">,</span>
+            <span class="s2">"angle_parameters"</span><span class="p">,</span>
+            <span class="s2">"torsion_parameters"</span><span class="p">,</span>
+            <span class="s2">"improper_parameters"</span><span class="p">,</span>
+            <span class="s2">"hxltorsion_parameters"</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">group_key</span> <span class="ow">in</span> <span class="n">cb</span><span class="p">:</span>
+                <span class="n">cb</span><span class="p">[</span><span class="n">group_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_FlowList</span><span class="p">(</span><span class="n">_flow_atom</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">cb</span><span class="p">[</span><span class="n">group_key</span><span class="p">])</span>
+        <span class="n">cartbonded_payload</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">cb</span>
+
+    <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"version"</span><span class="p">:</span> <span class="n">TMOL_FORMAT_VERSION</span><span class="p">,</span>
+        <span class="s2">"chemical"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"residues"</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">_compactify_residue</span><span class="p">(</span><span class="n">_unstructure_residue</span><span class="p">(</span><span class="n">r</span><span class="p">))</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">residue_types</span>
+            <span class="p">],</span>
+        <span class="p">},</span>
+        <span class="s2">"elec"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"atom_charge_parameters"</span><span class="p">:</span> <span class="n">_FlowList</span><span class="p">(</span><span class="n">charge_list</span><span class="p">),</span>
+        <span class="p">},</span>
+        <span class="s2">"cartbonded"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"residue_params"</span><span class="p">:</span> <span class="n">cartbonded_payload</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
+    <span class="k">with</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span>
+            <span class="n">payload</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">_CompactDumper</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="write_params_file">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.write_params_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_params_file</span><span class="p">(</span>
+    <span class="n">preparation</span><span class="p">:</span> <span class="s2">"LigandPreparation | list[LigandPreparation]"</span><span class="p">,</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"rosetta"</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Write a ligand ``LigandPreparation`` as a Rosetta ``.params`` or tmol ``.tmol``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        preparation: A :class:`~tmol.ligand._registry.LigandPreparation` (its</span>
+<span class="sd">            ``residue_type`` / ``partial_charges`` / ``cartbonded_params`` are</span>
+<span class="sd">            used), or a list of them.</span>
+<span class="sd">        path: Output path. Its meaning depends on the format and whether a list</span>
+<span class="sd">            was passed:</span>
+
+<span class="sd">            * single preparation -&gt; ``path`` is the output file (either format);</span>
+<span class="sd">            * ``"rosetta"`` + list -&gt; ``path`` is a **directory**; each</span>
+<span class="sd">              preparation is written to ``&lt;path&gt;/&lt;residue_type.name&gt;.params``</span>
+<span class="sd">              (a ``.params`` holds a single residue);</span>
+<span class="sd">            * ``"tmol"`` (single or list) -&gt; ``path`` is a single file holding</span>
+<span class="sd">              all residues.</span>
+<span class="sd">        format: ``"rosetta"`` (classic Rosetta ``.params``) or ``"tmol"``</span>
+<span class="sd">            (tmol YAML ``.tmol``).</span>
+<span class="sd">    """</span>
+    <span class="n">is_list</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">preparation</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+    <span class="n">preps</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">preparation</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_list</span> <span class="k">else</span> <span class="p">[</span><span class="n">preparation</span><span class="p">]</span>
+    <span class="n">fmt</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">format</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s2">"rosetta"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">is_list</span><span class="p">:</span>
+            <span class="n">out_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">prep</span> <span class="ow">in</span> <span class="n">preps</span><span class="p">:</span>
+                <span class="n">_write_rosetta_params_file</span><span class="p">(</span>
+                    <span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="p">,</span>
+                    <span class="n">out_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.params"</span><span class="p">,</span>
+                    <span class="n">prep</span><span class="o">.</span><span class="n">partial_charges</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prep</span> <span class="o">=</span> <span class="n">preps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">_write_rosetta_params_file</span><span class="p">(</span><span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">prep</span><span class="o">.</span><span class="n">partial_charges</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s2">"tmol"</span><span class="p">:</span>
+        <span class="n">_write_tmol_params_file</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span>
+            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">residue_type</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">preps</span><span class="p">],</span>
+            <span class="p">{</span><span class="n">p</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">partial_charges</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">preps</span><span class="p">},</span>
+            <span class="p">{</span><span class="n">p</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">cartbonded_params</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">preps</span><span class="p">},</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown params format </span><span class="si">{</span><span class="nb">format</span><span class="si">!r}</span><span class="s2"> (use 'rosetta' or 'tmol')"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="write_params_from_mol2">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.write_params_from_mol2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_params_from_mol2</span><span class="p">(</span>
+    <span class="n">mol2_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">out_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sample_proton_chi</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"rosetta"</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Build params from a mol2 file and write Rosetta ``.params`` or tmol ``.tmol``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mol2_path: Input Tripos mol2 (names, coords, charges preserved verbatim).</span>
+<span class="sd">        out_path: Output file path (see :func:`write_params_file`).</span>
+<span class="sd">        res_name: Optional residue name override.</span>
+<span class="sd">        sample_proton_chi: Whether to emit PROTON_CHI samples.</span>
+<span class="sd">        format: ``"rosetta"`` or ``"tmol"``.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_mol2</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._preparation</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_single_ligand</span>
+
+    <span class="n">info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
+    <span class="n">prep</span> <span class="o">=</span> <span class="n">prepare_single_ligand</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">sample_proton_chi</span><span class="o">=</span><span class="n">sample_proton_chi</span><span class="p">)</span>
+    <span class="n">write_params_file</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">out_path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

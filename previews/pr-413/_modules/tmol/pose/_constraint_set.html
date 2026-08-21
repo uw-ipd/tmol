@@ -1,0 +1,977 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.pose._constraint_set &#8212; tmol documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c9b21c7c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=5df2d9e8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script>let toggleHintShow = 'Show code';</script>
+    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pose/_constraint_set';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-413';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.47" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tmol documentation</p>
+  
+</a></div>
+    
+      <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pose._constraint_set</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.pose._constraint_set</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span>
+
+
+<div class="viewcode-block" id="ConstraintSet">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.ConstraintSet">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConstraintSet</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">""" """</span>
+
+    <span class="n">MAX_N_ATOMS</span> <span class="o">=</span> <span class="mi">4</span>
+
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+    <span class="n">n_poses</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">constraint_function_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">][:]</span>
+    <span class="n">constraint_atoms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">][:,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">constraint_params</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">constraint_num_unique_blocks</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">][:]</span>
+    <span class="n">constraint_unique_blocks</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">constraint_functions</span><span class="p">:</span> <span class="n">Tuple</span>
+
+<div class="viewcode-block" id="ConstraintSet.create_empty">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.ConstraintSet.create_empty">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_empty</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ConstraintSet"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ConstraintSet</span><span class="p">(</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">n_poses</span><span class="o">=</span><span class="n">n_poses</span><span class="p">,</span>
+            <span class="n">constraint_function_inds</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                <span class="p">(</span><span class="mi">0</span><span class="p">,),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="n">constraint_atoms</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">MAX_N_ATOMS</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="n">constraint_params</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">constraint_num_unique_blocks</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                <span class="p">(</span><span class="mi">0</span><span class="p">,),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="n">constraint_unique_blocks</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">),</span>
+            <span class="n">constraint_functions</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ConstraintSet.concatenate">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.ConstraintSet.concatenate">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">concatenate</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">constraint_sets</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="s2">"ConstraintSet"</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span>
+        <span class="n">from_multiple_pose_stacks</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">n_poses</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ps_offset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">"ConstraintSet"</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Concatenate multiple ConstraintSets into a single ConstraintSet.</span>
+
+<span class="sd">        This function is particularly useful if you're creating a PoseStack from multiple</span>
+<span class="sd">        PoseStacks, each of which has its own ConstraintSet. In that case, n_poses</span>
+<span class="sd">        and ps_offset will be readily available. In this use case, "from_multiple_pose_stacks"</span>
+<span class="sd">        should be set to True.</span>
+
+<span class="sd">        The other use case is in creating multiple types of constraints for a single</span>
+<span class="sd">        PoseStack and then combining them in a single go. This will be more efficient</span>
+<span class="sd">        than repeatedly invoking add_constraints() as it skips the N^2 copy operations.</span>
+<span class="sd">        In this use case, "from_multiple_pose_stacks" should be set to False.</span>
+<span class="sd">        """</span>
+
+        <span class="n">device</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">constraint_sets</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">device</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">device</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="p">(</span>
+                        <span class="n">device</span> <span class="o">==</span> <span class="n">cs</span><span class="o">.</span><span class="n">device</span>
+                    <span class="p">),</span> <span class="s2">"All ConstraintSets must be on the same device"</span>
+
+        <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># now set up n_poses and ps_offset if not provided based on wether these</span>
+        <span class="c1"># constraint sets are coming from multiple pose stacks or all from the</span>
+        <span class="c1"># same pose stack</span>
+        <span class="k">if</span> <span class="n">n_poses</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">from_multiple_pose_stacks</span><span class="p">:</span>
+                <span class="n">n_poses</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">n_poses</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">constraint_sets</span> <span class="k">if</span> <span class="n">cs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n_poses</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">cs</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">constraint_sets</span> <span class="k">if</span> <span class="n">cs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">n_poses</span>
+        <span class="k">if</span> <span class="n">ps_offset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">from_multiple_pose_stacks</span><span class="p">:</span>
+                <span class="n">ps_offset</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                        <span class="p">[</span><span class="n">cs</span><span class="o">.</span><span class="n">n_poses</span> <span class="k">if</span> <span class="n">cs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">constraint_sets</span><span class="p">],</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+                        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ps_offset</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">constraint_sets</span><span class="p">),),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+                <span class="p">)</span>
+        <span class="n">cs_offset</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">cs</span><span class="o">.</span><span class="n">constraint_atoms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">cs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+                    <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">constraint_sets</span>
+                <span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">constraint_functions_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">constraint_function_inds</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">constraint_sets</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">cs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">constraint_function_inds</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">func</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">constraint_functions</span><span class="p">):</span>
+                    <span class="n">found_existing</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">func_existing</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">constraint_functions_list</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">func_existing</span> <span class="o">==</span> <span class="n">func</span><span class="p">:</span>
+                            <span class="n">constraint_function_inds</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                            <span class="n">found_existing</span> <span class="o">=</span> <span class="kc">True</span>
+                            <span class="k">break</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">found_existing</span><span class="p">:</span>
+                        <span class="n">constraint_functions_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+                        <span class="n">constraint_function_inds</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="nb">len</span><span class="p">(</span><span class="n">constraint_functions_list</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="p">)</span>
+
+        <span class="c1"># now let's figure out the new contraint_function_inds</span>
+        <span class="c1"># for the combined set</span>
+        <span class="n">new_constraint_function_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">constraint_function_inds</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">cs</span><span class="o">.</span><span class="n">constraint_function_inds</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">constraint_sets</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">cs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">constraint_function_inds</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="p">],</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n_constraints</span> <span class="o">=</span> <span class="n">new_constraint_function_inds</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">new_constraint_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_constraints</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">MAX_N_ATOMS</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">max_n_params</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">max</span><span class="p">(</span>
+                <span class="n">cs</span><span class="o">.</span><span class="n">constraint_params</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">constraint_sets</span> <span class="k">if</span> <span class="n">cs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">n_constraints</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="k">else</span> <span class="mi">0</span>
+        <span class="p">)</span>
+        <span class="n">new_constraint_params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_constraints</span><span class="p">,</span> <span class="n">max_n_params</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">new_constraint_num_unique_blocks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_constraints</span><span class="p">,),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">new_constraint_unique_blocks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_constraints</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">constraint_sets</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">cs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">n_cs_constraints</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">constraint_function_inds</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">constraint_atoms_shifted</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">constraint_atoms</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                <span class="n">constraint_atoms_pose</span> <span class="o">=</span> <span class="n">constraint_atoms_shifted</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">is_real_pose</span> <span class="o">=</span> <span class="n">constraint_atoms_pose</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">constraint_atoms_pose</span><span class="p">[</span><span class="n">is_real_pose</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ps_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">constraint_atoms_shifted</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">constraint_atoms_pose</span>
+                <span class="n">new_constraint_atoms</span><span class="p">[</span>
+                    <span class="n">cs_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:</span> <span class="n">cs_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">n_cs_constraints</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">constraint_atoms_shifted</span>
+                <span class="n">new_constraint_params</span><span class="p">[</span>
+                    <span class="n">cs_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:</span> <span class="n">cs_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">n_cs_constraints</span><span class="p">,</span>
+                    <span class="mi">0</span> <span class="p">:</span> <span class="n">cs</span><span class="o">.</span><span class="n">constraint_params</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">constraint_params</span>
+                <span class="n">new_constraint_num_unique_blocks</span><span class="p">[</span>
+                    <span class="n">cs_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:</span> <span class="n">cs_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">n_cs_constraints</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">constraint_num_unique_blocks</span>
+                <span class="n">new_constraint_unique_blocks</span><span class="p">[</span>
+                    <span class="n">cs_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:</span> <span class="n">cs_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">n_cs_constraints</span><span class="p">,</span> <span class="p">:</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">constraint_unique_blocks</span>
+                <span class="n">new_constraint_unique_blocks</span><span class="p">[</span>
+                    <span class="n">cs_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:</span> <span class="n">cs_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">n_cs_constraints</span><span class="p">,</span> <span class="mi">0</span>
+                <span class="p">]</span> <span class="o">+=</span> <span class="n">ps_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ConstraintSet</span><span class="p">(</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">n_poses</span><span class="o">=</span><span class="n">n_poses</span><span class="p">,</span>
+            <span class="n">constraint_function_inds</span><span class="o">=</span><span class="n">new_constraint_function_inds</span><span class="p">,</span>
+            <span class="n">constraint_atoms</span><span class="o">=</span><span class="n">new_constraint_atoms</span><span class="p">,</span>
+            <span class="n">constraint_params</span><span class="o">=</span><span class="n">new_constraint_params</span><span class="p">,</span>
+            <span class="n">constraint_num_unique_blocks</span><span class="o">=</span><span class="n">new_constraint_num_unique_blocks</span><span class="p">,</span>
+            <span class="n">constraint_unique_blocks</span><span class="o">=</span><span class="n">new_constraint_unique_blocks</span><span class="p">,</span>
+            <span class="n">constraint_functions</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">constraint_functions_list</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ConstraintSet.clone">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.ConstraintSet.clone">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ConstraintSet"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">constraint_function_inds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_function_inds</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">constraint_atoms</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_atoms</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">constraint_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_params</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">constraint_num_unique_blocks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_num_unique_blocks</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">constraint_unique_blocks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_unique_blocks</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ConstraintSet.to">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.ConstraintSet.to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ConstraintSet"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">constraint_function_inds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_function_inds</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">constraint_atoms</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_atoms</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">constraint_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_params</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">constraint_num_unique_blocks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_num_unique_blocks</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">constraint_unique_blocks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_unique_blocks</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ConstraintSet.split">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.ConstraintSet.split">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ConstraintSet"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Split out a single pose's worth of constraints from a batch."""</span>
+        <span class="c1"># find the constraints that apply to this pose</span>
+        <span class="n">is_constraint_for_pose</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_atoms</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">index</span>
+        <span class="n">constraint_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_constraint_for_pose</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># note: constraint_functions is shallow-copied; this might seem dangerous</span>
+        <span class="c1"># because we might worry about the original constraint set modifying</span>
+        <span class="c1"># its constraint functions, but this is actually safe because 1. Tuples</span>
+        <span class="c1"># are immutable, and 2. the original ConstraintSet only ever changes</span>
+        <span class="c1"># by creating a new ConstraintSet, so really, it also is immutable.</span>
+        <span class="n">new_constraint_atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_atoms</span><span class="p">[</span><span class="n">constraint_inds</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">real_pose_for_atoms</span> <span class="o">=</span> <span class="n">new_constraint_atoms</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">nz_real_pose_for_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">real_pose_for_atoms</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">new_constraint_atoms</span><span class="p">[</span>
+            <span class="n">nz_real_pose_for_atoms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_real_pose_for_atoms</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">0</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># reset the pose index to 0 since we're splitting out a single pose</span>
+        <span class="n">new_constraint_unique_blocks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_unique_blocks</span><span class="p">[</span>
+            <span class="n">constraint_inds</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">new_constraint_unique_blocks</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">0</span>  <span class="c1"># reset the pose index to 0 since we're splitting out a single pose</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">n_poses</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">constraint_function_inds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_function_inds</span><span class="p">[</span>
+                <span class="n">constraint_inds</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">constraint_atoms</span><span class="o">=</span><span class="n">new_constraint_atoms</span><span class="p">,</span>
+            <span class="n">constraint_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_params</span><span class="p">[</span><span class="n">constraint_inds</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">constraint_num_unique_blocks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_num_unique_blocks</span><span class="p">[</span>
+                <span class="n">constraint_inds</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">constraint_unique_blocks</span><span class="o">=</span><span class="n">new_constraint_unique_blocks</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="c1">#################### PROPERTIES #####################</span>
+
+<div class="viewcode-block" id="ConstraintSet.count_unique_blocks">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.ConstraintSet.count_unique_blocks">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">count_unique_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atom_indices</span><span class="p">):</span>
+        <span class="c1"># sorted_blocks_per_constraint, _ = atom_indices[:,:,1]</span>
+        <span class="c1"># now shift by 1 and count the differences</span>
+        <span class="c1"># diffs = sorted_blocks_per_constraint[:, 1:] != sorted_blocks_per_constraint[:, :-1]</span>
+        <span class="n">constraint_blocks</span> <span class="o">=</span> <span class="n">atom_indices</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># now shift by 1 and count the differences</span>
+        <span class="n">diffs</span> <span class="o">=</span> <span class="n">constraint_blocks</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">!=</span> <span class="n">constraint_blocks</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">temp</span> <span class="o">=</span> <span class="n">diffs</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">temp</span></div>
+
+
+<div class="viewcode-block" id="ConstraintSet.add_constraints_to_all_poses">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.ConstraintSet.add_constraints_to_all_poses">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_constraints_to_all_poses</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">atom_indices</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ConstraintSet"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""If all Poses in the PoseStack should be constrained in the same way, then</span>
+<span class="sd">        this convenience function will take a list of atom indices for a single Pose</span>
+<span class="sd">        and replicate them across all the Poses in the PoseStack."""</span>
+        <span class="k">if</span> <span class="n">atom_indices</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># if we just drop the "which-pose-is-it-from? dimension", then</span>
+            <span class="c1"># the normal call to add_constraints will apply it to all poses</span>
+            <span class="n">atom_indices</span> <span class="o">=</span> <span class="n">atom_indices</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_constraints</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">atom_indices</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ConstraintSet.add_constraints">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.ConstraintSet.add_constraints">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_constraints</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">atom_indices</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ConstraintSet"</span><span class="p">:</span>  <span class="c1"># noqa: C901</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Create a new ConstraintSet that includes all the old constraints plus the new ones.</span>
+
+<span class="sd">        atom_indices: either (n_constraints, n_atoms, 3) or (n_constraints, n_atoms, 2)</span>
+<span class="sd">                      If the latter, the constraint will be applied to all poses</span>
+<span class="sd">        """</span>
+        <span class="n">empty_at_start</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_functions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">find_or_insert</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">lst</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">lst</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">lst</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">lst</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">constraint_functions_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_functions</span><span class="p">)</span>
+        <span class="n">fn_index</span> <span class="o">=</span> <span class="n">find_or_insert</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">constraint_functions_list</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">atom_indices</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="p">):</span>  <span class="c1"># The user did not input pose indices, copy to all poses</span>
+            <span class="n">filled_atom_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">atom_indices</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">atom_indices</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">filled_atom_indices</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_indices</span>
+            <span class="n">atom_indices</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicate_constraints</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">filled_atom_indices</span><span class="p">,</span> <span class="n">params</span>
+            <span class="p">)</span>
+
+        <span class="c1"># constraints</span>
+        <span class="n">num_to_add</span> <span class="o">=</span> <span class="n">atom_indices</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Make sure the users does not mix atoms from multiple poses into a single constraint</span>
+        <span class="c1"># flatten</span>
+        <span class="n">flat</span> <span class="o">=</span> <span class="n">atom_indices</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># find the sizes of consecutive occurences of the pose index</span>
+        <span class="n">uniq_cnt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique_consecutive</span><span class="p">(</span><span class="n">flat</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># make sure those sizes are all divisible by the # of atoms</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">uniq_cnt</span> <span class="o">%</span> <span class="n">atom_indices</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">"One or more constraints contains atoms from multiple poses"</span>
+            <span class="p">)</span>
+
+        <span class="n">constraint_poses</span> <span class="o">=</span> <span class="n">atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">constraint_blocks</span> <span class="o">=</span> <span class="n">atom_indices</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">constraint_blocks_rolled</span> <span class="o">=</span> <span class="n">constraint_blocks</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">shifts</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">constraint_blocks_changed</span> <span class="o">=</span> <span class="p">(</span><span class="n">constraint_blocks</span> <span class="o">!=</span> <span class="n">constraint_blocks_rolled</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span>
+        <span class="n">constraint_blocks_changed</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">constraint_block_first_change</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span>
+            <span class="n">constraint_blocks_changed</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">first_block_inds</span> <span class="o">=</span> <span class="n">constraint_blocks</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">second_block_inds</span> <span class="o">=</span> <span class="n">constraint_blocks</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+            <span class="mi">1</span><span class="p">,</span> <span class="n">constraint_block_first_change</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">empty_at_start</span><span class="p">:</span>
+            <span class="n">new_constraint_unique_blocks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">constraint_unique_blocks</span><span class="p">,</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                        <span class="p">[</span><span class="n">constraint_poses</span><span class="p">,</span> <span class="n">first_block_inds</span><span class="p">,</span> <span class="n">second_block_inds</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+                    <span class="p">),</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_constraint_unique_blocks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">constraint_poses</span><span class="p">,</span> <span class="n">first_block_inds</span><span class="p">,</span> <span class="n">second_block_inds</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+
+        <span class="n">constraint_function_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">num_to_add</span><span class="p">,),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">constraint_function_inds</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">fn_index</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">empty_at_start</span><span class="p">:</span>
+            <span class="n">new_constraint_function_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_function_inds</span><span class="p">,</span> <span class="n">constraint_function_inds</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_constraint_function_inds</span> <span class="o">=</span> <span class="n">constraint_function_inds</span>
+
+        <span class="n">num_unique_blocks_per_constraint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">count_unique_blocks</span><span class="p">(</span><span class="n">atom_indices</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">empty_at_start</span><span class="p">:</span>
+            <span class="n">new_constraint_num_unique_blocks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_num_unique_blocks</span><span class="p">,</span> <span class="n">num_unique_blocks_per_constraint</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_constraint_num_unique_blocks</span> <span class="o">=</span> <span class="n">num_unique_blocks_per_constraint</span>
+
+        <span class="n">new_atom_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">num_to_add</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MAX_N_ATOMS</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">new_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span> <span class="p">:</span> <span class="n">atom_indices</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">atom_indices</span>
+        <span class="c1"># now copy the last real atom into the final atom slot so that we can attribute score correctly later</span>
+        <span class="n">new_atom_indices</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MAX_N_ATOMS</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">atom_indices</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">empty_at_start</span><span class="p">:</span>
+            <span class="n">new_constraint_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_atoms</span><span class="p">,</span> <span class="n">new_atom_indices</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_constraint_atoms</span> <span class="o">=</span> <span class="n">new_atom_indices</span>
+
+        <span class="n">new_params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">num_to_add</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_params</span> <span class="o">=</span> <span class="n">params</span>
+        <span class="n">max_params</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">new_params</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_params</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">empty_at_start</span><span class="p">:</span>
+            <span class="n">t1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_params</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">max_params</span><span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">t1</span><span class="p">[:,</span> <span class="mi">0</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_params</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_params</span>
+        <span class="n">t2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">new_params</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">max_params</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">t2</span><span class="p">[:,</span> <span class="mi">0</span> <span class="p">:</span> <span class="n">new_params</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">new_params</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">empty_at_start</span><span class="p">:</span>
+            <span class="n">new_constraint_params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_constraint_params</span> <span class="o">=</span> <span class="n">t2</span>
+
+        <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">constraint_function_inds</span><span class="o">=</span><span class="n">new_constraint_function_inds</span><span class="p">,</span>
+            <span class="n">constraint_atoms</span><span class="o">=</span><span class="n">new_constraint_atoms</span><span class="p">,</span>
+            <span class="n">constraint_params</span><span class="o">=</span><span class="n">new_constraint_params</span><span class="p">,</span>
+            <span class="n">constraint_num_unique_blocks</span><span class="o">=</span><span class="n">new_constraint_num_unique_blocks</span><span class="p">,</span>
+            <span class="n">constraint_unique_blocks</span><span class="o">=</span><span class="n">new_constraint_unique_blocks</span><span class="p">,</span>
+            <span class="n">constraint_functions</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">constraint_functions_list</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ConstraintSet.replicate_constraints">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.ConstraintSet.replicate_constraints">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">replicate_constraints</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">c_atms</span><span class="p">,</span> <span class="n">c_params</span><span class="p">):</span>
+        <span class="n">ncnstr</span> <span class="o">=</span> <span class="n">c_atms</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">natoms</span> <span class="o">=</span> <span class="n">c_atms</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">atoms</span> <span class="o">=</span> <span class="n">c_atms</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">c_params</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">poses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">natoms</span> <span class="o">*</span> <span class="n">ncnstr</span><span class="p">)</span>
+        <span class="n">atoms</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_poses</span> <span class="o">*</span> <span class="n">ncnstr</span><span class="p">,</span> <span class="n">natoms</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">params</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

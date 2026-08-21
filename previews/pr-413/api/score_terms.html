@@ -485,11 +485,11 @@
                   
   <section id="score-terms">
 <h1>Score Terms<a class="headerlink" href="#score-terms" title="Link to this heading">#</a></h1>
-<p>TMol score functions combine weighted <code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ScoreType</span></code>
-values. A <code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ScoreFunction</span></code> activates the energy
+<p>TMol score functions combine weighted <a class="reference internal" href="score.html#tmol.score.ScoreType" title="tmol.score.ScoreType"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ScoreType</span></code></a>
+values. A <a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ScoreFunction</span></code></a> activates the energy
 term implementation associated with each non-zero weight, then renders a
 whole-pose, block-pair, or rotamer scoring module for a particular
-<code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.PoseStack</span></code>.</p>
+<a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.PoseStack</span></code></a>.</p>
 <section id="score-type-map">
 <h2>Score-type map<a class="headerlink" href="#score-type-map" title="Link to this heading">#</a></h2>
 <div class="pst-scrollable-table-container"><table class="table">
@@ -527,7 +527,7 @@ Lazaridis-Karplus solvation.</p></td>
 <td><p><a class="reference internal" href="#tmol.score.constraint.ConstraintEnergyTerm" title="tmol.score.constraint.ConstraintEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConstraintEnergyTerm</span></code></a></p></td>
 <td><p>Harmonic distance, bounded distance, harmonic coordinate, and
 circular-harmonic torsion constraints attached through
-<code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.ConstraintSet</span></code>.</p></td>
+<a class="reference internal" href="pose.html#tmol.pose.ConstraintSet" title="tmol.pose.ConstraintSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.ConstraintSet</span></code></a>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">disulfide</span></code></p></td>
 <td><p><a class="reference internal" href="#tmol.score.disulfide.DisulfideEnergyTerm" title="tmol.score.disulfide.DisulfideEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">DisulfideEnergyTerm</span></code></a></p></td>
@@ -638,9 +638,64 @@ allocation; it is not a score component.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyTerm</span></code></p>
 </dd></dl>
 
+<dl class="py function" id="module-tmol.score.na_torsion">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.bi_bii_weight">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.na_torsion.</span></span><span class="sig-name descname"><span class="pre">bi_bii_weight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epsilon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zeta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/_potentials.html#bi_bii_weight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.bi_bii_weight" title="Link to this definition">#</a></dt>
+<dd><p>Weight on BI, from sin(epsilon - zeta).</p>
+<p>exp(-s*del) / (exp(-s*del) + exp(s.del)) with s = 20</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.block_type_params">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.na_torsion.</span></span><span class="sig-name descname"><span class="pre">block_type_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_for_atom_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/_params.html#block_type_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.block_type_params" title="Link to this definition">#</a></dt>
+<dd><p>Per-block-type indices this term needs, shared by scoring and packing.</p>
+<p>base is -1 for anything this term does not handle, including a nucleotide
+whose sugar or glycosidic torsions cannot be resolved.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.na_torsion_subterms">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.na_torsion.</span></span><span class="sig-name descname"><span class="pre">na_torsion_subterms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rot_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_type_ind_for_rot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bt_base</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bt_uaids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bt_ring</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bt_down</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_downstream_of_conn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_coord_offset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inter_residue_connections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backbone_means</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backbone_sdev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sugar_means</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi_means</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sdev_sugar</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sdev_chi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">well_pucker</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">well_alpha_gamma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">well_bibii_pucker</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">well_alphanext_bibii</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">well_chi_syn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_north</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pucker_temperature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bin_blend_sdev</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/_na_torsion_energy_term.html#na_torsion_subterms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.na_torsion_subterms" title="Link to this definition">#</a></dt>
+<dd><p>Per-block (bb, chi, sugar, well) energies, the mask, and the base index.</p>
+<p>The base index carries the polymer, which the caller needs in order to pick
+the per-polymer subterm weights.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.polymer_index">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.na_torsion.</span></span><span class="sig-name descname"><span class="pre">polymer_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/_params.html#polymer_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.polymer_index" title="Link to this definition">#</a></dt>
+<dd><p>0 for DNA, 1 for RNA. Non-nucleotides (base &lt; 0) fall to 0 and are masked.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.pucker_weights">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.na_torsion.</span></span><span class="sig-name descname"><span class="pre">pucker_weights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ring</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/_potentials.html#pucker_weights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.pucker_weights" title="Link to this definition">#</a></dt>
+<dd><p>Soft distribution over the 10 sugar pucker states.</p>
+<p>ring: (…, 5, 3) ring coordinates in cyclic order, heteroatom last.</p>
+<p>Walks the 5 cyclic rotations of the ring. Within each, <cite>dot</cite> measures how
+planar the leading four atoms are and <cite>exxo</cite> which face the fifth sits on.
+Softmax over -dot picks the apex; a sigmoid on exxo splits endo from exo.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.sugar_ring_atoms">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.na_torsion.</span></span><span class="sig-name descname"><span class="pre">sugar_ring_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_for_atom_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/_params.html#sugar_ring_atoms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.sugar_ring_atoms" title="Link to this definition">#</a></dt>
+<dd><p>Ordered sugar ring, derived from the nu torsions rather than named.</p>
+<p>nu0 and nu1 each span four consecutive ring atoms offset by one, so
+together they give the whole cycle in order. The pucker slot arithmetic
+is defined relative to a cycle ending on the ring heteroatom, so rotate
+to put it last.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.na_torsion.syn_weight">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.na_torsion.</span></span><span class="sig-name descname"><span class="pre">syn_weight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/na_torsion/_potentials.html#syn_weight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.na_torsion.syn_weight" title="Link to this definition">#</a></dt>
+<dd><p>Soft version of Rosetta’s chi in (20, 100) syn window.</p>
+</dd></dl>
+
 </section>
 <section id="constraints">
-<span id="module-tmol.score.na_torsion"></span><h2>Constraints<a class="headerlink" href="#constraints" title="Link to this heading">#</a></h2>
+<h2>Constraints<a class="headerlink" href="#constraints" title="Link to this heading">#</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmol.score.constraint.ConstraintEnergyTerm">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.constraint.</span></span><span class="sig-name descname"><span class="pre">ConstraintEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/constraint/_constraint_energy_term.html#ConstraintEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.constraint.ConstraintEnergyTerm" title="Link to this definition">#</a></dt>
@@ -716,6 +771,13 @@ allocation; it is not a score component.</p>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nucleic-acid-term">Nucleic-acid term</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.NaTorsionEnergyTerm"><code class="docutils literal notranslate"><span class="pre">NaTorsionEnergyTerm</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.bi_bii_weight"><code class="docutils literal notranslate"><span class="pre">bi_bii_weight()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.block_type_params"><code class="docutils literal notranslate"><span class="pre">block_type_params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.na_torsion_subterms"><code class="docutils literal notranslate"><span class="pre">na_torsion_subterms()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.polymer_index"><code class="docutils literal notranslate"><span class="pre">polymer_index()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.pucker_weights"><code class="docutils literal notranslate"><span class="pre">pucker_weights()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.sugar_ring_atoms"><code class="docutils literal notranslate"><span class="pre">sugar_ring_atoms()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.na_torsion.syn_weight"><code class="docutils literal notranslate"><span class="pre">syn_weight()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#constraints">Constraints</a><ul class="nav section-nav flex-column">
