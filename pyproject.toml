@@ -100,6 +100,26 @@ cuda = [
     # CCCL headers (nv/target, cub/, thrust/) needed by nvcc
     "nvidia-cuda-cccl>=13",
 ]
+docs = [
+    "sphinx>=8.0,<9",
+    "pydata-sphinx-theme>=0.16,<1",
+    "myst-parser>=4.0,<5",
+    "nbsphinx>=0.9,<1",
+    "sphinx-togglebutton>=0.3,<1",
+    "sphinx-gallery>=0.19,<1",
+    "matplotlib>=3.8,<4",
+    "sphinx-autodoc-typehints>=2.0,<4",
+    "pypandoc-binary>=1.15,<2",
+    "linkify-it-py>=2.0,<3",
+    "cattrs>=22.0",
+    "ipython>=8.0",
+    "py3Dmol>=2.4,<3",
+    "itables>=2.0",
+    "nbclient>=0.10,<1",
+    "nbformat>=5.10,<6",
+    "ipykernel>=6.29,<7",
+    "openbabel-wheel==3.1.1.22",
+]
 
 [project.urls]
 repository = "https://github.com/uw-ipd/tmol"
@@ -161,7 +181,7 @@ ext = ".cpp,.hh,.h,.cu,.py,.yaml"
 # sync with the `ignore:` block in codecov.yml.
 [tool.coverage.run]
 omit = [
-    "*/tmol/ligand/dimorphite_dl.py",
-    "*/tmol/ligand/openbabel_compat.py",
-    "*/tmol/tests/ligand/build_pli_ligand_cifs.py",
+    "*/tmol/ligand/_dimorphite_dl.py",
+    "*/tmol/ligand/_openbabel_compat.py",
+    "*/tmol/tests/ligand/_build_pli_ligand_cifs.py",
 ]

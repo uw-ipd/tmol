@@ -153,23 +153,28 @@ def test_switchable_view_escapes_payload_and_uses_unique_ids(monkeypatch):
 def test_selection_gallery_uses_one_switchable_viewer_and_escapes_payload():
     atoms = _atom_array()
     unsafe_label = "</script><selected>"
+    unsafe_note = "</script><note>"
     first = visualize.selection_gallery(
         atoms,
         {
             unsafe_label: numpy.array([False, True, False]),
             "all": numpy.array([True, True, True]),
         },
+        notes={unsafe_label: unsafe_note},
     )
     second = visualize.selection_gallery(
         atoms, {"other": numpy.array([True, False, False])}
     )
 
     assert unsafe_label not in first.data
+    assert unsafe_note not in first.data
     assert r"\u003c/script\u003e\u003cselected\u003e" in first.data
+    assert r"\u003c/script\u003e\u003cnote\u003e" in first.data
     assert '"serials": [2]' in first.data
     assert '"serials": [1, 2, 3]' in first.data
     assert first.data.count("$3Dmol.createViewer") == 1
     assert "viewer.zoomTo(selection, 400)" in first.data
+    assert "noteElement.textContent = preset.note" in first.data
     assert 'button.addEventListener("click"' in first.data
     first_match = re.search(r'id="(tmol-selection-[a-f0-9]+)"', first.data)
     second_match = re.search(r'id="(tmol-selection-[a-f0-9]+)"', second.data)

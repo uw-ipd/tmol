@@ -1,0 +1,61 @@
+"""
+Score a protein
+===============
+
+Load a PDB file into a :class:`tmol.pose.PoseStack`, render the
+beta2016 score function, evaluate the total weighted TMol score, and render the
+scored protein in an interactive 3D viewer.
+"""
+
+from pathlib import Path
+
+import torch
+
+import tmol
+from tmol.io import pose_stack_from_pdb
+from tmol.score import beta2016_score_function
+
+# sphinx_gallery_thumbnail_path = "_static/examples/score_protein_01.png"
+
+
+def pose_center(pose_stack):
+    """Return the geometric center of the first pose for viewer labels."""
+    coords = pose_stack.coords[0].detach().cpu()
+    finite_coords = coords[torch.isfinite(coords).all(dim=-1)]
+    center = finite_coords.mean(dim=0)
+    return {"x": float(center[0]), "y": float(center[1]), "z": float(center[2])}
+
+
+def view_scored_pose(pose_stack, total_score):
+    """Return a py3Dmol viewer with the weighted score shown as a label."""
+    viewer = tmol.view(pose_stack, width=760, height=520)
+    viewer.addLabel(
+        f"beta2016 total (TMol score units): {total_score:.3f}",
+        {
+            "position": pose_center(pose_stack),
+            "backgroundColor": "white",
+            "fontColor": "black",
+            "fontSize": 14,
+            "inFront": True,
+            "showBackground": True,
+        },
+    )
+    viewer.zoomTo()
+    return viewer
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+repo_root = Path(tmol.__file__).resolve().parents[1]
+pdb_path = repo_root / "tmol" / "tests" / "data" / "pdb" / "1ubq.pdb"
+
+pose_stack = pose_stack_from_pdb(str(pdb_path), device)
+sfxn = beta2016_score_function(device)
+scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
+
+score = scorer(pose_stack.coords)
+protein_score = float(score[0])
+print(f"1ubq beta2016 score (TMol score units): {protein_score:.3f}")
+
+viewer = view_scored_pose(pose_stack, protein_score)
+
+viewer

@@ -1,32 +1,27 @@
-# Docs
+# tmol Docs
 
-This directory contains a `sphinx`-based build configuration combining
-docstring-based api documentation and freeform notes. Package
-documentation is generated via a templated `apidoc` pass and freeform
-documentation is included from `*.rst` documents in this directory.
+The documentation is built with Sphinx, MyST Markdown, nbsphinx, autodoc, and
+sphinx-gallery.
 
-## Building 
+```bash
+pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.5"
+pip install scikit-build-core pybind11 ninja packaging "cmake>=3.18,<4"
+TMOL_DISABLE_WHEEL_FETCH=1 \
+  pip install --no-build-isolation -e ".[docs]" \
+  -Ccmake.define.TMOL_ENABLE_CUDA=OFF
+python .github/scripts/smoke_tutorial_notebooks.py --write
+docs/make
+```
 
-The documentation build is handled by the `make` script in this directory,
-which outputs an html documentation build to `_build/html`. Execute via
-`docs/make` from the project root directory.
+The rendered site is written to `docs/_build/html`.
 
-Document editing is supported via the `watch` script, which performs
-a clean documentation build, launches a local browser over the build, and
-then triggers rebuilds in response to source changes. Execute via
-`docs/watch` from the project root directory.
+API pages are authored under `docs/api/`. Gallery examples are sourced from
+`docs/examples/` and use committed thumbnails. Notebooks are executed by the
+smoke command before nbsphinx renders their saved outputs.
 
-The docs build from the `master` branch is auto-deployed to
-http://tmol.ipd.uw.edu via the `gh-pages` branch during the `buildkite`
-"Pages" build step. Documentation builds from non-`master` branches are
-available as a build artifact of the "Docs" build step under
-`docs/_build/html.tgz`.
-
-## Editing
-
-All docstring markup and freeform notes are written in
-[reStructuredText](http://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html)
-and formatted by `sphinx`. `index.rst` is the documentation root. Any new
-top-level modules in `tmol` should be added to `index.rst`, as should any
-new freeform documentation added in this directory.
-
+GitHub Actions builds docs on pull requests, pushes to `master`, and
+`kdidi/**` integration branches. Same-repository pull requests publish under
+`previews/pr-<number>/`; integration branches publish under
+`previews/branch-<branch-name>-<ref-hash>/`. Pushes to `master` deploy the
+current docs to `latest/` and `vX.Y.Z/` on the `gh-pages` branch and update
+`_static/switcher.json` for the version picker.
