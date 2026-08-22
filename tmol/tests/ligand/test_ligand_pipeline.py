@@ -178,7 +178,7 @@ def test_ddg_from_cif_complex_with_onthefly_ligand_prep(
     """
     from tmol.io import pose_stack_from_biotite
     from tmol.score import beta2016_score_function
-    from tmol.score import calculate_block_pair_ddg
+    from tmol.ops import calculate_block_pair_ddg
 
     pose_stack, context = pose_stack_from_biotite(
         cif_1a25_with_pse,

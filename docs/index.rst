@@ -1,79 +1,73 @@
-.. TMol documentation master file, created by
-   sphinx-quickstart on Sun Jul 15 11:02:35 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-:github_url: https://github.com/uw-ipd/tmol
-
-TMol Documentation
-================================
-
-TMol is a tensor-based molecular modeling library for use on GPUs and CPUs.
-
-Ligand preparation (detecting, parameterizing, and scoring non-standard
-residues such as small-molecule ligands) is documented in the
-`ligand preparation guide
-<https://github.com/uw-ipd/tmol/blob/main/tmol/ligand/README.md>`_, which
-covers the CIF/SMILES/mol2 pipeline, the ``strict_ligands`` failure mode, and a
-protein-ligand ddG quickstart.
-
-.. The toctree entry declares the document's location, and children, inside the
-  table-of-contents entry. We want two captioned toc constructs on the front,
-  "Notes", containing freeform documentation, and "Packages", docstring based
-  inline documentation. We declare a single root (non-:name:) toc entry that
-  contains our notes + apidoc, then create the `apidoc` toc entry inline in this
-  index, allowing both to show up on navigation sidebar. If we, instead, declared 
-  two root toc entries they would both show up in *this* document's sidebar, but
-  one would be lost when navigating to subpages.
-
-.. toctree::
-  :glob:
-  :caption: Notes
-
-  architecture
-  datatypes
-  apidoc
-
-Packages
---------
-
-.. Generate sidebar entries via a hidden toctree entry, then inline the top-level
-   packages as an autosummary table so there's a touch of inline documentation.
-   Make sure to update *both* tables when adding top-level components.
-
-.. toctree::
-  :caption: Packages
-  :name: apidoc
-  :hidden:
-
-  apidoc/tmol.system
-  apidoc/tmol.score
-  apidoc/tmol.database
-  apidoc/tmol.kinematics
-  apidoc/tmol.numeric
-  apidoc/tmol.types
-  apidoc/tmol.utility
-  apidoc/tmol.io
-  apidoc/tmol.viewer
-  apidoc/tmol.support
-  apidoc/tmol.extern
-
-.. autosummary::
-
-  tmol.system
-  tmol.score
-  tmol.database
-  tmol.kinematics
-  tmol.numeric
-  tmol.types
-  tmol.utility
-  tmol.io
-  tmol.viewer
-  tmol.support
-  tmol.extern
-
-Indicies
+TMol documentation
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
+TMol is a PyTorch molecular-modeling library for batched, differentiable
+all-atom calculations on CPU and GPU. It provides Rosetta-inspired scoring,
+side-chain packing and design, Cartesian and kinematic minimization, FastRelax,
+ligand preparation, and nucleic-acid modeling primitives.
+
+TMol is not a PyRosetta compatibility layer. Weighted outputs are TMol score
+units—not kcal/mol or calibrated Rosetta score units—and matching Rosetta
+protocol trajectories or numerical results should not be expected.
+
+Choose a path
+-------------
+
+Start with :doc:`quickstart` for a first score calculation. Then use the
+:doc:`learning paths <learning_paths>` to follow the numbered curriculum or
+look up a specific operation in the :doc:`task index
+<tutorial/recipe_index>`.
+
+.. raw:: html
+
+   <nav class="docs-card-grid docs-card-grid--three" aria-label="Choose a TMol documentation path">
+     <a class="docs-card" href="learning_paths.html">
+       <span class="docs-card-kicker">Learn</span>
+       <span class="docs-card-title">Follow a learning path</span>
+       <span class="docs-card-description">Move from structure input and batching through scoring, packing, minimization, and specialized chemistry.</span>
+     </a>
+     <a class="docs-card" href="workflows/index.html">
+       <span class="docs-card-kicker">Do</span>
+       <span class="docs-card-title">Run a workflow</span>
+       <span class="docs-card-description">Use concise recipes for recurring modeling tasks and jump directly to their APIs and deep tutorials.</span>
+     </a>
+     <a class="docs-card" href="tutorial/recipe_index.html">
+       <span class="docs-card-kicker">Find</span>
+       <span class="docs-card-title">Look up a task</span>
+       <span class="docs-card-description">Find the maintained tutorial, workflow recipe, and public API for a specific operation.</span>
+     </a>
+   </nav>
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Get started
+   :hidden:
+
+   installation
+   quickstart
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Learn
+   :hidden:
+
+   Learning paths <learning_paths>
+   Tutorials <examples_index>
+   Workflows <workflows/index>
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference
+   :hidden:
+
+   API reference <api_reference>
+   Concepts <concepts>
+   Task index <tutorial/recipe_index>
+   Rosetta-to-TMol crosswalk <tutorial/rosetta_crosswalk>
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contribute
+   :hidden:
+
+   Contributing <contributor_guide>
