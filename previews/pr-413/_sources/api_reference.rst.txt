@@ -26,3 +26,8 @@ For an architectural overview and tensor conventions, see
    api/score_terms
    api/types
    api/utility
+
+.. toctree::
+   :hidden:
+
+   Concepts <concepts>

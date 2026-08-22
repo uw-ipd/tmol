@@ -105,7 +105,7 @@ when ``sum_terms=False``. The complete score-type-to-term map is documented in
 Where to continue
 =================
 
-* :doc:`learning_paths` gives a curriculum through the architecture.
+* :doc:`examples_index` provides complete, executable walkthroughs.
 * :doc:`workflows/index` organizes concise recipes by modeling task.
 * :doc:`terminology` explains blocks, score units, deposited versus built
   atoms, and movement choices.

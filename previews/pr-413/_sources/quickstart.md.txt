@@ -101,11 +101,17 @@ energies. See the {doc}`scoring and analysis guide </user_guide/scoring>`.
 
 ## Choose the next path
 
-- Follow the {doc}`learning paths </learning_paths>` for the complete numbered
-  curriculum and its packing/minimization branch.
+- Work through the eight {doc}`interactive examples </examples_index>` for
+  complete, executable tutorials with molecular viewers and exercises.
 - Use the {doc}`workflow hub </workflows/index>` for short, reusable recipes.
 - Search the {doc}`task index </tutorial/recipe_index>` when you already know
   the operation you need.
 
 If you want to continue directly, start with
 {doc}`Tutorial 01 — Working with TMol </tutorial/01_working_with_tmol>`.
+
+```{toctree}
+:hidden:
+
+Installation <installation>
+```

@@ -6,8 +6,9 @@ C++/CUDA extensions for scoring, packing, kinematics, and minimization kernels.
 > - **Choose a path:** Use a release wheel for the shortest supported install,
 >   or build from source when developing TMol or targeting an unavailable
 >   platform combination.
-> - **Next step:** Run the {doc}`Quickstart </quickstart>`, then choose a
->   {doc}`learning path </learning_paths>`.
+> - **Next step:** Run the {doc}`Quickstart </quickstart>`, then choose an
+>   {doc}`interactive example </examples_index>` or a concise
+>   {doc}`workflow </workflows/index>`.
 > - **Development setup:** See {doc}`Development </user_guide/development>`.
 
 ## Pre-built Wheels

@@ -99,4 +99,4 @@ execution strategy that can wrap many of these workflows; it does not make
 unrelated scores directly comparable.
 
 Use the {doc}`task index </tutorial/recipe_index>` for a direct operation lookup
-or the {doc}`learning paths </learning_paths>` for the numbered curriculum.
+or the {doc}`interactive examples </examples_index>` for complete walkthroughs.

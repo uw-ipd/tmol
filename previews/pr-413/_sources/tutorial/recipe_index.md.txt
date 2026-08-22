@@ -1,8 +1,8 @@
 # Find a TMol task
 
 Use this page to find a concise workflow, deep Tutorial, or public API for a
-common task. Start with the {doc}`learning paths </learning_paths>` when you
-want a curriculum rather than a lookup table.
+common task. Browse the {doc}`interactive examples </examples_index>` when you
+want a complete walkthrough rather than a lookup table.
 
 ## Fundamentals, input, and output
 
