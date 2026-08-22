@@ -488,30 +488,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span>
 
 
-<div class="viewcode-block" id="residue_mask_from_chain">
-<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.residue_mask_from_chain">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">residue_mask_from_chain</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Build a boolean block-level mask selecting residues belonging to a given</span>
-<span class="sd">    chain, identified by its PDB chain label string.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        pose_stack: The pose stack. Must have a ``pdb_info`` attribute with</span>
-<span class="sd">            ``chain_labels`` (``NDArray[object][n_poses, max_n_blocks]``).</span>
-<span class="sd">        chain_id: A string chain identifier (e.g. ``"A"``, ``"B"``).</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        Boolean tensor of shape ``[n_poses, n_blocks]`` with ``True`` for</span>
-<span class="sd">        residues whose PDB chain label matches ``chain_id``.</span>
-<span class="sd">    """</span>
-    <span class="n">chain_labels</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span>
-    <span class="p">)</span>  <span class="c1"># NDArray[object][n_poses, max_n_blocks]</span>
-    <span class="n">mask_np</span> <span class="o">=</span> <span class="n">chain_labels</span> <span class="o">==</span> <span class="n">chain_id</span>  <span class="c1"># [n_poses, max_n_blocks]</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mask_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">mask</span></div>
-
-
-
 <div class="viewcode-block" id="calculate_block_pair_ddg">
 <a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.calculate_block_pair_ddg">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">calculate_block_pair_ddg</span><span class="p">(</span>
@@ -1099,10 +1075,6 @@
 <span class="sd">        Boolean tensor of shape ``[n_poses, max_n_atoms]`` suitable for</span>
 <span class="sd">        use as a ``coord_mask`` argument to ``run_cart_min``.</span>
 <span class="sd">    """</span>
-    <span class="c1"># n_poses, max_n_atoms, _ = pose_stack.coords.shape</span>
-    <span class="c1"># n_blocks = pose_stack.max_n_blocks</span>
-    <span class="c1"># max_n_block_atoms = pose_stack.max_n_block_atoms</span>
-
     <span class="c1"># ---------------------------------------------------------------</span>
     <span class="c1"># 1.  All atoms from the masked blocks themselves.</span>
     <span class="c1"># ---------------------------------------------------------------</span>

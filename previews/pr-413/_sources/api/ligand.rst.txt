@@ -1,5 +1,5 @@
 Ligands
-=======
+-------
 
 Ligand detection, preparation, parameter I/O, and fragmentation are available
 from the public :mod:`tmol.ligand` package.

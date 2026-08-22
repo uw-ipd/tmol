@@ -696,28 +696,8 @@ should be marked.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="tmol.ops.residue_mask_from_chain">
-<span class="sig-prename descclassname"><span class="pre">tmol.ops.</span></span><span class="sig-name descname"><span class="pre">residue_mask_from_chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/ops/_score_utils.html#residue_mask_from_chain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ops.residue_mask_from_chain" title="Link to this definition">#</a></dt>
-<dd><p>Build a boolean block-level mask selecting residues belonging to a given
-chain, identified by its PDB chain label string.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>pose_stack</strong> – The pose stack. Must have a <code class="docutils literal notranslate"><span class="pre">pdb_info</span></code> attribute with
-<code class="docutils literal notranslate"><span class="pre">chain_labels</span></code> (<code class="docutils literal notranslate"><span class="pre">NDArray[object][n_poses,</span> <span class="pre">max_n_blocks]</span></code>).</p></li>
-<li><p><strong>chain_id</strong> – A string chain identifier (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;A&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;B&quot;</span></code>).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Boolean tensor of shape <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_blocks]</span></code> with <code class="docutils literal notranslate"><span class="pre">True</span></code> for
-residues whose PDB chain label matches <code class="docutils literal notranslate"><span class="pre">chain_id</span></code>.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="tmol.score.calculate_fragment_interactions">
-<span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">calculate_fragment_interactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partner_mask</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum_terms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_score_utils.html#calculate_fragment_interactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.calculate_fragment_interactions" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">calculate_fragment_interactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partner_mask</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum_terms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_fragment_interactions.html#calculate_fragment_interactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.calculate_fragment_interactions" title="Link to this definition">#</a></dt>
 <dd><p>Return each ligand fragment’s interaction with <code class="docutils literal notranslate"><span class="pre">partner_mask</span></code>.</p>
 <p>The connected multi-block pose is scored once. Fragment-fragment entries
 remain in the block-pair matrix and are not silently assigned to either
@@ -789,7 +769,6 @@ parameter database used to construct <code class="docutils literal notranslate">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.compute_block_adjacency"><code class="docutils literal notranslate"><span class="pre">compute_block_adjacency()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.compute_block_centroids_and_furthest_dist"><code class="docutils literal notranslate"><span class="pre">compute_block_centroids_and_furthest_dist()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.res_mask_to_coord_mask"><code class="docutils literal notranslate"><span class="pre">res_mask_to_coord_mask()</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ops.residue_mask_from_chain"><code class="docutils literal notranslate"><span class="pre">residue_mask_from_chain()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.calculate_fragment_interactions"><code class="docutils literal notranslate"><span class="pre">calculate_fragment_interactions()</span></code></a></li>
 </ul>
   </nav></div>
