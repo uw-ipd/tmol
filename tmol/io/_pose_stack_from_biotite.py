@@ -441,6 +441,18 @@ def biotite_from_pose_stack(
         co = canonical_ordering_for_biotite()
     cf = canonical_form_from_pose_stack(co, pose_stack)
     structure = biotite_from_canonical_form(cf, co=co)
+    # CanonicalForm stores an equivalence class (SEP is represented by SER),
+    # while the selected block type retains the externally meaningful name3.
+    # Restore that name for lossless PTM round trips.
+    residue_starts = biotite.structure.get_residue_starts(structure)
+    block_type_inds = pose_stack.block_type_ind[0].cpu().numpy()
+    residue_ends = numpy.append(residue_starts[1:], structure.array_length())
+    for res_ind, (start, end) in enumerate(zip(residue_starts, residue_ends)):
+        bt_ind = block_type_inds[res_ind]
+        if bt_ind >= 0:
+            structure.res_name[start:end] = (
+                pose_stack.packed_block_types.active_block_types[bt_ind].name3
+            )
     sbm = getattr(pose_stack, "split_block_mapping", None)
     if merge_fragments and sbm is not None and sbm.entries:
         from tmol.ligand import recombine_fragmented_ligands
@@ -489,7 +501,7 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
 ):
     biotite_residues = biotite.structure.get_residues(biotite_structure)[1]
     to_remove = {"HOH"}
-    known_residue_names = set(co.restype_io_equiv_classes)
+    known_residue_names = set(co.restype_name3_to_io_equiv_class)
     for i_3lc in biotite_residues:
         if i_3lc in to_remove:
             continue
@@ -520,7 +532,8 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
             continue
         start, end = biotite_residue_starts[i], residue_ends[i]
         res_name3 = biotite_structure.res_name[start]
-        required = co.restypes_required_mainchain_atoms.get(res_name3)
+        equiv_class = co.restype_name3_to_io_equiv_class[res_name3]
+        required = co.restypes_required_mainchain_atoms.get(equiv_class)
         if not required:
             continue
         res_atom_names = atom_names[start:end]
@@ -807,7 +820,10 @@ def canonical_form_from_biotite(
     biotite_res_name_for_atom = biotite_structure.res_name
 
     restype_to_index = {name: i for i, name in enumerate(co.restype_io_equiv_classes)}
-    tmol_restypes = [restype_to_index[i_3lc] for i_3lc in biotite_residues]
+    tmol_restypes = [
+        restype_to_index[co.restype_name3_to_io_equiv_class[i_3lc]]
+        for i_3lc in biotite_residues
+    ]
 
     valid_atom_mask, valid_atom_inds, valid_res_inds = _map_atoms_to_canonical(
         co,

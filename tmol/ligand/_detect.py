@@ -583,7 +583,7 @@ def detect_nonstandard_residues(
         A list of NonStandardResidueInfo objects, one per unique unknown
         residue name.
     """
-    known_names = set(canonical_ordering.restype_io_equiv_classes)
+    known_names = set(canonical_ordering.restype_name3_to_io_equiv_class)
     seen: set[str] = set()
     results: list[NonStandardResidueInfo] = []
 

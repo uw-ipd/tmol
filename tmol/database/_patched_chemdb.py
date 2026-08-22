@@ -40,6 +40,7 @@ class RestypeGraphBuilder:
 # delete atoms, bonds, torsions, connections, and mainchain entries involving atom
 def remove_atom(res, atom):
     res.atoms = tuple(x for x in res.atoms if x.name != atom)
+    res.atom_aliases = tuple(x for x in res.atom_aliases if x.name != atom)
     res.bonds = tuple(b for b in res.bonds if b[0] != atom and b[1] != atom)
     res.torsions = tuple(
         x for x in res.torsions if atom not in [x.a.atom, x.b.atom, x.c.atom, x.d.atom]
@@ -514,7 +515,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         newres = RawResidueType(
             name=res.name + ":" + variant.display_name,
             base_name=res.base_name,
-            name3=res.name3,
+            name3=variant.name3 or res.name3,
             io_equiv_class=res.io_equiv_class,
             atoms=res.atoms,
             atom_aliases=res.atom_aliases,
@@ -525,6 +526,8 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
             properties=res.properties,
             chi_samples=res.chi_samples,
             default_jump_connection_atom=res.default_jump_connection_atom,
+            hydrogens_regenerated=res.hydrogens_regenerated,
+            is_ligand_fragment=res.is_ligand_fragment,
         )
 
         # 1. remove atoms
