@@ -15,25 +15,41 @@ This document covers building, testing, and contributing to tmol.
 
 ## Local Setup
 
+**NVIDIA GPU (Linux):**
 ```bash
 git clone https://github.com/uw-ipd/tmol.git && cd tmol
-pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
+pip install -e ".[dev]"       # builds C++/CUDA extensions via CMake
 ```
 
 Requirements: Python 3.11+, PyTorch 2.8+, C++17 compiler, CMake 3.18+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built. Pre-built wheels are published for Python `cp311`-`cp314`.
 
-## Building Extensions
+**Apple Silicon Mac (macOS):**
 
-tmol ships custom C++/CUDA kernels that are compiled via CMake (using scikit-build-core as the build backend). `pip install -e .` handles compilation automatically.
+> [!IMPORTANT]
+> MPS support lives in the **[fnachon/tmol](https://github.com/fnachon/tmol)** fork.
+> Clone that repository for Apple Silicon development.
 
 ```bash
-# Full build (production extensions only)
+git clone https://github.com/fnachon/tmol.git && cd tmol
+pip install -e ".[dev,mps]"   # builds C++/Metal extensions via CMake
+```
+Requirements: Python 3.10+, PyTorch 2.5+, macOS 13+, Xcode Command Line Tools (`xcode-select --install`), CMake 3.18+. No `nvcc` needed.
+
+## Building Extensions
+
+tmol ships custom C++/CUDA/Metal kernels compiled via CMake (using scikit-build-core as the build backend). `pip install -e .` handles compilation automatically.
+
+```bash
+# Full build — NVIDIA GPU
 pip install -e .
+
+# Full build — Apple Silicon (MPS backend)
+pip install -e ".[mps]"
 
 # Build with test extensions
 pip install -e . -Ccmake.define.TMOL_BUILD_TESTS=ON
 
-# Target specific GPU architectures (default: "80;86;89;90")
+# Target specific CUDA GPU architectures (default: "80;86;89;90")
 pip install -e . -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;90"
 
 # Control parallelism
@@ -44,11 +60,29 @@ CMake build options:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CMAKE_CUDA_ARCHITECTURES` | `80;86;89;90` | GPU compute capabilities to compile for |
+| `CMAKE_CUDA_ARCHITECTURES` | `80;86;89;90` | CUDA GPU compute capabilities to compile for |
 | `TMOL_BUILD_TESTS` | `OFF` | Build test-only C++/CUDA extensions |
+| `TMOL_BUILD_MPS` | auto-detected | Build MPS (Metal) backend; auto-enabled when `xcrun` and Metal SDK are found |
 | `TMOL_NVCC_THREADS` | `4` | Threads per nvcc invocation |
 | `TMOL_ENABLE_CUDA` | `ON` | Set to `OFF` for CPU-only build (no `nvcc` needed) |
 | `MAX_JOBS` | auto | Max parallel compilation jobs |
+
+### MPS / Metal build notes
+
+The MPS backend is enabled automatically on macOS when `xcrun` and the Metal SDK are present (they ship with Xcode Command Line Tools). The build compiles:
+
+- Objective-C++ (`.mm`) bridge files that call Metal API
+- Metal Shading Language kernels (`.metal` → `.air` → `tmol_primitives.metallib`) for GPU-accelerated scan, reduce, and segmented scan primitives
+
+To explicitly enable or disable the MPS backend:
+
+```bash
+# Force-enable (will fail if Metal SDK is absent)
+pip install -e . -Ccmake.define.TMOL_BUILD_MPS=ON
+
+# Force-disable (CPU-only build on macOS)
+pip install -e . -Ccmake.define.TMOL_BUILD_MPS=OFF
+```
 
 ## Extension Loading: AOT vs JIT
 
@@ -105,6 +139,10 @@ JIT mode requires `nvcc` and CUDA headers. You can either:
 pip install .[cuda]
 ```
 
+### MPS / Metal and JIT mode
+
+The MPS backend does not use JIT compilation — Metal shaders are always compiled ahead-of-time at build time via `xcrun metal`. Setting `TMOL_USE_JIT=1` on macOS still compiles the C++/Objective-C++ bridge code via `torch.utils.cpp_extension`, but the `.metallib` binary is loaded from disk. No additional environment variables are needed for MPS.
+
 ## Running Tests
 
 ```bash
@@ -114,8 +152,11 @@ pytest tmol/tests/ -v
 # Specific test file
 pytest tmol/tests/score/test_score_function.py -v
 
-# Only CPU tests (skip cuda-parametrized tests)
-pytest tmol/tests/ -v -k "not cuda"
+# Only CPU tests (skip cuda- and mps-parametrized tests)
+pytest tmol/tests/ -v -k "not cuda and not mps"
+
+# Only MPS tests (Apple Silicon)
+pytest tmol/tests/test_mps.py -v
 
 # With coverage
 pytest tmol/tests/ --cov=./tmol --junitxml=results.xml
@@ -123,6 +164,23 @@ pytest tmol/tests/ --cov=./tmol --junitxml=results.xml
 # Benchmarks (disabled by default)
 pytest --benchmark-enable --benchmark-only --benchmark-max-time=.1
 ```
+
+### MPS test suite
+
+> [!NOTE]
+> MPS tests require the [fnachon/tmol](https://github.com/fnachon/tmol) fork — the upstream repository does not include MPS patches.
+
+`tmol/tests/test_mps.py` contains a five-layer smoke test for the Apple Silicon backend:
+
+| Layer | What it checks |
+|-------|---------------|
+| 1 — Tensor plumbing | MPS availability, creation, matmul, autograd |
+| 2 — Primitives | cumsum, reduce, elementwise ops via PyTorch wrappers |
+| 3 — Dispatch macro | Pose stack construction on MPS (exercises compiled ops) |
+| 4 — Forward pass | CartBonded, Elec, LJLK, HBond, full beta2016 score function |
+| 5 — CPU consistency | MPS scores and gradients match CPU within float32 tolerance |
+
+All tests are automatically skipped on non-Apple-Silicon machines via the `@requires_mps` mark.
 
 ### Ligand charges
 
@@ -137,7 +195,7 @@ parameter-generation parity is the guanfeng DUD-80 SMILES suite
 ### Testing a specific release
 
 ```bash
-# Install matching PyTorch first (example: x86_64 manylinux cu128/torch2.10)
+# CUDA/Linux: install matching PyTorch first (example: x86_64 manylinux cu128/torch2.10)
 pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu128
 
 # Install a release wheel from GitHub
@@ -145,6 +203,9 @@ pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+c
 
 # Or install a specific branch/tag from source
 pip install git+https://github.com/uw-ipd/tmol.git@vX.Y.Z
+
+# MPS/macOS: install a specific branch/tag from the MPS fork
+pip install git+https://github.com/fnachon/tmol.git@master
 
 # Run tests against it
 pytest --pyargs tmol.tests -v
@@ -185,6 +246,9 @@ tmol uses GitHub Actions for all CI:
 | `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
 | `wheel-smoke.yml` | Push to wheel feature branches, manual | Builds and installs the complete 32-wheel manylinux matrix, checks auditwheel metadata and glibc-2.28 portability, and loads a representative wheel on the self-hosted GPU runner. |
 | `publish.yml` | Push `v*` tag, manual | Builds manylinux wheels (GPU + CPU) + sdist, uploads sdist to PyPI, uploads wheels to a GitHub Release. |
+
+> [!NOTE]
+> MPS tests (`tmol/tests/test_mps.py`) are not yet part of the automated CI pipeline, which runs on Linux GPU runners. Run them locally on an Apple Silicon Mac with `pytest tmol/tests/test_mps.py -v`.
 
 ### CI architecture
 

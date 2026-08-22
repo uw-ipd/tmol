@@ -100,9 +100,15 @@ cuda = [
     # CCCL headers (nv/target, cub/, thrust/) needed by nvcc
     "nvidia-cuda-cccl>=13",
 ]
+# MPS (Apple Metal) backend — macOS + Apple Silicon only.
+# No pip dependencies: Metal SDK ships with macOS 13+ / Xcode 14+.
+# Requires: macOS >= 13.0, Apple Silicon or AMD GPU with Metal 3 support,
+#           PyTorch >= 2.0 (MPS backend), Xcode Command Line Tools.
+mps = []
 
 [project.urls]
-repository = "https://github.com/uw-ipd/tmol"
+repository = "https://github.com/fnachon/tmol"
+"Upstream (CUDA/Linux)" = "https://github.com/uw-ipd/tmol"
 
 # Build settings ---------------------------------------------------------------
 [build-system]

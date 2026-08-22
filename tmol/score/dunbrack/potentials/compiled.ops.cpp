@@ -21,6 +21,11 @@ using torch::Tensor;
 using torch::autograd::AutogradContext;
 using torch::autograd::tensor_list;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 template <template <tmol::Device> class DispatchMethod>
 class DunbrackPoseScoreOp
     : public torch::autograd::Function<DunbrackPoseScoreOp<DispatchMethod>> {
@@ -82,6 +87,7 @@ class DunbrackPoseScoreOp
     at::Tensor score;
     at::Tensor dscore_dcoords;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -150,6 +156,9 @@ class DunbrackPoseScoreOp
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
 
     if (output_block_pair_energies) {
       // save inputs for deriv call in backwards
@@ -300,6 +309,7 @@ class DunbrackPoseScoreOp
 
       using Int = int32_t;
 
+      c10::Device orig_device = rot_coords.device();
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
@@ -369,6 +379,8 @@ class DunbrackPoseScoreOp
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {
@@ -495,6 +507,7 @@ class DunbrackRotamerScoreOp
     at::Tensor dscore_dcoords;
     at::Tensor block_neighbors;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -564,6 +577,10 @@ class DunbrackRotamerScoreOp
           dscore_dcoords = std::get<1>(result).tensor;
           block_neighbors = std::get<2>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+    block_neighbors = mps_to_dev(block_neighbors, orig_device);
 
     if (output_block_pair_energies) {
       // save inputs for deriv call in backwards
@@ -711,6 +728,7 @@ class DunbrackRotamerScoreOp
 
       using Int = int32_t;
 
+      c10::Device orig_device = rot_coords.device();
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
@@ -780,6 +798,8 @@ class DunbrackRotamerScoreOp
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {

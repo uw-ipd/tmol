@@ -92,7 +92,8 @@ auto AnnealerDispatch<D>::forward(
     int const n_inner_iterations = n_inner_iterations_factor * pose_n_rotamers;
 
     for (int traj = 0; traj < n_traj; ++traj) {
-      // Initial assignment: assign a rotamer to every residue
+      // Initial assignment: assign a rotamer to every residue.
+      // Residues with 0 rotamers get -1 (avoids rand() % 0 undefined behavior).
       for (int i = 0; i < n_res; ++i) {
         int const i_n_rots = n_rotamers_for_res[pose][i];
         if (i_n_rots == 0) {

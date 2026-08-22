@@ -40,6 +40,8 @@ class PoseStackKinematicsModule(torch.nn.Module):
         pbt = pose_stack.packed_block_types
         ff = fold_forest
         device = pose_stack.device
+        # Kinematics needs float64, which MPS does not support; use CPU for MPS
+        kin_device = torch.device("cpu") if device.type == "mps" else device
 
         # Setup: initial annotations of block types and packed block types
         # with the per-block-scan-path segments.
@@ -75,14 +77,14 @@ class PoseStackKinematicsModule(torch.nn.Module):
                     ]
                 ),
                 dim=1,
-            ).to(device)
+            ).to(kin_device)
         )
 
-        self.nodes_f = _p(kmd.scan_data_fw.nodes.to(device))
-        self.scans_f = _p(kmd.scan_data_fw.scans.to(device))
+        self.nodes_f = _p(kmd.scan_data_fw.nodes.to(kin_device))
+        self.scans_f = _p(kmd.scan_data_fw.scans.to(kin_device))
         self.gens_f = _p(kmd.scan_data_fw.gens)  # on cpu
-        self.nodes_b = _p(kmd.scan_data_bw.nodes.to(device))
-        self.scans_b = _p(kmd.scan_data_bw.scans.to(device))
+        self.nodes_b = _p(kmd.scan_data_bw.nodes.to(kin_device))
+        self.scans_b = _p(kmd.scan_data_bw.scans.to(kin_device))
         self.gens_b = _p(kmd.scan_data_bw.gens)  # on cpu
 
     def forward(self, dofs):

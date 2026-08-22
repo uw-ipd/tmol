@@ -26,6 +26,11 @@ using torch::autograd::tensor_list;
 
 using namespace tmol::score::common;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 template <template <tmol::Device> class DispatchMethod>
 class GetTorsionAngleOp
     : public torch::autograd::Function<GetTorsionAngleOp<DispatchMethod>> {
@@ -34,6 +39,7 @@ class GetTorsionAngleOp
     at::Tensor angle;
     at::Tensor dangle_dcoords;
 
+    c10::Device orig_device = coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -48,6 +54,9 @@ class GetTorsionAngleOp
           angle = std::get<0>(result).tensor;
           dangle_dcoords = std::get<1>(result).tensor;
         }));
+
+    angle = mps_to_dev(angle, orig_device);
+    dangle_dcoords = mps_to_dev(dangle_dcoords, orig_device);
 
     ctx->save_for_backward({dangle_dcoords});
 

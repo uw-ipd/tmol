@@ -90,6 +90,29 @@ else()
 endif()
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# MPS (Apple Metal) detection
+# Enabled automatically on macOS when xcrun and the Metal SDK are present.
+# Can be forced on/off with -DTMOL_BUILD_MPS=ON/OFF.
+# ═══════════════════════════════════════════════════════════════════════════════
+if(APPLE)
+  find_program(XCRUN_EXECUTABLE xcrun)
+  if(XCRUN_EXECUTABLE)
+    execute_process(
+      COMMAND ${XCRUN_EXECUTABLE} --sdk macosx --show-sdk-path
+      OUTPUT_VARIABLE _MACOSX_SDK_PATH
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      RESULT_VARIABLE _SDK_RESULT
+    )
+    if(_SDK_RESULT EQUAL 0 AND EXISTS "${_MACOSX_SDK_PATH}/System/Library/Frameworks/Metal.framework")
+      set(_TMOL_MPS_AVAILABLE TRUE)
+    endif()
+  endif()
+endif()
+
+option(TMOL_BUILD_MPS "Build Apple Metal/MPS backend" ${_TMOL_MPS_AVAILABLE})
+message(STATUS "tmol: TMOL_BUILD_MPS = ${TMOL_BUILD_MPS}")
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Dependencies
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -109,8 +132,12 @@ message(STATUS "tmol: Python include dirs = ${_TMOL_PYTHON_INCLUDE_DIRS}")
 # PyTorch 2.13 and newer require C++20 for third-party extensions. Keep the
 # older release lanes on C++17 so their established CUDA toolchains remain
 # unchanged.
+# KMP_DUPLICATE_LIB_OK=TRUE is required on macOS when multiple copies of the
+# OpenMP runtime are loaded (e.g. conda torch + Homebrew clang-rt), otherwise
+# Python aborts with "OMP Error #15" before printing any output.
 execute_process(
-  COMMAND ${Python_EXECUTABLE} -c "import torch; v=torch.__version__.split('.'); print(f'{v[0]};{v[1]}')"
+  COMMAND ${CMAKE_COMMAND} -E env KMP_DUPLICATE_LIB_OK=TRUE
+          ${Python_EXECUTABLE} -c "import torch; v=torch.__version__.split('.'); print(f'{v[0]};{v[1]}')"
   OUTPUT_VARIABLE _TORCH_VERSION
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -156,6 +183,38 @@ if(TMOL_HAS_CUDA)
   string(STRIP "${_TORCH_ARCH_STR}" _TORCH_ARCH_STR)
   set(ENV{TORCH_CUDA_ARCH_LIST} "${_TORCH_ARCH_STR}")
   message(STATUS "tmol: Setting TORCH_CUDA_ARCH_LIST=${_TORCH_ARCH_STR} for find_package(Torch)")
+endif()
+
+# Prepend the active Python's torch cmake directory to CMAKE_PREFIX_PATH so
+# that find_package(Torch) resolves to the conda/pip installation rather than
+# any system or Homebrew libtorch that may appear in CMake's default search
+# paths (e.g. /opt/homebrew/lib on macOS).
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E env KMP_DUPLICATE_LIB_OK=TRUE
+          ${Python_EXECUTABLE} -c "import torch; print(torch.utils.cmake_prefix_path)"
+  OUTPUT_VARIABLE _TORCH_CMAKE_PREFIX
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE _TORCH_CMAKE_RESULT
+)
+if(_TORCH_CMAKE_RESULT EQUAL 0 AND _TORCH_CMAKE_PREFIX)
+  list(PREPEND CMAKE_PREFIX_PATH "${_TORCH_CMAKE_PREFIX}")
+  message(STATUS "tmol: Prepending torch cmake prefix: ${_TORCH_CMAKE_PREFIX}")
+else()
+  message(WARNING "tmol: Could not determine torch cmake prefix path from Python — "
+                  "find_package(Torch) may pick up Homebrew or system libtorch")
+endif()
+
+# Similarly discover pybind11's cmake dir from the active Python environment.
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E env KMP_DUPLICATE_LIB_OK=TRUE
+          ${Python_EXECUTABLE} -c "import pybind11; print(pybind11.get_cmake_dir())"
+  OUTPUT_VARIABLE _PYBIND11_CMAKE_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE _PYBIND11_CMAKE_RESULT
+)
+if(_PYBIND11_CMAKE_RESULT EQUAL 0 AND _PYBIND11_CMAKE_DIR)
+  list(PREPEND CMAKE_PREFIX_PATH "${_PYBIND11_CMAKE_DIR}")
+  message(STATUS "tmol: Prepending pybind11 cmake dir: ${_PYBIND11_CMAKE_DIR}")
 endif()
 
 find_package(Torch REQUIRED)
@@ -303,6 +362,57 @@ function(tmol_add_pybind_cpp_ext TARGET_NAME INSTALL_DIR EXT_NAME)
   install(TARGETS ${TARGET_NAME} DESTINATION "${INSTALL_DIR}")
 endfunction()
 
+# Common compile options for MPS (Objective-C++ + Metal) extensions
+function(tmol_set_mps_flags TARGET)
+  target_compile_options(${TARGET} PRIVATE
+    $<$<COMPILE_LANGUAGE:CXX>:-O3 -w -DWITH_MPS>
+    # ObjC++ files (.mm) — enable ARC and pass Metal SDK headers
+    $<$<COMPILE_LANGUAGE:OBJCXX>:
+      -O3 -w -DWITH_MPS
+      -fobjc-arc
+      -fmodules
+      -fcxx-modules
+    >
+  )
+  target_include_directories(${TARGET} PRIVATE ${TMOL_INCLUDE_DIRS})
+  target_link_libraries(${TARGET} PRIVATE
+    ${TORCH_LIBRARIES}
+    "-framework Metal"
+    "-framework Foundation"
+  )
+endfunction()
+
+# Compile Metal shaders: <list-of-.metal-files> → tmol_primitives.metallib
+# The metallib is placed in CMAKE_SOURCE_DIR/tmol/ alongside _C.so.
+function(tmol_compile_metal_shaders)
+  set(_METAL_SOURCES ${ARGN})
+  set(_AIR_FILES "")
+
+  foreach(_SRC ${_METAL_SOURCES})
+    get_filename_component(_BASE "${_SRC}" NAME_WE)
+    set(_AIR "${CMAKE_BINARY_DIR}/metal_air/${_BASE}.air")
+    add_custom_command(
+      OUTPUT "${_AIR}"
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/metal_air"
+      COMMAND ${XCRUN_EXECUTABLE} -sdk macosx metal
+              -std=metal3.0 -O2 -c "${_SRC}" -o "${_AIR}"
+      DEPENDS "${_SRC}"
+      COMMENT "Compiling Metal shader ${_SRC}"
+    )
+    list(APPEND _AIR_FILES "${_AIR}")
+  endforeach()
+
+  set(_METALLIB "${CMAKE_SOURCE_DIR}/tmol/tmol_primitives.metallib")
+  add_custom_command(
+    OUTPUT "${_METALLIB}"
+    COMMAND ${XCRUN_EXECUTABLE} -sdk macosx metallib ${_AIR_FILES} -o "${_METALLIB}"
+    DEPENDS ${_AIR_FILES}
+    COMMENT "Linking tmol_primitives.metallib"
+  )
+  add_custom_target(tmol_metallib ALL DEPENDS "${_METALLIB}")
+  install(FILES "${_METALLIB}" DESTINATION tmol)
+endfunction()
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # 1. tmol._C — monolithic TORCH_LIBRARY extension (14 op namespaces)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -330,11 +440,9 @@ set(_C_SOURCES
   # score/cartbonded
   tmol/score/cartbonded/potentials/compiled.ops.cpp
   tmol/score/cartbonded/potentials/cartbonded_pose_score.cpu.cpp
-  tmol/score/cartbonded/potentials/cartbonded_pose_score.cuda.cu
   # score/genbonded
   tmol/score/genbonded/potentials/compiled.ops.cpp
   tmol/score/genbonded/potentials/genbonded_pose_score.cpu.cpp
-  tmol/score/genbonded/potentials/genbonded_pose_score.cuda.cu
   # score/constraint
   tmol/score/constraint/potentials/compiled.ops.cpp
   tmol/score/constraint/potentials/constraint_score.cpu.cpp
@@ -360,6 +468,7 @@ set(_C_SOURCES
   tmol/score/lk_ball/potentials/gen_pose_waters.cpu.cpp
 )
 
+# ── CUDA sources (Linux / NVIDIA GPU only) ─────────────────────────────────
 if(TMOL_HAS_CUDA)
   list(APPEND _C_SOURCES
     tmol/io/details/compiled/gen_pose_leaf_atoms.cuda.cu
@@ -370,6 +479,7 @@ if(TMOL_HAS_CUDA)
     tmol/pose/compiled/apsp.cuda.cu
     tmol/score/backbone_torsion/potentials/backbone_torsion_pose_score.cuda.cu
     tmol/score/cartbonded/potentials/cartbonded_pose_score.cuda.cu
+    tmol/score/genbonded/potentials/genbonded_pose_score.cuda.cu
     tmol/score/constraint/potentials/constraint_score.cuda.cu
     tmol/score/disulfide/potentials/disulfide_pose_score.cuda.cu
     tmol/score/dunbrack/potentials/dunbrack_pose_score.cuda.cu
@@ -379,6 +489,42 @@ if(TMOL_HAS_CUDA)
     tmol/score/ljlk/potentials/ljlk_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/lk_ball_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/gen_pose_waters.cuda.cu
+  )
+endif()
+
+# ── MPS (Apple Metal) sources ──────────────────────────────────────────────
+if(TMOL_BUILD_MPS)
+  list(APPEND _C_SOURCES
+    # Metal context ObjC++ bridge
+    tmol/score/common/metal_context.mm
+    # io
+    tmol/io/details/compiled/gen_pose_leaf_atoms.mps.mm
+    tmol/io/details/compiled/resolve_his_taut.mps.mm
+    # kinematics
+    tmol/kinematics/compiled/compiled.mps.mm
+    # pack
+    tmol/pack/compiled/compiled.mps.mm
+    tmol/pack/rotamer/dunbrack/compiled.mps.mm
+    # pose
+    tmol/pose/compiled/apsp.mps.mm
+    # score terms
+    tmol/score/backbone_torsion/potentials/backbone_torsion_pose_score.mps.mm
+    tmol/score/cartbonded/potentials/cartbonded_pose_score.mps.mm
+    tmol/score/genbonded/potentials/genbonded_pose_score.mps.mm
+    tmol/score/constraint/potentials/constraint_score.mps.mm
+    tmol/score/disulfide/potentials/disulfide_pose_score.mps.mm
+    tmol/score/dunbrack/potentials/dunbrack_pose_score.mps.mm
+    tmol/score/elec/potentials/elec_pose_score.mps.mm
+    tmol/score/hbond/potentials/hbond_pose_score.mps.mm
+    tmol/score/hbond/potentials/gen_hbond_bases.mps.mm
+    tmol/score/ljlk/potentials/ljlk_pose_score.mps.mm
+    tmol/score/lk_ball/potentials/lk_ball_pose_score.mps.mm
+    tmol/score/lk_ball/potentials/gen_pose_waters.mps.mm
+  )
+
+  # Compile Metal shader library
+  tmol_compile_metal_shaders(
+    ${CMAKE_SOURCE_DIR}/tmol/score/common/metal_primitives.metal
   )
 endif()
 
@@ -403,6 +549,17 @@ if(TMOL_HAS_CUDA)
 else()
   tmol_set_cpp_flags(_C)
 endif()
+
+if(TMOL_BUILD_MPS)
+  # Apply MPS-specific compile options (ObjC++ ARC, Metal framework, -DWITH_MPS)
+  tmol_set_mps_flags(_C)
+  # Also define WITH_MPS for the plain C++ sources compiled into _C
+  target_compile_definitions(_C PRIVATE WITH_MPS)
+  # Enable Objective-C++ language support for .mm sources
+  set_property(TARGET _C PROPERTY OBJCXX_STANDARD 17)
+  set_property(TARGET _C PROPERTY OBJCXX_STANDARD_REQUIRED ON)
+endif()
+
 install(TARGETS _C DESTINATION tmol)
 
 

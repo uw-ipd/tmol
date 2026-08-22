@@ -408,6 +408,12 @@ class RotamerScoringModule:
 
         combined_values = torch.cat(all_values)
         combined_indices = torch.cat(all_indices, dim=1)
+        # MPS does not support sparse_coo_tensor().coalesce() (called by the
+        # caller); build the sparse result on CPU for MPS and let downstream
+        # code (e.g. build_interaction_graph) handle mixed MPS/CPU tensors.
+        if combined_indices.device.type == "mps":
+            combined_indices = combined_indices.to("cpu")
+            combined_values = combined_values.to("cpu")
         return torch.sparse_coo_tensor(
             combined_indices,
             combined_values,

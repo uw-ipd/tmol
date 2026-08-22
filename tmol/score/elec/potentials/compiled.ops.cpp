@@ -21,6 +21,11 @@ using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 using torch::autograd::tensor_list;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 template <template <tmol::Device> class DispatchMethod>
 class ElecPoseScoreOp
     : public torch::autograd::Function<ElecPoseScoreOp<DispatchMethod>> {
@@ -61,6 +66,7 @@ class ElecPoseScoreOp
     at::Tensor dscore_dcoords;
     at::Tensor block_neighbors;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -107,8 +113,11 @@ class ElecPoseScoreOp
           block_neighbors = std::get<2>(result).tensor;
         }));
 
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+    block_neighbors = mps_to_dev(block_neighbors, orig_device);
+
     if (output_block_pair_energies) {
-      // save inputs for deriv call in backwards
       auto max_n_rots_per_pose_tp =
           TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
       ctx->save_for_backward(
@@ -140,7 +149,7 @@ class ElecPoseScoreOp
            global_params,
            block_neighbors});
     } else {
-      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
+      score = score.squeeze(-1).squeeze(-1);
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
 
@@ -152,8 +161,6 @@ class ElecPoseScoreOp
 
     at::Tensor dV_d_pose_coords;
 
-    // use the number of stashed variables to determine if we are in
-    //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // single-score mode
       auto saved_grads = ctx->get_saved_variables();
@@ -171,7 +178,6 @@ class ElecPoseScoreOp
       // block-pair mode
       int i = 0;
 
-      // common params
       auto rot_coords = saved[i++];
       auto rot_coord_offset = saved[i++];
       auto pose_ind_for_atom = saved[i++];
@@ -187,10 +193,6 @@ class ElecPoseScoreOp
       auto max_n_rots_per_pose =
           TPack<int32_t, 1, tmol::Device::CPU>(saved[i++]).view[0];
 
-      // auto coords = saved[i++];
-      // auto pose_stack_block_coord_offset = saved[i++];
-      // auto pose_stack_block_type = saved[i++];
-
       auto pose_stack_min_bond_separation = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
 
@@ -205,6 +207,7 @@ class ElecPoseScoreOp
       auto global_params = saved[i++];
       auto block_neighbors = saved[i++];
 
+      c10::Device orig_device = rot_coords.device();
       using Int = int32_t;
 
       auto dTdV = grad_outputs[0];
@@ -253,6 +256,8 @@ class ElecPoseScoreOp
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {
@@ -312,6 +317,7 @@ class ElecRotamerScoreOp
     at::Tensor dscore_dcoords;
     at::Tensor dispatch_inds;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -358,8 +364,11 @@ class ElecRotamerScoreOp
           dispatch_inds = std::get<2>(result).tensor;
         }));
 
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+    dispatch_inds = mps_to_dev(dispatch_inds, orig_device);
+
     if (output_block_pair_energies) {
-      // save inputs for deriv call in backwards
       auto max_n_rots_per_pose_tp =
           TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
       ctx->save_for_backward(
@@ -402,8 +411,6 @@ class ElecRotamerScoreOp
 
     at::Tensor dV_d_pose_coords;
 
-    // use the number of stashed variables to determine if we are in
-    //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // single-score mode
       auto saved_grads = ctx->get_saved_variables();
@@ -425,7 +432,6 @@ class ElecRotamerScoreOp
       // block-pair mode
       int i = 0;
 
-      // common params
       auto rot_coords = saved[i++];
       auto rot_coord_offset = saved[i++];
       auto pose_ind_for_atom = saved[i++];
@@ -455,6 +461,7 @@ class ElecRotamerScoreOp
       auto global_params = saved[i++];
       auto dispatch_inds = saved[i++];
 
+      c10::Device orig_device = rot_coords.device();
       using Int = int32_t;
 
       auto dTdV = grad_outputs[0];
@@ -503,6 +510,8 @@ class ElecRotamerScoreOp
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {

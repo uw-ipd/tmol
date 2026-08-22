@@ -25,6 +25,11 @@ using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 using torch::autograd::tensor_list;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 template <template <tmol::Device> class DispatchMethod>
 class HBondPoseScoresOp
     : public torch::autograd::Function<HBondPoseScoresOp<DispatchMethod>> {
@@ -86,6 +91,7 @@ class HBondPoseScoresOp
     at::Tensor dscore_dcoords;
     at::Tensor block_neighbors;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -152,8 +158,11 @@ class HBondPoseScoresOp
           block_neighbors = std::get<2>(result).tensor;
         }));
 
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+    block_neighbors = mps_to_dev(block_neighbors, orig_device);
+
     if (output_block_pair_energies) {
-      // save inputs for deriv call in backwards
       auto max_n_rots_per_pose_tp =
           TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
       ctx->save_for_backward(
@@ -209,7 +218,7 @@ class HBondPoseScoresOp
 
           });
     } else {
-      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
+      score = score.squeeze(-1).squeeze(-1);
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
 
@@ -221,8 +230,6 @@ class HBondPoseScoresOp
 
     at::Tensor dV_d_pose_coords;
 
-    // use the number of stashed variables to determine if we are in
-    //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // single-score mode
       auto saved_grads = ctx->get_saved_variables();
@@ -239,7 +246,6 @@ class HBondPoseScoresOp
       // block-pair mode
       int i = 0;
 
-      // common params
       auto rot_coords = saved[i++];
       auto rot_coord_offset = saved[i++];
       auto pose_ind_for_atom = saved[i++];
@@ -255,12 +261,10 @@ class HBondPoseScoresOp
       auto max_n_rots_per_pose =
           TPack<int32_t, 1, tmol::Device::CPU>(saved[i++]).view[0];
 
-      // term specific params
       auto pose_stack_inter_residue_connections = saved[i++];
       auto pose_stack_min_bond_separation = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
 
-      // packed block type params
       auto block_type_n_atoms = saved[i++];
       auto block_type_n_interblock_bonds = saved[i++];
       auto block_type_atoms_forming_chemical_bonds = saved[i++];
@@ -269,7 +273,6 @@ class HBondPoseScoresOp
       auto block_type_atom_all_bond_ranges = saved[i++];
       auto block_type_path_distance = saved[i++];
 
-      // hbpbt params
       auto block_type_tile_n_donH = saved[i++];
       auto block_type_tile_n_acc = saved[i++];
       auto block_type_tile_donH_inds = saved[i++];
@@ -279,7 +282,6 @@ class HBondPoseScoresOp
       auto block_type_tile_hybridization = saved[i++];
       auto block_type_atom_is_hydrogen = saved[i++];
 
-      // hb_param_db params
       auto pair_params = saved[i++];
       auto pair_polynomials = saved[i++];
 
@@ -290,6 +292,8 @@ class HBondPoseScoresOp
       auto derived_atom_inds = saved[i++];
 
       auto block_neighbors = saved[i++];
+
+      c10::Device orig_device = rot_coords.device();
       using Int = int32_t;
 
       auto dTdV = grad_outputs[0];
@@ -359,6 +363,8 @@ class HBondPoseScoresOp
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
@@ -435,6 +441,7 @@ class HBondRotamerScoresOp
     at::Tensor dscore_dcoords;
     at::Tensor block_neighbors;
 
+    c10::Device orig_device = rot_coords.device();
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -501,6 +508,10 @@ class HBondRotamerScoresOp
           dscore_dcoords = std::get<1>(result).tensor;
           block_neighbors = std::get<2>(result).tensor;
         }));
+
+    score = mps_to_dev(score, orig_device);
+    dscore_dcoords = mps_to_dev(dscore_dcoords, orig_device);
+    block_neighbors = mps_to_dev(block_neighbors, orig_device);
 
     if (output_block_pair_energies) {
       // save inputs for deriv call in backwards
@@ -638,6 +649,7 @@ class HBondRotamerScoresOp
       auto block_neighbors = saved[i++];
       using Int = int32_t;
 
+      c10::Device orig_device = rot_coords.device();
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
@@ -705,6 +717,8 @@ class HBondRotamerScoresOp
 
             dV_d_pose_coords = result.tensor;
           }));
+
+      dV_d_pose_coords = mps_to_dev(dV_d_pose_coords, orig_device);
     }
 
     return {dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
@@ -955,6 +969,7 @@ std::vector<Tensor> gen_hbond_bases_op(
   at::Tensor derived_coords;
   at::Tensor derived_atom_inds;
 
+  c10::Device orig_device = rot_coords.device();
   using Int = int32_t;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
@@ -990,6 +1005,9 @@ std::vector<Tensor> gen_hbond_bases_op(
         derived_coords = std::get<0>(result).tensor;
         derived_atom_inds = std::get<1>(result).tensor;
       }));
+
+  derived_coords = mps_to_dev(derived_coords, orig_device);
+  derived_atom_inds = mps_to_dev(derived_atom_inds, orig_device);
 
   return {derived_coords, derived_atom_inds};
 }

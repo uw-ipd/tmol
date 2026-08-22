@@ -15,7 +15,11 @@ def test_smoke(default_database, torch_device):
     assert hbond_energy.device == torch_device
     assert hbond_energy.hb_param_db.global_param_table.device == torch_device
     assert hbond_energy.hb_param_db.pair_param_table.device == torch_device
-    assert hbond_energy.hb_param_db.pair_poly_table.device == torch_device
+    # pair_poly_table is float64 and must stay on CPU for MPS (MPS lacks float64)
+    if torch_device.type == "mps":
+        assert hbond_energy.hb_param_db.pair_poly_table.device.type == "cpu"
+    else:
+        assert hbond_energy.hb_param_db.pair_poly_table.device == torch_device
 
 
 def test_hbond_in_sfxn(default_database, torch_device):

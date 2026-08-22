@@ -19,6 +19,11 @@ ContextManager mgr;
 
 using torch::Tensor;
 
+// MPS round-trip: TPack allocates CPU for MPS inputs; move output back.
+static inline at::Tensor mps_to_dev(at::Tensor t, c10::Device dev) {
+  return dev.is_mps() ? t.to(dev) : t;
+}
+
 template <template <tmol::Device> class DispatchMethod>
 std::vector<Tensor> dun_sample_chi(
     Tensor coords,
@@ -70,6 +75,7 @@ std::vector<Tensor> dun_sample_chi(
   at::Tensor brt_for_rotamer;
   at::Tensor chi_for_rotamers;
 
+  c10::Device orig_device = coords.device();
   using Int = int32_t;
 
   try {
@@ -136,6 +142,11 @@ std::vector<Tensor> dun_sample_chi(
               << err.what_without_backtrace() << std::endl;
     throw err;
   }
+
+  n_rots_for_brt = mps_to_dev(n_rots_for_brt, orig_device);
+  n_rots_for_brt_offsets = mps_to_dev(n_rots_for_brt_offsets, orig_device);
+  brt_for_rotamer = mps_to_dev(brt_for_rotamer, orig_device);
+  chi_for_rotamers = mps_to_dev(chi_for_rotamers, orig_device);
 
   nvtx_range_pop();
 
