@@ -251,6 +251,10 @@ class VariantType:
     add_torsions: Tuple[Torsion, ...] = ()
     add_chi_samples: Tuple[ChiSamples, ...] = ()
     applies_to: VariantScope = VariantScope()
+    # Optional external residue name for the patched residue (e.g. SEP for a
+    # phosphorylated SER).  The patched residue remains in its base residue's
+    # io_equiv_class so backbone-dependent scoring and packing stay shared.
+    name3: Optional[str] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

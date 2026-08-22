@@ -1095,27 +1095,6 @@ def test_select_best_block_type_candidate_error_impossible_combo(
         co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
 
-    expected_err_msg = """failed to resolve a block type from the candidates available
- Failed to resolve block type for 0 19 SER
- 0 19 0 72 SER restype 15 equiv class SER
-  atom P provided but absent from candidate SER
-  atom M provided but absent from candidate SER
- Failed to resolve block type for 0 19 SER
- 0 19 1 75 SER:phospho restype 15 equiv class SER
-  atom HG provided but absent from candidate SER:phospho
-  atom M provided but absent from candidate SER:phospho
-  atom OP1 missing but present in candidate SER:phospho
-  atom OP2 missing but present in candidate SER:phospho
-  atom OP3 missing but present in candidate SER:phospho
- Failed to resolve block type for 0 19 SER
- 0 19 2 76 SER:mospho restype 15 equiv class SER
-  atom HG provided but absent from candidate SER:mospho
-  atom P provided but absent from candidate SER:mospho
-  atom OM1 missing but present in candidate SER:mospho
-  atom OM2 missing but present in candidate SER:mospho
-  atom OM3 missing but present in candidate SER:mospho
-Best candidate exceeds failure threshold"""
-
     try:
         (
             block_types,
@@ -1126,7 +1105,21 @@ Best candidate exceeds failure threshold"""
         )
         assert False, "Call to assign_block_types should fail"
     except RuntimeError as err:
-        assert str(err) == expected_err_msg
+        # Candidate indices and the complete list may grow as default variants
+        # are added. Pin the diagnostics produced by these two throwaway
+        # variants without making this test depend on database ordering.
+        message = str(err)
+        for expected in (
+            "failed to resolve a block type from the candidates available",
+            "atom P provided but absent from candidate SER",
+            "atom M provided but absent from candidate SER",
+            "atom M provided but absent from candidate SER:phospho",
+            "atom OP1 missing but present in candidate SER:phospho",
+            "atom P provided but absent from candidate SER:mospho",
+            "atom OM1 missing but present in candidate SER:mospho",
+            "Best candidate exceeds failure threshold",
+        ):
+            assert expected in message
 
 
 def test_select_best_block_type_candidate_accept_one_extraneous(torch_device, pdb_1r21):

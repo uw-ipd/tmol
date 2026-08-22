@@ -15,6 +15,9 @@ from tmol.io import (
 from tmol.io.details import (
     _annotate_packed_block_types_w_canonical_res_order,
 )
+from tmol.io.details._select_from_canonical import (
+    _annotate_packed_block_types_w_dslf_conn_inds,
+)
 
 
 def canonical_form_from_pose_stack(
@@ -23,6 +26,7 @@ def canonical_form_from_pose_stack(
     pbt = pose_stack.packed_block_types
     co = canonical_ordering
     _annotate_packed_block_types_w_canonical_res_order(co, pbt)
+    _annotate_packed_block_types_w_dslf_conn_inds(pbt)
 
     can_ann = pbt.canonical_ordering_annotation
     device = pose_stack.device

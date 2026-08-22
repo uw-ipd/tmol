@@ -159,6 +159,9 @@ class CanonicalOrdering:
 
     max_n_canonical_atoms: int
     restype_io_equiv_classes: Tuple[str, ...]
+    # External residue names (name3) may differ from their canonical I/O
+    # equivalence class for patched residues such as SEP/SER.
+    restype_name3_to_io_equiv_class: Mapping[str, str]
     restypes_ordered_atom_names: Mapping[str, Tuple[str, ...]]
     restypes_atom_index_mapping: Mapping[str, Mapping[str, int]]
     restypes_mainchain_atoms: Mapping[str, Optional[Tuple[str, ...]]]
@@ -193,6 +196,15 @@ class CanonicalOrdering:
         restypes = ordered_set(rt.io_equiv_class for rt in chemdb.residues)
         ordered_restypes = restypes.ordered_vals
 
+        name3_to_equiv = {}
+        for restype in chemdb.residues:
+            previous = name3_to_equiv.setdefault(restype.name3, restype.io_equiv_class)
+            if previous != restype.io_equiv_class:
+                raise ValueError(
+                    f"Residue name {restype.name3} belongs to both "
+                    f"{previous} and {restype.io_equiv_class}"
+                )
+
         def newset():
             return ordered_set()
 
@@ -200,8 +212,9 @@ class CanonicalOrdering:
         restypes_alt_atom_name_mapping = defaultdict(dict)
 
         for restype in chemdb.residues:
+            equiv = restype.io_equiv_class
             for at in restype.atoms:
-                restypes_all_atom_names[restype.name3].add(at.name)
+                restypes_all_atom_names[equiv].add(at.name)
             for at in restype.atom_aliases:
                 if at.alt_name in restypes_alt_atom_name_mapping[restype.name3]:
                     assert (
@@ -217,9 +230,16 @@ class CanonicalOrdering:
             for at in atoms:
                 restypes_all_atom_names[rt_name3].add(at)
 
-        restypes_ordered_atom_names = {
-            name3: ats.ordered_vals for name3, ats in restypes_all_atom_names.items()
+        ordered_atoms_by_equiv = {
+            equiv: ats.ordered_vals for equiv, ats in restypes_all_atom_names.items()
         }
+        # Both an equivalence-class name (SER) and a patched external name
+        # (SEP) address the same canonical atom slots.
+        restypes_ordered_atom_names = {
+            name3: ordered_atoms_by_equiv[equiv]
+            for name3, equiv in name3_to_equiv.items()
+        }
+        restypes_ordered_atom_names.update(ordered_atoms_by_equiv)
         restypes_atom_index_mapping = {
             name3: {at: i for i, at in enumerate(ordered_atoms)}
             for name3, ordered_atoms in restypes_ordered_atom_names.items()
@@ -263,6 +283,7 @@ class CanonicalOrdering:
         return cls(
             max_n_canonical_atoms=max_n_canonical_atoms,
             restype_io_equiv_classes=ordered_restypes,
+            restype_name3_to_io_equiv_class=name3_to_equiv,
             restypes_ordered_atom_names=restypes_ordered_atom_names,
             restypes_atom_index_mapping=restypes_atom_index_mapping,
             restypes_mainchain_atoms=restypes_mainchain_atoms,
