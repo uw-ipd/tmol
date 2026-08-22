@@ -1,6 +1,6 @@
-# Contributor Guide
+# Contributor guide
 
-Keep changes focused and testable. Prefer existing tmol patterns over new
+Keep changes focused and testable. Prefer existing TMol patterns over new
 abstractions unless the new abstraction removes real complexity.
 
 > - **Prerequisites:** {doc}`Development setup </user_guide/development>`.
@@ -11,17 +11,13 @@ abstractions unless the new abstraction removes real complexity.
 ## Documentation
 
 The external docs are built with Sphinx, MyST Markdown, nbsphinx, and autodoc.
-Three documentation forms serve different purposes:
+Two documentation forms serve different purposes:
 
 - `docs/workflows/` and selected `docs/user_guide/` pages are concise,
   reusable recipes that link to deeper material rather than reproducing it.
 - The top-level **Tutorials** section contains the eight interactive notebooks
   in `docs/tutorial/`. They are deeper, executable walkthroughs rendered by
   nbsphinx.
-- `docs/examples/` contains separate Sphinx-Gallery-style Python scripts. The
-  generated `auto_examples` output is currently excluded from the published
-  documentation source set; do not assume these scripts appear in the Tutorials
-  navigation.
 
 ```bash
 pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.5"
@@ -30,7 +26,7 @@ TMOL_DISABLE_WHEEL_FETCH=1 \
   pip install --no-build-isolation -e ".[docs]" \
   -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 python .github/scripts/smoke_tutorial_notebooks.py --write
-docs/make
+make -C docs html
 ```
 
 Rendered HTML is written to `docs/_build/html`.
@@ -48,7 +44,7 @@ Before opening a PR:
 pre-commit run --all-files
 pytest tmol/tests/ -v -k "not cuda"
 python .github/scripts/smoke_tutorial_notebooks.py --write
-docs/make
+make -C docs html
 ```
 
 If your change touches CUDA kernels, packing, scoring terms, or minimization,

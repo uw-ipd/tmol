@@ -1,11 +1,14 @@
 TMol documentation
 ==================
 
-TMol is a PyTorch library with Rosetta-inspired all-atom score terms. It
-scores structures on CPU or GPU, supports autograd, side-chain packing,
-minimization, and ligand preparation. Weighted outputs are TMol score units,
-not kcal/mol or calibrated Rosetta score units, and are not guaranteed to match
-Rosetta numerically.
+TMol is a PyTorch molecular-modeling library for batched, differentiable
+all-atom calculations on CPU and GPU. It provides Rosetta-inspired scoring,
+side-chain packing and design, Cartesian and kinematic minimization, FastRelax,
+ligand preparation, and nucleic-acid modeling primitives.
+
+TMol is not a PyRosetta compatibility layer. Weighted outputs are TMol score
+units—not kcal/mol or calibrated Rosetta score units—and matching Rosetta
+protocol trajectories or numerical results should not be expected.
 
 Choose a path
 -------------
@@ -38,31 +41,33 @@ look up a specific operation in the :doc:`task index
 .. toctree::
    :maxdepth: 2
    :caption: Get started
+   :hidden:
 
    installation
    quickstart
-   learning_paths
 
 .. toctree::
    :maxdepth: 2
    :caption: Learn
+   :hidden:
 
-   workflows/index
+   Learning paths <learning_paths>
    Tutorials <examples_index>
-   Core architecture <architecture>
-   Data model and conventions <datatypes>
-   Terminology and modeling choices <terminology>
+   Workflows <workflows/index>
 
 .. toctree::
    :maxdepth: 2
    :caption: Reference
+   :hidden:
 
+   API reference <api_reference>
+   Concepts <concepts>
    Task index <tutorial/recipe_index>
    Rosetta-to-TMol crosswalk <tutorial/rosetta_crosswalk>
-   api_reference
 
 .. toctree::
    :maxdepth: 2
    :caption: Contribute
+   :hidden:
 
    Contributing <contributor_guide>

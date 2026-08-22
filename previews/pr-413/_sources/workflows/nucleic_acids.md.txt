@@ -1,4 +1,4 @@
-# Nucleic Acids
+# Nucleic acids
 
 Use this compact recipe to score canonical DNA or RNA and repack selected
 nucleic-acid blocks. The linked tutorial covers score interpretation and

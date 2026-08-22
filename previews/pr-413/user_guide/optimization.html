@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Optimization &#8212; TMol documentation</title>
+    <title>Minimization and FastRelax &#8212; TMol</title>
   
   
   
@@ -32,11 +32,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
-    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
-    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
-    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=8f56a7f5" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=0a30a683" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -47,20 +43,12 @@
     <script src="../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
     <script>let toggleHintShow = 'Show code';</script>
     <script>let toggleHintHide = 'Hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../_static/togglebutton.js?v=b8b12719"></script>
-    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>var togglebuttonSelector = '#Setup .nbinput';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/optimization';</script>
-    <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
-        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-413';
-        DOCUMENTATION_OPTIONS.show_version_warning_banner =
-            false;
-        </script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -136,29 +124,9 @@
   
   
   
-    <p class="title logo__title">TMol documentation</p>
+    <p class="title logo__title">TMol</p>
   
 </a></div>
-    
-      <div class="navbar-item">
-<div class="version-switcher__container dropdown pst-js-only">
-  <button id="pst-version-switcher-button-2"
-    type="button"
-    class="version-switcher__button btn btn-sm dropdown-toggle"
-    data-bs-toggle="dropdown"
-    aria-haspopup="listbox"
-    aria-controls="pst-version-switcher-list-2"
-    aria-label="Version switcher list"
-  >
-    Choose version  <!-- this text may get changed later by javascript -->
-    <span class="caret"></span>
-  </button>
-  <div id="pst-version-switcher-list-2"
-    class="version-switcher__menu dropdown-menu list-group-flush py-0"
-    role="listbox" aria-labelledby="pst-version-switcher-button-2">
-    <!-- dropdown will be populated by javascript on page load -->
-  </div>
-</div></div>
     
   </div>
   
@@ -191,6 +159,13 @@
 </li>
 
 
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Tutorials
+  </a>
+</li>
+
+
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../workflows/index.html">
     Workflows
@@ -199,29 +174,22 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../examples_index.html">
-    Tutorials
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../architecture.html">
-    Core architecture
+  <a class="nav-link nav-internal" href="../concepts.html">
+    Concepts
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../datatypes.html">
-    Data model and conventions
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../terminology.html">
-    Terminology and modeling choices
+  <a class="nav-link nav-internal" href="../tutorial/recipe_index.html">
+    Task index
   </a>
 </li>
 
@@ -234,22 +202,8 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../tutorial/recipe_index.html">
-    Task index
-  </a>
-</li>
-
-
-<li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../tutorial/rosetta_crosswalk.html">
     Rosetta-to-TMol crosswalk
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
-    API Reference
   </a>
 </li>
 
@@ -379,6 +333,13 @@
 </li>
 
 
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Tutorials
+  </a>
+</li>
+
+
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../workflows/index.html">
     Workflows
@@ -387,29 +348,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../examples_index.html">
-    Tutorials
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../architecture.html">
-    Core architecture
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../datatypes.html">
-    Data model and conventions
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../terminology.html">
-    Terminology and modeling choices
+  <a class="nav-link nav-internal" href="../concepts.html">
+    Concepts
   </a>
 </li>
 
@@ -424,13 +371,6 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../tutorial/rosetta_crosswalk.html">
     Rosetta-to-TMol crosswalk
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../api_reference.html">
-    API Reference
   </a>
 </li>
 
@@ -501,19 +441,19 @@
   <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../workflows/structure_io.html">Structure I/O and visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="integrations.html">Integrations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU batching</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
 <ul class="current nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="scoring.html">Scoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scoring.html">Scoring and analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/packing.html">Packing</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Optimization</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Minimization and FastRelax</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="ligands.html">Ligand Preparation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic Acids</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic acids</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
 <ul class="nav bd-sidenav">
@@ -562,7 +502,7 @@
     
     <li class="breadcrumb-item"><a href="../workflows/index.html" class="nav-link">Workflows</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Optimization</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Minimization and FastRelax</span></li>
   </ul>
 </nav>
 </div>
@@ -579,8 +519,8 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="optimization">
-<h1>Optimization<a class="headerlink" href="#optimization" title="Link to this heading">#</a></h1>
+  <section id="minimization-and-fastrelax">
+<h1>Minimization and FastRelax<a class="headerlink" href="#minimization-and-fastrelax" title="Link to this heading">#</a></h1>
 <p>This guide collects concise recipes for preparation, constraints, minimization,
 and relax. The tutorials explain coordinate choices, masks, and schedules in
 depth.</p>
@@ -650,7 +590,7 @@ optimization path.</p>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>Ligand heavy atoms must be present in the input. tmol can prepare and protonate
+<p>Ligand heavy atoms must be present in the input. TMol can prepare and protonate
 ligands, but the side-chain-rebuild sampler only handles polymer residues.</p>
 </section>
 <section id="kinematic-minimization">

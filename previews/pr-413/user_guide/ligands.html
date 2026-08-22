@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Ligand Preparation &#8212; TMol documentation</title>
+    <title>Ligand Preparation &#8212; TMol</title>
   
   
   
@@ -32,11 +32,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
-    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
-    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
-    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=8f56a7f5" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=0a30a683" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -47,25 +43,17 @@
     <script src="../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
     <script>let toggleHintShow = 'Show code';</script>
     <script>let toggleHintHide = 'Hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../_static/togglebutton.js?v=b8b12719"></script>
-    <script>var togglebuttonSelector = '.nbinput';</script>
+    <script>var togglebuttonSelector = '#Setup .nbinput';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/ligands';</script>
-    <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.20.0';
-        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://uw-ipd.github.io/tmol/latest/_static/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'previews-pr-413';
-        DOCUMENTATION_OPTIONS.show_version_warning_banner =
-            false;
-        </script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Nucleic Acids" href="../workflows/nucleic_acids.html" />
-    <link rel="prev" title="Optimization" href="optimization.html" />
+    <link rel="next" title="Nucleic acids" href="../workflows/nucleic_acids.html" />
+    <link rel="prev" title="Minimization and FastRelax" href="optimization.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.47" />
@@ -136,29 +124,9 @@
   
   
   
-    <p class="title logo__title">TMol documentation</p>
+    <p class="title logo__title">TMol</p>
   
 </a></div>
-    
-      <div class="navbar-item">
-<div class="version-switcher__container dropdown pst-js-only">
-  <button id="pst-version-switcher-button-2"
-    type="button"
-    class="version-switcher__button btn btn-sm dropdown-toggle"
-    data-bs-toggle="dropdown"
-    aria-haspopup="listbox"
-    aria-controls="pst-version-switcher-list-2"
-    aria-label="Version switcher list"
-  >
-    Choose version  <!-- this text may get changed later by javascript -->
-    <span class="caret"></span>
-  </button>
-  <div id="pst-version-switcher-list-2"
-    class="version-switcher__menu dropdown-menu list-group-flush py-0"
-    role="listbox" aria-labelledby="pst-version-switcher-button-2">
-    <!-- dropdown will be populated by javascript on page load -->
-  </div>
-</div></div>
     
   </div>
   
@@ -191,6 +159,13 @@
 </li>
 
 
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Tutorials
+  </a>
+</li>
+
+
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../workflows/index.html">
     Workflows
@@ -199,29 +174,22 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../examples_index.html">
-    Tutorials
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../architecture.html">
-    Core architecture
+  <a class="nav-link nav-internal" href="../concepts.html">
+    Concepts
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../datatypes.html">
-    Data model and conventions
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../terminology.html">
-    Terminology and modeling choices
+  <a class="nav-link nav-internal" href="../tutorial/recipe_index.html">
+    Task index
   </a>
 </li>
 
@@ -234,22 +202,8 @@
                 <ul id="pst-nav-more-links" class="dropdown-menu">
                     
 <li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../tutorial/recipe_index.html">
-    Task index
-  </a>
-</li>
-
-
-<li class=" ">
   <a class="nav-link dropdown-item nav-internal" href="../tutorial/rosetta_crosswalk.html">
     Rosetta-to-TMol crosswalk
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
-    API Reference
   </a>
 </li>
 
@@ -379,6 +333,13 @@
 </li>
 
 
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples_index.html">
+    Tutorials
+  </a>
+</li>
+
+
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../workflows/index.html">
     Workflows
@@ -387,29 +348,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../examples_index.html">
-    Tutorials
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../architecture.html">
-    Core architecture
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../datatypes.html">
-    Data model and conventions
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../terminology.html">
-    Terminology and modeling choices
+  <a class="nav-link nav-internal" href="../concepts.html">
+    Concepts
   </a>
 </li>
 
@@ -424,13 +371,6 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../tutorial/rosetta_crosswalk.html">
     Rosetta-to-TMol crosswalk
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../api_reference.html">
-    API Reference
   </a>
 </li>
 
@@ -501,19 +441,19 @@
   <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../workflows/structure_io.html">Structure I/O and visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="integrations.html">Integrations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU batching</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
 <ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="scoring.html">Scoring</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scoring.html">Scoring and analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/packing.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization.html">Minimization and FastRelax</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active"><a class="current reference internal" href="#">Ligand Preparation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic Acids</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic acids</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
 <ul class="nav bd-sidenav">
@@ -597,7 +537,7 @@ Biotite input and <a class="reference internal" href="scoring.html"><span class=
 </div></blockquote>
 <p>TMol can turn a non-standard, non-polymer residue into a parameterized residue
 type with protonated 3D coordinates, MMFF94 partial charges,
-generic-potential-style atom types used by tmol, and cartbonded parameters. The
+generic-potential-style atom types used by TMol, and cartbonded parameters. The
 prepared ligand is injected into a new <code class="docutils literal notranslate"><span class="pre">ParameterDatabase</span></code> and can then be
 scored and minimized like a normal residue. These atom-type names do not by
 themselves make a ligand parameterization usable by Rosetta.</p>
@@ -617,9 +557,9 @@ themselves make a ligand parameterization usable by Rosetta.</p>
 </div>
 <p>Each returns a new <code class="docutils literal notranslate"><span class="pre">(ParameterDatabase,</span> <span class="pre">CanonicalOrdering)</span></code>. The input database
 is not mutated.</p>
-<p>MOL2 is the richest input. With authoritative MMFF94 charges, tmol reads atom
+<p>MOL2 is the richest input. With authoritative MMFF94 charges, TMol reads atom
 names, coordinates, bond orders, and partial charges directly. CIF input uses
-the bond table to derive chemistry. SMILES input has no input geometry, so tmol
+the bond table to derive chemistry. SMILES input has no input geometry, so TMol
 generates protonation, conformer coordinates, and MMFF94 charges.</p>
 </section>
 <section id="loading-complexes">
@@ -704,7 +644,7 @@ set, and packed block types for every structure.</p>
 </section>
 <section id="smiles-to-params-cli">
 <h2>SMILES to Params CLI<a class="headerlink" href="#smiles-to-params-cli" title="Link to this heading">#</a></h2>
-<p>The ligand-prep script writes Rosetta <code class="docutils literal notranslate"><span class="pre">.params</span></code> and tmol <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> files:</p>
+<p>The ligand-prep script writes Rosetta <code class="docutils literal notranslate"><span class="pre">.params</span></code> and TMol <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> files:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>scripts/ligand_prep/smiles_to_params.py<span class="w"> </span><span class="s2">"&lt;SMILES&gt;"</span><span class="w"> </span>&lt;out_prefix&gt;<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--res-name<span class="w"> </span>LG1<span class="w"> </span>--ph<span class="w"> </span><span class="m">7</span>.4
 </pre></div>
@@ -712,7 +652,7 @@ set, and packed block types for every structure.</p>
 <p>Useful flags include <code class="docutils literal notranslate"><span class="pre">--no-protonate</span></code>, <code class="docutils literal notranslate"><span class="pre">--sample-proton-chi</span></code>, and
 <code class="docutils literal notranslate"><span class="pre">--no-conformer-search</span></code>.</p>
 <p>The emitted Rosetta-syntax <code class="docutils literal notranslate"><span class="pre">.params</span></code> file is an experimental interchange
-artifact, not a Rosetta-validated parameterization. It carries tmol’s atom-type
+artifact, not a Rosetta-validated parameterization. It carries TMol’s atom-type
 strings into the Rosetta atom-type field, uses MM type <code class="docutils literal notranslate"><span class="pre">X</span></code>, and writes a
 placeholder <code class="docutils literal notranslate"><span class="pre">NBR_RADIUS</span> <span class="pre">999.0</span></code>. Use a Rosetta-native preparation and validation
 workflow before running the ligand in Rosetta.</p>
@@ -778,7 +718,7 @@ lists the currently supported exports.</p>
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Optimization</p>
+        <p class="prev-next-title">Minimization and FastRelax</p>
       </div>
     </a>
     <a class="right-next"
@@ -786,7 +726,7 @@ lists the currently supported exports.</p>
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Nucleic Acids</p>
+        <p class="prev-next-title">Nucleic acids</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

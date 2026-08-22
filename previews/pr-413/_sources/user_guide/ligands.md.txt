@@ -16,7 +16,7 @@ chemistry. The linked tutorial provides a complete protein–ligand walkthrough.
 
 TMol can turn a non-standard, non-polymer residue into a parameterized residue
 type with protonated 3D coordinates, MMFF94 partial charges,
-generic-potential-style atom types used by tmol, and cartbonded parameters. The
+generic-potential-style atom types used by TMol, and cartbonded parameters. The
 prepared ligand is injected into a new `ParameterDatabase` and can then be
 scored and minimized like a normal residue. These atom-type names do not by
 themselves make a ligand parameterization usable by Rosetta.
@@ -40,9 +40,9 @@ param_db, co = prepare_ligand_from_smiles("c1ccccc1C(=O)O", res_name="BEN")
 Each returns a new `(ParameterDatabase, CanonicalOrdering)`. The input database
 is not mutated.
 
-MOL2 is the richest input. With authoritative MMFF94 charges, tmol reads atom
+MOL2 is the richest input. With authoritative MMFF94 charges, TMol reads atom
 names, coordinates, bond orders, and partial charges directly. CIF input uses
-the bond table to derive chemistry. SMILES input has no input geometry, so tmol
+the bond table to derive chemistry. SMILES input has no input geometry, so TMol
 generates protonation, conformer coordinates, and MMFF94 charges.
 
 ## Loading Complexes
@@ -134,7 +134,7 @@ pose_stack, context = pose_stack_from_biotite(
 
 ## SMILES to Params CLI
 
-The ligand-prep script writes Rosetta `.params` and tmol `.tmol` files:
+The ligand-prep script writes Rosetta `.params` and TMol `.tmol` files:
 
 ```bash
 python scripts/ligand_prep/smiles_to_params.py "<SMILES>" <out_prefix> \
@@ -145,7 +145,7 @@ Useful flags include `--no-protonate`, `--sample-proton-chi`, and
 `--no-conformer-search`.
 
 The emitted Rosetta-syntax `.params` file is an experimental interchange
-artifact, not a Rosetta-validated parameterization. It carries tmol's atom-type
+artifact, not a Rosetta-validated parameterization. It carries TMol's atom-type
 strings into the Rosetta atom-type field, uses MM type `X`, and writes a
 placeholder `NBR_RADIUS 999.0`. Use a Rosetta-native preparation and validation
 workflow before running the ligand in Rosetta.
