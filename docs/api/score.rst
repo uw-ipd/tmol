@@ -1,5 +1,5 @@
 Scoring
-=======
+-------
 
 Use :func:`tmol.score.beta2016_score_function` for the standard configured
 score function, or construct :class:`tmol.score.ScoreFunction` and set

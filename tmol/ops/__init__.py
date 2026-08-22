@@ -6,7 +6,6 @@ from ._score_utils import (  # noqa: F401
     compute_block_adjacency,
     compute_block_centroids_and_furthest_dist,
     res_mask_to_coord_mask,
-    residue_mask_from_chain,
 )
 
 __all__ = [
@@ -17,5 +16,4 @@ __all__ = [
     "compute_block_adjacency",
     "compute_block_centroids_and_furthest_dist",
     "res_mask_to_coord_mask",
-    "residue_mask_from_chain",
 ]

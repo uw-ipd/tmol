@@ -20,17 +20,9 @@ from ._chemical_database import (  # noqa: F401
 from ._energy_term import EnergyTerm  # noqa: F401
 from ._atom_type_dependent_term import AtomTypeDependentTerm  # noqa: F401
 from ._bond_dependent_term import BondDependentTerm  # noqa: F401
-from ._score_utils import (  # noqa: F401
+from ._fragment_interactions import (  # noqa: F401
     FragmentInteractionScores,
-    build_sidechain_coord_mask,
-    build_coord_mask_for_mask_and_nearby_blocks,
-    build_coord_mask_for_mask_and_interacting_atoms,
-    compute_block_centroids_and_furthest_dist,
-    calculate_block_pair_ddg,
     calculate_fragment_interactions,
-    compute_block_adjacency,
-    res_mask_to_coord_mask,
-    residue_mask_from_chain,
 )
 from ._score_function import (  # noqa: F401
     BlockPairScoringModule,

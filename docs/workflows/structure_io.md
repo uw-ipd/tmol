@@ -1,11 +1,14 @@
 # Structure I/O and visualization
 
 **Prerequisites:** {doc}`Installation </installation>` and a basic understanding
-of {doc}`PoseStack terminology </terminology>`.  
+of {doc}`PoseStack terminology </terminology>`.
+
 **Deep tutorial:** {doc}`Tutorial 01 — Working with TMol
-</tutorial/01_working_with_tmol>`.  
+</tutorial/01_working_with_tmol>`.
+
 **API:** {doc}`I/O </api/io>`, {doc}`pose objects </api/pose>`, and
-{doc}`ligand preparation </api/ligand>`.  
+{doc}`ligand preparation </api/ligand>`.
+
 **Related workflows:** {doc}`integrations </user_guide/integrations>`,
 {doc}`GPU batching <gpu_batching>`, and {doc}`ligands
 </user_guide/ligands>`.

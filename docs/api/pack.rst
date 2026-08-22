@@ -1,5 +1,5 @@
 Packing
-=======
+-------
 
 Packing tasks select which blocks may repack or design. Rotamer samplers define
 the conformations considered by the packer.
@@ -11,7 +11,7 @@ the conformations considered by the packer.
    :show-inheritance:
 
 Rotamer sampling
-----------------
+~~~~~~~~~~~~~~~~
 
 .. automodule:: tmol.pack.rotamer
    :members:
