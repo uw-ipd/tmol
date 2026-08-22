@@ -3890,6 +3890,243 @@ residues:
 
 
 variants:
+  # Protein phosphorylation variants. Geometry and PDB names follow Rosetta's
+  # fa_standard ser/thr/tyr_phosphorylated patches.
+  - name: SerPhosphorylated
+    display_name: phosphorylated
+    name3: SEP
+    pattern: '[*][*]C[OH]'
+    applies_to: { base_names: [SER] }
+    remove_atoms: [<H1>]
+    add_atoms:
+    - { name: P,   atom_type: Phos }
+    - { name: O1P, atom_type: OOP }
+    - { name: O2P, atom_type: OOP }
+    - { name: O3P, atom_type: OOP }
+    add_atom_aliases:
+    - { name: O1P, alt_name: OP1 }
+    - { name: O2P, alt_name: OP2 }
+    - { name: O3P, alt_name: OP3 }
+    modify_atoms: []
+    add_connections: []
+    add_bonds:
+    - [<O1>, P, SINGLE, false]
+    - [P, O1P, SINGLE, false]
+    - [P, O2P, SINGLE, false]
+    - [P, O3P, SINGLE, false]
+    icoors:
+    - { name: P,   phi: -179.16 deg, theta: 66.09 deg, d: 1.615, parent: <O1>, grand_parent: <C1>, great_grand_parent: <*2> }
+    - { name: O1P, phi:  180.00 deg, theta: 72.49 deg, d: 1.597, parent: P, grand_parent: <O1>, great_grand_parent: <C1> }
+    - { name: O2P, phi: -120.00 deg, theta: 72.49 deg, d: 1.597, parent: P, grand_parent: <O1>, great_grand_parent: O1P }
+    - { name: O3P, phi: -120.00 deg, theta: 72.49 deg, d: 1.597, parent: P, grand_parent: <O1>, great_grand_parent: O2P }
+    add_torsions:
+    - { name: chi2, a: { atom: <*2> }, b: { atom: <C1> }, c: { atom: <O1> }, d: { atom: P } }
+    add_chi_samples:
+    - { chi_dihedral: chi2, samples: [-179.16, 152.48, 117.55, -106.20, 153.19], expansions: [10] }
+
+  - name: ThrPhosphorylated
+    display_name: phosphorylated
+    name3: TPO
+    pattern: '[*][*]C[OH]'
+    applies_to: { base_names: [THR] }
+    remove_atoms: [<H1>]
+    add_atoms:
+    - { name: P,   atom_type: Phos }
+    - { name: O1P, atom_type: OOP }
+    - { name: O2P, atom_type: OOP }
+    - { name: O3P, atom_type: OOP }
+    add_atom_aliases:
+    - { name: O1P, alt_name: OP1 }
+    - { name: O2P, alt_name: OP2 }
+    - { name: O3P, alt_name: OP3 }
+    modify_atoms: []
+    add_connections: []
+    add_bonds:
+    - [<O1>, P, SINGLE, false]
+    - [P, O1P, SINGLE, false]
+    - [P, O2P, SINGLE, false]
+    - [P, O3P, SINGLE, false]
+    icoors:
+    - { name: P,   phi:  116.72 deg, theta: 59.44 deg, d: 1.613, parent: <O1>, grand_parent: <C1>, great_grand_parent: <*2> }
+    - { name: O1P, phi:  180.00 deg, theta: 72.72 deg, d: 1.551, parent: P, grand_parent: <O1>, great_grand_parent: <C1> }
+    - { name: O2P, phi: -120.00 deg, theta: 72.72 deg, d: 1.551, parent: P, grand_parent: <O1>, great_grand_parent: O1P }
+    - { name: O3P, phi: -120.00 deg, theta: 72.72 deg, d: 1.551, parent: P, grand_parent: <O1>, great_grand_parent: O2P }
+    add_torsions:
+    - { name: chi2, a: { atom: <*2> }, b: { atom: <C1> }, c: { atom: <O1> }, d: { atom: P } }
+    add_chi_samples:
+    - { chi_dihedral: chi2, samples: [116.72, 158.71, -102.82, 79.70], expansions: [10] }
+
+  - name: TyrPhosphorylated
+    display_name: phosphorylated
+    name3: PTR
+    pattern: '[*]1:[*]:[*]:[*]:[*]:[*]:1[OH]'
+    applies_to: { base_names: [TYR] }
+    remove_atoms: [<H1>]
+    add_atoms:
+    - { name: P,   atom_type: Phos }
+    - { name: O1P, atom_type: OOP }
+    - { name: O2P, atom_type: OOP }
+    - { name: O3P, atom_type: OOP }
+    add_atom_aliases:
+    - { name: O1P, alt_name: OP1 }
+    - { name: O2P, alt_name: OP2 }
+    - { name: O3P, alt_name: OP3 }
+    modify_atoms: []
+    add_connections: []
+    add_bonds:
+    - [<O1>, P, SINGLE, false]
+    - [P, O1P, SINGLE, false]
+    - [P, O2P, SINGLE, false]
+    - [P, O3P, SINGLE, false]
+    icoors:
+    - { name: P,   phi:  -83.79 deg, theta: 54.13 deg, d: 1.608, parent: <O1>, grand_parent: <*6>, great_grand_parent: <*5> }
+    - { name: O1P, phi:  180.00 deg, theta: 72.56 deg, d: 1.503, parent: P, grand_parent: <O1>, great_grand_parent: <*6> }
+    - { name: O2P, phi: -120.00 deg, theta: 72.56 deg, d: 1.503, parent: P, grand_parent: <O1>, great_grand_parent: O1P }
+    - { name: O3P, phi: -120.00 deg, theta: 72.56 deg, d: 1.503, parent: P, grand_parent: <O1>, great_grand_parent: O2P }
+    add_torsions:
+    - { name: chi3, a: { atom: <*5> }, b: { atom: <*6> }, c: { atom: <O1> }, d: { atom: P } }
+    add_chi_samples:
+    - { chi_dihedral: chi3, samples: [-83.79, -176.68, -0.47, -131.33, 61.23, 100.14], expansions: [15] }
+
+  # Lysine N6 methylation variants, using Rosetta fa_standard names and
+  # heavy-atom geometry (MLZ mono-, MLY di-, and M3L trimethyllysine).
+  - name: LysMonomethylated
+    display_name: monomethylated
+    name3: MLZ
+    pattern: '[*][*]C[NH3]'
+    applies_to: { base_names: [LYS] }
+    # Remove/re-add the symmetric amine hydrogens so matching does not depend
+    # on which input H the graph isomorphism labels H1/H2/H3.
+    remove_atoms: [<H1>, <H2>, <H3>]
+    add_atoms:
+    - { name: HZ1, atom_type: Hpol }
+    - { name: HZ2, atom_type: Hpol }
+    - { name: CM, atom_type: CH3 }
+    - { name: HCM1, atom_type: Hapo }
+    - { name: HCM2, atom_type: Hapo }
+    - { name: HCM3, atom_type: Hapo }
+    add_atom_aliases:
+    - { name: HZ1, alt_name: 1HZ }
+    - { name: HZ2, alt_name: 2HZ }
+    modify_atoms: [{ name: <N1>, atom_type: Narg }]
+    add_connections: []
+    add_bonds:
+    - [<N1>, HZ1, SINGLE, false]
+    - [<N1>, HZ2, SINGLE, false]
+    - [<N1>, CM, SINGLE, false]
+    - [CM, HCM1, SINGLE, false]
+    - [CM, HCM2, SINGLE, false]
+    - [CM, HCM3, SINGLE, false]
+    icoors:
+    - { name: CM,   phi: 179.62 deg, theta: 64.77 deg, d: 1.463, parent: <N1>, grand_parent: <C1>, great_grand_parent: <*2> }
+    - { name: HZ1,  phi: 120.00 deg, theta: 70.50 deg, d: 1.010, parent: <N1>, grand_parent: <C1>, great_grand_parent: CM }
+    - { name: HZ2,  phi: 120.00 deg, theta: 70.54 deg, d: 1.010, parent: <N1>, grand_parent: <C1>, great_grand_parent: HZ1 }
+    - { name: HCM1, phi: -179.974518 deg, theta: 70.50 deg, d: 1.090290, parent: CM, grand_parent: <N1>, great_grand_parent: <C1> }
+    - { name: HCM2, phi:  119.989571 deg, theta: 70.50 deg, d: 1.090575, parent: CM, grand_parent: <N1>, great_grand_parent: HCM1 }
+    - { name: HCM3, phi:  120.044632 deg, theta: 70.50 deg, d: 1.089057, parent: CM, grand_parent: <N1>, great_grand_parent: HCM2 }
+    add_torsions:
+    - { name: chi5, a: { atom: <*2> }, b: { atom: <C1> }, c: { atom: <N1> }, d: { atom: CM } }
+    add_chi_samples:
+    - { chi_dihedral: chi5, samples: [179.62, -99.00, 100.56], expansions: [15] }
+
+  - name: LysDimethylated
+    display_name: dimethylated
+    name3: MLY
+    pattern: '[*][*]C[NH3]'
+    applies_to: { base_names: [LYS] }
+    remove_atoms: [<H1>, <H2>, <H3>]
+    add_atoms:
+    - { name: HZ1, atom_type: Hpol }
+    - { name: CH1, atom_type: CH3 }
+    - { name: HH11, atom_type: Hapo }
+    - { name: HH12, atom_type: Hapo }
+    - { name: HH13, atom_type: Hapo }
+    - { name: CH2, atom_type: CH3 }
+    - { name: HH21, atom_type: Hapo }
+    - { name: HH22, atom_type: Hapo }
+    - { name: HH23, atom_type: Hapo }
+    add_atom_aliases:
+    - { name: HZ1, alt_name: 1HZ }
+    modify_atoms: [{ name: <N1>, atom_type: Ntrp }]
+    add_connections: []
+    add_bonds:
+    - [<N1>, HZ1, SINGLE, false]
+    - [<N1>, CH1, SINGLE, false]
+    - [CH1, HH11, SINGLE, false]
+    - [CH1, HH12, SINGLE, false]
+    - [CH1, HH13, SINGLE, false]
+    - [<N1>, CH2, SINGLE, false]
+    - [CH2, HH21, SINGLE, false]
+    - [CH2, HH22, SINGLE, false]
+    - [CH2, HH23, SINGLE, false]
+    icoors:
+    - { name: CH1,  phi: 178.56 deg, theta: 67.58 deg, d: 1.474, parent: <N1>, grand_parent: <C1>, great_grand_parent: <*2> }
+    - { name: CH2,  phi: 120.00 deg, theta: 67.58 deg, d: 1.474, parent: <N1>, grand_parent: <C1>, great_grand_parent: CH1 }
+    - { name: HZ1, phi: 120.00 deg, theta: 70.54 deg, d: 1.010, parent: <N1>, grand_parent: <C1>, great_grand_parent: CH2 }
+    - { name: HH11, phi: -179.974518 deg, theta: 70.50 deg, d: 1.090290, parent: CH1, grand_parent: <N1>, great_grand_parent: <C1> }
+    - { name: HH12, phi:  119.989571 deg, theta: 70.50 deg, d: 1.090575, parent: CH1, grand_parent: <N1>, great_grand_parent: HH11 }
+    - { name: HH13, phi:  120.044632 deg, theta: 70.50 deg, d: 1.089057, parent: CH1, grand_parent: <N1>, great_grand_parent: HH12 }
+    - { name: HH21, phi: -179.974518 deg, theta: 70.50 deg, d: 1.090290, parent: CH2, grand_parent: <N1>, great_grand_parent: <C1> }
+    - { name: HH22, phi:  119.989571 deg, theta: 70.50 deg, d: 1.090575, parent: CH2, grand_parent: <N1>, great_grand_parent: HH21 }
+    - { name: HH23, phi:  120.044632 deg, theta: 70.50 deg, d: 1.089057, parent: CH2, grand_parent: <N1>, great_grand_parent: HH22 }
+    add_torsions:
+    - { name: chi5, a: { atom: <*2> }, b: { atom: <C1> }, c: { atom: <N1> }, d: { atom: CH1 } }
+    add_chi_samples:
+    - { chi_dihedral: chi5, samples: [178.56, 68.21, -67.57, -128.29, 135.26], expansions: [15] }
+
+  - name: LysTrimethylated
+    display_name: trimethylated
+    name3: M3L
+    pattern: '[*][*]C[NH3]'
+    applies_to: { base_names: [LYS] }
+    remove_atoms: [<H1>, <H2>, <H3>]
+    add_atoms:
+    - { name: CM1, atom_type: CH3 }
+    - { name: HM11, atom_type: Hapo }
+    - { name: HM12, atom_type: Hapo }
+    - { name: HM13, atom_type: Hapo }
+    - { name: CM2, atom_type: CH3 }
+    - { name: HM21, atom_type: Hapo }
+    - { name: HM22, atom_type: Hapo }
+    - { name: HM23, atom_type: Hapo }
+    - { name: CM3, atom_type: CH3 }
+    - { name: HM31, atom_type: Hapo }
+    - { name: HM32, atom_type: Hapo }
+    - { name: HM33, atom_type: Hapo }
+    add_atom_aliases: []
+    modify_atoms: [{ name: <N1>, atom_type: Npro }]
+    add_connections: []
+    add_bonds:
+    - [<N1>, CM1, SINGLE, false]
+    - [CM1, HM11, SINGLE, false]
+    - [CM1, HM12, SINGLE, false]
+    - [CM1, HM13, SINGLE, false]
+    - [<N1>, CM2, SINGLE, false]
+    - [CM2, HM21, SINGLE, false]
+    - [CM2, HM22, SINGLE, false]
+    - [CM2, HM23, SINGLE, false]
+    - [<N1>, CM3, SINGLE, false]
+    - [CM3, HM31, SINGLE, false]
+    - [CM3, HM32, SINGLE, false]
+    - [CM3, HM33, SINGLE, false]
+    icoors:
+    - { name: CM1,  phi: 180.00 deg, theta: 69.81 deg, d: 1.482, parent: <N1>, grand_parent: <C1>, great_grand_parent: <*2> }
+    - { name: CM2,  phi: 120.00 deg, theta: 69.81 deg, d: 1.482, parent: <N1>, grand_parent: <C1>, great_grand_parent: CM1 }
+    - { name: CM3,  phi: 120.00 deg, theta: 69.81 deg, d: 1.482, parent: <N1>, grand_parent: <C1>, great_grand_parent: CM2 }
+    - { name: HM11, phi: -179.974518 deg, theta: 70.50 deg, d: 1.090290, parent: CM1, grand_parent: <N1>, great_grand_parent: <C1> }
+    - { name: HM12, phi:  119.989571 deg, theta: 70.50 deg, d: 1.090575, parent: CM1, grand_parent: <N1>, great_grand_parent: HM11 }
+    - { name: HM13, phi:  120.044632 deg, theta: 70.50 deg, d: 1.089057, parent: CM1, grand_parent: <N1>, great_grand_parent: HM12 }
+    - { name: HM21, phi: -179.974518 deg, theta: 70.50 deg, d: 1.090290, parent: CM2, grand_parent: <N1>, great_grand_parent: <C1> }
+    - { name: HM22, phi:  119.989571 deg, theta: 70.50 deg, d: 1.090575, parent: CM2, grand_parent: <N1>, great_grand_parent: HM21 }
+    - { name: HM23, phi:  120.044632 deg, theta: 70.50 deg, d: 1.089057, parent: CM2, grand_parent: <N1>, great_grand_parent: HM22 }
+    - { name: HM31, phi: -179.974518 deg, theta: 70.50 deg, d: 1.090290, parent: CM3, grand_parent: <N1>, great_grand_parent: <C1> }
+    - { name: HM32, phi:  119.989571 deg, theta: 70.50 deg, d: 1.090575, parent: CM3, grand_parent: <N1>, great_grand_parent: HM31 }
+    - { name: HM33, phi:  120.044632 deg, theta: 70.50 deg, d: 1.089057, parent: CM3, grand_parent: <N1>, great_grand_parent: HM32 }
+    add_torsions:
+    - { name: chi5, a: { atom: <*2> }, b: { atom: <C1> }, c: { atom: <N1> }, d: { atom: CM1 } }
+    add_chi_samples:
+    - { chi_dihedral: chi5, samples: [63.63, -56.67, 172.82], expansions: [15] }
+
   - name:  CarboxyTerminus
     display_name: cterm
     pattern: '[*][*]C(=O)[{up}]'
