@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import inspect
 
 import attr
 import numpy
@@ -10,6 +11,7 @@ import pytest
 import torch
 from frozendict import frozendict
 
+import tmol.dock.ligand_dofs as ligand_dofs_module
 from tmol.database import ParameterDatabase
 from tmol.dock import build_ligand_docking_dofs
 from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
@@ -642,3 +644,65 @@ def test_builder_does_not_mutate_shared_kinematics_or_ligand_root():
             ).dof_mask
         )
     ) == 8
+
+
+def test_builder_batches_atom_lookup_and_empirical_signs(
+    cdk2_pose_and_db, monkeypatch
+):
+    single, _ = cdk2_pose_and_db
+    pose_stack = PoseStackBuilder.from_poses(
+        [single.clone(), single.clone(), single.clone()], single.device
+    )
+    ligand_block = _ligand_block(pose_stack)
+    calls = {"node_map": 0, "signs": 0}
+
+    original_node_map = ligand_dofs_module._ligand_kinforest_nodes
+    original_signs = ligand_dofs_module._empirical_torsion_signs
+
+    def capture_node_map(*args, **kwargs):
+        calls["node_map"] += 1
+        result = original_node_map(*args, **kwargs)
+        assert result.shape[0] == pose_stack.n_poses
+        return result
+
+    def capture_signs(
+        kin_module,
+        raw_dofs,
+        ligand_nodes,
+        torsion_atoms,
+        raw_nodes,
+        dof_types,
+    ):
+        calls["signs"] += 1
+        assert raw_nodes.shape == (
+            pose_stack.n_poses,
+            len(torsion_atoms),
+        )
+        return original_signs(
+            kin_module,
+            raw_dofs,
+            ligand_nodes,
+            torsion_atoms,
+            raw_nodes,
+            dof_types,
+        )
+
+    monkeypatch.setattr(
+        ligand_dofs_module, "_ligand_kinforest_nodes", capture_node_map
+    )
+    monkeypatch.setattr(
+        ligand_dofs_module, "_empirical_torsion_signs", capture_signs
+    )
+    docking_dofs = build_ligand_docking_dofs(pose_stack, ligand_block)
+
+    # Each helper receives the complete pose/atom or pose/torsion tensor once.
+    # The old implementation invoked a nonzero+int lookup per ligand atom and
+    # a finite-difference forward pass per torsion.
+    assert calls == {"node_map": 1, "signs": 1}
+    assert len(docking_dofs.torsions) == 2
+    node_map_source = inspect.getsource(
+        ligand_dofs_module._ligand_kinforest_nodes
+    )
+    assert "nonzero" not in node_map_source
+    assert ".item(" not in node_map_source
+    assert "int(" not in node_map_source

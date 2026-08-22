@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import numpy
 import torch
 
 from tmol.kinematics.compiled import inverse_kin
@@ -95,14 +96,38 @@ class LigandDockingDOFs:
         return {mapping.name: mapping for mapping in self.torsions}
 
 
-def _kinforest_node_for_target_atom(kmd, target_atom: int) -> int:
-    matches = torch.nonzero(kmd.forest.id == target_atom, as_tuple=False).flatten()
-    if matches.numel() != 1:
-        raise ValueError(
-            f"expected one kinematic node for pose atom {target_atom}, "
-            f"found {matches.numel()}"
-        )
-    return int(matches[0])
+def _ligand_kinforest_nodes(
+    pose_stack: PoseStack,
+    ligand_block: int,
+    ligand_n_atoms: int,
+    forest_ids: torch.Tensor,
+) -> torch.Tensor:
+    """Return the ``[pose, ligand_atom]`` kinematic-node lookup in one gather."""
+
+    n_targets = pose_stack.n_poses * pose_stack.max_n_pose_atoms
+    id_to_node = torch.full(
+        (n_targets,), -1, dtype=torch.int64, device=pose_stack.device
+    )
+    nodes = torch.arange(
+        1, forest_ids.shape[0], dtype=torch.int64, device=pose_stack.device
+    )
+    id_to_node.scatter_(0, forest_ids[1:].to(torch.int64), nodes)
+
+    poses = torch.arange(
+        pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
+    )
+    local_atoms = torch.arange(
+        ligand_n_atoms, dtype=torch.int64, device=pose_stack.device
+    )
+    target_ids = (
+        poses[:, None] * pose_stack.max_n_pose_atoms
+        + pose_stack.block_coord_offset64[:, ligand_block, None]
+        + local_atoms[None, :]
+    )
+    ligand_nodes = id_to_node[target_ids]
+    if bool(torch.any(ligand_nodes < 0)):
+        raise ValueError("a ligand atom is absent from the kinematic forest")
+    return ligand_nodes
 
 
 def _local_torsion_atoms(block_type, torsion_index: int) -> tuple[int, int, int, int]:
@@ -142,45 +167,38 @@ def _inverse_dofs(pose_stack: PoseStack, kin_module: PoseStackKinematicsModule):
     )
 
 
-def _logical_torsion_values(
-    pose_stack: PoseStack, ligand_block: int, atoms: tuple[int, int, int, int]
+def _batched_coord_dihedrals(
+    coords: torch.Tensor,
+    atom_nodes: torch.Tensor,
 ) -> torch.Tensor:
-    coords = pose_stack.coords.double()
-    offsets = pose_stack.block_coord_offset64[:, ligand_block]
-    pose_indices = torch.arange(
-        pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
-    )
-    selected = [coords[pose_indices, offsets + atom] for atom in atoms]
-    return _coord_dihedrals(*selected)
+    """Measure ``[pose, torsion, 4]`` atom-node dihedrals in one batch."""
+
+    selected = coords[atom_nodes].double()
+    shape = atom_nodes.shape[:2]
+    flattened = selected.reshape(-1, 4, 3)
+    values = _coord_dihedrals(*(flattened[:, i] for i in range(4)))
+    return values.reshape(shape)
 
 
-def _empirical_torsion_sign(
+def _empirical_torsion_signs(
     kin_module: PoseStackKinematicsModule,
     raw_dofs: torch.Tensor,
-    pose_nodes: list[dict[int, int]],
-    atoms: tuple[int, int, int, int],
-    raw_atom: int,
-    dof_type: BondDOFTypes,
-) -> int:
-    """Measure d(declared dihedral)/d(raw DOF) through forward kinematics."""
+    ligand_nodes: torch.Tensor,
+    torsion_atoms: torch.Tensor,
+    raw_nodes: torch.Tensor,
+    dof_types: torch.Tensor,
+) -> torch.Tensor:
+    """Measure all d(declared-dihedral)/d(raw-DOF) signs together."""
 
     delta = 1.0e-3
     perturbed_dofs = raw_dofs.clone()
-    for nodes in pose_nodes:
-        perturbed_dofs[nodes[raw_atom], dof_type] += delta
+    perturbed_dofs[raw_nodes, dof_types[None, :]] += delta
 
     base_coords = kin_module(raw_dofs)
     perturbed_coords = kin_module(perturbed_dofs)
-
-    def declared_dihedrals(coords):
-        selected = [
-            torch.stack([coords[nodes[atom]] for nodes in pose_nodes]).double()
-            for atom in atoms
-        ]
-        return _coord_dihedrals(*selected)
-
-    base = declared_dihedrals(base_coords)
-    changed = declared_dihedrals(perturbed_coords)
+    atom_nodes = ligand_nodes[:, torsion_atoms]
+    base = _batched_coord_dihedrals(base_coords, atom_nodes)
+    changed = _batched_coord_dihedrals(perturbed_coords, atom_nodes)
     slopes = _wrap_angle(changed - base) / delta
     unit_slopes = torch.ones_like(slopes)
     if not torch.allclose(
@@ -192,30 +210,30 @@ def _empirical_torsion_sign(
         )
 
     positive = slopes > 0
-    if bool(torch.any(positive != positive[0])):
+    if bool(torch.any(positive != positive[0:1])):
         raise ValueError(
             "ligand torsion raw-DOF slope has inconsistent signs across poses: "
             f"{slopes.detach().cpu().tolist()}"
         )
-    return 1 if bool(positive[0]) else -1
+    return torch.where(positive[0], 1, -1)
 
 
 def _validate_ligand_root_jumps(
     pose_stack: PoseStack, ligand_block: int, fold_forest: FoldForest
 ) -> None:
-    for pose in range(pose_stack.n_poses):
-        edges = fold_forest.edges[pose, : fold_forest.n_edges[pose]]
-        ligand_roots = [
-            edge
-            for edge in edges
-            if int(edge[0]) == int(EdgeType.root_jump)
-            and int(edge[2]) == ligand_block
-        ]
-        if len(ligand_roots) != 1:
-            raise ValueError(
-                f"ligand block {ligand_block} in pose {pose} must have exactly "
-                f"one root jump; found {len(ligand_roots)}"
-            )
+    edges = fold_forest.edges
+    active = numpy.arange(edges.shape[1])[None, :] < fold_forest.n_edges[:, None]
+    ligand_root = (
+        active
+        & (edges[:, :, 0] == int(EdgeType.root_jump))
+        & (edges[:, :, 2] == ligand_block)
+    )
+    counts = numpy.sum(ligand_root, axis=1)
+    if numpy.any(counts != 1):
+        raise ValueError(
+            f"ligand block {ligand_block} must have exactly one root jump per "
+            f"pose; found {counts.tolist()}"
+        )
 
 
 def build_ligand_docking_dofs(
@@ -267,122 +285,121 @@ def build_ligand_docking_dofs(
     kmd = kin_module.kmd
     raw_dofs = _inverse_dofs(pose_stack, kin_module)
 
-    pose_nodes: list[dict[int, int]] = []
-    for pose in range(pose_stack.n_poses):
-        block_offset = int(pose_stack.block_coord_offset64[pose, ligand_block])
-        pose_base = pose * pose_stack.max_n_pose_atoms
-        pose_nodes.append(
-            {
-                atom: _kinforest_node_for_target_atom(
-                    kmd, pose_base + block_offset + atom
-                )
-                for atom in range(block_type.n_atoms)
-            }
+    ligand_nodes = _ligand_kinforest_nodes(
+        pose_stack, ligand_block, block_type.n_atoms, kmd.forest.id
+    )
+    torsion_atoms_host = [
+        _local_torsion_atoms(block_type, torsion_index)
+        for torsion_index in range(block_type.n_torsions)
+    ]
+    torsion_atoms = torch.tensor(
+        torsion_atoms_host, dtype=torch.int64, device=pose_stack.device
+    ).reshape(-1, 4)
+
+    first_nodes = ligand_nodes[0]
+    atom_a, atom_b, atom_c, atom_d = torsion_atoms.unbind(dim=1)
+    node_b = first_nodes[atom_b]
+    node_c = first_nodes[atom_c]
+    c_is_child = kmd.forest.parent[node_c] == node_b
+    b_is_child = kmd.forest.parent[node_b] == node_c
+    if bool(torch.any(c_is_child == b_is_child)):
+        raise ValueError(
+            "central atoms for a ligand torsion are not a parent/child pair "
+            "in the docking fold forest"
         )
 
-    mappings: list[LigandTorsionDOF] = []
-    claimed_raw_dofs: set[tuple[int, BondDOFTypes]] = set()
-    for torsion_index, torsion in enumerate(block_type.torsions):
-        a, b, c, d = _local_torsion_atoms(block_type, torsion_index)
-
-        first_nodes = pose_nodes[0]
-        if int(kmd.forest.parent[first_nodes[c]]) == first_nodes[b]:
-            child_central = c
-            reverse_outer = a
-        elif int(kmd.forest.parent[first_nodes[b]]) == first_nodes[c]:
-            child_central = b
-            reverse_outer = d
-        else:
-            raise ValueError(
-                f"central atoms for ligand torsion {torsion.name!r} are not a "
-                "parent/child pair in the docking fold forest"
-            )
-
-        normal_fixed = []
-        for pose, nodes in enumerate(pose_nodes):
-            child_node = nodes[child_central]
-            central_parent = b if child_central == c else c
-            if int(kmd.forest.parent[child_node]) != nodes[central_parent]:
-                raise ValueError(
-                    f"ligand torsion {torsion.name!r} has inconsistent tree "
-                    f"orientation in pose {pose}"
-                )
-            if int(kmd.forest.doftype[child_node]) != int(NodeType.bond):
-                raise ValueError(
-                    f"normal controller for ligand torsion {torsion.name!r} "
-                    "is not a bond node"
-                )
-            normal_fixed.append(
-                bool(kmd.keep_atom_fixed[child_node, BondDOFTypes.phi_c])
-            )
-
-        if any(fixed != normal_fixed[0] for fixed in normal_fixed[1:]):
-            raise ValueError(
-                f"ligand torsion {torsion.name!r} has inconsistent fixed-DOF "
-                "status across poses"
-            )
-
-        if not normal_fixed[0]:
-            raw_atom = child_central
-            dof_type = BondDOFTypes.phi_c
-        else:
-            raw_atom = reverse_outer
-            dof_type = BondDOFTypes.phi_p
-            for pose, nodes in enumerate(pose_nodes):
-                raw_node = nodes[raw_atom]
-                parent_central = b if child_central == c else c
-                if int(kmd.forest.parent[raw_node]) != nodes[parent_central]:
-                    raise ValueError(
-                        f"reversed endpoint for ligand torsion {torsion.name!r} "
-                        f"is not a child of its central atom in pose {pose}"
-                    )
-                if int(kmd.forest.doftype[raw_node]) != int(NodeType.bond):
-                    raise ValueError(
-                        f"reversed controller for ligand torsion {torsion.name!r} "
-                        "is not a bond node"
-                    )
-                if bool(kmd.keep_atom_fixed[raw_node, dof_type]):
-                    raise ValueError(
-                        f"both ends of ligand torsion {torsion.name!r} are fixed "
-                        f"by the docking fold forest in pose {pose}"
-                    )
-
-        sign = _empirical_torsion_sign(
-            kin_module,
-            raw_dofs,
-            pose_nodes,
-            (a, b, c, d),
-            raw_atom,
-            dof_type,
+    child_central = torch.where(c_is_child, atom_c, atom_b)
+    central_parent = torch.where(c_is_child, atom_b, atom_c)
+    reverse_outer = torch.where(c_is_child, atom_a, atom_d)
+    child_nodes = ligand_nodes[:, child_central]
+    parent_nodes = ligand_nodes[:, central_parent]
+    if bool(torch.any(kmd.forest.parent[child_nodes] != parent_nodes)):
+        raise ValueError(
+            "a ligand torsion has inconsistent tree orientation across poses"
         )
+    if bool(torch.any(kmd.forest.doftype[child_nodes] != int(NodeType.bond))):
+        raise ValueError("a normal ligand torsion controller is not a bond node")
 
-        raw_key = (raw_atom, dof_type)
-        if raw_key in claimed_raw_dofs:
-            raise ValueError(
-                f"ligand torsion {torsion.name!r} shares raw DOF "
-                f"{block_type.atoms[raw_atom].name}.{dof_type.name}"
-            )
-        claimed_raw_dofs.add(raw_key)
-
-        logical = _logical_torsion_values(
-            pose_stack, ligand_block, (a, b, c, d)
+    normal_fixed = kmd.keep_atom_fixed[
+        child_nodes, int(BondDOFTypes.phi_c)
+    ]
+    if bool(torch.any(normal_fixed != normal_fixed[0:1])):
+        raise ValueError(
+            "a ligand torsion has inconsistent fixed-DOF status across poses"
         )
-        raw = torch.stack(
-            [
-                raw_dofs[pose_nodes[pose][raw_atom], dof_type].double()
-                for pose in range(pose_stack.n_poses)
+    use_reversed = normal_fixed[0]
+    raw_atoms = torch.where(use_reversed, reverse_outer, child_central)
+    dof_types = torch.where(
+        use_reversed,
+        int(BondDOFTypes.phi_p),
+        int(BondDOFTypes.phi_c),
+    )
+    raw_nodes = ligand_nodes[:, raw_atoms]
+
+    reversed_nodes = raw_nodes[:, use_reversed]
+    reversed_parents = parent_nodes[:, use_reversed]
+    if bool(
+        torch.any(kmd.forest.parent[reversed_nodes] != reversed_parents)
+    ):
+        raise ValueError(
+            "a reversed ligand torsion endpoint is not a child of its central atom"
+        )
+    if bool(
+        torch.any(kmd.forest.doftype[reversed_nodes] != int(NodeType.bond))
+    ):
+        raise ValueError("a reversed ligand torsion controller is not a bond node")
+    if bool(
+        torch.any(
+            kmd.keep_atom_fixed[
+                reversed_nodes, int(BondDOFTypes.phi_p)
             ]
         )
-        offset = _wrap_angle(logical - sign * raw).detach().clone()
+    ):
+        raise ValueError("both ends of a ligand torsion are fixed by the fold forest")
+
+    raw_keys = raw_atoms * raw_dofs.shape[1] + dof_types
+    if torch.unique(raw_keys).numel() != raw_keys.numel():
+        raise ValueError("two ligand torsions share the same raw DOF")
+
+    signs = _empirical_torsion_signs(
+        kin_module,
+        raw_dofs,
+        ligand_nodes,
+        torsion_atoms,
+        raw_nodes,
+        dof_types,
+    )
+
+    pose_indices = torch.arange(
+        pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
+    )
+    coord_atom_indices = (
+        pose_stack.block_coord_offset64[:, ligand_block, None, None]
+        + torsion_atoms[None, :, :]
+    )
+    coord_pose_indices = pose_indices[:, None, None].expand_as(coord_atom_indices)
+    logical = _batched_coord_dihedrals(
+        pose_stack.coords.reshape(-1, 3),
+        coord_pose_indices * pose_stack.max_n_pose_atoms + coord_atom_indices,
+    )
+    raw = raw_dofs[raw_nodes, dof_types[None, :]].double()
+    offsets = _wrap_angle(logical - signs[None, :] * raw).detach().clone()
+
+    # One aggregate device-to-host transfer supplies the small immutable mapping
+    # metadata. It is O(1) synchronizations, independent of poses and atoms.
+    mapping_metadata = torch.stack((raw_atoms, dof_types, signs), dim=1).cpu().tolist()
+    mappings: list[LigandTorsionDOF] = []
+    for torsion_index, (raw_atom, dof_type, sign) in enumerate(mapping_metadata):
+        dof_type = BondDOFTypes(dof_type)
         mappings.append(
             LigandTorsionDOF(
-                name=torsion.name,
+                name=block_type.torsions[torsion_index].name,
                 torsion_index=torsion_index,
                 raw_atom=raw_atom,
                 raw_atom_name=block_type.atoms[raw_atom].name,
                 dof_type=dof_type,
                 sign=sign,
-                offset=offset,
+                offset=offsets[:, torsion_index],
             )
         )
 
@@ -407,19 +424,25 @@ def build_ligand_docking_dofs(
 
     minimizer_map = MinimizerMap(pose_stack, kmd, move_map)
     expected_per_pose = 6 + len(mappings)
-    for pose in range(pose_stack.n_poses):
-        first_target_atom = pose * pose_stack.max_n_pose_atoms
-        last_target_atom = first_target_atom + pose_stack.max_n_pose_atoms
-        nodes_for_pose = (kmd.forest.id >= first_target_atom) & (
-            kmd.forest.id < last_target_atom
+    node_pose = torch.div(
+        kmd.forest.id[1:],
+        pose_stack.max_n_pose_atoms,
+        rounding_mode="floor",
+    ).to(torch.int64)
+    movable_per_pose = torch.zeros(
+        pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
+    )
+    movable_per_pose.scatter_add_(
+        0,
+        node_pose,
+        torch.sum(minimizer_map.dof_mask[1:], dim=1).to(torch.int64),
+    )
+    if bool(torch.any(movable_per_pose != expected_per_pose)):
+        raise ValueError(
+            "ligand docking MoveMap has movable-DOF counts "
+            f"{movable_per_pose.detach().cpu().tolist()}; expected six jump "
+            f"DOFs plus {len(mappings)} torsions ({expected_per_pose} total)"
         )
-        actual = int(torch.sum(minimizer_map.dof_mask[nodes_for_pose]))
-        if actual != expected_per_pose:
-            raise ValueError(
-                f"ligand docking MoveMap for pose {pose} has {actual} movable "
-                f"DOFs; expected six jump DOFs plus {len(mappings)} torsions "
-                f"({expected_per_pose} total)"
-            )
 
     return LigandDockingDOFs(
         fold_forest=fold_forest,
