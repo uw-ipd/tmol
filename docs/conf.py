@@ -92,15 +92,17 @@ nbsphinx_execute = "never"
 # does not use RequireJS, so we disable it and load 3Dmol directly with a plain
 # script tag.
 nbsphinx_requirejs_path = ""
+# Explicit screenshots keep the gallery representative even though the live
+# 3Dmol canvases cannot be used as static nbsphinx thumbnails.
 nbsphinx_thumbnails = {
-    "tutorial/01_working_with_tmol": "_static/tutorials/01_working_with_tmol.svg",
-    "tutorial/02_gpu_batching": "_static/tutorials/02_gpu_batching.svg",
-    "tutorial/03_scoring_and_analysis": "_static/tutorials/03_scoring_and_analysis.svg",
-    "tutorial/04_packing_and_mutation_scan": "_static/tutorials/04_packing_and_mutation_scan.svg",
-    "tutorial/05_minimization_constraints_kinematics": "_static/tutorials/05_minimization_constraints_kinematics.svg",
-    "tutorial/06_fast_relax": "_static/tutorials/06_fast_relax.svg",
-    "tutorial/07_ligand_and_params": "_static/tutorials/07_ligand_and_params.svg",
-    "tutorial/08_nucleic_acids": "_static/tutorials/08_nucleic_acids.svg",
+    "tutorial/01_working_with_tmol": "_static/tutorials/01_working_with_tmol.png",
+    "tutorial/02_gpu_batching": "_static/tutorials/02_gpu_batching.png",
+    "tutorial/03_scoring_and_analysis": "_static/tutorials/03_scoring_and_analysis.png",
+    "tutorial/04_packing_and_mutation_scan": "_static/tutorials/04_packing_and_mutation_scan.png",
+    "tutorial/05_minimization_constraints_kinematics": "_static/tutorials/05_minimization_constraints_kinematics.png",
+    "tutorial/06_fast_relax": "_static/tutorials/06_fast_relax.png",
+    "tutorial/07_ligand_and_params": "_static/tutorials/07_ligand_and_params.png",
+    "tutorial/08_nucleic_acids": "_static/tutorials/08_nucleic_acids.png",
 }
 nbsphinx_epilog = r"""
 ----
