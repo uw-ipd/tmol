@@ -806,67 +806,20 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
 
         return _attr.evolve(pose_stack, split_block_mapping=sbm)
 
-    import attr
-    import torch
+    from tmol.pose import InterResidueConnection, connect_pose_blocks
 
-    from tmol.pose import PoseStackBuilder
-
-    pbt = pose_stack.packed_block_types
-    inter_residue_connections64 = pose_stack.inter_residue_connections64.clone()
-    for pose_index in range(len(pose_stack)):
-        for block_a, name_a, block_b, name_b in mapping.connection_pairs:
-            type_a = int(pose_stack.block_type_ind64[pose_index, block_a].item())
-            type_b = int(pose_stack.block_type_ind64[pose_index, block_b].item())
-            restype_a = pbt.active_block_types[type_a]
-            restype_b = pbt.active_block_types[type_b]
-            conn_a = int(restype_a.connection_to_cidx[name_a])
-            conn_b = int(restype_b.connection_to_cidx[name_b])
-            if torch.any(
-                inter_residue_connections64[pose_index, block_a, conn_a] != -1
-            ):
-                raise ValueError(
-                    f"fragment connection {block_a}:{name_a} is already occupied"
-                )
-            if torch.any(
-                inter_residue_connections64[pose_index, block_b, conn_b] != -1
-            ):
-                raise ValueError(
-                    f"fragment connection {block_b}:{name_b} is already occupied"
-                )
-            inter_residue_connections64[pose_index, block_a, conn_a] = torch.tensor(
-                (block_b, conn_b), dtype=torch.int64, device=pose_stack.device
-            )
-            inter_residue_connections64[pose_index, block_b, conn_b] = torch.tensor(
-                (block_a, conn_a), dtype=torch.int64, device=pose_stack.device
-            )
-
-    real_res = pose_stack.block_type_ind64 >= 0
-    (
-        pconn_matrix,
-        pconn_offsets,
-        block_n_conn,
-        pose_n_pconn,
-    ) = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(
-        pbt, pose_stack.block_type_ind64, real_res
-    )
-    PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
-        inter_residue_connections64, pconn_offsets, pconn_matrix
-    )
-    inter_block_bondsep64 = (
-        PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
-            pbt, block_n_conn, pose_n_pconn, pconn_matrix
-        )
-    )
-    result = attr.evolve(
+    result = connect_pose_blocks(
         pose_stack,
-        coords=pose_stack.coords.clone(),
-        inter_residue_connections=inter_residue_connections64.to(torch.int32),
-        inter_residue_connections64=inter_residue_connections64,
-        inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
-        inter_block_bondsep64=inter_block_bondsep64,
+        (
+            InterResidueConnection(pose_index, block_a, name_a, block_b, name_b)
+            for pose_index in range(len(pose_stack))
+            for block_a, name_a, block_b, name_b in mapping.connection_pairs
+        ),
     )
     result, sbm = build_split_block_mapping(result, mapping)
-    return attr.evolve(result, split_block_mapping=sbm)
+    import attr as _attr
+
+    return _attr.evolve(result, split_block_mapping=sbm)
 
 
 def build_split_block_mapping(

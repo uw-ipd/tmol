@@ -8,6 +8,10 @@ from ._pdb_info import (  # noqa: F401
 )  # noqa: F401
 from ._pose_stack import PoseStack  # noqa: F401
 from ._pose_stack_builder import PoseStackBuilder  # noqa: F401
+from ._inter_residue_connection import (  # noqa: F401
+    InterResidueConnection,
+    connect_pose_blocks,
+)
 from ._sequence import (  # noqa: F401
     SeqToken,
     resolve_block_type_names,
@@ -23,6 +27,7 @@ __all__ = [
     "PackedBlockTypes",
     "PoseStack",
     "PoseStackBuilder",
+    "InterResidueConnection",
     "SeqToken",
     "SplitBlockEntry",
     "SplitBlockMapping",
@@ -31,4 +36,5 @@ __all__ = [
     "resolve_block_type_names",
     "smiles_in_tokens",
     "tokenize_sequences",
+    "connect_pose_blocks",
 ]
