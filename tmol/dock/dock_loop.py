@@ -6,19 +6,21 @@ import math
 from dataclasses import dataclass
 
 import attr
+import numpy
 import torch
 
 from tmol.dock.ligand_dofs import (
     LigandDockingDOFs,
     build_ligand_docking_dofs,
 )
-from tmol.dock.scoring_backend import ScoringBackend
+from tmol.dock.scoring_backend import MinimizationResult, ScoringBackend
 from tmol.kinematics.compiled import inverse_kin
 from tmol.kinematics.datatypes import BondDOFTypes, JumpDOFTypes, NodeType
 from tmol.kinematics.move_map import MinimizerMap
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
+from tmol.pose.constraint_set import ConstraintSet
+from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.pose_stack import PoseStack
-from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
 @dataclass(frozen=True)
@@ -54,6 +56,93 @@ class DockGenerationResult:
     final_energies: torch.Tensor
     selection: torch.Tensor
     best_index: torch.Tensor
+
+
+def _repeat_pose_stack(pose_stack: PoseStack, n_poses: int) -> PoseStack:
+    """Replicate a single pose with vectorized tensor/array repeats."""
+
+    if pose_stack.n_poses != 1:
+        raise ValueError("only a single reference pose can be replicated")
+    if not isinstance(n_poses, int) or isinstance(n_poses, bool) or n_poses < 1:
+        raise ValueError("n_poses must be a positive integer")
+    if pose_stack.fragmented_ligand_mapping is not None:
+        raise ValueError(
+            "replicating fragmented-ligand metadata is not supported by docking"
+        )
+
+    def repeat_tensor(value):
+        return value.repeat((n_poses,) + (1,) * (value.ndim - 1))
+
+    pdb_info = PDBInfo(
+        residue_labels=numpy.repeat(
+            pose_stack.pdb_info.residue_labels, n_poses, axis=0
+        ),
+        residue_insertion_codes=numpy.repeat(
+            pose_stack.pdb_info.residue_insertion_codes, n_poses, axis=0
+        ),
+        chain_labels=numpy.repeat(
+            pose_stack.pdb_info.chain_labels, n_poses, axis=0
+        ),
+        atom_occupancy=numpy.repeat(
+            pose_stack.pdb_info.atom_occupancy, n_poses, axis=0
+        ),
+        atom_b_factor=numpy.repeat(
+            pose_stack.pdb_info.atom_b_factor, n_poses, axis=0
+        ),
+    )
+
+    constraints = pose_stack.constraint_set
+    if constraints is not None:
+        n_constraints = constraints.constraint_atoms.shape[0]
+        constraint_atoms = constraints.constraint_atoms.repeat(n_poses, 1, 1)
+        pose_ids = torch.arange(
+            n_poses, dtype=constraint_atoms.dtype, device=pose_stack.device
+        ).repeat_interleave(n_constraints)
+        constraint_atoms[:, :, 0] = torch.where(
+            constraint_atoms[:, :, 0] < 0,
+            constraint_atoms[:, :, 0],
+            pose_ids[:, None],
+        )
+        constraint_unique_blocks = constraints.constraint_unique_blocks.repeat(
+            n_poses, 1
+        )
+        constraint_unique_blocks[:, 0] = pose_ids
+        constraints = ConstraintSet(
+            device=pose_stack.device,
+            n_poses=n_poses,
+            constraint_function_inds=constraints.constraint_function_inds.repeat(
+                n_poses
+            ),
+            constraint_atoms=constraint_atoms,
+            constraint_params=constraints.constraint_params.repeat(n_poses, 1),
+            constraint_num_unique_blocks=(
+                constraints.constraint_num_unique_blocks.repeat(n_poses)
+            ),
+            constraint_unique_blocks=constraint_unique_blocks,
+            constraint_functions=constraints.constraint_functions,
+        )
+
+    return PoseStack(
+        packed_block_types=pose_stack.packed_block_types,
+        coords=repeat_tensor(pose_stack.coords),
+        block_coord_offset=repeat_tensor(pose_stack.block_coord_offset),
+        block_coord_offset64=repeat_tensor(pose_stack.block_coord_offset64),
+        inter_residue_connections=repeat_tensor(
+            pose_stack.inter_residue_connections
+        ),
+        inter_residue_connections64=repeat_tensor(
+            pose_stack.inter_residue_connections64
+        ),
+        inter_block_bondsep=repeat_tensor(pose_stack.inter_block_bondsep),
+        inter_block_bondsep64=repeat_tensor(pose_stack.inter_block_bondsep64),
+        block_type_ind=repeat_tensor(pose_stack.block_type_ind),
+        block_type_ind64=repeat_tensor(pose_stack.block_type_ind64),
+        chain_id=repeat_tensor(pose_stack.chain_id),
+        chain_id64=repeat_tensor(pose_stack.chain_id64),
+        pdb_info=pdb_info,
+        constraint_set=constraints,
+        device=pose_stack.device,
+    )
 
 
 def _inverse_dofs(
@@ -200,13 +289,7 @@ def run_one_generation(
     if not isinstance(perturb, DockingPerturbation):
         raise TypeError("perturb must be a DockingPerturbation")
 
-    population = PoseStackBuilder.from_poses(
-        [pose_stack] * n_pop, pose_stack.device
-    )
-    # PoseStackBuilder historically allocates float32 coordinates. Replace that
-    # tensor with a direct repeat so a float64 reference remains float64 and no
-    # precision is lost while stacking.
-    population.coords = pose_stack.coords.repeat(n_pop, 1, 1)
+    population = _repeat_pose_stack(pose_stack, n_pop)
 
     docking_dofs = build_ligand_docking_dofs(population, ligand_block)
     population = _perturb_ligand_dofs(
@@ -220,7 +303,12 @@ def run_one_generation(
             f"minimization; expected {expected_shape}"
         )
 
-    minimized = backend.minimize(population, docking_dofs)
+    minimize_result = backend.minimize(population, docking_dofs)
+    minimized = (
+        minimize_result.pose_stack
+        if isinstance(minimize_result, MinimizationResult)
+        else minimize_result
+    )
     if minimized.n_poses != n_pop:
         raise ValueError(
             f"backend.minimize returned {minimized.n_poses} poses; expected {n_pop}"
