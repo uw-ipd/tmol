@@ -43,11 +43,11 @@
     <script src="../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script>let toggleHintShow = 'Show code';</script>
-    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../_static/togglebutton.js?v=b8b12719"></script>
-    <script>var togglebuttonSelector = '#Setup .nbinput';</script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/top_level';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -365,6 +365,7 @@
 <li class="toctree-l1"><a class="reference internal" href="io.html">Input and Output</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kinematics.html">Kinematics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ligand.html">Ligands</a></li>
+
 <li class="toctree-l1"><a class="reference internal" href="numeric.html">Numerical Utilities</a></li>
 <li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pack.html">Packing</a></li>
@@ -445,10 +446,171 @@
                   
   <section id="top-level-api">
 <h1>Top-level API<a class="headerlink" href="#top-level-api" title="Link to this heading">#</a></h1>
-<p>The top-level package provides a small convenience API. Domain-specific code
-should prefer imports from packages such as <a class="reference internal" href="io.html#module-tmol.io" title="tmol.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.io</span></code></a>, <a class="reference internal" href="pose.html#module-tmol.pose" title="tmol.pose"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.pose</span></code></a>,
-and <a class="reference internal" href="score.html#module-tmol.score" title="tmol.score"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.score</span></code></a>.</p>
-<dl class="py function" id="module-tmol">
+<p>The top-level package provides convenience imports for the most common TMol
+objects and workflows. Their full documentation lives in the owning packages,
+such as <a class="reference internal" href="io.html#module-tmol.io" title="tmol.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.io</span></code></a>, <a class="reference internal" href="pose.html#module-tmol.pose" title="tmol.pose"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.pose</span></code></a>, and <a class="reference internal" href="score.html#module-tmol.score" title="tmol.score"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.score</span></code></a>.</p>
+<section id="core-objects">
+<h2>Core objects<a class="headerlink" href="#core-objects" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">CanonicalOrdering</span></code></p></td>
+<td><p>The canonical ordering class describes the integer ordering of residue types and for atoms within those residue types for the collection of available residue types defined by a PatchedChemicalDatabase.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartesianMoveMap</span></code></p></td>
+<td><p>Move map for Cartesian-space minimization.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConstraintEnergyTerm</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConstraintSet</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">EdgeType</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">FoldForest</span></code></p></td>
+<td><p>The fold forest will define the fold trees for the poses in a PoseStack.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">KinematicModuleData</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">MoveMap</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></p></td>
+<td><p>A class to aggregate the properties for a collection of residue types.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParameterDatabase</span></code></p></td>
+<td><p>Immutable chemical and scoring parameter container used by tmol.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">PoseStack</span></code></p></td>
+<td><p>The PoseStack class defines a batch (a stack) of molecular systems</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ScoreFunction</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ScoreType</span></code></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="structure-and-chemistry">
+<h2>Structure and chemistry<a class="headerlink" href="#structure-and-chemistry" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">atom_records_from_pose_stack</span></code></p></td>
+<td><p>Create a numpy array holding the atom records needed to write a PDB file from a PoseStack.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_form_from_openfold</span></code></p></td>
+<td><p>The canonical form is intended to represent a stable, serializable intermediate format for a structure so that it can be created today and then be read in years from now and be used to construct a PoseStack in tmol.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_form_from_pdb</span></code></p></td>
+<td><p>Create a canonical form from either the contents of a PDB file as one long string or a list of individual lines from the file or by providing the name/path of a PDB file</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_form_from_rosettafold2</span></code></p></td>
+<td><p>The canonical form is intended to represent a stable, serializable intermediate format for a structure so that it can be created today and then be read in years from now and be used to construct a PoseStack in tmol.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_ordering_for_openfold</span></code></p></td>
+<td><p>Construct the CanonicalOrdering object that will be used for the subset of residue types that are used by OpenFold; this will be stable so that the entries in &quot;coords&quot; tensor member of the canonical form dictionary will be interpretable indefinitely and thus a canonical form dictionary can be serialized to disk and read again after an arbitrary amount of time</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_ordering_for_rosettafold2</span></code></p></td>
+<td><p>Construct the CanonicalOrdering object that will be used for the subset of residue types that are used by RoseTTAFold2; this will be stable so that the entries in &quot;coords&quot; tensor member of the canonical form dictionary will be interpretable indefinitely and thus a canonical form dictionary can be serialized to disk and read again after an arbitrary amount of time</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_canonical_ordering</span></code></p></td>
+<td><p>Create a CanonicalOrdering object from the default set of residue types</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_packed_block_types</span></code></p></td>
+<td><p>Create a PackedBlockTypes object from the default set of residue types</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">extended_pose_stack_from_sequences</span></code></p></td>
+<td><p>Build a PoseStack from sequences with ideal geometry and extended backbone torsions.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">one2three</span></code></p></td>
+<td><p>Return the three-letter amino acid code given its one-letter code, or None if not a valid one-letter code.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">packed_block_types_for_openfold</span></code></p></td>
+<td><p>Construct the PackedBlockTypes (PBT) object that will be used for the subset of residue types that are used by OpenFold.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">packed_block_types_for_rosettafold2</span></code></p></td>
+<td><p>Construct the PackedBlockTypes (PBT) object that will be used for the subset of residue types that are used by RoseTTAFold2.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_canonical_form</span></code></p></td>
+<td><p>Create a PoseStack, resolving which block type is requested by the presence and absence of the provided atoms for each residue type.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_openfold</span></code></p></td>
+<td><p>Build a PoseStack from the output generated by openfold</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_pdb</span></code></p></td>
+<td><p>Construct a PoseStack given the contents of a PDB file or the name of a PDB file, using the full set of residue types contained in tmol's chemical.yaml file.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_rosettafold2</span></code></p></td>
+<td><p>Build a PoseStack from the output generated by RoseTTAFold2</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_to_pdb_string</span></code></p></td>
+<td><p>Convert a <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> into PDB text suitable for molecular viewers.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">selection_gallery</span></code></p></td>
+<td><p>Return one interactive viewer for several labeled AtomArray selections.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">switchable_view</span></code></p></td>
+<td><p>Return HTML that switches one 3Dmol viewer among labeled structures.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">three2one</span></code></p></td>
+<td><p>Return the one-letter amino acid code given its three letter code, or None if not a valid three-letter code</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">view</span></code></p></td>
+<td><p>Create a draggable py3Dmol viewer for a molecular structure.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_pose_stack_pdb</span></code></p></td>
+<td><p>Write a PDB-formatted file to disk given an input PoseStack.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="scoring-and-optimization">
+<h2>Scoring and optimization<a class="headerlink" href="#scoring-and-optimization" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">beta2016_score_function</span></code></p></td>
+<td><p>Return a ScoreFunction implementing the beta_nov2016 score function of Rosetta3.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_kinforest_network</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_mainchain_coordinate_constraints</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">fast_relax</span></code></p></td>
+<td><p>Run the FastRelax protocol: repeated rounds of rotamer packing and gradient minimization with a ramped fa_rep weight schedule.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_named_torsions</span></code></p></td>
+<td><p>Measure named torsions.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_torsion_names</span></code></p></td>
+<td><p>Names of the torsions defined on a block's type, in database order.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_cart_min</span></code></p></td>
+<td><p>Run minimization on a PoseStack in Cartesian coordinate space.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_kin_min</span></code></p></td>
+<td><p>Run minimization on a PoseStack in internal DOF space.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_min</span></code></p></td>
+<td><p>Run minimization on any sfxn module (Cartesian or KinForest).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_named_torsions</span></code></p></td>
+<td><p>Set named torsions, returning a new PoseStack.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-tmol">
+<span id="c-and-cuda-integration"></span><h2>C++ and CUDA integration<a class="headerlink" href="#module-tmol" title="Link to this heading">#</a></h2>
+<dl class="py function">
 <dt class="sig sig-object py" id="tmol.include_paths">
 <span class="sig-prename descclassname"><span class="pre">tmol.</span></span><span class="sig-name descname"><span class="pre">include_paths</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol.html#include_paths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.include_paths" title="Link to this definition">#</a></dt>
 <dd><p>C++/CUDA include paths for tmol components.</p>
@@ -456,6 +618,7 @@ and <a class="reference internal" href="score.html#module-tmol.score" title="tmo
 (tmol.utility._cpp_extension) imports this during module init.</p>
 </dd></dl>
 
+</section>
 </section>
 
 
@@ -505,7 +668,13 @@ and <a class="reference internal" href="score.html#module-tmol.score" title="tmo
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.include_paths"><code class="docutils literal notranslate"><span class="pre">include_paths()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#core-objects">Core objects</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#structure-and-chemistry">Structure and chemistry</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scoring-and-optimization">Scoring and optimization</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-tmol">C++ and CUDA integration</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.include_paths"><code class="docutils literal notranslate"><span class="pre">include_paths()</span></code></a></li>
+</ul>
+</li>
 </ul>
   </nav></div>
 

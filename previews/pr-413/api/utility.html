@@ -43,11 +43,11 @@
     <script src="../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script>let toggleHintShow = 'Show code';</script>
-    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../_static/togglebutton.js?v=b8b12719"></script>
-    <script>var togglebuttonSelector = '#Setup .nbinput';</script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/utility';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -365,6 +365,7 @@
 <li class="toctree-l1"><a class="reference internal" href="io.html">Input and Output</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kinematics.html">Kinematics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ligand.html">Ligands</a></li>
+
 <li class="toctree-l1"><a class="reference internal" href="numeric.html">Numerical Utilities</a></li>
 <li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pack.html">Packing</a></li>
@@ -594,6 +595,29 @@ If false, a case INsensitive matching of the unit name will be done in the regis
 <dd><p>Extract a single, unique value from a collection of values.</p>
 </dd></dl>
 
+<section id="public-aliases-and-units">
+<h2>Public aliases and units<a class="headerlink" href="#public-aliases-and-units" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Angle</span></code></p></td>
+<td><p>NewType creates simple unique types with almost zero runtime overhead.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">BondAngle</span></code></p></td>
+<td><p>NewType creates simple unique types with almost zero runtime overhead.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ClassLogger</span></code></p></td>
+<td><p>Intermediate representation of attributes that uses a counter to preserve the order in which the attributes have been defined.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">DihedralAngle</span></code></p></td>
+<td><p>NewType creates simple unique types with almost zero runtime overhead.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ureg</span></code></p></td>
+<td><p>The unit registry stores the definitions and relationships between units.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
 </section>
 
 
@@ -666,6 +690,7 @@ If false, a case INsensitive matching of the unit name will be done in the regis
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.utility.resolve_device"><code class="docutils literal notranslate"><span class="pre">resolve_device()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.utility.u"><code class="docutils literal notranslate"><span class="pre">u()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.utility.unique_val"><code class="docutils literal notranslate"><span class="pre">unique_val()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#public-aliases-and-units">Public aliases and units</a></li>
 </ul>
   </nav></div>
 

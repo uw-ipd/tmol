@@ -43,11 +43,11 @@
     <script src="../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script>let toggleHintShow = 'Show code';</script>
-    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../_static/togglebutton.js?v=b8b12719"></script>
-    <script>var togglebuttonSelector = '#Setup .nbinput';</script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/score_terms';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -365,6 +365,7 @@
 <li class="toctree-l1"><a class="reference internal" href="io.html">Input and Output</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kinematics.html">Kinematics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ligand.html">Ligands</a></li>
+
 <li class="toctree-l1"><a class="reference internal" href="numeric.html">Numerical Utilities</a></li>
 <li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pack.html">Packing</a></li>
@@ -653,6 +654,30 @@ to put it last.</p>
 <dd><p>Soft version of Rosetta’s chi in (20, 100) syn window.</p>
 </dd></dl>
 
+<p>The public parameter aliases and fitted-model constants are also available
+for lower-level analysis and extension work.</p>
+<table class="hlist"><tr><td><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">BACKBONE_TORSIONS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BASES</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BASE_FOR_NAME3</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CHI</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CHI_TORSION</span></code></p></li>
+</ul>
+</td><td><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">DELTA</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NORTH_PUCKERS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NaTorsionParams</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">POLYMERS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">REQUIRED_TORSIONS</span></code></p></li>
+</ul>
+</td><td><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SUGAR_TORSIONS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SYN_MEAN</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SYN_RANGE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TORSION_NAMES</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">eval_na_torsion_for_pose</span></code></p></li>
+</ul>
+</td></tr></table>
 </section>
 <section id="constraints">
 <h2>Constraints<a class="headerlink" href="#constraints" title="Link to this heading">#</a></h2>
@@ -662,7 +687,280 @@ to put it last.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyTerm</span></code></p>
 </dd></dl>
 
-<span class="target" id="module-tmol.score.constraint"></span></section>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">MCAtomIndices</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">constrain_all_ca</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_mainchain_coordinate_constraints</span></code></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="score-term-construction">
+<h2>Score-term construction<a class="headerlink" href="#score-term-construction" title="Link to this heading">#</a></h2>
+<p>The creator classes below are the public extension surface used by
+<a class="reference internal" href="#tmol.score.terms.ScoreTermFactory" title="tmol.score.terms.ScoreTermFactory"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.terms.ScoreTermFactory</span></code></a>. Most applications should configure
+a <a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ScoreFunction</span></code></a> rather than instantiate creators directly.</p>
+<dl class="py class" id="module-tmol.score.terms">
+<dt class="sig sig-object py" id="tmol.score.terms.BackboneTorsionTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">BackboneTorsionTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_backbone_torsion_creator.html#BackboneTorsionTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.BackboneTorsionTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.BackboneTorsionTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_backbone_torsion_creator.html#BackboneTorsionTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.BackboneTorsionTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.BackboneTorsionTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_backbone_torsion_creator.html#BackboneTorsionTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.BackboneTorsionTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.CartBondedTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">CartBondedTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_cartbonded_creator.html#CartBondedTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.CartBondedTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.CartBondedTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_cartbonded_creator.html#CartBondedTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.CartBondedTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.CartBondedTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_cartbonded_creator.html#CartBondedTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.CartBondedTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.ConstraintTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">ConstraintTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_constraint_creator.html#ConstraintTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.ConstraintTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.ConstraintTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_constraint_creator.html#ConstraintTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.ConstraintTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.ConstraintTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_constraint_creator.html#ConstraintTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.ConstraintTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.DisulfideTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">DisulfideTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_disulfide_creator.html#DisulfideTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.DisulfideTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.DisulfideTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_disulfide_creator.html#DisulfideTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.DisulfideTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.DisulfideTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_disulfide_creator.html#DisulfideTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.DisulfideTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.DunbrackTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">DunbrackTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_dunbrack_creator.html#DunbrackTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.DunbrackTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.DunbrackTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_dunbrack_creator.html#DunbrackTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.DunbrackTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.DunbrackTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_dunbrack_creator.html#DunbrackTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.DunbrackTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.ElecTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">ElecTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_elec_creator.html#ElecTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.ElecTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.ElecTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_elec_creator.html#ElecTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.ElecTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.ElecTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_elec_creator.html#ElecTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.ElecTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.GenBondedTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">GenBondedTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_genbonded_creator.html#GenBondedTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.GenBondedTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.GenBondedTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_genbonded_creator.html#GenBondedTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.GenBondedTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.GenBondedTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_genbonded_creator.html#GenBondedTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.GenBondedTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.HBondTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">HBondTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_hbond_creator.html#HBondTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.HBondTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.HBondTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_hbond_creator.html#HBondTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.HBondTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.HBondTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_hbond_creator.html#HBondTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.HBondTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.LJLKTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">LJLKTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_ljlk_creator.html#LJLKTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.LJLKTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.LJLKTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_ljlk_creator.html#LJLKTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.LJLKTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.LJLKTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_ljlk_creator.html#LJLKTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.LJLKTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.LKBallTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">LKBallTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_lk_ball_creator.html#LKBallTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.LKBallTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.LKBallTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_lk_ball_creator.html#LKBallTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.LKBallTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.LKBallTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_lk_ball_creator.html#LKBallTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.LKBallTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.NaTorsionTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">NaTorsionTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_na_torsion_creator.html#NaTorsionTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.NaTorsionTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.NaTorsionTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_na_torsion_creator.html#NaTorsionTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.NaTorsionTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.NaTorsionTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_na_torsion_creator.html#NaTorsionTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.NaTorsionTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.RefTermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">RefTermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_ref_creator.html#RefTermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.RefTermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms._term_creator.TermCreator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCreator</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.RefTermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_ref_creator.html#RefTermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.RefTermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.RefTermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_ref_creator.html#RefTermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.RefTermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.ScoreTermFactory">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">ScoreTermFactory</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_score_term_factory.html#ScoreTermFactory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.ScoreTermFactory" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Factory for the creation of EnergyTerms</p>
+<p>This class uses import-time factory registration to discover the set
+of TermCreators that live in the same directory as it. To register
+a new TermCreator, simply put the term creator in this directory.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.ScoreTermFactory.create_term_for_score_type">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term_for_score_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">st</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="score.html#tmol.score.ScoreType" title="tmol.score._score_types.ScoreType"><span class="pre">ScoreType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_score_term_factory.html#ScoreTermFactory.create_term_for_score_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.ScoreTermFactory.create_term_for_score_type" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.score.terms.ScoreTermFactory.creator_map">
+<span class="sig-name descname"><span class="pre">creator_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><span class="pre">Dict</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{ScoreType.cart_angles:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._cartbonded_creator.CartBondedTermCreator'&gt;,</span> <span class="pre">ScoreType.cart_hxltorsions:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._cartbonded_creator.CartBondedTermCreator'&gt;,</span> <span class="pre">ScoreType.cart_impropers:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._cartbonded_creator.CartBondedTermCreator'&gt;,</span> <span class="pre">ScoreType.cart_lengths:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._cartbonded_creator.CartBondedTermCreator'&gt;,</span> <span class="pre">ScoreType.cart_torsions:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._cartbonded_creator.CartBondedTermCreator'&gt;,</span> <span class="pre">ScoreType.constraint:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._constraint_creator.ConstraintTermCreator'&gt;,</span> <span class="pre">ScoreType.disulfide:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._disulfide_creator.DisulfideTermCreator'&gt;,</span> <span class="pre">ScoreType.dunbrack_rot:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._dunbrack_creator.DunbrackTermCreator'&gt;,</span> <span class="pre">ScoreType.dunbrack_rotdev:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._dunbrack_creator.DunbrackTermCreator'&gt;,</span> <span class="pre">ScoreType.dunbrack_semirot:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._dunbrack_creator.DunbrackTermCreator'&gt;,</span> <span class="pre">ScoreType.fa_elec:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._elec_creator.ElecTermCreator'&gt;,</span> <span class="pre">ScoreType.fa_ljatr:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._ljlk_creator.LJLKTermCreator'&gt;,</span> <span class="pre">ScoreType.fa_ljrep:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._ljlk_creator.LJLKTermCreator'&gt;,</span> <span class="pre">ScoreType.fa_lk:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._ljlk_creator.LJLKTermCreator'&gt;,</span> <span class="pre">ScoreType.gen_torsions:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._genbonded_creator.GenBondedTermCreator'&gt;,</span> <span class="pre">ScoreType.hbond:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._hbond_creator.HBondTermCreator'&gt;,</span> <span class="pre">ScoreType.lk_ball:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._lk_ball_creator.LKBallTermCreator'&gt;,</span> <span class="pre">ScoreType.lk_ball_iso:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._lk_ball_creator.LKBallTermCreator'&gt;,</span> <span class="pre">ScoreType.lk_bridge:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._lk_ball_creator.LKBallTermCreator'&gt;,</span> <span class="pre">ScoreType.lk_bridge_uncpl:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._lk_ball_creator.LKBallTermCreator'&gt;,</span> <span class="pre">ScoreType.na_torsion:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._na_torsion_creator.NaTorsionTermCreator'&gt;,</span> <span class="pre">ScoreType.na_torsion_well:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._na_torsion_creator.NaTorsionTermCreator'&gt;,</span> <span class="pre">ScoreType.omega:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._backbone_torsion_creator.BackboneTorsionTermCreator'&gt;,</span> <span class="pre">ScoreType.rama:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._backbone_torsion_creator.BackboneTorsionTermCreator'&gt;,</span> <span class="pre">ScoreType.ref:</span> <span class="pre">&lt;class</span> <span class="pre">'tmol.score.terms._ref_creator.RefTermCreator'&gt;}</span></em><a class="headerlink" href="#tmol.score.terms.ScoreTermFactory.creator_map" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.ScoreTermFactory.factory_register">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">factory_register</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">creator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tmol.score.terms.TermCreator" title="tmol.score.terms.TermCreator"><span class="pre">TermCreator</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_score_term_factory.html#ScoreTermFactory.factory_register"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.ScoreTermFactory.factory_register" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.score.terms.TermCreator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">TermCreator</span></span><a class="reference internal" href="../_modules/tmol/score/terms/_term_creator.html#TermCreator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.TermCreator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base class for registering score terms with the ScoreTermFactory.</p>
+<p>To add a new term,</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>add one or more new entries to the tmol.score._score_types enumeration</p></li>
+<li><p>derive a new subclass of TermCreator and put it in this directory
+(the term itself should be implemented in a different directory)</p></li>
+<li><p>the new TermCreator subclass needs to define two methods,
+create_term and score_types</p></li>
+<li><p>create_term should instantiate the term</p></li>
+<li><p>score_types should return a list of the elements of the score_types
+enumeration that the term implements in the order that the term
+will report them</p></li>
+</ul>
+</div></blockquote>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.TermCreator.create_term">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.13/tensor_attributes.html#torch.device" title="(in PyTorch v2.13)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_term_creator.html#TermCreator.create_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.TermCreator.create_term" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.score.terms.TermCreator.score_types">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">score_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_term_creator.html#TermCreator.score_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.TermCreator.score_types" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.terms.score_term_creator">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.terms.</span></span><span class="sig-name descname"><span class="pre">score_term_creator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/terms/_term_creator.html#score_term_creator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.terms.score_term_creator" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
 </section>
 
 
@@ -742,6 +1040,81 @@ to put it last.</p>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#constraints">Constraints</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.constraint.ConstraintEnergyTerm"><code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#score-term-construction">Score-term construction</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.BackboneTorsionTermCreator"><code class="docutils literal notranslate"><span class="pre">BackboneTorsionTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.BackboneTorsionTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">BackboneTorsionTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.BackboneTorsionTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">BackboneTorsionTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.CartBondedTermCreator"><code class="docutils literal notranslate"><span class="pre">CartBondedTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.CartBondedTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">CartBondedTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.CartBondedTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">CartBondedTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.ConstraintTermCreator"><code class="docutils literal notranslate"><span class="pre">ConstraintTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.ConstraintTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">ConstraintTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.ConstraintTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">ConstraintTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.DisulfideTermCreator"><code class="docutils literal notranslate"><span class="pre">DisulfideTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.DisulfideTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">DisulfideTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.DisulfideTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">DisulfideTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.DunbrackTermCreator"><code class="docutils literal notranslate"><span class="pre">DunbrackTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.DunbrackTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">DunbrackTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.DunbrackTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">DunbrackTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.ElecTermCreator"><code class="docutils literal notranslate"><span class="pre">ElecTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.ElecTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">ElecTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.ElecTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">ElecTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.GenBondedTermCreator"><code class="docutils literal notranslate"><span class="pre">GenBondedTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.GenBondedTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">GenBondedTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.GenBondedTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">GenBondedTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.HBondTermCreator"><code class="docutils literal notranslate"><span class="pre">HBondTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.HBondTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">HBondTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.HBondTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">HBondTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.LJLKTermCreator"><code class="docutils literal notranslate"><span class="pre">LJLKTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.LJLKTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">LJLKTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.LJLKTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">LJLKTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.LKBallTermCreator"><code class="docutils literal notranslate"><span class="pre">LKBallTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.LKBallTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">LKBallTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.LKBallTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">LKBallTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.NaTorsionTermCreator"><code class="docutils literal notranslate"><span class="pre">NaTorsionTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.NaTorsionTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">NaTorsionTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.NaTorsionTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">NaTorsionTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.RefTermCreator"><code class="docutils literal notranslate"><span class="pre">RefTermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.RefTermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">RefTermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.RefTermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">RefTermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.ScoreTermFactory"><code class="docutils literal notranslate"><span class="pre">ScoreTermFactory</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.ScoreTermFactory.create_term_for_score_type"><code class="docutils literal notranslate"><span class="pre">ScoreTermFactory.create_term_for_score_type()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.ScoreTermFactory.creator_map"><code class="docutils literal notranslate"><span class="pre">ScoreTermFactory.creator_map</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.ScoreTermFactory.factory_register"><code class="docutils literal notranslate"><span class="pre">ScoreTermFactory.factory_register()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.TermCreator"><code class="docutils literal notranslate"><span class="pre">TermCreator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.TermCreator.create_term"><code class="docutils literal notranslate"><span class="pre">TermCreator.create_term()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.TermCreator.score_types"><code class="docutils literal notranslate"><span class="pre">TermCreator.score_types()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.terms.score_term_creator"><code class="docutils literal notranslate"><span class="pre">score_term_creator()</span></code></a></li>
 </ul>
 </li>
 </ul>

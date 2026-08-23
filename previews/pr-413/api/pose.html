@@ -43,11 +43,11 @@
     <script src="../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script>let toggleHintShow = 'Show code';</script>
-    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../_static/togglebutton.js?v=b8b12719"></script>
-    <script>var togglebuttonSelector = '#Setup .nbinput';</script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/pose';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -365,6 +365,7 @@
 <li class="toctree-l1"><a class="reference internal" href="io.html">Input and Output</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kinematics.html">Kinematics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ligand.html">Ligands</a></li>
+
 <li class="toctree-l1"><a class="reference internal" href="numeric.html">Numerical Utilities</a></li>
 <li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pack.html">Packing</a></li>
@@ -1259,6 +1260,20 @@ end up in chains of their own.</p>
 <dd><p>Split sequence strings into per-pose tokens and chain lengths.</p>
 </dd></dl>
 
+<section id="public-defaults">
+<h2>Public defaults<a class="headerlink" href="#public-defaults" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">DEFAULT_ATOM_B_FACTOR</span></code></p></td>
+<td><p>Convert a string or number to a floating point number, if possible.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">DEFAULT_ATOM_OCCUPANCY</span></code></p></td>
+<td><p>Convert a string or number to a floating point number, if possible.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
 </section>
 
 
@@ -1452,6 +1467,7 @@ end up in chains of their own.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.pose.resolve_block_type_names"><code class="docutils literal notranslate"><span class="pre">resolve_block_type_names()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.pose.smiles_in_tokens"><code class="docutils literal notranslate"><span class="pre">smiles_in_tokens()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.pose.tokenize_sequences"><code class="docutils literal notranslate"><span class="pre">tokenize_sequences()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#public-defaults">Public defaults</a></li>
 </ul>
   </nav></div>
 

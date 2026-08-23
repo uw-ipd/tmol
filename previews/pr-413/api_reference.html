@@ -43,11 +43,11 @@
     <script src="_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script>let toggleHintShow = 'Show code';</script>
-    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="_static/togglebutton.js?v=b8b12719"></script>
-    <script>var togglebuttonSelector = '#Setup .nbinput';</script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api_reference';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -365,6 +365,7 @@
 <li class="toctree-l1"><a class="reference internal" href="api/io.html">Input and Output</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/kinematics.html">Kinematics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/ligand.html">Ligands</a></li>
+
 <li class="toctree-l1"><a class="reference internal" href="api/numeric.html">Numerical Utilities</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/optimization.html">Optimization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/pack.html">Packing</a></li>
@@ -450,7 +451,10 @@ For an architectural overview and tensor conventions, see
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="api/top_level.html">Top-level API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api/top_level.html#tmol.include_paths"><code class="docutils literal notranslate"><span class="pre">include_paths()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/top_level.html#core-objects">Core objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/top_level.html#structure-and-chemistry">Structure and chemistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/top_level.html#scoring-and-optimization">Scoring and optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/top_level.html#module-tmol">C++ and CUDA integration</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/chemical.html">Chemical Types</a><ul>
@@ -463,6 +467,7 @@ For an architectural overview and tensor conventions, see
 <li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.frame_from_coords"><code class="docutils literal notranslate"><span class="pre">frame_from_coords()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.one2three"><code class="docutils literal notranslate"><span class="pre">one2three()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/chemical.html#tmol.chemical.three2one"><code class="docutils literal notranslate"><span class="pre">three2one()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/chemical.html#public-constants-and-aliases">Public constants and aliases</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/database.html">Parameter Database</a><ul>
@@ -575,6 +580,7 @@ For an architectural overview and tensor conventions, see
 <li class="toctree-l2"><a class="reference internal" href="api/ligand.html#tmol.ligand.write_params_from_mol2"><code class="docutils literal notranslate"><span class="pre">write_params_from_mol2()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="api/ligand.html#public-constants">Public constants</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/numeric.html">Numerical Utilities</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/numeric.html#tmol.numeric.Angles"><code class="docutils literal notranslate"><span class="pre">Angles</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/numeric.html#tmol.numeric.BSplineInterpolation"><code class="docutils literal notranslate"><span class="pre">BSplineInterpolation</span></code></a></li>
@@ -617,6 +623,7 @@ For an architectural overview and tensor conventions, see
 <li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.resolve_block_type_names"><code class="docutils literal notranslate"><span class="pre">resolve_block_type_names()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.smiles_in_tokens"><code class="docutils literal notranslate"><span class="pre">smiles_in_tokens()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/pose.html#tmol.pose.tokenize_sequences"><code class="docutils literal notranslate"><span class="pre">tokenize_sequences()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/pose.html#public-defaults">Public defaults</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/relax.html">Relax</a><ul>
@@ -637,6 +644,7 @@ For an architectural overview and tensor conventions, see
 <li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.ScoreType"><code class="docutils literal notranslate"><span class="pre">ScoreType</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.WholePoseScoringModule"><code class="docutils literal notranslate"><span class="pre">WholePoseScoringModule</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.beta2016_score_function"><code class="docutils literal notranslate"><span class="pre">beta2016_score_function()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score.html#tmol.score.calculate_fragment_interactions"><code class="docutils literal notranslate"><span class="pre">calculate_fragment_interactions()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/analysis.html">Analysis Operations</a><ul>
@@ -647,7 +655,6 @@ For an architectural overview and tensor conventions, see
 <li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.ops.compute_block_adjacency"><code class="docutils literal notranslate"><span class="pre">compute_block_adjacency()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.ops.compute_block_centroids_and_furthest_dist"><code class="docutils literal notranslate"><span class="pre">compute_block_centroids_and_furthest_dist()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.ops.res_mask_to_coord_mask"><code class="docutils literal notranslate"><span class="pre">res_mask_to_coord_mask()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/analysis.html#tmol.score.calculate_fragment_interactions"><code class="docutils literal notranslate"><span class="pre">calculate_fragment_interactions()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/score_terms.html">Score Terms</a><ul>
@@ -656,6 +663,7 @@ For an architectural overview and tensor conventions, see
 <li class="toctree-l2"><a class="reference internal" href="api/score_terms.html#bonded-torsional-and-reference-terms">Bonded, torsional, and reference terms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/score_terms.html#nucleic-acid-term">Nucleic-acid term</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/score_terms.html#constraints">Constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/score_terms.html#score-term-construction">Score-term construction</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/types.html">Types</a><ul>
@@ -704,6 +712,7 @@ For an architectural overview and tensor conventions, see
 <li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.resolve_device"><code class="docutils literal notranslate"><span class="pre">resolve_device()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.u"><code class="docutils literal notranslate"><span class="pre">u()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/utility.html#tmol.utility.unique_val"><code class="docutils literal notranslate"><span class="pre">unique_val()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utility.html#public-aliases-and-units">Public aliases and units</a></li>
 </ul>
 </li>
 </ul>

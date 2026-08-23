@@ -11,3 +11,14 @@ stored in ``ConstraintSet``.
    :imported-members:
    :undoc-members:
    :show-inheritance:
+
+Public defaults
+---------------
+
+.. currentmodule:: tmol.pose
+
+.. autosummary::
+   :nosignatures:
+
+   DEFAULT_ATOM_B_FACTOR
+   DEFAULT_ATOM_OCCUPANCY

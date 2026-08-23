@@ -109,6 +109,28 @@ Nucleic-acid term
    :imported-members:
    :show-inheritance:
 
+The public parameter aliases and fitted-model constants are also available
+for lower-level analysis and extension work.
+
+.. hlist::
+   :columns: 3
+
+   * ``BACKBONE_TORSIONS``
+   * ``BASES``
+   * ``BASE_FOR_NAME3``
+   * ``CHI``
+   * ``CHI_TORSION``
+   * ``DELTA``
+   * ``NORTH_PUCKERS``
+   * ``NaTorsionParams``
+   * ``POLYMERS``
+   * ``REQUIRED_TORSIONS``
+   * ``SUGAR_TORSIONS``
+   * ``SYN_MEAN``
+   * ``SYN_RANGE``
+   * ``TORSION_NAMES``
+   * ``eval_na_torsion_for_pose``
+
 Constraints
 -----------
 
@@ -118,4 +140,26 @@ Constraints
 .. automodule:: tmol.score.constraint
    :members:
    :imported-members:
+   :show-inheritance:
+
+.. currentmodule:: tmol.score.constraint
+
+.. autosummary::
+   :nosignatures:
+
+   MCAtomIndices
+   constrain_all_ca
+   create_mainchain_coordinate_constraints
+
+Score-term construction
+-----------------------
+
+The creator classes below are the public extension surface used by
+:class:`tmol.score.terms.ScoreTermFactory`. Most applications should configure
+a :class:`tmol.score.ScoreFunction` rather than instantiate creators directly.
+
+.. automodule:: tmol.score.terms
+   :members:
+   :imported-members:
+   :undoc-members:
    :show-inheritance:

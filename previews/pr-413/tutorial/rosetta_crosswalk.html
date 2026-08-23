@@ -43,11 +43,11 @@
     <script src="../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script>let toggleHintShow = 'Show code';</script>
-    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../_static/togglebutton.js?v=b8b12719"></script>
-    <script>var togglebuttonSelector = '#Setup .nbinput';</script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'tutorial/rosetta_crosswalk';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -496,8 +496,8 @@ between centroid and full-atom residue-type sets. The official
 <a class="reference external" href="https://docs.rosettacommons.org/demos/latest/tutorials/analysis/Analysis">analysis tutorial</a>,
 and <a class="reference external" href="https://docs.rosettacommons.org/demos/latest/tutorials/full_atom_vs_centroid/fullatom_centroid">full-atom versus centroid tutorial</a>
 explain those choices; see also the
-<a class="reference external" href="https://doi.org/10.1021/acs.jctc.6b00819">beta2016</a> and
-<a class="reference external" href="https://doi.org/10.1021/acs.jctc.7b00125">REF15</a> papers.</p>
+<a class="reference external" href="https://pubmed.ncbi.nlm.nih.gov/27766851/">beta2016</a> and
+<a class="reference external" href="https://pubmed.ncbi.nlm.nih.gov/28430426/">REF15</a> papers.</p>
 <p>TMol ships <a class="reference internal" href="../api/score.html#tmol.score.beta2016_score_function" title="tmol.score.beta2016_score_function"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.score.beta2016_score_function()</span></code></a>,
 a beta-November-2016-style all-atom preset. It does <strong>not</strong> implement
 <code class="docutils literal notranslate"><span class="pre">ref2015</span></code>, centroid residue types, centroid/full-atom switching, or exact

@@ -43,11 +43,11 @@
     <script src="../_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script>let toggleHintShow = 'Show code';</script>
-    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../_static/togglebutton.js?v=b8b12719"></script>
-    <script>var togglebuttonSelector = '#Setup .nbinput';</script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/score';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -365,6 +365,7 @@
 <li class="toctree-l1"><a class="reference internal" href="io.html">Input and Output</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kinematics.html">Kinematics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ligand.html">Ligands</a></li>
+
 <li class="toctree-l1"><a class="reference internal" href="numeric.html">Numerical Utilities</a></li>
 <li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pack.html">Packing</a></li>
@@ -915,6 +916,32 @@ are gone.</p>
 <dd><p>Return a ScoreFunction implementing the beta_nov2016 score function of Rosetta3.</p>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.score.calculate_fragment_interactions">
+<span class="sig-prename descclassname"><span class="pre">tmol.score.</span></span><span class="sig-name descname"><span class="pre">calculate_fragment_interactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partner_mask</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sum_terms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/_fragment_interactions.html#calculate_fragment_interactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.calculate_fragment_interactions" title="Link to this definition">#</a></dt>
+<dd><p>Return each ligand fragment’s interaction with <code class="docutils literal notranslate"><span class="pre">partner_mask</span></code>.</p>
+<p>The connected multi-block pose is scored once. Fragment-fragment entries
+remain in the block-pair matrix and are not silently assigned to either
+fragment.</p>
+<p><code class="docutils literal notranslate"><span class="pre">sfxn</span></code> is required and must be built from the same ligand-extended
+parameter database used to construct <code class="docutils literal notranslate"><span class="pre">pose_stack</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#tmol.score.FragmentInteractionScores" title="tmol.score.FragmentInteractionScores"><code class="xref py py-class docutils literal notranslate"><span class="pre">FragmentInteractionScores</span></code></a>. <code class="docutils literal notranslate"><span class="pre">scores</span></code> has shape
+<code class="docutils literal notranslate"><span class="pre">[n_terms,</span> <span class="pre">n_poses,</span> <span class="pre">n_fragments]</span></code> or <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_fragments]</span></code> when
+<code class="docutils literal notranslate"><span class="pre">sum_terms</span></code> is true.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SFXN_FORMAT_VERSION</span></code></p></td>
+<td><p>str(object='') -&gt; str str(bytes_or_buffer[, encoding[, errors]]) -&gt; str</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 </section>
 
 
@@ -1061,6 +1088,7 @@ are gone.</p>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.beta2016_score_function"><code class="docutils literal notranslate"><span class="pre">beta2016_score_function()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.score.calculate_fragment_interactions"><code class="docutils literal notranslate"><span class="pre">calculate_fragment_interactions()</span></code></a></li>
 </ul>
   </nav></div>
 

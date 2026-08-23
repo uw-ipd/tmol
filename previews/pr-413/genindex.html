@@ -42,11 +42,11 @@
     <script src="_static/documentation_options.js?v=5df2d9e8"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script>let toggleHintShow = 'Show code';</script>
-    <script>let toggleHintHide = 'Hide code';</script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="_static/togglebutton.js?v=b8b12719"></script>
-    <script>var togglebuttonSelector = '#Setup .nbinput';</script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="#" />
@@ -555,6 +555,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/score_terms.html#tmol.score.backbone_torsion.BackboneTorsionEnergyTerm">BackboneTorsionEnergyTerm (class in tmol.score.backbone_torsion)</a>
 </li>
+      <li><a href="api/score_terms.html#tmol.score.terms.BackboneTorsionTermCreator">BackboneTorsionTermCreator (class in tmol.score.terms)</a>
+</li>
       <li><a href="api/database.html#tmol.database.RawResidueType.base_name">base_name (tmol.database.RawResidueType attribute)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.dunbrack.DunSamplerPBTCache.bbdihe_uaids">bbdihe_uaids (tmol.pack.rotamer.dunbrack.DunSamplerPBTCache attribute)</a>
@@ -607,10 +609,10 @@
       </ul></li>
       <li><a href="api/kinematics.html#tmol.kinematics.DOFTypes.bond_angle">bond_angle (tmol.kinematics.DOFTypes attribute)</a>
 </li>
-      <li><a href="api/kinematics.html#tmol.kinematics.DOFTypes.bond_distance">bond_distance (tmol.kinematics.DOFTypes attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/kinematics.html#tmol.kinematics.DOFTypes.bond_distance">bond_distance (tmol.kinematics.DOFTypes attribute)</a>
+</li>
       <li><a href="api/chemical.html#tmol.chemical.RefinedResidueType.bond_indices">bond_indices (tmol.chemical.RefinedResidueType attribute)</a>
 
       <ul>
@@ -675,7 +677,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/analysis.html#tmol.ops.calculate_block_pair_ddg">calculate_block_pair_ddg() (in module tmol.ops)</a>
 </li>
-      <li><a href="api/analysis.html#tmol.score.calculate_fragment_interactions">calculate_fragment_interactions() (in module tmol.score)</a>
+      <li><a href="api/score.html#tmol.score.calculate_fragment_interactions">calculate_fragment_interactions() (in module tmol.score)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.calculate_rotamer_coords">calculate_rotamer_coords() (in module tmol.pack.rotamer)</a>
 </li>
@@ -716,6 +718,8 @@
       <li><a href="api/ligand.html#tmol.ligand.LigandPreparation.cartbonded_params">cartbonded_params (tmol.ligand.LigandPreparation attribute)</a>
 </li>
       <li><a href="api/score_terms.html#tmol.score.cartbonded.CartBondedEnergyTerm">CartBondedEnergyTerm (class in tmol.score.cartbonded)</a>
+</li>
+      <li><a href="api/score_terms.html#tmol.score.terms.CartBondedTermCreator">CartBondedTermCreator (class in tmol.score.terms)</a>
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.CartesianMoveMap">CartesianMoveMap (class in tmol.kinematics)</a>
 </li>
@@ -785,8 +789,6 @@
 </li>
       <li><a href="api/analysis.html#tmol.ops.compute_block_centroids_and_furthest_dist">compute_block_centroids_and_furthest_dist() (in module tmol.ops)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/chemical.html#tmol.chemical.RefinedResidueType.compute_ideal_coords">compute_ideal_coords() (tmol.chemical.RefinedResidueType method)</a>
 </li>
       <li><a href="api/pose.html#tmol.pose.ConstraintSet.concatenate">concatenate() (tmol.pose.ConstraintSet class method)</a>
@@ -803,6 +805,8 @@
 </li>
       <li><a href="api/chemical.html#tmol.chemical.RefinedResidueType.connection_to_cidx">connection_to_cidx (tmol.chemical.RefinedResidueType attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/chemical.html#tmol.chemical.RefinedResidueType.connection_to_idx">connection_to_idx (tmol.chemical.RefinedResidueType attribute)</a>
 </li>
       <li><a href="api/database.html#tmol.database.RawResidueType.connections">connections (tmol.database.RawResidueType attribute)</a>
@@ -830,6 +834,8 @@
       <li><a href="api/score_terms.html#tmol.score.constraint.ConstraintEnergyTerm">ConstraintEnergyTerm (class in tmol.score.constraint)</a>
 </li>
       <li><a href="api/pose.html#tmol.pose.ConstraintSet">ConstraintSet (class in tmol.pose)</a>
+</li>
+      <li><a href="api/score_terms.html#tmol.score.terms.ConstraintTermCreator">ConstraintTermCreator (class in tmol.score.terms)</a>
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.construct_kin_module_data_for_pose">construct_kin_module_data_for_pose() (in module tmol.kinematics)</a>
 </li>
@@ -898,6 +904,38 @@
       <li><a href="api/io.html#tmol.io.CanonicalOrdering.create_src_2_tmol_mappings">create_src_2_tmol_mappings() (tmol.io.CanonicalOrdering method)</a>
 </li>
       <li><a href="api/database.html#tmol.database.ParameterDatabase.create_stable_subset">create_stable_subset() (tmol.database.ParameterDatabase method)</a>
+</li>
+      <li><a href="api/score_terms.html#tmol.score.terms.BackboneTorsionTermCreator.create_term">create_term() (tmol.score.terms.BackboneTorsionTermCreator class method)</a>
+
+      <ul>
+        <li><a href="api/score_terms.html#tmol.score.terms.CartBondedTermCreator.create_term">(tmol.score.terms.CartBondedTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.ConstraintTermCreator.create_term">(tmol.score.terms.ConstraintTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.DisulfideTermCreator.create_term">(tmol.score.terms.DisulfideTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.DunbrackTermCreator.create_term">(tmol.score.terms.DunbrackTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.ElecTermCreator.create_term">(tmol.score.terms.ElecTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.GenBondedTermCreator.create_term">(tmol.score.terms.GenBondedTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.HBondTermCreator.create_term">(tmol.score.terms.HBondTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.LJLKTermCreator.create_term">(tmol.score.terms.LJLKTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.LKBallTermCreator.create_term">(tmol.score.terms.LKBallTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.NaTorsionTermCreator.create_term">(tmol.score.terms.NaTorsionTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.RefTermCreator.create_term">(tmol.score.terms.RefTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.TermCreator.create_term">(tmol.score.terms.TermCreator class method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/score_terms.html#tmol.score.terms.ScoreTermFactory.create_term_for_score_type">create_term_for_score_type() (tmol.score.terms.ScoreTermFactory class method)</a>
+</li>
+      <li><a href="api/score_terms.html#tmol.score.terms.ScoreTermFactory.creator_map">creator_map (tmol.score.terms.ScoreTermFactory attribute)</a>
 </li>
       <li><a href="api/io.html#tmol.io.CanonicalOrdering.cys_inds">cys_inds (tmol.io.CanonicalOrdering attribute)</a>
 </li>
@@ -975,10 +1013,10 @@
         <li><a href="api/score.html#tmol.score.AtomTypeParamResolver.device">(tmol.score.AtomTypeParamResolver attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/types.html#tmol.types.Dim">Dim (class in tmol.types)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/types.html#tmol.types.Shape.dims">dims (tmol.types.Shape attribute)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.PackerTask.disable_packing_by_block_mask">disable_packing_by_block_mask() (tmol.pack.PackerTask method)</a>
@@ -992,6 +1030,8 @@
       <li><a href="api/score_terms.html#tmol.score.disulfide.DisulfideEnergyTerm">DisulfideEnergyTerm (class in tmol.score.disulfide)</a>
 </li>
       <li><a href="api/io.html#tmol.io.CanonicalForm.disulfides">disulfides (tmol.io.CanonicalForm attribute)</a>
+</li>
+      <li><a href="api/score_terms.html#tmol.score.terms.DisulfideTermCreator">DisulfideTermCreator (class in tmol.score.terms)</a>
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.DOFMetadata.dof_idx">dof_idx (tmol.kinematics.DOFMetadata attribute)</a>
 </li>
@@ -1037,6 +1077,8 @@
 </li>
       <li><a href="api/score_terms.html#tmol.score.dunbrack.DunbrackEnergyTerm">DunbrackEnergyTerm (class in tmol.score.dunbrack)</a>
 </li>
+      <li><a href="api/score_terms.html#tmol.score.terms.DunbrackTermCreator">DunbrackTermCreator (class in tmol.score.terms)</a>
+</li>
       <li><a href="api/pack.html#tmol.pack.rotamer.dunbrack.DunSamplerPBTCache">DunSamplerPBTCache (class in tmol.pack.rotamer.dunbrack)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.dunbrack.DunSamplerRTCache">DunSamplerRTCache (class in tmol.pack.rotamer.dunbrack)</a>
@@ -1057,6 +1099,8 @@
 </li>
       <li><a href="api/score_terms.html#tmol.score.elec.ElecEnergyTerm">ElecEnergyTerm (class in tmol.score.elec)</a>
 </li>
+      <li><a href="api/score_terms.html#tmol.score.terms.ElecTermCreator">ElecTermCreator (class in tmol.score.terms)</a>
+</li>
       <li><a href="api/database.html#tmol.database.AtomType.element">element (tmol.database.AtomType attribute)</a>
 
       <ul>
@@ -1073,10 +1117,10 @@
       </ul></li>
       <li><a href="api/types.html#tmol.types.TensorGroup.empty">empty() (tmol.types.TensorGroup class method)</a>
 </li>
-      <li><a href="api/pack.html#tmol.pack.PackerEnergyTables.energy1b">energy1b (tmol.pack.PackerEnergyTables attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pack.html#tmol.pack.PackerEnergyTables.energy1b">energy1b (tmol.pack.PackerEnergyTables attribute)</a>
+</li>
       <li><a href="api/pack.html#tmol.pack.PackerEnergyTables.energy2b">energy2b (tmol.pack.PackerEnergyTables attribute)</a>
 </li>
       <li><a href="api/pose.html#tmol.pose.SplitBlockMapping.entries">entries (tmol.pose.SplitBlockMapping attribute)</a>
@@ -1112,6 +1156,8 @@
       <li><a href="api/score.html#tmol.score.ScoreType.fa_ljrep">fa_ljrep (tmol.score.ScoreType attribute)</a>
 </li>
       <li><a href="api/score.html#tmol.score.ScoreType.fa_lk">fa_lk (tmol.score.ScoreType attribute)</a>
+</li>
+      <li><a href="api/score_terms.html#tmol.score.terms.ScoreTermFactory.factory_register">factory_register() (tmol.score.terms.ScoreTermFactory class method)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.FallbackSampler">FallbackSampler (class in tmol.pack.rotamer)</a>
 </li>
@@ -1175,10 +1221,10 @@
 </li>
       <li><a href="api/ligand.html#tmol.ligand.LigandFragmentDefinition.fragment_name">fragment_name() (tmol.ligand.LigandFragmentDefinition method)</a>
 </li>
-      <li><a href="api/ligand.html#tmol.ligand.LigandFragmentDefinition.fragment_preparations">fragment_preparations (tmol.ligand.LigandFragmentDefinition attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/ligand.html#tmol.ligand.LigandFragmentDefinition.fragment_preparations">fragment_preparations (tmol.ligand.LigandFragmentDefinition attribute)</a>
+</li>
       <li><a href="api/ligand.html#tmol.ligand.FragmentConnection">FragmentConnection (class in tmol.ligand)</a>
 </li>
       <li><a href="api/score.html#tmol.score.FragmentInteractionScores">FragmentInteractionScores (class in tmol.score)</a>
@@ -1269,6 +1315,8 @@
 </li>
       <li><a href="api/score_terms.html#tmol.score.genbonded.GenBondedEnergyTerm">GenBondedEnergyTerm (class in tmol.score.genbonded)</a>
 </li>
+      <li><a href="api/score_terms.html#tmol.score.terms.GenBondedTermCreator">GenBondedTermCreator (class in tmol.score.terms)</a>
+</li>
       <li><a href="api/kinematics.html#tmol.kinematics.KinForestScanData.gens">gens (tmol.kinematics.KinForestScanData attribute)</a>
 
       <ul>
@@ -1323,9 +1371,11 @@
         <li><a href="api/score.html#tmol.score.ScoreType.hbond">(tmol.score.ScoreType attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/score_terms.html#tmol.score.hbond.HBondEnergyTerm">HBondEnergyTerm (class in tmol.score.hbond)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/score_terms.html#tmol.score.hbond.HBondEnergyTerm">HBondEnergyTerm (class in tmol.score.hbond)</a>
+      <li><a href="api/score_terms.html#tmol.score.terms.HBondTermCreator">HBondTermCreator (class in tmol.score.terms)</a>
 </li>
       <li><a href="api/io.html#tmol.io.CanonicalOrdering.his_inds">his_inds (tmol.io.CanonicalOrdering attribute)</a>
 </li>
@@ -1527,9 +1577,11 @@
 </li>
       <li><a href="api/database.html#tmol.database.ScoringDatabase.ljlk">ljlk (tmol.database.ScoringDatabase attribute)</a>
 </li>
+      <li><a href="api/score_terms.html#tmol.score.ljlk.LJLKEnergyTerm">LJLKEnergyTerm (class in tmol.score.ljlk)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/score_terms.html#tmol.score.ljlk.LJLKEnergyTerm">LJLKEnergyTerm (class in tmol.score.ljlk)</a>
+      <li><a href="api/score_terms.html#tmol.score.terms.LJLKTermCreator">LJLKTermCreator (class in tmol.score.terms)</a>
 </li>
       <li><a href="api/score.html#tmol.score.ScoreType.lk_ball">lk_ball (tmol.score.ScoreType attribute)</a>
 </li>
@@ -1540,6 +1592,8 @@
       <li><a href="api/score.html#tmol.score.ScoreType.lk_bridge_uncpl">lk_bridge_uncpl (tmol.score.ScoreType attribute)</a>
 </li>
       <li><a href="api/score_terms.html#tmol.score.lk_ball.LKBallEnergyTerm">LKBallEnergyTerm (class in tmol.score.lk_ball)</a>
+</li>
+      <li><a href="api/score_terms.html#tmol.score.terms.LKBallTermCreator">LKBallTermCreator (class in tmol.score.terms)</a>
 </li>
       <li><a href="api/ligand.html#tmol.ligand.load_params_file">load_params_file() (in module tmol.ligand)</a>
 </li>
@@ -1666,6 +1720,8 @@
         <li><a href="api/score_terms.html#module-tmol.score.constraint">tmol.score.constraint</a>
 </li>
         <li><a href="api/score_terms.html#module-tmol.score.na_torsion">tmol.score.na_torsion</a>
+</li>
+        <li><a href="api/score_terms.html#module-tmol.score.terms">tmol.score.terms</a>
 </li>
         <li><a href="api/types.html#module-tmol.types">tmol.types</a>
 </li>
@@ -1835,6 +1891,8 @@
       <li><a href="api/database.html#tmol.database.RawResidueType.name3">name3 (tmol.database.RawResidueType attribute)</a>
 </li>
       <li><a href="api/score_terms.html#tmol.score.na_torsion.NaTorsionEnergyTerm">NaTorsionEnergyTerm (class in tmol.score.na_torsion)</a>
+</li>
+      <li><a href="api/score_terms.html#tmol.score.terms.NaTorsionTermCreator">NaTorsionTermCreator (class in tmol.score.terms)</a>
 </li>
       <li><a href="api/types.html#tmol.types.NDArray">NDArray (class in tmol.types)</a>
 </li>
@@ -2174,6 +2232,8 @@
 </li>
       <li><a href="api/chemical.html#tmol.chemical.RefinedResidueType">RefinedResidueType (class in tmol.chemical)</a>
 </li>
+      <li><a href="api/score_terms.html#tmol.score.terms.RefTermCreator">RefTermCreator (class in tmol.score.terms)</a>
+</li>
       <li><a href="api/types.html#tmol.types.register_converter">register_converter() (in module tmol.types)</a>
 </li>
       <li><a href="api/types.html#tmol.types.register_validator">register_validator() (in module tmol.types)</a>
@@ -2340,14 +2400,48 @@
         <li><a href="api/pack.html#tmol.pack.rotamer.RotamerKintree.scans">(tmol.pack.rotamer.RotamerKintree attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/score_terms.html#tmol.score.terms.score_term_creator">score_term_creator() (in module tmol.score.terms)</a>
+</li>
       <li><a href="api/score.html#tmol.score.ScoreFunction.score_type_covered_by_contained_term">score_type_covered_by_contained_term() (tmol.score.ScoreFunction method)</a>
 </li>
+      <li><a href="api/score_terms.html#tmol.score.terms.BackboneTorsionTermCreator.score_types">score_types() (tmol.score.terms.BackboneTorsionTermCreator class method)</a>
+
+      <ul>
+        <li><a href="api/score_terms.html#tmol.score.terms.CartBondedTermCreator.score_types">(tmol.score.terms.CartBondedTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.ConstraintTermCreator.score_types">(tmol.score.terms.ConstraintTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.DisulfideTermCreator.score_types">(tmol.score.terms.DisulfideTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.DunbrackTermCreator.score_types">(tmol.score.terms.DunbrackTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.ElecTermCreator.score_types">(tmol.score.terms.ElecTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.GenBondedTermCreator.score_types">(tmol.score.terms.GenBondedTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.HBondTermCreator.score_types">(tmol.score.terms.HBondTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.LJLKTermCreator.score_types">(tmol.score.terms.LJLKTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.LKBallTermCreator.score_types">(tmol.score.terms.LKBallTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.NaTorsionTermCreator.score_types">(tmol.score.terms.NaTorsionTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.RefTermCreator.score_types">(tmol.score.terms.RefTermCreator class method)</a>
+</li>
+        <li><a href="api/score_terms.html#tmol.score.terms.TermCreator.score_types">(tmol.score.terms.TermCreator class method)</a>
+</li>
+      </ul></li>
       <li><a href="api/score.html#tmol.score.ScoreFunction">ScoreFunction (class in tmol.score)</a>
 </li>
       <li><a href="api/score.html#tmol.score.FragmentInteractionScores.scores">scores (tmol.score.FragmentInteractionScores attribute)</a>
 </li>
+      <li><a href="api/score_terms.html#tmol.score.terms.ScoreTermFactory">ScoreTermFactory (class in tmol.score.terms)</a>
+</li>
       <li><a href="api/score.html#tmol.score.ScoreType">ScoreType (class in tmol.score)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/database.html#tmol.database.ParameterDatabase.scoring">scoring (tmol.database.ParameterDatabase attribute)</a>
 </li>
       <li><a href="api/database.html#tmol.database.ScoringDatabase">ScoringDatabase (class in tmol.database)</a>
@@ -2362,8 +2456,6 @@
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_jump_dofs_for_root_jump">set_move_all_jump_dofs_for_root_jump() (tmol.kinematics.MoveMap method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_mc_tors_for_blocks">set_move_all_mc_tors_for_blocks() (tmol.kinematics.MoveMap method)</a>
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_named_torsions_for_blocks">set_move_all_named_torsions_for_blocks() (tmol.kinematics.MoveMap method)</a>
@@ -2447,6 +2539,8 @@
       <li><a href="api/types.html#tmol.types.TensorGroup">TensorGroup (class in tmol.types)</a>
 </li>
       <li><a href="api/score.html#tmol.score.ScoreFunction.term_for_st_has_no_other_non_zero_weights">term_for_st_has_no_other_non_zero_weights() (tmol.score.ScoreFunction method)</a>
+</li>
+      <li><a href="api/score_terms.html#tmol.score.terms.TermCreator">TermCreator (class in tmol.score.terms)</a>
 </li>
       <li><a href="api/io.html#tmol.io.CanonicalOrdering.termini_patch_added_atoms">termini_patch_added_atoms (tmol.io.CanonicalOrdering attribute)</a>
 </li>
@@ -2577,6 +2671,13 @@
 
       <ul>
         <li><a href="api/score_terms.html#module-tmol.score.na_torsion">module</a>
+</li>
+      </ul></li>
+      <li>
+    tmol.score.terms
+
+      <ul>
+        <li><a href="api/score_terms.html#module-tmol.score.terms">module</a>
 </li>
       </ul></li>
       <li>
