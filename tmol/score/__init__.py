@@ -82,4 +82,5 @@ __all__ = [
     "ScoreType",
     "WholePoseScoringModule",
     "beta2016_score_function",
+    "calculate_fragment_interactions",
 ]

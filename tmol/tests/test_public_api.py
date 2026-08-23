@@ -44,3 +44,9 @@ def test_ligand_all_excludes_vendored_and_internal_helpers():
     assert "Protonate" not in ligand.__all__
     assert "main" not in ligand.__all__
     assert "print_header" not in ligand.__all__
+
+
+def test_documented_fragment_interaction_helper_is_public():
+    from tmol import score
+
+    assert "calculate_fragment_interactions" in score.__all__
