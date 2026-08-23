@@ -55,7 +55,7 @@ carry reliable bond orders. Deriving ligand parameters requires an input that
 describes bond geometry — a MOL2, a CIF with a bond table, or a SMILES. Load
 the ligand from one of those formats even when the rest of the complex is a PDB.
 
-- `calculate_block_pair_ddg` is a Python API in `tmol.score.score_utils` (no separate CLI wrapper).
+- `calculate_block_pair_ddg` is a Python API in `tmol.ops` (no separate CLI wrapper).
 - The structure residue/atom naming must match the residue definition in your `.tmol`.
 - For multi-ligand systems, build an explicit mask instead of assuming the ligand is the last block.
 - Build the score function from the **ligand-extended** database
@@ -82,9 +82,9 @@ import numpy as np
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+from tmol.io import pose_stack_from_biotite
 from tmol.score import beta2016_score_function
-from tmol.score.score_utils import calculate_fragment_interactions
+from tmol.score import calculate_fragment_interactions
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 structure = biotite.structure.io.load_structure("complex.cif")
@@ -117,10 +117,10 @@ pose, context = pose_stack_from_biotite(
 )
 
 # Select all non-fragment blocks as the interaction partner.
-mapping = pose.fragmented_ligand_mapping
+mapping = pose.split_block_mapping
 partner_mask = pose.block_type_ind >= 0
-for record in mapping.blocks:
-    partner_mask[record.pose_index, record.block_index] = False
+for entry in mapping.entries:
+    partner_mask[entry.pose_ind, entry.block_ind] = False
 
 # The score function must use the ligand-extended database from the build context.
 sfxn = beta2016_score_function(
@@ -135,14 +135,19 @@ interactions = calculate_fragment_interactions(
 )
 
 for index, record in enumerate(interactions.mapping):
-    print(record.fragment_name, interactions.scores[:, index])
+    print(
+        record.pose_ind,
+        record.block_ind,
+        interactions.scores[:, index],
+    )
 ```
 
 `interactions.scores` has shape `[n_poses, n_fragments]` when
 `sum_terms=True`, or `[n_score_terms, n_poses, n_fragments]` otherwise.
-`interactions.mapping` gives the fragment name, original residue identity,
-and pose block index for each score column. Summing the fragment interaction
-columns gives the fragmented ligand-versus-partner block-pair ddG.
+`interactions.mapping` contains `SplitBlockEntry` records that identify the
+pose and block index for each score column. Summing the fragment interaction
+columns gives the connected ligand-versus-partner cross-mask score. It is not a
+binding free energy or thermodynamic ddG.
 
 Fragment layouts currently have these correctness constraints:
 
@@ -170,7 +175,7 @@ Additional requirements:
 - Generated names such as `XYZ.1` must not already identify different
   chemistry in the active parameter database.
 - The mapping is attached automatically as
-  `pose.fragmented_ligand_mapping`; users normally should not call the
+  `pose.split_block_mapping`; users normally should not call the
   lower-level fragmentation functions directly.
 
 ### Recombining and dumping fragments
@@ -181,15 +186,14 @@ fragmented ligand's original residue name, number, chain, and insertion code by
 default, so dumped coordinates contain the original ligand residue:
 
 ```python
-from tmol import write_pose_stack_pdb
-from tmol.io.pose_stack_from_biotite import biotite_from_pose_stack
+from tmol.io import biotite_from_pose_stack, write_pose_stack_pdb
 
 write_pose_stack_pdb(pose, "scored_complex.pdb")
 restored = biotite_from_pose_stack(pose, context.canonical_ordering)
 ```
 
 Pass `merge_fragments=False` to either function to inspect the separate
-fragment residues. `tmol.ligand.recombine_fragmented_ligands()` provides the
+fragment residues. `recombine_fragmented_ligands(structure, pose)` provides the
 same residue-identity restoration for an already exported Biotite structure.
 This export operation does not rebuild a new single-block scoring pose; the
 original pose remains fragmented so per-fragment interactions can still be
@@ -205,7 +209,7 @@ the preferred reuse path: it skips rebuilding the parameter database, canonical
 ordering, and packed block types on every structure.
 
 ```python
-from tmol.io.pose_stack_from_biotite import (
+from tmol.io import (
     build_context_from_biotite,
     pose_stack_from_biotite,
 )
@@ -310,21 +314,21 @@ it into the pose. Failure modes, in order of likelihood:
 
 | File | Role |
 |------|------|
-| `preparation.py` | `prepare_ligands`, single-ligand `from_{mol2,cif,smiles}` helpers, CIF rename |
-| `detect.py` | `NonStandardResidueInfo`, non-standard residue detection, mol2/SMILES readers |
-| `structure_to_smiles.py` | SMILES from an AtomArray bond table (no geometry perception, no CCD lookup) |
-| `fragmentation.py` | Fragment annotations, fragment block types/connections, pose mapping |
-| `dimorphite_dl.py` | pKa-based protonation-state enumeration on SMILES |
-| `conformer_generation.py` | 3D coordinates via RDKit distance geometry (replaces OpenBabel `make3D`) |
-| `generated_geometry.py` | Corrections to known systematic errors in generated conformers |
-| `openbabel_compat.py` | SMILES→mol2 (conformer + MMFF94 charges), mol2 read fallbacks |
-| `mol3d.py` | OpenBabel MMFF94 charges by atom index |
-| `rdkit_mol.py` | AtomArray → RDKit `Mol` |
-| `mol2_names.py` | Rosetta-style disambiguation of duplicate Tripos atom names |
-| `atom_typing.py` | Rosetta `generic_potential` atom-type assignment (RDKit) |
-| `chi_topology.py` | Rotatable bonds / `PROTON_CHI` |
-| `chemistry_tables.py` | DB-backed atom-class and hbond lookup tables from the chemical DB |
-| `residue_builder.py` | `RawResidueType` from a `Chem.Mol` (atom tree, ICs, bond order) |
-| `registry.py` | `ParameterDatabase` injection, cartbonded params |
-| `params_file.py` | Load/inject `.tmol` YAML params |
-| `params_io.py` | Write `.params`/`.tmol`; read Rosetta `.params` |
+| `_preparation.py` | `prepare_ligands`, single-ligand `from_{mol2,cif,smiles}` helpers, CIF rename |
+| `_detect.py` | `NonStandardResidueInfo`, non-standard residue detection, mol2/SMILES readers |
+| `_structure_to_smiles.py` | SMILES from an AtomArray bond table (no geometry perception, no CCD lookup) |
+| `_fragmentation.py` | Fragment annotations, fragment block types/connections, pose mapping |
+| `_dimorphite_dl.py` | pKa-based protonation-state enumeration on SMILES |
+| `_conformer_generation.py` | 3D coordinates via RDKit distance geometry (replaces OpenBabel `make3D`) |
+| `_generated_geometry.py` | Corrections to known systematic errors in generated conformers |
+| `_openbabel_compat.py` | SMILES→mol2 (conformer + MMFF94 charges), mol2 read fallbacks |
+| `_mol3d.py` | OpenBabel MMFF94 charges by atom index |
+| `_rdkit_mol.py` | AtomArray → RDKit `Mol` |
+| `_mol2_names.py` | Rosetta-style disambiguation of duplicate Tripos atom names |
+| `_atom_typing.py` | Rosetta `generic_potential` atom-type assignment (RDKit) |
+| `_chi_topology.py` | Rotatable bonds / `PROTON_CHI` |
+| `_chemistry_tables.py` | DB-backed atom-class and hbond lookup tables from the chemical DB |
+| `_residue_builder.py` | `RawResidueType` from a `Chem.Mol` (atom tree, ICs, bond order) |
+| `_registry.py` | `ParameterDatabase` injection, cartbonded params |
+| `_params_file.py` | Load/inject `.tmol` YAML params |
+| `_params_io.py` | Write `.params`/`.tmol`; read Rosetta `.params` |
