@@ -122,13 +122,14 @@ class CanonicalOrdering:
     an "alias" for an atom; see the restypes_atom_index_mapping
     data member.
 
-    There are four data members that are useful for users:
-        - max_n_canonical_atoms
-        - restype_io_equiv_classes
-        - restypes_ordered_atom_names
-        - restypes_atom_index_mapping
-    the remaining data members are useful primarily for
-    internal tmol functionality
+    Four data members are especially useful:
+
+    * ``max_n_canonical_atoms``
+    * ``restype_io_equiv_classes``
+    * ``restypes_ordered_atom_names``
+    * ``restypes_atom_index_mapping``
+
+    The remaining data members are primarily for internal tmol functionality.
 
     max_n_canonical_atoms: the largest number of distinct atom names among all
         variants of a single residue type (equivalence class) across all residue types

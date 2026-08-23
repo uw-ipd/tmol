@@ -442,10 +442,12 @@ def test_fragment_mapping_is_stable_for_atom_array_stack(torch_device):
 
 def test_fragmented_ligand_minimize_and_pack_e2e():
     from tmol import run_cart_min
-    from tmol.score import beta2016_score_function
-    from tmol.score import (
+    from tmol.ops import (
         build_coord_mask_for_mask_and_interacting_atoms,
         calculate_block_pair_ddg,
+    )
+    from tmol.score import (
+        beta2016_score_function,
         calculate_fragment_interactions,
     )
 
@@ -504,9 +506,9 @@ def test_fragmented_ligand_minimize_and_pack_e2e():
     ],
 )
 def test_fragmented_ligand_ddg_and_total_pose_parity(target, fragmentation):
-    from tmol.score import beta2016_score_function
+    from tmol.ops import calculate_block_pair_ddg
     from tmol.score import (
-        calculate_block_pair_ddg,
+        beta2016_score_function,
         calculate_fragment_interactions,
     )
 

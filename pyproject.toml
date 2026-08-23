@@ -54,7 +54,7 @@ dependencies = [
     "llvmlite>=0.39",
     # Testing (hypothesis is used at runtime for property-based data generation)
     "hypothesis>=5.35",
-    # AST manipulation (used by tmol.utility.args)
+    # AST manipulation for runtime call-argument validation
     "astor>=0.8",
     # Structure I/O
     "biotite>=1.4.0",
@@ -65,7 +65,7 @@ dependencies = [
 [project.optional-dependencies]
 # OpenBabel powers the SMILES -> 3D mol2 ligand-preparation path (conformer
 # search + MMFF94 charges). The CIF/mol2 paths use RDKit and do not need it;
-# it is imported lazily (see tmol.ligand.openbabel_compat), so it stays an
+# it is imported lazily by ligand preparation, so it stays an
 # opt-in extra rather than a core dependency.
 ligand = [
     "openbabel-wheel==3.1.1.22",
@@ -161,7 +161,7 @@ ext = ".cpp,.hh,.h,.cu,.py,.yaml"
 # sync with the `ignore:` block in codecov.yml.
 [tool.coverage.run]
 omit = [
-    "*/tmol/ligand/dimorphite_dl.py",
-    "*/tmol/ligand/openbabel_compat.py",
-    "*/tmol/tests/ligand/build_pli_ligand_cifs.py",
+    "*/tmol/ligand/_dimorphite_dl.py",
+    "*/tmol/ligand/_openbabel_compat.py",
+    "*/tmol/tests/ligand/_build_pli_ligand_cifs.py",
 ]
