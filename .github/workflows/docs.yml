@@ -1,8 +1,8 @@
 name: Docs
 
 on:
+  # Build previews for stacked PRs as well as PRs targeting the main branch.
   pull_request:
-    branches: [master, aleaverfay/file_naming_refactor]
   push:
     branches: [master]
   workflow_dispatch:

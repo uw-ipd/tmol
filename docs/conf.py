@@ -7,6 +7,10 @@ import sys
 import tomllib
 from pathlib import Path
 
+import nbformat
+from docutils import nodes
+from sphinx.application import Sphinx
+
 DOCS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = DOCS_DIR.parent
 sys.path.insert(0, str(REPO_ROOT))
@@ -57,6 +61,7 @@ extensions = [
     "nbsphinx",
     "sphinx_togglebutton",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     "sphinx.ext.githubpages",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
@@ -110,10 +115,13 @@ nbsphinx_epilog = r"""
 :download:`Download this notebook <{{ env.doc2path(env.docname, base=None).name }}>`
 """
 
-# Keep setup helpers available without hiding the tutorial's modeling steps.
-togglebutton_selector = "#Setup .nbinput"
-togglebutton_hint = "Show code"
-togglebutton_hint_hide = "Hide code"
+# Match the RF4 tutorial treatment: collapse setup and explicitly tagged
+# presentation cells while leaving every modeling operation visible. The
+# selector targets only notebook input, so tables, plots, and viewers remain
+# open. ``_mark_tagged_cells`` bridges Jupyter metadata to rendered HTML.
+togglebutton_selector = "#Setup .nbinput, .nbinput.collapse-code"
+togglebutton_hint = "show code"
+togglebutton_hint_hide = "hide code"
 
 autodoc_member_order = "bysource"
 autodoc_typehints = "signature"
@@ -156,3 +164,26 @@ html_theme_options = {
         },
     ],
 }
+
+
+def _mark_tagged_cells(app: Sphinx, doctree: nodes.document, docname: str) -> None:
+    """Copy the ``collapse-code`` notebook tag onto rendered input cells."""
+
+    source = Path(str(app.env.doc2path(docname)))
+    if source.suffix != ".ipynb":
+        return
+    tagged = {
+        cell.source.strip()
+        for cell in nbformat.read(source, as_version=4).cells
+        if cell.cell_type == "code" and "collapse-code" in cell.metadata.get("tags", [])
+    }
+    for node in doctree.findall(nodes.container):
+        if "nbinput" not in node["classes"]:
+            continue
+        *_, code = node.findall(nodes.literal_block)
+        if code.astext().strip() in tagged:
+            node["classes"].append("collapse-code")
+
+
+def setup(app: Sphinx) -> None:
+    app.connect("doctree-resolved", _mark_tagged_cells)

@@ -10,3 +10,10 @@ individual :class:`tmol.score.ScoreType` weights.
    :imported-members:
    :undoc-members:
    :show-inheritance:
+
+.. currentmodule:: tmol.score
+
+.. autosummary::
+   :nosignatures:
+
+   SFXN_FORMAT_VERSION
