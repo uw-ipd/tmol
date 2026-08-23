@@ -11,6 +11,8 @@ from .grid import (
     ixform_rep,
     probe_atom_types_from_name3,
     score_ligand_grid,
+    score_ligand_grid_batched,
+    score_ligand_grid_batched_with_gradients,
     xform_rep,
 )
 
@@ -25,5 +27,7 @@ __all__ = [
     "ixform_rep",
     "probe_atom_types_from_name3",
     "score_ligand_grid",
+    "score_ligand_grid_batched",
+    "score_ligand_grid_batched_with_gradients",
     "xform_rep",
 ]

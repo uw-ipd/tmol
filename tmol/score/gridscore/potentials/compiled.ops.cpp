@@ -475,10 +475,78 @@ Tensor interpolate(Tensor coefficients, Tensor indices, Tensor grid_indices) {
   return output;
 }
 
+std::tuple<Tensor, Tensor, Tensor, Tensor> interpolate_with_derivatives(
+    Tensor coefficients,
+    Tensor indices,
+    Tensor grid_indices,
+    double out_of_bounds_penalty) {
+  TORCH_CHECK(
+      coefficients.dim() == 4,
+      "coefficients must have shape [n_grids, nx, ny, nz]");
+  TORCH_CHECK(
+      indices.dim() == 2 && indices.size(1) == 3,
+      "indices must have shape [n_points, 3]");
+  TORCH_CHECK(
+      grid_indices.dim() == 1 && grid_indices.size(0) == indices.size(0),
+      "grid_indices must have shape [n_points]");
+  TORCH_CHECK(
+      coefficients.is_contiguous() && indices.is_contiguous()
+          && grid_indices.is_contiguous(),
+      "interpolation inputs must be contiguous");
+  TORCH_CHECK(
+      coefficients.scalar_type() == indices.scalar_type(),
+      "coefficients and indices must have the same dtype");
+  TORCH_CHECK(
+      grid_indices.scalar_type() == torch::kInt64,
+      "grid_indices must be int64");
+  TORCH_CHECK(
+      coefficients.device() == indices.device()
+          && coefficients.device() == grid_indices.device(),
+      "interpolation inputs must be on the same device");
+  TORCH_CHECK(
+      coefficients.size(0) > 0 && coefficients.size(1) > 0
+          && coefficients.size(2) > 0 && coefficients.size(3) > 0,
+      "coefficient dimensions must be positive");
+  TORCH_CHECK(
+      indices.size(0) <= std::numeric_limits<int>::max(),
+      "too many interpolation points");
+  TORCH_CHECK(
+      std::isfinite(out_of_bounds_penalty)
+          && out_of_bounds_penalty >= 0.0,
+      "out_of_bounds_penalty must be finite and nonnegative");
+
+  Tensor values;
+  Tensor derivatives;
+  Tensor penalties;
+  Tensor penalty_derivatives;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      coefficients.options(), "grid_interp_derivatives", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        auto result = GridInterpDispatch<
+                          common::DeviceOperations,
+                          Dev,
+                          Real,
+                          int64_t>::forward_with_derivatives(
+                          interpolation_context,
+                          TCAST(coefficients),
+                          TCAST(indices),
+                          TCAST(grid_indices),
+                          Real(out_of_bounds_penalty));
+        values = std::get<0>(result).tensor;
+        derivatives = std::get<1>(result).tensor;
+        penalties = std::get<2>(result).tensor;
+        penalty_derivatives = std::get<3>(result).tensor;
+      }));
+  return std::make_tuple(
+      values, derivatives, penalties, penalty_derivatives);
+}
+
 TORCH_LIBRARY(tmol_gridscore, m) {
   m.def("build_grid", &build_grid);
   m.def("evaluate_pairs", &evaluate_pairs);
   m.def("interpolate", &interpolate);
+  m.def("interpolate_with_derivatives", &interpolate_with_derivatives);
 }
 
 }  // namespace potentials

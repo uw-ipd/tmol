@@ -14,3 +14,4 @@ _ops = load_ops(
 build_grid = _ops.build_grid
 evaluate_pairs = _ops.evaluate_pairs
 interpolate = _ops.interpolate
+interpolate_with_derivatives = _ops.interpolate_with_derivatives

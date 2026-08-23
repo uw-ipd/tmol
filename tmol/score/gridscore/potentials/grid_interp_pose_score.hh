@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <tuple>
 
 #include <Eigen/Core>
 
@@ -27,6 +28,18 @@ struct GridInterpDispatch {
       TView<Real, 4, D> coefficients,
       TView<Vec<Real, 3>, 1, D> indices,
       TView<Int, 1, D> grid_indices) -> TPack<Real, 1, D>;
+
+  static auto forward_with_derivatives(
+      ContextManager& mgr,
+      TView<Real, 4, D> coefficients,
+      TView<Vec<Real, 3>, 1, D> indices,
+      TView<Int, 1, D> grid_indices,
+      Real out_of_bounds_penalty)
+      -> std::tuple<
+          TPack<Real, 1, D>,
+          TPack<Real, 2, D>,
+          TPack<Real, 1, D>,
+          TPack<Real, 2, D>>;
 };
 
 }  // namespace potentials
