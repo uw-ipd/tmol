@@ -22,6 +22,7 @@ TUTORIAL_NOTEBOOKS = (
     "08_nucleic_acids.ipynb",
 )
 TUTORIAL_REF = "master"
+KERNEL_STARTUP_TIMEOUT = 180
 
 
 def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
@@ -79,6 +80,7 @@ def execute_notebook(
     client = NotebookClient(
         executed,
         timeout=timeout,
+        startup_timeout=KERNEL_STARTUP_TIMEOUT,
         allow_errors=False,
         resources={"metadata": {"path": str(path.parent.resolve())}},
     )

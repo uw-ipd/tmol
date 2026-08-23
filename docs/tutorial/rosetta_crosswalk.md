@@ -65,8 +65,8 @@ between centroid and full-atom residue-type sets. The official
 [analysis tutorial](https://docs.rosettacommons.org/demos/latest/tutorials/analysis/Analysis),
 and [full-atom versus centroid tutorial](https://docs.rosettacommons.org/demos/latest/tutorials/full_atom_vs_centroid/fullatom_centroid)
 explain those choices; see also the
-[beta2016](https://doi.org/10.1021/acs.jctc.6b00819) and
-[REF15](https://doi.org/10.1021/acs.jctc.7b00125) papers.
+[beta2016](https://pubmed.ncbi.nlm.nih.gov/27766851/) and
+[REF15](https://pubmed.ncbi.nlm.nih.gov/28430426/) papers.
 
 TMol ships {func}`tmol.score.beta2016_score_function`,
 a beta-November-2016-style all-atom preset. It does **not** implement
