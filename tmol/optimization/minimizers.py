@@ -11,11 +11,12 @@ from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 
 def build_kinforest_network(
     pose_stack: PoseStack,
-    sfxn: ScoreFunction,
+    sfxn: ScoreFunction | None,
     ff: FoldForest,
     mm: MoveMap,
     verbose=False,
     kin_dtype=torch.float32,
+    whole_pose_scoring_module=None,
 ):
     from tmol.kinematics.script_modules import PoseStackKinematicsModule
     from tmol.optimization.sfxn_modules import KinForestSfxnNetwork
@@ -35,7 +36,12 @@ def build_kinforest_network(
     end_time2 = time.perf_counter()
 
     kf_network = KinForestSfxnNetwork(
-        sfxn, pose_stack, kin_module, minimizer_map.dof_mask, kin_dtype=kin_dtype
+        sfxn,
+        pose_stack,
+        kin_module,
+        minimizer_map.dof_mask,
+        kin_dtype=kin_dtype,
+        whole_pose_scoring_module=whole_pose_scoring_module,
     )
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()

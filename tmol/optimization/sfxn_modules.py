@@ -71,18 +71,26 @@ class CartesianSfxnNetwork(torch.nn.Module):
 class KinForestSfxnNetwork(torch.nn.Module):
     def __init__(
         self,
-        score_function: ScoreFunction,
+        score_function: ScoreFunction | None,
         pose_stack: PoseStack,
         kin_module: PoseStackKinematicsModule,
         dof_mask=None,
         kin_dtype=torch.float32,
+        whole_pose_scoring_module=None,
     ):
 
         super(KinForestSfxnNetwork, self).__init__()
 
         torch_device = pose_stack.device
         self.pose_stack = pose_stack
-        wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
+        if whole_pose_scoring_module is None:
+            if score_function is None:
+                raise ValueError(
+                    "score_function is required when no scoring module is supplied"
+                )
+            wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
+        else:
+            wpsm = whole_pose_scoring_module
         kmd = kin_module.kmd
         self.kin_module = kin_module
         self.whole_pose_scoring_module = wpsm
