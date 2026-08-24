@@ -7,6 +7,40 @@ from tmol.io import (
     biotite_from_pose_stack,
 )
 from tmol import run_cart_min, beta2016_score_function
+from tmol.ops._score_utils import _sum_cross_block_scores
+
+
+def test_sum_cross_block_scores_handles_different_mask_sizes(torch_device):
+    """Each pose may select a different number of block pairs."""
+    scores = torch.arange(
+        2 * 2 * 4 * 4, dtype=torch.float32, device=torch_device
+    ).reshape(2, 2, 4, 4)
+    scores.requires_grad_(True)
+    mask = torch.tensor(
+        [[True, False, False, False], [True, True, False, False]],
+        device=torch_device,
+    )
+    other = torch.tensor(
+        [[False, True, False, False], [False, False, True, True]],
+        device=torch_device,
+    )
+
+    actual = _sum_cross_block_scores(scores, mask, other)
+    expected = torch.empty_like(actual)
+    expected[:, 0] = scores[:, 0, 0, 1] + scores[:, 0, 1, 0]
+    expected[:, 1] = scores[:, 1, :2, 2:].sum(dim=(1, 2)) + scores[:, 1, 2:, :2].sum(
+        dim=(1, 2)
+    )
+    torch.testing.assert_close(actual, expected)
+
+    actual.sum().backward()
+    selected = (mask.unsqueeze(2) & other.unsqueeze(1)) | (
+        other.unsqueeze(2) & mask.unsqueeze(1)
+    )
+    torch.testing.assert_close(
+        scores.grad,
+        selected.unsqueeze(0).expand_as(scores).to(scores.dtype),
+    )
 
 
 def test_build_coord_mask_and_minimize_for_first_residue(
