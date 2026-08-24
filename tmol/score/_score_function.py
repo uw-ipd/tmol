@@ -148,7 +148,9 @@ class ScoreFunction:
 
         return self._multi_body_terms
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+    def render_whole_pose_scoring_module(
+        self, pose_stack: PoseStack, cuda_graph: bool = False
+    ):
         """Create an object designed to evaluate the score of a set of Poses
         repeatedly as the Poses change their conformation, e.g., as in
         minimization. This object will derive from torch.nn.Module and
@@ -161,7 +163,10 @@ class ScoreFunction:
         term_modules = [
             t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()
         ]
-        return WholePoseScoringModule(self.weights_tensor(), term_modules)
+        scoring_module = WholePoseScoringModule(self.weights_tensor(), term_modules)
+        if cuda_graph:
+            scoring_module.enable_cuda_graphs(pose_stack.coords)
+        return scoring_module
 
     def render_block_pair_scoring_module(self, pose_stack: PoseStack):
         """Create an object designed to evaluate the score of a set of Poses
@@ -179,7 +184,9 @@ class ScoreFunction:
         return BlockPairScoringModule(self.weights_tensor(), term_modules)
 
     def render_rotamer_scoring_module(
-        self, pose_stack: PoseStack, rotamer_set: "RotamerSet"  # noqa: F405
+        self,
+        pose_stack: PoseStack,
+        rotamer_set: "RotamerSet",  # noqa: F405
     ):
         """Create an object designed to evaluate the score a RotamerSet
         repeatedly as the Poses change their conformation, e.g., as in
@@ -335,6 +342,38 @@ class WholePoseScoringModule:
 
     def unweighted_scores(self, coords):
         return torch.cat([term(coords) for term in self.term_modules], dim=0)
+
+    def enable_cuda_graphs(self, example_coords, terms=("NaTorsion", "SugarBB")):
+        """Capture launch-bound pure-Torch terms for a fixed coordinate shape.
+
+        The returned scorer accepts new coordinate values with the same shape,
+        dtype, and device and retains forward and backward support. Only terms
+        known to be CUDA-capture safe are enabled by default; TMol's C++ score
+        operators currently allocate ModernGPU scratch during each call and
+        therefore cannot be captured safely.
+
+        Capture has a one-time cost and is intended for a scorer that will be
+        reused. Calling this method again is a no-op for already captured terms.
+        """
+        if not example_coords.is_cuda:
+            raise ValueError("CUDA graphs require CUDA coordinates")
+
+        requested = set(terms)
+        captured = getattr(self, "_cuda_graphed_terms", set())
+        for index, term in enumerate(self.term_modules):
+            name = getattr(term, "classname", None)
+            if name not in requested or name in captured:
+                continue
+            sample = example_coords.detach().clone().requires_grad_(True)
+            with torch.enable_grad():
+                self.term_modules[index] = torch.cuda.make_graphed_callables(
+                    term,
+                    (sample,),
+                    allow_unused_input=True,
+                )
+            captured.add(name)
+        self._cuda_graphed_terms = captured
+        return self
 
 
 class BlockPairScoringModule:
