@@ -615,20 +615,23 @@ class LBFGS_Armijo(Optimizer):
             ctx.needs_reset |= failed & ~ctx.was_reset
 
     def _check_segment_convergence(self, ctx, n_iter):
-        """Freeze converged segments; return True once the run should stop.
+        """Freeze independently converged segments; stop when all are done.
 
-        Two tests per segment: max gradient component, then change in energy.
-
-        Only the gradient test freezes a segment.
+        A segmented run must stop each segment at the same iteration where an
+        equivalent one-segment run would stop. Otherwise an early-converged pose
+        keeps moving while another pose finishes, making batch minimization
+        depend on which other structures happen to share the stack.
         """
-        stationary = self._seg_amax(ctx.flat_grad.abs()) <= ctx.gradtol
-        ctx.converged |= stationary
-
-        done = self._inactive(ctx).clone()
+        newly_converged = self._seg_amax(ctx.flat_grad.abs()) <= ctx.gradtol
         if ctx.prev_loss_vec is not None:
             dE = (ctx.loss_vec - ctx.prev_loss_vec).abs()
             rdiff = 2 * dE / (ctx.loss_vec.abs() + ctx.prev_loss_vec.abs() + 1e-10)
-            done |= (dE <= ctx.atol) | (rdiff <= ctx.rtol)
+            energy_converged = (dE <= ctx.atol) | (rdiff <= ctx.rtol)
+            # A rejected zero step also has dE == 0, but it is not convergence:
+            # the next iteration must try the scheduled steepest-descent reset.
+            newly_converged |= energy_converged & ~ctx.needs_reset
+        ctx.converged |= newly_converged
+        done = self._inactive(ctx)
 
         n_done = int(done.sum().item())
         n_stalled = int(ctx.stalled.sum().item())

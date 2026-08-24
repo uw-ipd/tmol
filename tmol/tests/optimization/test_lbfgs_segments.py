@@ -193,6 +193,26 @@ def test_constant_energy_offset_does_not_change_where_a_block_stops(torch_device
     assert _rosenbrock(offset[1]) < 1e-4, _rosenbrock(offset[1])
 
 
+def test_energy_converged_block_stops_where_it_would_alone(torch_device):
+    """A block must not keep moving while a slower stack-mate finishes."""
+    problem = BlockProblem(
+        blocks=[_quadratic(0.0, offset=1.0e8), _rosenbrock],
+        starts=[
+            torch.ones(8, dtype=torch.float64),
+            torch.full((10,), -1.2, dtype=torch.float64),
+        ],
+        device=torch_device,
+    )
+    kwargs = dict(lr=1.0, max_iter=50, gradtol=0.0)
+    together = problem.minimize_together(**kwargs)[2]
+    alone = problem.minimize_alone(**kwargs)
+
+    for i, (in_stack, by_itself) in enumerate(zip(together, alone)):
+        torch.testing.assert_close(
+            in_stack, by_itself, rtol=1e-8, atol=1e-9, msg=f"block {i}"
+        )
+
+
 def test_noise_floor_stops_before_grinding_on_noise(torch_device):
     """The floor scales with |f|, so a huge objective stops at a coarser dE."""
     coarse = BlockProblem(
@@ -216,8 +236,8 @@ def test_noise_floor_stops_before_grinding_on_noise(torch_device):
     assert coarse_opt.state[coarse_x]["n_iter"] <= fine_opt.state[fine_x]["n_iter"]
 
 
-def test_only_stationary_segments_are_frozen(torch_device):
-    """A segment with a large gradient stays active however flat its energy."""
+def test_gradtol_does_not_freeze_nonstationary_segment(torch_device):
+    """The gradient criterion alone must not freeze a large-gradient segment."""
     problem = BlockProblem(
         blocks=[_quadratic(0.0), _rosenbrock],
         starts=[
@@ -226,7 +246,15 @@ def test_only_stationary_segments_are_frozen(torch_device):
         ],
         device=torch_device,
     )
-    optimizer, x, _ = problem.minimize_together(lr=1.0, max_iter=20, gradtol=1e-8)
+    optimizer, x, _ = problem.minimize_together(
+        lr=1.0,
+        max_iter=20,
+        gradtol=1e-8,
+        # Isolate the gradient criterion tested here. Energy convergence is
+        # independently covered by test_energy_converged_block_stops_where_it_would_alone.
+        rtol=0.0,
+        atol=0.0,
+    )
 
     # the quadratic block reaches its minimum; the rosenbrock valley does not
     grads = torch.split(x.grad.detach(), problem.sizes)
