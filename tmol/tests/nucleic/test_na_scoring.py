@@ -144,10 +144,10 @@ def test_cuda_graphed_na_score_matches_eager_forward_and_backward(
     graphed = sfxn.render_whole_pose_scoring_module(pose_stack, cuda_graph=True)
     graph_coords = pose_stack.coords.detach().clone().requires_grad_(True)
     graph_score = graphed(graph_coords)
-    graph_score.sum().backward()
+    (graph_grad,) = torch.autograd.grad(graph_score.sum(), graph_coords)
 
     torch.testing.assert_close(graph_score, expected_score, rtol=1e-5, atol=1e-3)
-    torch.testing.assert_close(graph_coords.grad, expected_grad, rtol=1e-4, atol=1e-3)
+    torch.testing.assert_close(graph_grad, expected_grad, rtol=1e-4, atol=1e-3)
     with torch.no_grad():
         torch.testing.assert_close(
             graphed(pose_stack.coords),

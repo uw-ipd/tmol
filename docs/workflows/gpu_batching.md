@@ -47,8 +47,9 @@ repeatedly:
 scorer = sfxn.render_whole_pose_scoring_module(batch, cuda_graph=True)
 
 # New coordinate values are allowed; shape, dtype, and device must stay fixed.
+coords = batch.coords.detach().clone().requires_grad_(True)
 scores = scorer(coords)
-scores.sum().backward()  # gradients remain supported
+(coord_grad,) = torch.autograd.grad(scores.sum(), coords)
 ```
 
 Capture adds a one-time setup cost and retains static graph buffers, so leave it
