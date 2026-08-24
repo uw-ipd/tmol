@@ -91,6 +91,8 @@ def make_fixture(
         cprofile=cprofile,
         cprofile_loops=cprofile_loops,
         cprofile_dump=cprofile_dump,
+        precision=3,
+        confidence=0.95,
     )
 
     benchmark.extra_info.update(extra_info)
