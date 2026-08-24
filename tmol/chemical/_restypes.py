@@ -129,6 +129,34 @@ def one2three(one: str) -> Union[str, None]:
     return None
 
 
+def get_element_from_atom_name(atom_name: str) -> str:
+    """Parse a PDB atom name and return the element symbol.
+
+    PDB columns 13-16: two-letter elements start at col 13, one-letter at col 14.
+    """
+    stripped = atom_name.strip()
+
+    if stripped[0].isdigit():
+        return "H"
+
+    if len(atom_name) == 4 and atom_name[0] == "H":
+        return "H"
+
+    element = ""
+    for char in stripped:
+        if char.isalpha():
+            element += char
+            if len(element) == 2:
+                if element.upper() in ["FE", "MG", "CL", "ZN", "NA", "CU"]:
+                    return element.capitalize()
+                else:
+                    return element[0].upper()
+        else:
+            break
+
+    return element.upper()
+
+
 @attr.s
 class RefinedResidueType(RawResidueType):
     @property

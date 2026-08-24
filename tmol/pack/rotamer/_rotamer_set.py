@@ -57,7 +57,7 @@ class RotamerSet(ValidateAttrs):
 
     def to_atom_array(self, pbt):
         import biotite.structure as struc
-        from tmol.io import get_element_from_atom_name
+        from tmol.chemical import get_element_from_atom_name
 
         n_rots = self.n_rotamers_total
         coords = self.coords.cpu().numpy()

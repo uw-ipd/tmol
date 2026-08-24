@@ -63,6 +63,7 @@ from ._pose_stack_from_atomworks import (  # noqa: F401
     _ATOMWORKS_MIN_PROTEIN_IDX,
     _paramdb_for_atomworks,
 )
+from tmol.chemical import get_element_from_atom_name  # noqa: F401
 from ._pose_stack_from_biotite import (  # noqa: F401
     build_context_from_biotite,
     pose_stack_from_biotite,
@@ -70,7 +71,6 @@ from ._pose_stack_from_biotite import (  # noqa: F401
     canonical_form_from_biotite,
     canonical_ordering_for_biotite,
     packed_block_types_for_biotite,
-    get_element_from_atom_name,
     biotite_from_canonical_form,
 )
 from ._pose_stack_from_openfold import (  # noqa: F401
