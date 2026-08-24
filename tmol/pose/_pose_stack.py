@@ -116,7 +116,6 @@ class PoseStack:
     #################### INIT #####################
 
     def __attrs_post_init__(self):
-
         n_poses = self.block_coord_offset.size(0)
         n_blocks = self.block_coord_offset.size(1)
 
@@ -308,7 +307,7 @@ class PoseStack:
         # now perform the actual copy
         expanded_coords = torch.zeros(
             (self.n_poses, self.max_n_blocks, self.max_n_block_atoms, 3),
-            dtype=torch.float32,
+            dtype=self.coords.dtype,
             device=self.device,
         )
         expanded_coords[real_expanded_pose_ats] = self.coords[self.real_atoms]

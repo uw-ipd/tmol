@@ -26,12 +26,10 @@ class CartesianSfxnNetwork(torch.nn.Module):
         # otherwise overwrite the caller's coordinates
         self.full_coords = pose_stack.coords.clone().detach()
         if coord_mask is None:
-            coord_mask = torch.full(
-                self.full_coords.shape[:-1],
-                True,
-                device=self.full_coords.device,
-                dtype=torch.bool,
-            )
+            # Padding coordinates never contribute to a pose's score. Excluding
+            # them keeps heterogeneous batches from allocating and updating
+            # meaningless optimizer degrees of freedom.
+            coord_mask = pose_stack.real_atoms
         self.coord_mask = coord_mask
 
         # Precompute flat integer indices for the boolean mask
