@@ -1,8 +1,10 @@
+import logging
+from typing import Dict, Sequence
+import warnings
+
 import torch
 import yaml
-import logging
 
-from typing import Dict, Sequence
 from tmol.types import Tensor
 
 from tmol.database import ParameterDatabase
@@ -365,11 +367,16 @@ class WholePoseScoringModule:
             if name not in requested or name in captured:
                 continue
             sample = example_coords.detach().clone().requires_grad_(True)
-            with torch.enable_grad():
+            with torch.enable_grad(), warnings.catch_warnings():
+                # PyTorch's internal backward-capture warmup retains the sample
+                # leaf's default-stream AccumulateGrad node. Capture and replay
+                # are valid; suppress only that known internal warning.
+                warnings.filterwarnings(
+                    "ignore",
+                    message="The AccumulateGrad node's stream does not match",
+                )
                 self.term_modules[index] = torch.cuda.make_graphed_callables(
-                    term,
-                    (sample,),
-                    allow_unused_input=True,
+                    term, (sample,), allow_unused_input=True
                 )
             captured.add(name)
         self._cuda_graphed_terms = captured
