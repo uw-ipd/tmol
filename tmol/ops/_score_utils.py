@@ -7,27 +7,6 @@ from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
 from tmol.optimization import run_cart_min
 
 
-def residue_mask_from_chain(pose_stack, chain_id):
-    """Build a boolean block-level mask selecting residues belonging to a given
-    chain, identified by its PDB chain label string.
-
-    Args:
-        pose_stack: The pose stack. Must have a ``pdb_info`` attribute with
-            ``chain_labels`` (``NDArray[object][n_poses, max_n_blocks]``).
-        chain_id: A string chain identifier (e.g. ``"A"``, ``"B"``).
-
-    Returns:
-        Boolean tensor of shape ``[n_poses, n_blocks]`` with ``True`` for
-        residues whose PDB chain label matches ``chain_id``.
-    """
-    chain_labels = (
-        pose_stack.pdb_info.chain_labels
-    )  # NDArray[object][n_poses, max_n_blocks]
-    mask_np = chain_labels == chain_id  # [n_poses, max_n_blocks]
-    mask = torch.tensor(mask_np, dtype=torch.bool, device=pose_stack.device)
-    return mask
-
-
 def calculate_block_pair_ddg(
     pose_stack,
     mask,
@@ -598,10 +577,6 @@ def build_coord_mask_for_mask_and_nearby_blocks(pose_stack, mask):
         Boolean tensor of shape ``[n_poses, max_n_atoms]`` suitable for
         use as a ``coord_mask`` argument to ``run_cart_min``.
     """
-    # n_poses, max_n_atoms, _ = pose_stack.coords.shape
-    # n_blocks = pose_stack.max_n_blocks
-    # max_n_block_atoms = pose_stack.max_n_block_atoms
-
     # ---------------------------------------------------------------
     # 1.  All atoms from the masked blocks themselves.
     # ---------------------------------------------------------------

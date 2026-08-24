@@ -347,6 +347,7 @@ def selection_gallery(
     atom_array: AtomArray,
     selections: Mapping[str, object],
     *,
+    notes: Mapping[str, str] | None = None,
     width: int = 720,
     height: int = 420,
     highlight_color: str = "#e83e8c",
@@ -360,6 +361,14 @@ def selection_gallery(
     and remains exact when atom names or residue identifiers are duplicated.
     Clicking a label restyles the same model and animates the camera to the
     selected atoms, following the AtomWorks selection-gallery interaction.
+
+    Args:
+        atom_array: Structure displayed by the shared viewer.
+        selections: Display labels mapped to boolean atom masks or query strings.
+        notes: Optional explanatory text keyed by selection label.
+        width: Viewer width in pixels.
+        height: Viewer height in pixels.
+        highlight_color: Color used for the active selection.
     """
     if not _is_atom_array(atom_array):
         raise TypeError("selection_gallery() expects a Biotite AtomArray")
@@ -370,6 +379,7 @@ def selection_gallery(
     if width <= 0 or height <= 0:
         raise ValueError("width and height must be positive")
 
+    notes = notes or {}
     pdb_text = _biotite_to_pdb_string(atom_array)
     serials = _first_model_atom_serials(pdb_text)
     if len(serials) != len(atom_array):
@@ -383,10 +393,17 @@ def selection_gallery(
         selected_serials = [
             serial for serial, selected in zip(serials, mask) if selected
         ]
-        gallery.append({"label": str(label), "serials": selected_serials})
+        gallery.append(
+            {
+                "label": str(label),
+                "note": str(notes.get(label, "")),
+                "serials": selected_serials,
+            }
+        )
 
     root_id = f"tmol-selection-{uuid4().hex}"
     controls_id = f"{root_id}-controls"
+    note_id = f"{root_id}-note"
     viewer_id = f"{root_id}-viewer"
     html = f"""
 <script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js"></script>
@@ -416,6 +433,11 @@ def selection_gallery(
   #{controls_id} button.active {{
     color: #fff;
   }}
+  #{note_id} {{
+    min-height: 1.4em;
+    padding: 0.55rem 0.9rem;
+    border-top: 1px solid var(--pst-color-border, #eee);
+  }}
   #{viewer_id} {{ position: relative; width: 100%; height: {height}px; }}
   #{root_id} .tmol-selection-hint {{
     font-size: 0.78em;
@@ -425,6 +447,7 @@ def selection_gallery(
 </style>
 <div id="{root_id}">
   <div id="{controls_id}"></div>
+  <div id="{note_id}"></div>
   <div id="{viewer_id}"></div>
   <div class="tmol-selection-hint">
     pick a selection · drag to rotate · scroll to zoom · click a highlighted atom to label it
@@ -434,6 +457,7 @@ def selection_gallery(
 (() => {{
   const root = document.getElementById({json.dumps(root_id)});
   const controls = document.getElementById({json.dumps(controls_id)});
+  const noteElement = document.getElementById({json.dumps(note_id)});
   const viewerElement = document.getElementById({json.dumps(viewer_id)});
   const pdb = {_safe_json(pdb_text)};
   const presets = {_safe_json(gallery)};
@@ -492,6 +516,7 @@ def selection_gallery(
         button.style.backgroundColor = active ? highlightColor : "";
         button.style.borderColor = active ? highlightColor : "";
       }});
+      noteElement.textContent = preset.note;
       viewer.zoomTo(selection, 400);
       viewer.render();
     }}

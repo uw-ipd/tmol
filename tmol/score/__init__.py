@@ -20,6 +20,10 @@ from ._chemical_database import (  # noqa: F401
 from ._energy_term import EnergyTerm  # noqa: F401
 from ._atom_type_dependent_term import AtomTypeDependentTerm  # noqa: F401
 from ._bond_dependent_term import BondDependentTerm  # noqa: F401
+from ._fragment_interactions import (  # noqa: F401
+    FragmentInteractionScores,
+    calculate_fragment_interactions,
+)
 from ._score_function import (  # noqa: F401
     BlockPairScoringModule,
     RotamerScoringModule,
@@ -84,3 +88,20 @@ def beta2016_score_function(
     if param_db is not None:
         return _non_memoized_beta2016(device, param_db)
     return _memoized_beta2016(device)
+
+
+__all__ = [
+    "AcceptorHybridization",
+    "AtomTypeParamResolver",
+    "AtomTypeParams",
+    "BlockPairScoringModule",
+    "FragmentInteractionScores",
+    "IndexedBonds",
+    "RotamerScoringModule",
+    "SFXN_FORMAT_VERSION",
+    "ScoreFunction",
+    "ScoreType",
+    "WholePoseScoringModule",
+    "beta2016_score_function",
+    "calculate_fragment_interactions",
+]
