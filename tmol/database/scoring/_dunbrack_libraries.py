@@ -89,4 +89,4 @@ class DunbrackRotamerLibrary:
                 (RotamericDataForAA, f"{_OLD}.RotamericDataForAA"),
             ]
         ):
-            return torch.load(fname)
+            return torch.load(fname, mmap=True)
