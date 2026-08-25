@@ -280,9 +280,10 @@ it into the pose. Failure modes, in order of likelihood:
 - **Ligand dropped during preparation.** With `prepare_ligands=True`,
   preparation is **strict by default** (`strict_ligands=True`): an unpreparable
   residue raises `LigandPreparationError` rather than silently disappearing. A
-  residue is dropped when it is *skipped* (contains metal atoms, or is
-  covalently linked to another residue) or when preparation *fails* (no
-  derivable SMILES, atom-typing failure, or residue-build error). Pass
+  residue is dropped when it is unsupported (for example, a metal-containing
+  multi-atom component) or when preparation *fails* (no derivable SMILES,
+  atom-typing failure, or residue-build error). Explicitly bonded components
+  are prepared and connected from the input bond table. Pass
   `strict_ligands=False` to restore warn-and-drop behavior. (A successful but
   imperfect atom-name match only warns — the ligand still loads.)
 
@@ -305,6 +306,10 @@ it into the pose. Failure modes, in order of likelihood:
   the spatial-proximity fallback to polymer-linking residue types (modified
   amino acids/nucleotides, glycans); genuine non-polymer ligands are no longer
   flagged by proximity alone.
+
+For modified protein/nucleic-acid components and explicitly linked glycans,
+see the [PTM and glycan tutorial](../../docs/tutorial/09_ptms_and_glycopeptides.md)
+and the [implementation report](../../docs/development/ptm_glycan_implementation.md).
 
 ## File Inventory
 
