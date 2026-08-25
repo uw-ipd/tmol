@@ -4,6 +4,7 @@
 # This must happen early so that torch.ops.tmol_* namespaces are available
 # before any compiled module is imported.
 import contextlib
+from importlib import import_module as _import_module
 from importlib.metadata import PackageNotFoundError, version
 
 
@@ -25,63 +26,6 @@ from tmol._load_ext import ensure_compiled_or_jit as _ensure_compiled_or_jit
 # Individual compiled.py modules will raise a clear error if needed.
 with contextlib.suppress(Exception):
     _ensure_compiled_or_jit()
-
-from tmol.chemical import one2three, three2one
-from tmol.database import ParameterDatabase
-from tmol.io import (
-    pose_stack_from_pdb,
-    pose_stack_to_pdb_string,
-    selection_gallery,
-    switchable_view,
-    view,
-    CanonicalOrdering,
-    canonical_form_from_pdb,
-    default_canonical_ordering,
-    default_packed_block_types,
-    pose_stack_from_canonical_form,
-    canonical_form_from_openfold,
-    canonical_ordering_for_openfold,
-    packed_block_types_for_openfold,
-    pose_stack_from_openfold,
-    canonical_form_from_rosettafold2,
-    canonical_ordering_for_rosettafold2,
-    packed_block_types_for_rosettafold2,
-    pose_stack_from_rosettafold2,
-    atom_records_from_pose_stack,
-    write_pose_stack_pdb,
-    extended_pose_stack_from_sequences,
-)
-from tmol.kinematics import (
-    KinematicModuleData,
-    EdgeType,
-    FoldForest,
-    CartesianMoveMap,
-    MoveMap,
-    set_named_torsions,
-)
-from tmol.optimization import (
-    build_kinforest_network,
-    run_cart_min,
-    run_kin_min,
-    run_min,
-)
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-    ConstraintSet,
-    get_named_torsions,
-    get_torsion_names,
-)
-from tmol.score import (
-    beta2016_score_function,
-    ScoreFunction,
-    ScoreType,
-)
-from tmol.score.constraint import (
-    ConstraintEnergyTerm,
-    create_mainchain_coordinate_constraints,
-)
-from tmol.relax import fast_relax
 
 try:
     __version__ = version("tmol")
@@ -136,3 +80,85 @@ __all__ = [
     "view",
     "write_pose_stack_pdb",
 ]
+
+
+_LAZY_ATTRS = {}
+for _module, _names in (
+    ("tmol.chemical", ("one2three", "three2one")),
+    ("tmol.database", ("ParameterDatabase",)),
+    (
+        "tmol.io",
+        (
+            "CanonicalOrdering",
+            "atom_records_from_pose_stack",
+            "canonical_form_from_openfold",
+            "canonical_form_from_pdb",
+            "canonical_form_from_rosettafold2",
+            "canonical_ordering_for_openfold",
+            "canonical_ordering_for_rosettafold2",
+            "default_canonical_ordering",
+            "default_packed_block_types",
+            "extended_pose_stack_from_sequences",
+            "packed_block_types_for_openfold",
+            "packed_block_types_for_rosettafold2",
+            "pose_stack_from_canonical_form",
+            "pose_stack_from_openfold",
+            "pose_stack_from_pdb",
+            "pose_stack_from_rosettafold2",
+            "pose_stack_to_pdb_string",
+            "selection_gallery",
+            "switchable_view",
+            "view",
+            "write_pose_stack_pdb",
+        ),
+    ),
+    (
+        "tmol.kinematics",
+        (
+            "CartesianMoveMap",
+            "EdgeType",
+            "FoldForest",
+            "KinematicModuleData",
+            "MoveMap",
+            "set_named_torsions",
+        ),
+    ),
+    (
+        "tmol.optimization",
+        ("build_kinforest_network", "run_cart_min", "run_kin_min", "run_min"),
+    ),
+    (
+        "tmol.pose",
+        (
+            "ConstraintSet",
+            "PackedBlockTypes",
+            "PoseStack",
+            "get_named_torsions",
+            "get_torsion_names",
+        ),
+    ),
+    (
+        "tmol.score",
+        ("ScoreFunction", "ScoreType", "beta2016_score_function"),
+    ),
+    (
+        "tmol.score.constraint",
+        ("ConstraintEnergyTerm", "create_mainchain_coordinate_constraints"),
+    ),
+    ("tmol.relax", ("fast_relax",)),
+):
+    _LAZY_ATTRS.update(dict.fromkeys(_names, _module))
+del _module, _names
+
+
+def __getattr__(name):
+    module_name = _LAZY_ATTRS.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(_import_module(module_name), name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))
