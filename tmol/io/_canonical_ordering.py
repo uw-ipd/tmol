@@ -243,6 +243,10 @@ class CanonicalOrdering:
         restypes_required_mainchain_atoms = cls._required_mainchain_atoms(chemdb)
 
         default_termini_mapping = cls._temp_termini_mapping()
+        for restype in chemdb.residues:
+            inherited = default_termini_mapping.get(restype.base_name)
+            if inherited is not None:
+                default_termini_mapping.setdefault(restype.io_equiv_class, inherited)
         termini_patch_added_atoms = defaultdict(lambda: set([]))
 
         # we need to know which variants create down- and up termini
