@@ -26,3 +26,5 @@ class PoseBuildContext:
     ligand_names: dict = field(default_factory=dict)
     # (base block-type name, attachment atoms) -> connection-capable clone.
     covalent_variant_names: dict = field(default_factory=dict)
+    # (base block-type name, coordination signature) -> metal-capable clone.
+    metal_variant_names: dict = field(default_factory=dict)

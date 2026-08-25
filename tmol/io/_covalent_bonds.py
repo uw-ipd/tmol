@@ -52,6 +52,8 @@ def _is_standard_polymer_bond(keys, res1, atom1, res2, atom2):
 def _explicit_cross_residue_bonds(structure):
     """Return nonstandard cross-residue bonds from a Biotite bond table."""
 
+    from tmol.ligand._detect import _METAL_SYMBOLS
+
     array = _template(structure)
     if array.bonds is None:
         return ()
@@ -61,6 +63,11 @@ def _explicit_cross_residue_bonds(structure):
     for atom1, atom2, _bond_type in array.bonds.as_array():
         res1, res2 = int(atom_to_residue[atom1]), int(atom_to_residue[atom2])
         if res1 == res2:
+            continue
+        elements = {
+            str(array.element[index]).strip().capitalize() for index in (atom1, atom2)
+        }
+        if elements & _METAL_SYMBOLS:
             continue
         name1, name2 = str(array.atom_name[atom1]), str(array.atom_name[atom2])
         if _is_standard_polymer_bond(keys, res1, name1, res2, name2) or {

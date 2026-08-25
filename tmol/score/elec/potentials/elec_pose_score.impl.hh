@@ -32,7 +32,7 @@
 #include <chrono>
 
 // The maximum number of inter-residue chemical bonds
-#define MAX_N_CONN 4
+#define MAX_N_CONN 8
 #define TILE_SIZE 32
 
 namespace tmol {

@@ -211,7 +211,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         lengths, angles, torsions, improper = self.find_subgraphs(
             block_type.bond_indices, block_type
         )
-        cart_subgraphs = numpy.asarray(lengths + angles + torsions + improper)
+        cart_subgraphs = numpy.asarray(
+            lengths + angles + torsions + improper, dtype=numpy.int32
+        ).reshape((-1, 4))
         cart_subgraph_type_counts = numpy.array(
             [len(lengths), len(angles), len(torsions) + len(improper)]
         )
