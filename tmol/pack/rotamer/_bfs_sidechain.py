@@ -1,5 +1,4 @@
 import numpy
-import numba
 
 from typing import List
 
@@ -7,7 +6,6 @@ from tmol.types import validate_args
 from tmol.chemical import RefinedResidueType
 
 
-@numba.jit(nopython=True)
 def bfs_sidechain_atoms_jit(parents, sc_roots):
     n_atoms = parents.shape[0]
     n_children = numpy.zeros(n_atoms, dtype=numpy.int32)
