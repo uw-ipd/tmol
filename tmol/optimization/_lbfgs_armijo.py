@@ -557,7 +557,7 @@ class LBFGS_Armijo(Optimizer):
         ctx.d.mul_((~inactive).to(ctx.d.dtype)[self._segment_ids])
 
     def _directional_derivative(self, ctx, correct=True):
-        """Directional derivative g . d, per segment and in total."""
+        """Compute and cache the directional derivative g . d per segment."""
         flat_grad, d = ctx.flat_grad, ctx.d
         gtd_seg = self._seg_sum(flat_grad * d)
         if correct:
@@ -573,7 +573,6 @@ class LBFGS_Armijo(Optimizer):
                 d.copy_(torch.where(bad_elem, repaired, d))
                 gtd_seg = self._seg_sum(flat_grad * d)
         ctx.gtd_seg = gtd_seg
-        return gtd_seg.sum().item()
 
     def _segment_line_search(self, ctx, linefn_vec):
         """Line search with an independent step size per segment."""
@@ -634,8 +633,8 @@ class LBFGS_Armijo(Optimizer):
         done = self._inactive(ctx)
 
         n_done = int(done.sum().item())
-        n_stalled = int(ctx.stalled.sum().item())
         if self.verbose:
+            n_stalled = int(ctx.stalled.sum().item())
             print(
                 f"  iter {n_iter:4d}  E={ctx.loss:.6f}"
                 f"  evals={ctx.ls_evals}"
