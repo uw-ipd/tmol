@@ -964,20 +964,15 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
                                 int start_atom2,
                                 LJLKScoringData<Real> const& score_dat,
                                 int cp_separation) {
-      if (require_gradient) {  // captured
-        return lj_atom_energy_and_derivs_full(
-            atom_tile_ind1,
-            atom_tile_ind2,
-            start_atom1,
-            start_atom2,
-            score_dat,
-            cp_separation,
-            dV_dcoords  // captured
-        );
-      } else {
-        return lj_atom_energy(
-            atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
-      }
+      return lj_atom_energy_and_derivs_full(
+          atom_tile_ind1,
+          atom_tile_ind2,
+          start_atom1,
+          start_atom2,
+          score_dat,
+          cp_separation,
+          dV_dcoords  // captured
+      );
     });
 
     auto atom_pair_lk_fn = ([=] TMOL_DEVICE_FUNC(
@@ -987,20 +982,15 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
                                 int start_atom2,
                                 LJLKScoringData<Real> const& score_dat,
                                 int cp_separation) {
-      if (require_gradient) {  // captured
-        return lk_atom_energy_and_derivs_full(
-            atom_tile_ind1,
-            atom_tile_ind2,
-            start_atom1,
-            start_atom2,
-            score_dat,
-            cp_separation,
-            dV_dcoords  // captured
-        );
-      } else {
-        return lk_atom_energy(
-            atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
-      }
+      return lk_atom_energy_and_derivs_full(
+          atom_tile_ind1,
+          atom_tile_ind2,
+          start_atom1,
+          start_atom2,
+          score_dat,
+          cp_separation,
+          dV_dcoords  // captured
+      );
     });
 
     auto score_inter_lj_atom_pair =
