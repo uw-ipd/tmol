@@ -46,16 +46,16 @@ lazy at the public-API boundary: after importing Torch, the top-level import too
 load when their public objects are first requested, so benchmark complete
 workflows rather than treating import time as eliminated work.
 
-The same environment showed median default-database construction decreasing
-from 1.906 to 1.681 s after accelerating safe YAML and common angle parsing.
-Serialized scoring tables are memory-mapped while loading; a repeated Dunbrack
-table load decreased from 24.15 to 11.94 ms without changing the resulting
-objects. Removing first-call Numba compilation from residue and disulfide setup
-also decreased a cysteine-rich PPI pose load from about 0.89 to 0.49 s. These
-are one-time process costs. In an order-balanced protein-packing run, the first
-pack decreased from 4.83--5.39 to 2.18--2.23 s while warmed medians stayed at
-about 51 ms. Reuse databases, pose metadata, rendered scorers, and packers when
-the input chemistry and layout permit it.
+Across eight order-balanced processes in the same environment, median default
+database construction decreased from 1.950 to 0.710 s, a cysteine-rich PPI pose
+load from 6.653 to 1.446 s, and scorer rendering from 1.824 to 0.766 s. Peak host
+RSS decreased from about 1.48 to 1.35 GiB; GPU peak memory was unchanged.
+Serialized scoring tables are memory-mapped while loading; an isolated repeated
+Dunbrack table load decreased from 24.15 to 11.94 ms without changing the
+resulting objects. In an order-balanced protein-packing run, the first pack
+decreased from 4.66--4.75 to 2.28--2.55 s while warmed medians stayed at about
+51--53 ms. These are one-time process costs. Reuse databases, pose metadata,
+rendered scorers, and packers when the input chemistry and layout permit it.
 
 ## Accelerate repeated fixed-layout scoring
 
