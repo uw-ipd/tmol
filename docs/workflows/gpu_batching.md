@@ -47,8 +47,8 @@ load when their public objects are first requested, so benchmark complete
 workflows rather than treating import time as eliminated work.
 
 Across eight order-balanced processes in the same environment, median default
-database construction decreased from 1.950 to 0.710 s, a cysteine-rich PPI pose
-load from 6.653 to 1.446 s, and scorer rendering from 1.824 to 0.766 s. Peak host
+database construction decreased from 1.924 to 0.624 s, a cysteine-rich PPI pose
+load from 6.394 to 0.901 s, and scorer rendering from 1.793 to 0.766 s. Peak host
 RSS decreased from about 1.48 to 1.35 GiB; GPU peak memory was unchanged.
 Serialized scoring tables are memory-mapped while loading; an isolated repeated
 Dunbrack table load decreased from 24.15 to 11.94 ms without changing the
