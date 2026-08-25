@@ -2,12 +2,11 @@ import torch
 import attrs
 
 from tmol.types import Tensor
-from tmol.pose._packed_block_types import PackedBlockTypes
-from tmol.pose._pose_stack import PoseStack
+from tmol.pose import PackedBlockTypes, PoseStack
 
 
 def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
-    from tmol.pose._constraint_set import ConstraintSet
+    from tmol.pose import ConstraintSet
     from tmol.score.constraint._constraint_energy_term import ConstraintEnergyTerm
 
     constraint_set = pose_stack.constraint_set
@@ -19,7 +18,7 @@ def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
         for block_ind in range(pose_stack.max_n_blocks):
             if pose_stack.is_real_block(pose_ind, block_ind):
                 block_type = pose_stack.block_type(pose_ind, block_ind)
-                if "CA" not in block_type.atom_to_idx:
+                if "CA" not in block_type.atom_names_set:
                     continue
 
                 ca_ind = block_type.atom_to_idx["CA"]

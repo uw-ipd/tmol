@@ -39,6 +39,7 @@ from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     pose_stack_from_canonical_form,
+    pose_stack_from_biotite,
     canonical_form_from_openfold,
     canonical_ordering_for_openfold,
     packed_block_types_for_openfold,
@@ -65,9 +66,11 @@ from tmol.optimization import (
     run_kin_min,
     run_min,
 )
+
 from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
+    PoseStackBuilder,
     ConstraintSet,
     get_named_torsions,
     get_torsion_names,
@@ -79,9 +82,29 @@ from tmol.score import (
 )
 from tmol.score.constraint import (
     ConstraintEnergyTerm,
+    constrain_all_ca,
     create_mainchain_coordinate_constraints,
 )
-from tmol.relax import fast_relax
+from tmol.pack import (
+    pack_rotamers,
+    PackerPalette,
+    PackerTask,
+)
+from tmol.pack.rotamer import (
+    FixedAAChiSampler,
+    IncludeCurrentSampler,
+    OptHSampler,
+)
+from tmol.pack.rotamer.dunbrack import (
+    create_dunbrack_sampler_from_database,
+    DunbrackChiSampler,
+)
+
+from tmol.relax import (
+    fast_relax,
+    kin_fast_relax,
+    cartesian_fast_relax,
+)
 
 try:
     __version__ = version("tmol")
@@ -100,6 +123,7 @@ __all__ = [
     "PackedBlockTypes",
     "ParameterDatabase",
     "PoseStack",
+    "PoseStackBuilder",
     "ScoreFunction",
     "ScoreType",
     "atom_records_from_pose_stack",
@@ -110,6 +134,7 @@ __all__ = [
     "canonical_form_from_rosettafold2",
     "canonical_ordering_for_openfold",
     "canonical_ordering_for_rosettafold2",
+    "constrain_all_ca",
     "create_mainchain_coordinate_constraints",
     "default_canonical_ordering",
     "default_packed_block_types",
@@ -121,6 +146,7 @@ __all__ = [
     "one2three",
     "packed_block_types_for_openfold",
     "packed_block_types_for_rosettafold2",
+    "pose_stack_from_biotite",
     "pose_stack_from_canonical_form",
     "pose_stack_from_openfold",
     "pose_stack_from_pdb",
@@ -135,4 +161,14 @@ __all__ = [
     "three2one",
     "view",
     "write_pose_stack_pdb",
+    "pack_rotamers",
+    "PackerPalette",
+    "PackerTask",
+    "FixedAAChiSampler",
+    "IncludeCurrentSampler",
+    "OptHSampler",
+    "create_dunbrack_sampler_from_database",
+    "DunbrackChiSampler",
+    "kin_fast_relax",
+    "cartesian_fast_relax",
 ]

@@ -2,7 +2,8 @@ import torch
 import numpy
 import pytest
 
-from tmol.relax import _default_cart_min_fn, fast_relax
+from tmol.relax import default_cart_min_fn, default_kin_min_fn, fast_relax
+
 import time
 
 from tmol.pose import (
@@ -93,6 +94,7 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
         fold_forest,
         task_operations=[task_op],
         num_repeats=1,
+        min_fn=default_kin_min_fn,
         verbose=verbose,
     )
 
@@ -146,7 +148,7 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
         cart_mm,
         fold_forest,
         task_operations=[task_op],
-        min_fn=_default_cart_min_fn,
+        min_fn=default_cart_min_fn,
         num_repeats=1,
         verbose=verbose,
     )
@@ -231,6 +233,7 @@ def test_fast_relax_pertuz(
         fold_forest,
         task_operations=[task_op],
         num_repeats=1,
+        min_fn=default_kin_min_fn,
         verbose=verbose,
     )
 
@@ -305,6 +308,7 @@ def test_fast_relax_for_different_shapes(
         fold_forest,
         task_operations=[task_op],
         num_repeats=1,
+        min_fn=default_kin_min_fn,
         verbose=verbose,
     )
 
@@ -320,3 +324,46 @@ def test_fast_relax_for_different_shapes(
     print(
         f"Three differently-shaped PDBs relaxed; Execution time: {elapsed_time:.6f} seconds"
     )
+
+
+def test_fast_relax_with_f64(default_database, ubq_pdb, dun_sampler, torch_device):
+    # if torch_device == torch.device("cpu"):
+    #     return
+
+    pose_stack = pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_start=0, residue_end=76
+    ).to(torch.float64)
+
+    sfxn = get_relax_sfxn(default_database, torch_device)
+
+    mm = MoveMap.from_pose_stack(pose_stack)
+    mm.move_all_jumps = True
+    mm.move_all_named_torsions = True
+
+    palette = PackerPalette()
+    fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
+
+    def task_op(task):
+        task.restrict_to_repacking()
+
+        fixed_sampler = FixedAAChiSampler()
+        task.add_conformer_sampler(dun_sampler)
+        task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
+
+    # Now let's run fast_relax
+    verbose = True
+    new_pose_stack = fast_relax(
+        pose_stack,
+        sfxn,
+        palette,
+        mm,
+        fold_forest,
+        task_operations=[task_op],
+        num_repeats=1,
+        min_fn=default_kin_min_fn,
+        verbose=verbose,
+    )
+    assert (
+        new_pose_stack.coords.dtype == torch.float64
+    ), "Output coords dtype should match input coords dtype"
