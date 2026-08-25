@@ -1,6 +1,6 @@
 import numpy
 
-from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose import PackedBlockTypes
 
 
 def test_load_packed_residue_types(

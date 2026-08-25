@@ -6,9 +6,9 @@
 # so it should not count against the project.
 # Keep this list in sync with `[tool.coverage.run] omit` in pyproject.toml.
 ignore:
-  - "tmol/ligand/dimorphite_dl.py"
-  - "tmol/ligand/openbabel_compat.py"
-  - "tmol/tests/ligand/build_pli_ligand_cifs.py"
+  - "tmol/ligand/_dimorphite_dl.py"
+  - "tmol/ligand/_openbabel_compat.py"
+  - "tmol/tests/ligand/_build_pli_ligand_cifs.py"
 
 coverage:
   status:

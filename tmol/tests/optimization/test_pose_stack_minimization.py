@@ -11,9 +11,9 @@ from tmol import (
     FoldForest,
     MoveMap,
 )
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.optimization.sfxn_modules import CartesianSfxnNetwork, KinForestSfxnNetwork
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
+from tmol.pose import PoseStackBuilder
+from tmol.optimization import CartesianSfxnNetwork, KinForestSfxnNetwork
+from tmol.kinematics import PoseStackKinematicsModule
 
 
 def _score_per_pose(pose_stack: PoseStack, sfxn):

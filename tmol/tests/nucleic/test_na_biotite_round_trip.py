@@ -8,11 +8,11 @@ import numpy
 import pytest
 import torch
 
-from tmol.io.pose_stack_from_biotite import (
+from tmol.io import (
     pose_stack_from_biotite,
     biotite_from_pose_stack,
+    default_canonical_ordering,
 )
-from tmol.io.canonical_ordering import default_canonical_ordering
 
 DNA_NAME3S = ("DA", "DC", "DG", "DT")
 

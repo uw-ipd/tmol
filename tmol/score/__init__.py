@@ -5,21 +5,41 @@ import torch
 import os
 
 from tmol.database import ParameterDatabase
-from tmol.utility.device import resolve_device
+from tmol.utility import resolve_device
 
 from typing import Optional, TYPE_CHECKING
 
+# Import in topological order: dependencies before dependents.
+from ._score_types import ScoreType  # noqa: F401
+from ._bonded_atom import IndexedBonds  # noqa: F401
+from ._chemical_database import (  # noqa: F401
+    AcceptorHybridization,
+    AtomTypeParamResolver,
+    AtomTypeParams,
+)  # noqa: F401
+from ._energy_term import EnergyTerm  # noqa: F401
+from ._atom_type_dependent_term import AtomTypeDependentTerm  # noqa: F401
+from ._bond_dependent_term import BondDependentTerm  # noqa: F401
+from ._fragment_interactions import (  # noqa: F401
+    FragmentInteractionScores,
+    calculate_fragment_interactions,
+)
+from ._score_function import (  # noqa: F401
+    BlockPairScoringModule,
+    RotamerScoringModule,
+    SFXN_FORMAT_VERSION,
+    ScoreFunction,
+    WholePoseScoringModule,
+)
+
 if TYPE_CHECKING:
-    from .score_function import ScoreFunction
+    pass
 
 
 def _non_memoized_beta2016(
     device: torch.device, param_db: Optional[ParameterDatabase] = None
-) -> ScoreFunction:
+) -> "ScoreFunction":
     """Build a beta_nov2016 score function without memoization."""
-    from tmol.database import ParameterDatabase
-    from .score_function import ScoreFunction
-
     if param_db is None:
         param_db = ParameterDatabase.get_default()
 
@@ -34,17 +54,21 @@ def _non_memoized_beta2016(
 
 
 @toolz.functoolz.memoize
-def _memoized_beta2016(device: torch.device) -> ScoreFunction:
+def _memoized_beta2016(device: torch.device) -> "ScoreFunction":
     """Build and cache a score function keyed by device."""
     return _non_memoized_beta2016(device, None)
 
 
 def beta2016_score_function(
     device: torch.device, param_db: Optional[ParameterDatabase] = None
-) -> ScoreFunction:
-    """Return a ScoreFunction implementing the beta_nov2016 score function
+) -> "ScoreFunction":
+    """Return a ScoreFunction implementing the beta_nov2016_cart score function
     of Rosetta3.
 
+    Note that in Rosetta3, beta_nov2016 and beta_nov2016_cart are identical
+    except for the inclusion of the bond-length, bond-angle, and bond-torsion
+    terms implemented by the CartBonded energy term, and the exclusion
+    of the ProClose energy term (which is not implemented in tmol).
     Args:
         device: Target torch device.
         param_db: Optional parameter database. If omitted, uses the process
@@ -60,8 +84,24 @@ def beta2016_score_function(
     https://pubs.acs.org/doi/10.1021/acs.jctc.6b0081 and
     https://pubs.acs.org/doi/full/10.1021/acs.jctc.7b00125
     """
-    # resolved before the memo lookup so that 'cuda' and 'cuda:0' share one entry
     device = resolve_device(device)
     if param_db is not None:
         return _non_memoized_beta2016(device, param_db)
     return _memoized_beta2016(device)
+
+
+__all__ = [
+    "AcceptorHybridization",
+    "AtomTypeParamResolver",
+    "AtomTypeParams",
+    "BlockPairScoringModule",
+    "FragmentInteractionScores",
+    "IndexedBonds",
+    "RotamerScoringModule",
+    "SFXN_FORMAT_VERSION",
+    "ScoreFunction",
+    "ScoreType",
+    "WholePoseScoringModule",
+    "beta2016_score_function",
+    "calculate_fragment_interactions",
+]

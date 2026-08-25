@@ -2,16 +2,16 @@ import os
 import torch
 
 
-from tmol.io.pose_stack_from_rosettafold2 import (
+from tmol.io import (
     pose_stack_from_rosettafold2,
     canonical_form_from_rosettafold2,
     _paramdb_for_rosettafold2,
     canonical_ordering_for_rosettafold2,
     packed_block_types_for_rosettafold2,
+    CanonicalForm,
 )
-from tmol.io.canonical_form import CanonicalForm
 
-# from tmol.io.pose_stack_from_rosettafold2 import pose_stack_from_rosettafold2
+# from tmol.io import pose_stack_from_rosettafold2
 
 
 def test_load_rosettafold2_dictionary(rosettafold2_ubq_pred, torch_device):

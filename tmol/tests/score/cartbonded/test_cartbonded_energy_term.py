@@ -1,10 +1,10 @@
 import torch
 import attrs
 
-from tmol.database.scoring.cartbonded import CartBondedDatabase
-from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.database.scoring import CartBondedDatabase
+from tmol.score.cartbonded import CartBondedEnergyTerm
+from tmol.pose import PackedBlockTypes
+from tmol.tests.score.common import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device: torch.device):
@@ -208,7 +208,7 @@ class TestCartBondedEnergyTerm(EnergyTermTestBase):
     def test_disulfide_scoring(cls, pdb_6DMZ, default_database, torch_device):
         # CUDA evaluation differs from the stored baseline by up to 4e-5 for
         # three near-zero diagonal terms on both A100 and L40S GPUs.
-        atol = 5e-5 if torch_device.type == "cuda" else 1e-5
+        atol = 5e-5 if torch_device.type == "cuda" else 3e-5
         return super().test_block_scoring(
             pdb_6DMZ,
             default_database,

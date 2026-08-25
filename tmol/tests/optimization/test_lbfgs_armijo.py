@@ -1,7 +1,7 @@
 import torch
 import pytest
 
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
+from tmol.optimization import LBFGS_Armijo
 
 
 class SimpleLJScore:

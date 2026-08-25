@@ -1,4 +1,4 @@
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_packed_block_types,
 )
 

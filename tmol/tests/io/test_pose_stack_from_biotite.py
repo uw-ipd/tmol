@@ -3,7 +3,7 @@ from biotite.structure.io.pdbx import CIFFile, set_structure
 import pytest
 import torch
 
-from tmol.io.pose_stack_from_biotite import (
+from tmol.io import (
     build_context_from_biotite,
     canonical_form_from_biotite,
     pose_stack_from_biotite,
@@ -280,7 +280,7 @@ def test_sample_proton_chi_ligand_build_from_mol2(torch_device):
     import pathlib
 
     from tmol.database import ParameterDatabase
-    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand import nonstandard_residue_info_from_mol2
 
     mol2_path = (
         pathlib.Path(__file__).resolve().parents[1]

@@ -1,15 +1,15 @@
 import numpy
 import pandas
 import torch
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     CanonicalOrdering,
     canonical_form_from_pdb,
     canonical_form_from_atom_records,
     select_atom_records_res_subset,
+    parse_pdb,
 )
-from tmol.io.pdb_parsing import parse_pdb
 
 
 def test_create_canonical_ordering_smoke(default_database):

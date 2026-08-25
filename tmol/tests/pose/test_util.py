@@ -1,333 +1,224 @@
+"""Unit tests for get_torsion_names and get_named_torsions in tmol/pose/_util.py."""
+
+from __future__ import annotations
+
 import numpy
 import pytest
-import torch
 
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pose.util import (
-    EXTENDED_BACKBONE_TORSIONS,
-    extended_pose_stack_from_sequences,
-    get_named_torsions,
-    get_torsion_names,
-    set_named_torsions,
-)
+from tmol.io import EXTENDED_BACKBONE_TORSIONS, extended_pose_stack_from_sequences
+from tmol.pose import get_named_torsions, get_torsion_names
 
-LIGAND_SMILES = "CCO"
+# ── get_torsion_names ─────────────────────────────────────────────────────────
 
 
-def block_names(pose_stack, pose):
+def test_get_torsion_names_interior_residue_has_backbone_and_chi(torch_device):
+    """An interior protein residue reports phi, psi, omega and its chi torsions."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    # LYS is block 1: interior, has 4 chi torsions
+    names = get_torsion_names(pose_stack, 0, 1)
+    assert "phi" in names
+    assert "psi" in names
+    assert "omega" in names
+    assert "chi1" in names
+    assert "chi2" in names
+    assert "chi3" in names
+    assert "chi4" in names
+
+
+def test_get_torsion_names_nterm_patch_removes_phi(torch_device):
+    """The N-terminal patch removes phi from the torsion list."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    names = get_torsion_names(pose_stack, 0, 0)  # ALA:nterm
+    assert "phi" not in names
+    assert "psi" in names
+    assert "omega" in names
+
+
+def test_get_torsion_names_cterm_patch_removes_psi_and_omega(torch_device):
+    """The C-terminal patch removes psi and omega from the torsion list."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    names = get_torsion_names(pose_stack, 0, 4)  # GLY:cterm
+    assert "phi" in names
+    assert "psi" not in names
+    assert "omega" not in names
+
+
+def test_get_torsion_names_padding_block_raises(torch_device):
+    """Requesting torsion names for a padding slot (bt_ind == -1) raises ValueError."""
+    pose_stack = extended_pose_stack_from_sequences(["AA", "A"], device=torch_device)
+    # Pose 1 has 1 real block; block index 1 is padding (bt_ind == -1)
+    with pytest.raises(ValueError, match="not a real block"):
+        get_torsion_names(pose_stack, 1, 1)
+
+
+def test_get_torsion_names_returns_list_in_database_order(torch_device):
+    """Torsion names are returned in the same order as they appear in the block type."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
     pbt = pose_stack.packed_block_types
-    return [
-        pbt.active_block_types[int(bt_ind)].name
-        for bt_ind in pose_stack.block_type_ind64[pose]
-        if int(bt_ind) != -1
-    ]
+    bt_ind = int(pose_stack.block_type_ind64[0, 1])
+    bt = pbt.active_block_types[bt_ind]
+    expected = [tor.name for tor in bt.torsions]
+    assert get_torsion_names(pose_stack, 0, 1) == expected
 
 
-def real_coords(pose_stack, pose):
-    n_blocks = int((pose_stack.block_type_ind64[pose] != -1).sum())
-    last = n_blocks - 1
-    bt_ind = int(pose_stack.block_type_ind64[pose, last])
-    n_atoms = int(pose_stack.block_coord_offset64[pose, last]) + int(
-        pose_stack.packed_block_types.n_atoms[bt_ind]
+# ── get_named_torsions – return-type dispatch ─────────────────────────────────
+
+
+def test_get_named_torsions_scalar_name_returns_float(torch_device):
+    """scalar pose, scalar block, scalar name → bare float."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    val = get_named_torsions(pose_stack, 0, 1, "chi1")
+    assert isinstance(val, float)
+
+
+def test_get_named_torsions_no_name_returns_dict(torch_device):
+    """scalar pose, scalar block, name=None → dict keyed by every torsion name."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    result = get_named_torsions(pose_stack, 0, 1)
+    assert isinstance(result, dict)
+    assert set(result.keys()) == set(get_torsion_names(pose_stack, 0, 1))
+
+
+def test_get_named_torsions_list_of_names_returns_dict(torch_device):
+    """scalar pose, scalar block, list-of-names → dict with only those keys."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    result = get_named_torsions(pose_stack, 0, 1, ["phi", "psi"])
+    assert isinstance(result, dict)
+    assert set(result.keys()) == {"phi", "psi"}
+
+
+def test_get_named_torsions_non_scalar_poses_returns_list_of_lists(torch_device):
+    """Non-scalar (list) poses argument → list[pose][block] of dicts."""
+    pose_stack = extended_pose_stack_from_sequences(
+        ["AKLFG", "AKLFG"], device=torch_device
     )
-    return pose_stack.coords[pose, :n_atoms].cpu().numpy()
+    result = get_named_torsions(pose_stack, [0, 1], [1, 1])
+    assert isinstance(result, list)
+    assert len(result) == pose_stack.n_poses
 
 
-def min_interatomic_distance(coords):
-    diff = coords[:, None, :] - coords[None, :, :]
-    dist = numpy.linalg.norm(diff, axis=-1)
-    numpy.fill_diagonal(dist, numpy.inf)
-    return dist.min()
+def test_get_named_torsions_no_args_returns_all_poses_and_blocks(torch_device):
+    """Omitting poses and blocks returns a list[pose][block] covering everything."""
+    pose_stack = extended_pose_stack_from_sequences(
+        ["AKLFG", "AKLFG"], device=torch_device
+    )
+    result = get_named_torsions(pose_stack)
+    assert len(result) == pose_stack.n_poses
+    for pose_row in result:
+        assert len(pose_row) == pose_stack.max_n_blocks
+        assert isinstance(pose_row[0], dict)
 
 
-def assert_backbone_is_ideal(pose_stack, pose):
-    """Every polymer backbone torsion sits at its target value."""
-    pbt = pose_stack.packed_block_types
-    for block in range(pose_stack.max_n_blocks):
-        bt_ind = int(pose_stack.block_type_ind64[pose, block])
-        if bt_ind == -1:
-            continue
-        bt = pbt.active_block_types[bt_ind]
-        targets = EXTENDED_BACKBONE_TORSIONS.get(bt.properties.polymer.backbone_type)
-        if targets is None:
-            continue
-        measured = get_named_torsions(pose_stack, pose, block)
-        for name, target in targets.items():
-            if name not in measured or numpy.isnan(measured[name]):
-                continue
+# ── get_named_torsions – numerical correctness ────────────────────────────────
+
+
+def test_get_named_torsions_ideal_backbone_correct(torch_device):
+    """Backbone torsions of an extended-conformation pose are at their target values."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    targets = EXTENDED_BACKBONE_TORSIONS["alpha"]
+    # LYS (block 1) is interior; phi, psi, and omega are all resolvable
+    measured = get_named_torsions(pose_stack, 0, 1)
+    for name, target in targets.items():
+        if name in measured and not numpy.isnan(measured[name]):
             delta = (measured[name] - target + 180.0) % 360.0 - 180.0
-            assert abs(delta) < 1e-2, (bt.name, name, measured[name], target)
+            assert abs(delta) < 0.01, (
+                f"backbone torsion {name!r}: measured {measured[name]:.3f}, "
+                f"expected {target:.3f}"
+            )
 
 
-def test_extended_pose_stack_protein_only(torch_device):
-    pose_stack = extended_pose_stack_from_sequences("ACDEFG", device=torch_device)
-
-    assert pose_stack.n_poses == 1
-    assert block_names(pose_stack, 0) == [
-        "ALA:nterm",
-        "CYS",
-        "ASP",
-        "GLU",
-        "PHE",
-        "GLY:cterm",
-    ]
-
-    coords = real_coords(pose_stack, 0)
-    assert numpy.isfinite(coords).all()
-    assert min_interatomic_distance(coords) > 0.9
-    assert_backbone_is_ideal(pose_stack, 0)
-
-
-def test_extended_pose_stack_dna_only(torch_device):
-    pose_stack = extended_pose_stack_from_sequences("acgt", device=torch_device)
-
-    assert block_names(pose_stack, 0) == ["DA:na5prime", "DC", "DG", "DT:na3prime"]
-
-    coords = real_coords(pose_stack, 0)
-    assert numpy.isfinite(coords).all()
-    assert min_interatomic_distance(coords) > 0.9
-    assert_backbone_is_ideal(pose_stack, 0)
-
-    # the ribose keeps the C2'-endo pucker carried by the icoors
-    for block in range(4):
-        pucker = get_named_torsions(pose_stack, 0, block)
-        assert pucker["nu0"] == pytest.approx(-20.7, abs=2.0)
-        assert pucker["nu1"] == pytest.approx(34.0, abs=2.0)
-        assert pucker["delta"] == pytest.approx(143.0, abs=2.0)
-
-
-def test_extended_pose_stack_ligand_only(torch_device):
-    pose_stack = extended_pose_stack_from_sequences(
-        f"X({LIGAND_SMILES})", device=torch_device
-    )
-
-    assert len(block_names(pose_stack, 0)) == 1
-    coords = real_coords(pose_stack, 0)
-    assert numpy.isfinite(coords).all()
-    assert min_interatomic_distance(coords) > 0.9
-
-
-def test_extended_pose_stack_protein_dna_and_ligand(torch_device):
-    pose_stack, context = extended_pose_stack_from_sequences(
-        f"ACD:acg:X({LIGAND_SMILES})", device=torch_device, return_context=True
-    )
-
-    names = block_names(pose_stack, 0)
-    assert names[:3] == ["ALA:nterm", "CYS", "ASP:cterm"]
-    assert names[3:6] == ["DA:na5prime", "DC", "DG:na3prime"]
-    assert names[6] == context.ligand_names[LIGAND_SMILES]
-
-    # protein, nucleic acid and ligand each land in their own chain
-    assert sorted(set(pose_stack.chain_id[0, :7].tolist())) == [0, 1, 2]
-
-    coords = real_coords(pose_stack, 0)
-    assert numpy.isfinite(coords).all()
-    assert min_interatomic_distance(coords) > 0.9
-    assert_backbone_is_ideal(pose_stack, 0)
-
-
-def test_extended_pose_stack_repeated_protein(torch_device):
-    pose_stack = extended_pose_stack_from_sequences(
-        ["ACDEFG"] * 10, device=torch_device
-    )
-
-    assert pose_stack.n_poses == 10
-    for pose in range(1, 10):
-        assert block_names(pose_stack, pose) == block_names(pose_stack, 0)
-        numpy.testing.assert_allclose(
-            real_coords(pose_stack, pose), real_coords(pose_stack, 0), atol=1e-5
-        )
-
-
-def test_set_named_torsions_roundtrip(torch_device):
+def test_get_named_torsions_degrees_default(torch_device):
+    """By default torsion values are returned in degrees."""
     pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
-
-    before = real_coords(pose_stack, 0)
-    moved = set_named_torsions(pose_stack, 0, 1, "chi1", 62.5)
-
-    assert get_named_torsions(moved, 0, 1, "chi1") == pytest.approx(62.5, abs=1e-3)
-    assert pose_stack.coords is not moved.coords
-    assert get_named_torsions(pose_stack, 0, 1, "chi1") != pytest.approx(62.5, abs=1e-3)
-
-    # rooting at the first residue leaves everything before the bond in place
-    n_before = int(moved.block_coord_offset64[0, 1])
-    numpy.testing.assert_allclose(
-        real_coords(moved, 0)[:n_before], before[:n_before], atol=1e-4
-    )
+    psi_deg = get_named_torsions(pose_stack, 0, 1, "psi")
+    # Extended-conformation psi is close to 135° (protein target), well outside ±π
+    assert abs(psi_deg) > numpy.pi, "expected degrees, got a value in radian range"
 
 
-def test_set_named_torsions_batch_roundtrip(torch_device):
+def test_get_named_torsions_radians_consistent_with_degrees(torch_device):
+    """degrees=False and degrees=True report the same dihedral in different units."""
     pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
-
-    blocks = [1, 2, 3]
-    phis = [-57.0, -60.0, -63.0]
-    psis = [-47.0, -45.0, -43.0]
-    moved = set_named_torsions(pose_stack, [0] * 3, blocks, ["phi"] * 3, phis)
-    moved = set_named_torsions(moved, [0] * 3, blocks, ["psi"] * 3, psis)
-
-    for block, phi, psi in zip(blocks, phis, psis):
-        measured = get_named_torsions(moved, 0, block)
-        assert measured["phi"] == pytest.approx(phi, abs=1e-3)
-        assert measured["psi"] == pytest.approx(psi, abs=1e-3)
+    deg = get_named_torsions(pose_stack, 0, 1, "psi", degrees=True)
+    rad = get_named_torsions(pose_stack, 0, 1, "psi", degrees=False)
+    assert deg == pytest.approx(numpy.degrees(rad), abs=1e-5)
 
 
-def test_set_named_torsions_radians(torch_device):
-    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
-
-    target = numpy.radians(-71.0)
-    moved = set_named_torsions(pose_stack, 0, 2, "chi1", target, degrees=False)
-
-    assert get_named_torsions(moved, 0, 2, "chi1", degrees=False) == pytest.approx(
-        target, abs=1e-5
-    )
-
-
-def test_set_named_torsions_absent_torsion_raises(torch_device):
-    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
-
-    # the nterm patch removes the down connection, and phi along with it
-    assert "phi" not in get_torsion_names(pose_stack, 0, 0)
-    with pytest.raises(ValueError, match="no torsion"):
-        set_named_torsions(pose_stack, 0, 0, "phi", -60.0)
-
-
-def test_set_named_torsions_undefined_torsion_raises(torch_device):
+def test_get_named_torsions_nan_for_absent_neighbor(torch_device):
+    """phi on residue 0 is nan when no N-terminal neighbor exists (termini=False)."""
     pose_stack = extended_pose_stack_from_sequences(
         "AKLFG", device=torch_device, termini=False
     )
-
-    # unpatched, residue 0 keeps phi, but it reaches a residue that is not there
+    # Without the N-terminal patch, phi is still defined on block 0...
     assert "phi" in get_torsion_names(pose_stack, 0, 0)
-    assert numpy.isnan(get_named_torsions(pose_stack, 0, 0, "phi"))
-    with pytest.raises(ValueError, match="undefined"):
-        set_named_torsions(pose_stack, 0, 0, "phi", -60.0)
+    # ...but cannot be measured because the preceding residue is absent
+    val = get_named_torsions(pose_stack, 0, 0, "phi")
+    assert numpy.isnan(val)
 
 
-def c_to_n_fold_forest(pose_stack):
-    """Fold forest rooting each single-chain pose at its last residue."""
-    from tmol.kinematics.fold_forest import EdgeType, FoldForest
-
-    n_poses = pose_stack.n_poses
-    edges = numpy.full((n_poses, 2, 4), -1, dtype=int)
-    for pose in range(n_poses):
-        last = int((pose_stack.block_type_ind64[pose] != -1).sum()) - 1
-        edges[pose, 0] = [EdgeType.root_jump, -1, last, -1]
-        edges[pose, 1] = [EdgeType.polymer, last, 0, -1]
-    return FoldForest.from_edges(edges)
-
-
-def test_named_torsions_agree_across_fold_forests(torch_device):
-    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
-    reversed_ff = c_to_n_fold_forest(pose_stack)
-
-    targets = {"phi": -61.0, "psi": -43.0, "chi1": 58.0}
-    names, values = list(targets), list(targets.values())
-    default_moved = set_named_torsions(pose_stack, 0, 2, names, values)
-    reversed_moved = set_named_torsions(
-        pose_stack, 0, 2, names, values, fold_forest=reversed_ff
+def test_get_named_torsions_dict_nan_for_absent_torsions(torch_device):
+    """In dict mode, torsions crossing absent neighbors appear as nan, not absent."""
+    pose_stack = extended_pose_stack_from_sequences(
+        "AKLFG", device=torch_device, termini=False
     )
-
-    # both trees drive the torsion to the requested value
-    for name, target in targets.items():
-        assert get_named_torsions(default_moved, 0, 2, name) == pytest.approx(
-            target, abs=1e-3
-        )
-        assert get_named_torsions(reversed_moved, 0, 2, name) == pytest.approx(
-            target, abs=1e-3
-        )
-
-    # ... but they move opposite ends of the chain
-    start = real_coords(pose_stack, 0)
-    n_first = int(pose_stack.block_coord_offset64[0, 1])
-    last_offset = int(pose_stack.block_coord_offset64[0, 4])
-    numpy.testing.assert_allclose(
-        real_coords(default_moved, 0)[:n_first], start[:n_first], atol=1e-4
-    )
-    numpy.testing.assert_allclose(
-        real_coords(reversed_moved, 0)[last_offset:], start[last_offset:], atol=1e-4
-    )
-    assert not numpy.allclose(
-        real_coords(default_moved, 0), real_coords(reversed_moved, 0), atol=1e-3
-    )
+    result = get_named_torsions(pose_stack, 0, 0)
+    assert "phi" in result
+    assert numpy.isnan(result["phi"])
 
 
-PROTEIN_GOLD_TORSION_NAMES = {
-    "ALA:nterm": ["psi", "omega"],
-    "LYS": ["phi", "psi", "omega", "chi1", "chi2", "chi3", "chi4"],
-    "PRO": ["phi", "psi", "omega", "chi1", "chi2", "chi3"],
-    "VAL": ["phi", "psi", "omega", "chi1"],
-    "TRP:cterm": ["phi", "chi1", "chi2"],
-}
-
-DNA_GOLD_TORSION_NAMES = {
-    "DA:na5prime": [
-        "gamma", "delta", "epsilon", "zeta", "chi1", "nu0", "nu1", "nu4", "chi3",
-    ],
-    "DC": [
-        "alpha", "beta", "gamma", "delta", "epsilon", "zeta",
-        "chi1", "nu0", "nu1", "nu4",
-    ],
-    "DG": [
-        "alpha", "beta", "gamma", "delta", "epsilon", "zeta",
-        "chi1", "nu0", "nu1", "nu4",
-    ],
-    "DT:na3prime": [
-        "alpha", "beta", "gamma", "delta", "chi1", "nu0", "nu1", "nu4", "chi4",
-    ],
-}  # fmt: skip
-
-RNA_GOLD_TORSION_NAMES = {
-    "RA:na5prime": [
-        "gamma", "delta", "epsilon", "zeta", "chi1", "chi2",
-        "nu0", "nu1", "nu4", "chi3",
-    ],
-    "RC": [
-        "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "chi1", "chi2",
-        "nu0", "nu1", "nu4",
-    ],
-    "RG": [
-        "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "chi1", "chi2",
-        "nu0", "nu1", "nu4",
-    ],
-    "RU:na3prime": [
-        "alpha", "beta", "gamma", "delta", "chi1", "chi2",
-        "nu0", "nu1", "nu4", "chi4",
-    ],
-}  # fmt: skip
+# ── get_named_torsions – padding and error handling ───────────────────────────
 
 
-@pytest.mark.parametrize(
-    "seq,gold",
-    [
-        ("AKPVW", PROTEIN_GOLD_TORSION_NAMES),
-        ("acgt", DNA_GOLD_TORSION_NAMES),
-        ("a[RA]c[RC]g[RG]u[RU]", RNA_GOLD_TORSION_NAMES),
-    ],
-    ids=["protein", "dna", "rna"],
-)
-def test_get_torsion_names(seq, gold, torch_device):
-    # names come from the block type, so the zero-coordinate builder suffices
-    pose_stack = PoseStackBuilder.from_sequences(seq, device=torch_device)
-
-    got = {
-        name: get_torsion_names(pose_stack, 0, block)
-        for block, name in enumerate(block_names(pose_stack, 0))
-    }
-    assert got == gold
+def test_get_named_torsions_padding_block_silently_skipped_when_implicit(torch_device):
+    """Padding blocks are skipped (not an error) when blocks is not explicitly given."""
+    pose_stack = extended_pose_stack_from_sequences(["AA", "A"], device=torch_device)
+    # Pose 1 has 1 real block; asking for all blocks should skip the padding slot
+    result = get_named_torsions(pose_stack, 1)
+    # The padding block's slot produces an empty dict, not an error
+    assert isinstance(result, list)
+    # The real block has torsion entries; the padding slot dict is empty
+    assert len(result[0]) == pose_stack.max_n_blocks
 
 
-def test_get_torsion_names_non_polymer(torch_device):
-    pose_stack = PoseStackBuilder.from_sequences("A[HOH]", device=torch_device)
-    assert get_torsion_names(pose_stack, 0, 0) == []
-
-
-def test_get_torsion_names_rejects_absent_block(torch_device):
-    pose_stack = PoseStackBuilder.from_sequences(["AAA", "AA"], device=torch_device)
+def test_get_named_torsions_explicit_padding_block_raises(torch_device):
+    """Explicitly requesting a padding block raises ValueError."""
+    pose_stack = extended_pose_stack_from_sequences(["AA", "A"], device=torch_device)
     with pytest.raises(ValueError, match="not a real block"):
-        get_torsion_names(pose_stack, 1, 2)
+        get_named_torsions(pose_stack, 1, 1, "phi")
 
 
-def test_extended_pose_stack_device(torch_device):
-    pose_stack = extended_pose_stack_from_sequences("ACD", device=torch_device)
-    assert pose_stack.coords.device.type == torch_device.type
-    assert pose_stack.coords.dtype == torch.float32
+def test_get_named_torsions_unknown_torsion_name_raises(torch_device):
+    """Requesting a torsion name absent from the block type raises ValueError."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    # ALA:nterm has no phi (N-terminal patch removed it)
+    with pytest.raises(ValueError, match="no torsion"):
+        get_named_torsions(pose_stack, 0, 0, "phi")
+
+
+def test_get_named_torsions_mismatched_pose_block_lengths_raises(torch_device):
+    """List poses and blocks of different lengths raise ValueError."""
+    pose_stack = extended_pose_stack_from_sequences(
+        ["AKLFG", "AKLFG"], device=torch_device
+    )
+    with pytest.raises(ValueError, match="same length"):
+        get_named_torsions(pose_stack, [0, 1], [1, 2, 3], "phi")
+
+
+# ── get_named_torsions – paired vs Cartesian-product selection ────────────────
+
+
+def test_get_named_torsions_paired_lists_are_not_cartesian_product(torch_device):
+    """Same-length poses and blocks lists are zipped (paired), not crossed."""
+    pose_stack = extended_pose_stack_from_sequences(
+        ["AKLFG", "AKLFG"], device=torch_device
+    )
+    # Paired: (pose=0, block=1) and (pose=1, block=2)
+    result = get_named_torsions(pose_stack, [0, 1], [1, 2])
+    # A Cartesian product would have 4 entries in the requests; a paired selection
+    # has 2.  The list-of-lists result should be populated only at (0,1) and (1,2).
+    assert isinstance(result, list)
+    assert len(result) == pose_stack.n_poses
+    # (0,1) and (1,2) are populated; cross-product positions (0,2) and (1,1) are not
+    assert result[0][1]  # (pose 0, block 1) has torsion entries
+    assert result[1][2]  # (pose 1, block 2) has torsion entries
+    assert not result[0][2]  # (pose 0, block 2) is absent from the paired selection
+    assert not result[1][1]  # (pose 1, block 1) is absent from the paired selection

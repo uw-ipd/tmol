@@ -1,10 +1,12 @@
+from ._util import LazyContentsMapping, LazyFileMapping  # noqa: F401
+
 import pytest
 import os
 import torch
 import biotite.structure.io
 from pathlib import Path
 
-from . import pdb
+from . import pdb  # noqa: E402
 
 _CIF_DATA_DIR = os.path.join(os.path.dirname(__file__), "cif")
 

@@ -7,7 +7,7 @@ listed in pair_parameters, so an unlisted pair scores NaN rather than zero.
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.score.hbond.params import HBondParamResolver
+from tmol.score.hbond import HBondParamResolver
 
 
 def test_every_donor_acceptor_pair_is_parameterized():

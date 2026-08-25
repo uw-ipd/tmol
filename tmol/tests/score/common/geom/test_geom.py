@@ -8,12 +8,12 @@ import torch
 from numpy import array, cos, sin, linspace, pi, nan
 from scipy.stats import special_ortho_group
 
-from tmol.tests.autograd import gradcheck, VectorizedOp
+from tmol.tests import gradcheck, VectorizedOp
 
 
 @pytest.fixture(scope="session")
 def geom():
-    import tmol.tests.score.common.geom.geom as geom
+    import tmol.tests.score.common.geom._geom as geom
 
     return geom
 
@@ -167,7 +167,7 @@ class DihedralDat:
 
 @pytest.fixture
 def dihedral_test_data():
-    from tmol.utility.units import parse_angle
+    from tmol.utility import parse_angle
 
     coords = array(
         [

@@ -1,6 +1,6 @@
 import pytest
 import attr
-from tmol.types.attrs import ValidateAttrs, ConvertAttrs
+from tmol.types import ValidateAttrs, ConvertAttrs
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

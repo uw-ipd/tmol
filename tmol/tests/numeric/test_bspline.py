@@ -1,7 +1,7 @@
 import torch
 import numpy
 import pytest
-from tmol.numeric.bspline import BSplineInterpolation
+from tmol.numeric import BSplineInterpolation
 
 
 @pytest.mark.parametrize("input", [torch.tensor([2.0, 5.0]), torch.tensor([3.0, 4.0])])

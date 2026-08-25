@@ -1,47 +1,190 @@
-"""Public API for tmol ligand preparation.
-
-Stable entry points for the unified CIF/AtomArray/SMILES/mol2 → params pipeline.
-"""
-
-from tmol.database.chemical import RawResidueType  # noqa: F401  re-exported
-from tmol.ligand.detect import (
+from ._atom_typing import (  # noqa: F401
+    AtomTypeAssignment,
+    ELEMENT_SYMBOLS,
+    HYB_AMIDE,
+    HYB_AROMATIC,
+    HYB_SP,
+    HYB_SP2,
+    HYB_SP3,
+    RosettaTypingState,
+    _assign_missing_hybridization,
+    _bond_is_planar,
+    _build_rosetta_typing_state,
+    _classify_H,
+    _classify_N,
+    _classify_N_sp2,
+    _classify_O,
+    _classify_O_no_carbon,
+    _classify_O_sp2,
+    _classify_P,
+    _classify_S,
+    _correct_amide_bond_orders,
+    _correct_conjugated_single_bond_orders,
+    _correct_ring_nitrogen,
+    _get_hyb,
+    _has_sp2_oxygen_neighbor,
+    _modify_polar_c,
+    _neighbor_counts,
+    assign_tmol_atom_types,
+    kekulize_tolerant,
+    sanitize_tolerant,
+    should_kekulize_for_typing,
+)  # noqa: F401
+from ._chemistry_tables import (  # noqa: F401
+    get_hbond_properties,
+    get_polar_classes,
+    get_sp2_atom_types,
+)  # noqa: F401
+from ._chi_topology import MAX_CONFS, build_chi_topology  # noqa: F401
+from ._conformer_generation import (  # noqa: F401
+    CHIRAL_MARGIN,
+    N_RESTART,
+    REFINE_ITERS,
+    STAGE_A_ANNEAL,
+    STAGE_A_ITERS,
+    TORCH_DTYPE,
+    W_BOUND,
+    W_CHIRAL,
+    W_EXACT,
+    W_PLANE,
+    generate_conformer,
+)  # noqa: F401
+from ._detect import (  # noqa: F401
     NonStandardResidueInfo,
+    SKIP_RESIDUES,
+    _METAL_SYMBOLS,
+    _charge_model_is_authoritative,
+    _dimorphite_protonate_smiles,
+    _infer_res_name_from_mol2,
+    _mol2_charge_model_from_text,
+    _mol2_single_bond_ids,
+    _normalize_radical_oxygens,
+    _rdkit_bond_to_biotite_type,
+    _strip_metals,
+    _residue_names_with_cross_residue_bonds,
+    _source_subtype_from_mol2_atom_type,
     detect_nonstandard_residues,
+    get_chem_comp_type,
+    nonstandard_residue_info_from_mol2,
+    nonstandard_residue_info_from_mol2_block,
     nonstandard_residue_info_from_smiles_via_mol2,
-)
-from tmol.ligand.params_file import inject_params_file
-from tmol.ligand.params_io import write_params_from_mol2
-from tmol.ligand.fragmentation import (
+)  # noqa: F401
+from ._dimorphite_dl import (  # noqa: F401
+    ArgParseFuncs,
+    LoadSMIFile,
+    MyParser,
+    ProtSubstructFuncs,
+    ProtectUnprotectFuncs,
+    Protonate,
+    TestFuncs,
+    UtilFuncs,
+    main,
+    print_header,
+    protonate_mol_variants,
+)  # noqa: F401
+from ._fragmentation import (  # noqa: F401
     FRAGMENT_ID_ANNOTATION,
+    FragmentConnection,
     FragmentedLigandPoseMapping,
-    LigandFragmentBlockMapping,
+    LigandFragmentDefinition,
+    MAX_FRAGMENT_CONNECTIONS,
+    MIN_FRAGMENT_HEAVY_ATOMS,
+    _fragment_atom_tree,
+    _validate_bonded_cut_layout,
+    _validate_scoring_cut_layout,
+    apply_fragment_connections,
+    build_split_block_mapping,
+    expand_fragmented_ligands,
+    fragment_ids_from_atom_array,
     recombine_fragmented_ligands,
-)
-from tmol.ligand.preparation import (
+    unsplit_pose_stack,
+)  # noqa: F401
+from ._generated_geometry import (  # noqa: F401
+    correct_generated_geometry,
+    logger,
+    planarize_conjugated_nh2,
+)  # noqa: F401
+from ._mol2_names import (  # noqa: F401
+    apply_disambiguated_mol2_names,
+    disambiguate_mol2_atom_name,
+)  # noqa: F401
+from ._mol3d import authoritative_charges_by_index  # noqa: F401
+from ._openbabel_compat import (  # noqa: F401
+    OpenBabelUnavailableError,
+    _import_openbabel,
+    _obmol_to_rdkit_mol,
+    normalize_azide,
+    obabel_read_mol2,
+    obabel_read_mol2_block,
+    obabel_smiles_to_mol2,
+    obabel_smiles_to_mol2_block,
+    strip_nontetrahedral_stereo,
+)  # noqa: F401
+from ._params_file import (  # noqa: F401
+    TMOL_FORMAT_VERSION,
+    inject_params_file,
+    inject_params_files,
+    load_params_file,
+)  # noqa: F401
+from ._params_io import (  # noqa: F401
+    _BOND_TOK_TO_TYPE,
+    read_params_file,
+    write_params_file,
+    write_params_from_mol2,
+)  # noqa: F401
+from ._preparation import (  # noqa: F401
     LigandPreparationError,
+    _ligand_info_from_cif,
+    _prepare_ligand_via_smiles,
+    _residue_covers_cif_heavy_atoms,
     prepare_ligand_from_cif,
     prepare_ligand_from_mol2,
     prepare_ligand_from_smiles,
     prepare_ligands,
     prepare_ligands_from_smiles,
     prepare_single_ligand,
-)
-from tmol.ligand.registry import LigandPreparation
-from tmol.ligand.structure_to_smiles import (
-    ligand_smiles_from_atom_array,
-)
+    unused_ligand_name,
+)  # noqa: F401
+from ._rdkit_mol import (  # noqa: F401
+    ligand_atom_array_to_rdkit_mol,
+    normalize_cumulated_azide,
+    source_carried_kekule,
+    source_has_aromatic_annotations,
+    source_subtype,
+)  # noqa: F401
+from ._registry import (  # noqa: F401
+    LigandPreparation,
+    _build_cartbonded_params,
+    collect_new_atom_types,
+    inject_ligand_preparations,
+    rebuild_canonical_ordering,
+)  # noqa: F401
+from ._residue_builder import build_residue_type  # noqa: F401
+from ._structure_to_smiles import ligand_smiles_from_atom_array  # noqa: F401
 
 __all__ = [
+    "FRAGMENT_ID_ANNOTATION",
+    "FragmentConnection",
+    "LigandFragmentDefinition",
     "LigandPreparation",
     "LigandPreparationError",
-    "FRAGMENT_ID_ANNOTATION",
-    "FragmentedLigandPoseMapping",
-    "LigandFragmentBlockMapping",
-    "NonStandardResidueInfo",
-    "RawResidueType",
+    "MAX_FRAGMENT_CONNECTIONS",
+    "MIN_FRAGMENT_HEAVY_ATOMS",
+    "OpenBabelUnavailableError",
+    "TMOL_FORMAT_VERSION",
+    "apply_fragment_connections",
+    "build_split_block_mapping",
     "detect_nonstandard_residues",
+    "expand_fragmented_ligands",
+    "fragment_ids_from_atom_array",
+    "get_chem_comp_type",
+    "inject_ligand_preparations",
     "inject_params_file",
+    "inject_params_files",
     "ligand_smiles_from_atom_array",
+    "load_params_file",
+    "nonstandard_residue_info_from_mol2",
+    "nonstandard_residue_info_from_mol2_block",
     "nonstandard_residue_info_from_smiles_via_mol2",
     "prepare_ligand_from_cif",
     "prepare_ligand_from_mol2",
@@ -49,6 +192,9 @@ __all__ = [
     "prepare_ligands",
     "prepare_ligands_from_smiles",
     "prepare_single_ligand",
+    "read_params_file",
     "recombine_fragmented_ligands",
+    "unsplit_pose_stack",
+    "write_params_file",
     "write_params_from_mol2",
 ]

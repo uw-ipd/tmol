@@ -1,12 +1,11 @@
 import numpy
 
-from tmol.kinematics.check_fold_forest import (
+from tmol.kinematics import (
     mark_polymeric_bonds_in_foldforest_edges,
     bfs_proper_forest,
     validate_fold_forest,
+    EdgeType,
 )
-
-from tmol.kinematics.fold_forest import EdgeType
 
 
 def test_mark_polymeric_bonds_in_foldforest_edges_1():

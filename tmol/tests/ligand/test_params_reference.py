@@ -9,7 +9,7 @@ import pytest
 from types import SimpleNamespace
 
 from tmol.tests.data import data_path
-from tmol.tests.ligand.params_reference import (
+from tmol.tests.ligand import (
     GeneratedFields,
     ReferenceParams,
     as_legacy_dict,
@@ -301,7 +301,7 @@ def test_semantic_comparator_handles_pdb_carbon_name_collision() -> None:
 
 def test_element_from_atom_type_prefixes() -> None:
     """Element inference from atom-type prefixes covers expected cases."""
-    from tmol.tests.ligand.equivalence import _element_from_atom_type
+    from tmol.tests.ligand import _element_from_atom_type
 
     cases = {
         "CS1": "C",

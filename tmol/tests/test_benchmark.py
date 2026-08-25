@@ -1,6 +1,6 @@
 import pytest
 
-from .benchmark import subfixture
+from ._benchmark import subfixture
 
 
 def test_str_join_method(benchmark):

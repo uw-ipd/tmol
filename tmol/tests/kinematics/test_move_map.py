@@ -1,17 +1,15 @@
 import torch
 import pytest
 
-from tmol.kinematics.move_map import MoveMap, MinimizerMap
-from tmol.pose.pose_stack import PoseStack
-from tmol.kinematics.datatypes import (
+from tmol.kinematics import (
+    MoveMap,
+    MinimizerMap,
     KinematicModuleData,
     n_movable_jump_dof_types,
     n_movable_bond_dof_types,
-)
-
-from tmol.kinematics.scan_ordering import (
     construct_kin_module_data_for_pose,
 )
+from tmol.pose import PoseStack
 
 
 def kinatom_to_atom_name(

@@ -1,9 +1,9 @@
 import torch
 
-from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
-from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.score.ljlk import LJLKEnergyTerm
+from tmol.pose import PackedBlockTypes
 
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.tests.score.common import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device):
