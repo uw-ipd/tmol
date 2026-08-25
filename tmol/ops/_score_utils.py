@@ -6,6 +6,32 @@ from tmol.pack.rotamer import IncludeCurrentSampler, FixedAAChiSampler
 from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
 from tmol.optimization import run_cart_min
 
+_EINSUM_MIN_BYTES = 512 * 1024 * 1024
+
+
+def _sum_cross_block_scores(
+    block_pair_scores, mask, other_mask, *, memory_efficient=False
+):
+    """Sum both orientations of block-pair scores selected by two masks."""
+    cross_mask = (mask.unsqueeze(2) & other_mask.unsqueeze(1)) | (
+        other_mask.unsqueeze(2) & mask.unsqueeze(1)
+    )
+    n_terms, n_poses = block_pair_scores.shape[:2]
+
+    if not memory_efficient:
+        expanded_mask = cross_mask.unsqueeze(0).expand(n_terms, -1, -1, -1)
+        return block_pair_scores[expanded_mask].view(n_terms, n_poses, -1).sum(dim=2)
+
+    # These reductions avoid the large term-expanded selection above and also
+    # support batches in which poses select different numbers of pairs. Their
+    # floating-point reduction order can differ from the default path.
+    score_bytes = block_pair_scores.numel() * block_pair_scores.element_size()
+    if score_bytes >= _EINSUM_MIN_BYTES:
+        return torch.einsum(
+            "tpij,pij->tp", block_pair_scores, cross_mask.to(block_pair_scores.dtype)
+        )
+    return block_pair_scores.masked_fill(~cross_mask.unsqueeze(0), 0).sum(dim=(2, 3))
+
 
 def calculate_block_pair_ddg(
     pose_stack,
@@ -17,6 +43,8 @@ def calculate_block_pair_ddg(
     pack=False,
     database=None,
     return_pose_stack=False,
+    *,
+    memory_efficient=False,
 ):
     """Calculate DDG score between two subsets of blocks within each pose, defined by 2 masks.
     If only one mask is provided, it will use the inverse of the first mask for the second.
@@ -35,6 +63,9 @@ def calculate_block_pair_ddg(
             to the mask (computed via ``compute_block_adjacency``) before the minimization step.
         return_pose_stack: If True, also return the (possibly packed/minimized) pose stack
             that was actually scored, as ``(ddg_scores, pose_stack)``.
+        memory_efficient: If True, use a lower-memory interface reduction. This also supports
+            poses that select different numbers of block pairs, but may differ slightly from
+            the default result because floating-point values are summed in a different order.
 
     Returns:
         Tensor of shape [n_poses] or [n_terms, n_poses] containing the ddg score for each pose,
@@ -93,32 +124,12 @@ def calculate_block_pair_ddg(
     scorer = sfxn.render_block_pair_scoring_module(pose_stack)
     block_pair_scores = scorer(pose_stack.coords, sum_terms=False)
 
-    # block_pair_scores shape: [n_terms, n_poses, n_blocks, n_blocks]
-    n_terms, n_poses, n_blocks, _ = block_pair_scores.shape
-
     # mask shape: [n_poses, n_blocks]
     # Use mask2 if provided, otherwise use ~mask for the second set of indices
     other_mask = mask2 if mask2 is not None else ~mask
-
-    # Create masks for both sides of the diagonal for each pose
-    # Side 1: i is in mask, j is in other_mask
-    mask_i = mask.unsqueeze(2)  # Shape: [n_poses, n_blocks, 1]
-    other_j = other_mask.unsqueeze(1)  # Shape: [n_poses, 1, n_blocks]
-    cross_mask_1 = mask_i & other_j
-
-    # Side 2: i is in other_mask, j is in mask
-    other_i = other_mask.unsqueeze(2)  # Shape: [n_poses, n_blocks, 1]
-    mask_j = mask.unsqueeze(1)  # Shape: [n_poses, 1, n_blocks]
-    cross_mask_2 = other_i & mask_j
-
-    # Combine both sides
-    cross_mask = cross_mask_1 | cross_mask_2  # Shape: [n_poses, n_blocks, n_blocks]
-
-    # Expand mask to cover each score term
-    cross_mask = cross_mask.unsqueeze(0).expand(n_terms, -1, -1, -1)
-
-    # Apply mask and sum all of the block pair energies
-    ddg_scores = block_pair_scores[cross_mask].view(n_terms, n_poses, -1).sum(dim=2)
+    ddg_scores = _sum_cross_block_scores(
+        block_pair_scores, mask, other_mask, memory_efficient=memory_efficient
+    )
 
     if sum_terms:
         ddg_scores = ddg_scores.sum(dim=0)
@@ -375,7 +386,6 @@ def compute_block_centroids_and_furthest_dist(pose_stack):
 
 
 def build_coord_mask_for_mask_and_interacting_atoms(pose_stack, mask):
-
     # Build coord_mask: True for atoms in masked blocks and sidechain atoms within 5.0 Angstroms.
     n_poses, max_n_atoms, _ = pose_stack.coords.shape
     n_blocks = pose_stack.max_n_blocks

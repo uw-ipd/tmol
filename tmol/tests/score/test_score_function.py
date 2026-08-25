@@ -1,12 +1,14 @@
 import torch
 import numpy
 import os
+import pytest
 
 from tmol.score import (
     _non_memoized_beta2016,
     ScoreFunction,
     ScoreType,
 )
+from tmol.score._score_function import WholePoseScoringModule
 from tmol.pose import (
     DEFAULT_ATOM_B_FACTOR,
     DEFAULT_ATOM_OCCUPANCY,
@@ -36,6 +38,57 @@ def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
     scores = scorer(pose_stack100.coords)
 
     assert scores is not None
+
+
+def test_no_grad_scoring_detaches_coordinates():
+    class RecordingTerm(torch.nn.Module):
+        def forward(self, coords):
+            self.input_requires_grad = coords.requires_grad
+            return coords.sum().reshape(1, 1)
+
+    term = RecordingTerm()
+    scorer = WholePoseScoringModule(torch.ones(1), [term])
+    coords = torch.ones(1, requires_grad=True)
+
+    scorer(coords)
+    assert term.input_requires_grad
+
+    with torch.no_grad():
+        scorer(coords)
+    assert not term.input_requires_grad
+
+
+def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA graph test")
+
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    sfxn = beta2016_score_function(torch_device)
+    eager = sfxn.render_whole_pose_scoring_module(pose_stack)
+
+    eager_coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    expected_score = eager(eager_coords)
+    (expected_grad,) = torch.autograd.grad(expected_score.sum(), eager_coords)
+    expected_terms = eager(pose_stack.coords, sum_terms=False, apply_weights=False)
+
+    graphed = sfxn.render_whole_pose_scoring_module(pose_stack, cuda_graph=True)
+    graph_coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    graph_score = graphed(graph_coords)
+    (graph_grad,) = torch.autograd.grad(graph_score.sum(), graph_coords)
+
+    torch.testing.assert_close(graph_score, expected_score, rtol=1e-5, atol=1e-3)
+    torch.testing.assert_close(graph_grad, expected_grad, rtol=1e-4, atol=1e-3)
+    # Non-default reductions intentionally retain their normal eager semantics.
+    torch.testing.assert_close(
+        graphed(pose_stack.coords, sum_terms=False, apply_weights=False),
+        expected_terms,
+    )
+
+    changed_coords = pose_stack.coords.detach().clone()
+    changed_coords[0, 0, 0] += 0.1
+    torch.testing.assert_close(
+        graphed(changed_coords), eager(changed_coords), rtol=1e-5, atol=1e-3
+    )
 
 
 def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_device):

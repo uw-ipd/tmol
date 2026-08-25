@@ -1,8 +1,6 @@
 import numpy
-import numba
 
 
-@numba.jit(nopython=True)
 def eye4():
     """Create the identity homogeneous transform
     Only necessary because numpy.eye(4, dtype=numpy.float32)
@@ -18,12 +16,10 @@ def eye4():
     # return m
 
 
-@numba.jit(nopython=True)
 def normalize(v):
     return v / numpy.linalg.norm(v)
 
 
-@numba.jit(nopython=True)
 def frame_from_coords(p1, p2, p3):
     ht = eye4()
     z = normalize(p3 - p2)
@@ -38,7 +34,6 @@ def frame_from_coords(p1, p2, p3):
     return ht
 
 
-@numba.jit(nopython=True)
 def rot_x(rot):
     ht = eye4()
     crot = numpy.cos(rot)
@@ -51,7 +46,6 @@ def rot_x(rot):
     return ht
 
 
-@numba.jit(nopython=True)
 def rot_z(rot):
     ht = eye4()
     crot = numpy.cos(rot)
@@ -64,14 +58,12 @@ def rot_z(rot):
     return ht
 
 
-@numba.jit(nopython=True)
 def trans_z(trans):
     ht = eye4()
     ht[2, 3] = trans
     return ht
 
 
-@numba.jit(nopython=True)
 def build_coords_from_icoors(icoors_ancestors, icoors_geom):
     # start with atom 1 at the origin
     # place atom 2 along the x axis

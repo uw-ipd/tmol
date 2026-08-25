@@ -438,7 +438,9 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
   // One score type: gen_torsions (index 0).
   int const n_V = output_block_pair_energies ? max_n_blocks : 1;
   auto V_t = TPack<Real, 4, D>::zeros({1, n_poses, n_V, n_V});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
+  auto dV_dx_t = compute_derivs
+                     ? TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms})
+                     : TPack<Vec<Real, 3>, 2, D>::empty({1, n_atoms});
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
 

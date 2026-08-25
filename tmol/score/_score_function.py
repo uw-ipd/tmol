@@ -1,11 +1,13 @@
-import torch
-import yaml
 import logging
-
 from typing import Dict, Sequence
+import warnings
+
+import torch
+
 from tmol.types import Tensor
 
 from tmol.database import ParameterDatabase
+from tmol.database._yaml import safe_load
 from tmol.score import ScoreType
 
 # force registration of the terms with the ScoreTermFactory
@@ -148,7 +150,7 @@ class ScoreFunction:
 
         return self._multi_body_terms
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+    def render_whole_pose_scoring_module(self, pose_stack: PoseStack, cuda_graph=False):
         """Create an object designed to evaluate the score of a set of Poses
         repeatedly as the Poses change their conformation, e.g., as in
         minimization. This object will derive from torch.nn.Module and
@@ -156,12 +158,22 @@ class ScoreFunction:
         terms that themselves are derived from torch.nn.Module. This
         object's __call__ will return a tensor of weighted energies of
         shape (n_poses,).
+
+        Set ``cuda_graph`` to ``"forward"`` for repeated inference,
+        ``"forward_backward"`` for repeated scoring with coordinate gradients,
+        or ``True`` to capture both paths. Graph capture requires CUDA and a
+        fixed coordinate shape, dtype, and device. Forward-only replay reuses
+        its output buffer; clone an output that must survive the next call.
         """
         self.pre_work_initialization(pose_stack)
         term_modules = [
             t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()
         ]
-        return WholePoseScoringModule(self.weights_tensor(), term_modules)
+        scoring_module = WholePoseScoringModule(self.weights_tensor(), term_modules)
+        if cuda_graph:
+            mode = "both" if cuda_graph is True else cuda_graph
+            scoring_module.enable_cuda_graphs(pose_stack.coords, mode=mode)
+        return scoring_module
 
     def render_block_pair_scoring_module(self, pose_stack: PoseStack):
         """Create an object designed to evaluate the score of a set of Poses
@@ -179,7 +191,9 @@ class ScoreFunction:
         return BlockPairScoringModule(self.weights_tensor(), term_modules)
 
     def render_rotamer_scoring_module(
-        self, pose_stack: PoseStack, rotamer_set: "RotamerSet"  # noqa: F405
+        self,
+        pose_stack: PoseStack,
+        rotamer_set: "RotamerSet",  # noqa: F405
     ):
         """Create an object designed to evaluate the score a RotamerSet
         repeatedly as the Poses change their conformation, e.g., as in
@@ -255,7 +269,7 @@ class ScoreFunction:
             Configured ScoreFunction with all weights from the file applied.
         """
         with open(path) as f:
-            data = yaml.safe_load(f)
+            data = safe_load(f)
 
         # --- .sfxn format version check ---
         file_version = data.get("version")
@@ -327,6 +341,14 @@ class WholePoseScoringModule:
         self.term_modules = term_modules
 
     def __call__(self, coords, sum_terms=True, apply_weights=True):
+        if sum_terms and apply_weights:
+            needs_grad = torch.is_grad_enabled() and coords.requires_grad
+            if needs_grad and hasattr(self, "_cuda_graphed_autograd"):
+                return self._cuda_graphed_autograd(coords)
+            if not needs_grad and hasattr(self, "_cuda_graphed_forward"):
+                return self._cuda_graphed_forward(coords)
+        if not torch.is_grad_enabled() and coords.requires_grad:
+            coords = coords.detach()
         unweighted = self.unweighted_scores(coords)
         weighted = self.weights * unweighted if apply_weights else unweighted
         summed = torch.sum(weighted, dim=0) if sum_terms else weighted
@@ -335,6 +357,92 @@ class WholePoseScoringModule:
 
     def unweighted_scores(self, coords):
         return torch.cat([term(coords) for term in self.term_modules], dim=0)
+
+    def enable_cuda_graphs(self, example_coords, mode="both"):
+        """Capture the default weighted score for a fixed coordinate shape.
+
+        The returned scorer accepts new coordinate values with the same shape,
+        dtype, and device and retains forward and backward support. Calls that
+        request unweighted or unsummed terms continue to use the eager path.
+        Forward-only replay reuses its output buffer.
+
+        ``mode`` may be ``"forward"``, ``"forward_backward"``, or ``"both"``.
+        Capture has a one-time cost and retains static buffers, so select only
+        the paths that will be reused. Calling this method again is a no-op for
+        paths that are already captured.
+        """
+        if not example_coords.is_cuda:
+            raise ValueError("CUDA graphs require CUDA coordinates")
+        if mode not in ("forward", "forward_backward", "both"):
+            raise ValueError(f"unsupported CUDA graph mode: {mode!r}")
+
+        if mode in ("forward", "both") and not hasattr(self, "_cuda_graphed_forward"):
+            graph_module = _DefaultWholePoseScoringModule(
+                self.weights, self.term_modules
+            )
+            self._cuda_graphed_forward = _InferenceCUDAGraph(
+                graph_module, example_coords
+            )
+
+        if mode in ("forward_backward", "both") and not hasattr(
+            self, "_cuda_graphed_autograd"
+        ):
+            graph_module = _DefaultWholePoseScoringModule(
+                self.weights, self.term_modules
+            )
+            sample = example_coords.detach().clone().requires_grad_(True)
+            with (
+                torch.cuda.device(example_coords.device),
+                torch.enable_grad(),
+                warnings.catch_warnings(),
+            ):
+                # PyTorch's backward-capture warmup retains the sample leaf's
+                # default-stream AccumulateGrad node. Capture and replay are
+                # valid; suppress only that known internal warning.
+                warnings.filterwarnings(
+                    "ignore",
+                    message="The AccumulateGrad node's stream does not match",
+                )
+                self._cuda_graphed_autograd = torch.cuda.make_graphed_callables(
+                    graph_module, (sample,), allow_unused_input=True
+                )
+        return self
+
+
+class _DefaultWholePoseScoringModule(torch.nn.Module):
+    """Graph-capturable default reduction for a whole-pose scorer."""
+
+    def __init__(self, weights, term_modules):
+        super().__init__()
+        self.weights = weights
+        self.term_modules = torch.nn.ModuleList(term_modules)
+
+    def forward(self, coords):
+        unweighted = torch.cat([term(coords) for term in self.term_modules], dim=0)
+        return torch.sum(self.weights * unweighted, dim=0)
+
+
+class _InferenceCUDAGraph:
+    """Forward-only graph replay with a fixed-address input buffer."""
+
+    def __init__(self, module, example_coords):
+        self._coords = example_coords.detach().clone()
+        with torch.cuda.device(example_coords.device):
+            stream = torch.cuda.Stream()
+            stream.wait_stream(torch.cuda.current_stream())
+            with torch.cuda.stream(stream), torch.no_grad():
+                for _ in range(3):
+                    module(self._coords)
+            torch.cuda.current_stream().wait_stream(stream)
+
+            self._graph = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(self._graph, stream=stream), torch.no_grad():
+                self._output = module(self._coords)
+
+    def __call__(self, coords):
+        self._coords.copy_(coords)
+        self._graph.replay()
+        return self._output
 
 
 class BlockPairScoringModule:
@@ -349,6 +457,8 @@ class BlockPairScoringModule:
         self.term_modules = term_modules
 
     def __call__(self, coords, sum_terms=True, apply_weights=True):
+        if not torch.is_grad_enabled() and coords.requires_grad:
+            coords = coords.detach()
         unweighted = self.unweighted_scores(coords)
         weighted = self.weights * unweighted if apply_weights else unweighted
         summed = torch.sum(weighted, dim=0) if sum_terms else weighted
@@ -371,6 +481,8 @@ class RotamerScoringModule:
         self.term_modules = term_modules
 
     def __call__(self, coords):
+        if not torch.is_grad_enabled() and coords.requires_grad:
+            coords = coords.detach()
         # Accumulate weighted values and their indices across all terms at the
         # dense [nnz] level.  This avoids torch.stack on sparse tensors, which
         # previously created a [n_subterms, n_poses, n_rots, n_rots] 4D sparse

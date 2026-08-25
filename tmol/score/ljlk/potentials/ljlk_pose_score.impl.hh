@@ -757,7 +757,9 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   assert(block_type_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
+  auto dV_dcoords_t = require_gradient
+                          ? TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms})
+                          : TPack<Vec<Real, 3>, 2, D>::empty({3, n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto scratch_rot_spheres_t =

@@ -1,3 +1,4 @@
+import pytest
 import torch
 import biotite.structure as struc
 
@@ -7,6 +8,64 @@ from tmol.io import (
     biotite_from_pose_stack,
 )
 from tmol import run_cart_min, beta2016_score_function
+import tmol.ops._score_utils as score_utils
+
+
+@pytest.mark.parametrize("einsum", [False, True])
+def test_memory_efficient_sum_handles_different_mask_sizes(
+    torch_device, monkeypatch, einsum
+):
+    """Each pose may select a different number of block pairs."""
+    monkeypatch.setattr(score_utils, "_EINSUM_MIN_BYTES", 0 if einsum else float("inf"))
+    scores = torch.arange(
+        2 * 2 * 4 * 4, dtype=torch.float32, device=torch_device
+    ).reshape(2, 2, 4, 4)
+    scores.requires_grad_(True)
+    mask = torch.tensor(
+        [[True, False, False, False], [True, True, False, False]],
+        device=torch_device,
+    )
+    other = torch.tensor(
+        [[False, True, False, False], [False, False, True, True]],
+        device=torch_device,
+    )
+
+    actual = score_utils._sum_cross_block_scores(
+        scores, mask, other, memory_efficient=True
+    )
+    expected = torch.empty_like(actual)
+    expected[:, 0] = scores[:, 0, 0, 1] + scores[:, 0, 1, 0]
+    expected[:, 1] = scores[:, 1, :2, 2:].sum(dim=(1, 2)) + scores[:, 1, 2:, :2].sum(
+        dim=(1, 2)
+    )
+    torch.testing.assert_close(actual, expected)
+
+    actual.sum().backward()
+    selected = (mask.unsqueeze(2) & other.unsqueeze(1)) | (
+        other.unsqueeze(2) & mask.unsqueeze(1)
+    )
+    torch.testing.assert_close(
+        scores.grad,
+        selected.unsqueeze(0).expand_as(scores).to(scores.dtype),
+    )
+
+
+def test_default_sum_is_bitwise_legacy_equivalent(torch_device):
+    """The default retains the legacy selection and sum order."""
+    generator = torch.Generator(device=torch_device).manual_seed(17)
+    scores = torch.randn(5, 3, 32, 32, generator=generator, device=torch_device)
+    mask = torch.zeros(3, 32, dtype=torch.bool, device=torch_device)
+    mask[:, :11] = True
+    other = ~mask
+    cross_mask = (mask.unsqueeze(2) & other.unsqueeze(1)) | (
+        other.unsqueeze(2) & mask.unsqueeze(1)
+    )
+
+    expanded_mask = cross_mask.unsqueeze(0).expand(scores.shape[0], -1, -1, -1)
+    expected = scores[expanded_mask].view(5, 3, -1).sum(dim=2)
+    actual = score_utils._sum_cross_block_scores(scores, mask, other)
+
+    assert torch.equal(actual, expected)
 
 
 def test_build_coord_mask_and_minimize_for_first_residue(

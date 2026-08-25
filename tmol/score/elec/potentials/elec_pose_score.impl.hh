@@ -503,7 +503,9 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(block_type_intra_repr_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_intra_repr_path_distance.size(2) == max_n_block_atoms);
 
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
+  auto dV_dcoords_t = compute_derivs
+                          ? TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms})
+                          : TPack<Vec<Real, 3>, 2, D>::empty({1, n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto scratch_rot_spheres_t =

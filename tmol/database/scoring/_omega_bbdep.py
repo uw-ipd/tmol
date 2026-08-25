@@ -43,4 +43,4 @@ class OmegaBBDepDatabase:
                 (OmegaBBDepTables, f"{_OLD}.OmegaBBDepTables"),
             ]
         ):
-            return torch.load(fname)
+            return torch.load(fname, mmap=True)

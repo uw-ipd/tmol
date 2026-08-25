@@ -9,6 +9,19 @@ import cattr
 
 ureg = pint.UnitRegistry()
 u = ureg.parse_expression
+_BOND_ANGLE_LIMIT = (0.0, math.pi)
+_DIHEDRAL_ANGLE_LIMIT = (-math.pi, math.pi)
+
+
+def _simple_angle(angle: str):
+    fields = angle.split()
+    if len(fields) != 2 or fields[1] not in ("deg", "rad"):
+        return None
+    try:
+        value = float(fields[0])
+    except ValueError:
+        return None
+    return math.radians(value) if fields[1] == "deg" else value
 
 
 def parse_angle(
@@ -26,7 +39,9 @@ def parse_angle(
     """
 
     if isinstance(angle, str):
-        val = ureg.parse_expression(angle)
+        val = _simple_angle(angle)
+        if val is None:
+            val = ureg.parse_expression(angle)
     else:
         val = angle
 
@@ -47,12 +62,12 @@ def parse_angle(
 
 def parse_bond_angle(v: Union[float, str]) -> float:
     """Parse a bond angle on the range [0, pi) via pint."""
-    return parse_angle(v, lim=(u("0 rad"), u("pi rad")))
+    return parse_angle(v, lim=_BOND_ANGLE_LIMIT)
 
 
 def parse_dihedral_angle(v) -> float:
     """Parse a dihedral angle on the range [-pi, pi) via pint."""
-    return parse_angle(v, lim=(u("-pi rad"), u("pi rad")))
+    return parse_angle(v, lim=_DIHEDRAL_ANGLE_LIMIT)
 
 
 Angle = NewType("Angle", float)

@@ -1,6 +1,6 @@
 import attr
 import cattr
-import yaml
+from tmol.database._yaml import safe_load
 import json
 import hashlib
 
@@ -68,7 +68,7 @@ class CartBondedDatabase:
     @classmethod
     def from_file(cls, path):
         with open(path, "r") as infile:
-            resparam_dict = yaml.safe_load(infile)
+            resparam_dict = safe_load(infile)
             resparam_dict["hash"] = cls._generate_hash(resparam_dict)
 
         return cattr.structure(resparam_dict, cls)
