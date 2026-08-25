@@ -53,8 +53,8 @@ def _compare(label, poses, stack, sfxn, min_per_pose, tol=5.0):
 
     report = _report(label, start, one_by_one, stacked)
     assert torch.all(stacked < start), report
-    # loose: a stacked pose keeps stepping while its stack-mates are still
-    # active, and minimization trajectories are sensitive to the last bits
+    # FP32 reduction order differs between a heterogeneous stack and separate
+    # runs, so nonlinear line-search trajectories need a loose energy bound.
     assert torch.all(torch.abs(stacked - one_by_one) < tol), report
 
 
@@ -106,8 +106,15 @@ def test_cart_network_segment_ids(
     assert segment_ids.shape == (network.masked_coords.numel(),)
     counts = torch.bincount(segment_ids)
     assert len(counts) == len(distinct_pose_stacks)
-    # the default mask covers padding too, so every pose has the same count
-    assert torch.all(counts == 3 * stack_of_distinct_poses.coords.shape[1])
+    solo_counts = torch.tensor(
+        [
+            CartesianSfxnNetwork(sfxn, pose).masked_coords.numel()
+            for pose in distinct_pose_stacks
+        ],
+        device=counts.device,
+    )
+    # Padding in a heterogeneous stack must not create optimizer variables.
+    assert torch.all(counts == solo_counts), f"{counts} != {solo_counts}"
     # coords are laid out pose-major, so the labels come in contiguous runs
     assert torch.all(segment_ids[1:] >= segment_ids[:-1])
 

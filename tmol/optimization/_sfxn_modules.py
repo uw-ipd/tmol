@@ -26,12 +26,10 @@ class CartesianSfxnNetwork(torch.nn.Module):
         # otherwise overwrite the caller's coordinates
         self.full_coords = pose_stack.coords.clone().detach()
         if coord_mask is None:
-            coord_mask = torch.full(
-                self.full_coords.shape[:-1],
-                True,
-                device=self.full_coords.device,
-                dtype=torch.bool,
-            )
+            # Padding coordinates never contribute to a pose's score. Excluding
+            # them keeps heterogeneous batches from allocating and updating
+            # meaningless optimizer degrees of freedom.
+            coord_mask = pose_stack.real_atoms
         self.coord_mask = coord_mask
 
         # Precompute flat integer indices for the boolean mask
@@ -41,16 +39,17 @@ class CartesianSfxnNetwork(torch.nn.Module):
             self.coord_mask.reshape(-1).nonzero(as_tuple=False).squeeze(-1)
         )
 
-        self.masked_coords = torch.nn.Parameter(self.full_coords[self.coord_mask])
+        self.masked_coords = torch.nn.Parameter(
+            self.full_coords.view(-1, self.full_coords.shape[-1])[self._coord_flat_idx]
+        )
 
         # pose each element of masked_coords belongs to, for per-pose minimization
-        pose_for_atom = torch.arange(
-            self.full_coords.shape[0], dtype=torch.int64, device=self.full_coords.device
-        ).unsqueeze(1)
-        pose_for_atom = pose_for_atom.expand(self.coord_mask.shape).reshape(-1)
-        self.segment_ids = pose_for_atom[self._coord_flat_idx].repeat_interleave(
-            self.full_coords.shape[-1]
+        pose_for_atom = torch.div(
+            self._coord_flat_idx,
+            self.full_coords.shape[1],
+            rounding_mode="floor",
         )
+        self.segment_ids = pose_for_atom.repeat_interleave(self.full_coords.shape[-1])
 
         self.count = 0
 

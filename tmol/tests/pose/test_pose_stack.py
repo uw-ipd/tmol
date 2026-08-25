@@ -1,5 +1,7 @@
 import numpy
+import pytest
 import torch
+import attrs
 from tmol.io import pose_stack_from_pdb
 from tmol.pose import PoseStackBuilder
 
@@ -62,11 +64,14 @@ def test_real_atoms(ubq_40_60_pose_stack):
     )
 
 
-def test_expand_coords(ubq_40_60_pose_stack, torch_device):
-    poses = ubq_40_60_pose_stack
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_expand_coords(ubq_40_60_pose_stack, torch_device, dtype):
+    poses = attrs.evolve(
+        ubq_40_60_pose_stack, coords=ubq_40_60_pose_stack.coords.to(dtype)
+    )
     expanded_coords_gold = torch.zeros(
         (2, poses.max_n_blocks, poses.max_n_block_atoms, 3),
-        dtype=torch.float32,
+        dtype=dtype,
         device=torch_device,
     )
     real_expanded_coords_gold = torch.zeros(
