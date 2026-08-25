@@ -9,14 +9,22 @@ from tmol.optimization import run_cart_min
 _EINSUM_MIN_BYTES = 512 * 1024 * 1024
 
 
-def _sum_cross_block_scores(block_pair_scores, mask, other_mask):
+def _sum_cross_block_scores(
+    block_pair_scores, mask, other_mask, *, memory_efficient=False
+):
     """Sum both orientations of block-pair scores selected by two masks."""
     cross_mask = (mask.unsqueeze(2) & other_mask.unsqueeze(1)) | (
         other_mask.unsqueeze(2) & mask.unsqueeze(1)
     )
-    # At large batch/block counts, contraction avoids materializing a
-    # term-expanded masked tensor. Below this measured crossover its workspace
-    # is larger than the masked reduction.
+    n_terms, n_poses = block_pair_scores.shape[:2]
+
+    if not memory_efficient:
+        expanded_mask = cross_mask.unsqueeze(0).expand(n_terms, -1, -1, -1)
+        return block_pair_scores[expanded_mask].view(n_terms, n_poses, -1).sum(dim=2)
+
+    # These reductions avoid the large term-expanded selection above and also
+    # support batches in which poses select different numbers of pairs. Their
+    # floating-point reduction order can differ from the default path.
     score_bytes = block_pair_scores.numel() * block_pair_scores.element_size()
     if score_bytes >= _EINSUM_MIN_BYTES:
         return torch.einsum(
@@ -35,6 +43,7 @@ def calculate_block_pair_ddg(
     pack=False,
     database=None,
     return_pose_stack=False,
+    memory_efficient=False,
 ):
     """Calculate DDG score between two subsets of blocks within each pose, defined by 2 masks.
     If only one mask is provided, it will use the inverse of the first mask for the second.
@@ -53,6 +62,9 @@ def calculate_block_pair_ddg(
             to the mask (computed via ``compute_block_adjacency``) before the minimization step.
         return_pose_stack: If True, also return the (possibly packed/minimized) pose stack
             that was actually scored, as ``(ddg_scores, pose_stack)``.
+        memory_efficient: If True, use a lower-memory interface reduction. This also supports
+            poses that select different numbers of block pairs, but may differ slightly from
+            the default result because floating-point values are summed in a different order.
 
     Returns:
         Tensor of shape [n_poses] or [n_terms, n_poses] containing the ddg score for each pose,
@@ -114,7 +126,9 @@ def calculate_block_pair_ddg(
     # mask shape: [n_poses, n_blocks]
     # Use mask2 if provided, otherwise use ~mask for the second set of indices
     other_mask = mask2 if mask2 is not None else ~mask
-    ddg_scores = _sum_cross_block_scores(block_pair_scores, mask, other_mask)
+    ddg_scores = _sum_cross_block_scores(
+        block_pair_scores, mask, other_mask, memory_efficient=memory_efficient
+    )
 
     if sum_terms:
         ddg_scores = ddg_scores.sum(dim=0)
