@@ -1160,11 +1160,8 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
     LKBallResPairData<Real> const& block_pair_dat,
     int cp_separation,
     Vec<Real, 4> dTdV,
-    int cta,
     TView<Eigen::Matrix<Real, 3, 1>, 1, Dev> dV_d_pose_coords,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_d_water_coords,
-    bool block_pair_scoring) {
-  using WatersMat = Eigen::Matrix<Real, MAX_N_WATER, 3>;
+    TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_d_water_coords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using tmol::score::common::accumulate;
   using tmol::score::common::coord_from_shared;
@@ -1203,71 +1200,52 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
       occluder_block_dat.lk_ball_params[occluder_ind],
       block_pair_dat.global_params);
 
-  auto accum_derivs1 = ([&] TMOL_DEVICE_FUNC(
-                            LKBallSingleResData<Real> const& block_dat,
-                            int atom_ind,
-                            Real3 dV,
-                            lk_ball_score_type st) {
-    auto dTdV_val = dTdV[st];
+  auto accum_derivs = ([&] TMOL_DEVICE_FUNC(
+                           LKBallSingleResData<Real> const& block_dat,
+                           int atom_ind,
+                           lk_ball_dV_dReal3<Real> const& derivs) {
     for (int j = 0; j < 3; ++j) {
-      if (dV[j] != 0) {
+      Real const weighted_deriv =
+          dTdV[w_lk_ball_iso] * derivs.d_lkball_iso[j]
+          + dTdV[w_lk_ball] * derivs.d_lkball[j]
+          + dTdV[w_lk_bridge] * derivs.d_lkbridge[j]
+          + dTdV[w_lk_bridge_uncpl] * derivs.d_lkbridge_uncpl[j];
+      if (weighted_deriv != 0) {
         accumulate<Dev, Real>::add(
             dV_d_pose_coords[block_dat.rot_coord_offset + atom_ind][j],
-            dTdV_val * dV[j]);
+            weighted_deriv);
       }
     }
   });
 
-  auto accum_derivs4 = ([&] TMOL_DEVICE_FUNC(
-                            LKBallSingleResData<Real> const& block_dat,
-                            int atom_ind,
-                            lk_ball_dV_dReal3<Real> const& dV) {
-    accum_derivs1(block_dat, atom_ind, dV.d_lkball_iso, w_lk_ball_iso);
-    accum_derivs1(block_dat, atom_ind, dV.d_lkball, w_lk_ball);
-    accum_derivs1(block_dat, atom_ind, dV.d_lkbridge, w_lk_bridge);
-    accum_derivs1(block_dat, atom_ind, dV.d_lkbridge_uncpl, w_lk_bridge_uncpl);
-  });
+  auto water_accum_derivs =
+      ([&] TMOL_DEVICE_FUNC(
+           LKBallSingleResData<Real> const& block_dat,
+           int atom_ind,
+           int water_ind,
+           lk_ball_dV_dWater<Real, MAX_N_WATER> const& derivs) {
+        for (int j = 0; j < 3; ++j) {
+          Real const weighted_deriv =
+              dTdV[w_lk_ball_iso] * derivs.d_lkball_iso(water_ind, j)
+              + dTdV[w_lk_ball] * derivs.d_lkball(water_ind, j)
+              + dTdV[w_lk_bridge] * derivs.d_lkbridge(water_ind, j)
+              + dTdV[w_lk_bridge_uncpl] * derivs.d_lkbridge_uncpl(water_ind, j);
+          if (weighted_deriv != 0) {
+            accumulate<Dev, Real>::add(
+                dV_d_water_coords[block_dat.rot_coord_offset + atom_ind]
+                                 [water_ind][j],
+                weighted_deriv);
+          }
+        }
+      });
 
-  auto water_accum_derivs1 = ([&] TMOL_DEVICE_FUNC(
-                                  LKBallSingleResData<Real> const& block_dat,
-                                  int atom_ind,
-                                  int water_ind,
-                                  WatersMat dV,
-                                  lk_ball_score_type st) {
-    auto dTdV_val = dTdV[st];
-
-    for (int j = 0; j < 3; ++j) {
-      if (dV(water_ind, j) != 0) {
-        accumulate<Dev, Real>::add(
-            dV_d_water_coords[block_dat.rot_coord_offset + atom_ind][water_ind]
-                             [j],
-            dTdV_val * dV(water_ind, j));
-      }
-    }
-  });
-
-  auto water_accum_derivs4 = ([&] TMOL_DEVICE_FUNC(
-                                  LKBallSingleResData<Real> const& block_dat,
-                                  int atom_ind,
-                                  int water_ind,
-                                  lk_ball_dV_dWater<Real, MAX_N_WATER> const&
-                                      dV) {
-    water_accum_derivs1(
-        block_dat, atom_ind, water_ind, dV.d_lkball_iso, w_lk_ball_iso);
-    water_accum_derivs1(block_dat, atom_ind, water_ind, dV.d_lkball, w_lk_ball);
-    water_accum_derivs1(
-        block_dat, atom_ind, water_ind, dV.d_lkbridge, w_lk_bridge);
-    water_accum_derivs1(
-        block_dat, atom_ind, water_ind, dV.d_lkbridge_uncpl, w_lk_bridge_uncpl);
-  });
-
-  accum_derivs4(polar_block_dat, polar_start + polar_atom_tile_ind, dV.dI);
-  accum_derivs4(
+  accum_derivs(polar_block_dat, polar_start + polar_atom_tile_ind, dV.dI);
+  accum_derivs(
       occluder_block_dat, occluder_start + occluder_atom_tile_ind, dV.dJ);
   for (int i = 0; i < MAX_N_WATER; ++i) {
-    water_accum_derivs4(
+    water_accum_derivs(
         polar_block_dat, polar_start + polar_atom_tile_ind, i, dV.dWI);
-    water_accum_derivs4(
+    water_accum_derivs(
         occluder_block_dat, occluder_start + occluder_atom_tile_ind, i, dV.dWJ);
   }
 }

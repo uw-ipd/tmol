@@ -557,42 +557,29 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
       score_dat.r2.params[atom_tile_ind2].lj_params(),
       score_dat.global_params);
 
-  // all threads accumulate derivatives for atom 1 to global memory
-  Real dTdVatr_block = (dTdV_atr);
-  Real dTdVrep_block = (dTdV_rep);
-  Vec<Real, 3> ljatr_dxyz_at1 = dTdVatr_block * lj.dVatr_ddist * ddist_dat1;
-  Vec<Real, 3> ljrep_dxyz_at1 = dTdVrep_block * lj.dVrep_ddist * ddist_dat1;
+  Real const weighted_dV_ddist =
+      dTdV_atr * lj.dVatr_ddist + dTdV_rep * lj.dVrep_ddist;
+
+  // Combine attractive and repulsive derivatives before the global update so
+  // each coordinate needs only one atomic addition.
+  Vec<Real, 3> dxyz_at1 = weighted_dV_ddist * ddist_dat1;
 
   for (int j = 0; j < 3; ++j) {
-    if (ljatr_dxyz_at1[j] != 0) {
+    if (dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
           dV_dcoords
               [score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1][j],
-          ljatr_dxyz_at1[j]);
-    }
-    if (ljrep_dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1][j],
-          ljrep_dxyz_at1[j]);
+          dxyz_at1[j]);
     }
   }
 
-  // all threads accumulate derivatives for atom 2 to global memory
-  Vec<Real, 3> ljatr_dxyz_at2 = dTdVatr_block * lj.dVatr_ddist * ddist_dat2;
-  Vec<Real, 3> ljrep_dxyz_at2 = dTdVrep_block * lj.dVrep_ddist * ddist_dat2;
+  Vec<Real, 3> dxyz_at2 = weighted_dV_ddist * ddist_dat2;
   for (int j = 0; j < 3; ++j) {
-    if (ljatr_dxyz_at2[j] != 0) {
+    if (dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
           dV_dcoords
               [score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2][j],
-          ljatr_dxyz_at2[j]);
-    }
-    if (ljrep_dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2][j],
-          ljrep_dxyz_at2[j]);
+          dxyz_at2[j]);
     }
   }
 }

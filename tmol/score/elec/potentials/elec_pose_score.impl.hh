@@ -544,8 +544,9 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   }
   auto output = output_t.view;
 
-  // Optimal launch box on v100 and a100 is nt=32, vt=1
-  LAUNCH_BOX_32;
+  // This atom-pair kernel benefits from a 64-register budget on modern GPUs,
+  // which leaves enough resident warps to hide its dependency latency.
+  LAUNCH_BOX_32_OCC(32);
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
 

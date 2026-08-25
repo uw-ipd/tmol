@@ -779,8 +779,13 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   }
   auto output = output_t.view;
 
-  // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
+  // Large workloads benefit from a second kernel variant whose register budget
+  // exposes a full 32 resident warps per SM. Keep the unconstrained variant for
+  // small workloads, where register pressure is less important than avoiding
+  // spills.
+  LAUNCH_BOX_32_OCC_AS(launch_t_high_occupancy, 32);
+  constexpr int min_high_occupancy_workgroups = 1 << 14;
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
   // The total number of unique block pairs (including self-pairs)
@@ -791,17 +796,16 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   // n-blocks tensor, and whole-pose scoring, where the output is
   // atomic-incremented into an n-pose x 1 x 1 tensor. In the whole-pose scoring
   // case, we compute the atomic derivatives in the forward pass and then weight
-  // them by whatever weights are applied to the terms; in a very mininmal
+  // them by whatever weights are applied to the terms; in a very minimal
   // backward pass (see compiled_ops.cpp). Thread 0 in each CTA atomic- adds the
   // block-pair energy for the block pair it is assigned to. In the block-pair
   // scoring case, we are unable to compute the atomic derivatives in the
   // forward pass, because how the block-pair outputs will be weighted is not
   // known until the backward pass and the memory to store atom-pair derivatives
   // for each interacting block pair would be prohibitive. So we do not compute
-  // derivatives at all in the forward pass. It is slightly more efficient to
-  // have a separate kernel that bypasses the derivative calculations but the
-  // actual performance difference for having a second kernel has not been
-  // measured. (TO DO, go ahead and measure it!)
+  // derivatives at all in the forward pass. The same energy-only kernel also
+  // handles whole-pose calls that do not require gradients, avoiding the
+  // register footprint and runtime branches of the derivative-capable kernel.
   auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
     auto atom_pair_lj_fn = ([=] TMOL_DEVICE_FUNC(
                                 int atom_tile_ind1,
@@ -1152,8 +1156,20 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     DeviceOperations<D>::template foreach_workgroup<launch_t>(
         mgr, n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
   } else {
-    DeviceOperations<D>::template foreach_workgroup<launch_t>(
-        mgr, n_poses * max_n_upper_triangle_inds, eval_energies);
+    int const n_workgroups = n_poses * max_n_upper_triangle_inds;
+    if (!require_gradient && n_workgroups >= min_high_occupancy_workgroups) {
+      DeviceOperations<D>::template foreach_workgroup<launch_t_high_occupancy>(
+          mgr, n_workgroups, eval_energies_by_block);
+    } else if (!require_gradient) {
+      DeviceOperations<D>::template foreach_workgroup<launch_t>(
+          mgr, n_workgroups, eval_energies_by_block);
+    } else if (n_workgroups >= min_high_occupancy_workgroups) {
+      DeviceOperations<D>::template foreach_workgroup<launch_t_high_occupancy>(
+          mgr, n_workgroups, eval_energies);
+    } else {
+      DeviceOperations<D>::template foreach_workgroup<launch_t>(
+          mgr, n_workgroups, eval_energies);
+    }
   }
 
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};

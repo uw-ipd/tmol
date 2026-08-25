@@ -458,8 +458,9 @@ class LKBallPoseScoreDispatch {
     }
     auto output = output_t.view;
 
-    // Optimal launch box on v100 and a100 is nt=32, vt=1
-    LAUNCH_BOX_32;
+    // This kernel is latency- and register-bound. A 16-warp occupancy target
+    // reduces its register footprint without introducing local-memory spills.
+    LAUNCH_BOX_32_OCC(16);
     // Define nt and reduce_t
     CTA_REAL_REDUCE_T_TYPEDEF;
 
@@ -768,14 +769,49 @@ class LKBallPoseScoreDispatch {
         TPack<Vec<Real, 3>, 2, Dev>::zeros({n_atoms, MAX_N_WATER});
     auto dV_d_water_coords = dV_d_water_coords_t.view;
 
-    // Optimal launch box on v100 and a100 is nt=32, vt=1
-    LAUNCH_BOX_32;
+    // This derivative kernel is latency- and register-bound. Requiring more
+    // resident warps gives the compiler a register budget that exposes enough
+    // parallelism to hide its long dependency chains.
+    LAUNCH_BOX_32_OCC(16);
     // Define nt and reduce_t
     CTA_REAL_REDUCE_T_TYPEDEF;
     int const max_n_upper_triangle_inds =
         (max_n_blocks * (max_n_blocks + 1)) / 2;
 
     auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
+      int const pose_ind = cta / max_n_upper_triangle_inds;
+      int const block_ind_pair = cta % max_n_upper_triangle_inds;
+
+      auto upper_triangle_ind = common::upper_triangle_inds_from_linear_index(
+          block_ind_pair, max_n_blocks + 1);
+      int const block_ind1 = common::get<0>(upper_triangle_ind);
+      int const block_ind2 = common::get<1>(upper_triangle_ind) - 1;
+
+      // Reject empty work before setting up the derivative machinery below.
+      if (scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+        return;
+      }
+      int const rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
+      int const rot_ind2 = rot_offset_for_block[pose_ind][block_ind2];
+      if (rot_ind1 < 0 || rot_ind2 < 0) {
+        return;
+      }
+
+      int const block_type1 = block_type_ind_for_rot[rot_ind1];
+      int const block_type2 = block_type_ind_for_rot[rot_ind2];
+      int const n_atoms1 = block_type_n_atoms[block_type1];
+      int const n_atoms2 = block_type_n_atoms[block_type2];
+
+      // The upstream weights are invariant for every atom pair handled by this
+      // CTA. Loading them once avoids repeated global loads and a scoring-mode
+      // branch in the hottest inner loop.
+      Vec<Real, 4> local_dTdV;
+      int const weight_block1 = block_pair_scoring ? block_ind1 : 0;
+      int const weight_block2 = block_pair_scoring ? block_ind2 : 0;
+      for (int i = 0; i < 4; ++i) {
+        local_dTdV[i] = dTdV[i][pose_ind][weight_block1][weight_block2];
+      }
+
       auto lk_ball_atom_derivs =
           ([=] TMOL_DEVICE_FUNC(
                int pol_ind,
@@ -788,28 +824,6 @@ class LKBallPoseScoreDispatch {
                LKBallSingleResData<Real> const& occ_dat,
                LKBallResPairData<Real> const& respair_dat,
                int cp_separation) {
-            // capture dTdV, dV_d_pose_coords, & dV_d_water_coords
-            Vec<Real, 4> local_dTdV;
-            // printf("nabbing dTdV for pose %d block pair %d %d\n",
-            //        respair_dat.pose_ind,
-            //        pol_dat.block_ind,
-            //        occ_dat.block_ind);
-            if (block_pair_scoring) {
-              int const p = respair_dat.pose_ind;
-              int a_ind = pol_dat.block_ind;
-              int b_ind = occ_dat.block_ind;
-              int const b1 = a_ind < b_ind ? a_ind : b_ind;
-              int const b2 = a_ind < b_ind ? b_ind : a_ind;
-              for (int i = 0; i < 4; i++) {
-                local_dTdV[i] = dTdV[i][p][b1][b2];
-              }
-            } else {
-              int const p = respair_dat.pose_ind;
-              for (int i = 0; i < 4; i++) {
-                local_dTdV[i] = dTdV[i][p][0][0];
-              }
-            }
-            // printf("...done\n");
             lk_ball_atom_derivs_full<TILE_SIZE, MAX_N_WATER>(
                 pol_ind,
                 occ_ind,
@@ -822,10 +836,8 @@ class LKBallPoseScoreDispatch {
                 respair_dat,
                 cp_separation,
                 local_dTdV,
-                cta,
                 dV_d_pose_coords,
-                dV_d_water_coords,
-                block_pair_scoring);
+                dV_d_water_coords);
           });
 
       auto dscore_inter_lk_ball_atom_pair =
@@ -896,36 +908,6 @@ class LKBallPoseScoreDispatch {
       } shared;
 
       int const max_important_bond_separation = 4;
-
-      int const pose_ind = cta / (max_n_upper_triangle_inds);
-      int const block_ind_pair = cta % (max_n_upper_triangle_inds);
-
-      // We do not have to kill half of our thread blocks simply because they
-      // represent the lower triangle now that we're using upper-triangle
-      // indices
-      auto upper_triangle_ind = common::upper_triangle_inds_from_linear_index(
-          block_ind_pair, max_n_blocks + 1);
-
-      int const block_ind1 = common::get<0>(upper_triangle_ind);
-      int const block_ind2 = common::get<1>(upper_triangle_ind) - 1;
-
-      // We still kill CTAs targetting non-neighboring block pairs, though,
-      // and that can be a lot
-      if (scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
-        return;
-      }
-      int const rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
-      int const rot_ind2 = rot_offset_for_block[pose_ind][block_ind2];
-
-      if (rot_ind1 < 0 || rot_ind2 < 0) {
-        return;
-      }
-
-      int const block_type1 = block_type_ind_for_rot[rot_ind1];
-      int const block_type2 = block_type_ind_for_rot[rot_ind2];
-
-      int const n_atoms1 = block_type_n_atoms[block_type1];
-      int const n_atoms2 = block_type_n_atoms[block_type2];
 
       auto load_tile_invariant_interres_data =
           ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
@@ -1442,8 +1424,7 @@ class LKBallRotamerScoreDispatch {
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
       TView<Int, 2, Dev> dispatch_indices,  // from forward pass
-      TView<Real, 2, Dev> dTdV,
-      bool block_pair_scoring)
+      TView<Real, 2, Dev> dTdV)
       -> std::tuple<TPack<Vec<Real, 3>, 1, Dev>, TPack<Vec<Real, 3>, 2, Dev>> {
     using tmol::score::common::accumulate;
     using Real3 = Vec<Real, 3>;
@@ -1525,6 +1506,11 @@ class LKBallRotamerScoreDispatch {
     CTA_REAL_REDUCE_T_TYPEDEF;
 
     auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
+      Vec<Real, 4> local_dTdV;
+      for (int i = 0; i < 4; ++i) {
+        local_dTdV[i] = dTdV[i][cta];
+      }
+
       auto lk_ball_atom_derivs =
           ([=] TMOL_DEVICE_FUNC(
                int pol_ind,
@@ -1537,12 +1523,6 @@ class LKBallRotamerScoreDispatch {
                LKBallSingleResData<Real> const& occ_dat,
                LKBallResPairData<Real> const& respair_dat,
                int cp_separation) {
-            // capture dTdV, dV_d_pose_coords, & dV_d_water_coords
-            Vec<Real, 4> local_dTdV;
-            for (int i = 0; i < 4; i++) {
-              local_dTdV[i] = dTdV[i][cta];
-            }
-
             lk_ball_atom_derivs_full<TILE_SIZE, MAX_N_WATER>(
                 pol_ind,
                 occ_ind,
@@ -1555,10 +1535,8 @@ class LKBallRotamerScoreDispatch {
                 respair_dat,
                 cp_separation,
                 local_dTdV,
-                cta,
                 dV_d_pose_coords,
-                dV_d_water_coords,
-                block_pair_scoring);
+                dV_d_water_coords);
           });
 
       auto dscore_inter_lk_ball_atom_pair =

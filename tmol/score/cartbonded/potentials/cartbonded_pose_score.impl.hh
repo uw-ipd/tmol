@@ -238,8 +238,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // then performs a reduction so that thread-0 can write the results to global
   // memory.
 
-  // Optimal launch box on v100 and a100 is nt=32, vt=1
-  LAUNCH_BOX_32;
+  // This interaction kernel benefits from a 64-register budget on modern GPUs,
+  // which leaves enough resident warps to hide its dependency latency.
+  LAUNCH_BOX_32_OCC(32);
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
 
