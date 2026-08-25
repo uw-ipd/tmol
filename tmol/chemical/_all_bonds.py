@@ -1,11 +1,9 @@
 import numpy
-import numba
 
 from typing import Tuple
 from tmol.types import NDArray
 
 
-@numba.jit(nopython=True)
 def bonds_and_bond_ranges(
     n_atoms: int,
     intra_res_bonds: NDArray[numpy.int32][:, 2],
