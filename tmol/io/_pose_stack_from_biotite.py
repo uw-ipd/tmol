@@ -468,6 +468,16 @@ def biotite_from_pose_stack(
     structure = biotite_from_canonical_form(cf, co=co)
     residue_starts = biotite.structure.get_residue_starts(structure)
     residue_ends = numpy.append(residue_starts[1:], structure.array_length())
+    # Canonical I/O equivalence classes are internal selection identities.
+    # Connection-capable carbohydrate clones deliberately use private classes
+    # so they do not make the input-facing ligand class sequence-polymeric;
+    # export the deposited component identity from the active block type.
+    for block, (start, end) in enumerate(zip(residue_starts, residue_ends)):
+        block_type = int(pose_stack.block_type_ind64[0, block])
+        if block_type >= 0:
+            structure.res_name[start:end] = (
+                pose_stack.packed_block_types.active_block_types[block_type].name3
+            )
     _add_pose_inter_residue_bonds(structure, pose_stack, residue_starts, residue_ends)
     sbm = getattr(pose_stack, "split_block_mapping", None)
     if merge_fragments and sbm is not None and sbm.entries:
