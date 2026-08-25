@@ -4,7 +4,6 @@ import torch
 
 from collections import defaultdict
 
-from numba import jit
 import scipy.sparse as sparse
 import scipy.sparse.csgraph as csgraph
 
@@ -26,7 +25,6 @@ from ._datatypes import (
 )
 
 
-@jit(nopython=True)
 def get_children(parents):
     nelts = parents.shape[0]
 
@@ -64,7 +62,7 @@ def get_children(parents):
     return n_descendents, child_list_span, child_list
 
 
-# jitted scan operation
+# CPU scan operation
 # inputs:
 #    parents - the "parents" array from the kinematic tree
 #              assumes proper ordering: child index > parent index
@@ -76,7 +74,6 @@ def get_children(parents):
 #    genStarts - an N x 2 array giving indices where each gen begins
 #         genStarts[:,0] indexes nodes
 #         genStarts[:,1] indexes scanStarts
-@jit(nopython=True)
 def get_scans(parents, roots):
     """Partitioning of a tree into linear subpaths.
 
