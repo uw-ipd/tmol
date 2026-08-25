@@ -156,7 +156,9 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   int n_V = output_block_pair_energies ? max_n_blocks : 1;
   TPack<Real, 4, D> V_t = TPack<Real, 4, D>::zeros({3, n_poses, n_V, n_V});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
+  auto dV_dx_t =
+      compute_derivs ? TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms})
+                     : TPack<Vec<Real, 3>, 2, D>::empty({3, n_atoms});
 
   auto dihedral_atom_inds_t =
       TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros({n_rots, max_n_dih});

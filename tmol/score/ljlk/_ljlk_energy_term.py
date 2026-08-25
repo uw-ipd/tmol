@@ -27,6 +27,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(LJLKEnergyTerm, self).__init__(param_db=param_db, device=device)
         self.type_params = ljlk_param_resolver.type_params
         self.global_params = ljlk_param_resolver.global_params
+        self._max_dis = float(param_db.scoring.ljlk.global_parameters.max_dis)
         self.tile_size = LJLKEnergyTerm.tile_size
         self.soft_repulsive = False
 
@@ -176,5 +177,5 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             type_params,
             global_params,
             # max_dis as host scalar for detect-neighbors call
-            float(self.global_params.max_dis.item()),
+            self._max_dis,
         ]

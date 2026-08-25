@@ -36,6 +36,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         # These depend only on static values from ljlk_param_resolver globals,
         #   so they can be built once rather than on every forward
         gp = self.ljlk_param_resolver.global_params
+        self._max_dis = float(param_db.scoring.ljlk.global_parameters.max_dis)
         self._lk_ball_global_params = torch.stack(
             tuple(
                 t.to(torch.float)
@@ -292,7 +293,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.bond_separation,
             self._lk_ball_global_params,
             # max_dis as host scalar for detect-neighbors call
-            float(self.ljlk_param_resolver.global_params.max_dis.item()),
+            self._max_dis,
             water_coords,
             block_pair_scoring,
         ]
@@ -354,7 +355,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.bond_separation,
             self._lk_ball_global_params,
             # max_dis as host scalar for detect-neighbors call
-            float(self.ljlk_param_resolver.global_params.max_dis.item()),
+            self._max_dis,
             water_coords,
             block_pair_scoring,
         ]

@@ -37,47 +37,57 @@ member. Group similarly sized structures when practical, and use a score
 function built from the same parameter database as poses with custom residue or
 ligand types.
 
-## Accelerate repeated nucleic-acid scoring
+## Accelerate repeated fixed-layout scoring
 
-DNA and RNA torsion scoring consists of many small tensor operations. For a
-fixed pose layout, opt into CUDA Graph capture when the scorer will be evaluated
-repeatedly:
+For a fixed pose layout, opt into CUDA Graph capture when the scorer will be
+evaluated repeatedly. Capture only the path that the workflow needs to limit
+retained static buffers:
 
 ```python
-scorer = sfxn.render_whole_pose_scoring_module(batch, cuda_graph=True)
+inference_scorer = sfxn.render_whole_pose_scoring_module(
+    batch, cuda_graph="forward"
+)
+scores = inference_scorer(batch.coords)
 
-# New coordinate values are allowed; shape, dtype, and device must stay fixed.
+gradient_scorer = sfxn.render_whole_pose_scoring_module(
+    batch, cuda_graph="forward_backward"
+)
 coords = batch.coords.detach().clone().requires_grad_(True)
-scores = scorer(coords)
+scores = gradient_scorer(coords)
 (coord_grad,) = torch.autograd.grad(scores.sum(), coords)
 ```
 
-Capture adds a one-time setup cost and retains static graph buffers, so leave it
-off for a scorer used only once. The option captures the pure-PyTorch
-nucleic-acid torsion and carbohydrate `sugar_bb` terms when present; TMol's C++
-score operators remain eager. Keep minimization eager: small score and gradient
-rounding differences can send a nonlinear line search to a different local
-minimum.
+New coordinate values are allowed; shape, dtype, and device must stay fixed.
+Forward-only replay reuses its output buffer, so clone a score tensor that must
+survive the next scorer call.
+Passing `cuda_graph=True` captures both paths for a mixed workload. Non-default
+requests for unsummed or unweighted terms remain eager. Capture adds a one-time
+setup cost and retains static graph buffers, so leave it off for a scorer used
+only once. Keep minimization eager by default: small score and gradient rounding
+differences can send a nonlinear line search to a different local minimum.
 
 ### H200 decision data
 
 The production-wheel benchmark used Torch 2.13.0, CUDA 13.2, and one H200, with
-runtime JIT disabled. For 1BNA, graphing the nucleic-acid term reduced median
-whole-score latency from 3.936 to 1.188 ms forward and from 8.754 to 2.240 ms
-forward plus backward at batch 1. At batch 64, the corresponding measurements
-were 4.585 to 2.265 ms and 11.766 to 6.009 ms. Output and coordinate-gradient
-maximum absolute differences were at most 1.7e-4 and 7.7e-6 in this matrix.
+runtime JIT disabled. Whole-scorer capture changed median batch-1 latency as
+follows:
 
-A cold-process capture took about 3.0 seconds, so this option pays off after
-roughly 500 repeated forward-plus-backward evaluations or 1,100 forward-only
-evaluations at batch 1. It is not a faster first call. Capturing inside
-minimization was rejected even though it ran faster: the small numerical change
-altered the LBFGS trajectory and final local minimum.
+| Input | Path | Eager (ms) | Graphed (ms) | Capture (s) |
+| --- | --- | ---: | ---: | ---: |
+| 1UBQ | forward | 0.627 | 0.498 | 0.010 |
+| 1UBQ | forward + backward | 1.166 | 0.740 | 0.451 |
+| 1S78 PPI | forward | 2.013 | 1.929 | 0.014 |
+| 1S78 PPI | forward + backward | 3.207 | 3.116 | 0.404 |
+| 1BNA | forward | 3.899 | 1.017 | 0.026 |
+| 1BNA | forward + backward | 8.750 | 1.970 | 0.435 |
 
-On the ten-sugar 4BYH fixture, graphing `sugar_bb` reduced full carbohydrate
-forward latency from 2.094 to 1.441 ms and forward plus backward from 4.778 to
-2.018 ms at batch 1. Capture took 0.172 seconds after normal scorer warmup;
-output and gradient maximum absolute differences were 1.6e-5 and 4.8e-7.
+At protein batch 64, which is compute-bound, the corresponding gains were only
+2.7% forward and 1.5% forward plus backward. Forward capture retained about 50
+MiB for the protein/PPI fixtures and 82 MiB for 1BNA; backward capture retained
+about 50 MiB and 178 MiB, respectively. Score and coordinate-gradient maximum
+absolute differences were at most 7.8e-3 and 7.7e-6 in this matrix. Capturing
+inside minimization remains rejected: the small numerical change can alter the
+LBFGS trajectory and final local minimum.
 
 For independent variants, batch packing is the safer high-throughput operation.
 Four protein--ligand or protein--DNA mutations packed about 3--4 times faster
