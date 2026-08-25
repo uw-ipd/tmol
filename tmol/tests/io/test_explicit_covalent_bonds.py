@@ -136,7 +136,7 @@ def test_only_adjacent_c_n_bonds_are_treated_as_polymer(biotite_1ubq):
     assert {endpoint[1] for endpoint in bonds[0]} == {"C", "N"}
 
 
-def test_attachment_virtualizes_a_leaving_hydrogen(biotite_1ubq):
+def test_attachment_virtualizes_a_leaving_hydrogen(biotite_1ubq, torch_device):
     """Adding an explicit bond does not leave an over-valent hydroxyl."""
 
     structure = biotite_1ubq.copy()
@@ -146,16 +146,11 @@ def test_attachment_virtualizes_a_leaving_hydrogen(biotite_1ubq):
     )
     other_residue = ser_residue + 2
     ends = np.append(starts[1:], structure.array_length())
-    atom1 = next(
-        i
-        for i in range(starts[ser_residue], ends[ser_residue])
-        if structure.atom_name[i] == "OG"
-    )
-    atom2 = next(
-        i
-        for i in range(starts[other_residue], ends[other_residue])
-        if structure.atom_name[i] == "O"
-    )
+    structure = structure[starts[ser_residue] : ends[other_residue]].copy()
+    starts = struc.get_residue_starts(structure)
+    ends = np.append(starts[1:], structure.array_length())
+    atom1 = next(i for i in range(starts[0], ends[0]) if structure.atom_name[i] == "OG")
+    atom2 = next(i for i in range(starts[2], ends[2]) if structure.atom_name[i] == "O")
     structure.bonds = struc.BondList(
         structure.array_length(),
         np.asarray([(atom1, atom2, int(struc.BondType.SINGLE))], dtype=np.int32),
@@ -172,3 +167,20 @@ def test_attachment_virtualizes_a_leaving_hydrogen(biotite_1ubq):
     hg = next(atom for atom in variant.atoms if atom.name == "HG")
     assert hg.atom_type == "Vrt"
     assert "HG" in variant.properties.virtual
+
+    pose, context = pose_stack_from_biotite(
+        structure, torch_device, no_optH=True, return_context=True
+    )
+    block_type = pose.packed_block_types.active_block_types[
+        int(pose.block_type_ind64[0, 0])
+    ]
+    virtual_index = int(pose.block_coord_offset64[0, 0]) + block_type.atom_to_idx["HG"]
+    from tmol import beta2016_score_function
+
+    scorer = beta2016_score_function(
+        torch_device, param_db=context.parameter_database
+    ).render_whole_pose_scoring_module(pose)
+    reference = scorer(pose.coords)
+    moved = pose.coords.clone()
+    moved[0, virtual_index] += 50.0
+    torch.testing.assert_close(scorer(moved), reference, atol=0, rtol=0)
