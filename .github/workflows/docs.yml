@@ -1,0 +1,112 @@
+name: Docs
+
+on:
+  # Build previews for stacked PRs as well as PRs targeting the main branch.
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOCS_BASE_URL: https://uw-ipd.github.io/tmol
+  SIF: /home/bench/git_ci_apptainer/tmol.sif
+  SLURM_PARTITION: gpu-train
+  SLURM_GRES: gpu:1
+  SLURM_CPUS_PER_TASK: 16
+  SLURM_MEM: 128G
+  SLURM_TIME: 03:00:00
+  SLURM_EXCLUDE: g2548
+  SRUN_GPU_MAX_ATTEMPTS: 5
+  SRUN_GPU_RETRY_SLEEP: 10
+
+jobs:
+  docs:
+    name: build docs
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: .github/ci/restore_source_timestamps.sh
+      - run: .github/ci/setup_ci_venv.sh
+
+      - name: Execute tutorials and build docs
+        env:
+          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
+        run: |
+          rm -f "$GPU_ALLOC_SENTINEL"
+          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
+          .github/ci/exec_gpu_apptainer.sh .github/ci/run_docs_gpu_work.sh
+          SCRIPT
+
+      - name: Upload rendered docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: tmol-docs-html
+          path: docs/_build/html
+          if-no-files-found: error
+
+  deploy:
+    name: publish docs
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    needs: docs
+    runs-on: ubuntu-latest
+    concurrency:
+      group: docs-pages-publish
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v5
+        with:
+          ref: gh-pages
+          path: gh-pages
+          fetch-depth: 0
+
+      - name: Download rendered docs
+        uses: actions/download-artifact@v4
+        with:
+          name: tmol-docs-html
+          path: rendered-docs
+
+      - name: Stage documentation
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            TARGET="previews/pr-${PR_NUMBER}"
+          else
+            TARGET="latest"
+          fi
+          mkdir -p "gh-pages/${TARGET}"
+          rm -f gh-pages/CNAME
+          rsync -av --delete rendered-docs/ "gh-pages/${TARGET}/"
+          echo "Docs: ${DOCS_BASE_URL}/${TARGET}/" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: gh-pages
+          keep_files: false
+          force_orphan: false
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com

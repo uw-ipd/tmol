@@ -1,8 +1,16 @@
-# Tmol
+# TMol
 
-`tmol` (TensorMol) is a GPU-accelerated reimplementation of the Rosetta molecular modeling energy function (`beta_nov2016_cart`) in PyTorch with custom C++/CUDA kernels. It computes energies and derivatives for protein structures and supports gradient-based minimization, enabling ML models to incorporate biophysical scoring during training or to refine predicted structures with Rosetta's experimentally validated energy function.
+[![PyPI](https://img.shields.io/pypi/v/tmol.svg)](https://pypi.org/project/tmol/)
+[![CI](https://github.com/uw-ipd/tmol/actions/workflows/ci.yml/badge.svg)](https://github.com/uw-ipd/tmol/actions/workflows/ci.yml)
+[![Docs](https://github.com/uw-ipd/tmol/actions/workflows/docs.yml/badge.svg)](https://uw-ipd.github.io/tmol/latest/)
+[![License](https://img.shields.io/github/license/uw-ipd/tmol.svg)](LICENSE)
 
-Full documentation: [tmol Wiki](https://github.com/uw-ipd/tmol/wiki/DevHome)
+`tmol` is a GPU-accelerated PyTorch implementation of Rosetta-inspired
+all-atom molecular scoring, packing, and refinement primitives. It provides
+batched tensor representations, score derivatives, and custom C++/CUDA
+kernels.
+
+Full documentation: <https://uw-ipd.github.io/tmol/latest/>
 
 ## Table of Contents
 

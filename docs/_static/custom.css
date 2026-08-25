@@ -1,0 +1,174 @@
+.bd-main .bd-content .bd-article-container {
+  max-width: 980px;
+}
+
+.bd-sidebar-primary {
+  max-width: 320px;
+}
+
+.bd-article table.table,
+table.docutils {
+  width: 100%;
+}
+
+.bd-article table.table {
+  font-size: 0.82rem;
+}
+
+.bd-article table.table td,
+.bd-article table.table th {
+  line-height: 1.35;
+  padding: 0.35rem 0.55rem;
+}
+
+.bd-article table.table td code,
+.bd-article table.table td code span.pre,
+.bd-article table.table th code,
+.bd-article table.table th code span.pre {
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  white-space: normal !important;
+  word-break: break-word;
+}
+
+.bd-article a {
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
+}
+
+.cell {
+  margin-bottom: 0.85rem;
+}
+
+.cell_output {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.dataframe,
+.itables table {
+  font-size: 0.86rem;
+}
+
+.docs-card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  margin: 1.25rem 0 2rem;
+}
+
+.docs-card-grid--three {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.docs-card {
+  border: 1px solid var(--pst-color-border);
+  border-radius: 8px;
+  color: var(--pst-color-text-base);
+  display: flex;
+  flex-direction: column;
+  min-height: 10rem;
+  padding: 1rem 1.1rem 1.15rem;
+  text-decoration: none;
+}
+
+.docs-card:hover,
+.docs-card:focus-visible {
+  border-color: var(--pst-color-primary);
+  color: var(--pst-color-text-base);
+  text-decoration: none;
+}
+
+.docs-card-kicker {
+  color: var(--pst-color-primary);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.45rem;
+  text-transform: uppercase;
+}
+
+.docs-card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.docs-card-description {
+  color: var(--pst-color-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin-top: 0.55rem;
+}
+
+.workflow-map {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: center;
+  margin: 1.5rem 0 2rem;
+}
+
+.workflow-node {
+  align-items: center;
+  border: 1px solid var(--pst-color-border);
+  border-radius: 999px;
+  color: var(--pst-color-text-base);
+  display: inline-flex;
+  gap: 0.55rem;
+  line-height: 1.25;
+  padding: 0.6rem 0.85rem 0.6rem 0.65rem;
+  text-decoration: none;
+}
+
+.workflow-node:hover,
+.workflow-node:focus-visible {
+  border-color: var(--pst-color-primary);
+  color: var(--pst-color-primary);
+  text-decoration: none;
+}
+
+.workflow-node-number {
+  align-items: center;
+  background: var(--pst-color-primary);
+  border-radius: 50%;
+  color: var(--pst-color-on-background);
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
+}
+
+.workflow-arrow {
+  color: var(--pst-color-text-muted);
+  font-size: 1.25rem;
+}
+
+.workflow-branch {
+  display: grid;
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .docs-card {
+    min-height: auto;
+  }
+
+  .workflow-map {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workflow-arrow {
+    align-self: center;
+    transform: rotate(90deg);
+  }
+
+  .workflow-node {
+    border-radius: 10px;
+    justify-content: flex-start;
+  }
+}
