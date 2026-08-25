@@ -7,12 +7,25 @@ from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
 from tmol.optimization import run_cart_min
 
 
+_EINSUM_MIN_BYTES = 512 * 1024 * 1024
+
+
 def _sum_cross_block_scores(block_pair_scores, mask, other_mask):
     """Sum both orientations of block-pair scores selected by two masks."""
     cross_mask = (mask.unsqueeze(2) & other_mask.unsqueeze(1)) | (
         other_mask.unsqueeze(2) & mask.unsqueeze(1)
     )
-    return block_pair_scores.masked_fill(~cross_mask.unsqueeze(0), 0).sum(dim=(2, 3))
+    # At large batch/block counts, contraction avoids materializing a
+    # term-expanded masked tensor. Below this measured crossover its workspace
+    # is larger than the masked reduction.
+    score_bytes = block_pair_scores.numel() * block_pair_scores.element_size()
+    if score_bytes >= _EINSUM_MIN_BYTES:
+        return torch.einsum(
+            "tpij,pij->tp", block_pair_scores, cross_mask.to(block_pair_scores.dtype)
+        )
+    return block_pair_scores.masked_fill(~cross_mask.unsqueeze(0), 0).sum(
+        dim=(2, 3)
+    )
 
 
 def calculate_block_pair_ddg(

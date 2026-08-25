@@ -1,3 +1,4 @@
+import pytest
 import torch
 import biotite.structure as struc
 
@@ -7,11 +8,16 @@ from tmol.io import (
     biotite_from_pose_stack,
 )
 from tmol import run_cart_min, beta2016_score_function
-from tmol.ops._score_utils import _sum_cross_block_scores
+import tmol.ops._score_utils as score_utils
 
 
-def test_sum_cross_block_scores_handles_different_mask_sizes(torch_device):
+@pytest.mark.parametrize("einsum", [False, True])
+def test_sum_cross_block_scores_handles_different_mask_sizes(
+    torch_device, monkeypatch, einsum
+):
     """Each pose may select a different number of block pairs."""
+    threshold = 0 if einsum else float("inf")
+    monkeypatch.setattr(score_utils, "_EINSUM_MIN_BYTES", threshold)
     scores = torch.arange(
         2 * 2 * 4 * 4, dtype=torch.float32, device=torch_device
     ).reshape(2, 2, 4, 4)
@@ -25,7 +31,7 @@ def test_sum_cross_block_scores_handles_different_mask_sizes(torch_device):
         device=torch_device,
     )
 
-    actual = _sum_cross_block_scores(scores, mask, other)
+    actual = score_utils._sum_cross_block_scores(scores, mask, other)
     expected = torch.empty_like(actual)
     expected[:, 0] = scores[:, 0, 0, 1] + scores[:, 0, 1, 0]
     expected[:, 1] = scores[:, 1, :2, 2:].sum(dim=(1, 2)) + scores[:, 1, 2:, :2].sum(
