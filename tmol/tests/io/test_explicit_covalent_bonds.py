@@ -3,8 +3,12 @@ import numpy as np
 import pytest
 import torch
 
+from tmol.database import ParameterDatabase
 from tmol.io import biotite_from_pose_stack, pose_stack_from_biotite
-from tmol.io._covalent_bonds import _explicit_cross_residue_bonds
+from tmol.io._covalent_bonds import (
+    _explicit_cross_residue_bonds,
+    augment_database_for_covalent_bonds,
+)
 
 
 def _crosslinked_protein(biotite_1ubq):
@@ -130,3 +134,41 @@ def test_only_adjacent_c_n_bonds_are_treated_as_polymer(biotite_1ubq):
     bonds = _explicit_cross_residue_bonds(structure)
     assert len(bonds) == 1
     assert {endpoint[1] for endpoint in bonds[0]} == {"C", "N"}
+
+
+def test_attachment_virtualizes_a_leaving_hydrogen(biotite_1ubq):
+    """Adding an explicit bond does not leave an over-valent hydroxyl."""
+
+    structure = biotite_1ubq.copy()
+    starts = struc.get_residue_starts(structure)
+    ser_residue = next(
+        i for i, start in enumerate(starts) if structure.res_name[start] == "SER"
+    )
+    other_residue = ser_residue + 2
+    ends = np.append(starts[1:], structure.array_length())
+    atom1 = next(
+        i
+        for i in range(starts[ser_residue], ends[ser_residue])
+        if structure.atom_name[i] == "OG"
+    )
+    atom2 = next(
+        i
+        for i in range(starts[other_residue], ends[other_residue])
+        if structure.atom_name[i] == "O"
+    )
+    structure.bonds = struc.BondList(
+        structure.array_length(),
+        np.asarray([(atom1, atom2, int(struc.BondType.SINGLE))], dtype=np.int32),
+    )
+
+    database, variants = augment_database_for_covalent_bonds(
+        structure, ParameterDatabase.get_default()
+    )
+    variant = next(
+        residue
+        for residue in database.chemical.residues
+        if residue.name == variants[("SER", ("OG",))]
+    )
+    hg = next(atom for atom in variant.atoms if atom.name == "HG")
+    assert hg.atom_type == "Vrt"
+    assert "HG" in variant.properties.virtual

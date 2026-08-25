@@ -132,6 +132,37 @@ def _connection_icoor(raw, atom, local_coords, remote_coord):
     )
 
 
+def _virtualize_leaving_hydrogens(raw, attachment_atoms, atom_type_elements):
+    """Turn one bonded hydrogen per new attachment into an inert virtual atom."""
+
+    adjacency = defaultdict(list)
+    for atom1, atom2, *_ in raw.bonds:
+        adjacency[atom1].append(atom2)
+        adjacency[atom2].append(atom1)
+    atom_by_name = {atom.name: atom for atom in raw.atoms}
+    leaving = []
+    for attachment in attachment_atoms:
+        candidates = sorted(
+            neighbor
+            for neighbor in adjacency[attachment]
+            if atom_type_elements[atom_by_name[neighbor].atom_type] == "H"
+            and neighbor not in leaving
+        )
+        if candidates:
+            leaving.append(candidates[0])
+    if not leaving:
+        return raw.atoms, raw.properties
+    atoms = tuple(
+        attr.evolve(atom, atom_type="Vrt") if atom.name in leaving else atom
+        for atom in raw.atoms
+    )
+    properties = attr.evolve(
+        raw.properties,
+        virtual=tuple(dict.fromkeys((*raw.properties.virtual, *leaving))),
+    )
+    return atoms, properties
+
+
 def augment_database_for_covalent_bonds(structure, param_db):
     """Add same-atom-layout residue variants needed by explicit input bonds."""
 
@@ -172,6 +203,9 @@ def augment_database_for_covalent_bonds(structure, param_db):
     clones = []
     variant_names = {}
     supported_patterns = set()
+    atom_type_elements = {
+        atom_type.name: atom_type.element for atom_type in param_db.chemical.atom_types
+    }
     for raw in param_db.chemical.residues:
         for res_name, atoms in sorted(patterns):
             if raw.name3 != res_name or not set(atoms) <= {a.name for a in raw.atoms}:
@@ -186,11 +220,16 @@ def augment_database_for_covalent_bonds(structure, param_db):
             added_icoors = tuple(
                 _connection_icoor(raw, atom, local, remotes[atom]) for atom in atoms
             )
+            clone_atoms, clone_properties = _virtualize_leaving_hydrogens(
+                raw, atoms, atom_type_elements
+            )
             clone = attr.evolve(
                 raw,
                 name=clone_name,
+                atoms=clone_atoms,
                 connections=(*raw.connections, *added_connections),
                 icoors=(*raw.icoors, *added_icoors),
+                properties=clone_properties,
             )
             clones.append(clone)
             variant_names[(raw.name, atoms)] = clone_name
