@@ -9,8 +9,8 @@ import cattr
 
 ureg = pint.UnitRegistry()
 u = ureg.parse_expression
-_BOND_ANGLE_LIMIT = (u("0 rad"), u("pi rad"))
-_DIHEDRAL_ANGLE_LIMIT = (u("-pi rad"), u("pi rad"))
+_BOND_ANGLE_LIMIT = (0.0, math.pi)
+_DIHEDRAL_ANGLE_LIMIT = (-math.pi, math.pi)
 
 
 def _simple_angle(angle: str):
