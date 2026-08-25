@@ -102,7 +102,7 @@ def _dihedral(a, b, c, d):
     return float(np.arctan2(np.dot(np.cross(n1, b2 / norms[2]), n2), np.dot(n1, n2)))
 
 
-def _connection_icoor(raw, atom, local_coords, remote_coord):
+def _connection_icoor(raw, connection_name, atom, local_coords, remote_coord):
     adjacency = defaultdict(list)
     for name1, name2, *_ in raw.bonds:
         adjacency[name1].append(name2)
@@ -120,7 +120,7 @@ def _connection_icoor(raw, atom, local_coords, remote_coord):
         raise ValueError(f"connection atom {raw.name}:{atom} lacks a third frame atom")
     ggp = sorted(ggp_candidates)[0]
     return Icoor(
-        name=f"covalent_{atom}",
+        name=connection_name,
         phi=-_dihedral(
             remote_coord, local_coords[atom], local_coords[gp], local_coords[ggp]
         ),
@@ -163,6 +163,160 @@ def _virtualize_leaving_hydrogens(raw, attachment_atoms, atom_type_elements):
     return atoms, properties
 
 
+def _is_carbohydrate(residue_key):
+    from tmol.ligand._detect import get_chem_comp_type
+
+    return "SACCHARIDE" in (get_chem_comp_type(residue_key[3]) or "").upper()
+
+
+def _carbohydrate_connection_roles(structure, bonds):
+    """Name sugar connections from the input covalent graph, not residue names.
+
+    ``down`` points toward the non-carbohydrate anchor (or deterministic root),
+    ``up`` points toward the first child, and further children are branches.
+    """
+
+    if not bonds:
+        return {}
+    array = _template(structure)
+    _, _, keys, _ = _residue_keys(array)
+    key_to_index = {key: index for index, key in enumerate(keys)}
+    sugars = {key for bond in bonds for key, _ in bond if _is_carbohydrate(key)}
+    if not sugars:
+        return {}
+
+    sugar_edges = []
+    anchors = defaultdict(list)
+    adjacency = defaultdict(list)
+    for endpoint1, endpoint2 in bonds:
+        key1, key2 = endpoint1[0], endpoint2[0]
+        sugar1, sugar2 = key1 in sugars, key2 in sugars
+        if sugar1 and sugar2:
+            edge_index = len(sugar_edges)
+            sugar_edges.append((endpoint1, endpoint2))
+            adjacency[key1].append((key2, edge_index))
+            adjacency[key2].append((key1, edge_index))
+        elif sugar1:
+            anchors[key1].append(endpoint1)
+        elif sugar2:
+            anchors[key2].append(endpoint2)
+
+    roles = {}
+    unvisited = set(sugars)
+    while unvisited:
+        seed = min(unvisited, key=key_to_index.__getitem__)
+        component = set()
+        pending = [seed]
+        while pending:
+            current = pending.pop()
+            if current in component:
+                continue
+            component.add(current)
+            pending.extend(neighbor for neighbor, _ in adjacency[current])
+
+        anchored = sorted(
+            (key for key in component if anchors[key]), key=key_to_index.__getitem__
+        )
+        root = anchored[0] if anchored else min(component, key=key_to_index.__getitem__)
+        parent = {root: None}
+        queue = [root]
+        tree_edges = set()
+        while queue:
+            current = queue.pop(0)
+            for neighbor, edge_index in sorted(
+                adjacency[current], key=lambda item: key_to_index[item[0]]
+            ):
+                if neighbor in parent:
+                    continue
+                parent[neighbor] = current
+                tree_edges.add(edge_index)
+                queue.append(neighbor)
+
+        for key in sorted(component, key=key_to_index.__getitem__):
+            for anchor_index, endpoint in enumerate(
+                sorted(anchors[key], key=lambda item: item[1])
+            ):
+                roles[endpoint] = (
+                    "down"
+                    if key == root and anchor_index == 0
+                    else (f"branch_{endpoint[1]}")
+                )
+
+        children = defaultdict(list)
+        for edge_index in tree_edges:
+            endpoint1, endpoint2 = sugar_edges[edge_index]
+            if parent[endpoint2[0]] == endpoint1[0]:
+                parent_endpoint, child_endpoint = endpoint1, endpoint2
+            else:
+                parent_endpoint, child_endpoint = endpoint2, endpoint1
+            children[parent_endpoint[0]].append((child_endpoint[0], parent_endpoint))
+            roles[child_endpoint] = "down"
+        for key, entries in children.items():
+            for child_index, (_, endpoint) in enumerate(
+                sorted(entries, key=lambda item: key_to_index[item[0]])
+            ):
+                roles[endpoint] = "up" if child_index == 0 else f"branch_{endpoint[1]}"
+
+        for edge_index, (endpoint1, endpoint2) in enumerate(sugar_edges):
+            if edge_index in tree_edges:
+                continue
+            for endpoint in (endpoint1, endpoint2):
+                roles[endpoint] = f"branch_{endpoint[1]}"
+        unvisited -= component
+    return roles
+
+
+def _shortest_atom_path(raw, start, end):
+    adjacency = defaultdict(list)
+    for atom1, atom2, *_ in raw.bonds:
+        adjacency[atom1].append(atom2)
+        adjacency[atom2].append(atom1)
+    parent = {start: None}
+    queue = [start]
+    while queue and end not in parent:
+        current = queue.pop(0)
+        for neighbor in sorted(adjacency[current]):
+            if neighbor not in parent:
+                parent[neighbor] = current
+                queue.append(neighbor)
+    if end not in parent:
+        raise ValueError(f"{raw.name}: no bonded path from {start} to {end}")
+    path = []
+    current = end
+    while current is not None:
+        path.append(current)
+        current = parent[current]
+    return tuple(reversed(path))
+
+
+def _carbohydrate_properties(raw, connections, base_properties):
+    named = {name: atom for atom, name in connections}
+    if not ({"down", "up"} & set(named)):
+        return base_properties
+    if "down" in named and "up" in named:
+        mainchain = _shortest_atom_path(raw, named["down"], named["up"])
+    else:
+        mainchain = (named.get("down") or named["up"],)
+    polymer = attr.evolve(
+        base_properties.polymer,
+        is_polymer=True,
+        polymer_type="carbohydrate",
+        backbone_type="carbohydrate",
+        mainchain_atoms=mainchain,
+        sidechain_chirality="NA",
+        termini_variants=(),
+    )
+    return attr.evolve(
+        base_properties,
+        polymer=polymer,
+        chemical_modifications=tuple(
+            dict.fromkeys(
+                (*base_properties.chemical_modifications, "generated_carbohydrate")
+            )
+        ),
+    )
+
+
 def augment_database_for_covalent_bonds(structure, param_db):
     """Add same-atom-layout residue variants needed by explicit input bonds."""
 
@@ -173,11 +327,16 @@ def augment_database_for_covalent_bonds(structure, param_db):
     array = _template(structure)
     starts, ends, keys, _ = _residue_keys(array)
     key_to_residue = {key: i for i, key in enumerate(keys)}
-    attachment_atoms = defaultdict(set)
+    connection_roles = _carbohydrate_connection_roles(structure, bonds)
+    attachment_connections = defaultdict(dict)
     partner_coord = {}
     for (key1, atom1), (key2, atom2) in bonds:
-        attachment_atoms[key1].add(atom1)
-        attachment_atoms[key2].add(atom2)
+        attachment_connections[key1][atom1] = connection_roles.get(
+            (key1, atom1), f"covalent_{atom1}"
+        )
+        attachment_connections[key2][atom2] = connection_roles.get(
+            (key2, atom2), f"covalent_{atom2}"
+        )
         res1, res2 = key_to_residue[key1], key_to_residue[key2]
         inds1 = range(starts[res1], ends[res1])
         inds2 = range(starts[res2], ends[res2])
@@ -188,16 +347,18 @@ def augment_database_for_covalent_bonds(structure, param_db):
 
     patterns = set()
     geometry = {}
-    for key, atoms in attachment_atoms.items():
+    for key, connection_by_atom in attachment_connections.items():
         res_ind = key_to_residue[key]
         local = {
             str(array.atom_name[i]): np.asarray(array.coord[i], dtype=np.float64)
             for i in range(starts[res_ind], ends[res_ind])
         }
-        pattern = (key[3], tuple(sorted(atoms)))
+        connection_spec = tuple(sorted(connection_by_atom.items()))
+        pattern = (key[3], connection_spec)
         patterns.add(pattern)
         geometry.setdefault(
-            pattern, (local, {a: partner_coord[(key, a)] for a in atoms})
+            pattern,
+            (local, {atom: partner_coord[(key, atom)] for atom in connection_by_atom}),
         )
 
     clones = []
@@ -207,33 +368,54 @@ def augment_database_for_covalent_bonds(structure, param_db):
         atom_type.name: atom_type.element for atom_type in param_db.chemical.atom_types
     }
     for raw in param_db.chemical.residues:
-        for res_name, atoms in sorted(patterns):
+        for res_name, connection_spec in sorted(patterns):
+            atoms = tuple(atom for atom, _ in connection_spec)
             if raw.name3 != res_name or not set(atoms) <= {a.name for a in raw.atoms}:
                 continue
-            local, remotes = geometry[(res_name, atoms)]
-            suffix = ",".join(atoms)
+            local, remotes = geometry[(res_name, connection_spec)]
+            generic_names = all(
+                name == f"covalent_{atom}" for atom, name in connection_spec
+            )
+            suffix = ",".join(
+                atom if generic_names else name for atom, name in connection_spec
+            )
             clone_name = f"{raw.name}:covalent_{suffix}"
             added_connections = tuple(
-                Connection(name=f"covalent_{atom}", atom=atom, type="SINGLE")
-                for atom in atoms
+                Connection(name=name, atom=atom, type="SINGLE")
+                for atom, name in connection_spec
             )
             added_icoors = tuple(
-                _connection_icoor(raw, atom, local, remotes[atom]) for atom in atoms
+                _connection_icoor(raw, name, atom, local, remotes[atom])
+                for atom, name in connection_spec
             )
             clone_atoms, clone_properties = _virtualize_leaving_hydrogens(
                 raw, atoms, atom_type_elements
             )
+            is_carbohydrate = _is_carbohydrate(("", 0, "", res_name))
             clone = attr.evolve(
                 raw,
                 name=clone_name,
+                # Keep the input-facing NAG/MAN/etc. equivalence class
+                # non-polymeric while the pose is first assigned.  The
+                # connection-capable clone is swapped in afterwards, so its
+                # graph-derived polymer semantics must not make every member
+                # of the source equivalence class look like a sequence
+                # polymer.
+                io_equiv_class=clone_name if is_carbohydrate else raw.io_equiv_class,
                 atoms=clone_atoms,
                 connections=(*raw.connections, *added_connections),
                 icoors=(*raw.icoors, *added_icoors),
-                properties=clone_properties,
+                properties=(
+                    _carbohydrate_properties(raw, connection_spec, clone_properties)
+                    if is_carbohydrate
+                    else clone_properties
+                ),
             )
             clones.append(clone)
-            variant_names[(raw.name, atoms)] = clone_name
-            supported_patterns.add((res_name, atoms))
+            variant_names[(raw.name, connection_spec)] = clone_name
+            if generic_names:
+                variant_names[(raw.name, atoms)] = clone_name
+            supported_patterns.add((res_name, connection_spec))
 
     missing = sorted(set(patterns) - supported_patterns)
     if missing:
@@ -252,10 +434,13 @@ def apply_covalent_bonds_from_biotite(pose_stack, structure, variant_names):
     bonds = _explicit_cross_residue_bonds(structure)
     if not bonds:
         return pose_stack
-    attachment_atoms = defaultdict(set)
+    connection_roles = _carbohydrate_connection_roles(structure, bonds)
+    attachment_connections = defaultdict(dict)
     for endpoint1, endpoint2 in bonds:
-        attachment_atoms[endpoint1[0]].add(endpoint1[1])
-        attachment_atoms[endpoint2[0]].add(endpoint2[1])
+        for key, atom in (endpoint1, endpoint2):
+            attachment_connections[key][atom] = connection_roles.get(
+                (key, atom), f"covalent_{atom}"
+            )
 
     pbt = pose_stack.packed_block_types
     name_to_ind = {bt.name: i for i, bt in enumerate(pbt.active_block_types)}
@@ -273,10 +458,11 @@ def apply_covalent_bonds_from_biotite(pose_stack, structure, variant_names):
             key_to_block[(pose_index, key)] = block
 
     for pose_index in range(len(pose_stack)):
-        for input_key, atoms in attachment_atoms.items():
+        for input_key, connection_by_atom in attachment_connections.items():
             block = key_to_block[(pose_index, input_key[:3])]
             original = pbt.active_block_types[int(type64[pose_index, block])]
-            clone_name = variant_names[(original.name, tuple(sorted(atoms)))]
+            connection_spec = tuple(sorted(connection_by_atom.items()))
+            clone_name = variant_names[(original.name, connection_spec)]
             clone = pbt.active_block_types[name_to_ind[clone_name]]
             if tuple(a.name for a in clone.atoms) != tuple(
                 a.name for a in original.atoms
@@ -297,9 +483,9 @@ def apply_covalent_bonds_from_biotite(pose_stack, structure, variant_names):
                 InterResidueConnection(
                     pose_index,
                     key_to_block[(pose_index, key1[:3])],
-                    f"covalent_{atom1}",
+                    attachment_connections[key1][atom1],
                     key_to_block[(pose_index, key2[:3])],
-                    f"covalent_{atom2}",
+                    attachment_connections[key2][atom2],
                 )
             )
     return connect_pose_blocks(pose_stack, connections)
