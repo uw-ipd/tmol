@@ -1,6 +1,5 @@
 import numpy
 import torch
-import numba
 
 from typing import Optional
 from tmol.types import (
@@ -90,7 +89,6 @@ def find_disulfides(
     )
 
 
-@numba.jit(nopython=True)
 def find_disulf_numba(
     coords: NDArray[numpy.float32][:, :, :, 3],
     n_input_dslf: int,
@@ -101,7 +99,7 @@ def find_disulf_numba(
     cutoff_dis: float,
     restype_variants: NDArray[numpy.int32][:, :],
 ):
-    # TEMP: Implement this in numpy/numba on the CPU to start
+    # Keep this small greedy matching pass on the CPU.
 
     # algorithm for CYD matching:
     # greedy
