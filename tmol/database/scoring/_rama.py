@@ -42,4 +42,4 @@ class RamaDatabase:
                 (RamaMappingParams, f"{_OLD}.RamaMappingParams"),
             ]
         ):
-            return torch.load(fname)
+            return torch.load(fname, mmap=True)
