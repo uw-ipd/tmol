@@ -168,6 +168,8 @@ def pose_stack_from_biotite(  # noqa: C901
     strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
     sample_proton_chi: bool = True,
+    metal_distance_constraint_multiplier: float = 1.0,
+    metal_angle_constraint_multiplier: float = 1.0,
     return_context: bool = False,
     context: PoseBuildContext | None = None,
     **kwargs: object,
@@ -215,6 +217,11 @@ def pose_stack_from_biotite(  # noqa: C901
             ``chi_samples`` so OptHSampler samples ligand polar-H rotamers
             (enabled by default; pass False to disable). Only used when
             prepare_ligands=True.
+        metal_distance_constraint_multiplier: Strength multiplier for deposited
+            metal coordination distances. Set to zero to omit these constraints.
+        metal_angle_constraint_multiplier: Strength multiplier for deposited
+            metal-donor-parent angles. Set to zero to omit these constraints.
+            Give ``ScoreType.constraint`` nonzero weight to score either kind.
         return_context: If True, return ``(pose_stack, PoseBuildContext)``.
         **kwargs: Additional arguments passed to pose_stack_from_canonical_form.
 
@@ -305,7 +312,11 @@ def pose_stack_from_biotite(  # noqa: C901
         from tmol.io._metal_bonds import apply_metal_bonds_from_biotite
 
         pose_stack = apply_metal_bonds_from_biotite(
-            pose_stack, biotite_structure, context.metal_variant_names
+            pose_stack,
+            biotite_structure,
+            context.metal_variant_names,
+            metal_distance_constraint_multiplier,
+            metal_angle_constraint_multiplier,
         )
     block_has_missing_atoms = opt_return_vals["block_has_missing_atoms"]
 

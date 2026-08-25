@@ -60,6 +60,19 @@ class ConstraintEnergyTerm(EnergyTerm):
         return ((dist - params[:, 0]) / params[:, 1]) ** 2
 
     @classmethod
+    def harmonic_angle(cls, atoms, params):
+        """Harmonic angle constraint for three atoms, in radians."""
+
+        vector1 = atoms[:, 0] - atoms[:, 1]
+        vector2 = atoms[:, 2] - atoms[:, 1]
+        denominator = torch.linalg.norm(vector1, dim=-1) * torch.linalg.norm(
+            vector2, dim=-1
+        )
+        cosine = torch.sum(vector1 * vector2, dim=-1) / denominator.clamp_min(1e-12)
+        angle = torch.acos(cosine.clamp(-1.0, 1.0))
+        return ((angle - params[:, 0]) / params[:, 1]) ** 2
+
+    @classmethod
     def harmonic_coordinate(cls, atoms, params):
         # params[:, 0]   == distance to target coordinate
         # params[:, 1:4] == target coordinate

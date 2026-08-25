@@ -2,6 +2,7 @@
 
 from io import StringIO
 
+import attr
 import biotite.structure as struc
 from biotite.structure.io.pdb import PDBFile, get_structure
 import numpy as np
@@ -14,7 +15,8 @@ from tmol.io._metal_bonds import (
     _metal_cross_residue_bonds,
     augment_database_for_metals,
 )
-from tmol.score import beta2016_score_function
+from tmol.score import ScoreFunction, ScoreType, beta2016_score_function
+from tmol import run_cart_min
 
 # Heavy atoms and deposited CONECT records from PDB 1CA2 (Zn carbonic anhydrase)
 # and 1CLL (a seven-coordinate Ca site in calmodulin).
@@ -172,10 +174,51 @@ def test_real_metal_sites_import_multicoordinate_topology(
     water_type = next(block for block in block_types if block.name3 == "HOH")
     assert {"H1", "H2"} <= set(water_type.properties.virtual)
     assert torch.isfinite(pose.coords).all()
+    expected_distance_constraints = 2 * n_contacts + n_contacts * (n_contacts - 1) // 2
+    assert pose.constraint_set is not None
+    assert pose.constraint_set.constraint_atoms.shape[0] == (
+        expected_distance_constraints + n_contacts - 1
+    )
+
+    constraint_score_function = ScoreFunction(context.parameter_database, torch_device)
+    constraint_score_function.set_weight(ScoreType.constraint, 1.0)
+    constraint_scorer = constraint_score_function.render_whole_pose_scoring_module(pose)
+    initial_constraint_score = constraint_scorer(pose.coords).sum()
+    torch.testing.assert_close(
+        initial_constraint_score,
+        torch.zeros_like(initial_constraint_score),
+        atol=1e-5,
+        rtol=0,
+    )
+    partner_block, partner_connection = pose.inter_residue_connections64[
+        0, metal_block, 0
+    ].tolist()
+    partner_type = block_types[partner_block]
+    partner_atom = partner_type.connections[partner_connection].atom
+    partner_coord = (
+        int(pose.block_coord_offset64[0, partner_block])
+        + partner_type.atom_to_idx[partner_atom]
+    )
+    perturbed = pose.coords.detach().clone()
+    perturbed[0, partner_coord, 0] += 0.2
+    perturbed.requires_grad_(True)
+    perturbed_constraint_score = constraint_scorer(perturbed).sum()
+    assert perturbed_constraint_score > 0
+    perturbed_constraint_score.backward()
+    assert torch.isfinite(perturbed.grad).all()
+    minimized = run_cart_min(
+        attr.evolve(pose, coords=perturbed.detach()),
+        constraint_score_function,
+        optimizer_kwargs={"max_iter": 20},
+    )
+    assert (
+        constraint_scorer(minimized.coords).sum() < perturbed_constraint_score.detach()
+    )
 
     score_function = beta2016_score_function(
         torch_device, param_db=context.parameter_database
     )
+    score_function.set_weight(ScoreType.constraint, 1.0)
     score = score_function.render_whole_pose_scoring_module(pose)(pose.coords).sum()
     assert torch.isfinite(score)
 

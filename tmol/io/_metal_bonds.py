@@ -26,7 +26,8 @@ from tmol.io._covalent_bonds import (
     _template,
     _virtualize_leaving_hydrogens,
 )
-from tmol.pose import InterResidueConnection, connect_pose_blocks
+from tmol.pose import ConstraintSet, InterResidueConnection, connect_pose_blocks
+from tmol.score.constraint import ConstraintEnergyTerm
 
 MAX_COORDINATION_CONNECTIONS = 8
 
@@ -406,7 +407,119 @@ def augment_database_for_metal_bonds(structure, param_db):
     return attr.evolve(param_db, chemical=chemical), variant_names
 
 
-def apply_metal_bonds_from_biotite(pose_stack, structure, variant_names):
+def _add_metal_constraints(
+    pose_stack,
+    named_contacts,
+    endpoint_connections,
+    key_to_block,
+    distance_multiplier,
+    angle_multiplier,
+):
+    """Add Rosetta SetupMetalsMover-equivalent deposited-geometry constraints."""
+
+    if distance_multiplier < 0 or angle_multiplier < 0:
+        raise ValueError("metal constraint multipliers must be nonnegative")
+    if distance_multiplier == 0 and angle_multiplier == 0:
+        return pose_stack
+
+    device = pose_stack.device
+    distance_atoms = []
+    distance_params = []
+    angle_atoms = []
+    angle_params = []
+    proxies_by_metal = defaultdict(list)
+
+    def coord(pose_index, block, atom_index):
+        offset = int(pose_stack.block_coord_offset64[pose_index, block])
+        return pose_stack.coords[pose_index, offset + atom_index]
+
+    for pose_index in range(len(pose_stack)):
+        for metal_endpoint, metal_name, donor_endpoint, _donor_name in named_contacts:
+            metal_block = key_to_block[(pose_index, metal_endpoint[0][:3])]
+            donor_block = key_to_block[(pose_index, donor_endpoint[0][:3])]
+            metal_type = pose_stack.block_type(pose_index, metal_block)
+            donor_type = pose_stack.block_type(pose_index, donor_block)
+            metal_atom = metal_type.atom_to_idx[metal_endpoint[1]]
+            donor_atom = donor_type.atom_to_idx[donor_endpoint[1]]
+            signature = tuple(sorted(endpoint_connections[metal_endpoint[0]]))
+            virtual_number = signature.index((metal_endpoint[1], metal_name)) + 1
+            virtual_atom = metal_type.atom_to_idx[f"V{virtual_number}"]
+            metal_ref = (pose_index, metal_block, metal_atom)
+            virtual_ref = (pose_index, metal_block, virtual_atom)
+            donor_ref = (pose_index, donor_block, donor_atom)
+            proxies_by_metal[(pose_index, metal_endpoint[0])].append(
+                (virtual_ref, coord(pose_index, metal_block, virtual_atom))
+            )
+
+            if distance_multiplier > 0:
+                sd = 0.1 / math.sqrt(distance_multiplier)
+                distance_atoms.extend(
+                    ((virtual_ref, donor_ref), (metal_ref, virtual_ref))
+                )
+                metal_virtual_distance = torch.linalg.norm(
+                    coord(pose_index, metal_block, metal_atom)
+                    - coord(pose_index, metal_block, virtual_atom)
+                ).item()
+                distance_params.extend(((0.0, sd), (metal_virtual_distance, sd)))
+
+            if angle_multiplier > 0:
+                icoor = donor_type.icoors[donor_type.icoors_index[donor_endpoint[1]]]
+                if (
+                    icoor.parent in donor_type.atom_to_idx
+                    and icoor.parent != donor_endpoint[1]
+                ):
+                    parent_atom = donor_type.atom_to_idx[icoor.parent]
+                    parent_ref = (pose_index, donor_block, parent_atom)
+                    vector1 = coord(pose_index, metal_block, metal_atom) - coord(
+                        pose_index, donor_block, donor_atom
+                    )
+                    vector2 = coord(pose_index, donor_block, parent_atom) - coord(
+                        pose_index, donor_block, donor_atom
+                    )
+                    cosine = torch.dot(vector1, vector2) / (
+                        torch.linalg.norm(vector1) * torch.linalg.norm(vector2)
+                    )
+                    target = torch.acos(cosine.clamp(-1.0, 1.0)).item()
+                    angle_atoms.append((metal_ref, donor_ref, parent_ref))
+                    angle_params.append((target, 0.05 / math.sqrt(angle_multiplier)))
+
+    if distance_multiplier > 0:
+        sd = 0.1 / math.sqrt(distance_multiplier)
+        for proxies in proxies_by_metal.values():
+            for first in range(len(proxies)):
+                for second in range(first + 1, len(proxies)):
+                    first_ref, first_coord = proxies[first]
+                    second_ref, second_coord = proxies[second]
+                    distance_atoms.append((first_ref, second_ref))
+                    distance_params.append(
+                        (torch.linalg.norm(first_coord - second_coord).item(), sd)
+                    )
+
+    constraints = pose_stack.constraint_set or ConstraintSet.create_empty(
+        device=device, n_poses=len(pose_stack)
+    )
+    if distance_atoms:
+        constraints = constraints.add_constraints(
+            ConstraintEnergyTerm.harmonic,
+            torch.tensor(distance_atoms, dtype=torch.int32, device=device),
+            torch.tensor(distance_params, dtype=torch.float32, device=device),
+        )
+    if angle_atoms:
+        constraints = constraints.add_constraints(
+            ConstraintEnergyTerm.harmonic_angle,
+            torch.tensor(angle_atoms, dtype=torch.int32, device=device),
+            torch.tensor(angle_params, dtype=torch.float32, device=device),
+        )
+    return attr.evolve(pose_stack, constraint_set=constraints)
+
+
+def apply_metal_bonds_from_biotite(
+    pose_stack,
+    structure,
+    variant_names,
+    distance_constraint_multiplier=1.0,
+    angle_constraint_multiplier=1.0,
+):
     """Select coordination variants and install explicit metal bonds."""
 
     contacts = _metal_cross_residue_bonds(structure)
@@ -511,4 +624,12 @@ def apply_metal_bonds_from_biotite(pose_stack, structure, variant_names):
                     name2,
                 )
             )
-    return connect_pose_blocks(pose_stack, connections)
+    pose_stack = connect_pose_blocks(pose_stack, connections)
+    return _add_metal_constraints(
+        pose_stack,
+        named_contacts,
+        endpoint_connections,
+        key_to_block,
+        distance_constraint_multiplier,
+        angle_constraint_multiplier,
+    )

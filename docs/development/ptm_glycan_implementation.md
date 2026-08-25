@@ -87,3 +87,6 @@ them would require a statistical carbohydrate model, which conflicts with the
 current requirement to generate arbitrary sugars without a sugar library.
 The clean extension point is a future optional topology-derived conformer
 sampler, not residue-name conditionals in import or scoring.
+
+The stacked [metal coordination implementation](metal_coordination.md) reuses
+the same explicit-connection machinery for programmatically generated ions.
