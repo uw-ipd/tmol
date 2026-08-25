@@ -1,6 +1,5 @@
 import attr
 import numpy
-import numba
 import torch
 import pandas
 
@@ -23,7 +22,6 @@ from tmol.types import (
 )
 
 
-@numba.jit(nopython=True)
 def attached_H_for_don(atom_is_hydrogen, D_idx, bonds, bond_spans):
     donH = numpy.full(atom_is_hydrogen.shape, -1, dtype=numpy.int32)
     heavy_at_don_for_H = numpy.full(atom_is_hydrogen.shape, -1, dtype=numpy.int32)
