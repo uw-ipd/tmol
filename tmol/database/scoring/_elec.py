@@ -1,6 +1,6 @@
 import attr
 import cattr
-import yaml
+from tmol.database._yaml import safe_load
 
 from typing import Tuple
 
@@ -37,5 +37,5 @@ class ElecDatabase:
     @classmethod
     def from_file(cls, path):
         with open(path, "r") as infile:
-            raw = yaml.safe_load(infile)
+            raw = safe_load(infile)
         return cattr.structure(raw, cls)

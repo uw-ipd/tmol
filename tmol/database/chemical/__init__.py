@@ -5,7 +5,7 @@ import attr
 import cattr
 
 import os
-import yaml
+from tmol.database._yaml import safe_load
 
 AcceptorHybridization = NewType("AcceptorHybridization", str)
 _acceptor_hybridizations = {"sp2", "sp3", "ring"}
@@ -275,7 +275,7 @@ class ChemicalDatabase:
     def from_file(cls, path):
         path = os.path.join(path, "chemical.yaml")
         with open(path, "r") as infile:
-            raw = yaml.safe_load(infile)
+            raw = safe_load(infile)
         raw = normalize_bond_tuples(raw)
 
         return cattr.structure(raw, cls)

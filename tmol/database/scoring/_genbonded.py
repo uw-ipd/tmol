@@ -1,5 +1,5 @@
 import attr
-import yaml
+from tmol.database._yaml import safe_load
 
 from itertools import permutations
 from typing import Dict, List, Optional, Tuple
@@ -157,7 +157,7 @@ class GenBondedDatabase:
     @classmethod
     def from_file(cls, path: str) -> "GenBondedDatabase":
         with open(path, "r") as fh:
-            raw = yaml.safe_load(fh)
+            raw = safe_load(fh)
 
         # --- atom hierarchy -------------------------------------------
         atom_hierarchy: Dict[str, List[str]] = {}

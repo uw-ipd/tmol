@@ -1,4 +1,4 @@
-import yaml
+from tmol.database._yaml import safe_load
 
 import attr
 import cattr
@@ -11,5 +11,5 @@ class RefDatabase:
     @classmethod
     def from_file(cls, path):
         with open(path, "r") as infile:
-            raw = yaml.safe_load(infile)
+            raw = safe_load(infile)
         return cattr.structure(raw, cls)
