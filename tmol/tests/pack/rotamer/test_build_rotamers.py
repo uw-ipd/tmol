@@ -2,7 +2,7 @@ import numpy
 import torch
 from types import SimpleNamespace
 
-from tmol.pack.rotamer.build_rotamers import (
+from tmol.pack.rotamer import (
     _build_chi4_atom_table,
     annotate_restype,
     annotate_packed_block_types,
@@ -16,35 +16,27 @@ from tmol.pack.rotamer.build_rotamers import (
     merge_conformer_samples,
     calculate_rotamer_coords,
     get_rotamer_origin_data,
-)
-from tmol.pack.rotamer.chi_sampler import (
     create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler,
-)
-
-from tmol.pack.rotamer.fixed_aa_chi_sampler import (
     FixedAAChiSampler,
 )
 
-
 from tmol.io import pose_stack_from_pdb
-from tmol.io.pdb_parsing import to_pdb_lines
 
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pack.packer_task import PackerTask, PackerPalette, SetPackerTask
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStackBuilder,
+)
+from tmol.pack import PackerTask, PackerPalette, SetPackerTask
 
-from tmol.kinematics.compiled.compiled_ops import forward_only_op
+from tmol.kinematics.compiled import forward_only_op
 
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
+from tmol.utility.tensor import exclusive_cumsum1d, stretch
 
 from tmol.tests.data import no_termini_pose_stack_from_pdb
 
-from tmol.score.hbond.hbond_energy_term import (
+from tmol.score.hbond import (
     HBondEnergyTerm,
 )
-
-# TEMP
-from tmol.io.pdb_parsing import atom_record_dtype
 
 
 def test_chi_atom_table_orders_double_digit_chis_numerically():
@@ -1063,6 +1055,33 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     numpy.testing.assert_equal(dst0 - 1, dst2 - 1 - 2 * n_rot_ats_per_pose)
 
 
+def test_write_rotamers_pdb(default_database, ubq_pdb, torch_device, dun_sampler):
+    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=75)
+
+    palette = PackerPalette()
+    task = PackerTask(poses, palette)
+    task.restrict_to_repacking()
+
+    fixed_sampler = FixedAAChiSampler()
+    task.add_conformer_sampler(dun_sampler)
+    task.add_conformer_sampler(fixed_sampler)
+    task = SetPackerTask.from_packer_task(task)
+
+    poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
+    pbt = poses.packed_block_types
+
+    atom_array = rotamer_set.to_atom_array(pbt)
+    model_annotation = atom_array.get_annotation("model")
+
+    n_rots = rotamer_set.n_rotamers_total
+    assert len(numpy.unique(model_annotation)) == n_rots
+
+    for i in range(n_rots):
+        n_atoms_in_model = numpy.sum(model_annotation == i)
+        n_atoms_expected = pbt.n_atoms[rotamer_set.block_type_ind_for_rot[i]].item()
+        assert n_atoms_in_model == n_atoms_expected
+
+
 def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
 
     poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=75)
@@ -1080,45 +1099,21 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
     pbt = poses.packed_block_types
 
-    # we are going to create a list of atom records for each rotamer
-    # and write them out as a multi-model pdb
-    n_atoms_total = rotamer_set.coords.shape[0]
-    atom_records = numpy.empty((n_atoms_total,), dtype=atom_record_dtype)
-    n_rots = rotamer_set.block_type_ind_for_rot.shape[0]
-
-    for i in range(n_rots):
-        i_offset = rotamer_set.coord_offset_for_rot[i]
-        block_type_ind = rotamer_set.block_type_ind_for_rot[i]
-        n_atoms_for_block_type = pbt.n_atoms[block_type_ind]
-        for j in range(n_atoms_for_block_type):
-            atom_records[i_offset + j]["modeli"] = i  # model number
-            atom_records[i_offset + j]["chaini"] = 0  # chain id
-            atom_records[i_offset + j]["resi"] = (
-                rotamer_set.block_ind_for_rot[i] + 1
-            )  # residue number
-            atom_records[i_offset + j]["atomi"] = j + 1  # atom number
-            atom_records[i_offset + j]["model"] = f"M{i:05d}"  # model name
-            atom_records[i_offset + j]["chain"] = "A"  # chain id
-            atom_records[i_offset + j]["resn"] = pbt.active_block_types[
-                block_type_ind
-            ].name3
-            atom_records[i_offset + j]["atomn"] = (
-                pbt.active_block_types[block_type_ind].atoms[j].name
-            )
-            atom_records[i_offset + j]["x"] = rotamer_set.coords[i_offset + j, 0].item()
-            atom_records[i_offset + j]["y"] = rotamer_set.coords[i_offset + j, 1].item()
-            atom_records[i_offset + j]["z"] = rotamer_set.coords[i_offset + j, 2].item()
-            atom_records[i_offset + j]["insert"] = ""  # insert code
-            atom_records[i_offset + j]["occupancy"] = 1.0  # occupancy
-            atom_records[i_offset + j]["b"] = 0.0  # B-factor
+    atom_array = rotamer_set.to_atom_array(pbt)
 
     # uncomment if rotgen changes
-    with open("test_build_rotamers_new_packer_task.pdb", "w") as fid:
-        fid.writelines(to_pdb_lines(atom_records))
+    # import biotite.structure.io.pdb as pdb_io
+    # model_annotation = atom_array.get_annotation("model")
+    # pdb_file = pdb_io.PDBFile()
+    # for model_idx in numpy.unique(model_annotation):
+    #     pdb_file.set_structure(
+    #         atom_array[model_annotation == model_idx], model=int(model_idx) + 1
+    #     )
+    # pdb_file.write("tmol/tests/pack/rotamer/gold_repack_1ubq_rotamers.pdb")
 
-    def parse_atom_coords(lines):
+    def parse_atom_coords(text):
         coords = []
-        for line in lines:
+        for line in text.splitlines():
             if line.startswith("ATOM"):
                 coords.append(
                     (float(line[30:38]), float(line[38:46]), float(line[46:54]))
@@ -1126,12 +1121,9 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
         return numpy.array(coords)
 
     with open("tmol/tests/pack/rotamer/gold_repack_1ubq_rotamers.pdb") as fid:
-        gold_coords = parse_atom_coords(fid.readlines())
-    test_coords = numpy.stack(
-        [atom_records["x"], atom_records["y"], atom_records["z"]], axis=-1
-    )
-    assert gold_coords.shape == test_coords.shape
-    numpy.testing.assert_allclose(test_coords, gold_coords, atol=1e-3)
+        gold_coords = parse_atom_coords(fid.read())
+    assert gold_coords.shape == atom_array.coord.shape
+    numpy.testing.assert_allclose(atom_array.coord, gold_coords, atol=1e-3)
 
 
 def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
@@ -1171,7 +1163,9 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
         )
 
 
-def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
+def test_score_lots_of_rotamers(
+    default_database, ubq_pdb, torch_device, dun_sampler
+):  # noqa: C901
     n_poses = 2
 
     p = no_termini_pose_stack_from_pdb(

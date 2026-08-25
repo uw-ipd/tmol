@@ -9,8 +9,9 @@
 #include <tmol/utility/tensor/context_manager.hh>
 
 #include <tmol/numeric/bspline_compiled/bspline.hh>
-#include <tmol/score/common/forall_dispatch.cpu.impl.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+#include <moderngpu/scan_types.hxx>
 #include <tmol/score/common/tuple.hh>
 
 #include <tmol/extern/moderngpu/operators.hxx>
@@ -149,6 +150,8 @@ struct DunbrackChiSampler {
     //                     [0..1) which should have been previously calculated
     //                     based on residue burial and residue type
 
+    LAUNCH_BOX_32;
+
     Int const nbubl(ndihe_for_res.size(0));
     // The number of buildable residue types across all residues
     Int const n_brt(bubl_and_rottable_set_for_buildable_restype.size(0));
@@ -175,11 +178,13 @@ struct DunbrackChiSampler {
 
     // Exclusive cumulative sum of n_possible_rotamers_per_restype.
     // Get total number of possible rotamers over all residue types
-    Int const n_possible_rotamers = Dispatch<D>::exclusive_scan_w_final_val(
-        mgr,
-        n_possible_rotamers_per_brt,
-        possible_rotamer_offset_for_brt,
-        mgpu::plus_t<Real>());
+    Int const n_possible_rotamers =
+        Dispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+            mgr,
+            n_possible_rotamers_per_brt.data(),
+            possible_rotamer_offset_for_brt.data(),
+            n_brt,
+            mgpu::plus_t<Int>());
 
     // There are some things we need to know about the ith possible rotamer:
     //   1. What buildable_residue type does it come from?
@@ -214,7 +219,7 @@ struct DunbrackChiSampler {
       }
     };
 
-    Dispatch<D>::forall(
+    Dispatch<D>::template forall<launch_t>(
         mgr, dihedral_offset_for_res.size(0), compute_backbone_dihedrals);
 
     auto brt_for_possible_rotamer_tp =
@@ -224,6 +229,7 @@ struct DunbrackChiSampler {
     fill_in_brt_for_possrots(
         mgr, possible_rotamer_offset_for_brt, brt_for_possible_rotamer);
 
+    // std::cout << "5" << std::endl;
     // Write down the probabilities for each base rotamer in this tensor
     auto rotamer_probability_tp = TPack<Real, 1, D>::empty(n_possible_rotamers);
     auto rotamer_probability = rotamer_probability_tp.view;
@@ -259,7 +265,10 @@ struct DunbrackChiSampler {
 
     // max_n_chi: reduction on max
     Int max_n_chi = Dispatch<D>::reduce(
-        mgr, nchi_for_buildable_restype, mgpu::maximum_t<Int>());
+        mgr,
+        nchi_for_buildable_restype.data(),
+        nchi_for_buildable_restype.size(0),
+        mgpu::maximum_t<Int>());
 
     // OK!
     // So the next step is to expand the base rotamers into extra rotamers
@@ -329,6 +338,7 @@ struct DunbrackChiSampler {
 
         expansion_dim_prods_for_brt,
         chi_for_rotamers);
+    // std::cout << "9" << std::endl;
 
     return {
         n_rotamers_to_build_per_brt_tp,
@@ -342,6 +352,8 @@ struct DunbrackChiSampler {
       TView<Int, 2, D> bubl_and_rottable_set_for_buildable_restype,
       TView<int64_t, 1, D> n_rotamers_for_tableset,
       TView<Int, 1, D> n_possible_rotamers_per_brt) {
+    LAUNCH_BOX_32;
+
     Int const n_brt = bubl_and_rottable_set_for_buildable_restype.size(0);
     assert(n_possible_rotamers_per_brt.size(0) == n_brt);
     auto lambda_determine_n_possible_rots = [=] EIGEN_DEVICE_FUNC(int brt) {
@@ -349,13 +361,16 @@ struct DunbrackChiSampler {
       n_possible_rotamers_per_brt[brt] = n_rotamers_for_tableset[rottable_set];
     };
 
-    Dispatch<D>::forall(mgr, n_brt, lambda_determine_n_possible_rots);
+    Dispatch<D>::template forall<launch_t>(
+        mgr, n_brt, lambda_determine_n_possible_rots);
   }
 
   static void fill_in_brt_for_possrots(
       ContextManager& mgr,
       TView<Int, 1, D> possible_rotamer_offset_for_brt,
       TView<Int, 1, D> brt_for_possible_rotamer) {
+    LAUNCH_BOX_32;
+
     int const n_brt = possible_rotamer_offset_for_brt.size(0);
     int const n_possible_rotamers = brt_for_possible_rotamer.size(0);
 
@@ -364,21 +379,29 @@ struct DunbrackChiSampler {
     auto brt_for_possible_rotamer_start =
         brt_for_possible_rotamer_start_tp.view;
 
+    // std::cout << "n_brt: "<< n_brt << " n possible rotamers " <<
+    // n_possible_rotamers << std::endl;
     auto mark_possrot_boundary_beginnings =
         [=] EIGEN_DEVICE_FUNC(int buildable_restype) {
+          // printf("    mark_possrot_boundary beginnings %d\n",
+          // buildable_restype);
           Int const offset = possible_rotamer_offset_for_brt[buildable_restype];
+          // printf("    offset %d\n", offset);
           brt_for_possible_rotamer_start[offset] = buildable_restype;
         };
 
-    Dispatch<D>::forall(mgr, n_brt, mark_possrot_boundary_beginnings);
+    Dispatch<D>::template forall<launch_t>(
+        mgr, n_brt, mark_possrot_boundary_beginnings);
 
     // Non-segmented scan on "max" to get the brt index for each possible
     // rotamer
-    Dispatch<D>::inclusive_scan(
+    Dispatch<D>::template scan<mgpu::scan_type_inc>(
         mgr,
-        brt_for_possible_rotamer_start,
-        brt_for_possible_rotamer,
+        brt_for_possible_rotamer_start.data(),
+        brt_for_possible_rotamer.data(),
+        n_possible_rotamers,
         mgpu::maximum_t<Int>());
+    // std::cout << "done with fill_in_brt_for_possrots" << std::endl;
   }
 
   static void interpolate_probabilities_for_possible_rotamers(
@@ -396,6 +419,10 @@ struct DunbrackChiSampler {
       TView<Int, 1, D> possible_rotamer_offset_for_brt,
       TView<Real, 1, D> backbone_dihedrals,
       TView<Real, 1, D> rotamer_probability) {
+    LAUNCH_BOX_32;
+
+    // std::cout << "interpolate_probabilities_for_possible_rotamers" <<
+    // std::endl;
     int const n_possible_rotamers = brt_for_possible_rotamer.size(0);
 
     auto calculate_possible_rotamer_probability = [=] EIGEN_DEVICE_FUNC(
@@ -455,7 +482,7 @@ struct DunbrackChiSampler {
       rotamer_probability[possible_rotamer] =
           score::common::get<0>(prob_and_derivs);
     };
-    Dispatch<D>::forall(
+    Dispatch<D>::template forall<launch_t>(
         mgr, n_possible_rotamers, calculate_possible_rotamer_probability);
   }
 
@@ -467,6 +494,8 @@ struct DunbrackChiSampler {
       TView<Int, 1, D> possible_rotamer_offset_for_brt,
       TView<Real, 1, D> rotamer_probability,
       TView<Int, 1, D> n_rotamers_to_build_per_brt) {
+    LAUNCH_BOX_32;
+
     int const n_brt = n_rotamers_to_build_per_brt.size(0);
     int const n_possible_rotamers = rotamer_probability.size(0);
     assert(prob_cumsum_limit_for_buildable_restype.size(0) == n_brt);
@@ -478,15 +507,15 @@ struct DunbrackChiSampler {
     // probabilities to get the cumulative sums of the probabilities so
     // that we can decide where to put the cutoff
     auto rotamer_probability_cumsum_tp =
-        TPack<Real, 1, D>::empty(n_possible_rotamers);
+        Dispatch<D>::template segmented_scan<mgpu::scan_type_exc>(
+            mgr,
+            rotamer_probability.data(),
+            possible_rotamer_offset_for_brt.data(),
+            n_possible_rotamers,
+            n_brt,
+            mgpu::plus_t<Real>(),
+            Real(0));
     auto rotamer_probability_cumsum = rotamer_probability_cumsum_tp.view;
-
-    Dispatch<D>::exclusive_segmented_scan(
-        mgr,
-        rotamer_probability,
-        possible_rotamer_offset_for_brt,
-        rotamer_probability_cumsum,
-        mgpu::plus_t<Real>());
 
     // And with the cumulative sum, we can now decide which rotamers we will
     // build
@@ -501,20 +530,20 @@ struct DunbrackChiSampler {
           build_possible_rotamer[possible_rotamer] = keep;
         };
 
-    Dispatch<D>::forall(mgr, n_possible_rotamers, decide_on_possible_rotamer);
-
-    // Let's count the number of possible rotamers we're keeping per restype
-    auto count_rotamers_to_build_tp =
-        TPack<Int, 1, D>::zeros(n_possible_rotamers);
-    auto count_rotamers_to_build = count_rotamers_to_build_tp.view;
+    Dispatch<D>::template forall<launch_t>(
+        mgr, n_possible_rotamers, decide_on_possible_rotamer);
 
     // *in*clusive segmented scan on the build_possible_rotamer array
-    Dispatch<D>::inclusive_segmented_scan(
-        mgr,
-        build_possible_rotamer,
-        possible_rotamer_offset_for_brt,
-        count_rotamers_to_build,
-        mgpu::plus_t<Int>());
+    auto count_rotamers_to_build_tp =
+        Dispatch<D>::template segmented_scan<mgpu::scan_type_inc>(
+            mgr,
+            build_possible_rotamer.data(),
+            possible_rotamer_offset_for_brt.data(),
+            n_possible_rotamers,
+            n_brt,
+            mgpu::plus_t<Int>(),
+            Int(0));
+    auto count_rotamers_to_build = count_rotamers_to_build_tp.view;
 
     auto count_rots_to_build_per_brt = [=] EIGEN_DEVICE_FUNC(int brt) {
       Int const offset = possible_rotamer_offset_for_brt[brt];
@@ -524,7 +553,8 @@ struct DunbrackChiSampler {
       n_rotamers_to_build_per_brt[brt] = brt_count;
     };
 
-    Dispatch<D>::forall(mgr, n_brt, count_rots_to_build_per_brt);
+    Dispatch<D>::template forall<launch_t>(
+        mgr, n_brt, count_rots_to_build_per_brt);
   }
 
   static Int count_expanded_rotamers(
@@ -538,6 +568,8 @@ struct DunbrackChiSampler {
       TView<Int, 2, D> expansion_dim_prods_for_brt,
       TView<Int, 1, D> n_rotamers_to_build_per_brt,
       TView<Int, 1, D> n_rotamers_to_build_per_brt_offsets) {
+    LAUNCH_BOX_32;
+
     int const n_brt = nchi_for_buildable_restype.size(0);
     int const max_nchi = expansion_dim_prods_for_brt.size(1);
 
@@ -576,14 +608,17 @@ struct DunbrackChiSampler {
       n_rotamers_to_build_per_brt[brt] *= n_expansions;
     };
 
-    Dispatch<D>::forall(mgr, n_brt, count_expansions_for_brt);
+    Dispatch<D>::template forall<launch_t>(
+        mgr, n_brt, count_expansions_for_brt);
 
     // Exclusive cumumaltive sum
-    Int const n_rotamers = Dispatch<D>::exclusive_scan_w_final_val(
-        mgr,
-        n_rotamers_to_build_per_brt,
-        n_rotamers_to_build_per_brt_offsets,
-        mgpu::plus_t<Int>());
+    Int const n_rotamers =
+        Dispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+            mgr,
+            n_rotamers_to_build_per_brt.data(),
+            n_rotamers_to_build_per_brt_offsets.data(),
+            n_brt,
+            mgpu::plus_t<Int>());
 
     return n_rotamers;
   }
@@ -592,6 +627,8 @@ struct DunbrackChiSampler {
       ContextManager& mgr,
       TView<Int, 1, D> n_rotamers_to_build_per_brt_offsets,
       TView<Int, 1, D> brt_for_rotamer) {
+    LAUNCH_BOX_32;
+
     int const n_rotamers = brt_for_rotamer.size(0);
     int const n_brt = n_rotamers_to_build_per_brt_offsets.size(0);
 
@@ -603,11 +640,16 @@ struct DunbrackChiSampler {
       brt_for_rotamer_start[offset] = brt;
     };
 
-    Dispatch<D>::forall(mgr, n_brt, mark_rot_brt_boundary_beginnings);
+    Dispatch<D>::template forall<launch_t>(
+        mgr, n_brt, mark_rot_brt_boundary_beginnings);
 
     // Now scan on max and record the restype for each rotamer
-    Dispatch<D>::inclusive_scan(
-        mgr, brt_for_rotamer_start, brt_for_rotamer, mgpu::maximum_t<Int>());
+    Dispatch<D>::template scan<mgpu::scan_type_inc>(
+        mgr,
+        brt_for_rotamer_start.data(),
+        brt_for_rotamer.data(),
+        n_rotamers,
+        mgpu::maximum_t<Int>());
   }
 
   static void sample_chi_for_rotamers(
@@ -638,6 +680,8 @@ struct DunbrackChiSampler {
 
       TView<Int, 2, D> expansion_dim_prods_for_brt,
       TView<Real, 2, D> chi_for_rotamers) {
+    LAUNCH_BOX_32;
+
     int const n_rotamers = chi_for_rotamers.size(0);
     int const max_n_chi = chi_for_rotamers.size(1);
 
@@ -750,7 +794,8 @@ struct DunbrackChiSampler {
       }
     };
 
-    Dispatch<D>::forall(mgr, n_rotamers, sample_chi_for_rotamer);
+    Dispatch<D>::template forall<launch_t>(
+        mgr, n_rotamers, sample_chi_for_rotamer);
   }
 };
 

@@ -7,7 +7,6 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/device_operations.hh>
-#include <tmol/score/common/forall_dispatch.hh>
 
 #include <pybind11/pybind11.h>
 
@@ -61,8 +60,12 @@ class GenBondedPoseScoreOp
       // Inter-block torsions (hash table + bond types)
       Tensor gen_atom_type_hierarchy,
       Tensor gen_connection_bond_types,
+      Tensor gen_source_atom_index,
+      Tensor gen_source_block_type_index,
       Tensor gen_inter_torsion_hash_keys,
       Tensor gen_inter_torsion_hash_values,
+      Tensor gen_inter_improper_hash_keys,
+      Tensor gen_inter_improper_hash_values,
       bool output_block_pair_energies) {
     at::Tensor score;
     at::Tensor dscore_dcoords;
@@ -99,8 +102,12 @@ class GenBondedPoseScoreOp
                       TCAST(gen_intra_params),
                       TCAST(gen_atom_type_hierarchy),
                       TCAST(gen_connection_bond_types),
+                      TCAST(gen_source_atom_index),
+                      TCAST(gen_source_block_type_index),
                       TCAST(gen_inter_torsion_hash_keys),
                       TCAST(gen_inter_torsion_hash_values),
+                      TCAST(gen_inter_improper_hash_keys),
+                      TCAST(gen_inter_improper_hash_values),
 
                       output_block_pair_energies,
                       rot_coords.requires_grad());
@@ -134,8 +141,12 @@ class GenBondedPoseScoreOp
            gen_intra_params,
            gen_atom_type_hierarchy,
            gen_connection_bond_types,
+           gen_source_atom_index,
+           gen_source_block_type_index,
            gen_inter_torsion_hash_keys,
-           gen_inter_torsion_hash_values});
+           gen_inter_torsion_hash_values,
+           gen_inter_improper_hash_keys,
+           gen_inter_improper_hash_values});
     } else {
       score = score.squeeze(-1).squeeze(-1);
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
@@ -182,8 +193,12 @@ class GenBondedPoseScoreOp
       auto gen_intra_params = saved[i++];
       auto gen_atom_type_hierarchy = saved[i++];
       auto gen_connection_bond_types = saved[i++];
+      auto gen_source_atom_index = saved[i++];
+      auto gen_source_block_type_index = saved[i++];
       auto gen_inter_torsion_hash_keys = saved[i++];
       auto gen_inter_torsion_hash_values = saved[i++];
+      auto gen_inter_improper_hash_keys = saved[i++];
+      auto gen_inter_improper_hash_values = saved[i++];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
           rot_coords.options(), "genbonded_pose_score_backward_op", ([&] {
@@ -215,8 +230,12 @@ class GenBondedPoseScoreOp
                         TCAST(gen_intra_params),
                         TCAST(gen_atom_type_hierarchy),
                         TCAST(gen_connection_bond_types),
+                        TCAST(gen_source_atom_index),
+                        TCAST(gen_source_block_type_index),
                         TCAST(gen_inter_torsion_hash_keys),
                         TCAST(gen_inter_torsion_hash_values),
+                        TCAST(gen_inter_improper_hash_keys),
+                        TCAST(gen_inter_improper_hash_values),
 
                         TCAST(grad_outputs[0]));
             dV_d_pose_coords = result.tensor;
@@ -255,8 +274,12 @@ class GenBondedPoseScoreOp
         torch::Tensor(),  // gen_intra_params
         torch::Tensor(),  // gen_atom_type_hierarchy
         torch::Tensor(),  // gen_connection_bond_types
+        torch::Tensor(),  // gen_source_atom_index
+        torch::Tensor(),  // gen_source_block_type_index
         torch::Tensor(),  // gen_inter_torsion_hash_keys
         torch::Tensor(),  // gen_inter_torsion_hash_values
+        torch::Tensor(),  // gen_inter_improper_hash_keys
+        torch::Tensor(),  // gen_inter_improper_hash_values
         torch::Tensor(),  // output_block_pair_energies (bool)
     };
   }
@@ -292,8 +315,12 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
       Tensor gen_intra_params,
       Tensor gen_atom_type_hierarchy,
       Tensor gen_connection_bond_types,
+      Tensor gen_source_atom_index,
+      Tensor gen_source_block_type_index,
       Tensor gen_inter_torsion_hash_keys,
       Tensor gen_inter_torsion_hash_values,
+      Tensor gen_inter_improper_hash_keys,
+      Tensor gen_inter_improper_hash_values,
 
       bool output_block_pair_energies) {
     at::Tensor score;
@@ -334,8 +361,12 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(gen_intra_params),
                       TCAST(gen_atom_type_hierarchy),
                       TCAST(gen_connection_bond_types),
+                      TCAST(gen_source_atom_index),
+                      TCAST(gen_source_block_type_index),
                       TCAST(gen_inter_torsion_hash_keys),
                       TCAST(gen_inter_torsion_hash_values),
+                      TCAST(gen_inter_improper_hash_keys),
+                      TCAST(gen_inter_improper_hash_values),
 
                       output_block_pair_energies,
                       rot_coords.requires_grad());
@@ -371,8 +402,12 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
          gen_intra_params,
          gen_atom_type_hierarchy,
          gen_connection_bond_types,
+         gen_source_atom_index,
+         gen_source_block_type_index,
          gen_inter_torsion_hash_keys,
          gen_inter_torsion_hash_values,
+         gen_inter_improper_hash_keys,
+         gen_inter_improper_hash_values,
 
          dispatch_indices,
          n_output_intxns,
@@ -409,8 +444,12 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
     auto gen_intra_params = saved[i++];
     auto gen_atom_type_hierarchy = saved[i++];
     auto gen_connection_bond_types = saved[i++];
+    auto gen_source_atom_index = saved[i++];
+    auto gen_source_block_type_index = saved[i++];
     auto gen_inter_torsion_hash_keys = saved[i++];
     auto gen_inter_torsion_hash_values = saved[i++];
+    auto gen_inter_improper_hash_keys = saved[i++];
+    auto gen_inter_improper_hash_values = saved[i++];
     auto dispatch_indices = saved[i++];
     auto n_output_intxns = saved[i++];
     auto rotconn_for_output = saved[i++];
@@ -445,8 +484,12 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(gen_intra_params),
                       TCAST(gen_atom_type_hierarchy),
                       TCAST(gen_connection_bond_types),
+                      TCAST(gen_source_atom_index),
+                      TCAST(gen_source_block_type_index),
                       TCAST(gen_inter_torsion_hash_keys),
                       TCAST(gen_inter_torsion_hash_values),
+                      TCAST(gen_inter_improper_hash_keys),
+                      TCAST(gen_inter_improper_hash_values),
 
                       TCAST(dispatch_indices),
                       TCAST(n_output_intxns),
@@ -477,8 +520,12 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
         torch::Tensor(),  // gen_intra_params
         torch::Tensor(),  // gen_atom_type_hierarchy
         torch::Tensor(),  // gen_connection_bond_types
+        torch::Tensor(),  // gen_source_atom_index
+        torch::Tensor(),  // gen_source_block_type_index
         torch::Tensor(),  // gen_inter_torsion_hash_keys
         torch::Tensor(),  // gen_inter_torsion_hash_values
+        torch::Tensor(),  // gen_inter_improper_hash_keys
+        torch::Tensor(),  // gen_inter_improper_hash_values
         torch::Tensor(),  // output_block_pair_energies (bool)
     };
   }
@@ -510,8 +557,12 @@ std::vector<Tensor> genbonded_pose_scores_op(
     Tensor gen_intra_params,
     Tensor gen_atom_type_hierarchy,
     Tensor gen_connection_bond_types,
+    Tensor gen_source_atom_index,
+    Tensor gen_source_block_type_index,
     Tensor gen_inter_torsion_hash_keys,
     Tensor gen_inter_torsion_hash_values,
+    Tensor gen_inter_improper_hash_keys,
+    Tensor gen_inter_improper_hash_values,
 
     bool output_block_pair_energies) {
   return GenBondedPoseScoreOp<DispatchMethod>::apply(
@@ -536,8 +587,12 @@ std::vector<Tensor> genbonded_pose_scores_op(
       gen_intra_params,
       gen_atom_type_hierarchy,
       gen_connection_bond_types,
+      gen_source_atom_index,
+      gen_source_block_type_index,
       gen_inter_torsion_hash_keys,
       gen_inter_torsion_hash_values,
+      gen_inter_improper_hash_keys,
+      gen_inter_improper_hash_values,
 
       output_block_pair_energies);
 }
@@ -565,8 +620,12 @@ std::vector<Tensor> genbonded_rotamer_scores_op(
     Tensor gen_intra_params,
     Tensor gen_atom_type_hierarchy,
     Tensor gen_connection_bond_types,
+    Tensor gen_source_atom_index,
+    Tensor gen_source_block_type_index,
     Tensor gen_inter_torsion_hash_keys,
     Tensor gen_inter_torsion_hash_values,
+    Tensor gen_inter_improper_hash_keys,
+    Tensor gen_inter_improper_hash_values,
 
     bool output_block_pair_energies) {
   return GenBondedRotamerScoreOp<DispatchMethod>::apply(
@@ -591,8 +650,12 @@ std::vector<Tensor> genbonded_rotamer_scores_op(
       gen_intra_params,
       gen_atom_type_hierarchy,
       gen_connection_bond_types,
+      gen_source_atom_index,
+      gen_source_block_type_index,
       gen_inter_torsion_hash_keys,
       gen_inter_torsion_hash_values,
+      gen_inter_improper_hash_keys,
+      gen_inter_improper_hash_values,
 
       output_block_pair_energies);
 }

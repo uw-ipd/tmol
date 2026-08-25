@@ -1,13 +1,14 @@
 from tmol.score.terms import *  # noqa: F401, F403
+from tmol.score.terms import ScoreTermFactory
 
-from tmol.score.score_types import ScoreType
-from tmol.score.terms.score_term_factory import ScoreTermFactory
+import pytest
 
-# from tmol.score.ljlk.
+from tmol.score import ScoreType
 
 
-def test_score_term_factory_smoke(default_database, torch_device):
+@pytest.mark.parametrize("score_type", [ScoreType.fa_ljrep, ScoreType.omega])
+def test_score_term_factory_smoke(default_database, torch_device, score_type):
     term = ScoreTermFactory.create_term_for_score_type(
-        ScoreType.fa_ljrep, param_db=default_database, device=torch_device
+        score_type, param_db=default_database, device=torch_device
     )
     assert term

@@ -4,9 +4,11 @@ import yaml
 from attrs import evolve
 
 from tmol.io import pose_stack_from_pdb
-from tmol.chemical.ideal_coords import normalize
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+from tmol.chemical import (
+    normalize,
+    RefinedResidueType,
+)
+from tmol.database import PatchedChemicalDatabase
 
 from tmol.database.chemical import VariantType, RawResidueType, normalize_bond_tuples
 
@@ -230,7 +232,7 @@ def test_patch_validation_missing_fields(default_unpatched_chemical_database):
     icoors: []
     """
     variants = variant_from_yaml(patch)
-    variants[0].modify_atoms = None  # drop a field!
+    variants = (evolve(variants[0], modify_atoms=None),)  # drop a field!
     unpatched_chemical_database = evolve(
         default_unpatched_chemical_database, variants=variants
     )
@@ -251,7 +253,7 @@ def test_patch_validation_missing_fields(default_unpatched_chemical_database):
         threw = True
     assert threw
 
-    variants[0].remove_atoms = None  # drop another field!
+    variants = (evolve(variants[0], remove_atoms=None),)  # drop another field!
     unpatched_chemical_database = evolve(
         default_unpatched_chemical_database, variants=variants
     )

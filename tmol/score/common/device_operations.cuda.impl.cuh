@@ -142,12 +142,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
   // than, e.g., a boolean tensor indicating the start of each segment.
   // The identity value (e.g. 0) must be given because pre-initialization is not
   // always possible. seg_starts_inds must be sorted in ascending order.
-  template <
-      mgpu::scan_type_t scan_type,
-      typename launch_t,
-      typename T,
-      typename Int,
-      typename OP>
+  template <mgpu::scan_type_t scan_type, typename T, typename Int, typename OP>
   static auto segmented_scan(
       ContextManager& mgr,
       T* src,
@@ -157,12 +152,16 @@ struct DeviceOperations<tmol::Device::CUDA> {
       OP op,
       T identity) -> TPack<T, 1, tmol::Device::CUDA> {
     // mgpu::standard_context_t context;
+    typedef typename mgpu::launch_params_t<128, 2> launch_t;
+
     std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
 
     int const nt = launch_t::nt;
     int const vt = launch_t::vt;
 
-    auto src_indexing = [=] MGPU_DEVICE(int i) { return src[i]; };
+    auto src_indexing = [=] MGPU_DEVICE(int i, int _seg, int _rank) {
+      return src[i];
+    };
 
     // Copying Frank's code from kinematics/compiled/compiled.cuda.cuh
     int const scanBuffer = n + n_segs;
@@ -178,16 +177,16 @@ struct DeviceOperations<tmol::Device::CUDA> {
         TPack<T, 1, tmol::Device::CUDA>::empty({carryoutBuffer});
     auto scanCarryout = scanCarryout_t.view;
     auto scanCodes_t =
-        TPack<Int, 1, tmol::Device::CUDA>::empty({carryoutBuffer});
+        TPack<int, 1, tmol::Device::CUDA>::empty({carryoutBuffer});
     auto scanCodes = scanCodes_t.view;
-    auto LBS_t = TPack<Int, 1, tmol::Device::CUDA>::empty({lbsBuffer});
+    auto LBS_t = TPack<int, 1, tmol::Device::CUDA>::empty({lbsBuffer});
     auto LBS = LBS_t.view;
 
     // The return tensor
-    auto dst_scan_t = TPack<T, 1, tmol::Device::CUDA>::empty({scanBuffer});
+    auto dst_scan_t = TPack<T, 1, tmol::Device::CUDA>::empty({n});
     auto dst_scan = dst_scan_t.view;
 
-    tmol::kinematics::kernel_segscan<launch_t>(
+    tmol::kinematics::kernel_segscan<launch_t, scan_type>(
         src_indexing,
         n,
         &seg_start_inds[0],

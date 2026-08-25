@@ -2,7 +2,7 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/extension.h>
 
-#include <tmol/score/common/complex_dispatch.hh>
+#include <tmol/score/common/device_operations.hh>
 #include <tmol/pack/rotamer/dunbrack/compiled.hh>
 
 #include <tmol/tests/pack/rotamer/dunbrack/test.hh>
@@ -15,7 +15,7 @@ void bind_dispatch(pybind11::module& m) {
   m.def(
       "determine_n_possible_rots",
       &DunbrackChiSamplerTester<
-          tmol::score::common::ComplexDispatch,
+          tmol::score::common::DeviceOperations,
           D,
           Real,
           Int>::determine_n_possible_rots,
@@ -26,7 +26,7 @@ void bind_dispatch(pybind11::module& m) {
   m.def(
       "fill_in_brt_for_possrots",
       &DunbrackChiSamplerTester<
-          tmol::score::common::ComplexDispatch,
+          tmol::score::common::DeviceOperations,
           D,
           Real,
           Int>::fill_in_brt_for_possrots,
@@ -36,7 +36,7 @@ void bind_dispatch(pybind11::module& m) {
   m.def(
       "interpolate_probabilities_for_possible_rotamers",
       &DunbrackChiSamplerTester<
-          tmol::score::common::ComplexDispatch,
+          tmol::score::common::DeviceOperations,
           D,
           Real,
           Int>::interpolate_probabilities_for_possible_rotamers,
@@ -57,7 +57,7 @@ void bind_dispatch(pybind11::module& m) {
   m.def(
       "determine_n_base_rotamers_to_build",
       &DunbrackChiSamplerTester<
-          tmol::score::common::ComplexDispatch,
+          tmol::score::common::DeviceOperations,
           D,
           Real,
           Int>::determine_n_base_rotamers_to_build,
@@ -71,7 +71,7 @@ void bind_dispatch(pybind11::module& m) {
   m.def(
       "count_expanded_rotamers",
       &DunbrackChiSamplerTester<
-          tmol::score::common::ComplexDispatch,
+          tmol::score::common::DeviceOperations,
           D,
           Real,
           Int>::count_expanded_rotamers,
@@ -88,7 +88,7 @@ void bind_dispatch(pybind11::module& m) {
   m.def(
       "map_from_rotamer_index_to_brt",
       &DunbrackChiSamplerTester<
-          tmol::score::common::ComplexDispatch,
+          tmol::score::common::DeviceOperations,
           D,
           Real,
           Int>::map_from_rotamer_index_to_brt,
@@ -98,7 +98,7 @@ void bind_dispatch(pybind11::module& m) {
   m.def(
       "sample_chi_for_rotamers",
       &DunbrackChiSamplerTester<
-          tmol::score::common::ComplexDispatch,
+          tmol::score::common::DeviceOperations,
           D,
           Real,
           Int>::sample_chi_for_rotamers,

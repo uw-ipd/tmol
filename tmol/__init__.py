@@ -11,7 +11,7 @@ def include_paths():
     """C++/CUDA include paths for tmol components.
 
     Defined before other imports because JIT extension loading
-    (tmol.utility.cpp_extension) imports this during module init.
+    (tmol.utility._cpp_extension) imports this during module init.
     """
 
     import os.path
@@ -26,71 +26,81 @@ from tmol._load_ext import ensure_compiled_or_jit as _ensure_compiled_or_jit
 with contextlib.suppress(Exception):
     _ensure_compiled_or_jit()
 
-from tmol.chemical.restypes import one2three, three2one
+from tmol.chemical import one2three, three2one
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_pdb
-from tmol.io.canonical_ordering import (
+from tmol.io import (
+    pose_stack_from_pdb,
+    pose_stack_to_pdb_string,
+    selection_gallery,
+    switchable_view,
+    view,
     CanonicalOrdering,
     canonical_form_from_pdb,
     default_canonical_ordering,
     default_packed_block_types,
-)
-from tmol.io.pose_stack_construction import (
     pose_stack_from_canonical_form,
-)
-from tmol.io.pose_stack_from_biotite import (
     pose_stack_from_biotite,
-)
-from tmol.io.pose_stack_from_openfold import (
     canonical_form_from_openfold,
     canonical_ordering_for_openfold,
     packed_block_types_for_openfold,
     pose_stack_from_openfold,
-)
-from tmol.io.pose_stack_from_rosettafold2 import (
     canonical_form_from_rosettafold2,
     canonical_ordering_for_rosettafold2,
     packed_block_types_for_rosettafold2,
     pose_stack_from_rosettafold2,
-)
-from tmol.io.write_pose_stack_pdb import (
     atom_records_from_pose_stack,
     write_pose_stack_pdb,
+    extended_pose_stack_from_sequences,
 )
-from tmol.kinematics.datatypes import KinematicModuleData
-from tmol.kinematics.fold_forest import EdgeType, FoldForest
-from tmol.kinematics.move_map import CartesianMoveMap, MoveMap
-from tmol.optimization.minimizers import (
+from tmol.kinematics import (
+    KinematicModuleData,
+    EdgeType,
+    FoldForest,
+    CartesianMoveMap,
+    MoveMap,
+    set_named_torsions,
+)
+from tmol.optimization import (
     build_kinforest_network,
     run_cart_min,
     run_kin_min,
     run_min,
 )
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pose.constraint_set import ConstraintSet
-from tmol.score import beta2016_score_function
-from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
-from tmol.score.constraint.constraint_energy_term import (
-    ConstraintEnergyTerm,
+
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+    PoseStackBuilder,
+    ConstraintSet,
+    get_named_torsions,
+    get_torsion_names,
 )
-from tmol.score.constraint.utility import (
+from tmol.score import (
+    beta2016_score_function,
+    ScoreFunction,
+    ScoreType,
+)
+from tmol.score.constraint import (
+    ConstraintEnergyTerm,
     constrain_all_ca,
     create_mainchain_coordinate_constraints,
 )
-from tmol.pack.packer_task import PackerPalette, PackerTask
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
-from tmol.pack.rotamer.opth_sampler import OptHSampler
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
-    create_dunbrack_sampler_from_database,
+from tmol.pack import (
+    pack_rotamers,
+    PackerPalette,
+    PackerTask,
 )
-from tmol.pack.pack_rotamers import pack_rotamers
+from tmol.pack.rotamer import (
+    FixedAAChiSampler,
+    IncludeCurrentSampler,
+    OptHSampler,
+)
+from tmol.pack.rotamer.dunbrack import (
+    create_dunbrack_sampler_from_database,
+    DunbrackChiSampler,
+)
 
-
-from tmol.relax.fast_relax import (
+from tmol.relax import (
     fast_relax,
     kin_fast_relax,
     cartesian_fast_relax,
@@ -100,3 +110,65 @@ try:
     __version__ = version("tmol")
 except PackageNotFoundError:
     __version__ = "unknown version"
+
+__all__ = [
+    "CanonicalOrdering",
+    "CartesianMoveMap",
+    "ConstraintEnergyTerm",
+    "ConstraintSet",
+    "EdgeType",
+    "FoldForest",
+    "KinematicModuleData",
+    "MoveMap",
+    "PackedBlockTypes",
+    "ParameterDatabase",
+    "PoseStack",
+    "PoseStackBuilder",
+    "ScoreFunction",
+    "ScoreType",
+    "atom_records_from_pose_stack",
+    "beta2016_score_function",
+    "build_kinforest_network",
+    "canonical_form_from_openfold",
+    "canonical_form_from_pdb",
+    "canonical_form_from_rosettafold2",
+    "canonical_ordering_for_openfold",
+    "canonical_ordering_for_rosettafold2",
+    "constrain_all_ca",
+    "create_mainchain_coordinate_constraints",
+    "default_canonical_ordering",
+    "default_packed_block_types",
+    "extended_pose_stack_from_sequences",
+    "fast_relax",
+    "get_named_torsions",
+    "get_torsion_names",
+    "include_paths",
+    "one2three",
+    "packed_block_types_for_openfold",
+    "packed_block_types_for_rosettafold2",
+    "pose_stack_from_biotite",
+    "pose_stack_from_canonical_form",
+    "pose_stack_from_openfold",
+    "pose_stack_from_pdb",
+    "pose_stack_from_rosettafold2",
+    "pose_stack_to_pdb_string",
+    "run_cart_min",
+    "run_kin_min",
+    "run_min",
+    "selection_gallery",
+    "set_named_torsions",
+    "switchable_view",
+    "three2one",
+    "view",
+    "write_pose_stack_pdb",
+    "pack_rotamers",
+    "PackerPalette",
+    "PackerTask",
+    "FixedAAChiSampler",
+    "IncludeCurrentSampler",
+    "OptHSampler",
+    "create_dunbrack_sampler_from_database",
+    "DunbrackChiSampler",
+    "kin_fast_relax",
+    "cartesian_fast_relax",
+]

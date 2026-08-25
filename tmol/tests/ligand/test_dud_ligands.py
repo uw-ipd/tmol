@@ -7,16 +7,17 @@ parameter generation.
 
 Param-generation parity (SMILES -> Rosetta ``.params``) is covered separately
 by the guanfeng SMILES suite (``test_smiles_semantic.py``,
-``test_serialization_consistency.py``, ``test_params_reference.py``) and
-``scripts/ligand_prep/validate_dud80.py``.
+``test_serialization_consistency.py``, ``test_params_reference.py``).
 """
 
 from pathlib import Path
 
+from tmol.tests.data import data_path
+
 import pytest
 import torch  # noqa: F401  (used via torch_device fixture)
 
-DUD_DIR = Path(__file__).parent.parent / "data" / "dud_ligands"
+DUD_DIR = data_path("dud_ligands")
 DUD_CASES = [
     ("ada", name)
     for name in [
@@ -46,7 +47,7 @@ DUD_CASES = [
 def _param_db_with_ligand_prep(prep):
     """Return the default parameter database with ``prep`` injected."""
     from tmol.database import ParameterDatabase
-    from tmol.ligand.registry import inject_ligand_preparations
+    from tmol.ligand import inject_ligand_preparations
 
     return inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
 
@@ -112,7 +113,7 @@ class TestDUDScoring:
         import biotite.structure
         import biotite.structure.io
 
-        from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+        from tmol.io import pose_stack_from_biotite
         from tmol.score import beta2016_score_function
 
         bt_struct = biotite.structure.io.load_structure(str(dud_scoring_data["in_pdb"]))
@@ -159,7 +160,7 @@ class TestDUDScoring:
 
     def test_score_tmol(self, dud_scoring_data, torch_device) -> None:
         """Parameters read from the golden ``.tmol`` file (Rosetta reference)."""
-        from tmol.ligand.params_file import load_params_file
+        from tmol.ligand import load_params_file
 
         preps = load_params_file(dud_scoring_data["tmol_path"])
         assert (

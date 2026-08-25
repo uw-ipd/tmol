@@ -3,7 +3,7 @@ import pytest
 import pandas
 
 import enum
-from tmol.utility.categorical import names_to_val_cat, vals_to_name_cat
+from tmol.utility import names_to_val_cat, vals_to_name_cat
 
 
 def test_categorical_conversion():

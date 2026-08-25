@@ -3,20 +3,15 @@
 #include <ATen/cuda/CUDAGeneratorImpl.h>
 #include <ATen/cuda/PhiloxUtils.cuh>
 
-/*#include <THC/THCGenerator.hpp>
-#include <THC/THCTensorRandom.h>*/
-
 #include <tmol/score/common/device_operations.cuda.impl.cuh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/torch_context.hh>
 
-// ??? #include "annealer.hh"
 #include "simulated_annealing.hh"
 
 #include <moderngpu/cta_reduce.hxx>
 #include <moderngpu/kernel_compact.hxx>
-// #include <moderngpu/kernel_mergesort.hxx>
 #include <moderngpu/kernel_segsort.hxx>
 #include <moderngpu/transform.hxx>
 #include <cooperative_groups.h>
@@ -909,6 +904,7 @@ struct Annealer {
       }
     });
 
+    // Now launch the kernels we have created
     std::shared_ptr<mgpu::standard_context_t> context = current_context(mgr);
 
     mgpu::transform<32, 1>(
@@ -989,6 +985,9 @@ auto AnnealerDispatch<D>::forward(
           int pose = idx / max_n_res_cpu;
           int b = idx % max_n_res_cpu;
           int n = pose_n_res[pose];
+          if (b >= n) {
+            return;
+          }
           int cnt = 0;
           for (int b2 = 0; b2 < n; ++b2) {
             if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) ++cnt;
@@ -1012,7 +1011,7 @@ auto AnnealerDispatch<D>::forward(
         mgpu::plus_t<int>(),
         total.data(),
         *context);
-    cudaStreamSynchronize(0);
+    CUDA_CHECK(cudaStreamSynchronize(context->stream()));
     total_neighbors = total.data()[0];
   }
 
@@ -1028,6 +1027,9 @@ auto AnnealerDispatch<D>::forward(
           int pose = idx / max_n_res_cpu;
           int b = idx % max_n_res_cpu;
           int n = pose_n_res[pose];
+          if (b >= n) {
+            return;
+          }
           int offset = neighbor_starts[pose][b];
           for (int b2 = 0; b2 < n; ++b2) {
             if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) {

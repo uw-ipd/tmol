@@ -1,7 +1,7 @@
 import torch
 
-from tmol.pack.packer_task import PackerPalette, PackerTask, SetPackerTask
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.pack import PackerPalette, PackerTask, SetPackerTask
+from tmol.pose import PoseStackBuilder
 from tmol.io import pose_stack_from_pdb
 
 

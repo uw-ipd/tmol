@@ -1,7 +1,7 @@
 """Correctness of the ``context=`` reuse path in ``pose_stack_from_biotite``.
 
 Scoring many structures that share one ligand can build the expensive,
-structure-independent ``BiotitePoseBuildContext`` once and reuse it, recomputing
+structure-independent ``PoseBuildContext`` once and reuse it, recomputing
 only the per-structure canonical form. These tests check that reusing a context
 reproduces the ``prepare_ligands=True`` result and is stable across repeats.
 """
@@ -14,20 +14,14 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io.pose_stack_from_biotite import (
+from tmol.io import (
     build_context_from_biotite,
     pose_stack_from_biotite,
 )
-from tmol.ligand.registry import clear_cache
 
 PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 TARGET = "ace"
 N_REPEATS = 3
-
-
-@pytest.fixture(autouse=True)
-def _clear_ligand_cache() -> None:
-    clear_cache()
 
 
 def _load_complex_cif(target: str) -> struc.AtomArray:

@@ -499,10 +499,10 @@ if(TMOL_BUILD_TESTS)
     )
 
     tmol_add_pybind_cuda_ext(
-      test_dispatch "tmol/tests/score/common/dispatch" "_ext"
-      tmol/tests/score/common/dispatch/test.pybind.cpp
-      tmol/tests/score/common/dispatch/test_cpu.cpp
-      tmol/tests/score/common/dispatch/test_cuda.cu
+      test_device_operations "tmol/tests/score/common/device_operations" "_ext"
+      tmol/tests/score/common/device_operations/test.pybind.cpp
+      tmol/tests/score/common/device_operations/test_cpu.cpp
+      tmol/tests/score/common/device_operations/test_cuda.cu
     )
 
     tmol_add_pybind_cuda_ext(

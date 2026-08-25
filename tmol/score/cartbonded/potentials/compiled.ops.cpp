@@ -7,7 +7,6 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/device_operations.hh>
-#include <tmol/score/common/forall_dispatch.hh>
 
 #include <pybind11/pybind11.h>
 
@@ -53,6 +52,8 @@ class CartBondedPoseScoreOp
       Tensor atom_paths_from_conn,
       Tensor atom_unique_ids,
       Tensor atom_wildcard_ids,
+      Tensor block_type_is_fragment,
+      Tensor atom_cross_ids,
       Tensor hash_keys,
 
       Tensor hash_values,
@@ -95,6 +96,8 @@ class CartBondedPoseScoreOp
                       TCAST(atom_paths_from_conn),
                       TCAST(atom_unique_ids),
                       TCAST(atom_wildcard_ids),
+                      TCAST(block_type_is_fragment),
+                      TCAST(atom_cross_ids),
                       TCAST(hash_keys),
                       TCAST(hash_values),
                       TCAST(cart_subgraphs),
@@ -131,6 +134,8 @@ class CartBondedPoseScoreOp
            atom_paths_from_conn,
            atom_unique_ids,
            atom_wildcard_ids,
+           block_type_is_fragment,
+           atom_cross_ids,
            hash_keys,
            hash_values,
            cart_subgraphs,
@@ -198,6 +203,8 @@ class CartBondedPoseScoreOp
       auto atom_paths_from_conn = saved[i++];
       auto atom_unique_ids = saved[i++];
       auto atom_wildcard_ids = saved[i++];
+      auto block_type_is_fragment = saved[i++];
+      auto atom_cross_ids = saved[i++];
       auto hash_keys = saved[i++];
       auto hash_values = saved[i++];
       auto cart_subgraphs = saved[i++];
@@ -237,6 +244,8 @@ class CartBondedPoseScoreOp
                         TCAST(atom_paths_from_conn),
                         TCAST(atom_unique_ids),
                         TCAST(atom_wildcard_ids),
+                        TCAST(block_type_is_fragment),
+                        TCAST(atom_cross_ids),
                         TCAST(hash_keys),
                         TCAST(hash_values),
                         TCAST(cart_subgraphs),
@@ -274,7 +283,9 @@ class CartBondedPoseScoreOp
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
+        torch::Tensor(),
 
+        torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
@@ -310,6 +321,8 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
       Tensor atom_paths_from_conn,
       Tensor atom_unique_ids,
       Tensor atom_wildcard_ids,
+      Tensor block_type_is_fragment,
+      Tensor atom_cross_ids,
       Tensor hash_keys,
 
       Tensor hash_values,
@@ -355,6 +368,8 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(atom_paths_from_conn),
                       TCAST(atom_unique_ids),
                       TCAST(atom_wildcard_ids),
+                      TCAST(block_type_is_fragment),
+                      TCAST(atom_cross_ids),
                       TCAST(hash_keys),
                       TCAST(hash_values),
                       TCAST(cart_subgraphs),
@@ -394,6 +409,8 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
            atom_paths_from_conn,
            atom_unique_ids,
            atom_wildcard_ids,
+           block_type_is_fragment,
+           atom_cross_ids,
            hash_keys,
            hash_values,
            cart_subgraphs,
@@ -461,6 +478,8 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
       auto atom_paths_from_conn = saved[i++];
       auto atom_unique_ids = saved[i++];
       auto atom_wildcard_ids = saved[i++];
+      auto block_type_is_fragment = saved[i++];
+      auto atom_cross_ids = saved[i++];
       auto hash_keys = saved[i++];
       auto hash_values = saved[i++];
       auto cart_subgraphs = saved[i++];
@@ -505,6 +524,8 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
                         TCAST(atom_paths_from_conn),
                         TCAST(atom_unique_ids),
                         TCAST(atom_wildcard_ids),
+                        TCAST(block_type_is_fragment),
+                        TCAST(atom_cross_ids),
                         TCAST(hash_keys),
                         TCAST(hash_values),
                         TCAST(cart_subgraphs),
@@ -546,7 +567,9 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
+        torch::Tensor(),
 
+        torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
@@ -578,6 +601,8 @@ std::vector<Tensor> cartbonded_pose_scores_op(
     Tensor atom_paths_from_conn,
     Tensor atom_unique_ids,
     Tensor atom_wildcard_ids,
+    Tensor block_type_is_fragment,
+    Tensor atom_cross_ids,
     Tensor hash_keys,
 
     Tensor hash_values,
@@ -607,6 +632,8 @@ std::vector<Tensor> cartbonded_pose_scores_op(
       atom_paths_from_conn,
       atom_unique_ids,
       atom_wildcard_ids,
+      block_type_is_fragment,
+      atom_cross_ids,
       hash_keys,
       hash_values,
       cart_subgraphs,
@@ -637,6 +664,8 @@ std::vector<Tensor> cartbonded_rotamer_scores_op(
     Tensor atom_paths_from_conn,
     Tensor atom_unique_ids,
     Tensor atom_wildcard_ids,
+    Tensor block_type_is_fragment,
+    Tensor atom_cross_ids,
     Tensor hash_keys,
 
     Tensor hash_values,
@@ -666,6 +695,8 @@ std::vector<Tensor> cartbonded_rotamer_scores_op(
       atom_paths_from_conn,
       atom_unique_ids,
       atom_wildcard_ids,
+      block_type_is_fragment,
+      atom_cross_ids,
       hash_keys,
       hash_values,
       cart_subgraphs,

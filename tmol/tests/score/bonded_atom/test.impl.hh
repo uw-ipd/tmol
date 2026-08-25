@@ -3,6 +3,8 @@
 #include <tmol/extern/moderngpu/operators.hxx>
 #include <tmol/tests/score/bonded_atom/test.hh>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/context_manager.hh>
+#include <tmol/score/common/launch_box_macros.hh>
 #include <Eigen/Core>
 
 namespace tmol {
@@ -106,7 +108,14 @@ auto BondedAtomTests<Dispatch, D, Int>::f(
     two_steps[pose_ind][block_ind][atom_ind][1] = nb2.atom;
   });
 
-  Dispatch<D>::forall(n_poses * max_n_blocks * max_n_atoms, take_two_steps);
+#ifdef __NVCC__
+  using launch_t = mgpu::launch_params_t<128, 2>;
+#else
+  using launch_t = launch_t_cpu<128, 2>;
+#endif
+  ContextManager mgr;
+  Dispatch<D>::template forall<launch_t>(
+      mgr, n_poses * max_n_blocks * max_n_atoms, take_two_steps);
 
   return {one_step_t, two_steps_t};
 };

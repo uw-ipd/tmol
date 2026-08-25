@@ -3,7 +3,7 @@ import os
 import torch
 import pytest
 
-from tmol.io.pose_stack_from_atomworks import (
+from tmol.io import (
     pose_stack_from_atomworks,
     canonical_form_from_atomworks,
     atomworks_from_pose_stack,

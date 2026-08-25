@@ -5,12 +5,14 @@ import torch
 
 import attr
 
-from tmol.types.tensor import TensorGroup
-import tmol.types.tensor as tensor
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor, like_kwargs
-
-from tmol.tests.torch import requires_cuda
+from tmol.types import (
+    TensorGroup,
+    NDArray,
+    Tensor,
+    like_kwargs,
+)
+import tmol.types._tensor as tensor
+from tmol.tests import requires_cuda
 
 
 def test_attr_checking():

@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import numpy as np
 from rdkit import Chem
 
-from tmol.ligand.atom_typing import (
+from tmol.ligand import (
     AtomTypeAssignment,
     HYB_AROMATIC,
     HYB_SP2,
@@ -22,9 +22,9 @@ from tmol.ligand.atom_typing import (
     _modify_polar_c,
     _get_hyb,
     sanitize_tolerant,
+    ligand_atom_array_to_rdkit_mol,
+    build_residue_type,
 )
-from tmol.ligand.rdkit_mol import ligand_atom_array_to_rdkit_mol
-from tmol.ligand.residue_builder import build_residue_type
 
 
 def test_get_hyb_distinguishes_ar_vs_aro_subtypes() -> None:
@@ -554,7 +554,7 @@ def test_ligand_atom_array_allows_passthrough_unknown_bond_type(monkeypatch) -> 
             return len(self.element)
 
     monkeypatch.setattr(
-        "tmol.ligand.rdkit_mol.to_mol",
+        "tmol.ligand._rdkit_mol.to_mol",
         lambda _aa: Chem.MolFromSmiles("CCC"),
     )
     ligand_info = SimpleNamespace(res_name="LG1", atom_array=_FakeAtomArray())

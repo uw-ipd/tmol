@@ -14,9 +14,10 @@ from pathlib import Path
 
 import pytest
 
+from tmol.tests.data import data_path
 from tmol.database import ParameterDatabase
 
-DATA = Path(__file__).parent.parent / "data"
+DATA = data_path()
 MOL2_DIR = DATA / "ligand_test" / "ligand_ground_truth" / "mol2"
 
 
@@ -53,7 +54,7 @@ def test_prepare_ligand_from_cif_uses_default_db_when_omitted() -> None:
 
 
 def test_nonstandard_residue_info_from_mol2_block_roundtrips() -> None:
-    from tmol.ligand.detect import (
+    from tmol.ligand import (
         nonstandard_residue_info_from_mol2,
         nonstandard_residue_info_from_mol2_block,
     )
@@ -71,15 +72,15 @@ def test_nonstandard_residue_info_from_mol2_block_roundtrips() -> None:
 # write_params_from_mol2 + params round-trip + .tmol loader branches
 # --------------------------------------------------------------------------- #
 def _single_prep():
-    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
-    from tmol.ligand.preparation import prepare_single_ligand
+    from tmol.ligand import nonstandard_residue_info_from_mol2
+    from tmol.ligand import prepare_single_ligand
 
     info = nonstandard_residue_info_from_mol2(_smallest_mol2(), res_name="LG1")
     return prepare_single_ligand(info, sample_proton_chi=True)
 
 
 def test_write_params_from_mol2_both_formats(tmp_path) -> None:
-    from tmol.ligand.params_io import write_params_from_mol2
+    from tmol.ligand import write_params_from_mol2
 
     rosetta = tmp_path / "lig.params"
     write_params_from_mol2(str(_smallest_mol2()), str(rosetta), res_name="LG1")
@@ -93,7 +94,7 @@ def test_write_params_from_mol2_both_formats(tmp_path) -> None:
 
 
 def test_write_params_file_rosetta_list_to_directory(tmp_path) -> None:
-    from tmol.ligand.params_io import write_params_file
+    from tmol.ligand import write_params_file
 
     prep = _single_prep()
     out_dir = tmp_path / "params_out"
@@ -104,12 +105,12 @@ def test_write_params_file_rosetta_list_to_directory(tmp_path) -> None:
 
 
 def test_tmol_params_roundtrip_and_inject(tmp_path) -> None:
-    from tmol.ligand.params_file import (
+    from tmol.ligand import (
         inject_params_file,
         inject_params_files,
         load_params_file,
     )
-    from tmol.ligand.params_io import write_params_file
+    from tmol.ligand import write_params_file
 
     prep = _single_prep()
     tmol_file = tmp_path / "lig.tmol"
@@ -129,8 +130,8 @@ def test_tmol_params_roundtrip_and_inject(tmp_path) -> None:
 
 
 def test_tmol_loader_accepts_minor_version_difference(tmp_path) -> None:
-    from tmol.ligand.params_file import load_params_file
-    from tmol.ligand.params_io import write_params_file
+    from tmol.ligand import load_params_file
+    from tmol.ligand import write_params_file
 
     prep = _single_prep()
     tmol_file = tmp_path / "lig.tmol"
@@ -146,8 +147,8 @@ def test_tmol_loader_accepts_minor_version_difference(tmp_path) -> None:
 def test_tmol_loader_warns_when_no_charges(tmp_path) -> None:
     import yaml
 
-    from tmol.ligand.params_file import load_params_file
-    from tmol.ligand.params_io import write_params_file
+    from tmol.ligand import load_params_file
+    from tmol.ligand import write_params_file
 
     prep = _single_prep()
     tmol_file = tmp_path / "lig.tmol"
@@ -174,7 +175,7 @@ def test_tmol_loader_warns_when_no_charges(tmp_path) -> None:
     ],
 )
 def test_tmol_loader_rejects_bad_files(tmp_path, content, match) -> None:
-    from tmol.ligand.params_file import load_params_file
+    from tmol.ligand import load_params_file
 
     bad = tmp_path / "bad.tmol"
     bad.write_text(content)
@@ -215,7 +216,6 @@ def test_prepare_ligand_from_smiles_registers(name: str) -> None:
         smiles,
         param_db=ParameterDatabase.get_default(),
         res_name="LG1",
-        conformer_search=False,
     )
     residue = next((r for r in param_db.chemical.residues if r.name == "LG1"), None)
     assert residue is not None, f"{name} ({smiles}) did not register"
@@ -266,7 +266,7 @@ def test_prepare_ligand_from_cif_inputs(name: str) -> None:
 
 def test_prepare_ligands_writes_params_output(tmp_path) -> None:
     """prepare_ligands over a ligand AtomArray writes a reusable .tmol file."""
-    from tmol.ligand.preparation import prepare_ligands
+    from tmol.ligand import prepare_ligands
 
     arr = _load_full_array(CIF_INPUTS / "ada.ligand.cif")
     out = tmp_path / "out.tmol"
@@ -282,7 +282,7 @@ def test_prepare_ligands_accepts_single_model_stack() -> None:
     import biotite.structure as struc
     import biotite.structure.io.pdbx as pdbx
 
-    from tmol.ligand.preparation import prepare_ligands
+    from tmol.ligand import prepare_ligands
 
     cif = pdbx.CIFFile.read(str(CIF_INPUTS / "ada.ligand.cif"))
     stack = pdbx.get_structure(cif, include_bonds=True, extra_fields=["charge"])
@@ -298,7 +298,7 @@ def test_prepare_ligands_rejects_multi_model_stack() -> None:
     """An AtomArrayStack with multiple models is rejected with a clear error."""
     import biotite.structure as struc
 
-    from tmol.ligand.preparation import prepare_ligands
+    from tmol.ligand import prepare_ligands
 
     arr = _load_full_array(CIF_INPUTS / "ada.ligand.cif")
     stack = struc.stack([arr, arr])
@@ -309,7 +309,7 @@ def test_prepare_ligands_rejects_multi_model_stack() -> None:
 def test_prepare_ligands_strict_raises_on_unpreparable_ligand() -> None:
     """A ligand that cannot yield a SMILES raises under strict_ligands=True."""
     from tmol.ligand import LigandPreparationError
-    from tmol.ligand.preparation import prepare_ligands
+    from tmol.ligand import prepare_ligands
 
     # The parp ligand CIF has bond orders the unified SMILES path can't use, so
     # on-the-fly preparation fails -- strict mode must surface that loudly.
@@ -322,7 +322,7 @@ def test_prepare_ligands_strict_raises_on_unpreparable_ligand() -> None:
 
 def test_prepare_ligands_lenient_skips_unpreparable_ligand() -> None:
     """The same ligand is skipped with a warning under strict_ligands=False."""
-    from tmol.ligand.preparation import prepare_ligands
+    from tmol.ligand import prepare_ligands
 
     arr = _load_full_array(CIF_INPUTS / "parp.ligand.cif")
     param_db, ordering = prepare_ligands(
@@ -335,9 +335,9 @@ def test_prepare_ligands_lenient_skips_unpreparable_ligand() -> None:
 
 def test_prepare_ligands_with_params_files_skips_reprep(tmp_path) -> None:
     """A residue supplied via params_files is already known, so no re-prep."""
-    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
-    from tmol.ligand.params_io import write_params_file
-    from tmol.ligand.preparation import prepare_ligands, prepare_single_ligand
+    from tmol.ligand import nonstandard_residue_info_from_mol2
+    from tmol.ligand import write_params_file
+    from tmol.ligand import prepare_ligands, prepare_single_ligand
 
     # Build a .tmol for the mol2 ligand named LG1.
     info = nonstandard_residue_info_from_mol2(_smallest_mol2(), res_name="LG1")

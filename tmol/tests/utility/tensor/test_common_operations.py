@@ -1,7 +1,7 @@
 import torch
 import numpy
 
-from tmol.utility.tensor.common_operations import (
+from tmol.utility.tensor import (
     stretch,
     stretch2,
     exclusive_cumsum1d,

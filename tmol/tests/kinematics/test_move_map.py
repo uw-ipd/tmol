@@ -1,17 +1,15 @@
 import torch
 import pytest
 
-from tmol.kinematics.move_map import MoveMap, MinimizerMap
-from tmol.pose.pose_stack import PoseStack
-from tmol.kinematics.datatypes import (
+from tmol.kinematics import (
+    MoveMap,
+    MinimizerMap,
     KinematicModuleData,
     n_movable_jump_dof_types,
     n_movable_bond_dof_types,
-)
-
-from tmol.kinematics.scan_ordering import (
     construct_kin_module_data_for_pose,
 )
+from tmol.pose import PoseStack
 
 
 def kinatom_to_atom_name(
@@ -376,7 +374,9 @@ def test_set_move_particular_doftypes_for_block_by_boolean_mask(
     var = getattr(mm, varname)
     mask = getattr(mm, maskname)
 
-    bool_mask = torch.zeros((2, 6, 7), dtype=torch.bool)
+    bool_mask = torch.zeros(
+        (mm.n_poses, mm.max_n_blocks, mm.max_n_named_torsions), dtype=torch.bool
+    )
     bool_mask[1, 4, 3] = True
 
     setter = getattr(mm, move_particular_setter_name_for_doftype(doftype))
@@ -401,7 +401,9 @@ def test_set_move_particular_doftypes_for_block_by_boolean_mask_jagged(
     var = getattr(mm, varname)
     mask = getattr(mm, maskname)
 
-    bool_mask = torch.zeros((3, 6, 7), dtype=torch.bool)
+    bool_mask = torch.zeros(
+        (mm.n_poses, mm.max_n_blocks, mm.max_n_named_torsions), dtype=torch.bool
+    )
     bool_mask[1, 4, 3] = True
 
     setter = getattr(mm, move_particular_setter_name_for_doftype(doftype))
@@ -426,7 +428,9 @@ def test_set_move_particular_doftypes_for_block_by_boolean_mask2(
     var = getattr(mm, varname)
     mask = getattr(mm, maskname)
 
-    bool_mask = torch.zeros((2, 6, 7), dtype=torch.bool)
+    bool_mask = torch.zeros(
+        (mm.n_poses, mm.max_n_blocks, mm.max_n_named_torsions), dtype=torch.bool
+    )
     bool_mask[0, 1:3, 4] = True
     bool_mask[1, 2:4, 2] = True
 

@@ -1,6 +1,6 @@
 import pytest
 import numpy
-from tmol.kinematics.fold_forest import EdgeType
+from tmol.kinematics import EdgeType
 
 
 @pytest.fixture

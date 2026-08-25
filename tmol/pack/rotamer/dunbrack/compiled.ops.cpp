@@ -4,7 +4,7 @@
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
-#include <tmol/score/common/complex_dispatch.hh>
+#include <tmol/score/common/device_operations.hh>
 
 #include <vector>
 
@@ -149,7 +149,7 @@ std::vector<Tensor> dun_sample_chi(
 // See https://stackoverflow.com/a/3221914
 
 TORCH_LIBRARY(tmol_dun_sampler, m) {
-  m.def("dun_sample_chi", &dun_sample_chi<score::common::ComplexDispatch>);
+  m.def("dun_sample_chi", &dun_sample_chi<score::common::DeviceOperations>);
 }
 
 }  // namespace dunbrack

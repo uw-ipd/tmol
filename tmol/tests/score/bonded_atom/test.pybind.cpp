@@ -1,6 +1,6 @@
 #include <tmol/utility/tensor/pybind.h>
 
-#include <tmol/score/common/forall_dispatch.hh>
+#include <tmol/score/common/device_operations.hh>
 #include <tmol/tests/score/bonded_atom/test.hh>
 
 namespace tmol {
@@ -10,7 +10,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def(
       "two_steps",
       &tmol::tests::score::bonded_atom::BondedAtomTests<
-          tmol::score::common::ForallDispatch,
+          tmol::score::common::DeviceOperations,
           Device::CPU,
           int32_t>::f,
       "pose_stack_inter_block_connections"_a,
@@ -25,7 +25,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def(
       "two_steps",
       &tmol::tests::score::bonded_atom::BondedAtomTests<
-          tmol::score::common::ForallDispatch,
+          tmol::score::common::DeviceOperations,
           Device::CUDA,
           int32_t>::f,
       "pose_stack_inter_block_connections"_a,

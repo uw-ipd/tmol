@@ -1,16 +1,17 @@
 import pytest
 import torch
 
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-
-from tmol.io.canonical_ordering import (
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStackBuilder,
+)
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_pdb,
+    pose_stack_from_canonical_form,
 )
-from tmol.io import pose_stack_from_pdb
-from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
 @pytest.fixture
@@ -58,6 +59,21 @@ def stack_of_two_six_res_ubqs_no_term(ubq_pdb, torch_device):
     canonical_form.res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     return PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
+
+
+@pytest.fixture
+def distinct_pose_stacks(systems_bysize, torch_device):
+    """Single-pose PoseStacks for three unrelated proteins (40, 75, 150 res)."""
+    return [
+        pose_stack_from_pdb(systems_bysize[nres], torch_device)
+        for nres in (40, 75, 150)
+    ]
+
+
+@pytest.fixture
+def stack_of_distinct_poses(distinct_pose_stacks, torch_device):
+    """Jagged PoseStack of the three unrelated proteins in distinct_pose_stacks."""
+    return PoseStackBuilder.from_poses(distinct_pose_stacks, torch_device)
 
 
 @pytest.fixture

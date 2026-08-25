@@ -3,7 +3,7 @@ from biotite.structure.io.pdbx import CIFFile, set_structure
 import pytest
 import torch
 
-from tmol.io.pose_stack_from_biotite import (
+from tmol.io import (
     build_context_from_biotite,
     canonical_form_from_biotite,
     pose_stack_from_biotite,
@@ -219,7 +219,6 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
     import biotite.structure.io
 
     from tmol.database import ParameterDatabase
-    from tmol.ligand.registry import clear_cache
 
     cif_path = (
         pathlib.Path(__file__).resolve().parents[1]
@@ -243,7 +242,6 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
 
     # Explicit opt-out: a full pose builds NaN-free; LG1 has torsions, no
     # chi_samples.
-    clear_cache()
     pose_stack, context = pose_stack_from_biotite(
         bt_struct,
         torch_device,
@@ -259,7 +257,6 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
 
     # Default-on: the full pose remains finite and the prepared LG1 residue
     # carries proton chi_samples.
-    clear_cache()
     pose_on, context_on = pose_stack_from_biotite(
         bt_struct,
         torch_device,
@@ -272,8 +269,6 @@ def test_sample_proton_chi_integrated_pose_build_behavior(torch_device):
     assert lg1_on.torsions
     assert lg1_on.chi_samples
 
-    clear_cache()
-
 
 def test_sample_proton_chi_ligand_build_from_mol2(torch_device):
     # Parallel to the CIF-source test above, but sources LG1 from the Tripos
@@ -285,8 +280,7 @@ def test_sample_proton_chi_ligand_build_from_mol2(torch_device):
     import pathlib
 
     from tmol.database import ParameterDatabase
-    from tmol.ligand.detect import nonstandard_residue_info_from_mol2
-    from tmol.ligand.registry import clear_cache
+    from tmol.ligand import nonstandard_residue_info_from_mol2
 
     mol2_path = (
         pathlib.Path(__file__).resolve().parents[1]
@@ -300,7 +294,6 @@ def test_sample_proton_chi_ligand_build_from_mol2(torch_device):
         str(mol2_path), res_name="LG1"
     ).atom_array
 
-    clear_cache()
     pose_on, context_on = pose_stack_from_biotite(
         bt_struct,
         torch_device,
@@ -329,4 +322,3 @@ def test_sample_proton_chi_ligand_build_from_mol2(torch_device):
         if {_element(b[0]), _element(b[1])} == {"H", "O"}
     ]
     assert not h_on_o, f"spurious hydroxyl H (carboxylate over-protonation): {h_on_o}"
-    clear_cache()

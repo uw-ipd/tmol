@@ -1,7 +1,7 @@
 import numpy
 
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.score.hbond.hbond_dependent_term import HBondDependentTerm
+from tmol.pose import PackedBlockTypes
+from tmol.score.hbond import HBondDependentTerm
 
 
 def test_hbond_dep_term_annotate_block_types_smoke(

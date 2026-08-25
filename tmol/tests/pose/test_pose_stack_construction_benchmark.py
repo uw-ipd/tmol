@@ -1,9 +1,9 @@
 import pytest
 
 from tmol.io import pose_stack_from_pdb
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.tests.torch import zero_padded_counts
-from tmol.chemical.restypes import three2one
+from tmol.pose import PoseStackBuilder
+from tmol.tests import zero_padded_counts
+from tmol.chemical import three2one
 
 
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30, 100]))
@@ -29,7 +29,7 @@ def test_pose_construction_from_sequence(
 
     @benchmark
     def construct_pass():
-        pose_stack_n = PoseStackBuilder.pose_stack_from_monomer_polymer_sequences(
-            fresh_default_packed_block_types, n_pose_seq
+        pose_stack_n = PoseStackBuilder.from_block_type_names(
+            fresh_default_packed_block_types, n_pose_seq, [[len(seq)]] * n_poses
         )
         return pose_stack_n

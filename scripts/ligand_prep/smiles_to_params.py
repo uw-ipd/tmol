@@ -21,7 +21,7 @@ Writes <out_prefix>.params and <out_prefix>.tmol .
 import argparse
 
 from tmol.ligand import prepare_single_ligand, params_io
-from tmol.ligand.detect import nonstandard_residue_info_from_smiles_via_mol2
+from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
 
 
 def main() -> None:

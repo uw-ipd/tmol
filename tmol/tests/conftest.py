@@ -4,13 +4,18 @@ from .database import (  # noqa: F401
 )
 
 # Import support fixtures
-from .support.rosetta import pyrosetta, rosetta_database  # noqa: F401
+from .support._rosetta import pyrosetta, rosetta_database  # noqa: F401
 
 # Import basic data fixtures
 from .data import (  # noqa: F401
     min_pdb,
     big_pdb,
     water_box_pdb,
+    dna_pdb,
+    rna_pdb,
+    protein_dna_pdb,
+    biotite_dna,
+    biotite_protein_dna,
     ubq_pdb,
     kin_minimized_ubq_pdb,
     pdb_1r21,
@@ -50,9 +55,9 @@ from .kinematics import (  # noqa: F401
     ff_2ubq_6res_K,
 )
 
-from .torch import torch_device, torch_backward_coverage  # noqa: F401
+from ._torch import torch_device, torch_backward_coverage  # noqa: F401
 
-from .numba import numba_cudasim, numba_cuda_or_cudasim  # noqa: F401
+from ._numba import numba_cudasim, numba_cuda_or_cudasim  # noqa: F401
 
 from .pack.rotamer.dunbrack import dun_sampler  # noqa: F401
 
@@ -62,6 +67,8 @@ from .pose import (  # noqa: F401
     stack_of_two_six_res_ubqs,
     stack_of_two_six_res_ubqs_no_term,
     jagged_stack_of_465_res_ubqs,
+    distinct_pose_stacks,
+    stack_of_distinct_poses,
 )
 
 

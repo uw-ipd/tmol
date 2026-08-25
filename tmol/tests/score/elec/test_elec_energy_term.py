@@ -2,10 +2,10 @@ import numpy
 import torch
 
 from tmol.io import pose_stack_from_pdb
-from tmol.score.elec.elec_energy_term import ElecEnergyTerm
-from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.score.elec import ElecEnergyTerm
+from tmol.pose import PackedBlockTypes
 
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.tests.score.common import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device):
@@ -39,7 +39,7 @@ def test_annotate_restypes(fresh_default_restype_set, default_database, torch_de
 
 
 def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device):
-    gold_vals = numpy.array([[-0.405597]], dtype=numpy.float32)
+    gold_vals = numpy.array([[-0.419618]], dtype=numpy.float32)
     elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
     r2_not_cterm = torch.zeros((1, 3, 2), dtype=torch.bool, device=torch_device)
     r2_not_cterm[0, 2, 1] = True

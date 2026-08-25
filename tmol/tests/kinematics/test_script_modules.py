@@ -10,18 +10,20 @@ from tmol import (
     canonical_form_from_pdb,
     pose_stack_from_canonical_form,
 )
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
 )
-from tmol.types.torch import Tensor
+from tmol.types import Tensor
 
-from tmol.kinematics.fold_forest import FoldForest, EdgeType
+from tmol.kinematics import (
+    FoldForest,
+    EdgeType,
+    PoseStackKinematicsModule,
+    inverseKin,
+)
 
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
-from tmol.kinematics.operations import inverseKin
-
-from tmol.tests.torch import requires_cuda
+from tmol.tests import requires_cuda
 
 
 def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
@@ -33,7 +35,10 @@ def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
         dofsfull[:, :6] = dofs_x
         return kop(dofsfull)
 
-    torch.autograd.gradcheck(eval_kin, minimizable_dofs, atol=atol, rtol=rtol)
+    # fd allow a small nondeterminism tolerance
+    torch.autograd.gradcheck(
+        eval_kin, minimizable_dofs, atol=atol, rtol=rtol, nondet_tol=1e-6
+    )
 
 
 def kincoords_and_dofs_for_pose_stack_system(

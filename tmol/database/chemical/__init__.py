@@ -1,5 +1,5 @@
 from typing import Tuple, Optional, NewType
-from tmol.utility.units import BondAngle, DihedralAngle
+from tmol.utility import BondAngle, DihedralAngle
 
 import attr
 import cattr
@@ -21,7 +21,7 @@ def _parse_acceptor_hybridization(v, t):
 cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridization)
 
 
-def normalize_bond_tuples(raw):
+def normalize_bond_tuples(raw):  # noqa: C901
     """Normalize legacy 2-field bond entries to include bond order.
 
     Historically, some YAML snippets used ``[atom1, atom2]`` for bonds.
@@ -139,8 +139,9 @@ class SidechainBuilding:
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class PolymerProperties:
     is_polymer: bool
-    polymer_type: str
-    backbone_type: str
+    # None for a non-polymer
+    polymer_type: Optional[str]
+    backbone_type: Optional[str]
     mainchain_atoms: Optional[Tuple[str, ...]]
     sidechain_chirality: str
     termini_variants: Tuple[str, ...]
@@ -184,6 +185,11 @@ class RawResidueType:
     # them rather than trust input H by name. False for canonical / params-file
     # residues, whose H are authoritative.
     hydrogens_regenerated: bool = False
+    # True only for blocks produced by user-defined ligand fragmentation.
+    is_ligand_fragment: bool = False
+    # One-letter sequence code; unique only within a backbone type ...
+    #   "a" is both DA and RA.
+    one_letter_code: Optional[str] = None
 
     def atom_name(self, index):
         return self.atoms[index].name
@@ -211,7 +217,26 @@ class ChemicalPropertiesVariant:
     polymer: Optional[PolymerPropertiesVariant] = None
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class VariantScope:
+    """Which base residue types a patch is allowed to match.
+
+    An unset field places no restriction. Only properties that patching cannot
+    alter may be named here, so that a patch can never see another patch's
+    effects; mainchain_atoms, for one, does not qualify.
+    """
+
+    backbone_types: Optional[Tuple[str, ...]] = None
+    base_names: Optional[Tuple[str, ...]] = None
+
+    def matches(self, res):
+        if self.base_names is not None and res.base_name not in self.base_names:
+            return False
+        backbone = res.properties.polymer.backbone_type
+        return self.backbone_types is None or backbone in self.backbone_types
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class VariantType:
     name: str
     display_name: str
@@ -223,6 +248,9 @@ class VariantType:
     add_connections: Tuple[Connection, ...]
     add_bonds: Tuple[tuple, ...]
     icoors: Tuple[IcoorVariant, ...]
+    add_torsions: Tuple[Torsion, ...] = ()
+    add_chi_samples: Tuple[ChiSamples, ...] = ()
+    applies_to: VariantScope = VariantScope()
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

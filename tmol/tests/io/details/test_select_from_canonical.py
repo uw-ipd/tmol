@@ -7,25 +7,27 @@ from attrs import evolve
 from functools import partial
 from toolz.curried import groupby
 from tmol.database.chemical import ChemicalDatabase, VariantType, normalize_bond_tuples
-from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from tmol.io.canonical_ordering import (
+from tmol.chemical import RefinedResidueType, ResidueTypeSet
+from tmol.database import PatchedChemicalDatabase
+from tmol.io import (
     canonical_form_from_pdb,
     default_canonical_ordering,
     default_packed_block_types,
     CanonicalOrdering,
 )
-from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
-from tmol.io.details.disulfide_search import find_disulfides
-from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
-from tmol.io.details.select_from_canonical import (
+from tmol.io.details import (
+    left_justify_canonical_form,
+    find_disulfides,
+    resolve_his_tautomerization,
     assign_block_types,
     take_block_type_atoms_from_canonical,
     _annotate_packed_block_types_w_canonical_res_order,
     CanonicalOrderingAnnotation,
 )
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose import (
+    PoseStackBuilder,
+    PackedBlockTypes,
+)
 from tmol.tests.io.details.test_left_justify_canonical_form import add_two_res_at_gap
 
 
@@ -897,10 +899,16 @@ def test_select_best_block_type_candidate_choosing_default_term(
 
 
 def pser_and_mser_patches():
+    """Two throwaway hydroxyl patches for the block-type candidate tests.
+
+    applies_to keeps the loose hydroxyl pattern off every other residue that has
+    one, notably the nucleic acid 5'/3' termini and the RNA 2'-OH.
+    """
     return """
   - name:  PhosphatePatch
     display_name: phospho
     pattern: '[*][*]C[OH]'
+    applies_to: { base_names: [SER, THR] }
     remove_atoms:
     - <H1>
     add_atoms:
@@ -925,6 +933,7 @@ def pser_and_mser_patches():
   - name:  MosphatePatch
     display_name: mospho
     pattern: '[*][*]C[OH]'
+    applies_to: { base_names: [SER, THR] }
     remove_atoms:
     - <H1>
     add_atoms:

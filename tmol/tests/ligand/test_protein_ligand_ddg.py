@@ -18,24 +18,22 @@ termini atoms (OXT, H1–H3) that standard tmol residue types do not model.
 
 from __future__ import annotations
 
-from pathlib import Path
+from tmol.tests.data import data_path
 
 import numpy
 import pytest
 import torch
 
-from tmol.ligand.registry import clear_cache
-
-PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
+PLI_DATA_DIR = data_path("protein_ligand_test")
 LIGAND_RES_NAME = "LG1"
 
 # Weighted block-pair ddG (beta2016, minimize=False, pack=False, no_optH=True)
 # captured on CPU from fixture CIF + fixture .tmol params.
 _GOLDEN_DDG: dict[str, float] = {
-    "ace": -20.621658,
+    "ace": -20.483595,
     "ache": -33.298431,
     "ada": 12.211016,
-    "ampc": -16.555737,
+    "ampc": -16.475182,
     "ar": -30.130075,
     "cdk2": -21.332310,
     "cox1": -28.610884,
@@ -43,28 +41,23 @@ _GOLDEN_DDG: dict[str, float] = {
     "er_agonist": -21.690508,
     "er_antagonist": -39.624435,
     "fgfr1": -25.388765,
-    "fxa": -29.457779,
-    "gr": -30.795242,
+    "fxa": -29.370358,
+    "gr": -30.73596,
     "hivrt": -33.640625,
-    "hmga": -6.930063,
+    "hmga": -6.864939,
     "hsp90": -31.734354,
-    "mr": -24.517738,
+    "mr": -24.439659,
     "na": -17.817350,
     "p38": -32.038181,
     "parp": -14.593683,
-    "pde5": -40.632866,
+    "pde5": -40.546951,
     "pdgfrb": 37.943211,
     "pr": -36.805813,
     "rxr": -51.300358,
     "src": -33.015259,
-    "tk": -29.968708,
-    "vegfr2": 48.421783,
+    "tk": -29.913303,
+    "vegfr2": 48.350834,
 }
-
-
-@pytest.fixture(autouse=True)
-def _clear_ligand_cache() -> None:
-    clear_cache()
 
 
 def _load_complex_cif(target: str):
@@ -99,9 +92,9 @@ def _ligand_block_mask(pose_stack, torch_device: torch.device) -> torch.Tensor:
 
 def _weighted_ddg_from_fixtures(target: str, torch_device: torch.device) -> float:
     from tmol.database import ParameterDatabase
-    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_biotite
     from tmol.score import beta2016_score_function
-    from tmol.score.score_utils import calculate_block_pair_ddg
+    from tmol.ops import calculate_block_pair_ddg
 
     tmol_path = PLI_DATA_DIR / f"{target}.xtal-lig.mmff94.tmol"
     structure = _load_complex_cif(target)

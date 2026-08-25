@@ -3,10 +3,12 @@ import numpy
 import torch
 import math
 import pytest
+import sys
+import types
 
-from tmol.pose.constraint_set import ConstraintSet
-from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.pose import ConstraintSet
+from tmol.score.constraint import ConstraintEnergyTerm
+from tmol.tests.score.common import EnergyTermTestBase
 from tmol import pose_stack_from_pdb, ScoreFunction, ScoreType
 
 
@@ -139,6 +141,46 @@ def test_get_torsion_angle(torch_device):
     gold_vals = torch.tensor([-3.141593, 0.0])
     angles = ConstraintEnergyTerm.get_torsion_angle_test(tnsor)
     numpy.testing.assert_allclose(gold_vals.cpu(), angles.cpu(), atol=1e-5, rtol=1e-5)
+
+
+def _circularharmonic_from_angles(monkeypatch, angles, x0, sd=0.5, offset=1.25):
+    module_name = "tmol.score.constraint.potentials._compiled"
+    compiled = types.ModuleType(module_name)
+
+    def get_torsion_angle(atoms):
+        return atoms[:, 0, 0]
+
+    compiled.get_torsion_angle = get_torsion_angle
+    monkeypatch.setitem(sys.modules, module_name, compiled)
+
+    atoms = torch.zeros((len(angles), 4, 3), dtype=torch.float64)
+    atoms[:, 0, 0] = torch.tensor(angles, dtype=atoms.dtype)
+    atoms.requires_grad_()
+    params = torch.tensor([x0, sd, offset], dtype=atoms.dtype).repeat(len(angles), 1)
+
+    scores = ConstraintEnergyTerm.circularharmonic(atoms, params)
+    scores.sum().backward()
+    return scores.detach(), atoms.grad[:, 0, 0]
+
+
+def test_circularharmonic_periodic_values_and_derivatives(monkeypatch):
+    x0 = 0.2
+    x = 0.7
+    scores, derivatives = _circularharmonic_from_angles(
+        monkeypatch, [x - 2 * math.pi, x, x + 2 * math.pi], x0
+    )
+
+    torch.testing.assert_close(scores, torch.full_like(scores, 2.25))
+    torch.testing.assert_close(derivatives, torch.full_like(derivatives, 4.0))
+
+
+def test_circularharmonic_minus_pi_plus_pi_branch_equivalence(monkeypatch):
+    scores, derivatives = _circularharmonic_from_angles(
+        monkeypatch, [-math.pi, math.pi], math.pi - 0.4
+    )
+
+    torch.testing.assert_close(scores, torch.full_like(scores, 1.89))
+    torch.testing.assert_close(derivatives, torch.full_like(derivatives, 3.2))
 
 
 def add_constraints_to_all_poses(pose_stack):

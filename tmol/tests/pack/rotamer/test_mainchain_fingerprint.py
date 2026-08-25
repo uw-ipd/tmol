@@ -1,24 +1,22 @@
 import numpy
 import torch
 
-from tmol.chemical.restypes import ResidueTypeSet
+from tmol.chemical import ResidueTypeSet
 
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pack.rotamer.single_residue_kinforest import (
+from tmol.pose import PackedBlockTypes
+from tmol.pack.rotamer import (
     construct_single_residue_kinforest,
-)
-from tmol.pack.rotamer.mainchain_fingerprint import (
     create_non_sidechain_fingerprint,
     create_mainchain_fingerprint,
     AtomFingerprint,
     annotate_residue_type_with_sampler_fingerprints,
     find_unique_fingerprints,
+    bfs_sidechain_atoms,
+    FixedAAChiSampler,
 )
-from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+from tmol.pack.rotamer.dunbrack import (
     create_dunbrack_sampler_from_database,
 )
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 
 def test_create_non_sidechain_fingerprint(default_database):
@@ -136,7 +134,7 @@ def test_annotate_rt_w_mainchain_fingerprint(default_database):
     assert mc_fingerprint.fingerprint == fingerprint_gold
 
 
-def test_merge_fingerprints(default_database):
+def test_merge_fingerprints(default_database):  # noqa: C901
     torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
