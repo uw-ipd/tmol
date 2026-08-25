@@ -16,9 +16,7 @@ def test_memory_efficient_sum_handles_different_mask_sizes(
     torch_device, monkeypatch, einsum
 ):
     """Each pose may select a different number of block pairs."""
-    monkeypatch.setattr(
-        score_utils, "_EINSUM_MIN_BYTES", 0 if einsum else float("inf")
-    )
+    monkeypatch.setattr(score_utils, "_EINSUM_MIN_BYTES", 0 if einsum else float("inf"))
     scores = torch.arange(
         2 * 2 * 4 * 4, dtype=torch.float32, device=torch_device
     ).reshape(2, 2, 4, 4)
@@ -55,9 +53,7 @@ def test_memory_efficient_sum_handles_different_mask_sizes(
 def test_default_sum_is_bitwise_legacy_equivalent(torch_device):
     """The default retains the legacy selection and sum order."""
     generator = torch.Generator(device=torch_device).manual_seed(17)
-    scores = torch.randn(
-        5, 3, 32, 32, generator=generator, device=torch_device
-    )
+    scores = torch.randn(5, 3, 32, 32, generator=generator, device=torch_device)
     mask = torch.zeros(3, 32, dtype=torch.bool, device=torch_device)
     mask[:, :11] = True
     other = ~mask

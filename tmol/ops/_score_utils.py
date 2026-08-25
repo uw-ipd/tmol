@@ -43,6 +43,7 @@ def calculate_block_pair_ddg(
     pack=False,
     database=None,
     return_pose_stack=False,
+    *,
     memory_efficient=False,
 ):
     """Calculate DDG score between two subsets of blocks within each pose, defined by 2 masks.
