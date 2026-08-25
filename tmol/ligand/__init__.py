@@ -160,9 +160,16 @@ from ._registry import (  # noqa: F401
     rebuild_canonical_ordering,
 )  # noqa: F401
 from ._residue_builder import build_residue_type  # noqa: F401
+from ._polymer import (  # noqa: F401
+    ComponentKind,
+    ComponentProfile,
+    classify_component,
+)
 from ._structure_to_smiles import ligand_smiles_from_atom_array  # noqa: F401
 
 __all__ = [
+    "ComponentKind",
+    "ComponentProfile",
     "FRAGMENT_ID_ANNOTATION",
     "FragmentConnection",
     "LigandFragmentDefinition",
@@ -174,6 +181,7 @@ __all__ = [
     "TMOL_FORMAT_VERSION",
     "apply_fragment_connections",
     "build_split_block_mapping",
+    "classify_component",
     "detect_nonstandard_residues",
     "expand_fragmented_ligands",
     "fragment_ids_from_atom_array",

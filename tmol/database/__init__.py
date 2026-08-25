@@ -7,7 +7,7 @@ from typing import List, Optional, Mapping
 from .chemical import AtomType, ChemicalDatabase, RawResidueType  # noqa: F401
 from ._patched_chemdb import PatchedChemicalDatabase  # noqa: F401
 from .scoring import ScoringDatabase  # noqa: F401
-from .scoring._elec import PartialCharges  # noqa: F401
+from .scoring._elec import CountPairReps, PartialCharges  # noqa: F401
 from .scoring._cartbonded import CartRes  # noqa: F401
 
 
@@ -102,7 +102,8 @@ def inject_residue_params(
 
     Args:
         param_db: Base database to extend.
-        residue_types: New RawResidueType entries to add.
+        residue_types: New unpatched RawResidueType entries. Standard variants
+            are applied to these entries exactly once before registration.
         atom_types: Optional new AtomType entries (deduplicated by name).
         partial_charges: Per-residue charge dicts ``{res_name: {atom: charge}}``.
         cartbonded_params: Per-residue CartRes ``{res_name: CartRes}``.
@@ -110,14 +111,30 @@ def inject_residue_params(
     Returns:
         A new frozen ParameterDatabase with the additional data.
     """
-    new_chem_residues = (*param_db.chemical.residues, *residue_types)
-
     new_atom_types = param_db.chemical.atom_types
     if atom_types:
         existing_names = {at.name for at in new_atom_types}
         deduped = [at for at in atom_types if at.name not in existing_names]
         if deduped:
             new_atom_types = (*new_atom_types, *deduped)
+
+    newly_patched = PatchedChemicalDatabase.from_chem_db(
+        ChemicalDatabase(
+            element_types=param_db.chemical.element_types,
+            atom_types=new_atom_types,
+            residues=tuple(residue_types),
+            variants=param_db.chemical.variants,
+        )
+    )
+    existing_residue_names = {residue.name for residue in param_db.chemical.residues}
+    new_chem_residues = (
+        *param_db.chemical.residues,
+        *(
+            residue
+            for residue in newly_patched.residues
+            if residue.name not in existing_residue_names
+        ),
+    )
 
     new_patched = attr.evolve(
         param_db.chemical,
@@ -127,14 +144,53 @@ def inject_residue_params(
 
     new_elec = param_db.scoring.elec
     if partial_charges:
-        new_entries = tuple(
+        new_entries = list(
             PartialCharges(res=res, atom=atom, charge=charge)
             for res, charges in partial_charges.items()
             for atom, charge in charges.items()
         )
+        canonical_charges = {
+            (parameter.res, parameter.atom): parameter.charge
+            for parameter in new_elec.atom_charge_parameters
+        }
+        canonical_cp_reps = tuple(
+            (parameter.res, parameter.atm_inner, parameter.atm_outer)
+            for parameter in new_elec.atom_cp_reps_parameters
+        )
+        new_cp_reps = []
+        for raw in residue_types:
+            prefix = raw.name + ":"
+            for patched in newly_patched.residues:
+                if not patched.name.startswith(prefix):
+                    continue
+                variant = patched.name[len(prefix) :]
+                if ":" in variant:
+                    continue
+                parent_variant = f"{raw.base_name}:{variant}"
+                atom_names = {atom.name for atom in patched.atoms}
+                new_entries.extend(
+                    PartialCharges(res=patched.name, atom=atom, charge=charge)
+                    for (res, atom), charge in canonical_charges.items()
+                    if res == parent_variant and atom in atom_names
+                )
+                new_cp_reps.extend(
+                    CountPairReps(
+                        res=patched.name,
+                        atm_inner=inner,
+                        atm_outer=outer,
+                    )
+                    for res, inner, outer in canonical_cp_reps
+                    if res == parent_variant
+                    and inner in atom_names
+                    and outer in atom_names
+                )
         new_elec = attr.evolve(
             new_elec,
             atom_charge_parameters=(*new_elec.atom_charge_parameters, *new_entries),
+            atom_cp_reps_parameters=(
+                *new_elec.atom_cp_reps_parameters,
+                *new_cp_reps,
+            ),
         )
 
     new_cart = param_db.scoring.cartbonded

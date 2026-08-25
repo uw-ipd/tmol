@@ -224,7 +224,13 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
 
         # Fetch the params from the database, updating the atom id store if necessary
-        cartbonded_params = self.get_params_for_res(block_type.base_name)
+        component_name = block_type.name.split(":", 1)[0]
+        parameter_name = (
+            component_name
+            if component_name in self.cart_database.residue_params
+            else block_type.base_name
+        )
+        cartbonded_params = self.get_params_for_res(parameter_name)
         cb_block_ann = CartBondedBlockAnnotations(
             cartbonded_subgraphs=cart_subgraphs,
             cartbonded_subgraph_type_counts=cart_subgraph_type_counts,
