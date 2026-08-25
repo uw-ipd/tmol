@@ -1,6 +1,5 @@
 import yaml
 
-
 _SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 

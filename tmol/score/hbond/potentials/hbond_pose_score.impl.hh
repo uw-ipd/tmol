@@ -585,9 +585,9 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
-  auto dV_dcoords_t =
-      compute_derivs ? TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms})
-                     : TPack<Vec<Real, 3>, 2, Dev>::empty({1, n_atoms});
+  auto dV_dcoords_t = compute_derivs
+                          ? TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms})
+                          : TPack<Vec<Real, 3>, 2, Dev>::empty({1, n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto scratch_rot_spheres_t =

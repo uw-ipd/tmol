@@ -123,8 +123,8 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     n_V = 1;
   }
   TPack<Real, 4, D> V_t = TPack<Real, 4, D>::zeros({1, n_poses, n_V, n_V});
-  auto dV_dx_t =
-      compute_derivs ? TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms})
+  auto dV_dx_t = compute_derivs
+                     ? TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms})
                      : TPack<Vec<Real, 3>, 2, D>::empty({1, n_atoms});
 
   auto V = V_t.view;

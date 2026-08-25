@@ -248,8 +248,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // Allocate the tensors to which we will write our outputs
   int const n_V = output_block_pair_energies ? max_n_blocks : 1;
   auto V_t = TPack<Real, 4, D>::zeros({5, n_poses, n_V, n_V});
-  auto dV_dx_t =
-      compute_derivs ? TPack<Vec<Real, 3>, 2, D>::zeros({5, n_atoms})
+  auto dV_dx_t = compute_derivs
+                     ? TPack<Vec<Real, 3>, 2, D>::zeros({5, n_atoms})
                      : TPack<Vec<Real, 3>, 2, D>::empty({5, n_atoms});
 
   auto V = V_t.view;

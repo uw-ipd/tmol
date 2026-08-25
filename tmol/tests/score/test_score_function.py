@@ -69,9 +69,7 @@ def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
     eager_coords = pose_stack.coords.detach().clone().requires_grad_(True)
     expected_score = eager(eager_coords)
     (expected_grad,) = torch.autograd.grad(expected_score.sum(), eager_coords)
-    expected_terms = eager(
-        pose_stack.coords, sum_terms=False, apply_weights=False
-    )
+    expected_terms = eager(pose_stack.coords, sum_terms=False, apply_weights=False)
 
     graphed = sfxn.render_whole_pose_scoring_module(pose_stack, cuda_graph=True)
     graph_coords = pose_stack.coords.detach().clone().requires_grad_(True)

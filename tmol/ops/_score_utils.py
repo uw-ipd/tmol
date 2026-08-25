@@ -6,7 +6,6 @@ from tmol.pack.rotamer import IncludeCurrentSampler, FixedAAChiSampler
 from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
 from tmol.optimization import run_cart_min
 
-
 _EINSUM_MIN_BYTES = 512 * 1024 * 1024
 
 
@@ -23,9 +22,7 @@ def _sum_cross_block_scores(block_pair_scores, mask, other_mask):
         return torch.einsum(
             "tpij,pij->tp", block_pair_scores, cross_mask.to(block_pair_scores.dtype)
         )
-    return block_pair_scores.masked_fill(~cross_mask.unsqueeze(0), 0).sum(
-        dim=(2, 3)
-    )
+    return block_pair_scores.masked_fill(~cross_mask.unsqueeze(0), 0).sum(dim=(2, 3))
 
 
 def calculate_block_pair_ddg(

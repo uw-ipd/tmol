@@ -150,9 +150,7 @@ class ScoreFunction:
 
         return self._multi_body_terms
 
-    def render_whole_pose_scoring_module(
-        self, pose_stack: PoseStack, cuda_graph=False
-    ):
+    def render_whole_pose_scoring_module(self, pose_stack: PoseStack, cuda_graph=False):
         """Create an object designed to evaluate the score of a set of Poses
         repeatedly as the Poses change their conformation, e.g., as in
         minimization. This object will derive from torch.nn.Module and
@@ -378,9 +376,7 @@ class WholePoseScoringModule:
         if mode not in ("forward", "forward_backward", "both"):
             raise ValueError(f"unsupported CUDA graph mode: {mode!r}")
 
-        if mode in ("forward", "both") and not hasattr(
-            self, "_cuda_graphed_forward"
-        ):
+        if mode in ("forward", "both") and not hasattr(self, "_cuda_graphed_forward"):
             graph_module = _DefaultWholePoseScoringModule(
                 self.weights, self.term_modules
             )
