@@ -349,6 +349,8 @@ class WholePoseScoringModule:
                 return self._cuda_graphed_autograd(coords)
             if not needs_grad and hasattr(self, "_cuda_graphed_forward"):
                 return self._cuda_graphed_forward(coords)
+        if not torch.is_grad_enabled() and coords.requires_grad:
+            coords = coords.detach()
         unweighted = self.unweighted_scores(coords)
         weighted = self.weights * unweighted if apply_weights else unweighted
         summed = torch.sum(weighted, dim=0) if sum_terms else weighted
@@ -459,6 +461,8 @@ class BlockPairScoringModule:
         self.term_modules = term_modules
 
     def __call__(self, coords, sum_terms=True, apply_weights=True):
+        if not torch.is_grad_enabled() and coords.requires_grad:
+            coords = coords.detach()
         unweighted = self.unweighted_scores(coords)
         weighted = self.weights * unweighted if apply_weights else unweighted
         summed = torch.sum(weighted, dim=0) if sum_terms else weighted
@@ -481,6 +485,8 @@ class RotamerScoringModule:
         self.term_modules = term_modules
 
     def __call__(self, coords):
+        if not torch.is_grad_enabled() and coords.requires_grad:
+            coords = coords.detach()
         # Accumulate weighted values and their indices across all terms at the
         # dense [nnz] level.  This avoids torch.stack on sparse tensors, which
         # previously created a [n_subterms, n_poses, n_rots, n_rots] 4D sparse

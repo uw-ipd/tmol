@@ -8,6 +8,7 @@ from tmol.score import (
     ScoreFunction,
     ScoreType,
 )
+from tmol.score._score_function import WholePoseScoringModule
 from tmol.pose import (
     DEFAULT_ATOM_B_FACTOR,
     DEFAULT_ATOM_OCCUPANCY,
@@ -37,6 +38,24 @@ def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
     scores = scorer(pose_stack100.coords)
 
     assert scores is not None
+
+
+def test_no_grad_scoring_detaches_coordinates():
+    class RecordingTerm(torch.nn.Module):
+        def forward(self, coords):
+            self.input_requires_grad = coords.requires_grad
+            return coords.sum().reshape(1, 1)
+
+    term = RecordingTerm()
+    scorer = WholePoseScoringModule(torch.ones(1), [term])
+    coords = torch.ones(1, requires_grad=True)
+
+    scorer(coords)
+    assert term.input_requires_grad
+
+    with torch.no_grad():
+        scorer(coords)
+    assert not term.input_requires_grad
 
 
 def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
