@@ -36,9 +36,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import cattr
-import yaml
 
 from tmol.database import ParameterDatabase
+from tmol.database._yaml import safe_load
 from tmol.database.chemical import RawResidueType, normalize_bond_tuples
 from tmol.database.scoring import (
     CartRes,
@@ -130,7 +130,7 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
 
     path = Path(path)
     with path.open() as f:
-        raw = yaml.safe_load(f)
+        raw = safe_load(f)
 
     if not isinstance(raw, dict):
         raise ValueError(f"Expected mapping at YAML root, got {type(raw).__name__}")

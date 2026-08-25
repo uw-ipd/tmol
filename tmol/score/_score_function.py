@@ -3,11 +3,11 @@ from typing import Dict, Sequence
 import warnings
 
 import torch
-import yaml
 
 from tmol.types import Tensor
 
 from tmol.database import ParameterDatabase
+from tmol.database._yaml import safe_load
 from tmol.score import ScoreType
 
 # force registration of the terms with the ScoreTermFactory
@@ -269,7 +269,7 @@ class ScoreFunction:
             Configured ScoreFunction with all weights from the file applied.
         """
         with open(path) as f:
-            data = yaml.safe_load(f)
+            data = safe_load(f)
 
         # --- .sfxn format version check ---
         file_version = data.get("version")
