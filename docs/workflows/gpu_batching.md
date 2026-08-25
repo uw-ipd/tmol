@@ -37,6 +37,26 @@ member. Group similarly sized structures when practical, and use a score
 function built from the same parameter database as poses with custom residue or
 ligand types.
 
+## Understand first-use latency
+
+The wheel ships precompiled scoring extensions, but constructing databases,
+poses, and packing metadata still performs CPU setup. Importing ``tmol`` is now
+lazy at the public-API boundary: after importing Torch, the top-level import took
+9--14 ms instead of 1.89 s in the H200 test environment. The relevant modules
+load when their public objects are first requested, so benchmark complete
+workflows rather than treating import time as eliminated work.
+
+The same environment showed median default-database construction decreasing
+from 1.906 to 1.681 s after accelerating safe YAML and common angle parsing.
+Serialized scoring tables are memory-mapped while loading; a repeated Dunbrack
+table load decreased from 24.15 to 11.94 ms without changing the resulting
+objects. Removing first-call Numba compilation from residue and disulfide setup
+also decreased a cysteine-rich PPI pose load from about 0.89 to 0.49 s. These
+are one-time process costs. In an order-balanced protein-packing run, the first
+pack decreased from 4.83--5.39 to 2.18--2.23 s while warmed medians stayed at
+about 51 ms. Reuse databases, pose metadata, rendered scorers, and packers when
+the input chemistry and layout permit it.
+
 ## Accelerate repeated fixed-layout scoring
 
 For a fixed pose layout, opt into CUDA Graph capture when the scorer will be
