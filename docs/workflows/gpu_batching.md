@@ -116,10 +116,11 @@ FP32 Cartesian minimization can amplify sub-milliscale score differences into
 different local minima; compare final energies and constraints, and split cases
 when exact trajectory reproducibility is required.
 
-The block-pair interaction reduction now sums through a broadcast mask instead
-of materializing expanded boolean-index results. On an eight-complex PPI batch,
-this changed median interface-score latency from 18.798 to 16.313 ms and peak
-allocated memory from 5.20 to 2.72 GiB, without changing the scoring kernels.
+The block-pair interaction reduction now uses a broadcast mask for ordinary
+inputs and a contraction when its score tensor exceeds the measured 512 MiB
+workspace crossover. On an eight-complex PPI batch, this changed median
+interface-score latency from 18.798 to 16.087 ms and peak allocated memory from
+5.20 to 2.47 GiB, without changing the scoring kernels.
 
 ## Time CUDA work correctly
 
