@@ -536,8 +536,8 @@ def canonical_form_from_atom_records(  # noqa: C901
     uniq_res_ind = {}
     uniq_res_list = []
     count_uniq = -1
-    for i, row in atom_records.iterrows():
-        resid = (row["chain"], row["resi"], row["insert"])
+    for row in atom_records.itertuples(index=False):
+        resid = (row.chain, row.resi, row.insert)
         if resid not in uniq_res_ind:
             count_uniq += 1
             uniq_res_ind[resid] = count_uniq
@@ -558,17 +558,17 @@ def canonical_form_from_atom_records(  # noqa: C901
     chains_seen = {}
     chain_id_to_label = {}
     chain_id_counter = 0  # TO DO: determine if this is wholly redundant w/ "chaini"
-    for i, row in atom_records.iterrows():
-        resid = (row["chain"], row["resi"], row["insert"])
+    for row in atom_records.itertuples(index=False):
+        resid = (row.chain, row.resi, row.insert)
         res_ind = uniq_res_ind[resid]
-        if row["chaini"] not in chains_seen:
-            chains_seen[row["chaini"]] = chain_id_counter
-            chain_id_to_label[chain_id_counter] = row["chain"]
+        if row.chaini not in chains_seen:
+            chains_seen[row.chaini] = chain_id_counter
+            chain_id_to_label[chain_id_counter] = row.chain
             chain_id_counter += 1
-        chain_id[0, res_ind] = chains_seen[row["chaini"]]
+        chain_id[0, res_ind] = chains_seen[row.chaini]
         if res_types[0, res_ind] == -2:
             try:
-                aa_ind = canonical_ordering.restype_io_equiv_classes.index(row["resn"])
+                aa_ind = canonical_ordering.restype_io_equiv_classes.index(row.resn)
                 res_types[0, res_ind] = aa_ind
                 chain_labels[0, res_ind] = chain_id_to_label[chain_id[0, res_ind]]
                 res_labels[0, res_ind] = uniq_res_list[res_ind][1]
@@ -579,16 +579,16 @@ def canonical_form_from_atom_records(  # noqa: C901
                 res_labels[0, res_ind] = ""
                 res_ins_codes[0, res_ind] = ""
         if res_types[0, res_ind] >= 0:
-            res_at_mapping = canonical_ordering.restypes_atom_index_mapping[row["resn"]]
+            res_at_mapping = canonical_ordering.restypes_atom_index_mapping[row.resn]
 
-            atname = row["atomn"].strip()
+            atname = row.atomn.strip()
             try:
                 atind = res_at_mapping[atname]
-                coords[0, res_ind, atind, 0] = row["x"]
-                coords[0, res_ind, atind, 1] = row["y"]
-                coords[0, res_ind, atind, 2] = row["z"]
-                atom_occupancy[0, res_ind, atind] = row["occupancy"]
-                atom_b_factor[0, res_ind, atind] = row["b"]
+                coords[0, res_ind, atind, 0] = row.x
+                coords[0, res_ind, atind, 1] = row.y
+                coords[0, res_ind, atind, 2] = row.z
+                atom_occupancy[0, res_ind, atind] = row.occupancy
+                atom_b_factor[0, res_ind, atind] = row.b
             except KeyError:
                 # ignore atoms that are not in the canonical form
                 # TO DO: warn the user that some atoms are not being processed?
