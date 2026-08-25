@@ -135,6 +135,8 @@ def make_subfixture(
         cprofile=parent.cprofile,
         cprofile_loops=parent.cprofile_loops,
         cprofile_dump=parent.cprofile_dump,
+        precision=3,
+        confidence=0.95,
     )
 
     benchmark.extra_info.update(parent.extra_info)
