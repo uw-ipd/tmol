@@ -60,7 +60,8 @@ def elec_delec_ddist(
     float D0,
     float S,
     float min_dis,
-    float max_dis) -> tuple<Real, Real> {
+    float max_dis,
+    Real C2) -> tuple<Real, Real> {
   Real low_poly_start = min_dis - 0.25;
   Real low_poly_end = min_dis + 0.25;
   Real hi_poly_start = max_dis - 1.0;
@@ -69,8 +70,6 @@ def elec_delec_ddist(
   Real weight = connectivity_weight<Real>(bonded_path_length);
 
   Real C1 = 322.0637;  // electrostatic energy constant (matches Rosetta C0_)
-  Real C2 = C1 / (max_dis * eps(max_dis, D, D0, S));
-
   Real eiej = e_i * e_j;
 
   Real elecE = 0, delec_ddist = 0;
@@ -140,7 +139,8 @@ def elec(
     float D0,
     float S,
     float min_dis,
-    float max_dis) -> Real {
+    float max_dis,
+    Real C2) -> Real {
   Real low_poly_start = min_dis - 0.25;
   Real low_poly_end = min_dis + 0.25;
   Real hi_poly_start = max_dis - 1.0;
@@ -149,8 +149,6 @@ def elec(
   Real weight = connectivity_weight<Real>(bonded_path_length);
 
   Real C1 = 322.0637;  // electrostatic energy constant (matches Rosetta C0_)
-  Real C2 = C1 / (max_dis * eps(max_dis, D, D0, S));
-
   Real eiej = e_i * e_j;
   if (eiej == 0) {
     // Early exit for virtual atoms / atoms with a charge of 0

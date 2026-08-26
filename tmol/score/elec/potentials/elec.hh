@@ -425,7 +425,8 @@ TMOL_DEVICE_FUNC Real elec_atom_energy(
       score_dat.global_params.D0,
       score_dat.global_params.S,
       score_dat.global_params.min_dis,
-      score_dat.global_params.max_dis);
+      score_dat.global_params.max_dis,
+      score_dat.global_params.cutoff_offset);
   return result;
 }
 
@@ -457,7 +458,8 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
       score_dat.global_params.D0,
       score_dat.global_params.S,
       score_dat.global_params.min_dis,
-      score_dat.global_params.max_dis);
+      score_dat.global_params.max_dis,
+      score_dat.global_params.cutoff_offset);
 
   // all threads accumulate derivatives for atom 1 to global memory
   // Remove "0.5 *" as the energy is no longer split between the i,j and j,i
@@ -513,7 +515,8 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
       score_dat.global_params.D0,
       score_dat.global_params.S,
       score_dat.global_params.min_dis,
-      score_dat.global_params.max_dis);
+      score_dat.global_params.max_dis,
+      score_dat.global_params.cutoff_offset);
 
   // all threads accumulate derivatives for atom 1 to global memory
   Vec<Real, 3> elec_dxyz_at1 = dV_ddist * ddist_dat1;

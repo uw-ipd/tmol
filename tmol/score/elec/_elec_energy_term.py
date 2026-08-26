@@ -1,3 +1,5 @@
+import math
+
 import torch
 
 from .._atom_type_dependent_term import AtomTypeDependentTerm
@@ -160,13 +162,23 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))
 
+        D = self.global_params.elec_sigmoidal_die_D
+        D0 = self.global_params.elec_sigmoidal_die_D0
+        S = self.global_params.elec_sigmoidal_die_S
+        max_dis = self.global_params.elec_max_dis
+        eps_at_cutoff = D - 0.5 * (D - D0) * (
+            2 + 2 * max_dis * S + max_dis * max_dis * S * S
+        ) * math.exp(-max_dis * S)
+        cutoff_offset = 322.0637 / (max_dis * eps_at_cutoff)
+
         global_params = torch.tensor(
             [
-                self.global_params.elec_sigmoidal_die_D,
-                self.global_params.elec_sigmoidal_die_D0,
-                self.global_params.elec_sigmoidal_die_S,
+                D,
+                D0,
+                S,
                 self.global_params.elec_min_dis,
-                self.global_params.elec_max_dis,
+                max_dis,
+                cutoff_offset,
             ],
             dtype=torch.float32,
             device=pose_stack.device,
