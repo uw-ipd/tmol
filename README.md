@@ -30,12 +30,9 @@ Use the mode that fits your needs:
 - **Forced source build:** disable fetch and compile locally.
 
 > [!IMPORTANT]
-> **Published release status (checked 2026-07-17):** the latest GitHub and PyPI
-> release is **v0.1.40**. Its 19 GitHub wheel assets use native `linux_*` tags;
-> it does not include Torch 2.13 wheels, and its Python 3.14 GPU wheels target
-> Torch 2.12 only. The v0.1.42 matrix below has passed CI and wheel portability
-> validation but is not published until the release PR is approved and tagged.
-> Always confirm availability on the
+> **v0.1.49 release matrix:** one source distribution is published to PyPI and
+> 33 prebuilt wheels (25 GPU and 8 CPU) are published on GitHub for the Python,
+> PyTorch, CUDA, and architecture combinations below. Always confirm availability on the
 > [GitHub Releases page](https://github.com/uw-ipd/tmol/releases).
 
 Starting with v0.1.42, tmol publishes these wheel variants to GitHub Releases:
@@ -45,12 +42,13 @@ Starting with v0.1.42, tmol publishes these wheel variants to GitHub Releases:
   - Python `cp312`: torch 2.8 through 2.13
   - Python `cp313` and `cp314`: torch 2.12 and 2.13
   - Torch/CUDA tags:
-    - `+cu128torch2.8` (Google Colab / Turing **T4** wheel — the only variant built with `sm_75`; matches Colab runtime 2025.10: Python 3.12, torch 2.8)
     - `+cu129torch2.8`
     - `+cu130torch2.9`
     - `+cu128torch2.10` (x86_64 foundry upgrade lane)
     - `+cu130torch2.10`
+    - `+cu128torch2.11` (Google Colab / Turing **T4** wheel — the only variant built with `sm_75`)
     - `+cu130torch2.11`
+    - `+cu130torch2.12`
     - `+cu132torch2.12`
     - `+cu130torch2.13`
 - CPU wheels (`manylinux_2_28_x86_64` and `manylinux_2_28_aarch64`) for:
@@ -65,15 +63,15 @@ tmol-{VERSION}+{LOCAL_TAG}-cp{PYTAG}-cp{PYTAG}-manylinux_2_28_{ARCH}.whl
 
 Examples:
 
-- `tmol-0.1.42+cu130torch2.13-cp313-cp313-manylinux_2_28_x86_64.whl`
-- `tmol-0.1.42+cpu-cp314-cp314-manylinux_2_28_aarch64.whl`
+- `tmol-0.1.49+cu130torch2.13-cp313-cp313-manylinux_2_28_x86_64.whl`
+- `tmol-0.1.49+cpu-cp314-cp314-manylinux_2_28_aarch64.whl`
 
 > [!TIP]
 > CUDA wheels are forward-compatible within a major family (e.g. `cu132` wheels run on appropriate CUDA 13.x driver stacks).
 
 ### System requirements (Linux wheels)
 
-The v0.1.42 GPU and CPU wheels use `manylinux_2_28` platform tags on both
+The v0.1.49 GPU and CPU wheels use `manylinux_2_28` platform tags on both
 `x86_64` and `aarch64`. They require a Linux distribution with glibc 2.28 or
 newer. Torch and NVIDIA CUDA shared libraries are supplied by the matching
 PyTorch package, not bundled into tmol wheels.
