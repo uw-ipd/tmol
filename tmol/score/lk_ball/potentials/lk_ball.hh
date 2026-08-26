@@ -67,11 +67,12 @@ struct lk_fraction {
     if (d2_low < 0.0) d2_low = 0.0;
 
     Real wted_d2_delta = 0;
+    // Water generation writes valid waters first and leaves the remaining
+    // slots as contiguous NaN padding.
     for (int w = 0; w < MAX_WATER; ++w) {
+      if (std::isnan(WI(w, 0))) break;
       Real d2_delta = (J - WI.row(w).transpose()).squaredNorm() - d2_low;
-      if (!std::isnan(d2_delta)) {
-        wted_d2_delta += std::exp(-d2_delta);
-      }
+      wted_d2_delta += std::exp(-d2_delta);
     }
 
     wted_d2_delta = -std::log(wted_d2_delta);
@@ -94,17 +95,16 @@ struct lk_fraction {
     Real3 d_wted_d2_delta_d_J = Real3::Zero();
     WatersMat d_wted_d2_delta_d_WI = WatersMat::Zero();
 
+    // Generated water rows are valid-first, followed by NaN padding.
     for (int w = 0; w < MAX_WATER; ++w) {
+      if (std::isnan(WI(w, 0))) break;
       Real3 delta_Jw = J - WI.row(w).transpose();
       Real d2_delta = delta_Jw.squaredNorm() - d2_low;
+      Real exp_d2_delta = std::exp(-d2_delta);
 
-      if (!std::isnan(d2_delta)) {
-        Real exp_d2_delta = std::exp(-d2_delta);
-
-        wted_d2_delta += exp_d2_delta;
-        d_wted_d2_delta_d_J += exp_d2_delta * delta_Jw;
-        d_wted_d2_delta_d_WI.row(w).transpose() = -exp_d2_delta * delta_Jw;
-      }
+      wted_d2_delta += exp_d2_delta;
+      d_wted_d2_delta_d_J += exp_d2_delta * delta_Jw;
+      d_wted_d2_delta_d_WI.row(w).transpose() = -exp_d2_delta * delta_Jw;
     }
 
     Real const exp_sum = wted_d2_delta;
@@ -175,13 +175,14 @@ struct lk_bridge_fraction {
       -> Real {
     // water overlap
     Real wted_d2_delta = 0.0;
+    // Generated water rows are valid-first, followed by NaN padding.
     for (int wi = 0; wi < MAX_WATER; wi++) {
+      if (std::isnan(WI(wi, 0))) break;
       for (int wj = 0; wj < MAX_WATER; wj++) {
+        if (std::isnan(WJ(wj, 0))) break;
         Real d2_delta =
             (WI.row(wi) - WJ.row(wj)).squaredNorm() - overlap_gap_A2;
-        if (!std::isnan(d2_delta)) {
-          wted_d2_delta += std::exp(-d2_delta);
-        }
+        wted_d2_delta += std::exp(-d2_delta);
       }
     }
     wted_d2_delta = -std::log(wted_d2_delta);
@@ -220,19 +221,19 @@ struct lk_bridge_fraction {
     WatersMat d_wted_d2_delta_d_WI = WatersMat::Zero();
     WatersMat d_wted_d2_delta_d_WJ = WatersMat::Zero();
 
+    // Generated water rows are valid-first, followed by NaN padding.
     for (int wi = 0; wi < MAX_WATER; wi++) {
+      if (std::isnan(WI(wi, 0))) break;
       for (int wj = 0; wj < MAX_WATER; wj++) {
+        if (std::isnan(WJ(wj, 0))) break;
         Real3 delta_ij = WI.row(wi) - WJ.row(wj);
         Real d2_delta = delta_ij.squaredNorm() - overlap_gap_A2;
+        Real exp_d2_delta = std::exp(-d2_delta);
 
-        if (!std::isnan(d2_delta)) {
-          Real exp_d2_delta = std::exp(-d2_delta);
+        d_wted_d2_delta_d_WI.row(wi).transpose() += exp_d2_delta * delta_ij;
+        d_wted_d2_delta_d_WJ.row(wj).transpose() -= exp_d2_delta * delta_ij;
 
-          d_wted_d2_delta_d_WI.row(wi).transpose() += exp_d2_delta * delta_ij;
-          d_wted_d2_delta_d_WJ.row(wj).transpose() -= exp_d2_delta * delta_ij;
-
-          wted_d2_delta += exp_d2_delta;
-        }
+        wted_d2_delta += exp_d2_delta;
       }
     }
 
