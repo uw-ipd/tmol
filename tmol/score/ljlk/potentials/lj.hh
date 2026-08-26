@@ -119,6 +119,10 @@ struct lj_score {
       LJTypeParams<Real> i,
       LJTypeParams<Real> j,
       LJGlobalParams<Real> global) -> V_dV_t {
+    if (dist >= global.max_dis) {
+      return {0.0, 0.0, 0.0, 0.0};
+    }
+
     Real sigma = lj_sigma<Real>(i, j, global);
     Real weight = connectivity_weight<Real, Real>(bonded_path_length);
     Real epsilon = i.lj_sqrt_wdepth * j.lj_sqrt_wdepth;
@@ -146,7 +150,7 @@ struct lj_score {
       lj = vdw_at_dist.V;
       d_lj_d_dist = vdw_at_dist.dV_ddist;
 
-    } else if (dist < cpoly_dmax) {
+    } else {
       auto vdw_at_cpoly_dmin = vdw<Real>::V_dV(cpoly_dmin, sigma, epsilon);
       tie(lj, d_lj_d_dist) = interpolate_to_zero_V_dV(
           dist,
@@ -154,10 +158,6 @@ struct lj_score {
           vdw_at_cpoly_dmin.V,
           vdw_at_cpoly_dmin.dV_ddist,
           cpoly_dmax);
-
-    } else {
-      lj = 0.0;
-      d_lj_d_dist = 0.0;
     }
 
     Real Vatr, Vrep, d_Vatr_dd, d_Vrep_dd;
