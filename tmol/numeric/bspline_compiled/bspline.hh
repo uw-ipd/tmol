@@ -348,6 +348,45 @@ struct ndspline {
     return {Vs_t, dV_dIs_t};
   }
 
+  static auto EIGEN_DEVICE_FUNC interpolate_V(
+      TensorAccessor<Real, NDIM, D> coeffs, Eigen::Matrix<Real, NDIM, 1> X)
+      -> Real {
+    typedef Eigen::Matrix<Real, NDIM, 1> RealN;
+    typedef Eigen::Matrix<Int, NDIM, 1> IntN;
+
+    Int nprods = 1;
+    IntN idx;
+    RealN frac;
+
+    for (int dim = 0; dim < NDIM; ++dim) {
+      idx[dim] = (Int)std::floor(X[dim]);
+      frac[dim] = X[dim] - idx[dim];
+      idx[dim] -= (DEGREE / 2);
+      nprods *= (DEGREE + 1);
+    }
+
+    Eigen::Matrix<Real, NDIM, DEGREE + 1> wts = _get_weights(frac);
+    Real interp = 0;
+    for (int pt = 0; pt < nprods; ++pt) {
+      Real weight = 1;
+      Int stride = 1;
+      Int pt_indexer = pt;
+      Int idx_ij = 0;
+
+      for (int dim = NDIM - 1; dim >= 0; --dim) {
+        Int idx_box_i = pt_indexer % (DEGREE + 1);
+        Int idx_i = (idx[dim] + idx_box_i) % coeffs.size(dim);
+        if (idx_i < 0) idx_i += coeffs.size(dim);
+        idx_ij += stride * idx_i;
+        stride *= coeffs.size(dim);
+        weight *= wts(dim, idx_box_i);
+        pt_indexer /= (DEGREE + 1);
+      }
+      interp += weight * coeffs.data()[idx_ij];
+    }
+    return interp;
+  }
+
   static auto EIGEN_DEVICE_FUNC interpolate(
       TensorAccessor<Real, NDIM, D> coeffs, Eigen::Matrix<Real, NDIM, 1> X)
       -> tmol::score::common::tuple<Real, Eigen::Matrix<Real, NDIM, 1> > {

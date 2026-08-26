@@ -36,14 +36,15 @@ struct vdw {
   }
 
   static def V_dV(Real dist, Real sigma, Real epsilon) -> dV_t {
-    Real sd = (sigma / dist);
+    Real const inv_dist = 1 / dist;
+    Real sd = sigma * inv_dist;
     Real sd2 = sd * sd;
     Real sd6 = sd2 * sd2 * sd2;
     Real sd12 = sd6 * sd6;
 
     return {
         epsilon * (sd12 - Real(2.0) * sd6),
-        epsilon * ((Real(-12.0) * sd12 / dist) - (Real(-12.0) * sd6 / dist))};
+        Real(12.0) * epsilon * (sd6 - sd12) * inv_dist};
   }
 };
 
@@ -71,43 +72,40 @@ struct lj_score {
     Real cpoly_dmax = global.max_dis;
     Real spline_start = global.max_dis - Real(1.5);
 
-    Real weight;
-    Real Vatr, Vrep;
     if (dist > cpoly_dmax) {
-      Vatr = 0.0;
-      Vrep = 0.0;
-      weight = 0.0;
+      return {0.0, 0.0};
+    }
+
+    Real sigma = lj_sigma<Real>(i, j, global);
+    Real epsilon = i.lj_sqrt_wdepth * j.lj_sqrt_wdepth;
+    Real d_lin = sigma * global.lj_dlin_sigma_factor;
+    Real cpoly_dmin =
+        sigma > spline_start
+            ? (sigma > cpoly_dmax - Real(0.1) ? cpoly_dmax - Real(0.1) : sigma)
+            : spline_start;
+
+    Real weight = connectivity_weight<Real, Real>(bonded_path_length);
+    Real Vatr, Vrep;
+    if (dist > cpoly_dmin) {
+      auto vdw_at_cpoly_dmin = vdw<Real>::V_dV(cpoly_dmin, sigma, epsilon);
+      Vatr = interpolate_to_zero(
+          dist,
+          cpoly_dmin,
+          vdw_at_cpoly_dmin.V,
+          vdw_at_cpoly_dmin.dV_ddist,
+          cpoly_dmax);
+    } else if (dist > d_lin) {
+      Vatr = vdw<Real>::V(dist, sigma, epsilon);
     } else {
-      Real sigma = lj_sigma<Real>(i, j, global);
-      Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
-      Real d_lin = sigma * global.lj_dlin_sigma_factor;
-      Real cpoly_dmin = sigma > spline_start ? (sigma > cpoly_dmax - Real(0.1)
-                                                    ? cpoly_dmax - Real(0.1)
-                                                    : sigma)
-                                             : spline_start;
+      auto vdw_at_d_lin = vdw<Real>::V_dV(d_lin, sigma, epsilon);
+      Vatr = (vdw_at_d_lin.V + vdw_at_d_lin.dV_ddist * (dist - d_lin));
+    }
 
-      weight = connectivity_weight<Real, Real>(bonded_path_length);
-      if (dist > cpoly_dmin) {
-        auto vdw_at_cpoly_dmin = vdw<Real>::V_dV(cpoly_dmin, sigma, epsilon);
-        Vatr = interpolate_to_zero(
-            dist,
-            cpoly_dmin,
-            vdw_at_cpoly_dmin.V,
-            vdw_at_cpoly_dmin.dV_ddist,
-            cpoly_dmax);
-      } else if (dist > d_lin) {
-        Vatr = vdw<Real>::V(dist, sigma, epsilon);
-      } else {
-        auto vdw_at_d_lin = vdw<Real>::V_dV(d_lin, sigma, epsilon);
-        Vatr = (vdw_at_d_lin.V + vdw_at_d_lin.dV_ddist * (dist - d_lin));
-      }
-
-      if (dist < sigma) {
-        Vrep = Vatr + epsilon;
-        Vatr = -epsilon;
-      } else {
-        Vrep = 0.0;
-      }
+    if (dist < sigma) {
+      Vrep = Vatr + epsilon;
+      Vatr = -epsilon;
+    } else {
+      Vrep = 0.0;
     }
     return {weight * Vatr, weight * Vrep};
   }
@@ -118,9 +116,13 @@ struct lj_score {
       LJTypeParams<Real> i,
       LJTypeParams<Real> j,
       LJGlobalParams<Real> global) -> V_dV_t {
+    if (dist >= global.max_dis) {
+      return {0.0, 0.0, 0.0, 0.0};
+    }
+
     Real sigma = lj_sigma<Real>(i, j, global);
     Real weight = connectivity_weight<Real, Real>(bonded_path_length);
-    Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
+    Real epsilon = i.lj_sqrt_wdepth * j.lj_sqrt_wdepth;
 
     // Real d_lin = sigma * 0.6;
     Real d_lin = sigma * global.lj_dlin_sigma_factor;
@@ -145,7 +147,7 @@ struct lj_score {
       lj = vdw_at_dist.V;
       d_lj_d_dist = vdw_at_dist.dV_ddist;
 
-    } else if (dist < cpoly_dmax) {
+    } else {
       auto vdw_at_cpoly_dmin = vdw<Real>::V_dV(cpoly_dmin, sigma, epsilon);
       tie(lj, d_lj_d_dist) = interpolate_to_zero_V_dV(
           dist,
@@ -153,10 +155,6 @@ struct lj_score {
           vdw_at_cpoly_dmin.V,
           vdw_at_cpoly_dmin.dV_ddist,
           cpoly_dmax);
-
-    } else {
-      lj = 0.0;
-      d_lj_d_dist = 0.0;
     }
 
     Real Vatr, Vrep, d_Vatr_dd, d_Vrep_dd;

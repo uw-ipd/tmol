@@ -166,8 +166,10 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto dihedral_values_t = TPack<Real, 2, D>::zeros({n_rots, max_n_dih});
   auto dihedral_values = dihedral_values_t.view;
   auto dihedral_deriv_t =
-      TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
-          {n_rots, max_n_dih});
+      compute_derivs ? TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
+                           {n_rots, max_n_dih})
+                     : TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::empty(
+                           {n_rots, max_n_dih});
   auto dihedral_deriv = dihedral_deriv_t.view;
 
   auto rotameric_rottable_assignment_t = TPack<Int, 1, D>::zeros({n_rots});
@@ -177,14 +179,19 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto semirotameric_rottable_assignment =
       semirotameric_rottable_assignment_t.view;
 
-  auto dneglnprob_rot_dbb_xyz_t = TPack<CoordQuad, 2, D>::zeros({n_rots, 2});
+  auto dneglnprob_rot_dbb_xyz_t =
+      compute_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 2})
+                     : TPack<CoordQuad, 2, D>::empty({n_rots, 2});
   auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_t.view;
 
-  auto drotchi_devpen_dtor_xyz_t = TPack<CoordQuad, 2, D>::zeros({n_rots, 3});
+  auto drotchi_devpen_dtor_xyz_t =
+      compute_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
+                     : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
   auto drotchi_devpen_dtor_xyz = drotchi_devpen_dtor_xyz_t.view;
 
   auto dneglnprob_nonrot_dtor_xyz_t =
-      TPack<CoordQuad, 2, D>::zeros({n_rots, 3});
+      compute_derivs ? TPack<CoordQuad, 2, D>::zeros({n_rots, 3})
+                     : TPack<CoordQuad, 2, D>::empty({n_rots, 3});
   auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_t.view;
 
   auto V = V_t.view;
@@ -254,12 +261,20 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                          : (ii == 1) ? PSI_DEFAULT
                                      : 0.0;
 
-      measure_dihedral_V_dV(
-          TensorAccessor<Vec<Real, 3>, 1, D>(rot_coords),
-          dihedral_atom_inds[rotamer_index][ii],
-          dih_default,
-          dihedral_values[rotamer_index][ii],
-          dihedral_deriv[rotamer_index][ii]);
+      if (compute_derivs) {
+        measure_dihedral_V_dV(
+            TensorAccessor<Vec<Real, 3>, 1, D>(rot_coords),
+            dihedral_atom_inds[rotamer_index][ii],
+            dih_default,
+            dihedral_values[rotamer_index][ii],
+            dihedral_deriv[rotamer_index][ii]);
+      } else {
+        measure_dihedral_V(
+            TensorAccessor<Vec<Real, 3>, 1, D>(rot_coords),
+            dihedral_atom_inds[rotamer_index][ii],
+            dih_default,
+            dihedral_values[rotamer_index][ii]);
+      }
     }
 
     // Templated on there being 2 backbone dihedrals for canonical aas.
@@ -285,7 +300,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           dihedral_values[rotamer_index],
           rotameric_rottable_assignment[rotamer_index],
           dneglnprob_rot_dbb_xyz[rotamer_index],
-          dihedral_deriv[rotamer_index]);
+          dihedral_deriv[rotamer_index],
+          compute_derivs);
 
       if (output_block_pair_energies) {
         V[0][pose_index][block_index][block_index] = prob;
@@ -335,7 +351,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           rotameric_rottable_assignment[rotamer_index],
           // Out
           drotchi_devpen_dtor_xyz[rotamer_index],
-          dihedral_deriv[rotamer_index]);
+          dihedral_deriv[rotamer_index],
+          compute_derivs);
       rotameric_chi_dev_penalty += Erotdev;
 
       if (compute_derivs) {
@@ -387,7 +404,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           semirotameric_rottable_assignment[rotamer_index],
 
           dneglnprob_nonrot_dtor_xyz[rotamer_index],
-          dihedral_deriv[rotamer_index]);
+          dihedral_deriv[rotamer_index],
+          compute_derivs);
 
       if (output_block_pair_energies) {
         V[2][pose_index][block_index][block_index] = Esemi;

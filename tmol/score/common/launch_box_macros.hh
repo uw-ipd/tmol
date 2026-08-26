@@ -28,10 +28,27 @@ struct launch_t_cpu {
       arch_75_cta<32, 1>> \
       launch_t;
 
+// Create a one-warp launch box with a requested minimum number of resident
+// blocks per SM on Volta and newer. This lets register-heavy kernels trade
+// registers for latency hiding without changing their warp-cooperative
+// algorithm or imposing modern occupancy targets on legacy architectures.
+#define LAUNCH_BOX_32_OCC_AS(name, occ) \
+  using namespace mgpu;                 \
+  typedef launch_box_t<                 \
+      arch_20_cta<32, 1>,               \
+      arch_35_cta<32, 1>,               \
+      arch_52_cta<32, 1>,               \
+      arch_70_cta<32, 1, 1, occ>,       \
+      arch_75_cta<32, 1, 1, occ>>       \
+      name;
+#define LAUNCH_BOX_32_OCC(occ) LAUNCH_BOX_32_OCC_AS(launch_t, occ)
+
 #else
 // On the CPU, an "ntreads" of 1 is faster because there
 // is only one set of threads
 #define LAUNCH_BOX_32 typedef launch_t_cpu<1, 1> launch_t;
+#define LAUNCH_BOX_32_OCC_AS(name, occ) typedef launch_t_cpu<1, 1> name;
+#define LAUNCH_BOX_32_OCC(occ) typedef launch_t_cpu<1, 1> launch_t;
 #endif
 
 #ifdef __NVCC__

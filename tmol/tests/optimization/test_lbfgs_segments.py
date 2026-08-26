@@ -16,6 +16,25 @@ def _history(m, n_segments, size, dtype, device, seed=0):
     return grad.to(device), dirs.to(device), stps.to(device)
 
 
+def test_dense_segment_layout_helpers(torch_device):
+    """Contiguous equal segments need no indexed padding or gathering."""
+    x = torch.nn.Parameter(torch.zeros(12, device=torch_device))
+    segment_ids = torch.arange(3, device=torch_device).repeat_interleave(4)
+    optimizer = LBFGS_Armijo([x], segment_ids=segment_ids)
+    values = torch.arange(12, dtype=x.dtype, device=torch_device)
+    expected = values.view(3, 4)
+
+    assert optimizer._segments_are_dense
+    torch.testing.assert_close(optimizer._pad(values), expected)
+    torch.testing.assert_close(optimizer._unpad(expected), values)
+    torch.testing.assert_close(optimizer._seg_sum(values), expected.sum(-1))
+    torch.testing.assert_close(optimizer._seg_amax(values), expected.amax(-1))
+
+    out = torch.empty_like(expected)
+    assert optimizer._pad(values, out=out).data_ptr() == out.data_ptr()
+    torch.testing.assert_close(out, expected)
+
+
 def test_batched_two_loop_matches_one_problem_at_a_time(torch_device):
     grad, dirs, stps = _history(7, 4, 13, torch.float64, torch_device)
     batched = lbfgs_two_loop(grad, dirs, stps)

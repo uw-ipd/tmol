@@ -108,7 +108,8 @@ class BackboneTorsionPoseScoreOp
                       TCAST(rama_table_params),
                       TCAST(omega_tables),
                       TCAST(omega_table_params),
-                      output_block_pair_energies);
+                      output_block_pair_energies,
+                      rot_coords.requires_grad());
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;

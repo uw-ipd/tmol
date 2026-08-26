@@ -544,8 +544,9 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   }
   auto output = output_t.view;
 
-  // Optimal launch box on v100 and a100 is nt=32, vt=1
-  LAUNCH_BOX_32;
+  // This atom-pair kernel benefits from a 64-register budget on modern GPUs,
+  // which leaves enough resident warps to hide its dependency latency.
+  LAUNCH_BOX_32_OCC(32);
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
 
@@ -700,20 +701,14 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
              int start_atom2,
              ElecScoringData<Real> const& score_dat,
              int cp_separation) {
-          if (compute_derivs) {
-            auto val = elec_atom_energy_and_derivs_full(
-                atom_tile_ind1,
-                atom_tile_ind2,
-                start_atom1,
-                start_atom2,
-                score_dat,
-                cp_separation,
-                dV_dcoords);
-            return val;
-          } else {
-            return elec_atom_energy(
-                atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
-          }
+          return elec_atom_energy_and_derivs_full(
+              atom_tile_ind1,
+              atom_tile_ind2,
+              start_atom1,
+              start_atom2,
+              score_dat,
+              cp_separation,
+              dV_dcoords);
         });
 
     auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
@@ -846,7 +841,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // mgpu::standard_context_t context(wrapped_stream.stream());
 
   // 3
-  if (output_block_pair_energies) {
+  if (output_block_pair_energies || !compute_derivs) {
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
         mgr, n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
   } else {

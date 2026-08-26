@@ -105,7 +105,8 @@ class RefEnergyTerm(EnergyTerm):
         bt = pose_stack.block_type_ind64
         weights = ref_weights[bt.clamp_min(0)]
         block_ref = torch.where(bt >= 0, weights, torch.zeros_like(weights))
-        return [block_ref, ref_weights]
+        pose_ref = torch.sum(block_ref, dim=1).unsqueeze(0)
+        return [block_ref, pose_ref, ref_weights]
 
 
 def eval_ref_energy_for_pose(
@@ -124,19 +125,17 @@ def eval_ref_energy_for_pose(
     _rot_offset_for_block,
     _max_n_rots_per_pose,
     block_ref,
+    pose_ref,
     _ref_weights,
     output_block_pair_energies: bool,
 ):
-    score = block_ref
-
     if output_block_pair_energies:
-        score = torch.diag_embed(score)
+        score = torch.diag_embed(block_ref)
+        score = torch.unsqueeze(score, 0)
     else:
-        # for each pose, sum up the block scores
-        score = torch.sum(score, 1)
-
-    # wrap this all in an extra dim (the output expects an outer dim to separate sub-terms)
-    score = torch.unsqueeze(score, 0)
+        # Reference energies are coordinate-independent. Their per-pose sum is
+        # computed once while rendering the scoring module, not on every call.
+        score = pose_ref.view_as(pose_ref)
 
     score.requires_grad = True  # a bit of a hack to make the benchmark test not error out because there are no grads
 
@@ -159,6 +158,7 @@ def eval_ref_energy_for_rotamers(
     _rot_offset_for_block,
     _max_n_rots_per_pose,
     _block_ref,
+    _pose_ref,
     ref_weights,
     output_block_pair_energies: bool,
 ):

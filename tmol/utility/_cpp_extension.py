@@ -117,7 +117,9 @@ if torch.cuda.is_available():
             f"/site-packages/nvidia/nvtx/include"
         )
 
-_default_cuda_flags = []
+# Match the Release AOT build. Without an explicit optimization level, local
+# JIT extensions can run materially slower than the packaged CUDA kernels.
+_default_cuda_flags = ["-O3"]
 
 
 # Add additional flags.

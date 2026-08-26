@@ -306,8 +306,7 @@ struct LKBallRotamerScoreDispatch {
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
       TView<Int, 2, Dev> dispatch_indices,  // from forward pass
-      TView<Real, 2, Dev> dTdV,
-      bool block_pair_scoring)
+      TView<Real, 2, Dev> dTdV)
       -> std::tuple<TPack<Vec<Real, 3>, 1, Dev>, TPack<Vec<Real, 3>, 2, Dev>>;
 };
 

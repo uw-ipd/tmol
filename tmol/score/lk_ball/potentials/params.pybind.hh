@@ -28,8 +28,10 @@ struct type_caster<tmol::score::lk_ball::potentials::LKBallTypeParams<Real>> {
     nvtx_range_function();
 
     CAST_ATTR(src, value, lj_radius);
-    CAST_ATTR(src, value, lk_dgfree);
-    CAST_ATTR(src, value, lk_lambda);
+    Real const lk_dgfree = src.attr("lk_dgfree").cast<Real>();
+    Real const lk_lambda = src.attr("lk_lambda").cast<Real>();
+    value.lk_coeff = -lk_dgfree / (Real(2) * Real(5.56832799683) * lk_lambda);
+    value.lk_inv_lambda2 = Real(1) / (lk_lambda * lk_lambda);
     CAST_ATTR(src, value, lk_volume);
     CAST_ATTR(src, value, is_donor);
     CAST_ATTR(src, value, is_hydroxyl);
