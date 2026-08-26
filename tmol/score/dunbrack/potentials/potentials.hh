@@ -58,6 +58,24 @@ def measure_dihedral_V_dV(
 }
 
 template <typename Real, typename Int, tmol::Device D>
+def measure_dihedral_V(
+    TensorAccessor<Eigen::Matrix<Real, 3, 1>, 1, D> coordinates,
+    const Vec<Int, 4>& dihedral_atom_inds,
+    Real dih_default,
+    Real& dihedral) -> void {
+  Int at1 = dihedral_atom_inds[0];
+  if (at1 >= 0) {
+    dihedral = dihedral_angle<Real>::V(
+        coordinates[at1],
+        coordinates[dihedral_atom_inds[1]],
+        coordinates[dihedral_atom_inds[2]],
+        coordinates[dihedral_atom_inds[3]]);
+  } else if (at1 == -1) {
+    dihedral = dih_default;
+  }
+}
+
+template <typename Real, typename Int, tmol::Device D>
 def measure_dihedrals_V_dV(
     TensorAccessor<Eigen::Matrix<Real, 3, 1>, 1, D> coordinates,
     int i,
@@ -535,7 +553,8 @@ def block_deviation_penalty_for_chi(
     Int rotameric_rottable_assignment,
     // Out
     TensorAccessor<CoordQuad, 1, D> drotchi_devpen_dtor_xyz,
-    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz) -> Real {
+    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz,
+    bool compute_derivs = true) -> Real {
   Real devpen, dpen_dchi;
   Eigen::Matrix<Real, 2, 1> dpen_dbb;
 
@@ -556,13 +575,15 @@ def block_deviation_penalty_for_chi(
       chi_ind,
       rotameric_rottable_assignment);
 
-  for (int ii = 0; ii < NbbP1 - 1 + 1; ++ii) {
-    int tor_ind = (ii == NbbP1 - 1 ? (NbbP1 - 1 + chi_ind) : ii);
-    Real dpen_dtor = ii == NbbP1 - 1 ? dpen_dchi : dpen_dbb(ii);
-    for (int jj = 0; jj < 4; ++jj) {
-      for (int kk = 0; kk < 3; ++kk) {
-        drotchi_devpen_dtor_xyz[ii](jj, kk) =
-            dpen_dtor * ddihe_dxyz[tor_ind](jj, kk);
+  if (compute_derivs) {
+    for (int ii = 0; ii < NbbP1 - 1 + 1; ++ii) {
+      int tor_ind = (ii == NbbP1 - 1 ? (NbbP1 - 1 + chi_ind) : ii);
+      Real dpen_dtor = ii == NbbP1 - 1 ? dpen_dchi : dpen_dbb(ii);
+      for (int jj = 0; jj < 4; ++jj) {
+        for (int kk = 0; kk < 3; ++kk) {
+          drotchi_devpen_dtor_xyz[ii](jj, kk) =
+              dpen_dtor * ddihe_dxyz[tor_ind](jj, kk);
+        }
       }
     }
   }
@@ -748,7 +769,8 @@ def rotameric_chi_probability_for_block(
     TensorAccessor<Real, 1, D> dihedrals,
     Int rotameric_rottable_assignment,
     TensorAccessor<CoordQuad, 1, D> dneglnprob_rot_dbb_xyz,
-    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz) -> Real {
+    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz,
+    bool compute_derivs = true) -> Real {
   Real neglnprobE = 0.0;
   Eigen::Matrix<Real, NbbP1 - 1, 1> dneglnprob_ddihe;
   tie(neglnprobE, dneglnprob_ddihe) = block_rotameric_chi_probability(
@@ -763,11 +785,13 @@ def rotameric_chi_probability_for_block(
       block_rotamer_table_set,
       rotameric_rottable_assignment);
 
-  for (int ii = 0; ii < 2; ++ii) {
-    for (int jj = 0; jj < 4; ++jj) {
-      for (int kk = 0; kk < 3; ++kk) {
-        dneglnprob_rot_dbb_xyz[ii](jj, kk) =
-            dneglnprob_ddihe(ii) * ddihe_dxyz[ii](jj, kk);
+  if (compute_derivs) {
+    for (int ii = 0; ii < 2; ++ii) {
+      for (int jj = 0; jj < 4; ++jj) {
+        for (int kk = 0; kk < 3; ++kk) {
+          dneglnprob_rot_dbb_xyz[ii](jj, kk) =
+              dneglnprob_ddihe(ii) * ddihe_dxyz[ii](jj, kk);
+        }
       }
     }
   }
@@ -839,7 +863,8 @@ def block_semirotameric_energy(
     TensorAccessor<Real, 1, D> dihedrals,
     Int semirotameric_rottable_assignment,
     TensorAccessor<CoordQuad, 1, D> dneglnprob_nonrot_dtor_xyz,
-    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz) -> Real {
+    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz,
+    bool compute_derivs = true) -> Real {
   Eigen::Matrix<Real, NbbP2 - 1, 1> dihe;
   Eigen::Matrix<Real, NbbP2 - 1, 1> temp_dihe_deg;
   Eigen::Matrix<Real, NbbP2 - 1, 1> temp_orig_dihe_deg;
@@ -889,11 +914,13 @@ def block_semirotameric_energy(
     dnlp_ddihe[ii] /= dihe_step[ii];
   }
 
-  for (int ii = 0; ii < 3; ++ii) {
-    int tor_ind = ii == 2 ? block_semirot_dihedral_index : ii;
-    for (int jj = 0; jj < 4; ++jj) {
-      dneglnprob_nonrot_dtor_xyz[ii].row(jj) =
-          dnlp_ddihe(ii) * ddihe_dxyz[tor_ind].row(jj);
+  if (compute_derivs) {
+    for (int ii = 0; ii < 3; ++ii) {
+      int tor_ind = ii == 2 ? block_semirot_dihedral_index : ii;
+      for (int jj = 0; jj < 4; ++jj) {
+        dneglnprob_nonrot_dtor_xyz[ii].row(jj) =
+            dnlp_ddihe(ii) * ddihe_dxyz[tor_ind].row(jj);
+      }
     }
   }
 
