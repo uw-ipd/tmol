@@ -540,7 +540,13 @@ TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy(
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-  Real const dist = distance<Real>::V(coord1, coord2);
+  Real3 const delta = coord1 - coord2;
+  Real const dist2 = delta.squaredNorm();
+  Real const max_dis = score_dat.global_params.max_dis;
+  if (dist2 > max_dis * max_dis) {
+    return {0.0, 0.0, 0.0};
+  }
+  Real const dist = std::sqrt(dist2);
   auto const& p1 = score_dat.r1.params[atom_tile_ind1];
   auto const& p2 = score_dat.r2.params[atom_tile_ind2];
 
@@ -817,12 +823,22 @@ TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy_and_derivs_full(
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-  auto const dist_r = distance<Real>::V_dV(coord1, coord2);
+  Real3 const delta = coord1 - coord2;
+  Real const dist2 = delta.squaredNorm();
+  Real const max_dis = score_dat.global_params.max_dis;
+  if (dist2 >= max_dis * max_dis) {
+    return {0.0, 0.0, 0.0};
+  }
+  Real const dist = std::sqrt(dist2);
+  Real3 ddist_dat1({0.0, 0.0, 0.0});
+  if (dist != 0) {
+    ddist_dat1 = delta / dist;
+  }
   auto const& p1 = score_dat.r1.params[atom_tile_ind1];
   auto const& p2 = score_dat.r2.params[atom_tile_ind2];
 
   auto const lj = lj_score<Real>::V_dV(
-      dist_r.V,
+      dist,
       cp_separation,
       p1.lj_params(),
       p2.lj_params(),
@@ -830,7 +846,7 @@ TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy_and_derivs_full(
   typename lk_isotropic_score<Real>::V_dV_t lk{0.0, 0.0};
   if (!p1.is_hydrogen && !p2.is_hydrogen) {
     lk = lk_isotropic_score<Real>::V_dV(
-        dist_r.V,
+        dist,
         cp_separation,
         p1.lk_params(),
         p2.lk_params(),
@@ -840,7 +856,7 @@ TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy_and_derivs_full(
   Real const radial_derivs[3] = {lj.dVatr_ddist, lj.dVrep_ddist, lk.dV_ddist};
 #pragma unroll
   for (int score_type = 0; score_type < 3; ++score_type) {
-    Real3 const dxyz_at1 = radial_derivs[score_type] * dist_r.dV_dA;
+    Real3 const dxyz_at1 = radial_derivs[score_type] * ddist_dat1;
 #pragma unroll
     for (int j = 0; j < 3; ++j) {
       if (dxyz_at1[j] != 0) {
