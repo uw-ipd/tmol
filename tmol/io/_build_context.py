@@ -24,3 +24,5 @@ class PoseBuildContext:
     fragment_definitions: tuple = ()
     # SMILES string -> residue type name, for ligands prepared from a sequence.
     ligand_names: dict = field(default_factory=dict)
+    # (base block-type name, attachment atoms) -> connection-capable clone.
+    covalent_variant_names: dict = field(default_factory=dict)

@@ -379,11 +379,6 @@ def _ligand_unsupported_reason(
             "types for them"
         )
 
-    if lig.covalently_linked:
-        return (
-            f"{lig.res_name}: ligand is covalently linked to another residue "
-            "(e.g. glycan attached to protein) — not supported"
-        )
     return None
 
 

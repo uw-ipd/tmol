@@ -80,6 +80,8 @@ def build_context_from_biotite(
         types, parameter database, and residue type set.
     """
     torch_device = resolve_device(torch_device)
+    from tmol.io._covalent_bonds import augment_database_for_covalent_bonds
+
     if prepare_ligands:
         from tmol.ligand import prepare_ligands as _prepare_ligands
 
@@ -96,6 +98,10 @@ def build_context_from_biotite(
             strict_ligands=strict_ligands,
             return_fragment_definitions=True,
         )
+        param_db, covalent_variant_names = augment_database_for_covalent_bonds(
+            biotite_structure, param_db
+        )
+        co = CanonicalOrdering.from_chemdb(param_db.chemical)
         rts = ResidueTypeSet.from_database(param_db.chemical)
         pbt = PackedBlockTypes.from_restype_list(
             rts.chem_db, rts, rts.residue_types, torch_device
@@ -106,6 +112,7 @@ def build_context_from_biotite(
             parameter_database=param_db,
             restype_set=rts,
             fragment_definitions=fragment_definitions,
+            covalent_variant_names=covalent_variant_names,
         )
 
     if param_db is None:
@@ -114,13 +121,25 @@ def build_context_from_biotite(
         db = _paramdb_for_biotite()
         rts = _restype_set_for_biotite()
     else:
-        db = param_db
+        db, covalent_variant_names = augment_database_for_covalent_bonds(
+            biotite_structure, param_db
+        )
         co, rts, pbt = _derived_types_for_param_db(db, torch_device)
+    if param_db is None:
+        # The cached default types are valid only when no custom bonds require
+        # connection-capable clones.
+        db2, covalent_variant_names = augment_database_for_covalent_bonds(
+            biotite_structure, db
+        )
+        if covalent_variant_names:
+            db = db2
+            co, rts, pbt = _derived_types_for_param_db(db, torch_device)
     return PoseBuildContext(
         canonical_ordering=co,
         packed_block_types=pbt,
         parameter_database=db,
         restype_set=rts,
+        covalent_variant_names=covalent_variant_names,
     )
 
 
@@ -264,6 +283,12 @@ def pose_stack_from_biotite(  # noqa: C901
 
         pose_stack = apply_fragment_connections(pose_stack, fragment_mapping)
         fragment_mapping = pose_stack.split_block_mapping
+    if context.covalent_variant_names:
+        from tmol.io._covalent_bonds import apply_covalent_bonds_from_biotite
+
+        pose_stack = apply_covalent_bonds_from_biotite(
+            pose_stack, biotite_structure, context.covalent_variant_names
+        )
     block_has_missing_atoms = opt_return_vals["block_has_missing_atoms"]
 
     if block_has_missing_atoms is not None and torch.any(block_has_missing_atoms):
@@ -441,12 +466,56 @@ def biotite_from_pose_stack(
         co = canonical_ordering_for_biotite()
     cf = canonical_form_from_pose_stack(co, pose_stack)
     structure = biotite_from_canonical_form(cf, co=co)
+    residue_starts = biotite.structure.get_residue_starts(structure)
+    residue_ends = numpy.append(residue_starts[1:], structure.array_length())
+    _add_pose_inter_residue_bonds(structure, pose_stack, residue_starts, residue_ends)
     sbm = getattr(pose_stack, "split_block_mapping", None)
     if merge_fragments and sbm is not None and sbm.entries:
         from tmol.ligand import recombine_fragmented_ligands
 
         structure = recombine_fragmented_ligands(structure, pose_stack)
     return structure
+
+
+def _add_pose_inter_residue_bonds(structure, pose_stack, residue_starts, residue_ends):
+    """Restore PoseStack connection bonds in a Biotite bond table."""
+
+    import biotite.structure as struc
+
+    bond_rows = [] if structure.bonds is None else structure.bonds.as_array().tolist()
+    existing = {tuple(sorted(row[:2])) for row in bond_rows}
+    pbt = pose_stack.packed_block_types
+    for block1, (start1, end1) in enumerate(zip(residue_starts, residue_ends)):
+        type1 = int(pose_stack.block_type_ind64[0, block1])
+        if type1 < 0:
+            continue
+        bt1 = pbt.active_block_types[type1]
+        for conn1, (block2, conn2) in enumerate(
+            pose_stack.inter_residue_connections64[0, block1].cpu().tolist()
+        ):
+            if block2 < block1:
+                continue
+            if block2 < 0:
+                continue
+            bt2 = pbt.active_block_types[int(pose_stack.block_type_ind64[0, block2])]
+            name1 = bt1.connections[conn1].atom
+            name2 = bt2.connections[conn2].atom
+            atom1 = next(
+                i for i in range(start1, end1) if structure.atom_name[i] == name1
+            )
+            atom2 = next(
+                i
+                for i in range(residue_starts[block2], residue_ends[block2])
+                if structure.atom_name[i] == name2
+            )
+            pair = tuple(sorted((atom1, atom2)))
+            if pair not in existing:
+                bond_rows.append((atom1, atom2, int(struc.BondType.SINGLE)))
+                existing.add(pair)
+    if bond_rows:
+        structure.bonds = struc.BondList(
+            structure.array_length(), numpy.asarray(bond_rows, dtype=numpy.int32)
+        )
 
 
 def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names):
