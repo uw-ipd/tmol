@@ -107,11 +107,7 @@ struct lk_fraction {
       }
     }
 
-    if (wted_d2_delta != 0) {
-      d_wted_d2_delta_d_J /= wted_d2_delta;
-      d_wted_d2_delta_d_WI /= wted_d2_delta;
-    }
-
+    Real const exp_sum = wted_d2_delta;
     wted_d2_delta = -std::log(wted_d2_delta);
 
     Real frac = 0;
@@ -127,12 +123,13 @@ struct lk_fraction {
       }
     }
 
-    // TODO nan @ 0
+    Real const derivative_scale =
+        exp_sum != 0 ? dfrac_dwted_d2 / exp_sum : Real(0);
     return V_dV_t{
         frac,
         dV_t{
-            d_wted_d2_delta_d_WI * dfrac_dwted_d2,
-            d_wted_d2_delta_d_J * dfrac_dwted_d2}};
+            d_wted_d2_delta_d_WI * derivative_scale,
+            d_wted_d2_delta_d_J * derivative_scale}};
   }
 
   static def dV(WatersMat WI, Real3 J, Real lj_radius_j) -> dV_t {
@@ -241,11 +238,7 @@ struct lk_bridge_fraction {
       }
     }
 
-    if (wted_d2_delta != 0) {
-      d_wted_d2_delta_d_WI /= wted_d2_delta;
-      d_wted_d2_delta_d_WJ /= wted_d2_delta;
-    }
-
+    Real const exp_sum = wted_d2_delta;
     wted_d2_delta = -std::log(wted_d2_delta);
 
     Real overlapfrac;
@@ -288,14 +281,15 @@ struct lk_bridge_fraction {
       d_anglefrac_d_base_delta = 0.0;
     }
 
-    // final scaling
+    Real const water_derivative_scale =
+        exp_sum != 0 ? anglefrac * d_overlapfrac_d_wted_d2 / exp_sum : Real(0);
     return V_dV_t{
         overlapfrac * anglefrac,
         dV_t{
             overlapfrac * d_anglefrac_d_base_delta * d_wted_d2_delta_d_I,
             overlapfrac * d_anglefrac_d_base_delta * d_wted_d2_delta_d_J,
-            anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_WI,
-            anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_WJ}};
+            water_derivative_scale * d_wted_d2_delta_d_WI,
+            water_derivative_scale * d_wted_d2_delta_d_WJ}};
   }
 
   static def dV(
