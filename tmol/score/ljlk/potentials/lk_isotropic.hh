@@ -73,20 +73,10 @@ struct f_desolv {
       * exp_val
     );
 
-    Real d_desolv_d_dist = (
-      -lk_volume_j
-      * lk_dgfree_i
-      / (2 * pi_pow1p5 * lk_lambda_i)
-      * exp_val
-      * ((  // (f * exp(g))' = f' * exp(g) + f g' exp(g)
-          -2 / (dist * dist * dist)
-        ) + (
-          1 / (dist * dist)
-          * -(2 * dist - 2 * lj_radius_i)
-          / (lk_lambda_i * lk_lambda_i)
-        )
-      )
-    );
+    Real d_desolv_d_dist =
+        desolv
+        * (-2 / dist
+           - (2 * dist - 2 * lj_radius_i) / (lk_lambda_i * lk_lambda_i));
     // clang-format on
 
     return {desolv, d_desolv_d_dist};
