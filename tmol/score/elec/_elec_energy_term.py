@@ -54,8 +54,6 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         # fd let's try not to grab data members from the param resolver ...
 
         partial_charge = self.param_resolver.get_partial_charges_for_block(block_type)
-        for atom_name in block_type.properties.virtual:
-            partial_charge[block_type.atom_to_idx[atom_name]] = 0.0
 
         # count pair representative logic:
         # decide whether or not two atoms i and j should have their interaction counted
@@ -74,12 +72,6 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         representative_mapping = (
             self.param_resolver.get_bonded_path_length_mapping_for_block(block_type)
         )
-        virtual_indices = {
-            block_type.atom_to_idx[name] for name in block_type.properties.virtual
-        }
-        for atom_index, representative in enumerate(representative_mapping):
-            if representative in virtual_indices:
-                representative_mapping[atom_index] = atom_index
 
         inter_rep_path_dist = block_type.path_distance[:, representative_mapping]
         intra_rep_path_dist = inter_rep_path_dist[representative_mapping, :]

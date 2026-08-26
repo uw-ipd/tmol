@@ -124,20 +124,11 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                     for atom1, atom2, atom4 in comb:
                         improper.append((atom1, atom2, atom3, atom4))
 
-        virtual = {
-            block_type.atom_to_idx[name] for name in block_type.properties.virtual
-        }
-
-        def without_virtual(subgraphs):
-            return [
-                graph
-                for graph in subgraphs
-                if virtual.isdisjoint(atom for atom in graph if atom >= 0)
-            ]
-
-        return tuple(
-            without_virtual(subgraphs)
-            for subgraphs in (lengths, angles, torsions, improper)
+        return (
+            lengths,
+            angles,
+            torsions,
+            improper,
         )
 
     def get_raw_params_for_res(self, res: str):
@@ -224,13 +215,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
 
         # Fetch the params from the database, updating the atom id store if necessary
-        component_name = block_type.name.split(":", 1)[0]
-        parameter_name = (
-            component_name
-            if component_name in self.cart_database.residue_params
-            else block_type.base_name
-        )
-        cartbonded_params = self.get_params_for_res(parameter_name)
+        cartbonded_params = self.get_params_for_res(block_type.base_name)
         cb_block_ann = CartBondedBlockAnnotations(
             cartbonded_subgraphs=cart_subgraphs,
             cartbonded_subgraph_type_counts=cart_subgraph_type_counts,
@@ -341,6 +326,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         # Fill the hash table
         cur_val = 0
         for bt in packed_block_types.active_block_types:
+
             bt_params = bt.cartbonded_annotations[self.hash]
             for key_w_str, value in bt_params.cartbonded_params.items():
                 key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)

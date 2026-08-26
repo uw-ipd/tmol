@@ -86,7 +86,7 @@ class TestFullPipeline:
         """
         from tmol.ligand import LigandPreparationError
 
-        with pytest.raises(LigandPreparationError, match="failed to prepare ligand"):
+        with pytest.raises(LigandPreparationError, match="not supported"):
             prepare_ligands(cif_155c_with_hem, param_db=param_db)
 
     def test_pse_partial_occupancy(self, cif_1a25_with_pse, param_db) -> None:

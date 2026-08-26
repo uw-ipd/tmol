@@ -8,7 +8,7 @@ from ..hbond._hbond_dependent_term import HBondDependentTerm
 from ..ljlk._params import LJLKGlobalParams, LJLKParamResolver
 from tmol.database import ParameterDatabase
 
-from tmol.chemical import RefinedResidueType, bonds_and_bond_ranges
+from tmol.chemical import RefinedResidueType
 from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
@@ -114,11 +114,10 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         tiled_polars = numpy.full((n_tiles, tile_size), -1, dtype=numpy.int32)
         tiled_polars[is_tiled_polar] = polar_inds
 
+        # ASSUMPTION! either h or hvy; change when VRTS are added!
+        # Grace: lk parameters for VRTs should not affect score even if included,
+        # it would just be slightly inefficient
         atom_is_heavy = numpy.invert(hbbt_params.is_hydrogen == 1)
-        virtual = [
-            block_type.atom_to_idx[name] for name in block_type.properties.virtual
-        ]
-        atom_is_heavy[virtual] = False
 
         # "apolar" here means "does not build waters"; e.g. proline's N would be
         # considered apolar.
@@ -229,22 +228,6 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             tile_pol_occ_inds[i, :i_n_tiles] = i_lkbp.tile_pol_occ_inds
             tile_lk_ball_params[i, :i_n_tiles] = i_lkbp.tile_lk_ball_params
 
-        water_gen_bonds = []
-        for bt in packed_block_types.active_block_types:
-            virtual = numpy.zeros(bt.n_atoms, dtype=bool)
-            virtual[[bt.atom_to_idx[name] for name in bt.properties.virtual]] = True
-            bonds = bt.bond_indices[
-                numpy.logical_not(
-                    numpy.logical_or(
-                        virtual[bt.bond_indices[:, 0]],
-                        virtual[bt.bond_indices[:, 1]],
-                    )
-                )
-            ]
-            water_gen_bonds.append(
-                bonds_and_bond_ranges(bt.n_atoms, bonds, bt.ordered_connection_atoms)
-            )
-
         def _t(t):
             return torch.tensor(t, device=packed_block_types.device)
 
@@ -255,34 +238,6 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             tile_lk_ball_params=_t(tile_lk_ball_params),
         )
         setattr(packed_block_types, "lk_ball_params", lk_ball_params)
-        max_n_bonds = max(bonds.shape[0] for bonds, _ranges in water_gen_bonds)
-        packed_bonds = torch.full(
-            (n_types, max_n_bonds, 3),
-            -1,
-            dtype=torch.int32,
-            device=packed_block_types.device,
-        )
-        packed_ranges = torch.full(
-            (n_types, packed_block_types.max_n_atoms, 2),
-            -1,
-            dtype=torch.int32,
-            device=packed_block_types.device,
-        )
-        for i, (bonds, ranges) in enumerate(water_gen_bonds):
-            packed_bonds[i, : bonds.shape[0]] = _t(bonds)
-            packed_ranges[i, : ranges.shape[0]] = _t(ranges)
-        setattr(
-            packed_block_types,
-            "lk_ball_n_all_bonds",
-            _t(
-                numpy.array(
-                    [bonds.shape[0] for bonds, _ranges in water_gen_bonds],
-                    dtype=numpy.int32,
-                )
-            ),
-        )
-        setattr(packed_block_types, "lk_ball_all_bonds", packed_bonds)
-        setattr(packed_block_types, "lk_ball_atom_all_bond_ranges", packed_ranges)
 
     def setup_poses(self, pose_stack: PoseStack):
         super(LKBallEnergyTerm, self).setup_poses(pose_stack)
@@ -303,9 +258,9 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.n_atoms,
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,
-            pose_stack.packed_block_types.lk_ball_n_all_bonds,
-            pose_stack.packed_block_types.lk_ball_all_bonds,
-            pose_stack.packed_block_types.lk_ball_atom_all_bond_ranges,
+            pose_stack.packed_block_types.n_all_bonds,
+            pose_stack.packed_block_types.all_bonds,
+            pose_stack.packed_block_types.atom_all_bond_ranges,
             pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
             pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
             pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
@@ -365,9 +320,9 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack.packed_block_types.n_atoms,
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,
-            pose_stack.packed_block_types.lk_ball_n_all_bonds,
-            pose_stack.packed_block_types.lk_ball_all_bonds,
-            pose_stack.packed_block_types.lk_ball_atom_all_bond_ranges,
+            pose_stack.packed_block_types.n_all_bonds,
+            pose_stack.packed_block_types.all_bonds,
+            pose_stack.packed_block_types.atom_all_bond_ranges,
             pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
             pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
             pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,

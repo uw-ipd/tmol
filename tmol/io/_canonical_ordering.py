@@ -200,24 +200,16 @@ class CanonicalOrdering:
         restypes_alt_atom_name_mapping = defaultdict(dict)
 
         for restype in chemdb.residues:
-            # Most residue types use the same value for name3 and their I/O
-            # equivalence class.  Connection-capable carbohydrate clones use
-            # a private equivalence class so their graph-derived polymer flag
-            # does not alter initial assignment of the input-facing ligand.
-            # Keep canonical atom maps available under both identifiers.
-            for identifier in dict.fromkeys((restype.name3, restype.io_equiv_class)):
-                for at in restype.atoms:
-                    restypes_all_atom_names[identifier].add(at.name)
-                for at in restype.atom_aliases:
-                    if at.alt_name in restypes_alt_atom_name_mapping[identifier]:
-                        assert (
-                            restypes_alt_atom_name_mapping[identifier][at.alt_name]
-                            == at.name
-                        )
-                    else:
-                        restypes_alt_atom_name_mapping[identifier][
-                            at.alt_name
-                        ] = at.name
+            for at in restype.atoms:
+                restypes_all_atom_names[restype.name3].add(at.name)
+            for at in restype.atom_aliases:
+                if at.alt_name in restypes_alt_atom_name_mapping[restype.name3]:
+                    assert (
+                        restypes_alt_atom_name_mapping[restype.name3][at.alt_name]
+                        == at.name
+                    )
+                else:
+                    restypes_alt_atom_name_mapping[restype.name3][at.alt_name] = at.name
 
         # note that extra atoms are internal-use only and do not have "alternate" names
         extra = cls.extra_atoms()
@@ -251,10 +243,6 @@ class CanonicalOrdering:
         restypes_required_mainchain_atoms = cls._required_mainchain_atoms(chemdb)
 
         default_termini_mapping = cls._temp_termini_mapping()
-        for restype in chemdb.residues:
-            inherited = default_termini_mapping.get(restype.base_name)
-            if inherited is not None:
-                default_termini_mapping.setdefault(restype.io_equiv_class, inherited)
         termini_patch_added_atoms = defaultdict(lambda: set([]))
 
         # we need to know which variants create down- and up termini
