@@ -285,9 +285,15 @@ class LBFGS_Armijo(Optimizer):
         self._n_segments = n_segments
         self._segment_size = segment_size
         self._pad_index = segment_ids * segment_size + rank
+        # The common Cartesian-minimization layout has equally sized segments
+        # stored consecutively. In that case padding is just a view/copy; keep
+        # the indexed path for heterogeneous or interleaved segment layouts.
+        self._segments_are_dense = bool(torch.equal(self._pad_index, arange))
 
     def _seg_sum(self, values):
         """Sum a parameter-shaped vector within each segment."""
+        if self._segments_are_dense:
+            return values.view(self._n_segments, self._segment_size).sum(-1)
         if self._sum_scratch is None or self._sum_scratch.dtype != values.dtype:
             self._sum_scratch = torch.zeros(
                 self._n_segments * self._segment_size,
@@ -298,6 +304,8 @@ class LBFGS_Armijo(Optimizer):
 
     def _seg_amax(self, values):
         """Maximum of a parameter-shaped vector within each segment."""
+        if self._segments_are_dense:
+            return values.view(self._n_segments, self._segment_size).amax(-1)
         out = torch.empty(self._n_segments, dtype=values.dtype, device=values.device)
         return out.scatter_reduce_(
             0, self._segment_ids, values, "amax", include_self=False
@@ -305,6 +313,12 @@ class LBFGS_Armijo(Optimizer):
 
     def _pad(self, values, out=None):
         """Scatter a parameter-shaped vector to (n_segments, segment_size)."""
+        if self._segments_are_dense:
+            padded = values.view(self._n_segments, self._segment_size)
+            if out is not None:
+                out.copy_(padded)
+                return out.view(self._n_segments, self._segment_size)
+            return padded
         if out is None:
             out = torch.zeros(
                 self._n_segments * self._segment_size,
@@ -319,6 +333,8 @@ class LBFGS_Armijo(Optimizer):
 
     def _unpad(self, padded):
         """Gather a (n_segments, segment_size) tensor back to parameter shape."""
+        if self._segments_are_dense:
+            return padded.reshape(-1)
         return padded.reshape(-1)[self._pad_index]
 
     def _wrap_closure(self, closure):
