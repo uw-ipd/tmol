@@ -581,11 +581,10 @@ struct lk_ball_score {
     Real const bridge_scale =
         weights[w_lk_bridge] * lk_iso.V + weights[w_lk_bridge_uncpl] * 0.5;
     Real3 const d_iso_dI = lk_iso.dV_ddist * dist.dV_dA;
-    Real3 const d_iso_dJ = lk_iso.dV_ddist * dist.dV_dB;
 
     return lk_ball_weighted_dVt<Real, MAX_WATER>{
         d_iso_dI * iso_scale + frac_bridge.dV.dI * bridge_scale,
-        d_iso_dJ * iso_scale
+        -d_iso_dI * iso_scale
             + frac_desolv.dV.dJ * (weights[w_lk_ball] * lk_iso.V)
             + frac_bridge.dV.dJ * bridge_scale,
         frac_desolv.dV.dWI * (weights[w_lk_ball] * lk_iso.V)
