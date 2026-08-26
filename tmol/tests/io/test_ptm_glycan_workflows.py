@@ -107,6 +107,34 @@ def test_pdb_ptms_score_pack_and_minimize(torch_device):
     }
 
     score_function = _score_function(pose, context)
+    residues = {
+        residue.name: residue
+        for residue in context.parameter_database.chemical.residues
+    }
+    charges = {}
+    for parameter in context.parameter_database.scoring.elec.atom_charge_parameters:
+        charges.setdefault(parameter.res, {})[parameter.atom] = parameter.charge
+    for modified, parent in (("SEP", "SER"), ("TPO", "THR"), ("PTR", "TYR")):
+        modified_types = {
+            atom.name: atom.atom_type for atom in residues[modified].atoms
+        }
+        parent_types = {atom.name: atom.atom_type for atom in residues[parent].atoms}
+        assert {modified_types[name] for name in ("O1P", "O2P", "O3P")} == {"OG2"}
+        assert modified_types["P"] == "PG3"
+        assert {name: modified_types[name] for name in ("N", "CA", "C", "O")} == {
+            name: parent_types[name] for name in ("N", "CA", "C", "O")
+        }
+        assert abs(sum(charges[modified].values()) + 2.0) < 1e-6
+
+    scorer = score_function.render_whole_pose_scoring_module(pose)
+    unweighted = scorer.unweighted_scores(pose.coords)
+    term_scores = {
+        score_type.name: unweighted[index]
+        for index, score_type in enumerate(score_function.all_score_types())
+    }
+    for score_type in ("fa_ljatr", "fa_ljrep", "fa_lk", "hbond", "fa_elec"):
+        assert torch.isfinite(term_scores[score_type]).all()
+
     _assert_score_and_gradient(pose, score_function)
     packed = _pack(pose, context, score_function)
     minimized = run_cart_min(
