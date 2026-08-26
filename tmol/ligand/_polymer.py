@@ -145,33 +145,23 @@ def _specialize_from_parent(
     }
     element_for_type.update(preparation.atom_type_elements or {})
 
-    def heavy_neighbors(residue):
+    def heavy_neighbors(residue, ignored=()):
         atom_by_name = {atom.name: atom for atom in residue.atoms}
         result = {atom.name: set() for atom in residue.atoms}
         for atom1, atom2, *_ in residue.bonds:
-            if element_for_type[atom_by_name[atom2].atom_type] != "H":
+            if (
+                atom2 not in ignored
+                and element_for_type[atom_by_name[atom2].atom_type] != "H"
+            ):
                 result[atom1].add(atom2)
-            if element_for_type[atom_by_name[atom1].atom_type] != "H":
+            if (
+                atom1 not in ignored
+                and element_for_type[atom_by_name[atom1].atom_type] != "H"
+            ):
                 result[atom2].add(atom1)
         return result
 
-    generated_heavy_neighbors = heavy_neighbors(generated)
-    parent_heavy_neighbors = heavy_neighbors(parent)
     parent_atom = {atom.name: atom for atom in parent.atoms}
-    stable_atoms = {
-        atom.name
-        for atom in generated.atoms
-        if atom.name in parent_atom
-        and generated_heavy_neighbors[atom.name] == parent_heavy_neighbors[atom.name]
-    }
-    specialized_atoms = tuple(
-        (
-            attr.evolve(atom, atom_type=parent_atom[atom.name].atom_type)
-            if atom.name in stable_atoms
-            else atom
-        )
-        for atom in generated.atoms
-    )
 
     def hydrogen_neighbors(residue, atom_name):
         atom_by_name = {atom.name: atom for atom in residue.atoms}
@@ -201,8 +191,23 @@ def _specialize_from_parent(
         if atom.name not in parent_atom and element_for_type[atom.atom_type] != "H"
     }
     removed_atoms = set(leaving_hydrogens) | (names & terminal_heavy_atoms)
+    generated_heavy_neighbors = heavy_neighbors(generated, removed_atoms)
+    parent_heavy_neighbors = heavy_neighbors(parent)
+    stable_atoms = {
+        atom.name
+        for atom in generated.atoms
+        if atom.name not in removed_atoms
+        and atom.name in parent_atom
+        and generated_heavy_neighbors[atom.name] == parent_heavy_neighbors[atom.name]
+    }
     specialized_atoms = tuple(
-        atom for atom in specialized_atoms if atom.name not in removed_atoms
+        (
+            attr.evolve(atom, atom_type=parent_atom[atom.name].atom_type)
+            if atom.name in stable_atoms
+            else atom
+        )
+        for atom in generated.atoms
+        if atom.name not in removed_atoms
     )
     specialized_bonds = tuple(
         bond for bond in generated.bonds if not removed_atoms.intersection(bond[:2])
@@ -287,7 +292,15 @@ def _specialize_from_parent(
         for parameter in param_db.scoring.elec.atom_charge_parameters
         if parameter.res == parent.name
     }
-    charges = dict(preparation.partial_charges)
+    charges = {
+        atom_name: charge
+        for atom_name, charge in preparation.partial_charges.items()
+        if atom_name not in removed_atoms
+    }
+    # Removing terminal atoms leaves the ligand model within rounding error of
+    # the modified polymer's integral formal charge. Preserve that total while
+    # retaining canonical charges on the chemically unchanged parent region.
+    target_charge = round(sum(charges.values()))
     charges.update(
         {
             atom_name: parent_charges[atom_name]
@@ -295,8 +308,16 @@ def _specialize_from_parent(
             if atom_name in parent_charges
         }
     )
-    for atom_name in removed_atoms:
-        charges.pop(atom_name, None)
+    modified_heavy_atoms = [
+        atom.name
+        for atom in specialized_atoms
+        if atom.name not in stable_atoms and element_for_type[atom.atom_type] != "H"
+    ]
+    charge_correction = target_charge - sum(charges.values())
+    if modified_heavy_atoms:
+        per_atom_correction = charge_correction / len(modified_heavy_atoms)
+        for atom_name in modified_heavy_atoms:
+            charges[atom_name] += per_atom_correction
 
     def keep_parameter(parameter):
         return not removed_atoms.intersection(
