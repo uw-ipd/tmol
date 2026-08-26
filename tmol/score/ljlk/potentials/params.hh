@@ -29,6 +29,8 @@ struct LKTypeParams {
   Real is_polarh;
   Real is_acceptor;
   Real is_carbon_lk;
+  Real lk_coeff;
+  Real lk_inv_lambda2;
 };
 
 template <typename Real>
@@ -43,6 +45,8 @@ struct LJLKTypeParams {
   Real is_polarh;
   Real is_acceptor;
   Real is_carbon_lk;
+  Real lk_coeff;
+  Real lk_inv_lambda2;
 
   LJTypeParams<Real> EIGEN_DEVICE_FUNC lj_params() {
     return LJTypeParams<Real>(
@@ -59,7 +63,9 @@ struct LJLKTypeParams {
          is_hydroxyl,
          is_polarh,
          is_acceptor,
-         is_carbon_lk});
+         is_carbon_lk,
+         lk_coeff,
+         lk_inv_lambda2});
   }
 };
 
@@ -116,7 +122,9 @@ struct LKTypeParamTensors {
         is_hydroxyl[i],
         is_polarh[i],
         is_acceptor[i],
-        is_carbon_lk[i]};
+        is_carbon_lk[i],
+        -lk_dgfree[i] / (Real(2) * Real(5.56832799683) * lk_lambda[i]),
+        Real(1) / (lk_lambda[i] * lk_lambda[i])};
   }
 };
 

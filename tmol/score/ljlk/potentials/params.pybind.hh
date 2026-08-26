@@ -77,6 +77,9 @@ struct type_caster<tmol::score::ljlk::potentials::LKTypeParams<Real>> {
     CAST_ATTR(src, value, is_hydroxyl);
     CAST_ATTR(src, value, is_polarh);
     CAST_ATTR(src, value, is_carbon_lk);
+    value.lk_coeff =
+        -value.lk_dgfree / (Real(2) * Real(5.56832799683) * value.lk_lambda);
+    value.lk_inv_lambda2 = Real(1) / (value.lk_lambda * value.lk_lambda);
 
     return true;
   }
