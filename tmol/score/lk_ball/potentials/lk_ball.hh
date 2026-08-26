@@ -1330,8 +1330,18 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
   accum_derivs(
       occluder_block_dat, occluder_start + occluder_atom_tile_ind, dV.dJ);
   for (int i = 0; i < MAX_N_WATER; ++i) {
+    if (std::isnan(
+            polar_block_dat
+                .water_coords[3 * (MAX_N_WATER * polar_atom_tile_ind + i)]))
+      break;
     water_accum_derivs(
         polar_block_dat, polar_start + polar_atom_tile_ind, i, dV.dWI);
+  }
+  for (int i = 0; i < MAX_N_WATER; ++i) {
+    if (std::isnan(
+            occluder_block_dat
+                .water_coords[3 * (MAX_N_WATER * occluder_atom_tile_ind + i)]))
+      break;
     water_accum_derivs(
         occluder_block_dat, occluder_start + occluder_atom_tile_ind, i, dV.dWJ);
   }
