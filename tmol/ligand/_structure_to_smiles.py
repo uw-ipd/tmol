@@ -149,11 +149,12 @@ def apply_geometry_bond_corrections(mol: Chem.Mol) -> Chem.Mol:
 def _tag_source_atom_map(mol: Chem.Mol, atom_array: AtomArray) -> None:
     """Tag each heavy atom with map number = source index + 1 (rides the SMILES
     through the mol2 pipeline for atom naming). No-op if counts disagree."""
-    heavy_idx = [i for i, e in enumerate(atom_array.element) if str(e) != "H"]
-    if mol.GetNumAtoms() != len(heavy_idx):
+    source_heavy = [i for i, e in enumerate(atom_array.element) if str(e) != "H"]
+    mol_heavy = [atom.GetIdx() for atom in mol.GetAtoms() if atom.GetAtomicNum() != 1]
+    if len(mol_heavy) != len(source_heavy):
         return
-    for j in range(mol.GetNumAtoms()):
-        mol.GetAtomWithIdx(j).SetAtomMapNum(int(heavy_idx[j]) + 1)
+    for mol_idx, source_idx in zip(mol_heavy, source_heavy):
+        mol.GetAtomWithIdx(mol_idx).SetAtomMapNum(int(source_idx) + 1)
 
 
 def ligand_smiles_from_atom_array(

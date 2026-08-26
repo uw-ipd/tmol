@@ -78,14 +78,19 @@ def normalize_azide(smiles: str) -> str:
 
 
 def source_atom_order_from_mapped_smiles(smiles: str) -> Optional[tuple[int, ...]]:
-    """Map numbers (source indices) in SMILES/mol2 atom order, or None if any
-    atom is unmapped. Normalized identically to the mol2 path so order matches."""
+    """Heavy-atom source indices in SMILES/mol2 order, or None if one is unmapped.
+
+    Explicit input hydrogens are intentionally ignored: OpenBabel regenerates
+    hydrogens after protonation, while only heavy atoms retain source names.
+    """
     smiles = normalize_azide(strip_nontetrahedral_stereo(smiles))
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None
     order: list[int] = []
     for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() == 1:
+            continue
         mapnum = atom.GetAtomMapNum()
         if mapnum <= 0:
             return None
