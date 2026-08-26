@@ -841,7 +841,6 @@ TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy_and_derivs_full(
 #pragma unroll
   for (int score_type = 0; score_type < 3; ++score_type) {
     Real3 const dxyz_at1 = radial_derivs[score_type] * dist_r.dV_dA;
-    Real3 const dxyz_at2 = radial_derivs[score_type] * dist_r.dV_dB;
 #pragma unroll
     for (int j = 0; j < 3; ++j) {
       if (dxyz_at1[j] != 0) {
@@ -851,12 +850,12 @@ TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy_and_derivs_full(
                        + start_atom1][j],
             dxyz_at1[j]);
       }
-      if (dxyz_at2[j] != 0) {
+      if (dxyz_at1[j] != 0) {
         accumulate<D, Real>::add(
             dV_dcoords[score_type]
                       [score_dat.r2.rot_coord_offset + atom_tile_ind2
                        + start_atom2][j],
-            dxyz_at2[j]);
+            -dxyz_at1[j]);
       }
     }
   }
