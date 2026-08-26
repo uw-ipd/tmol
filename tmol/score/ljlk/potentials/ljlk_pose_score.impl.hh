@@ -890,10 +890,6 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
       CTA_REAL_REDUCE_T_VARIABLE;
     } shared;
 
-    Real total_ljatr = 0;
-    Real total_ljrep = 0;
-    Real total_lk = 0;
-
     int const max_important_bond_separation = 4;
 
     int const pose_ind = cta / (max_n_upper_triangle_inds);
@@ -1031,9 +1027,6 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
       CTA_REAL_REDUCE_T_VARIABLE;
 
     } shared;
-
-    Real total_lj = 0;
-    Real total_lk = 0;
 
     int const max_important_bond_separation = 4;
 
@@ -1393,9 +1386,6 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
 
     } shared;
 
-    Real total_lj = 0;
-    Real total_lk = 0;
-
     int const max_important_bond_separation = 4;
 
     int const pose_ind = cta / (max_n_upper_triangle_inds);
@@ -1719,10 +1709,6 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
       CTA_REAL_REDUCE_T_VARIABLE;
     } shared;
 
-    Real total_ljatr = 0;
-    Real total_ljrep = 0;
-    Real total_lk = 0;
-
     int const max_important_bond_separation = 4;
 
     int const pose_ind = dispatch_indices[0][cta];
@@ -2026,9 +2012,6 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
       CTA_REAL_REDUCE_T_VARIABLE;
 
     } shared;
-
-    Real total_lj = 0;
-    Real total_lk = 0;
 
     int const max_important_bond_separation = 4;
 
