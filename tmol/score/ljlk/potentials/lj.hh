@@ -36,14 +36,15 @@ struct vdw {
   }
 
   static def V_dV(Real dist, Real sigma, Real epsilon) -> dV_t {
-    Real sd = (sigma / dist);
+    Real const inv_dist = 1 / dist;
+    Real sd = sigma * inv_dist;
     Real sd2 = sd * sd;
     Real sd6 = sd2 * sd2 * sd2;
     Real sd12 = sd6 * sd6;
 
     return {
         epsilon * (sd12 - Real(2.0) * sd6),
-        Real(12.0) * epsilon * (sd6 - sd12) / dist};
+        Real(12.0) * epsilon * (sd6 - sd12) * inv_dist};
   }
 };
 
