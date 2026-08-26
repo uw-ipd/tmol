@@ -143,6 +143,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
                     self.type_params.is_polarh,
                     self.type_params.is_acceptor,
                     self.type_params.is_carbon_lk,
+                    self.type_params.is_hydrogen,
                     -self.type_params.lk_dgfree
                     / (2 * 5.56832799683 * self.type_params.lk_lambda),
                     1 / (self.type_params.lk_lambda * self.type_params.lk_lambda),

@@ -47,10 +47,11 @@ struct LJLKTypeParams {
   Real is_polarh;
   Real is_acceptor;
   Real is_carbon_lk;
+  Real is_hydrogen;
   Real lk_coeff;
   Real lk_inv_lambda2;
 
-  LJTypeParams<Real> EIGEN_DEVICE_FUNC lj_params() {
+  LJTypeParams<Real> EIGEN_DEVICE_FUNC lj_params() const {
     return LJTypeParams<Real>(
         {lj_radius,
          lj_sqrt_wdepth,
@@ -60,7 +61,7 @@ struct LJLKTypeParams {
          is_acceptor});
   }
 
-  LKTypeParams<Real> EIGEN_DEVICE_FUNC lk_params() {
+  LKTypeParams<Real> EIGEN_DEVICE_FUNC lk_params() const {
     return LKTypeParams<Real>(
         {lj_radius,
          lk_dgfree,

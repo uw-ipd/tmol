@@ -528,6 +528,39 @@ TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy(
       score_dat.global_params);
 }
 
+// Fused LJ/LK energy for pose scoring. Heavy-atom pairs reuse the coordinate
+// loads, distance, and count-pair separation for both potentials.
+template <typename Real>
+TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy(
+    int atom_tile_ind1,
+    int atom_tile_ind2,
+    LJLKScoringData<Real> const& score_dat,
+    int cp_separation) {
+  using Real3 = Eigen::Matrix<Real, 3, 1>;
+
+  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
+  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
+  Real const dist = distance<Real>::V(coord1, coord2);
+  auto const& p1 = score_dat.r1.params[atom_tile_ind1];
+  auto const& p2 = score_dat.r2.params[atom_tile_ind2];
+
+  auto const lj = lj_score<Real>::V(
+      dist,
+      cp_separation,
+      p1.lj_params(),
+      p2.lj_params(),
+      score_dat.global_params);
+  Real const lk = (!p1.is_hydrogen && !p2.is_hydrogen)
+                      ? lk_isotropic_score<Real>::V(
+                            dist,
+                            cp_separation,
+                            p1.lk_params(),
+                            p2.lk_params(),
+                            score_dat.global_params)
+                      : Real(0);
+  return {lj[0], lj[1], lk};
+}
+
 // LJ deriv only
 template <typename Real, tmol::Device D>
 TMOL_DEVICE_FUNC void lj_atom_derivs(
@@ -769,6 +802,66 @@ TMOL_DEVICE_FUNC Real lk_atom_energy_and_derivs_full(
     }
   }
   return lk.V;
+}
+
+template <typename Real, tmol::Device D>
+TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy_and_derivs_full(
+    int atom_tile_ind1,
+    int atom_tile_ind2,
+    int start_atom1,
+    int start_atom2,
+    LJLKScoringData<Real> const& score_dat,
+    int cp_separation,
+    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
+  using Real3 = Eigen::Matrix<Real, 3, 1>;
+
+  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
+  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
+  auto const dist_r = distance<Real>::V_dV(coord1, coord2);
+  auto const& p1 = score_dat.r1.params[atom_tile_ind1];
+  auto const& p2 = score_dat.r2.params[atom_tile_ind2];
+
+  auto const lj = lj_score<Real>::V_dV(
+      dist_r.V,
+      cp_separation,
+      p1.lj_params(),
+      p2.lj_params(),
+      score_dat.global_params);
+  typename lk_isotropic_score<Real>::V_dV_t lk{0.0, 0.0};
+  if (!p1.is_hydrogen && !p2.is_hydrogen) {
+    lk = lk_isotropic_score<Real>::V_dV(
+        dist_r.V,
+        cp_separation,
+        p1.lk_params(),
+        p2.lk_params(),
+        score_dat.global_params);
+  }
+
+  Real const radial_derivs[3] = {lj.dVatr_ddist, lj.dVrep_ddist, lk.dV_ddist};
+#pragma unroll
+  for (int score_type = 0; score_type < 3; ++score_type) {
+    Real3 const dxyz_at1 = radial_derivs[score_type] * dist_r.dV_dA;
+    Real3 const dxyz_at2 = radial_derivs[score_type] * dist_r.dV_dB;
+#pragma unroll
+    for (int j = 0; j < 3; ++j) {
+      if (dxyz_at1[j] != 0) {
+        accumulate<D, Real>::add(
+            dV_dcoords[score_type]
+                      [score_dat.r1.rot_coord_offset + atom_tile_ind1
+                       + start_atom1][j],
+            dxyz_at1[j]);
+      }
+      if (dxyz_at2[j] != 0) {
+        accumulate<D, Real>::add(
+            dV_dcoords[score_type]
+                      [score_dat.r2.rot_coord_offset + atom_tile_ind2
+                       + start_atom2][j],
+            dxyz_at2[j]);
+      }
+    }
+  }
+
+  return {lj.Vatr, lj.Vrep, lk.V};
 }
 
 }  // namespace potentials
