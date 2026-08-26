@@ -259,6 +259,10 @@ struct lk_isotropic_score {
       LKTypeParams<Real> i,
       LKTypeParams<Real> j,
       LJGlobalParams<Real> global) -> Real {
+    if (dist > global.max_dis) {
+      return 0.0;
+    }
+
     Real lj_sigma_ij = lj_sigma<Real>(i, j, global);
 
     bool is_cc_pair = i.is_carbon_lk && j.is_carbon_lk;
@@ -277,9 +281,7 @@ struct lk_isotropic_score {
     Real weight = connectivity_weight<Real>(bonded_path_length);
 
     Real lk;
-    if (dist > cpoly_far_dmax) {
-      lk = 0.0;
-    } else if (dist > cpoly_far_dmin) {
+    if (dist > cpoly_far_dmin) {
       auto f_desolv_at_dmin = f_desolv<Real>::V_dV_precomputed(
           cpoly_far_dmin,
           i.lj_radius,
