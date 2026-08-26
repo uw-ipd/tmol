@@ -70,6 +70,10 @@ general ligand path uses OpenBabel MMFF94 partial charges and generated bonded
 parameters, whereas Rosetta PTM patches and carbohydrate residue types carry
 curated per-component charges and statistical carbohydrate terms. These are
 different parameterizations, not a numerical implementation discrepancy.
+When canonical parent charges replace the unchanged portion of a modified
+polymer, the resulting residual is distributed across its modified heavy atoms
+so the generated integral formal charge is preserved. This enforces charge
+conservation; it does not imply electrostatic parity with Rosetta.
 For example, generated phosphates use Rosetta's general-ligand `PG3`/`OG2`
 atom types instead of silently substituting the curated PTM-patch
 `Phos`/`OOC` types. Standard terminus charge and count-pair deltas still come
