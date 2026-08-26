@@ -39,7 +39,7 @@ class CartesianSfxnNetwork(torch.nn.Module):
             self.coord_mask.reshape(-1).nonzero(as_tuple=False).squeeze(-1)
         )
         self._all_coords_movable = (
-            self._coord_flat_idx.numel() == self.full_coords.numel()
+            self._coord_flat_idx.numel() == self.coord_mask.numel()
         )
 
         self.masked_coords = torch.nn.Parameter(

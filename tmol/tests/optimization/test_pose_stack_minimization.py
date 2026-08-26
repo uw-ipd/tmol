@@ -119,6 +119,27 @@ def test_cart_network_segment_ids(
     assert torch.all(segment_ids[1:] >= segment_ids[:-1])
 
 
+def test_cart_network_all_coords_fast_path(distinct_pose_stacks, torch_device):
+    """An all-true mask keeps coordinates as a view and reconstructs a copy."""
+    pose_stack = distinct_pose_stacks[0]
+    original_coords = pose_stack.coords.clone()
+    sfxn = beta2016_score_function(torch_device)
+    coord_mask = torch.ones_like(pose_stack.real_atoms)
+    network = CartesianSfxnNetwork(sfxn, pose_stack, coord_mask)
+
+    assert network._all_coords_movable
+    energy = network().sum()
+    energy.backward()
+
+    assert network.full_coords.data_ptr() == network.masked_coords.data_ptr()
+    assert network.masked_coords.grad is not None
+
+    reconstructed = network.pose_stack_from_dofs()
+    torch.testing.assert_close(reconstructed.coords, network.full_coords)
+    assert reconstructed.coords.data_ptr() != network.masked_coords.data_ptr()
+    torch.testing.assert_close(pose_stack.coords, original_coords)
+
+
 def test_kin_network_segment_ids(
     distinct_pose_stacks, stack_of_distinct_poses, torch_device
 ):
