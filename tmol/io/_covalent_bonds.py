@@ -1,6 +1,6 @@
 """Import explicit, non-polymeric covalent bonds from Biotite structures."""
 
-from collections import defaultdict
+from collections import defaultdict, deque
 import math
 
 import attr
@@ -169,6 +169,93 @@ def _is_carbohydrate(residue_key):
     return "SACCHARIDE" in (get_chem_comp_type(residue_key[3]) or "").upper()
 
 
+def _carbohydrate_graph(bonds, sugars):
+    sugar_edges = []
+    anchors = defaultdict(list)
+    adjacency = defaultdict(list)
+    for endpoint1, endpoint2 in bonds:
+        key1, key2 = endpoint1[0], endpoint2[0]
+        sugar1, sugar2 = key1 in sugars, key2 in sugars
+        if sugar1 and sugar2:
+            edge_index = len(sugar_edges)
+            sugar_edges.append((endpoint1, endpoint2))
+            adjacency[key1].append((key2, edge_index))
+            adjacency[key2].append((key1, edge_index))
+        elif sugar1:
+            anchors[key1].append(endpoint1)
+        elif sugar2:
+            anchors[key2].append(endpoint2)
+    return sugar_edges, anchors, adjacency
+
+
+def _connected_component(seed, adjacency):
+    component = set()
+    pending = [seed]
+    while pending:
+        current = pending.pop()
+        if current in component:
+            continue
+        component.add(current)
+        pending.extend(neighbor for neighbor, _ in adjacency[current])
+    return component
+
+
+def _root_carbohydrate_component(component, anchors, adjacency, key_to_index):
+    anchored = sorted(
+        (key for key in component if anchors[key]), key=key_to_index.__getitem__
+    )
+    root = anchored[0] if anchored else min(component, key=key_to_index.__getitem__)
+    parent = {root: None}
+    queue = deque([root])
+    tree_edges = set()
+    while queue:
+        current = queue.popleft()
+        for neighbor, edge_index in sorted(
+            adjacency[current], key=lambda item: key_to_index[item[0]]
+        ):
+            if neighbor in parent:
+                continue
+            parent[neighbor] = current
+            tree_edges.add(edge_index)
+            queue.append(neighbor)
+    return root, parent, tree_edges
+
+
+def _assign_carbohydrate_anchor_roles(roles, component, root, anchors, key_to_index):
+    for key in sorted(component, key=key_to_index.__getitem__):
+        for anchor_index, endpoint in enumerate(
+            sorted(anchors[key], key=lambda item: item[1])
+        ):
+            roles[endpoint] = (
+                "down" if key == root and anchor_index == 0 else f"branch_{endpoint[1]}"
+            )
+
+
+def _assign_carbohydrate_edge_roles(
+    roles, parent, tree_edges, sugar_edges, key_to_index
+):
+    children = defaultdict(list)
+    for edge_index in tree_edges:
+        endpoint1, endpoint2 = sugar_edges[edge_index]
+        if parent[endpoint2[0]] == endpoint1[0]:
+            parent_endpoint, child_endpoint = endpoint1, endpoint2
+        else:
+            parent_endpoint, child_endpoint = endpoint2, endpoint1
+        children[parent_endpoint[0]].append((child_endpoint[0], parent_endpoint))
+        roles[child_endpoint] = "down"
+    for entries in children.values():
+        for child_index, (_, endpoint) in enumerate(
+            sorted(entries, key=lambda item: key_to_index[item[0]])
+        ):
+            roles[endpoint] = "up" if child_index == 0 else f"branch_{endpoint[1]}"
+
+    for edge_index, endpoints in enumerate(sugar_edges):
+        if edge_index in tree_edges:
+            continue
+        for endpoint in endpoints:
+            roles[endpoint] = f"branch_{endpoint[1]}"
+
+
 def _carbohydrate_connection_roles(structure, bonds):
     """Name sugar connections from the input covalent graph, not residue names.
 
@@ -185,83 +272,20 @@ def _carbohydrate_connection_roles(structure, bonds):
     if not sugars:
         return {}
 
-    sugar_edges = []
-    anchors = defaultdict(list)
-    adjacency = defaultdict(list)
-    for endpoint1, endpoint2 in bonds:
-        key1, key2 = endpoint1[0], endpoint2[0]
-        sugar1, sugar2 = key1 in sugars, key2 in sugars
-        if sugar1 and sugar2:
-            edge_index = len(sugar_edges)
-            sugar_edges.append((endpoint1, endpoint2))
-            adjacency[key1].append((key2, edge_index))
-            adjacency[key2].append((key1, edge_index))
-        elif sugar1:
-            anchors[key1].append(endpoint1)
-        elif sugar2:
-            anchors[key2].append(endpoint2)
+    sugar_edges, anchors, adjacency = _carbohydrate_graph(bonds, sugars)
 
     roles = {}
     unvisited = set(sugars)
     while unvisited:
         seed = min(unvisited, key=key_to_index.__getitem__)
-        component = set()
-        pending = [seed]
-        while pending:
-            current = pending.pop()
-            if current in component:
-                continue
-            component.add(current)
-            pending.extend(neighbor for neighbor, _ in adjacency[current])
-
-        anchored = sorted(
-            (key for key in component if anchors[key]), key=key_to_index.__getitem__
+        component = _connected_component(seed, adjacency)
+        root, parent, tree_edges = _root_carbohydrate_component(
+            component, anchors, adjacency, key_to_index
         )
-        root = anchored[0] if anchored else min(component, key=key_to_index.__getitem__)
-        parent = {root: None}
-        queue = [root]
-        tree_edges = set()
-        while queue:
-            current = queue.pop(0)
-            for neighbor, edge_index in sorted(
-                adjacency[current], key=lambda item: key_to_index[item[0]]
-            ):
-                if neighbor in parent:
-                    continue
-                parent[neighbor] = current
-                tree_edges.add(edge_index)
-                queue.append(neighbor)
-
-        for key in sorted(component, key=key_to_index.__getitem__):
-            for anchor_index, endpoint in enumerate(
-                sorted(anchors[key], key=lambda item: item[1])
-            ):
-                roles[endpoint] = (
-                    "down"
-                    if key == root and anchor_index == 0
-                    else (f"branch_{endpoint[1]}")
-                )
-
-        children = defaultdict(list)
-        for edge_index in tree_edges:
-            endpoint1, endpoint2 = sugar_edges[edge_index]
-            if parent[endpoint2[0]] == endpoint1[0]:
-                parent_endpoint, child_endpoint = endpoint1, endpoint2
-            else:
-                parent_endpoint, child_endpoint = endpoint2, endpoint1
-            children[parent_endpoint[0]].append((child_endpoint[0], parent_endpoint))
-            roles[child_endpoint] = "down"
-        for key, entries in children.items():
-            for child_index, (_, endpoint) in enumerate(
-                sorted(entries, key=lambda item: key_to_index[item[0]])
-            ):
-                roles[endpoint] = "up" if child_index == 0 else f"branch_{endpoint[1]}"
-
-        for edge_index, (endpoint1, endpoint2) in enumerate(sugar_edges):
-            if edge_index in tree_edges:
-                continue
-            for endpoint in (endpoint1, endpoint2):
-                roles[endpoint] = f"branch_{endpoint[1]}"
+        _assign_carbohydrate_anchor_roles(roles, component, root, anchors, key_to_index)
+        _assign_carbohydrate_edge_roles(
+            roles, parent, tree_edges, sugar_edges, key_to_index
+        )
         unvisited -= component
     return roles
 
