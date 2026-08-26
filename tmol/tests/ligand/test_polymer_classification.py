@@ -201,6 +201,12 @@ def test_modified_residues_build_at_peptide_termini(torch_device):
     }
     assert atom_types["P"] == "PG3"
     assert {atom_types[name] for name in ("O1P", "O2P", "O3P")} == {"OG2"}
+    sep_charges = {
+        parameter.atom: parameter.charge
+        for parameter in context.parameter_database.scoring.elec.atom_charge_parameters
+        if parameter.res == "SEP"
+    }
+    assert abs(sum(sep_charges.values()) + 2.0) < 1e-6
     assert {"H1", "H2", "H3"} <= atom_types.keys()
     assert {"HN2", "HN3"}.isdisjoint(atom_types)
     assert block_types[0].name3 == "SEP"
