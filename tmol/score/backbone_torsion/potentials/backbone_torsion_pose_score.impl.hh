@@ -76,7 +76,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<RamaTableParams<Real>, 1, Dev> rama_table_params,
     TView<Real, 4, Dev> omega_tables,
     TView<RamaTableParams<Real>, 1, Dev> omega_table_params,
-    bool output_block_pair_energies)
+    bool output_block_pair_energies,
+    bool compute_derivs)
     -> std::tuple<TPack<Real, 4, Dev>, TPack<Vec<Real, 3>, 2, Dev>> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
@@ -139,7 +140,9 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   } else {
     V_t = TPack<Real, 4, Dev>::zeros({2, n_poses, 1, 1});
   }
-  auto dV_dxyz_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms});
+  auto dV_dxyz_t = compute_derivs
+                       ? TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms})
+                       : TPack<Vec<Real, 3>, 2, Dev>::empty({2, n_atoms});
 
   auto V = V_t.view;
   auto dV_dxyz = dV_dxyz_t.view;
@@ -233,19 +236,34 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     // accumulate rama
     if (valid_phipsi && rama_table_ind >= 0) {
-      auto rama = rama_V_dV<Dev, Real, Int>(
-          phi_coords,
-          psi_coords,
-          rama_tables[rama_table_ind],
-          Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbstarts),
-          Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbsteps));
-      accumulate<Dev, Real>::add(
-          V[0][pose_ind][V_ind1][V_ind2], common::get<0>(rama));
-      for (int j = 0; j < 4; ++j) {
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[0][phi_ats[j]], common::get<1>(rama).row(j));
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[0][psi_ats[j]], common::get<2>(rama).row(j));
+      if (compute_derivs) {
+        auto rama = rama_V_dV<Dev, Real, Int>(
+            phi_coords,
+            psi_coords,
+            rama_tables[rama_table_ind],
+            Eigen::Map<Vec<Real, 2>>(
+                rama_table_params[rama_table_ind].bbstarts),
+            Eigen::Map<Vec<Real, 2>>(
+                rama_table_params[rama_table_ind].bbsteps));
+        accumulate<Dev, Real>::add(
+            V[0][pose_ind][V_ind1][V_ind2], common::get<0>(rama));
+        for (int j = 0; j < 4; ++j) {
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[0][phi_ats[j]], common::get<1>(rama).row(j));
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[0][psi_ats[j]], common::get<2>(rama).row(j));
+        }
+      } else {
+        accumulate<Dev, Real>::add(
+            V[0][pose_ind][V_ind1][V_ind2],
+            rama_V<Dev, Real, Int>(
+                phi_coords,
+                psi_coords,
+                rama_tables[rama_table_ind],
+                Eigen::Map<Vec<Real, 2>>(
+                    rama_table_params[rama_table_ind].bbstarts),
+                Eigen::Map<Vec<Real, 2>>(
+                    rama_table_params[rama_table_ind].bbsteps)));
       }
     }
 
@@ -289,36 +307,59 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     }
 
     if (valid_phipsi && omega_table_ind >= 0) {
-      auto omega = omega_bbdep_V_dV<Dev, Real, Int>(
-          phi_coords,
-          psi_coords,
-          omega_coords,
-          omega_tables[omega_table_ind][0],
-          omega_tables[omega_table_ind][1],
-          Eigen::Map<Vec<Real, 2>>(
-              omega_table_params[omega_table_ind].bbstarts),
-          Eigen::Map<Vec<Real, 2>>(omega_table_params[omega_table_ind].bbsteps),
-          32.8);
-      accumulate<Dev, Real>::add(
-          V[1][pose_ind][V_ind1][V_ind2], common::get<0>(omega));
-      for (int j = 0; j < 4; ++j) {
-        // omega : [V, dVdphi, dVdpsi, dVdomega]
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][phi_ats[j]], common::get<1>(omega).row(j));
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][psi_ats[j]], common::get<2>(omega).row(j));
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][omega_ats[j]], common::get<3>(omega).row(j));
+      if (compute_derivs) {
+        auto omega = omega_bbdep_V_dV<Dev, Real, Int>(
+            phi_coords,
+            psi_coords,
+            omega_coords,
+            omega_tables[omega_table_ind][0],
+            omega_tables[omega_table_ind][1],
+            Eigen::Map<Vec<Real, 2>>(
+                omega_table_params[omega_table_ind].bbstarts),
+            Eigen::Map<Vec<Real, 2>>(
+                omega_table_params[omega_table_ind].bbsteps),
+            32.8);
+        accumulate<Dev, Real>::add(
+            V[1][pose_ind][V_ind1][V_ind2], common::get<0>(omega));
+        for (int j = 0; j < 4; ++j) {
+          // omega : [V, dVdphi, dVdpsi, dVdomega]
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][phi_ats[j]], common::get<1>(omega).row(j));
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][psi_ats[j]], common::get<2>(omega).row(j));
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][omega_ats[j]], common::get<3>(omega).row(j));
+        }
+      } else {
+        accumulate<Dev, Real>::add(
+            V[1][pose_ind][V_ind1][V_ind2],
+            omega_bbdep_V<Dev, Real, Int>(
+                phi_coords,
+                psi_coords,
+                omega_coords,
+                omega_tables[omega_table_ind][0],
+                omega_tables[omega_table_ind][1],
+                Eigen::Map<Vec<Real, 2>>(
+                    omega_table_params[omega_table_ind].bbstarts),
+                Eigen::Map<Vec<Real, 2>>(
+                    omega_table_params[omega_table_ind].bbsteps),
+                32.8));
       }
     } else {
       // if rama is undefined, fall back to old version
-      auto omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.8);
-      accumulate<Dev, Real>::add(
-          V[1][pose_ind][V_ind1][V_ind2], common::get<0>(omega));
-      for (int j = 0; j < 4; ++j) {
-        // omega : [V, dVdomega]
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][omega_ats[j]], common::get<1>(omega).row(j));
+      if (compute_derivs) {
+        auto omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.8);
+        accumulate<Dev, Real>::add(
+            V[1][pose_ind][V_ind1][V_ind2], common::get<0>(omega));
+        for (int j = 0; j < 4; ++j) {
+          // omega : [V, dVdomega]
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][omega_ats[j]], common::get<1>(omega).row(j));
+        }
+      } else {
+        accumulate<Dev, Real>::add(
+            V[1][pose_ind][V_ind1][V_ind2],
+            omega_V<Real>(omega_coords, Real(32.8)));
       }
     }
   });
