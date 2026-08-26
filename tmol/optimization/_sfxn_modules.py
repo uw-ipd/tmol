@@ -38,6 +38,9 @@ class CartesianSfxnNetwork(torch.nn.Module):
         self._coord_flat_idx = (
             self.coord_mask.reshape(-1).nonzero(as_tuple=False).squeeze(-1)
         )
+        self._all_coords_movable = (
+            self._coord_flat_idx.numel() == self.full_coords.numel()
+        )
 
         self.masked_coords = torch.nn.Parameter(
             self.full_coords.view(-1, self.full_coords.shape[-1])[self._coord_flat_idx]
@@ -55,14 +58,19 @@ class CartesianSfxnNetwork(torch.nn.Module):
 
     def forward(self):
         self.count += 1
-        self.full_coords = self.full_coords.detach()
-        # self.full_coords[self.coord_mask] = self.masked_coords
-        self.full_coords.view(-1, self.full_coords.shape[-1])[
-            self._coord_flat_idx
-        ] = self.masked_coords
+        if self._all_coords_movable:
+            self.full_coords = self.masked_coords.view_as(self.full_coords)
+        else:
+            self.full_coords = self.full_coords.detach()
+            self.full_coords.view(-1, self.full_coords.shape[-1])[
+                self._coord_flat_idx
+            ] = self.masked_coords
         return self.whole_pose_scoring_module(self.full_coords)
 
     def pose_stack_from_dofs(self):
+        if self._all_coords_movable:
+            full_coords = self.masked_coords.detach().view_as(self.full_coords).clone()
+            return attrs.evolve(self.pose_stack, coords=full_coords)
         full_coords = self.full_coords.detach().clone()
         full_coords.view(-1, full_coords.shape[-1])[
             self._coord_flat_idx
