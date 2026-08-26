@@ -236,7 +236,7 @@ struct lk_bridge_fraction {
           d_wted_d2_delta_d_WJ.row(wj).transpose() -=
               2 * exp_d2_delta * delta_ij;
 
-          wted_d2_delta += std::exp(-d2_delta);
+          wted_d2_delta += exp_d2_delta;
         }
       }
     }
