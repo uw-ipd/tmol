@@ -1205,7 +1205,6 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
     LKBallResPairData<Real> const& block_pair_dat,
     int cp_separation) {
   using tmol::score::common::coord_from_shared;
-  using tmol::score::common::distance;
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   if (cp_separation <= 3) {
@@ -1217,9 +1216,10 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
   Real3 occluder_xyz =
       coord_from_shared(occluder_block_dat.pose_coords, occluder_atom_tile_ind);
 
-  Real const dist = distance<Real>::V(polar_xyz, occluder_xyz);
-
-  if (dist >= block_pair_dat.global_params.distance_threshold) {
+  Real const distance_threshold =
+      block_pair_dat.global_params.distance_threshold;
+  if ((polar_xyz - occluder_xyz).squaredNorm()
+      >= distance_threshold * distance_threshold) {
     return {0, 0, 0, 0};
   }
 
@@ -1265,7 +1265,6 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using tmol::score::common::accumulate;
   using tmol::score::common::coord_from_shared;
-  using tmol::score::common::distance;
 
   if (cp_separation <= 3) {
     return;
@@ -1276,8 +1275,11 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
   Real3 occluder_xyz =
       coord_from_shared(occluder_block_dat.pose_coords, occluder_atom_tile_ind);
 
-  auto const dist_r = distance<Real>::V_dV(polar_xyz, occluder_xyz);
-  if (dist_r.V >= block_pair_dat.global_params.distance_threshold) return;
+  Real const distance_threshold =
+      block_pair_dat.global_params.distance_threshold;
+  if ((polar_xyz - occluder_xyz).squaredNorm()
+      >= distance_threshold * distance_threshold)
+    return;
 
   Eigen::Matrix<Real, MAX_N_WATER, 3> wmat_polar;
   Eigen::Matrix<Real, MAX_N_WATER, 3> wmat_occluder;
