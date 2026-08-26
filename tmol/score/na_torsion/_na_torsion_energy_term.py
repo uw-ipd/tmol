@@ -102,13 +102,19 @@ class NaTorsionEnergyTerm(EnergyTerm):
     def get_rotamer_score_term_function(self):
         return eval_na_torsion_for_rotamers
 
-    def get_score_term_attributes(self, pose_stack):
+    def _pose_has_na(self, pose_stack):
         pbt = pose_stack.packed_block_types
-        p = self.params
         bt = pose_stack.block_type_ind64
-        has_na = bool(
+        return bool(
             (pbt.na_torsion_base.to(torch.int64)[bt.clamp_min(0)] >= 0)[bt >= 0].any()
         )
+
+    def pose_score_term_is_invariant_zero(self, pose_stack):
+        return not self._pose_has_na(pose_stack)
+
+    def get_score_term_attributes(self, pose_stack):
+        p = self.params
+        has_na = self._pose_has_na(pose_stack)
         return [
             has_na,
             *self.subterm_attributes(pose_stack),

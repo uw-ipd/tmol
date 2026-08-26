@@ -203,31 +203,35 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # their Poses to ensure that the polymeric-bond-detection logic
     # downstream will work properly. This effectively means "shifting left"
     # all the other residues in the Pose to fill the vacated slots.
-    (
-        chain_id,
-        res_types,
-        coords,
-        atom_is_present,
-        disulfides,
-        res_not_connected,
-        res_labels,
-        res_ins_codes,
-        chain_labels,
-        atom_occupancy,
-        atom_b_factor,
-    ) = left_justify_canonical_form(
-        chain_id,
-        res_types,
-        coords,
-        atom_is_present,
-        disulfides,
-        res_not_connected,
-        res_labels,
-        res_ins_codes,
-        chain_labels,
-        atom_occupancy,
-        atom_b_factor,
-    )
+    # A single residue slot is already left-justified: each pose either has its
+    # residue in slot zero or is empty. Avoid the GPU compaction and host index
+    # copies for the common batched-ligand scoring case.
+    if res_types.shape[1] != 1:
+        (
+            chain_id,
+            res_types,
+            coords,
+            atom_is_present,
+            disulfides,
+            res_not_connected,
+            res_labels,
+            res_ins_codes,
+            chain_labels,
+            atom_occupancy,
+            atom_b_factor,
+        ) = left_justify_canonical_form(
+            chain_id,
+            res_types,
+            coords,
+            atom_is_present,
+            disulfides,
+            res_not_connected,
+            res_labels,
+            res_ins_codes,
+            chain_labels,
+            atom_occupancy,
+            atom_b_factor,
+        )
 
     if res_types.shape[1] == 0:
         raise ValueError(
@@ -238,9 +242,19 @@ def pose_stack_from_canonical_form(  # noqa: C901
         )
 
     # 3
-    found_disulfides, res_type_variants = find_disulfides(
-        canonical_ordering, res_types, coords, disulfides, find_additional_disulfides
-    )
+    if res_types.shape[1] == 1 and disulfides is None:
+        found_disulfides = torch.zeros(
+            (0, 3), dtype=torch.int64, device=res_types.device
+        )
+        res_type_variants = torch.zeros_like(res_types)
+    else:
+        found_disulfides, res_type_variants = find_disulfides(
+            canonical_ordering,
+            res_types,
+            coords,
+            disulfides,
+            find_additional_disulfides,
+        )
 
     # 4
     (

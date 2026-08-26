@@ -7,6 +7,7 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/device_operations.hh>
+#include <tmol/score/common/whole_pose_scoring.hh>
 
 #include <pybind11/pybind11.h>
 
@@ -161,12 +162,8 @@ class GenBondedPoseScoreOp
     if (saved.size() == 2) {
       // Single-score mode: reuse the pre-computed gradient
       auto saved_grad = saved[0];
-      auto pose_ind_for_atom = saved[1];
-      auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
-      while (atom_ingrads.dim() < saved_grad.dim()) {
-        atom_ingrads = atom_ingrads.unsqueeze(-1);
-      }
-      dV_d_pose_coords = saved_grad * atom_ingrads;
+      dV_d_pose_coords =
+          common::accumulate_whole_pose_gradients(saved_grad, grad_outputs[0]);
     } else {
       // Block-pair mode: re-run backward dispatch
       using Int = int32_t;

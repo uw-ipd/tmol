@@ -50,6 +50,9 @@ def resolve_his_tautomerization(
     his_pose_ind, his_res_ind = torch.nonzero(
         res_types == his_inds.his_co_aa_ind, as_tuple=True
     )
+    if his_pose_ind.shape[0] == 0:
+        return (torch.zeros_like(res_types), res_type_variants, coords, atom_is_present)
+
     his_remapping_dst_index = torch.tile(
         torch.arange(
             canonical_ordering.max_n_canonical_atoms,

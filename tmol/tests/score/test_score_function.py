@@ -40,6 +40,120 @@ def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
     assert scores is not None
 
 
+def test_whole_pose_gradients_respect_per_pose_upstream_weights(
+    ubq_pdb, default_database, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    stack = PoseStackBuilder.from_poses([pose] * 3, torch_device)
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
+    sfxn.set_weight(ScoreType.fa_lk, 0.8)
+
+    single_scorer = sfxn.render_whole_pose_scoring_module(pose)
+    single_coords = pose.coords.detach().clone().requires_grad_(True)
+    single_grad = torch.autograd.grad(
+        single_scorer(single_coords).sum(), single_coords
+    )[0]
+
+    stack_scorer = sfxn.render_whole_pose_scoring_module(stack)
+    stack_coords = stack.coords.detach().clone().requires_grad_(True)
+    upstream = torch.tensor([0.25, -1.5, 2.0], device=torch_device)
+    stack_grad = torch.autograd.grad(
+        (stack_scorer(stack_coords) * upstream).sum(), stack_coords
+    )[0]
+
+    torch.testing.assert_close(
+        stack_grad,
+        single_grad.expand_as(stack_grad) * upstream[:, None, None],
+        atol=1e-5,
+        rtol=1e-5,
+    )
+
+
+def test_zero_weight_does_not_construct_energy_term(default_database, torch_device):
+    sfxn = ScoreFunction(default_database, torch_device)
+
+    sfxn.set_weight(ScoreType.constraint, 0.0)
+
+    assert sfxn.all_terms() == []
+    assert sfxn.get_weight(ScoreType.constraint) == 0
+
+    sfxn.set_weight(ScoreType.constraint, 1.0)
+    assert len(sfxn.all_terms()) == 1
+
+    sfxn.set_weight(ScoreType.constraint, 0.0)
+    assert sfxn.all_terms() == []
+
+
+def test_zero_weight_removes_term_only_after_last_subterm(
+    default_database, torch_device
+):
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 1.0)
+
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.0)
+    assert len(sfxn.all_terms()) == 1
+
+    sfxn.set_weight(ScoreType.fa_ljatr, 0.0)
+    assert sfxn.all_terms() == []
+
+
+def test_weight_tensor_refresh_preserves_score_type_order(
+    default_database, torch_device
+):
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 2.0)
+    sfxn.set_weight(ScoreType.fa_lk, 3.0)
+
+    torch.testing.assert_close(
+        sfxn.weights_tensor(),
+        torch.tensor([1.0, 2.0, 3.0], device=torch_device),
+    )
+
+    indices = sfxn._weight_indices_tensor
+    sfxn.set_weight(ScoreType.fa_ljrep, 4.0)
+    torch.testing.assert_close(
+        sfxn.weights_tensor(),
+        torch.tensor([1.0, 4.0, 3.0], device=torch_device),
+    )
+    assert sfxn._weight_indices_tensor is indices
+
+
+def test_packed_block_setup_is_reused_and_cross_score_function_safe(
+    ubq_pdb, default_database, torch_device, monkeypatch
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.ref, 1.0)
+    term = sfxn.all_terms()[0]
+    original = term.setup_block_type
+    calls = 0
+
+    def counted(block_type):
+        nonlocal calls
+        calls += 1
+        return original(block_type)
+
+    monkeypatch.setattr(term, "setup_block_type", counted)
+    sfxn.pre_work_initialization(pose)
+    first_calls = calls
+    assert first_calls == len(pose.packed_block_types.active_block_types)
+
+    sfxn.pre_work_initialization(pose)
+    assert calls == first_calls
+
+    # Packed block types are shared. Another score function may replace
+    # option-dependent annotations, so its setup must invalidate this cache.
+    other = ScoreFunction(default_database, torch_device)
+    other.set_weight(ScoreType.ref, 1.0)
+    other.pre_work_initialization(pose)
+    sfxn.pre_work_initialization(pose)
+    assert calls == 2 * first_calls
+
+
 def test_no_grad_scoring_detaches_coordinates():
     class RecordingTerm(torch.nn.Module):
         def forward(self, coords):
@@ -78,6 +192,12 @@ def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
 
     torch.testing.assert_close(graph_score, expected_score, rtol=1e-5, atol=1e-3)
     torch.testing.assert_close(graph_grad, expected_grad, rtol=1e-4, atol=1e-3)
+
+    # A later replay must not mutate a score retained by an optimizer.
+    retained_graph_score = graph_score.detach().clone()
+    replay_coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    graphed(replay_coords)
+    torch.testing.assert_close(graph_score, retained_graph_score)
     # Non-default reductions intentionally retain their normal eager semantics.
     torch.testing.assert_close(
         graphed(pose_stack.coords, sum_terms=False, apply_weights=False),

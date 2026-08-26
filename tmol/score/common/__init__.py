@@ -21,6 +21,7 @@ from ._scoring_module import (  # noqa: F401
     TermRotamerScoringModule,
     TermScoringModule,
     TermWholePoseScoringModule,
+    ZeroTermPoseScoringModule,
 )  # noqa: F401
 from ._stack_condense import (  # noqa: F401
     arg_tile_subset_indices,
