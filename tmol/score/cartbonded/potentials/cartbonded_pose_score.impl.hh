@@ -286,74 +286,85 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     Real improper_torsion_score = 0.0;
     Real hxyl_torsion_score = 0.0;
 
-    auto score_subgraph =
-        ([&] TMOL_DEVICE_FUNC(Vec<Int, 4> atoms, Int param_index) {
-          Vec<Real, 7> params = hash_values[param_index];
+    auto score_subgraph = ([&] TMOL_DEVICE_FUNC(
+                               Vec<Int, 4> atoms, Int param_index) {
+      Vec<Real, 7> params = hash_values[param_index];
 
-          Vec<Real, 3> atom1 = rot_coords[atoms[0]];
-          Vec<Real, 3> atom2 = rot_coords[atoms[1]];
+      Vec<Real, 3> atom1 = rot_coords[atoms[0]];
+      Vec<Real, 3> atom2 = rot_coords[atoms[1]];
 
-          subgraph_type type = get_subgraph_type(atoms);
+      subgraph_type type = get_subgraph_type(atoms);
 
-          int score_type = params[0];
+      int score_type = params[0];
 
-          // Real score;
-          switch (type) {
-            case subgraph_type::length: {
-              auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
-              accumulate_result<Real, Int, 2, D>(
-                  length_score,
-                  eval,
-                  atoms.head(2),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
-            case subgraph_type::angle: {
-              Vec<Real, 3> atom3 = rot_coords[atoms[2]];
-              auto eval =
-                  cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
-              accumulate_result<Real, Int, 3, D>(
-                  angle_score,
-                  eval,
-                  atoms.head(3),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
-            case subgraph_type::torsion: {
-              Vec<Real, 3> atom3 = rot_coords[atoms[2]];
-              Vec<Real, 3> atom4 = rot_coords[atoms[3]];
-              auto eval = cbtorsion_V_dV(
-                  atom1,
-                  atom2,
-                  atom3,
-                  atom4,
-                  params[1],
-                  params[2],
-                  params[3],
-                  params[4],
-                  params[5],
-                  params[6]);
-              Real& tor_score = (score_type == 3)   ? improper_torsion_score
-                                : (score_type == 4) ? hxyl_torsion_score
-                                                    : torsion_score;
-              accumulate_result<Real, Int, 4, D>(
-                  tor_score,
-                  eval,
-                  atoms.head(4),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
+      // Real score;
+      switch (type) {
+        case subgraph_type::length: {
+          if (compute_derivs) {
+            auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
+            accumulate_result<Real, Int, 2, D>(
+                length_score,
+                eval,
+                atoms.head(2),
+                true,
+                dV_dx[score_type],
+                1.0);
+          } else {
+            length_score += cblength_V(atom1, atom2, params[2], params[1]);
           }
-        });
+
+          break;
+        }
+        case subgraph_type::angle: {
+          Vec<Real, 3> atom3 = rot_coords[atoms[2]];
+          if (compute_derivs) {
+            auto eval = cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
+            accumulate_result<Real, Int, 3, D>(
+                angle_score, eval, atoms.head(3), true, dV_dx[score_type], 1.0);
+          } else {
+            angle_score += cbangle_V(atom1, atom2, atom3, params[2], params[1]);
+          }
+
+          break;
+        }
+        case subgraph_type::torsion: {
+          Vec<Real, 3> atom3 = rot_coords[atoms[2]];
+          Vec<Real, 3> atom4 = rot_coords[atoms[3]];
+          Real& tor_score = (score_type == 3)   ? improper_torsion_score
+                            : (score_type == 4) ? hxyl_torsion_score
+                                                : torsion_score;
+          if (compute_derivs) {
+            auto eval = cbtorsion_V_dV(
+                atom1,
+                atom2,
+                atom3,
+                atom4,
+                params[1],
+                params[2],
+                params[3],
+                params[4],
+                params[5],
+                params[6]);
+            accumulate_result<Real, Int, 4, D>(
+                tor_score, eval, atoms.head(4), true, dV_dx[score_type], 1.0);
+          } else {
+            tor_score += cbtorsion_V(
+                atom1,
+                atom2,
+                atom3,
+                atom4,
+                params[1],
+                params[2],
+                params[3],
+                params[4],
+                params[5],
+                params[6]);
+          }
+
+          break;
+        }
+      }
+    });
 
     int block_ind2 = -1;
     if (conn_ind1 == max_n_conns) {
@@ -1167,7 +1178,9 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // Allocate the tensors to which we will write our outputs
   int const n_V = output_block_pair_energies ? n_output_intxns_total : n_poses;
   auto V_t = TPack<Real, 2, D>::zeros({5, n_V});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({5, n_atoms});
+  auto dV_dx_t = compute_derivs
+                     ? TPack<Vec<Real, 3>, 2, D>::zeros({5, n_atoms})
+                     : TPack<Vec<Real, 3>, 2, D>::empty({5, n_atoms});
   auto dispatch_indices_t = TPack<Int, 2, D>::zeros({3, n_output_intxns_total});
 
   auto V = V_t.view;
@@ -1231,74 +1244,85 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     Real improper_torsion_score = 0.0;
     Real hxyl_torsion_score = 0.0;
 
-    auto score_subgraph =
-        ([&] TMOL_DEVICE_FUNC(Vec<Int, 4> atoms, Int param_index) {
-          Vec<Real, 7> params = hash_values[param_index];
+    auto score_subgraph = ([&] TMOL_DEVICE_FUNC(
+                               Vec<Int, 4> atoms, Int param_index) {
+      Vec<Real, 7> params = hash_values[param_index];
 
-          Vec<Real, 3> atom1 = rot_coords[atoms[0]];
-          Vec<Real, 3> atom2 = rot_coords[atoms[1]];
+      Vec<Real, 3> atom1 = rot_coords[atoms[0]];
+      Vec<Real, 3> atom2 = rot_coords[atoms[1]];
 
-          subgraph_type type = get_subgraph_type(atoms);
+      subgraph_type type = get_subgraph_type(atoms);
 
-          int score_type = params[0];
+      int score_type = params[0];
 
-          // Real score;
-          switch (type) {
-            case subgraph_type::length: {
-              auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
-              accumulate_result<Real, Int, 2, D>(
-                  length_score,
-                  eval,
-                  atoms.head(2),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
-            case subgraph_type::angle: {
-              Vec<Real, 3> atom3 = rot_coords[atoms[2]];
-              auto eval =
-                  cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
-              accumulate_result<Real, Int, 3, D>(
-                  angle_score,
-                  eval,
-                  atoms.head(3),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
-            case subgraph_type::torsion: {
-              Vec<Real, 3> atom3 = rot_coords[atoms[2]];
-              Vec<Real, 3> atom4 = rot_coords[atoms[3]];
-              auto eval = cbtorsion_V_dV(
-                  atom1,
-                  atom2,
-                  atom3,
-                  atom4,
-                  params[1],
-                  params[2],
-                  params[3],
-                  params[4],
-                  params[5],
-                  params[6]);
-              Real& tor_score = (score_type == 3)   ? improper_torsion_score
-                                : (score_type == 4) ? hxyl_torsion_score
-                                                    : torsion_score;
-              accumulate_result<Real, Int, 4, D>(
-                  tor_score,
-                  eval,
-                  atoms.head(4),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
+      // Real score;
+      switch (type) {
+        case subgraph_type::length: {
+          if (compute_derivs) {
+            auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
+            accumulate_result<Real, Int, 2, D>(
+                length_score,
+                eval,
+                atoms.head(2),
+                true,
+                dV_dx[score_type],
+                1.0);
+          } else {
+            length_score += cblength_V(atom1, atom2, params[2], params[1]);
           }
-        });
+
+          break;
+        }
+        case subgraph_type::angle: {
+          Vec<Real, 3> atom3 = rot_coords[atoms[2]];
+          if (compute_derivs) {
+            auto eval = cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
+            accumulate_result<Real, Int, 3, D>(
+                angle_score, eval, atoms.head(3), true, dV_dx[score_type], 1.0);
+          } else {
+            angle_score += cbangle_V(atom1, atom2, atom3, params[2], params[1]);
+          }
+
+          break;
+        }
+        case subgraph_type::torsion: {
+          Vec<Real, 3> atom3 = rot_coords[atoms[2]];
+          Vec<Real, 3> atom4 = rot_coords[atoms[3]];
+          Real& tor_score = (score_type == 3)   ? improper_torsion_score
+                            : (score_type == 4) ? hxyl_torsion_score
+                                                : torsion_score;
+          if (compute_derivs) {
+            auto eval = cbtorsion_V_dV(
+                atom1,
+                atom2,
+                atom3,
+                atom4,
+                params[1],
+                params[2],
+                params[3],
+                params[4],
+                params[5],
+                params[6]);
+            accumulate_result<Real, Int, 4, D>(
+                tor_score, eval, atoms.head(4), true, dV_dx[score_type], 1.0);
+          } else {
+            tor_score += cbtorsion_V(
+                atom1,
+                atom2,
+                atom3,
+                atom4,
+                params[1],
+                params[2],
+                params[3],
+                params[4],
+                params[5],
+                params[6]);
+          }
+
+          break;
+        }
+      }
+    });
 
     if (conn_ind1 == max_n_conns) {
       // intra-residue!
