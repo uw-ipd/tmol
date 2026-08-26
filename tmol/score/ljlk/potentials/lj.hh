@@ -79,7 +79,7 @@ struct lj_score {
       weight = 0.0;
     } else {
       Real sigma = lj_sigma<Real>(i, j, global);
-      Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
+      Real epsilon = i.lj_sqrt_wdepth * j.lj_sqrt_wdepth;
       Real d_lin = sigma * global.lj_dlin_sigma_factor;
       Real cpoly_dmin = sigma > spline_start ? (sigma > cpoly_dmax - Real(0.1)
                                                     ? cpoly_dmax - Real(0.1)
@@ -120,7 +120,7 @@ struct lj_score {
       LJGlobalParams<Real> global) -> V_dV_t {
     Real sigma = lj_sigma<Real>(i, j, global);
     Real weight = connectivity_weight<Real, Real>(bonded_path_length);
-    Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
+    Real epsilon = i.lj_sqrt_wdepth * j.lj_sqrt_wdepth;
 
     // Real d_lin = sigma * 0.6;
     Real d_lin = sigma * global.lj_dlin_sigma_factor;

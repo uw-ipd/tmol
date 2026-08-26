@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 
@@ -11,7 +13,7 @@ namespace potentials {
 template <typename Real>
 struct LJTypeParams {
   Real lj_radius;
-  Real lj_wdepth;
+  Real lj_sqrt_wdepth;
   Real is_donor;
   Real is_hydroxyl;
   Real is_polarh;
@@ -36,7 +38,7 @@ struct LKTypeParams {
 template <typename Real>
 struct LJLKTypeParams {
   Real lj_radius;
-  Real lj_wdepth;
+  Real lj_sqrt_wdepth;
   Real lk_dgfree;
   Real lk_lambda;
   Real lk_volume;
@@ -50,7 +52,12 @@ struct LJLKTypeParams {
 
   LJTypeParams<Real> EIGEN_DEVICE_FUNC lj_params() {
     return LJTypeParams<Real>(
-        {lj_radius, lj_wdepth, is_donor, is_hydroxyl, is_polarh, is_acceptor});
+        {lj_radius,
+         lj_sqrt_wdepth,
+         is_donor,
+         is_hydroxyl,
+         is_polarh,
+         is_acceptor});
   }
 
   LKTypeParams<Real> EIGEN_DEVICE_FUNC lk_params() {
@@ -91,7 +98,7 @@ struct LJTypeParamTensors {
   auto operator[](Idx i) const {
     return LJTypeParams<Real>{
         lj_radius[i],
-        lj_wdepth[i],
+        std::sqrt(lj_wdepth[i]),
         is_donor[i],
         is_hydroxyl[i],
         is_polarh[i],

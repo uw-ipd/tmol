@@ -134,7 +134,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             _t(
                 [
                     self.type_params.lj_radius,
-                    self.type_params.lj_wdepth,
+                    torch.sqrt(self.type_params.lj_wdepth),
                     self.type_params.lk_dgfree,
                     self.type_params.lk_lambda,
                     self.type_params.lk_volume,
