@@ -53,6 +53,11 @@ struct lk_fraction {
     static def Zero() -> dV_t { return {WatersMat::Zero(), Real3::Zero()}; }
   };
 
+  struct V_dV_t {
+    Real V;
+    dV_t dV;
+  };
+
   static constexpr Real ramp_width_A2 = lkball_globals<Real>::ramp_width_A2;
 
   static def square(Real v) -> Real { return v * v; }
@@ -81,7 +86,7 @@ struct lk_fraction {
     return frac;
   }
 
-  static def dV(WatersMat WI, Real3 J, Real lj_radius_j) -> dV_t {
+  static def V_dV(WatersMat WI, Real3 J, Real lj_radius_j) -> V_dV_t {
     Real d2_low = square(1.4 + lj_radius_j) - ramp_width_A2;
     if (d2_low < 0.0) d2_low = 0.0;
 
@@ -109,17 +114,29 @@ struct lk_fraction {
 
     wted_d2_delta = -std::log(wted_d2_delta);
 
+    Real frac = 0;
     Real dfrac_dwted_d2 = 0;
-    if (wted_d2_delta > 0 && wted_d2_delta < ramp_width_A2) {
-      dfrac_dwted_d2 = -4.0 * wted_d2_delta
-                       * (square(ramp_width_A2) - square(wted_d2_delta))
-                       / square(square(ramp_width_A2));
+    if (wted_d2_delta < 0) {
+      frac = 1;
+    } else if (wted_d2_delta < ramp_width_A2) {
+      frac = square(1 - square(wted_d2_delta / ramp_width_A2));
+      if (wted_d2_delta > 0) {
+        dfrac_dwted_d2 = -4.0 * wted_d2_delta
+                         * (square(ramp_width_A2) - square(wted_d2_delta))
+                         / square(square(ramp_width_A2));
+      }
     }
 
     // TODO nan @ 0
-    return dV_t{
-        d_wted_d2_delta_d_WI * dfrac_dwted_d2,
-        d_wted_d2_delta_d_J * dfrac_dwted_d2};
+    return V_dV_t{
+        frac,
+        dV_t{
+            d_wted_d2_delta_d_WI * dfrac_dwted_d2,
+            d_wted_d2_delta_d_J * dfrac_dwted_d2}};
+  }
+
+  static def dV(WatersMat WI, Real3 J, Real lj_radius_j) -> dV_t {
+    return V_dV(WI, J, lj_radius_j).dV;
   }
 };
 
@@ -140,6 +157,11 @@ struct lk_bridge_fraction {
       return dV_t{
           Real3::Zero(), Real3::Zero(), WatersMat::Zero(), WatersMat::Zero()};
     }
+  };
+
+  struct V_dV_t {
+    Real V;
+    dV_t dV;
   };
 
   static constexpr Real ramp_width_A2 = lkball_globals<Real>::ramp_width_A2;
@@ -193,9 +215,9 @@ struct lk_bridge_fraction {
     return overlapfrac * anglefrac;
   }
 
-  static def dV(
+  static def V_dV(
       Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist)
-      -> dV_t {
+      -> V_dV_t {
     Real wted_d2_delta = 0.0;
 
     WatersMat d_wted_d2_delta_d_WI = WatersMat::Zero();
@@ -267,12 +289,19 @@ struct lk_bridge_fraction {
     }
 
     // final scaling
-    return dV_t{
-        overlapfrac * d_anglefrac_d_base_delta * d_wted_d2_delta_d_I,
-        overlapfrac * d_anglefrac_d_base_delta * d_wted_d2_delta_d_J,
-        anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_WI,
-        anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_WJ,
-    };
+    return V_dV_t{
+        overlapfrac * anglefrac,
+        dV_t{
+            overlapfrac * d_anglefrac_d_base_delta * d_wted_d2_delta_d_I,
+            overlapfrac * d_anglefrac_d_base_delta * d_wted_d2_delta_d_J,
+            anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_WI,
+            anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_WJ}};
+  }
+
+  static def dV(
+      Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist)
+      -> dV_t {
+    return V_dV(I, J, WI, WJ, lkb_water_dist).dV;
   }
 };
 
@@ -329,6 +358,21 @@ struct lk_ball_dVt {
         lk_ball_dV_dReal3<Real>::Zero(),
         lk_ball_dV_dWater<Real, MAX_WATER>::Zero(),
         lk_ball_dV_dWater<Real, MAX_WATER>::Zero()};
+  }
+};
+
+template <typename Real, int MAX_WATER>
+struct lk_ball_weighted_dVt {
+  typedef Eigen::Matrix<Real, 3, 1> Real3;
+  typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
+
+  Real3 dI;
+  Real3 dJ;
+  WatersMat dWI;
+  WatersMat dWJ;
+
+  static def Zero() -> lk_ball_weighted_dVt {
+    return {Real3::Zero(), Real3::Zero(), WatersMat::Zero(), WatersMat::Zero()};
   }
 };
 
@@ -424,20 +468,15 @@ struct lk_ball_score {
         global.distance_threshold,
         i.is_carbon_lk && j.is_carbon_lk);
 
-    Real frac_IJ_desolv = lk_fraction<Real, MAX_WATER>::V(WI, J, j.lj_radius);
-    auto d_frac_IJ_desolv =
-        lk_fraction<Real, MAX_WATER>::dV(WI, J, j.lj_radius);
+    auto const frac_IJ_desolv =
+        lk_fraction<Real, MAX_WATER>::V_dV(WI, J, j.lj_radius);
 
-    Real frac_IJ_water_overlap;
-    typename lk_bridge_fraction<Real, MAX_WATER>::dV_t d_frac_IJ_water_overlap;
+    typename lk_bridge_fraction<Real, MAX_WATER>::V_dV_t frac_IJ_water_overlap;
     if (j.is_donor || j.is_acceptor) {
-      frac_IJ_water_overlap = lk_bridge_fraction<Real, MAX_WATER>::V(
-          I, J, WI, WJ, global.lkb_water_dist);
-      d_frac_IJ_water_overlap = lk_bridge_fraction<Real, MAX_WATER>::dV(
+      frac_IJ_water_overlap = lk_bridge_fraction<Real, MAX_WATER>::V_dV(
           I, J, WI, WJ, global.lkb_water_dist);
     } else {
-      frac_IJ_water_overlap = 0.0;
-      d_frac_IJ_water_overlap = decltype(d_frac_IJ_water_overlap)::Zero();
+      frac_IJ_water_overlap = {0.0, decltype(frac_IJ_water_overlap.dV)::Zero()};
     }
 
     Real3 d_lk_iso_IJ_dI = lk_iso_IJ.dV_ddist * d_dist_dI;
@@ -449,24 +488,25 @@ struct lk_ball_score {
             d_lk_iso_IJ_dI,
             // d(lk_iso_IJ.V * frac_IJ_desolv)
             // d(frac_IJ_desolv)/dI == 0
-            d_lk_iso_IJ_dI * frac_IJ_desolv,
+            d_lk_iso_IJ_dI * frac_IJ_desolv.V,
             // d(lk_iso_IJ.V * frac_IJ_water_overlap)
-            d_lk_iso_IJ_dI * frac_IJ_water_overlap
-                + lk_iso_IJ.V * d_frac_IJ_water_overlap.dI,
+            d_lk_iso_IJ_dI * frac_IJ_water_overlap.V
+                + lk_iso_IJ.V * frac_IJ_water_overlap.dV.dI,
             // d(frac_IJ_water_overlap / 2)
-            d_frac_IJ_water_overlap.dI / 2,
+            frac_IJ_water_overlap.dV.dI / 2,
         },
         // dJ
         lk_ball_dV_dReal3<Real>{
             // d(lk_iso_IJ.V)
             d_lk_iso_IJ_dJ,
             // d(lk_iso_IJ.V * frac_IJ_desolv)
-            d_lk_iso_IJ_dJ * frac_IJ_desolv + lk_iso_IJ.V * d_frac_IJ_desolv.dJ,
+            d_lk_iso_IJ_dJ * frac_IJ_desolv.V
+                + lk_iso_IJ.V * frac_IJ_desolv.dV.dJ,
             // d(lk_iso_IJ.V * frac_IJ_water_overlap)
-            d_lk_iso_IJ_dJ * frac_IJ_water_overlap
-                + lk_iso_IJ.V * d_frac_IJ_water_overlap.dJ,
+            d_lk_iso_IJ_dJ * frac_IJ_water_overlap.V
+                + lk_iso_IJ.V * frac_IJ_water_overlap.dV.dJ,
             // d(frac_IJ_water_overlap / 2)
-            d_frac_IJ_water_overlap.dJ / 2,
+            frac_IJ_water_overlap.dV.dJ / 2,
         },
         // dWI
         lk_ball_dV_dWater<Real, MAX_WATER>{
@@ -475,14 +515,14 @@ struct lk_ball_score {
 
             // d(lk_iso_IJ.V * frac_IJ_desolv)
             // d(lk_iso_IJ.V)/dWI == 0
-            lk_iso_IJ.V * d_frac_IJ_desolv.dWI,
+            lk_iso_IJ.V * frac_IJ_desolv.dV.dWI,
 
             // d(lk_iso_IJ.V * frac_IJ_water_overlap)
             // d(lk_iso_IJ.V)/dWI == 0
-            lk_iso_IJ.V * d_frac_IJ_water_overlap.dWI,
+            lk_iso_IJ.V * frac_IJ_water_overlap.dV.dWI,
 
             // d(frac_IJ_water_overlap / 2)
-            d_frac_IJ_water_overlap.dWI / 2},
+            frac_IJ_water_overlap.dV.dWI / 2},
         // dWJ
         lk_ball_dV_dWater<Real, MAX_WATER>{
             // d(lk_iso_IJ.V)
@@ -493,10 +533,70 @@ struct lk_ball_score {
 
             // d(lk_iso_IJ.V * frac_IJ_water_overlap)
             // d(lk_iso_IJ.V)/dWJ == 0
-            lk_iso_IJ.V * d_frac_IJ_water_overlap.dWJ,
+            lk_iso_IJ.V * frac_IJ_water_overlap.dV.dWJ,
 
             // d(frac_IJ_water_overlap / 2)
-            d_frac_IJ_water_overlap.dWJ / 2}};
+            frac_IJ_water_overlap.dV.dWJ / 2}};
+  }
+
+  static def weighted_dV(
+      Real3 I,
+      Real3 J,
+      WatersMat WI,
+      WatersMat WJ,
+      Real bonded_path_length,
+      LKBallTypeParams<Real> i,
+      LKBallTypeParams<Real> j,
+      LKBallGlobalParams<Real> global,
+      Vec<Real, 4> weights) -> lk_ball_weighted_dVt<Real, MAX_WATER> {
+    using tmol::score::common::distance;
+    using tmol::score::ljlk::potentials::lj_sigma;
+    using tmol::score::ljlk::potentials::lk_isotropic_pair;
+
+    if (std::isnan(WI(0, 0))) {
+      return lk_ball_weighted_dVt<Real, MAX_WATER>::Zero();
+    }
+
+    Real const sigma = lj_sigma<Real>(i, j, global);
+    auto const dist = distance<Real>::V_dV(I, J);
+    auto const lk_iso = lk_isotropic_pair<Real>::V_dV(
+        dist.V,
+        bonded_path_length,
+        sigma,
+        i.lj_radius,
+        i.lk_dgfree,
+        i.lk_lambda,
+        j.lk_volume,
+        global.distance_threshold,
+        i.is_carbon_lk && j.is_carbon_lk);
+
+    auto const frac_desolv =
+        lk_fraction<Real, MAX_WATER>::V_dV(WI, J, j.lj_radius);
+
+    typename lk_bridge_fraction<Real, MAX_WATER>::V_dV_t frac_bridge;
+    if (j.is_donor || j.is_acceptor) {
+      frac_bridge = lk_bridge_fraction<Real, MAX_WATER>::V_dV(
+          I, J, WI, WJ, global.lkb_water_dist);
+    } else {
+      frac_bridge = {0.0, decltype(frac_bridge.dV)::Zero()};
+    }
+
+    Real const iso_scale = weights[w_lk_ball_iso]
+                           + weights[w_lk_ball] * frac_desolv.V
+                           + weights[w_lk_bridge] * frac_bridge.V;
+    Real const bridge_scale =
+        weights[w_lk_bridge] * lk_iso.V + weights[w_lk_bridge_uncpl] * 0.5;
+    Real3 const d_iso_dI = lk_iso.dV_ddist * dist.dV_dA;
+    Real3 const d_iso_dJ = lk_iso.dV_ddist * dist.dV_dB;
+
+    return lk_ball_weighted_dVt<Real, MAX_WATER>{
+        d_iso_dI * iso_scale + frac_bridge.dV.dI * bridge_scale,
+        d_iso_dJ * iso_scale
+            + frac_desolv.dV.dJ * (weights[w_lk_ball] * lk_iso.V)
+            + frac_bridge.dV.dJ * bridge_scale,
+        frac_desolv.dV.dWI * (weights[w_lk_ball] * lk_iso.V)
+            + frac_bridge.dV.dWI * bridge_scale,
+        frac_bridge.dV.dWJ * bridge_scale};
   }
 };
 
@@ -1190,7 +1290,7 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
         MAX_N_WATER * occluder_atom_tile_ind + wi);
   }
 
-  auto dV = lk_ball_score<Real, 4>::dV(
+  auto dV = lk_ball_score<Real, 4>::weighted_dV(
       polar_xyz,
       occluder_xyz,
       wmat_polar,
@@ -1198,22 +1298,18 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
       cp_separation,
       polar_block_dat.lk_ball_params[polar_ind],
       occluder_block_dat.lk_ball_params[occluder_ind],
-      block_pair_dat.global_params);
+      block_pair_dat.global_params,
+      dTdV);
 
   auto accum_derivs = ([&] TMOL_DEVICE_FUNC(
                            LKBallSingleResData<Real> const& block_dat,
                            int atom_ind,
-                           lk_ball_dV_dReal3<Real> const& derivs) {
+                           Real3 const& derivs) {
     for (int j = 0; j < 3; ++j) {
-      Real const weighted_deriv =
-          dTdV[w_lk_ball_iso] * derivs.d_lkball_iso[j]
-          + dTdV[w_lk_ball] * derivs.d_lkball[j]
-          + dTdV[w_lk_bridge] * derivs.d_lkbridge[j]
-          + dTdV[w_lk_bridge_uncpl] * derivs.d_lkbridge_uncpl[j];
-      if (weighted_deriv != 0) {
+      if (derivs[j] != 0) {
         accumulate<Dev, Real>::add(
             dV_d_pose_coords[block_dat.rot_coord_offset + atom_ind][j],
-            weighted_deriv);
+            derivs[j]);
       }
     }
   });
@@ -1223,18 +1319,13 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
            LKBallSingleResData<Real> const& block_dat,
            int atom_ind,
            int water_ind,
-           lk_ball_dV_dWater<Real, MAX_N_WATER> const& derivs) {
+           Eigen::Matrix<Real, MAX_N_WATER, 3> const& derivs) {
         for (int j = 0; j < 3; ++j) {
-          Real const weighted_deriv =
-              dTdV[w_lk_ball_iso] * derivs.d_lkball_iso(water_ind, j)
-              + dTdV[w_lk_ball] * derivs.d_lkball(water_ind, j)
-              + dTdV[w_lk_bridge] * derivs.d_lkbridge(water_ind, j)
-              + dTdV[w_lk_bridge_uncpl] * derivs.d_lkbridge_uncpl(water_ind, j);
-          if (weighted_deriv != 0) {
+          if (derivs(water_ind, j) != 0) {
             accumulate<Dev, Real>::add(
                 dV_d_water_coords[block_dat.rot_coord_offset + atom_ind]
                                  [water_ind][j],
-                weighted_deriv);
+                derivs(water_ind, j));
           }
         }
       });
