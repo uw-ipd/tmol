@@ -305,13 +305,13 @@ def obabel_smiles_to_mol2(
 def _assign_generic_atom_names(openbabel, obmol) -> None:
     """Rename atoms to generic ``<element><1-based-per-element-index>``.
 
-    For peptide-like ligands ``make3D`` perceives amino-acid residues and writes
-    PDB atom names (``CA``, ``CB``, ``OXT``) into the mol2. Those collide with
-    element symbols (``CA`` = carbon-alpha vs calcium), which can confuse
-    name-based element inference downstream. Generic names (``C1``, ``N1``, …)
-    are element-unambiguous and match the conventional SMILES->PDB->mol2
-    ligand-prep output. Chemistry (elements, coordinates, bonds, charges) is
-    untouched — only the labels change.
+    OpenBabel residue perception can write PDB atom names (``CA``, ``CB``,
+    ``OXT``) into the mol2 for peptide-like ligands. Those collide with element
+    symbols (``CA`` = carbon-alpha vs calcium), which can confuse name-based
+    element inference downstream. Generic names (``C1``, ``N1``, ...) are
+    element-unambiguous and match the conventional SMILES->PDB->mol2 ligand-prep
+    output. Chemistry (elements, coordinates, bonds, charges) is untouched --
+    only the labels change.
     """
     periodic_table = Chem.GetPeriodicTable()
     counts: dict[str, int] = {}
