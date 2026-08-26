@@ -447,7 +447,6 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
   auto dist_r = distance<Real>::V_dV(coord1, coord2);
   auto& dist = dist_r.V;
   auto& ddist_dat1 = dist_r.dV_dA;
-  auto& ddist_dat2 = dist_r.dV_dB;
   Real V(0.0), dV_ddist(0.0);
   tie(V, dV_ddist) = elec_delec_ddist(
       dist,
@@ -475,7 +474,7 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
   }
 
   // all threads accumulate derivatives for atom 2 to global memory
-  Vec<Real, 3> elec_dxyz_at2 = dTdV * dV_ddist * ddist_dat2;
+  Vec<Real, 3> elec_dxyz_at2 = -elec_dxyz_at1;
   for (int j = 0; j < 3; ++j) {
     if (elec_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
@@ -504,7 +503,6 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
   auto dist_r = distance<Real>::V_dV(coord1, coord2);
   auto& dist = dist_r.V;
   auto& ddist_dat1 = dist_r.dV_dA;
-  auto& ddist_dat2 = dist_r.dV_dB;
   Real V(0.0), dV_ddist(0.0);
   tie(V, dV_ddist) = elec_delec_ddist(
       dist,
@@ -530,7 +528,7 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
   }
 
   // all threads accumulate derivatives for atom 2 to global memory
-  Vec<Real, 3> elec_dxyz_at2 = dV_ddist * ddist_dat2;
+  Vec<Real, 3> elec_dxyz_at2 = -elec_dxyz_at1;
   for (int j = 0; j < 3; ++j) {
     if (elec_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
