@@ -102,8 +102,8 @@ struct lk_fraction {
         Real exp_d2_delta = std::exp(-d2_delta);
 
         wted_d2_delta += exp_d2_delta;
-        d_wted_d2_delta_d_J += 2 * exp_d2_delta * delta_Jw;
-        d_wted_d2_delta_d_WI.row(w).transpose() = -2 * exp_d2_delta * delta_Jw;
+        d_wted_d2_delta_d_J += exp_d2_delta * delta_Jw;
+        d_wted_d2_delta_d_WI.row(w).transpose() = -exp_d2_delta * delta_Jw;
       }
     }
 
@@ -124,7 +124,7 @@ struct lk_fraction {
     }
 
     Real const derivative_scale =
-        exp_sum != 0 ? dfrac_dwted_d2 / exp_sum : Real(0);
+        exp_sum != 0 ? 2 * dfrac_dwted_d2 / exp_sum : Real(0);
     return V_dV_t{
         frac,
         dV_t{
@@ -228,10 +228,8 @@ struct lk_bridge_fraction {
         if (!std::isnan(d2_delta)) {
           Real exp_d2_delta = std::exp(-d2_delta);
 
-          d_wted_d2_delta_d_WI.row(wi).transpose() +=
-              2 * exp_d2_delta * delta_ij;
-          d_wted_d2_delta_d_WJ.row(wj).transpose() -=
-              2 * exp_d2_delta * delta_ij;
+          d_wted_d2_delta_d_WI.row(wi).transpose() += exp_d2_delta * delta_ij;
+          d_wted_d2_delta_d_WJ.row(wj).transpose() -= exp_d2_delta * delta_ij;
 
           wted_d2_delta += exp_d2_delta;
         }
@@ -282,7 +280,8 @@ struct lk_bridge_fraction {
     }
 
     Real const water_derivative_scale =
-        exp_sum != 0 ? anglefrac * d_overlapfrac_d_wted_d2 / exp_sum : Real(0);
+        exp_sum != 0 ? 2 * anglefrac * d_overlapfrac_d_wted_d2 / exp_sum
+                     : Real(0);
     return V_dV_t{
         overlapfrac * anglefrac,
         dV_t{
