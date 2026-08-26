@@ -109,6 +109,46 @@ def test_residue_level_task_his_restrict_to_repacking_backward_compat(
     assert sum(restrict_to_repacking_masks[0, 0].to(torch.int64)) == 2
 
 
+def test_packer_task_masked_restrictions(ubq_pdb, torch_device):
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
+    task = PackerTask(poses, PackerPalette())
+
+    initially_allowed = task.per_block_is_block_type_allowed.clone()
+    repack_mask = torch.zeros(
+        task.per_block_n_considered_block_types.shape,
+        dtype=torch.bool,
+        device=torch_device,
+    )
+    repack_mask[0, 0] = True
+    task.restrict_to_repacking(repack_mask)
+
+    assert torch.equal(
+        task.per_block_is_block_type_allowed[0, 0],
+        initially_allowed[0, 0] & task.restrict_to_repacking_masks[0, 0],
+    )
+    assert torch.equal(task.per_block_is_block_type_allowed[1], initially_allowed[1])
+
+    before_name_restriction = task.per_block_is_block_type_allowed.clone()
+    mutation_mask = torch.zeros_like(repack_mask)
+    mutation_mask[1, 1] = True
+    task.restrict_absent_name3s({"ALA"}, mutation_mask)
+
+    assert torch.equal(
+        task.per_block_is_block_type_allowed[0], before_name_restriction[0]
+    )
+    allowed_types = task.per_block_considered_block_types[1, 1][
+        task.per_block_is_block_type_allowed[1, 1]
+    ]
+    assert allowed_types.numel() > 0
+    assert all(
+        task.pbt.active_block_types[bt_ind].name3 == "ALA"
+        for bt_ind in allowed_types.tolist()
+    )
+    assert torch.all(task.per_block_is_block_type_allowed <= before_name_restriction)
+
+
 def test_packer_task_ctor(ubq_pdb, default_restype_set, torch_device):
     palette = PackerPalette()
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)

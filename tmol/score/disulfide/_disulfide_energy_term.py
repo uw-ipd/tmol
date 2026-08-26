@@ -82,6 +82,17 @@ class DisulfideEnergyTerm(EnergyTerm):
 
         return disulfide_rotamer_scores
 
+    def pose_score_term_is_invariant_zero(self, pose_stack):
+        """Disulfide scoring is zero unless the pose has a connected dslf edge."""
+        pbt = pose_stack.packed_block_types
+        block_types = pose_stack.block_type_ind64
+        real_blocks = block_types >= 0
+        dslf_connections = pbt.disulfide_conns[block_types.clamp_min(0)]
+        connected = pose_stack.inter_residue_connections[..., 0] >= 0
+        return not bool(
+            (dslf_connections & connected & real_blocks.unsqueeze(-1)).any()
+        )
+
     def get_score_term_attributes(self, pose_stack):
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))

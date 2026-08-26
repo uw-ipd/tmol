@@ -6,6 +6,7 @@
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/device_operations.hh>
+#include <tmol/score/common/whole_pose_scoring.hh>
 
 #include "ljlk_pose_score.hh"
 // #include "rotamer_pair_energy_lj.hh"
@@ -162,15 +163,10 @@ class LJLKPoseScoreOp
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
-      // TO DO: make this a function so it's not duplicated everywhere
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
-      auto atom_ingrads =
-          grad_outputs[0].index_select(1, pose_ind_for_atom).unsqueeze(-1);
-
-      dV_d_pose_coords = saved_grad * atom_ingrads;
+      auto saved_grad = saved[0];
+      dV_d_pose_coords =
+          common::accumulate_whole_pose_gradients(saved_grad, grad_outputs[0]);
     } else {
       // block-pair mode
       int i = 0;

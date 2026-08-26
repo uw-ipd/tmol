@@ -11,6 +11,7 @@ from tmol.score.common import (
     TermWholePoseScoringModule,
     TermBlockPairScoringModule,
     TermRotamerScoringModule,
+    ZeroTermPoseScoringModule,
 )
 
 if TYPE_CHECKING:
@@ -120,7 +121,18 @@ class EnergyTerm:
     def get_rotamer_score_term_function(self):
         raise NotImplementedError()
 
+    def pose_score_term_is_invariant_zero(self, pose_stack: PoseStack):
+        """Whether this term is identically zero for this fixed pose topology."""
+        return False
+
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+        if self.pose_score_term_is_invariant_zero(pose_stack):
+            return ZeroTermPoseScoringModule(
+                self.class_name(),
+                len(self.score_types()),
+                pose_stack.n_poses,
+                pose_stack.device,
+            )
         f = self.get_pose_score_term_function()
 
         return TermWholePoseScoringModule(
@@ -131,6 +143,14 @@ class EnergyTerm:
         )
 
     def render_block_pair_scoring_module(self, pose_stack: PoseStack):
+        if self.pose_score_term_is_invariant_zero(pose_stack):
+            return ZeroTermPoseScoringModule(
+                self.class_name(),
+                len(self.score_types()),
+                pose_stack.n_poses,
+                pose_stack.device,
+                pose_stack.max_n_blocks,
+            )
         f = self.get_pose_score_term_function()
         return TermBlockPairScoringModule(
             self.class_name(),

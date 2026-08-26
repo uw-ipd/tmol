@@ -4,6 +4,52 @@ import torch
 from tmol.score.common import convert_float64
 
 
+class _ZeroCoordinates(torch.autograd.Function):
+    """Attach a no-op coordinate gradient without launching a device kernel."""
+
+    @staticmethod
+    def forward(ctx, coords, zero, shape):
+        return zero.expand(shape)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return None, None, None
+
+
+class ZeroTermPoseScoringModule(torch.nn.Module):
+    """A zero-cost placeholder for a score term absent from a pose topology.
+
+    The scalar buffers expand to the requested output shape without allocating
+    or launching a device kernel. Keeping the module in the score-function
+    output preserves score-type ordering for callers requesting per-term
+    energies.
+    """
+
+    def __init__(self, classname, n_score_types, n_poses, device, max_n_blocks=None):
+        super().__init__()
+        self.classname = classname
+        shape = [n_score_types, n_poses]
+        if max_n_blocks is not None:
+            shape.extend([max_n_blocks, max_n_blocks])
+        self.shape = tuple(shape)
+        self.register_buffer(
+            "_zero_f32", torch.zeros((), dtype=torch.float32, device=device)
+        )
+        self.register_buffer(
+            "_zero_f64", torch.zeros((), dtype=torch.float64, device=device)
+        )
+
+    def forward(self, coords):
+        zero = self._zero_f64 if coords.dtype == torch.float64 else self._zero_f32
+        # Some callers benchmark or inspect a single energy term by calling
+        # backward() even when that term has no coordinate dependence. Attach
+        # a custom no-op edge so that convention remains valid without a
+        # reduction kernel or a persistent leaf gradient.
+        if torch.is_grad_enabled() and coords.requires_grad:
+            return _ZeroCoordinates.apply(coords, zero, self.shape)
+        return zero.expand(self.shape)
+
+
 class TermScoringModule(torch.nn.Module):
     def __init__(
         self,

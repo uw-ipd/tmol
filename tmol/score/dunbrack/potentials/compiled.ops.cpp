@@ -6,6 +6,7 @@
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/device_operations.hh>
+#include <tmol/score/common/whole_pose_scoring.hh>
 
 #include "dunbrack_pose_score.hh"
 
@@ -224,19 +225,11 @@ class DunbrackPoseScoreOp
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // whole-pose-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
 
       tensor_list result;
-
-      auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
-
-      while (atom_ingrads.dim() < saved_grad.dim()) {
-        atom_ingrads = atom_ingrads.unsqueeze(-1);
-      }
-
-      result.emplace_back(saved_grad * atom_ingrads);
+      result.emplace_back(
+          common::accumulate_whole_pose_gradients(saved_grad, grad_outputs[0]));
 
       int i = 0;
       dV_d_pose_coords = result[i++];

@@ -399,7 +399,10 @@ class LBFGS_Armijo(Optimizer):
 
         # evaluate initial f(x)
         orig_loss = closure()
-        loss = orig_loss.item()
+        # The optimizer uses the per-segment tensor below for all line-search
+        # and convergence decisions. Materializing a Python scalar here forces
+        # a device synchronization and is only useful for verbose reporting.
+        loss = float(orig_loss) if self.verbose else None
         loss_vec = self._last_loss_vec
         state["func_evals"] += 1
 
@@ -469,6 +472,11 @@ class LBFGS_Armijo(Optimizer):
             stalled=state["stalled"],
             needs_reset=state["needs_reset"],
             was_reset=state["was_reset"],
+            # Host mirrors of predicates already synchronized in the previous
+            # iteration. Reusing them avoids repeating identical device-to-host
+            # checks at the start of the next iteration.
+            any_needs_reset=state.get("any_needs_reset", False),
+            any_inactive=state.get("any_inactive", False),
             gtd_seg=None,
             # current eval
             orig_loss=orig_loss,
@@ -549,7 +557,7 @@ class LBFGS_Armijo(Optimizer):
         Its history is dropped (zeroed slots read as absent) and it is marked as
         restarted, so a second failure retires it instead of searching again.
         """
-        if not bool(ctx.needs_reset.any()):
+        if not ctx.any_needs_reset:
             ctx.was_reset = torch.zeros_like(ctx.needs_reset)
             return
         ctx.was_reset = ctx.needs_reset.clone()
@@ -560,6 +568,7 @@ class LBFGS_Armijo(Optimizer):
         ctx.d.copy_(torch.where(reset_elem, -ctx.flat_grad, ctx.d))
         ctx.x_ref = torch.where(reset_elem, ctx.x, ctx.x_ref)
         ctx.needs_reset = torch.zeros_like(ctx.needs_reset)
+        ctx.any_needs_reset = False
 
     def _inactive(self, ctx):
         """Segments that no longer move: converged or retired."""
@@ -568,7 +577,7 @@ class LBFGS_Armijo(Optimizer):
     def _freeze_converged(self, ctx):
         """Hold converged or retired segments still by zeroing their direction."""
         inactive = self._inactive(ctx)
-        if not bool(inactive.any()):
+        if not ctx.any_inactive:
             return
         ctx.d.mul_((~inactive).to(ctx.d.dtype)[self._segment_ids])
 
@@ -616,7 +625,9 @@ class LBFGS_Armijo(Optimizer):
         if not trial_is_accepted:
             self._closure_fn()
         ctx.loss_vec = self._last_loss_vec
-        ctx.loss = float(ctx.loss_vec.sum())
+        # Keep the normal optimization path asynchronous. The scalar total is
+        # only needed for human-readable progress output.
+        ctx.loss = float(ctx.loss_vec.sum()) if self.verbose else None
 
         # a failed search gets one steepest-descent restart, applied on the next
         # iteration so the other segments are not held up; then it is retired
@@ -625,9 +636,14 @@ class LBFGS_Armijo(Optimizer):
         retry_t = torch.clamp((-ctx.gtd_seg).clamp(min=self._minstep).rsqrt(), max=1.0)
         ctx.t = torch.where(failed, retry_t, accepted)
         ctx.t = torch.where(searching, ctx.t, start_t)
-        if bool(failed.any()):
+        any_failed = bool(failed.any())
+        if any_failed:
             ctx.stalled |= failed & ctx.was_reset
             ctx.needs_reset |= failed & ~ctx.was_reset
+        # A failure is the only way needs_reset can become true. It is safe to
+        # be conservative when all failed segments were already restarted;
+        # the next iteration will process an empty mask and clear this flag.
+        ctx.any_needs_reset = any_failed
 
     def _check_segment_convergence(self, ctx, n_iter):
         """Freeze independently converged segments; stop when all are done.
@@ -649,6 +665,7 @@ class LBFGS_Armijo(Optimizer):
         done = self._inactive(ctx)
 
         n_done = int(done.sum().item())
+        ctx.any_inactive = n_done != 0
         if self.verbose:
             n_stalled = int(ctx.stalled.sum().item())
             print(
@@ -758,5 +775,7 @@ class LBFGS_Armijo(Optimizer):
         ctx.state["x_ref"] = ctx.x_ref
         ctx.state["needs_reset"] = ctx.needs_reset
         ctx.state["was_reset"] = ctx.was_reset
+        ctx.state["any_needs_reset"] = ctx.any_needs_reset
+        ctx.state["any_inactive"] = ctx.any_inactive
 
         return ctx.orig_loss

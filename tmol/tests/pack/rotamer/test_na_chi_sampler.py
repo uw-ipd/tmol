@@ -146,3 +146,56 @@ def test_na_build_rotamers(fixture, request, default_database, torch_device):
     assert rotamer_set is not None
     assert rotamer_set.coords.shape[0] > 0
     assert not bool(torch.any(torch.isnan(rotamer_set.coords)))
+
+
+def test_na_mutation_rotamers_preserve_sugar_coordinates(
+    dna_pdb, default_database, torch_device
+):
+    """A base substitution is anchored to the input nucleotide sugar."""
+    poses = _pose_stack(dna_pdb, torch_device)
+    pbt = poses.packed_block_types
+    name3 = [bt.name3 for bt in pbt.active_block_types]
+    dg_ind = name3.index("DG")
+    pose_ind, block_ind = torch.nonzero(poses.block_type_ind == dg_ind, as_tuple=True)
+    pose_ind = int(pose_ind[0])
+    block_ind = int(block_ind[0])
+
+    mutation_mask = torch.zeros_like(poses.block_type_ind, dtype=torch.bool)
+    mutation_mask[pose_ind, block_ind] = True
+    task = PackerTask(poses, PackerPalette())
+    task.restrict_to_repacking(~mutation_mask)
+    task.restrict_absent_name3s({"DA"}, mutation_mask)
+    sampler = NaChiRotamerSampler.from_database(default_database, torch_device)
+    task.add_conformer_sampler(sampler)
+    task = SetPackerTask.from_packer_task(task)
+
+    _, rotamers = build_rotamers(poses, task, default_database.chemical)
+    da_inds = torch.tensor(
+        [i for i, bt in enumerate(pbt.active_block_types) if bt.name3 == "DA"],
+        dtype=torch.int64,
+        device=torch_device,
+    )
+    is_da = torch.isin(rotamers.block_type_ind_for_rot, da_inds)
+    selected = torch.nonzero(
+        (rotamers.pose_for_rot == pose_ind)
+        & (rotamers.block_ind_for_rot == block_ind)
+        & is_da
+    ).flatten()
+    assert selected.numel() > 0
+
+    original_bt = pbt.active_block_types[dg_ind]
+    original_offset = int(poses.block_coord_offset[pose_ind, block_ind])
+    sugar_atoms = ("P", "O5'", "C5'", "C4'", "O4'", "C3'", "O3'", "C2'", "C1'")
+    original = poses.coords[
+        pose_ind,
+        [original_offset + original_bt.atom_to_idx[name] for name in sugar_atoms],
+    ]
+    for rot_ind in selected.tolist():
+        rotamer_bt = pbt.active_block_types[
+            int(rotamers.block_type_ind_for_rot[rot_ind])
+        ]
+        rotamer_offset = int(rotamers.coord_offset_for_rot[rot_ind])
+        mutated = rotamers.coords[
+            [rotamer_offset + rotamer_bt.atom_to_idx[name] for name in sugar_atoms]
+        ]
+        torch.testing.assert_close(mutated, original, atol=1e-3, rtol=0)

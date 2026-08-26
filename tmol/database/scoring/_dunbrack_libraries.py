@@ -89,4 +89,7 @@ class DunbrackRotamerLibrary:
                 (RotamericDataForAA, f"{_OLD}.RotamericDataForAA"),
             ]
         ):
-            return torch.load(fname, mmap=True)
+            # Be explicit so application-level
+            # TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD does not bypass the safe-global
+            # aliases for pre-refactor class names stored in this database.
+            return torch.load(fname, mmap=True, weights_only=True)

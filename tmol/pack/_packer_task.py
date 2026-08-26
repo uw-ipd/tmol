@@ -9,7 +9,7 @@ from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
 )
-from typing import TYPE_CHECKING
+from typing import Collection, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from tmol.pack.rotamer._conformer_sampler import ConformerSampler
@@ -307,50 +307,53 @@ class PackerTask:
         )
         self._bump_check = False
 
-    def restrict_to_repacking(self):
-        # Use the pre-calculated masks to disable packing for
-        # all block types that are not allowed except those which
-        # meet the definition of "repacking" for the original
-        # packer palette (i.e. same name3)
+    def restrict_to_repacking(self, block_mask: Tensor[torch.bool][:, :] | None = None):
+        """Restrict selected blocks to the original residue name.
+
+        If ``block_mask`` is omitted, restrict every block for backward
+        compatibility. Otherwise, only ``True`` pose/block entries are changed.
+        """
+        if block_mask is not None:
+            assert block_mask.device == self.per_block_is_block_type_allowed.device
+            assert block_mask.shape == self.per_block_is_block_type_allowed.shape[:2]
+            restriction = torch.logical_or(
+                self.restrict_to_repacking_masks, ~block_mask.unsqueeze(-1)
+            )
+        else:
+            restriction = self.restrict_to_repacking_masks
+
         self.per_block_is_block_type_allowed = torch.logical_and(
-            self.per_block_is_block_type_allowed, self.restrict_to_repacking_masks
+            self.per_block_is_block_type_allowed, restriction
         )
 
-    def restrict_absent_name3s(self, name3s):
-        """Disallow all block types at all positions except those with the given name3s.
+    def restrict_absent_name3s(
+        self,
+        name3s: Collection[str],
+        block_mask: Tensor[torch.bool][:, :] | None = None,
+    ):
+        """Restrict selected blocks to block types with the given name3s.
 
-        This is somewhat slow and does not cache the relationship between name3s and
-        permitted block types, so consider writing your own version of this function
-        if you call with the same list of name3s many times.
+        If ``block_mask`` is omitted, restrict every block for backward compatibility.
+        This operation only disables choices and may therefore be composed safely with
+        other task restrictions.
         """
+        if block_mask is not None:
+            assert block_mask.device == self.per_block_is_block_type_allowed.device
+            assert block_mask.shape == self.per_block_is_block_type_allowed.shape[:2]
+
         bt_name3_matches = torch.tensor(
             [bt.name3 in name3s for bt in self.pbt.active_block_types],
             dtype=torch.bool,
             device=self.device,
         )
-        is_real_considered_block_type = self.per_block_considered_block_types != -1
-        (
-            nz_real_cons_bt_pose,
-            nz_real_cons_bt_block,
-            nz_real_cons_bt_which_block_type,
-        ) = torch.nonzero(is_real_considered_block_type, as_tuple=True)
-        self.per_block_is_block_type_allowed[
-            nz_real_cons_bt_pose,
-            nz_real_cons_bt_block,
-            nz_real_cons_bt_which_block_type,
-        ] = torch.logical_and(
-            self.per_block_is_block_type_allowed[
-                nz_real_cons_bt_pose,
-                nz_real_cons_bt_block,
-                nz_real_cons_bt_which_block_type,
-            ],
-            bt_name3_matches[
-                self.per_block_considered_block_types[
-                    nz_real_cons_bt_pose,
-                    nz_real_cons_bt_block,
-                    nz_real_cons_bt_which_block_type,
-                ]
-            ],
+        considered = self.per_block_considered_block_types
+        restriction = torch.logical_and(
+            considered >= 0, bt_name3_matches[considered.clamp_min(0)]
+        )
+        if block_mask is not None:
+            restriction = torch.logical_or(restriction, ~block_mask.unsqueeze(-1))
+        self.per_block_is_block_type_allowed = torch.logical_and(
+            self.per_block_is_block_type_allowed, restriction
         )
 
     def add_conformer_sampler(self, sampler: ConformerSampler):

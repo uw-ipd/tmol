@@ -48,8 +48,8 @@ class IncludeCurrentSampler(ConformerSampler):
     def create_samples_for_poses(
         self,
         pose_stack: PoseStack,
-        task: "SetPackerTask",  # noqa: 821
-    ) -> Tuple[  # noqa F821
+        task: "SetPackerTask",  # noqa: F821
+    ) -> Tuple[
         Tensor[torch.int32][:],  # n_rots_for_gbt
         Tensor[torch.int32][:],  # gbt_for_rotamer
         dict,  # anything else the sampler wants to save for later
@@ -80,7 +80,7 @@ class IncludeCurrentSampler(ConformerSampler):
     def fill_dofs_for_samples(
         self,
         pose_stack: PoseStack,
-        task: "PackerTask",  # noqa: 821
+        task: "PackerTask",  # noqa: F821
         orig_kinforest: KinForest,
         orig_dofs_kto: Tensor[torch.float32][:, 9],
         gbt_for_conformer: Tensor[torch.int64][:],
@@ -99,8 +99,6 @@ class IncludeCurrentSampler(ConformerSampler):
         if n_rots == 0:
             return
 
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
         dst, src = (
             create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler(
                 pose_stack,
@@ -115,8 +113,6 @@ class IncludeCurrentSampler(ConformerSampler):
         )
 
         conf_dofs_kto[dst + 1, :] = orig_dofs_kto[src + 1, :]
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
 
 
 # @validate_args

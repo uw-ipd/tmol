@@ -1,6 +1,8 @@
 import torch
 
+from tmol.io import pose_stack_from_pdb
 from tmol.score.disulfide import DisulfideEnergyTerm
+from tmol.score.common import ZeroTermPoseScoringModule
 
 from tmol.tests.score.common import EnergyTermTestBase
 
@@ -36,6 +38,35 @@ def test_annotate_disulfide_conns(
     assert (
         pbt.disulfide_conns is disulfide_conns
     )  # Test to make sure the parameters remain the same instance
+
+
+def test_pose_without_disulfides_uses_zero_term(
+    ubq_pdb, default_database, torch_device: torch.device
+):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+
+    whole_pose = TestDisulfideEnergyTerm.get_whole_pose_scorer(
+        pose_stack, default_database, torch_device
+    )
+    block_pair = TestDisulfideEnergyTerm.get_block_pair_scorer(
+        pose_stack, default_database, torch_device
+    )
+
+    assert isinstance(whole_pose, ZeroTermPoseScoringModule)
+    assert isinstance(block_pair, ZeroTermPoseScoringModule)
+    torch.testing.assert_close(
+        whole_pose(pose_stack.coords),
+        torch.zeros((1, 1), device=torch_device),
+    )
+    torch.testing.assert_close(
+        block_pair(pose_stack.coords),
+        torch.zeros((1, 1, 10, 10), device=torch_device),
+    )
+
+    # Coordinate-independent terms still support the single-term benchmark
+    # convention of calling backward() on their scalar output.
+    coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    whole_pose(coords).sum().backward()
 
 
 class TestDisulfideEnergyTerm(EnergyTermTestBase):

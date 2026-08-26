@@ -147,8 +147,6 @@ class FallbackSampler(ConformerSampler):
         if n_rots == 0:
             return
 
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
         dst, src = (
             create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler(
                 pose_stack,
@@ -163,5 +161,3 @@ class FallbackSampler(ConformerSampler):
         )
 
         conf_dofs_kto[dst + 1, :] = orig_dofs_kto[src + 1, :]
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()

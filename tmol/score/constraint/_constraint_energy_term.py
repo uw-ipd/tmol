@@ -163,36 +163,34 @@ class ConstraintEnergyTerm(EnergyTerm):
 
         # Early exit if we have no constraints
         if constraint_set is None:
+            n_poses = first_rot_block_type.shape[0]
+            if not output_block_pair_energies:
+                # Whole-pose scoring never represents multiple rotamers per
+                # block. Handle it before inspecting the CUDA tensor so an
+                # empty constraint set does not synchronize every evaluation.
+                return (
+                    torch.zeros((1, n_poses), dtype=torch.float32, device=device),
+                    torch.zeros((3, 0), dtype=torch.int32, device=device),
+                )
+
+            # Block-pair and rotamer scoring share this entry point. Only this
+            # infrequent path needs to distinguish their output conventions.
             max_n_rots_per_block = n_rots_for_block.max().item()
             if max_n_rots_per_block > 1:
                 return (
                     torch.zeros((1, 0), dtype=coords.dtype, device=device),
                     torch.zeros((3, 0), dtype=torch.int32, device=device),
                 )
-            else:
-                n_poses = first_rot_block_type.shape[0]
-                max_n_blocks = first_rot_block_type.shape[1]
-                if output_block_pair_energies:
-                    return (
-                        torch.zeros(
-                            (1, n_poses, max_n_blocks, max_n_blocks),
-                            dtype=torch.float32,
-                            device=device,
-                        ),
-                        torch.zeros((3, 0), dtype=torch.int32, device=device),
-                    )
-                else:
-                    return (
-                        torch.zeros(
-                            (
-                                1,
-                                n_poses,
-                            ),
-                            dtype=torch.float32,
-                            device=device,
-                        ),
-                        torch.zeros((3, 0), dtype=torch.int32, device=device),
-                    )
+
+            max_n_blocks = first_rot_block_type.shape[1]
+            return (
+                torch.zeros(
+                    (1, n_poses, max_n_blocks, max_n_blocks),
+                    dtype=torch.float32,
+                    device=device,
+                ),
+                torch.zeros((3, 0), dtype=torch.int32, device=device),
+            )
 
         unique_blocks = constraint_set.constraint_num_unique_blocks
         constraint_atoms = constraint_set.constraint_atoms
@@ -422,7 +420,12 @@ class ConstraintEnergyTerm(EnergyTerm):
                 (rotamerized_inds, constraint_set.constraint_unique_blocks)
             )
 
-        has_rotamers = (n_rots_for_block.max() > 1).item()
+        # Whole-pose scoring always supplies exactly one rotamer for each
+        # block. Avoid reducing a CUDA tensor to the host on every scoring
+        # call; only block-pair/rotamer scoring needs to inspect this value.
+        has_rotamers = output_block_pair_energies and bool(
+            (n_rots_for_block.max() > 1).item()
+        )
         if has_rotamers:
             add_twobody_vectorized()
             add_onebody_vectorized()

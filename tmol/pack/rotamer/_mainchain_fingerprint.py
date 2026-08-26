@@ -124,6 +124,34 @@ def create_non_sidechain_fingerprint(  # noqa: C901
     mc_ind = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
     mc_ind[mc_atoms] = numpy.arange(mc_atoms.shape[0], dtype=numpy.int32)
 
+    # A kinematic parent tree has to cut cycles. For polymer rings branching
+    # from the mainchain (notably the nucleotide sugar), following parents can
+    # therefore reach the tree root without ever visiting a declared mainchain
+    # atom. Keep the parent-tree path as the normal definition, but fall back to
+    # the shortest chemical-bond path for those atoms.
+    bonded_neighbors = [[] for _ in range(rt.n_atoms)]
+    for atom1, atom2 in rt.bond_indices:
+        bonded_neighbors[atom1].append(atom2)
+        bonded_neighbors[atom2].append(atom1)
+
+    def closest_mainchain_atom(atom):
+        visited = {atom}
+        frontier = [atom]
+        for bond_distance in range(rt.n_atoms):
+            mainchain = sorted(a for a in frontier if mc_ind[a] >= 0)
+            if mainchain:
+                return mc_ind[mainchain[0]], bond_distance
+            frontier = sorted(
+                {
+                    neighbor
+                    for current in frontier
+                    for neighbor in bonded_neighbors[current]
+                    if neighbor not in visited
+                }
+            )
+            visited.update(frontier)
+        raise ValueError(f"Atom {atom} in {rt.name} is disconnected from its mainchain")
+
     # fd temporary fix for terminal variants
     # count the number of bonds to non-H for each atom
     # apl maybe undoing this change
@@ -159,6 +187,9 @@ def create_non_sidechain_fingerprint(  # noqa: C901
             mc_anc = mc_ind[par]
             atom = par
             bonds_from_mc += 1
+
+        if mc_anc == -1:
+            mc_anc, bonds_from_mc = closest_mainchain_atom(nsc_at)
 
         # now lets figure out the chirality of this atom
         # "chirality" here is interpretted in the most liberal of ways

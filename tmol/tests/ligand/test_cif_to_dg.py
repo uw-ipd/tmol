@@ -144,6 +144,21 @@ def test_cif_smiles_matches_reference(stem: str, variant: str) -> None:
     assert _canonical(smiles) == _canonical(expected)
 
 
+@pytest.mark.parametrize("stem", sorted(_LIGANDS))
+def test_mapped_smiles_preserves_heavy_atom_source_order(stem: str) -> None:
+    """Explicit input hydrogens do not suppress heavy-atom map numbers."""
+    from tmol.ligand import ligand_smiles_from_atom_array
+    from tmol.ligand._openbabel_compat import source_atom_order_from_mapped_smiles
+
+    code, _ = _LIGANDS[stem]
+    arr = _load_ligand_array(stem, "bonds_present")
+    smiles = ligand_smiles_from_atom_array(arr, res_name=code, with_atom_map=True)
+    source_order = source_atom_order_from_mapped_smiles(smiles)
+    expected = tuple(i for i, element in enumerate(arr.element) if element != "H")
+    assert source_order is not None
+    assert sorted(source_order) == sorted(expected)
+
+
 @pytest.mark.parametrize("stem", _PREPARABLE)
 @pytest.mark.parametrize("variant", _VARIANTS)
 def test_prepare_ligand_from_cif_registers_residue(stem: str, variant: str) -> None:

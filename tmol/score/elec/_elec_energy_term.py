@@ -25,6 +25,11 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(ElecEnergyTerm, self).__init__(param_db=param_db, device=device)
         self.param_resolver = param_resolver
         self.global_params = self.param_resolver.global_params
+        # The cutoff/smoothing coefficients depend only on the parameter
+        # database. Computing them from CUDA scalar tensors synchronizes the
+        # stream, so retain the first exact result for subsequent renders.
+        self._scoring_global_params = None
+        self._max_dis = None
 
     @classmethod
     def class_name(cls):
@@ -159,62 +164,61 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         return elec_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack):
-        def _t(ts):
-            return tuple(map(lambda t: t.to(torch.float), ts))
+        if self._scoring_global_params is None:
+            D = self.global_params.elec_sigmoidal_die_D
+            D0 = self.global_params.elec_sigmoidal_die_D0
+            S = self.global_params.elec_sigmoidal_die_S
+            min_dis = self.global_params.elec_min_dis
+            max_dis = self.global_params.elec_max_dis
 
-        D = self.global_params.elec_sigmoidal_die_D
-        D0 = self.global_params.elec_sigmoidal_die_D0
-        S = self.global_params.elec_sigmoidal_die_S
-        min_dis = self.global_params.elec_min_dis
-        max_dis = self.global_params.elec_max_dis
+            def eps(dist):
+                return D - 0.5 * (D - D0) * (
+                    2 + 2 * dist * S + dist * dist * S * S
+                ) * math.exp(-dist * S)
 
-        def eps(dist):
-            return D - 0.5 * (D - D0) * (
-                2 + 2 * dist * S + dist * dist * S * S
-            ) * math.exp(-dist * S)
+            def deps(dist):
+                return 0.5 * (D - D0) * dist * dist * S * S * S * math.exp(-dist * S)
 
-        def deps(dist):
-            return 0.5 * (D - D0) * dist * dist * S * S * S * math.exp(-dist * S)
+            eps_at_cutoff = eps(max_dis)
+            cutoff_offset = 322.0637 / (max_dis * eps_at_cutoff)
+            min_score = 322.0637 / (min_dis * eps(min_dis)) - cutoff_offset
 
-        eps_at_cutoff = eps(max_dis)
-        cutoff_offset = 322.0637 / (max_dis * eps_at_cutoff)
-        min_score = 322.0637 / (min_dis * eps(min_dis)) - cutoff_offset
+            low_end = min_dis + 0.25
+            low_eps = eps(low_end)
+            low_score = 322.0637 / (low_end * low_eps) - cutoff_offset
+            low_deriv = (
+                -322.0637
+                * (low_eps + low_end * deps(low_end))
+                / (low_end * low_end * low_eps * low_eps)
+            )
 
-        low_end = min_dis + 0.25
-        low_eps = eps(low_end)
-        low_score = 322.0637 / (low_end * low_eps) - cutoff_offset
-        low_deriv = (
-            -322.0637
-            * (low_eps + low_end * deps(low_end))
-            / (low_end * low_end * low_eps * low_eps)
-        )
+            high_start = max_dis - 1.0
+            high_eps = eps(high_start)
+            high_score = 322.0637 / (high_start * high_eps) - cutoff_offset
+            high_deriv = (
+                -322.0637
+                * (high_eps + high_start * deps(high_start))
+                / (high_start * high_start * high_eps * high_eps)
+            )
 
-        high_start = max_dis - 1.0
-        high_eps = eps(high_start)
-        high_score = 322.0637 / (high_start * high_eps) - cutoff_offset
-        high_deriv = (
-            -322.0637
-            * (high_eps + high_start * deps(high_start))
-            / (high_start * high_start * high_eps * high_eps)
-        )
-
-        global_params = torch.tensor(
-            [
-                D,
-                D0,
-                S,
-                min_dis,
-                max_dis,
-                cutoff_offset,
-                min_score,
-                low_score,
-                low_deriv,
-                high_score,
-                high_deriv,
-            ],
-            dtype=torch.float32,
-            device=pose_stack.device,
-        )[None, :]
+            self._scoring_global_params = torch.tensor(
+                [
+                    D,
+                    D0,
+                    S,
+                    min_dis,
+                    max_dis,
+                    cutoff_offset,
+                    min_score,
+                    low_score,
+                    low_deriv,
+                    high_score,
+                    high_deriv,
+                ],
+                dtype=torch.float32,
+                device=pose_stack.device,
+            )[None, :]
+            self._max_dis = float(max_dis)
 
         return [
             pose_stack.min_block_bondsep,
@@ -226,7 +230,7 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack.packed_block_types.elec_inter_repr_path_distance,
             pose_stack.packed_block_types.elec_intra_repr_path_distance,
             pose_stack.packed_block_types.elec_is_ligand_fragment,
-            global_params,
+            self._scoring_global_params,
             # elec_max_dis as host scalar for detect-neighbors call
-            float(self.global_params.elec_max_dis),
+            self._max_dis,
         ]

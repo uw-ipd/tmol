@@ -48,17 +48,31 @@ class ScoreFunction:
 
         self._weights_tensor_out_of_date = True
         self._weights_tensor = None
+        self._weight_indices_tensor = None
         self._term_for_st = [None] * ScoreType.n_score_types.value
         self._param_db = param_db
         self._device = device
+        self._terms_version = 0
+        self._options_version = 0
+        self._prepared_packed_block_types = None
+        self._prepared_versions = None
+        self._setup_token = object()
 
         self.term_options = {}
 
     def set_weight(self, st: ScoreType, weight: float):
+        # Do not construct an energy term merely to assign it a zero weight.
+        # FastRelax updates its (usually disabled) constraint weight at every
+        # schedule step; constructing that term adds a device-to-host sync to
+        # every subsequent score evaluation even though it contributes zero.
+        if weight == 0 and not self.score_type_covered_by_contained_term(st):
+            self._weights[st.value] = weight
+            self._weights_tensor_out_of_date = True
+            return
         if not self.score_type_covered_by_contained_term(st):
             self.retrieve_term_for_score_type(st)
         if weight == 0 and self.term_for_st_has_no_other_non_zero_weights(st):
-            self.remove_term_for_score_type(st)  # TO DO!
+            self.remove_term_for_score_type(st)
         self._weights[st.value] = weight
         self._weights_tensor_out_of_date = True
 
@@ -66,10 +80,10 @@ class ScoreFunction:
         return self._weights[st.value]
 
     def score_type_covered_by_contained_term(self, st: ScoreType):
-        for term in self._all_terms:
-            if st in term.score_types():
-                return True
-        return False
+        # `_all_terms` is a lazily refreshed sorted cache; consulting it while
+        # weights are being populated can miss a term already present in the
+        # unordered source lists and construct duplicate term objects.
+        return self._term_for_st[st.value] is not None
 
     def retrieve_term_for_score_type(self, st: ScoreType):
         term = ScoreTermFactory.create_term_for_score_type(
@@ -82,6 +96,8 @@ class ScoreFunction:
             self._term_for_st[tst.value] = term
         self._all_terms_unordered.append(term)
         self._all_terms_out_of_date = True
+        self._weight_indices_tensor = None
+        self._terms_version += 1
         if term.n_bodies() == 1:
             self._one_body_terms_unordered.append(term)
             self._one_body_terms_out_of_date = True
@@ -98,8 +114,31 @@ class ScoreFunction:
             if st2 == st:
                 continue
             if self._weights[st2.value] != 0:
-                return True
-        return False
+                return False
+        return True
+
+    def remove_term_for_score_type(self, st: ScoreType):
+        """Remove the term containing ``st`` once all its weights are zero."""
+        term = self._term_for_st[st.value]
+        if term is None:
+            return
+
+        self._all_terms_unordered.remove(term)
+        self._all_terms_out_of_date = True
+        self._weight_indices_tensor = None
+        if term.n_bodies() == 1:
+            self._one_body_terms_unordered.remove(term)
+            self._one_body_terms_out_of_date = True
+        elif term.n_bodies() == 2:
+            self._two_body_terms_unordered.remove(term)
+            self._two_body_terms_out_of_date = True
+        else:
+            self._multi_body_terms_unordered.remove(term)
+            self._multi_body_terms_out_of_date = True
+
+        for covered_st in term.score_types():
+            self._term_for_st[covered_st.value] = None
+        self._terms_version += 1
 
     def all_terms(self):
         """Grant read access to the list of terms.
@@ -213,15 +252,31 @@ class ScoreFunction:
     def pre_work_initialization(self, pose_stack: PoseStack):
         # set_options must be first, since some of the logic that follows it
         # may depend on the options
-        for energy_term in self.all_terms():
+        terms = self.all_terms()
+        for energy_term in terms:
             energy_term.set_options(self.term_options)
 
-        for block_type in pose_stack.packed_block_types.active_block_types:
-            for energy_term in self.all_terms():
-                energy_term.setup_block_type(block_type)
-        for energy_term in self.all_terms():
-            energy_term.setup_packed_block_types(pose_stack.packed_block_types)
-        for energy_term in self.all_terms():
+        packed_block_types = pose_stack.packed_block_types
+        versions = (self._terms_version, self._options_version)
+        if not (
+            packed_block_types is self._prepared_packed_block_types
+            and versions == self._prepared_versions
+            and getattr(packed_block_types, "_score_setup_token", None)
+            is self._setup_token
+        ):
+            for block_type in packed_block_types.active_block_types:
+                for energy_term in terms:
+                    energy_term.setup_block_type(block_type)
+            for energy_term in terms:
+                energy_term.setup_packed_block_types(packed_block_types)
+            self._prepared_packed_block_types = packed_block_types
+            self._prepared_versions = versions
+            # Packed-block annotations can be score-function-specific (for
+            # example, beta2016 and beta_soft reference energies). Record a
+            # non-owning identity token so another score function using the
+            # shared object invalidates this fast path.
+            packed_block_types._score_setup_token = self._setup_token
+        for energy_term in terms:
             energy_term.setup_poses(pose_stack)
 
     def set_option(self, key: str, value):
@@ -231,6 +286,7 @@ class ScoreFunction:
         as a dictionary during pre_work_initialization.
         """
         self.term_options[key] = value
+        self._options_version += 1
 
     def set_options(self, options: Dict):
         """Set the score function options by a dict.
@@ -239,18 +295,25 @@ class ScoreFunction:
         are gone.
         """
         self.term_options = options
+        self._options_version += 1
 
     def weights_tensor(self):
         if self._weights_tensor_out_of_date:
-            self._weights_tensor = torch.tensor(
-                [
-                    self._weights[st.value]
-                    for term in self.all_terms()
-                    for st in term.score_types()
-                ],
-                dtype=torch.float32,
-                device=self._device,
-            )
+            # Keep weight collection on-device. Constructing a tensor from a
+            # Python list of CUDA scalar tensors calls ``item()`` on every
+            # entry, serializing the host with the scoring stream each time a
+            # FastRelax stage changes a weight and renders a new scorer.
+            if self._weight_indices_tensor is None:
+                self._weight_indices_tensor = torch.tensor(
+                    [
+                        st.value
+                        for term in self.all_terms()
+                        for st in term.score_types()
+                    ],
+                    dtype=torch.int64,
+                    device=self._device,
+                )
+            self._weights_tensor = self._weights[self._weight_indices_tensor]
             self._weights_tensor_out_of_date = False
         return self._weights_tensor
 
@@ -344,7 +407,11 @@ class WholePoseScoringModule:
         if sum_terms and apply_weights:
             needs_grad = torch.is_grad_enabled() and coords.requires_grad
             if needs_grad and hasattr(self, "_cuda_graphed_autograd"):
-                return self._cuda_graphed_autograd(coords)
+                # Graphed callables reuse their output storage. Optimizers such
+                # as LBFGS retain prior loss tensors across closure calls, so
+                # return owned storage rather than allowing a later replay to
+                # mutate an earlier loss.
+                return self._cuda_graphed_autograd(coords).clone()
             if not needs_grad and hasattr(self, "_cuda_graphed_forward"):
                 return self._cuda_graphed_forward(coords)
         if not torch.is_grad_enabled() and coords.requires_grad:
