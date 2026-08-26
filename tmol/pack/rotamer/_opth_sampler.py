@@ -1030,9 +1030,6 @@ class OptHSampler(ConformerSampler):
         if sampler_gbt_for_rotamer.shape[0] == 0:
             return
 
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-
         _opth_fill_dofs(
             pose_stack,
             task,
@@ -1046,6 +1043,3 @@ class OptHSampler(ConformerSampler):
             conf_dofs_kto,
             self.flip_NHQ,
         )
-
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()

@@ -28,7 +28,7 @@ def build_kinforest_network(
     start_time = time.perf_counter()
 
     kin_module = PoseStackKinematicsModule(pose_stack, ff)
-    if torch.cuda.is_available():
+    if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time1 = time.perf_counter()
 
