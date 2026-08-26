@@ -75,6 +75,11 @@ struct lk_fraction {
       wted_d2_delta += std::exp(-d2_delta);
     }
 
+    // The piecewise ramp is already clamped when the exponential sum lies
+    // outside (exp(-ramp_width_A2), 1). Avoid a logarithm in those common
+    // cases.
+    if (wted_d2_delta >= Real(1)) return Real(1);
+    if (wted_d2_delta <= std::exp(-ramp_width_A2)) return Real(0);
     wted_d2_delta = -std::log(wted_d2_delta);
 
     Real frac = 0;
@@ -108,6 +113,12 @@ struct lk_fraction {
     }
 
     Real const exp_sum = wted_d2_delta;
+    if (exp_sum >= Real(1)) {
+      return V_dV_t{Real(1), dV_t::Zero()};
+    }
+    if (exp_sum <= std::exp(-ramp_width_A2)) {
+      return V_dV_t{Real(0), dV_t::Zero()};
+    }
     wted_d2_delta = -std::log(wted_d2_delta);
 
     Real frac = 0;
@@ -185,17 +196,15 @@ struct lk_bridge_fraction {
         wted_d2_delta += std::exp(-d2_delta);
       }
     }
-    wted_d2_delta = -std::log(wted_d2_delta);
-
     Real overlapfrac;
-    if (wted_d2_delta > overlap_width_A2) {
+    if (wted_d2_delta <= std::exp(-overlap_width_A2)) {
       overlapfrac = 0;
-    } else if (wted_d2_delta > 0) {
+    } else if (wted_d2_delta >= Real(1)) {
+      overlapfrac = 1;
+    } else {
+      wted_d2_delta = -std::log(wted_d2_delta);
       // square-square -> 1 as x -> 0
       overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
-    } else {
-      // clamp the fraction to 1.
-      overlapfrac = 1;
     }
     // base angle
     Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
@@ -238,23 +247,22 @@ struct lk_bridge_fraction {
     }
 
     Real const exp_sum = wted_d2_delta;
-    wted_d2_delta = -std::log(wted_d2_delta);
 
     Real overlapfrac;
     Real d_overlapfrac_d_wted_d2;
 
-    if (wted_d2_delta > overlap_width_A2) {
-      overlapfrac = 0.0;
-      d_overlapfrac_d_wted_d2 = 0.0;
-    } else if (wted_d2_delta > 0) {
+    if (exp_sum <= std::exp(-overlap_width_A2)) {
+      return V_dV_t{Real(0), dV_t::Zero()};
+    } else if (exp_sum >= Real(1)) {
+      overlapfrac = 1;
+      d_overlapfrac_d_wted_d2 = 0;
+    } else {
+      wted_d2_delta = -std::log(wted_d2_delta);
       overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
       d_overlapfrac_d_wted_d2 =
           -4.0 * wted_d2_delta
           * (square(overlap_width_A2) - square(wted_d2_delta))
           / square(square(overlap_width_A2));
-    } else {
-      overlapfrac = 1.0;
-      d_overlapfrac_d_wted_d2 = 0.0;
     }
 
     // base angle
