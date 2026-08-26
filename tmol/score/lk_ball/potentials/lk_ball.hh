@@ -184,6 +184,14 @@ struct lk_bridge_fraction {
   static def V(
       Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist)
       -> Real {
+    // The bridge score has compact support in the base-atom separation. Test
+    // that inexpensive condition before evaluating any water-pair exponentials.
+    Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
+    Real overlap_len2 = (I - J).squaredNorm();
+    Real base_delta = fabs(overlap_len2 - overlap_target_len2);
+    if (base_delta > angle_overlap_A2) return Real(0);
+    Real anglefrac = square(1 - square(base_delta / angle_overlap_A2));
+
     // water overlap
     Real wted_d2_delta = 0.0;
     // Generated water rows are valid-first, followed by NaN padding.
@@ -206,25 +214,30 @@ struct lk_bridge_fraction {
       // square-square -> 1 as x -> 0
       overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
     }
-    // base angle
-    Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
-    Real overlap_len2 = (I - J).squaredNorm();
-    Real base_delta = fabs(overlap_len2 - overlap_target_len2);
-
-    Real anglefrac;
-    if (base_delta > angle_overlap_A2) {
-      anglefrac = 0;
-    } else {
-      // square-square -> 1 as x -> 0
-      anglefrac = square(1 - square(base_delta / angle_overlap_A2));
-    }
-
     return overlapfrac * anglefrac;
   }
 
   static def V_dV(
       Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist)
       -> V_dV_t {
+    // Reject geometrically impossible bridges before the water-overlap loop.
+    Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
+    Real3 delta_ij = I - J;
+    Real overlap_len2 = delta_ij.squaredNorm();
+    Real base_delta = overlap_len2 - overlap_target_len2;
+    if (std::abs(base_delta) > angle_overlap_A2) {
+      return V_dV_t{Real(0), dV_t::Zero()};
+    }
+    Real3 d_wted_d2_delta_d_I = 2.0 * delta_ij;
+    Real3 d_wted_d2_delta_d_J = -2.0 * delta_ij;
+    Real anglefrac = square(1 - square(base_delta / angle_overlap_A2));
+    Real d_anglefrac_d_base_delta =
+        std::abs(base_delta) > 0.0
+            ? -4.0 * base_delta
+                  * (square(angle_overlap_A2) - square(base_delta))
+                  / square(square(angle_overlap_A2))
+            : Real(0);
+
     Real wted_d2_delta = 0.0;
 
     WatersMat d_wted_d2_delta_d_WI = WatersMat::Zero();
@@ -263,29 +276,6 @@ struct lk_bridge_fraction {
           -4.0 * wted_d2_delta
           * (square(overlap_width_A2) - square(wted_d2_delta))
           / square(square(overlap_width_A2));
-    }
-
-    // base angle
-    Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
-    Real3 delta_ij = I - J;
-    Real overlap_len2 = delta_ij.squaredNorm();
-    Real base_delta = overlap_len2 - overlap_target_len2;
-    Real3 d_wted_d2_delta_d_I = 2.0 * delta_ij;
-    Real3 d_wted_d2_delta_d_J = -2.0 * delta_ij;
-
-    Real anglefrac;
-    Real d_anglefrac_d_base_delta;
-    if (std::abs(base_delta) > angle_overlap_A2) {
-      anglefrac = 0.0;
-      d_anglefrac_d_base_delta = 0.0;
-    } else if (std::abs(base_delta) > 0.0) {
-      anglefrac = square(1 - square(base_delta / angle_overlap_A2));
-      d_anglefrac_d_base_delta =
-          -4.0 * base_delta * (square(angle_overlap_A2) - square(base_delta))
-          / square(square(angle_overlap_A2));
-    } else {
-      anglefrac = 1.0;
-      d_anglefrac_d_base_delta = 0.0;
     }
 
     Real const water_derivative_scale =
