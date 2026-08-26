@@ -575,6 +575,10 @@ def prepare_ligands(  # noqa: C901
             prep = _prepare_ligand_via_smiles(
                 lig, ph=ph, sample_proton_chi=sample_proton_chi
             )
+            from tmol.ligand._polymer import specialize_component_preparation
+
+            prep, profile = specialize_component_preparation(prep, lig, param_db)
+            logger.info("Prepared %s through the %s path", lig.res_name, profile.kind)
         except LigandPreparationError:
             raise
         except Exception as err:  # noqa: BLE001  SMILES/typing/build failure

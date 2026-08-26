@@ -81,6 +81,25 @@ def _chem_comp_type_dict() -> dict[str, str]:
     return dict(zip(ids, types))
 
 
+@functools.cache
+def _chem_comp_metadata_dict() -> dict[str, tuple[str | None, str | None]]:
+    """Return CCD parent and one-letter-code metadata by component ID."""
+
+    chem_comp = ccd.get_ccd()["chem_comp"]
+    ids = chem_comp["id"].as_array(str)
+    parents = chem_comp["mon_nstd_parent_comp_id"].as_array(str)
+    one_letter_codes = chem_comp["one_letter_code"].as_array(str)
+
+    def present(value: str) -> str | None:
+        value = str(value).strip()
+        return None if value in ("", ".", "?") else value.upper()
+
+    return {
+        str(component_id).upper(): (present(parent), present(one_letter_code))
+        for component_id, parent, one_letter_code in zip(ids, parents, one_letter_codes)
+    }
+
+
 def get_chem_comp_type(res_name: str) -> Optional[str]:
     """Look up the CCD chemical component type for a residue name.
 
@@ -92,6 +111,18 @@ def get_chem_comp_type(res_name: str) -> Optional[str]:
         or None if the code is not found in the CCD.
     """
     return _chem_comp_type_dict().get(res_name.upper())
+
+
+def get_chem_comp_parent(res_name: str) -> Optional[str]:
+    """Return the CCD parent component for a modified monomer, if declared."""
+
+    return _chem_comp_metadata_dict().get(res_name.upper(), (None, None))[0]
+
+
+def get_chem_comp_one_letter_code(res_name: str) -> Optional[str]:
+    """Return a usable CCD one-letter code, if declared."""
+
+    return _chem_comp_metadata_dict().get(res_name.upper(), (None, None))[1]
 
 
 _METAL_SYMBOLS = frozenset(
