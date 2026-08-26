@@ -35,7 +35,8 @@ struct f_desolv {
       Real lk_inv_lambda2_i,
       Real lk_volume_j) -> Real {
     Real const delta = dist - lj_radius_i;
-    return lk_volume_j * lk_coeff_i / (dist * dist)
+    Real const inv_dist = 1 / dist;
+    return lk_volume_j * lk_coeff_i * inv_dist * inv_dist
            * std::exp(-delta * delta * lk_inv_lambda2_i);
   }
 
@@ -46,10 +47,11 @@ struct f_desolv {
       Real lk_inv_lambda2_i,
       Real lk_volume_j) -> V_dV_t {
     Real const delta = dist - lj_radius_i;
-    Real const desolv = lk_volume_j * lk_coeff_i / (dist * dist)
+    Real const inv_dist = 1 / dist;
+    Real const desolv = lk_volume_j * lk_coeff_i * inv_dist * inv_dist
                         * std::exp(-delta * delta * lk_inv_lambda2_i);
     Real const d_desolv_d_dist =
-        desolv * (-2 / dist - 2 * delta * lk_inv_lambda2_i);
+        desolv * (-2 * inv_dist - 2 * delta * lk_inv_lambda2_i);
     return {desolv, d_desolv_d_dist};
   }
 
