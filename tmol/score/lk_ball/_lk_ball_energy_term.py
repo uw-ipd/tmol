@@ -153,6 +153,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         bt_lj_radius = type_params.lj_radius[at].numpy()
         bt_lk_dgfree = type_params.lk_dgfree[at].numpy()
         bt_lk_lambda = type_params.lk_lambda[at].numpy()
+        bt_lk_coeff = -bt_lk_dgfree / (2 * 5.56832799683 * bt_lk_lambda)
+        bt_lk_inv_lambda2 = 1 / (bt_lk_lambda * bt_lk_lambda)
         bt_lk_volume = type_params.lk_volume[at].numpy()
         bt_is_donor = type_params.is_donor[at].numpy()
         bt_is_hydroxyl = type_params.is_hydroxyl[at].numpy()
@@ -163,8 +165,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         bt_lk_ball_at_params = numpy.stack(
             (
                 bt_lj_radius,
-                bt_lk_dgfree,
-                bt_lk_lambda,
+                bt_lk_coeff,
+                bt_lk_inv_lambda2,
                 bt_lk_volume,
                 bt_is_donor,
                 bt_is_hydroxyl,

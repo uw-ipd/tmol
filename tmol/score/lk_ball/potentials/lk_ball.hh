@@ -402,8 +402,8 @@ struct lk_ball_score {
         sigma,
         i.lj_radius,
         j.lk_volume,
-        -i.lk_dgfree / (Real(2) * Real(5.56832799683) * i.lk_lambda),
-        Real(1) / (i.lk_lambda * i.lk_lambda),
+        i.lk_coeff,
+        i.lk_inv_lambda2,
         global.distance_threshold,
         i.is_carbon_lk && j.is_carbon_lk);
     Real frac_IJ_desolv = lk_fraction<Real, MAX_WATER>::V(WI, J, j.lj_radius);
@@ -456,8 +456,8 @@ struct lk_ball_score {
         sigma,
         i.lj_radius,
         j.lk_volume,
-        -i.lk_dgfree / (Real(2) * Real(5.56832799683) * i.lk_lambda),
-        Real(1) / (i.lk_lambda * i.lk_lambda),
+        i.lk_coeff,
+        i.lk_inv_lambda2,
         global.distance_threshold,
         i.is_carbon_lk && j.is_carbon_lk);
 
@@ -558,8 +558,8 @@ struct lk_ball_score {
         sigma,
         i.lj_radius,
         j.lk_volume,
-        -i.lk_dgfree / (Real(2) * Real(5.56832799683) * i.lk_lambda),
-        Real(1) / (i.lk_lambda * i.lk_lambda),
+        i.lk_coeff,
+        i.lk_inv_lambda2,
         global.distance_threshold,
         i.is_carbon_lk && j.is_carbon_lk);
 
