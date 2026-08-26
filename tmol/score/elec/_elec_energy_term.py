@@ -165,20 +165,52 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         D = self.global_params.elec_sigmoidal_die_D
         D0 = self.global_params.elec_sigmoidal_die_D0
         S = self.global_params.elec_sigmoidal_die_S
+        min_dis = self.global_params.elec_min_dis
         max_dis = self.global_params.elec_max_dis
-        eps_at_cutoff = D - 0.5 * (D - D0) * (
-            2 + 2 * max_dis * S + max_dis * max_dis * S * S
-        ) * math.exp(-max_dis * S)
+
+        def eps(dist):
+            return D - 0.5 * (D - D0) * (
+                2 + 2 * dist * S + dist * dist * S * S
+            ) * math.exp(-dist * S)
+
+        def deps(dist):
+            return 0.5 * (D - D0) * dist * dist * S * S * S * math.exp(-dist * S)
+
+        eps_at_cutoff = eps(max_dis)
         cutoff_offset = 322.0637 / (max_dis * eps_at_cutoff)
+        min_score = 322.0637 / (min_dis * eps(min_dis)) - cutoff_offset
+
+        low_end = min_dis + 0.25
+        low_eps = eps(low_end)
+        low_score = 322.0637 / (low_end * low_eps) - cutoff_offset
+        low_deriv = (
+            -322.0637
+            * (low_eps + low_end * deps(low_end))
+            / (low_end * low_end * low_eps * low_eps)
+        )
+
+        high_start = max_dis - 1.0
+        high_eps = eps(high_start)
+        high_score = 322.0637 / (high_start * high_eps) - cutoff_offset
+        high_deriv = (
+            -322.0637
+            * (high_eps + high_start * deps(high_start))
+            / (high_start * high_start * high_eps * high_eps)
+        )
 
         global_params = torch.tensor(
             [
                 D,
                 D0,
                 S,
-                self.global_params.elec_min_dis,
+                min_dis,
                 max_dis,
                 cutoff_offset,
+                min_score,
+                low_score,
+                low_deriv,
+                high_score,
+                high_deriv,
             ],
             dtype=torch.float32,
             device=pose_stack.device,

@@ -16,6 +16,11 @@ struct ElecGlobalParams {
   Real min_dis;
   Real max_dis;
   Real cutoff_offset;
+  Real min_score;
+  Real low_score;
+  Real low_deriv;
+  Real high_score;
+  Real high_deriv;
 };
 
 }  // namespace potentials
