@@ -26,6 +26,8 @@ env:
   SLURM_EXCLUDE: g2548
   SRUN_GPU_MAX_ATTEMPTS: 5
   SRUN_GPU_RETRY_SLEEP: 10
+  # Docs exercise the allocated GPU but do not publish a binary wheel.
+  TMOL_CI_CUDA_ARCHITECTURES: native
 
 jobs:
   docs:
